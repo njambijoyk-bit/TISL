@@ -1,0 +1,30 @@
+frontend/
+├── src/
+│   ├── api/              # API calls
+│   │   ├── axios.js
+│   │   ├── auth.js
+│   │   ├── products.js
+│   │   ├── orders.js
+│   │   └── quotes.js
+│   ├── components/       # Reusable components
+│   │   ├── common/       # Buttons, inputs, etc.
+│   │   ├── layout/       # Header, Footer, Sidebar
+│   │   ├── products/     # Product cards, filters
+│   │   ├── cart/         # Shopping cart
+│   │   └── admin/        # Admin components
+│   ├── pages/            # Page components
+│   │   ├── customer/     # Customer pages
+│   │   ├── admin/        # Admin pages
+│   │   └── auth/         # Login, Register
+│   ├── store/            # Zustand stores
+│   │   ├── authStore.js
+│   │   ├── cartStore.js
+│   │   └── productStore.js
+│   ├── hooks/            # Custom hooks
+│   ├── utils/            # Helper functions
+│   ├── constants/        # Constants
+│   ├── App.jsx
+│   └── main.jsx
+├── public/
+├── .env
+└── package.json

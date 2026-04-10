@@ -1,0 +1,74 @@
+.clear-wishlist-btn {
+          background-color: #ef4444;
+          color: white;
+          border: 2px solid #fecaca;
+        }
+
+        .clear-wishlist-btn:hover {
+          background-color: #fee2e2;
+          color: #dc2626;
+          border-color: #ef4444;
+        }
+
+        .clear-wishlist-btn:active {
+          background-color: #dc2626;
+          border-color: #dc2626;
+          color: white;
+          transform: scale(0.98);
+        }
+
+        .dark .clear-wishlist-btn {
+          background-color: #991b1b;
+          color: white;
+          border-color: #991b1b;
+        }
+
+        .dark .clear-wishlist-btn:hover {
+          background-color: #1f2937;
+          color: #ef4444;
+          border-color: #991b1b;
+        }
+
+        .dark .clear-wishlist-btn:active {
+          background-color: #dc2626;
+          color: #1f2937;
+        }
+        
+
+
+        /* Clear Cart Button - Light red, hover bright red */
+        .clear-cart-btn {
+          background-color: #ef4444;
+          color: white;
+          border: 2px solid #fecaca;
+        }
+
+        .clear-cart-btn:hover {
+          background-color: #fee2e2;
+          color: #dc2626;
+          border-color: #ef4444;
+        }
+
+        .clear-cart-btn:active {
+          background-color: #dc2626;
+          border-color: #dc2626;
+          color: white;
+          transform: scale(0.98);
+        }
+
+        .dark .clear-cart-btn {
+          background-color: #991b1b;
+          color: white;
+          border-color: #991b1b;
+        }
+
+        .dark .clear-cart-btn:hover {
+          background-color: #1f2937;
+          color: #ef4444;
+          border-color: #991b1b;
+        }
+
+        .dark .clear-cart-btn:active {
+          background-color: #dc2626;
+          color: #1f2937;
+        }

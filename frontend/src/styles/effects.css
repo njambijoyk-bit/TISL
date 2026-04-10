@@ -1,0 +1,587 @@
+/* ============================================
+   VISUAL EFFECTS
+   Borders, Shadows, Opacity, Transforms, Transitions
+   (Color-specific properties removed - handled in index.css)
+   ============================================ */
+
+/* ============================================
+   BORDERS
+   ============================================ */
+
+/* Border Width */
+.border {
+  border-width: 1px;
+}
+
+.border-0 {
+  border-width: 0;
+}
+
+.border-2 {
+  border-width: 2px;
+}
+
+.border-4 {
+  border-width: 4px;
+}
+
+.border-8 {
+  border-width: 8px;
+}
+
+/* Border Side */
+.border-t {
+  border-top-width: 1px;
+}
+
+.border-r {
+  border-right-width: 1px;
+}
+
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-l {
+  border-left-width: 1px;
+}
+
+.border-x {
+  border-left-width: 1px;
+  border-right-width: 1px;
+}
+
+.border-y {
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+}
+
+/* Border Style */
+.border-solid {
+  border-style: solid;
+}
+
+.border-dashed {
+  border-style: dashed;
+}
+
+.border-dotted {
+  border-style: dotted;
+}
+
+.border-double {
+  border-style: double;
+}
+
+.border-none {
+  border-style: none;
+}
+
+/* ============================================
+   BORDER RADIUS
+   ============================================ */
+
+.rounded-none {
+  border-radius: 0;
+}
+
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded {
+  border-radius: var(--radius-md);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+.rounded-2xl {
+  border-radius: var(--radius-2xl);
+}
+
+.rounded-full {
+  border-radius: var(--radius-full);
+}
+
+/* Rounded Sides */
+.rounded-t-none {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.rounded-t-lg {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+.rounded-t-xl {
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+}
+
+.rounded-b-none {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rounded-b-lg {
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.rounded-b-xl {
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+}
+
+.rounded-l-lg {
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+
+.rounded-r-lg {
+  border-top-right-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+/* ============================================
+   BOX SHADOW
+   ============================================ */
+
+.shadow-none {
+  box-shadow: none;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+.shadow-inner {
+  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+}
+
+/* ============================================
+   OPACITY
+   ============================================ */
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.opacity-25 {
+  opacity: 0.25;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-75 {
+  opacity: 0.75;
+}
+
+.opacity-100 {
+  opacity: 1;
+}
+
+/* ============================================
+   TRANSFORMS
+   ============================================ */
+
+/* Scale */
+.scale-0 {
+  transform: scale(0);
+}
+
+.scale-50 {
+  transform: scale(0.5);
+}
+
+.scale-75 {
+  transform: scale(0.75);
+}
+
+.scale-90 {
+  transform: scale(0.9);
+}
+
+.scale-95 {
+  transform: scale(0.95);
+}
+
+.scale-100 {
+  transform: scale(1);
+}
+
+.scale-105 {
+  transform: scale(1.05);
+}
+
+.scale-110 {
+  transform: scale(1.1);
+}
+
+.scale-125 {
+  transform: scale(1.25);
+}
+
+.scale-150 {
+  transform: scale(1.5);
+}
+
+/* Rotate */
+.rotate-0 {
+  transform: rotate(0deg);
+}
+
+.rotate-45 {
+  transform: rotate(45deg);
+}
+
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.-rotate-45 {
+  transform: rotate(-45deg);
+}
+
+.-rotate-90 {
+  transform: rotate(-90deg);
+}
+
+.-rotate-180 {
+  transform: rotate(-180deg);
+}
+
+/* Translate */
+.translate-x-0 {
+  transform: translateX(0);
+}
+
+.translate-x-1 {
+  transform: translateX(0.25rem);
+}
+
+.translate-x-2 {
+  transform: translateX(0.5rem);
+}
+
+.translate-x-4 {
+  transform: translateX(1rem);
+}
+
+.-translate-x-1 {
+  transform: translateX(-0.25rem);
+}
+
+.-translate-x-2 {
+  transform: translateX(-0.5rem);
+}
+
+.-translate-x-4 {
+  transform: translateX(-1rem);
+}
+
+.translate-y-0 {
+  transform: translateY(0);
+}
+
+.translate-y-1 {
+  transform: translateY(0.25rem);
+}
+
+.translate-y-2 {
+  transform: translateY(0.5rem);
+}
+
+.translate-y-4 {
+  transform: translateY(1rem);
+}
+
+.-translate-y-1 {
+  transform: translateY(-0.25rem);
+}
+
+.-translate-y-2 {
+  transform: translateY(-0.5rem);
+}
+
+.-translate-y-4 {
+  transform: translateY(-1rem);
+}
+
+/* ============================================
+   TRANSITIONS
+   ============================================ */
+
+.transition {
+  transition-property: all;
+  transition-duration: var(--transition-base);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-none {
+  transition-property: none;
+}
+
+.transition-all {
+  transition-property: all;
+  transition-duration: var(--transition-base);
+}
+
+.transition-colors {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: var(--transition-base);
+}
+
+.transition-opacity {
+  transition-property: opacity;
+  transition-duration: var(--transition-base);
+}
+
+.transition-shadow {
+  transition-property: box-shadow;
+  transition-duration: var(--transition-base);
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-duration: var(--transition-base);
+}
+
+/* Duration */
+.duration-75 {
+  transition-duration: 75ms;
+}
+
+.duration-100 {
+  transition-duration: 100ms;
+}
+
+.duration-150 {
+  transition-duration: var(--transition-fast);
+}
+
+.duration-200 {
+  transition-duration: var(--transition-base);
+}
+
+.duration-300 {
+  transition-duration: var(--transition-slow);
+}
+
+.duration-500 {
+  transition-duration: 500ms;
+}
+
+.duration-700 {
+  transition-duration: 700ms;
+}
+
+.duration-1000 {
+  transition-duration: 1000ms;
+}
+
+/* Timing Function */
+.ease-linear {
+  transition-timing-function: linear;
+}
+
+.ease-in {
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+.ease-out {
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.ease-in-out {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   CURSOR
+   ============================================ */
+
+.cursor-auto {
+  cursor: auto;
+}
+
+.cursor-default {
+  cursor: default;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-wait {
+  cursor: wait;
+}
+
+.cursor-text {
+  cursor: text;
+}
+
+.cursor-move {
+  cursor: move;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* ============================================
+   POINTER EVENTS
+   ============================================ */
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* ============================================
+   USER SELECT
+   ============================================ */
+
+.select-none {
+  user-select: none;
+}
+
+.select-text {
+  user-select: text;
+}
+
+.select-all {
+  user-select: all;
+}
+
+.select-auto {
+  user-select: auto;
+}
+
+/* ============================================
+   BACKDROP FILTER
+   ============================================ */
+
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur {
+  backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+}
+
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+}
+
+/* ============================================
+   HOVER EFFECTS (Non-color)
+   ============================================ */
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.hover\:scale-110:hover {
+  transform: scale(1.1);
+}
+
+.hover\:shadow-lg:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.hover\:shadow-xl:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.hover\:-translate-y-1:hover {
+  transform: translateY(-0.25rem);
+}
+
+.hover\:-translate-y-2:hover {
+  transform: translateY(-0.5rem);
+}
+
+/* ============================================
+   FOCUS EFFECTS (Non-color)
+   ============================================ */
+
+.focus\:outline-none:focus {
+  outline: none;
+}
+
+/* ============================================
+   ACTIVE EFFECTS
+   ============================================ */
+
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+.active\:translate-y-0:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   DISABLED EFFECTS
+   ============================================ */
+
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
+}
+
+.disabled\:cursor-not-allowed:disabled {
+  cursor: not-allowed;
+}
+
+.disabled\:pointer-events-none:disabled {
+  pointer-events: none;
+}

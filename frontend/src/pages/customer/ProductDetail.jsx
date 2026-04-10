@@ -1,0 +1,717 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import {
+  ShoppingCart,
+  Star,
+  Truck,
+  Shield,
+  Award,
+  Package,
+  Tag,
+  Sparkles,
+  FileText,
+  Wand2,
+  WalletCards,
+  ShoppingBag,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
+
+import Header from '../../components/layout/Header';
+import Footer from '../../components/layout/Footer';
+import Breadcrumb from '../../components/layout/Breadcrumb';
+import Button from '../../components/common/Button';
+import Badge from '../../components/common/Badge';
+import ProductCard from '../../components/products/ProductCard';
+import ReviewCard from '../../components/products/ReviewCard';
+import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import useWishlistStore from '../../store/wishlistStore';
+
+import { productsAPI } from '../../api';
+import { useCartStore, useProductStore, useAuthStore } from '../../store';
+import toast from 'react-hot-toast';
+
+export default function ProductDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [activeTab, setActiveTab] = useState('description');
+  
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
+  const handleImageError = (idx) => setImageErrors(prev => ({ ...prev, [idx]: true }));
+
+  const { addItem } = useCartStore();
+  const { setCurrentProduct } = useProductStore();
+  const { toggle, has } = useWishlistStore();
+  const wished = Boolean(product?.id) ? has(product.id) : false;
+  const { isAuthenticated } = useAuthStore();
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/placeholder-product.png';
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
+    if (imagePath.startsWith('/storage/')) return `http://localhost:8000${imagePath}`;
+    if (imagePath.startsWith('storage/')) return `http://localhost:8000/${imagePath}`;
+    return `http://localhost:8000/storage/${imagePath}`;
+  };
+
+  useEffect(() => { setImageErrors({}); fetchProductData(); }, [id]);
+
+  const fetchProductData = async () => {
+    try {
+      setLoading(true);
+      const [productRes, relatedRes] = await Promise.all([
+        productsAPI.getProduct(id),
+        productsAPI.getRelatedProducts(id),
+      ]);
+      const productData = productRes?.product || productRes;
+      setProduct(productData);
+      setCurrentProduct(productData);
+      setReviews(Array.isArray(productData?.reviews) ? productData.reviews : []);
+
+      const normalizeRelatedProduct = (p) => {
+        const rawMain = p?.main_image_url ?? p?.mainimageurl ?? p?.mainimage ?? p?.main_image ?? null;
+        const rawAdditional = p?.additional_images ?? p?.additionalimages ?? p?.images ?? [];
+        return {
+          ...p,
+          main_image_url: rawMain ? getImageUrl(rawMain) : null,
+          additional_images: Array.isArray(rawAdditional) ? rawAdditional.map(getImageUrl) : [],
+        };
+      };
+
+      const relatedArray = Array.isArray(relatedRes?.products) ? relatedRes.products
+        : Array.isArray(relatedRes?.data) ? relatedRes.data
+        : Array.isArray(relatedRes) ? relatedRes : [];
+      setRelatedProducts(relatedArray.map(normalizeRelatedProduct));
+    } catch (error) {
+      console.error('Failed to fetch product:', error);
+      toast.error('Failed to load product');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = () => {
+    const inStock = product?.in_stock ?? product?.instock ?? false;
+    if (!inStock) { toast.error('Product is out of stock'); return; }
+    addItem({ ...product, selectedVariant }, quantity);
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+    toast.success(`${product?.name} added to cart!`);
+  };
+
+  const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
+  const handleRequestQuote = () => { navigate(`/quotes?product=${product?.id}`); };
+  const handleToggleWishlist = (e) => {
+    e.stopPropagation();
+    if (!product?.id) return;
+    toggle(product.id);
+    toast.success(wished ? 'Removed from wishlist' : 'Added to wishlist');
+  };
+  const handleMarkHelpful = async (reviewId) => {
+    try { await productsAPI.markReviewHelpful(reviewId); toast.success('Thank you!'); fetchProductData(); }
+    catch { toast.error('Failed to mark review as helpful'); }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <LoadingSpinner size="lg" />
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!product) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+            <Button onClick={() => navigate('/products')}>Back to Products</Button>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  const isNew = product?.is_new ?? product?.isnew ?? 0;
+  const onSale = product?.on_sale ?? product?.onsale ?? 0;
+  const isFeatured = product?.is_featured ?? product?.isfeatured ?? 0;
+  const averageRating = parseFloat(product?.average_rating ?? product?.averagerating ?? 0);
+  const totalReviews = product?.total_reviews ?? product?.totalreviews ?? 0;
+  const inStock = product?.in_stock ?? product?.instock ?? false;
+  const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
+  const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
+  const additionalImages = product?.additional_images ?? product?.additionalimages ?? [];
+  const productImages = [
+    product?.main_image_url, product?.mainimageurl, product?.main_image, product?.mainimage,
+    ...(Array.isArray(additionalImages) ? additionalImages : []),
+    ...(Array.isArray(product?.images) ? product.images : []),
+  ].filter(Boolean);
+  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const originalPrice = selectedVariant?.original_price ?? selectedVariant?.originalprice ?? product?.original_price ?? product?.originalprice ?? null;
+  const discountPercentage = product?.discount_percentage ?? product?.discountpercentage ??
+    (originalPrice && Number(originalPrice) > Number(currentPrice)
+      ? Math.round(((Number(originalPrice) - Number(currentPrice)) / Number(originalPrice)) * 100) : null);
+
+  const hasVariants = product?.has_variants ?? product?.hasvariants ?? false;
+  const variants = product?.variants;
+  const hasSpecs = product?.specifications && Object.keys(product.specifications).length > 0;
+  const hasDescription = (product?.description ?? '').length > 0;
+
+  const tabs = [
+    ...(hasDescription ? [{ id: 'description', label: 'Description' }] : []),
+    ...(hasSpecs ? [{ id: 'specs', label: 'Specifications' }] : []),
+    ...(reviews.length > 0 ? [{ id: 'reviews', label: `Reviews (${totalReviews})` }] : [{ id: 'reviews', label: 'Reviews' }]),
+  ];
+
+  return (
+    <>
+    <Helmet>
+      <title>{product.name} — TISL Store</title>
+      <meta name="description" content={
+        (product?.short_description ?? product?.shortdescription ?? product?.description ?? '')
+          .slice(0, 155) || `Buy ${product.name} at TISL Store.`
+      } />
+      <meta property="og:title" content={product.name} />
+      <meta property="og:description" content={
+        (product?.short_description ?? product?.shortdescription ?? product?.description ?? '').slice(0, 155)
+      } />
+      <meta property="og:image" content={
+        product?.main_image_url ?? product?.mainimageurl ?? product?.main_image ?? ''
+      } />
+      <meta property="og:type" content="product" />
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.name,
+        "description": product?.description ?? '',
+        "image": product?.main_image_url ?? product?.mainimageurl ?? product?.main_image ?? '',
+        "brand": {
+          "@type": "Brand",
+          "name": product?.brand?.name ?? "TISL"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": currentPrice,
+          "priceCurrency": "KES",
+          "availability": inStock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock"
+        },
+        ...(averageRating > 0 && {
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": averageRating.toFixed(1),
+            "reviewCount": totalReviews
+          }
+        })
+      })}</script>
+    </Helmet>
+      <Header />
+
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+          {/* Breadcrumb */}
+          <div className="mb-6">
+            <Breadcrumb
+              items={[
+                { label: 'Home', path: '/' },
+                { label: 'Products', path: '/products' },
+                product?.category?.name ? { label: product.category.name, path: `/products?category=${product?.category?.id}` } : null,
+                { label: product?.name || 'Product Details' },
+              ].filter(Boolean)}
+            />
+          </div>
+
+          {/* ── MAIN PRODUCT GRID ─────────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '4rem', alignItems: 'start' }}>
+
+            {/* ── LEFT: IMAGE GALLERY ── */}
+            <div>
+              <div className="sticky top-6">
+                {/* Main image */}
+                <div style={{ position: 'relative', background: '#fff', borderRadius: 16, overflow: 'hidden', aspectRatio: '1 / 1' }}>
+                  {/* Badges */}
+                  <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {isNew == 1 && (
+                      <span style={badgeStyle('#059669', '#d1fae5')}>
+                        <Sparkles size={11} /> New
+                      </span>
+                    )}
+                    {onSale == 1 && discountPercentage && (
+                      <span style={badgeStyle('#dc2626', '#fee2e2')}>
+                        -{discountPercentage}%
+                      </span>
+                    )}
+                    {isFeatured == 1 && (
+                      <span style={badgeStyle('#7c3aed', '#ede9fe')}>
+                        <Star size={11} /> Featured
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Wishlist */}
+                  <button
+                    onClick={handleToggleWishlist}
+                    style={{
+                      position: 'absolute', top: 16, right: 16, zIndex: 10,
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: 'white', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      transition: 'transform 150ms ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <Heart
+                      size={18}
+                      style={{ color: wished ? '#ef4444' : '#9ca3af', fill: wished ? '#ef4444' : 'none', transition: 'all 200ms' }}
+                    />
+                  </button>
+
+                  {/* Arrow nav */}
+                  {productImages.length > 1 && (
+                    <>
+                      <button onClick={() => setSelectedImage(i => (i - 1 + productImages.length) % productImages.length)}
+                        style={{ ...arrowBtn, left: 12 }}>
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button onClick={() => setSelectedImage(i => (i + 1) % productImages.length)}
+                        style={{ ...arrowBtn, right: 12 }}>
+                        <ChevronRight size={18} />
+                      </button>
+                    </>
+                  )}
+
+                  {imageErrors[selectedImage] || !productImages[selectedImage] ? (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 12 }}>
+                      <Package size={64} style={{ color: '#d1d5db' }} />
+                      <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>No image available</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={getImageUrl(productImages[selectedImage])}
+                      alt={product?.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 200ms ease' }}
+                      onError={() => handleImageError(selectedImage)}
+                    />
+                  )}
+                </div>
+
+                {/* Thumbnails */}
+                {productImages.length > 1 && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    {productImages.map((img, idx) => {
+                      const hasError = imageErrors[idx];
+                      return hasError ? (
+                        // Failed image — show Package icon, non-clickable
+                        <div
+                          key={idx}
+                          style={{
+                            width: 64, height: 64, borderRadius: 10, overflow: 'hidden',
+                            border: '2px solid #e5e7eb', background: '#f9fafb',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Package size={22} style={{ color: '#d1d5db' }} />
+                        </div>
+                      ) : (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedImage(idx)}
+                          style={{
+                            width: 64, height: 64, borderRadius: 10, overflow: 'hidden',
+                            border: selectedImage === idx ? '2px solid #a855f7' : '2px solid transparent',
+                            background: '#fff', padding: 0, cursor: 'pointer',
+                            boxShadow: selectedImage === idx ? '0 0 0 3px rgba(168,85,247,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+                            transition: 'all 150ms ease', flexShrink: 0,
+                          }}
+                        >
+                          <img
+                            src={getImageUrl(img)}
+                            alt={`View ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={() => handleImageError(idx)}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── RIGHT: PRODUCT INFO ── */}
+            <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                {/* Category + Brand pills */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {product?.category && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <Tag size={10} /> {product.category.name}
+                    </span>
+                  )}
+                  {product?.brand && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#374151', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <Award size={10} /> {product.brand.name}
+                    </span>
+                  )}
+                  {product?.sku && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 600, color: '#9ca3af', background: 'transparent', borderRadius: 20, padding: '4px 10px', letterSpacing: '0.04em' }}>
+                      SKU: {product.sku}
+                    </span>
+                  )}
+                </div>
+
+                {/* Product name */}
+                <div>
+                  <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.2, margin: 0, letterSpacing: '-0.02em' }}>
+                    {product?.name}
+                  </h1>
+                  {(product?.short_description ?? product?.shortdescription) && (
+                    <p style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: 8, lineHeight: 1.6 }}>
+                      {product?.short_description ?? product?.shortdescription}
+                    </p>
+                  )}
+                </div>
+
+                {/* Rating row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={15} style={{ color: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb', fill: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb' }} />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{averageRating.toFixed(1)}</span>
+                  <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>({totalReviews} reviews)</span>
+                </div>
+
+                {/* Price block */}
+                <div style={{ padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+                  {onSale == 1 && originalPrice ? (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em' }}>
+                        KSh {Number(currentPrice).toLocaleString()}
+                      </span>
+                      <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
+                        KSh {Number(originalPrice).toLocaleString()}
+                      </span>
+                      {discountPercentage && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', background: '#fee2e2', padding: '3px 8px', borderRadius: 6 }}>
+                          SAVE {discountPercentage}%
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.03em' }}>
+                      KSh {Number(currentPrice).toLocaleString()}
+                    </span>
+                  )}
+                  {isPriceNegotiable && (
+                    <button type="button" onClick={handleRequestQuote}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
+                      Price is negotiable — request a quote
+                    </button>
+                  )}
+                </div>
+
+                {/* Stock status */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: inStock ? '#10b981' : '#ef4444', boxShadow: inStock ? '0 0 0 3px rgba(16,185,129,0.2)' : '0 0 0 3px rgba(239,68,68,0.2)' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: inStock ? '#059669' : '#dc2626' }}>
+                    {inStock ? 'In Stock — Ready to Ship' : 'Out of Stock'}
+                  </span>
+                </div>
+
+                {/* Variants */}
+                {hasVariants && Array.isArray(variants) && variants.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                      Available Options
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {variants.map((variant, idx) => {
+                        const label = typeof variant === 'string' ? variant : variant?.name || `Option ${idx + 1}`;
+                        const vPrice = typeof variant === 'object' ? variant?.price : null;
+                        const isSelected = selectedVariant === variant;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedVariant(variant)}
+                            type="button"
+                            style={{
+                              padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600,
+                              border: isSelected ? '2px solid #a855f7' : '2px solid #e5e7eb',
+                              background: isSelected ? '#a855f7' : 'white',
+                              color: isSelected ? 'white' : '#374151',
+                              cursor: 'pointer', transition: 'all 150ms ease',
+                              boxShadow: isSelected ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                            }}
+                          >
+                            {label}{vPrice && <span style={{ marginLeft: 6, opacity: 0.8, fontSize: '0.75rem' }}>KSh {Number(vPrice).toLocaleString()}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity + Actions */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Quantity selector */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Qty</p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', border: '1.5px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: 'white' }}>
+                      <button
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        type="button"
+                        style={{ width: 36, height: 36, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >−</button>
+                      <span style={{ width: 40, textAlign: 'center', fontSize: '0.9rem', fontWeight: 700, color: '#111827' }}>{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(q => q + 1)}
+                        type="button"
+                        style={{ width: 36, height: 36, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* CTA buttons */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={!inStock}
+                      type="button"
+                      style={{
+                        flex: 1, height: 48, borderRadius: 12, border: '2px solid #111827',
+                        background: addedToCart ? '#111827' : 'white',
+                        color: addedToCart ? 'white' : '#111827',
+                        fontSize: '0.85rem', fontWeight: 700, cursor: inStock ? 'pointer' : 'not-allowed',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {addedToCart ? <><Check size={16} /> Added!</> : <><ShoppingCart size={16} /> Add to Cart</>}
+                    </button>
+
+                    <button
+                      onClick={handleBuyNow}
+                      disabled={!inStock}
+                      type="button"
+                      style={{
+                        flex: 1, height: 48, borderRadius: 12, border: 'none',
+                        background: inStock ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#e5e7eb',
+                        color: 'white', fontSize: '0.85rem', fontWeight: 700,
+                        cursor: inStock ? 'pointer' : 'not-allowed',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: inStock ? '0 4px 15px rgba(168,85,247,0.35)' : 'none',
+                        transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <ShoppingBag size={16} /> Buy Now
+                    </button>
+                  </div>
+
+                  {isPriceNegotiable && (
+                    <button
+                      onClick={handleRequestQuote}
+                      type="button"
+                      style={{
+                        width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #3b82f6',
+                        background: 'transparent', color: '#3b82f6',
+                        fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        transition: 'all 150ms ease', letterSpacing: '0.04em',
+                      }}
+                    >
+                      <FileText size={16} /> Request a Quote
+                    </button>
+                  )}
+                </div>
+
+                {/* Trust strip */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
+                  {[
+                    { icon: <Truck size={16} />, label: 'Free Delivery', sub: 'Orders over KSh 5,000' },
+                    { icon: <Shield size={16} />, label: 'Secure Payment', sub: '100% protected' },
+                    { icon: <Package size={16} />, label: 'Easy Returns', sub: '30-day policy' },
+                  ].map((item, i) => (
+                    <div key={i} style={{ textAlign: 'center', padding: '10px 8px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
+                      <div style={{ color: '#a855f7', display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{item.icon}</div>
+                      <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', margin: 0 }}>{item.label}</p>
+                      <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Key features */}
+                {Array.isArray(product?.features) && product.features.length > 0 && (
+                  <div style={{ background: 'white', borderRadius: 12, padding: '16px 18px', border: '1px solid #f3f4f6' }}>
+                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Key Features</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {product.features.slice(0, 5).map((feature, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                            <Check size={10} style={{ color: '#a855f7' }} />
+                          </span>
+                          <span style={{ fontSize: '0.83rem', color: '#374151', lineHeight: 1.4 }}>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+
+          {/* ── TABS SECTION ─────────────────────────────────────────────────── */}
+          {tabs.length > 0 && (
+            <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 48 }}>
+              {/* Tab headers */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px' }}>
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    type="button"
+                    style={{
+                      padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700,
+                      color: activeTab === tab.id ? '#a855f7' : '#6b7280',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      borderBottom: activeTab === tab.id ? '2px solid #a855f7' : '2px solid transparent',
+                      marginBottom: -1, transition: 'all 150ms ease', letterSpacing: '0.02em',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              <div style={{ padding: '32px' }}>
+                {activeTab === 'description' && hasDescription && (
+                  <div style={{ maxWidth: 720 }}>
+                    <div style={{ fontSize: '0.95rem', color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
+                      {product?.description}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'specs' && hasSpecs && (
+                  <div style={{ maxWidth: 720 }}>
+                    <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #f3f4f6' }}>
+                      {Object.entries(product.specifications).map(([key, value], idx) => (
+                        <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', background: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
+                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', fontWeight: 700, color: '#374151', borderRight: '1px solid #f3f4f6', textTransform: 'capitalize' }}>
+                            {String(key).replace(/_/g, ' ')}
+                          </div>
+                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', color: '#6b7280' }}>
+                            {String(value)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <div>
+                    {/* Rating summary */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, padding: '20px 24px', background: '#fefce8', borderRadius: 12, border: '1px solid #fef08a' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '3rem', fontWeight: 800, color: '#111827', lineHeight: 1 }}>
+                          {averageRating.toFixed(1)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 4 }}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} size={14} style={{ color: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb', fill: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb' }} />
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 4 }}>{totalReviews} reviews</div>
+                      </div>
+                    </div>
+
+                    {reviews.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {reviews.map(review => (
+                          <ReviewCard key={review?.id} review={review} onMarkHelpful={handleMarkHelpful} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9ca3af' }}>
+                        <Star size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                        <p style={{ fontWeight: 600, marginBottom: 4 }}>No reviews yet</p>
+                        <p style={{ fontSize: '0.85rem' }}>Be the first to review this product!</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── RELATED PRODUCTS ─────────────────────────────────────────────── */}
+          {relatedProducts.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', margin: 0 }}>
+                  You May Also Like
+                </h2>
+                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedProducts.length} items</span>
+              </div>
+              <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+                {relatedProducts.map(rp => (
+                  <ProductCard key={rp?.id} product={rp} />
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const badgeStyle = (color, bg) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+  fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em',
+  color, background: bg, padding: '4px 10px', borderRadius: 20,
+  textTransform: 'uppercase',
+});
+
+const arrowBtn = {
+  position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+  width: 36, height: 36, borderRadius: '50%', background: 'white',
+  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.15)', color: '#374151',
+  transition: 'transform 150ms ease',
+};
