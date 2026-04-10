@@ -268,10 +268,10 @@ export default function Header() {
       }} className="dark:bg-gray-900 dark:border-gray-700">
 
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="header-container" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 12px', height: 56, display: 'flex', alignItems: 'center', gap: 6 }}>
 
           {/* Logo */}
-          <Link to="/" style={{ fontWeight: 900, fontSize: '1.3rem', color: '#a855f7', textDecoration: 'none', letterSpacing: '-0.03em', flexShrink: 0 }}>
+          <Link to="/" className="header-logo" style={{ fontWeight: 900, fontSize: '1.15rem', color: '#a855f7', textDecoration: 'none', letterSpacing: '-0.03em', flexShrink: 0 }}>
             BLUEARC
           </Link>
 
@@ -398,62 +398,64 @@ export default function Header() {
           </nav>
 
           {/* ── Right icons ──────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto' }}>
 
             {/* Search */}
             <button type="button" onClick={() => setSearchOpen(s => !s)}
-              style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
-              className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Search size={17} />
+              className="header-icon-btn dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              style={{ width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}>
+              <Search size={16} />
             </button>
 
-            <ThemeSwitcher />
+            <span className="hidden-mobile">
+              <ThemeSwitcher />
+            </span>
 
-            {/* Wishlist */}
-            <Link to="/wishlist" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
-              className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Heart size={17} />
+            {/* Wishlist - hidden on small mobile */}
+            <Link to="/wishlist" className="header-icon-btn hidden-xs dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              style={{ position: 'relative', width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}>
+              <Heart size={16} />
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
 
-            {/* Quote list */}
-            <Link to="/quote-list" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
-              className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            {/* Quote list - hidden on mobile */}
+            <Link to="/quote-list" className="header-icon-btn hidden-mobile dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              style={{ position: 'relative', width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
               title="Quote List">
-              <ClipboardList size={17} />
+              <ClipboardList size={16} />
               {quoteListCount > 0 && <Badge count={quoteListCount} color="#7c3aed" />}
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
-              className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <ShoppingCart size={17} />
+            <Link to="/cart" className="header-icon-btn dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              style={{ position: 'relative', width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}>
+              <ShoppingCart size={16} />
               {cartCount > 0 && <Badge count={cartCount} />}
             </Link>
 
             {/* User menu */}
             {isAuthenticated ? (
-              <div style={{ position: 'relative' }} ref={userMenuRef}>
+              <div style={{ position: 'relative' }} ref={userMenuRef} className="hidden-mobile">
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(o => !o)}
+                  className="user-menu-btn dark:bg-gray-800 dark:border-gray-600 hover:border-purple-400"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    padding: '5px 10px 5px 5px', borderRadius: 24,
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 8px 4px 4px', borderRadius: 20,
                     border: '1.5px solid #e5e7eb', background: 'white',
                     cursor: 'pointer', transition: 'all 150ms',
                   }}
-                  className="dark:bg-gray-800 dark:border-gray-600 hover:border-purple-400"
                 >
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'white' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'white' }}>
                       {(user?.name || user?.email || 'U')[0].toUpperCase()}
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="dark:text-gray-200">
+                  <span className="user-name-text dark:text-gray-200" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user?.name?.split(' ')[0] || 'Account'}
                   </span>
-                  <ChevronDown size={12} style={{ color: '#9ca3af', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
+                  <ChevronDown size={11} style={{ color: '#9ca3af', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
                 </button>
 
                 {userMenuOpen && (
@@ -529,11 +531,11 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div className="auth-buttons" style={{ display: 'flex', gap: 6 }}>
-                <Link to="/login" className="auth-btn-signin" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }}>
+              <div className="auth-buttons hidden-mobile" style={{ display: 'flex', gap: 4 }}>
+                <Link to="/login" className="auth-btn-signin" style={{ padding: '5px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }}>
                   Sign In
                 </Link>
-                <Link to="/register" className="auth-btn-register hidden sm:block" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
+                <Link to="/register" className="auth-btn-register" style={{ padding: '5px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
                   Register
                 </Link>
               </div>
@@ -541,9 +543,9 @@ export default function Header() {
 
             {/* Mobile menu toggle */}
             <button type="button" onClick={() => setMobileOpen(o => !o)}
-              style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
-              className="show-mobile dark:text-gray-200">
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              className="mobile-menu-toggle show-mobile dark:text-gray-200"
+              style={{ width: 36, height: 36, borderRadius: 8, display: 'none', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}>
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
@@ -572,19 +574,18 @@ export default function Header() {
 
         {/* ── Mobile menu ──────────────────────────────────────────────────── */}
         {mobileOpen && (
-          <div style={{ borderTop: '1px solid #f3f4f6', background: 'white', maxHeight: '80vh', overflowY: 'auto' }} className="dark:bg-gray-900 dark:border-gray-700">
-            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ borderTop: '1px solid #f3f4f6', background: 'white', maxHeight: 'calc(100vh - 52px)', overflowY: 'auto' }} className="dark:bg-gray-900 dark:border-gray-700">
+            <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 1 }}>
               {[
                 { label: 'Home', to: '/' },
                 { label: 'Products', to: '/products' },
                 { label: 'Services', to: '/services' },
-                { label: '🔥 Specials', to: '/specials' },
+                { label: 'Specials', to: '/specials' },
                 { label: 'About', to: '/about' },
                 { label: 'Contact', to: '/contact' },
-                { label: 'Manual', to: '/manual' },
               ].map(l => (
                 <Link key={l.to} to={l.to}
-                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, color: isActive(l.to) ? '#a855f7' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'rgba(168,85,247,0.08)' : 'transparent' }}
+                  style={{ padding: '12px 14px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 600, color: isActive(l.to) ? '#a855f7' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'rgba(168,85,247,0.08)' : 'transparent', minHeight: 44 }}
                   className="dark:text-gray-200">
                   {l.label}
                 </Link>
@@ -592,15 +593,15 @@ export default function Header() {
 
               {isAuthenticated && (
                 <>
-                  <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>My Account</p>
+                  <div style={{ height: 1, background: '#f3f4f6', margin: '10px 0 6px' }} className="dark:bg-gray-700" />
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 14px' }}>My Account</p>
                   {customerLinks
                   .filter(link => !isAdmin || ['My Profile'].includes(link.label))
                   .map(l => (
                     <Link key={l.to} to={l.to}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '0.88rem', fontWeight: 500, color: '#374151', textDecoration: 'none', minHeight: 44 }}
                       className="dark:text-gray-300">
-                      <l.icon size={15} style={{ color: '#a855f7' }} /> {l.label}
+                      <l.icon size={18} style={{ color: '#a855f7' }} /> {l.label}
                     </Link>
                   ))}
                 </>
@@ -608,27 +609,32 @@ export default function Header() {
 
               {isAdmin && (
                 <>
-                  <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>
-                  {adminGroups.flatMap(g => g.items).map(item => (
+                  <div style={{ height: 1, background: '#f3f4f6', margin: '10px 0 6px' }} className="dark:bg-gray-700" />
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 14px' }}>Admin</p>
+                  {adminGroups.flatMap(g => g.items).slice(0, 6).map(item => (
                     <Link key={item.to} to={item.to}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.83rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '0.88rem', fontWeight: 500, color: '#374151', textDecoration: 'none', minHeight: 44 }}
                       className="dark:text-gray-300">
-                      <item.icon size={14} style={{ color: '#a855f7' }} /> {item.label}
+                      <item.icon size={18} style={{ color: '#a855f7' }} /> {item.label}
                     </Link>
                   ))}
+                  <Link to="/admin"
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '0.88rem', fontWeight: 600, color: '#a855f7', textDecoration: 'none', minHeight: 44 }}
+                    className="dark:text-purple-400">
+                    View All Admin
+                  </Link>
                 </>
               )}
 
               {isAuthenticated ? (
                 <button type="button" onClick={handleLogout}
-                  style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
-                  <LogOut size={15} /> Sign Out
+                  style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 600, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', width: '100%', minHeight: 44 }}>
+                  <LogOut size={18} /> Sign Out
                 </button>
               ) : (
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <Link to="/login" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb' }}>Sign In</Link>
-                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)' }}>Register</Link>
+                <div style={{ display: 'flex', gap: 10, marginTop: 12, padding: '0 2px' }}>
+                  <Link to="/login" style={{ flex: 1, textAlign: 'center', padding: '12px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Sign In</Link>
+                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '12px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Register</Link>
                 </div>
               )}
             </div>
@@ -637,20 +643,25 @@ export default function Header() {
       </header>
 
       <style>{`
+        /* Mobile breakpoint - hide nav, show hamburger */
         @media (max-width: 768px) {
           .hidden-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
+          .header-container { padding: 0 10px !important; height: 52px !important; }
+          .header-logo { font-size: 1.1rem !important; }
+          .header-actions { gap: 1px !important; }
+          .header-icon-btn { width: 32px !important; height: 32px !important; }
         }
         @media (min-width: 769px) {
           .show-mobile { display: none !important; }
         }
+        /* Extra small - hide wishlist icon */
         @media (max-width: 480px) {
-          .auth-buttons { gap: 4px; }
-          .auth-btn-signin { padding: 5px 10px !important; font-size: 0.72rem !important; }
-          .auth-btn-register { padding: 5px 10px !important; font-size: 0.72rem !important; }
-        }
-        @media (max-width: 639px) {
-          .auth-btn-register { display: none !important; }
+          .hidden-xs { display: none !important; }
+          .header-container { padding: 0 8px !important; height: 48px !important; gap: 4px !important; }
+          .header-logo { font-size: 1rem !important; }
+          .header-icon-btn { width: 30px !important; height: 30px !important; }
+          .mobile-menu-toggle { width: 34px !important; height: 34px !important; }
         }
       `}</style>
     </>
