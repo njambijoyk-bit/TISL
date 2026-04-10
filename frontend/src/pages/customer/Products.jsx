@@ -176,20 +176,20 @@ export default function Products() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
      
       <Header />
-      <div className="w-full px-4 py-6">
+      <div className="w-full px-3 sm:px-4 py-4 sm:py-6">
         <Breadcrumb items={[{ label: 'Products', href: '/products' }]} />
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Products</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Products</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontSize: '0.85rem' }}>
               {loading ? 'Loading…' : `${totalCount.toLocaleString()} product${totalCount !== 1 ? 's' : ''} found`}
             </p>
           </div>
-          <div style={toggleStyles.wrap}>
-            <button type="button" onClick={() => setViewMode('large')} style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive) }}><LayoutGrid size={15} /> Large</button>
-            <button type="button" onClick={() => setViewMode('collapsed')} style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive) }}><List size={15} /> Compact</button>
+          <div style={toggleStyles.wrap} className="self-start sm:self-auto">
+            <button type="button" onClick={() => setViewMode('large')} style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive) }}><LayoutGrid size={15} /> <span className="hidden xs:inline">Large</span></button>
+            <button type="button" onClick={() => setViewMode('collapsed')} style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive) }}><List size={15} /> <span className="hidden xs:inline">Compact</span></button>
           </div>
         </div>
 
@@ -235,11 +235,11 @@ export default function Products() {
         ) : viewMode === 'large' ? (
           <ProductGrid products={products || []} loading={loading} error={null} />
         ) : loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+          <div className="products-compact-grid" style={{ display: 'grid', gap: 8 }}>
             {Array.from({ length: 12 }).map((_, i) => <CollapsedProductSkeleton key={i} />)}
           </div>
         ) : products?.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+          <div className="products-compact-grid" style={{ display: 'grid', gap: 8 }}>
             {products.map((p) => <CollapsedProductCard key={p.id} product={p} />)}
           </div>
         ) : (
@@ -310,6 +310,21 @@ export default function Products() {
         .dark .pagination-btn { border-color: #4b5563; color: #d1d5db; background-color: #1f2937; }
         .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: #d8b4fe; color: #d8b4fe; }
         .dark .pagination-btn.active { background-color: #7e22ce; color: white; border-color: #7e22ce; }
+        
+        /* Responsive product grids */
+        .products-compact-grid {
+          grid-template-columns: 1fr;
+        }
+        @media (min-width: 480px) {
+          .products-compact-grid {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          }
+        }
+        
+        /* Hide text on very small screens */
+        @media (max-width: 400px) {
+          .hidden-xs { display: none; }
+        }
       `}</style>
     </div>
   );

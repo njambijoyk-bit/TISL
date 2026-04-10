@@ -175,7 +175,7 @@ export default function Login() {
         </div>
 
         {/* ── RIGHT PANEL — form ─────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-gray-800" style={{ padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="tisl-form-panel bg-white dark:bg-gray-800" style={{ padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
           {/* Heading */}
           <div style={{ marginBottom: 28 }}>
@@ -340,6 +340,17 @@ export default function Login() {
           }
           .tisl-sidebar { display: none !important; }
           .tisl-outer { padding: 0 !important; }
+          .tisl-form-panel {
+            padding: 24px 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .tisl-mobile-bar {
+            padding: 16px 16px !important;
+          }
+          .tisl-form-panel {
+            padding: 20px 16px !important;
+          }
         }
         @media (min-width: 641px) {
           .tisl-mobile-bar { display: none !important; }

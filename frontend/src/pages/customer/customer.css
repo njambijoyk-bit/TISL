@@ -72,3 +72,58 @@
           background-color: #dc2626;
           color: #1f2937;
         }
+
+        /* ============================================
+           MOBILE RESPONSIVE UTILITIES
+           ============================================ */
+
+        /* Mobile-first responsive containers */
+        @media (max-width: 640px) {
+          .mobile-padding {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          
+          .mobile-text-sm {
+            font-size: 0.875rem;
+          }
+          
+          .mobile-gap-2 {
+            gap: 0.5rem;
+          }
+          
+          .mobile-stack {
+            flex-direction: column;
+          }
+        }
+
+        /* Touch-friendly buttons on mobile */
+        @media (max-width: 768px) {
+          .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          .mobile-full {
+            width: 100%;
+          }
+        }
+
+        /* Hide elements on small screens */
+        @media (max-width: 480px) {
+          .hide-xs {
+            display: none !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .hide-sm {
+            display: none !important;
+          }
+        }
+
+        @media (min-width: 641px) {
+          .show-sm-only {
+            display: none !important;
+          }
+        }

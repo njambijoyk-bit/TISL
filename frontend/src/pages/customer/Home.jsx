@@ -97,9 +97,9 @@ export default function Home() {
       ))}
 
       {/* ── Shop by Category ─────────────────────────────────────────────── */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+      <section className="py-8 md:py-16 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-10 mt-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white text-center mb-6 md:mb-10 mt-4 md:mt-6">
             Shop by Category
           </h2>
 
@@ -112,26 +112,28 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+              <div className="category-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', padding: '0 8px' }}>
                 {categories.slice(0, 24).map((category) => (
                   <button
                     key={category.id}
                     onClick={() => navigate(`/products?category=${category.id}`)}
+                    className="category-chip"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '7px',
-                      padding: '6px 14px',
+                      gap: '6px',
+                      padding: '6px 12px',
                       background: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '999px',
                       cursor: 'pointer',
                       transition: 'all 150ms ease',
-                      fontSize: category.parent_id ? '0.77rem' : '0.82rem',
+                      fontSize: category.parent_id ? '0.75rem' : '0.8rem',
                       fontWeight: category.parent_id ? 500 : 600,
                       color: '#374151',
                       whiteSpace: 'nowrap',
                       boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      minWidth: 'fit-content',
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.borderColor = '#a855f7';
@@ -150,26 +152,27 @@ export default function Home() {
                       <img
                         src={category.image_url}
                         alt={category.name}
-                        style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                        style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                         onError={e => { e.target.style.display = 'none'; }}
                       />
                     ) : (
-                      <Package size={13} style={{ flexShrink: 0, color: '#a855f7' }} />
+                      <Package size={12} style={{ flexShrink: 0, color: '#a855f7' }} />
                     )}
-                    {category.name}
+                    <span className="category-name">{category.name}</span>
                     {category.parent_id && (
-                      <span style={{ fontSize: '0.65rem', color: '#c4b5fd', fontWeight: 400 }}>
+                      <span className="hidden sm:inline" style={{ fontSize: '0.6rem', color: '#c4b5fd', fontWeight: 400 }}>
                         sub
                       </span>
                     )}
                   </button>
                 ))}
               </div>
-              <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <div style={{ textAlign: 'center', marginTop: '24px' }}>
                 <button
                   onClick={() => navigate('/products')}
+                  className="view-all-btn"
                   style={{
-                    padding: '10px 28px',
+                    padding: '10px 24px',
                     border: '1px solid #a855f7',
                     borderRadius: '8px',
                     background: 'transparent',
@@ -178,6 +181,8 @@ export default function Home() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
+                    width: '100%',
+                    maxWidth: '280px',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = '#a855f7';
@@ -197,16 +202,17 @@ export default function Home() {
       </section>
 
       {/* ── Featured Products ─────────────────────────────────────────────── */}
-      <section className="py-16 bg-white dark:bg-gray-800">
+      <section className="py-8 md:py-16 bg-white dark:bg-gray-800">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
               Featured Products
             </h2>
             <button
                   onClick={() => navigate('/products?featured=true')}
+                  className="view-all-btn-sm hidden sm:block"
                   style={{
-                    padding: '10px 28px',
+                    padding: '8px 20px',
                     border: '1px solid #a855f7',
                     borderRadius: '8px',
                     background: 'transparent',
@@ -215,6 +221,7 @@ export default function Home() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
+                    flexShrink: 0,
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = '#a855f7';
@@ -240,11 +247,43 @@ export default function Home() {
               </Button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px', width: '100%' }}>
-              {featuredProducts.slice(0, 8).map((product) => (
-                <CollapsedProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="products-grid" style={{ display: 'grid', gap: '12px', width: '100%' }}>
+                {featuredProducts.slice(0, 8).map((product) => (
+                  <CollapsedProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              {/* Mobile View All button */}
+              <div className="sm:hidden text-center mt-6">
+                <button
+                  onClick={() => navigate('/products?featured=true')}
+                  style={{
+                    padding: '10px 24px',
+                    border: '1px solid #a855f7',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    color: '#a855f7',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    width: '100%',
+                    maxWidth: '280px',
+                  }}
+                >
+                  View All Products
+                </button>
+              </div>
+              <style>{`
+                .products-grid {
+                  grid-template-columns: 1fr;
+                }
+                @media (min-width: 640px) {
+                  .products-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                  }
+                }
+              `}</style>
+            </>
           )}
         </div>
       </section>

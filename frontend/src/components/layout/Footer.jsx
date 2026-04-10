@@ -104,11 +104,21 @@ export default function Footer() {
     <footer className="bg-gray-900 text-gray-300">
 
       {/* ── Main grid ── */}
-      <div className="container mx-auto px-4 py-12">
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `2fr ${linkColumns.length > 0 ? `repeat(${linkColumns.length}, 1fr)` : ''}`,
-          gap: '32px',
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="grid gap-8 md:gap-10" style={{
+          gridTemplateColumns: 'repeat(1, 1fr)',
+        }}>
+          <style>{`
+            @media (min-width: 640px) {
+              .footer-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            }
+            @media (min-width: 768px) {
+              .footer-grid { grid-template-columns: 2fr ${linkColumns.length > 0 ? `repeat(${Math.min(linkColumns.length, 3)}, 1fr)` : ''} !important; }
+            }
+          `}</style>
+        </div>
+        <div className="footer-grid grid gap-8 md:gap-10" style={{
+          gridTemplateColumns: 'repeat(1, 1fr)',
           alignItems: 'start',
         }}>
 
