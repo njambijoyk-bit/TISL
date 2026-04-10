@@ -136,13 +136,13 @@ const Services = () => {
       </Helmet>
       <Header />
 
-      <div className="w-full px-4 py-6">
+      <div className="w-full px-3 sm:px-4 py-4 sm:py-6">
         <Breadcrumb items={[{ label: 'Services', href: '/services' }]} />
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Services</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Services</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontSize: '0.85rem' }}>
               {loading
                 ? <span className="flex items-center gap-1.5"><Loader className="w-3.5 h-3.5 animate-spin" /> Loading…</span>
@@ -152,14 +152,14 @@ const Services = () => {
           </div>
 
           {/* View toggle */}
-          <div style={toggleStyles.wrap}>
+          <div style={toggleStyles.wrap} className="self-start sm:self-auto">
             <button type="button" onClick={() => setViewMode('large')}
               style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive) }}>
-              <LayoutGrid size={15} /> Large
+              <LayoutGrid size={15} /> <span className="hidden xs:inline">Large</span>
             </button>
             <button type="button" onClick={() => setViewMode('collapsed')}
               style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive) }}>
-              <List size={15} /> Compact
+              <List size={15} /> <span className="hidden xs:inline">Compact</span>
             </button>
           </div>
         </div>
@@ -301,11 +301,11 @@ const Services = () => {
             columns={4}
           />
         ) : loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+          <div className="services-compact-grid" style={{ display: 'grid', gap: 8 }}>
             {Array.from({ length: 8 }).map((_, i) => <CollapsedServiceSkeleton key={i} />)}
           </div>
         ) : services?.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+          <div className="services-compact-grid" style={{ display: 'grid', gap: 8 }}>
             {services.map((service) => <CollapsedServiceCard key={service.id} service={service} />)}
           </div>
         ) : (
@@ -359,6 +359,16 @@ const Services = () => {
         .dark .pagination-btn { border-color: #4b5563; color: #d1d5db; background-color: #1f2937; }
         .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: #d8b4fe; color: #d8b4fe; }
         .dark .pagination-btn.active { background-color: #7e22ce; color: white; border-color: #7e22ce; }
+        
+        /* Responsive service grids */
+        .services-compact-grid {
+          grid-template-columns: 1fr;
+        }
+        @media (min-width: 640px) {
+          .services-compact-grid {
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          }
+        }
       `}</style>
     </div>
   );

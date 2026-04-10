@@ -220,19 +220,19 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
     <div style={{ marginBottom: 16 }}>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', padding: '10px 0 8px' }}>
+      <div className="filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '10px 0 8px' }}>
 
         {/* Search */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div className="filter-search" style={{ position: 'relative', flexShrink: 0, flex: '1 1 auto', minWidth: '140px', maxWidth: '240px' }}>
           <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#c084fc', pointerEvents: 'none' }} />
           <input
-            type="text" placeholder="Search products…"
+            type="text" placeholder="Search…"
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onFilterChange('search', searchVal); }}
             style={{
               paddingLeft: 30, paddingRight: searchVal ? 28 : 12, paddingTop: 7, paddingBottom: 7,
-              borderRadius: 9999, fontSize: '0.775rem', width: 190, outline: 'none',
+              borderRadius: 9999, fontSize: '0.75rem', width: '100%', outline: 'none',
               border: '1px solid #e5e7eb', background: 'white', color: '#111827',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'border-color 150ms, box-shadow 150ms',
             }}
@@ -399,6 +399,28 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
           {filters.in_stock  && <Chip label="In Stock"  onRemove={() => onFilterChange('in_stock',  false)} />}
         </div>
       )}
+      
+      {/* Mobile responsive styles */}
+      <style>{`
+        @media (max-width: 640px) {
+          .filter-bar {
+            gap: 5px !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 10px !important;
+            scrollbar-width: none;
+          }
+          .filter-bar::-webkit-scrollbar {
+            display: none;
+          }
+          .filter-search {
+            flex: 1 1 100% !important;
+            max-width: none !important;
+            order: -1;
+            margin-bottom: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -4,9 +4,12 @@ import {
   Star, Settings, LogOut, ChevronLeft, Menu, Tag, Award, BarChart2,
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
+
+// Mobile breakpoint
+const MOBILE_BREAKPOINT = 768;
 
 const MENU_GROUPS = [
   {
@@ -54,9 +57,23 @@ const MENU_GROUPS = [
 export default function Sidebar() {
   const [collapsed, setCollapsed]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile]     = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuthStore();
+
+  // Track mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path) =>
     path === '/admin' ? location.pathname === path : location.pathname.startsWith(path);
@@ -64,7 +81,7 @@ export default function Sidebar() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   // ─── styles ────────────────────────────────────────────────────────────────
-  const sidebarW = collapsed ? 68 : 240;
+  const sidebarW = isMobile ? 280 : (collapsed ? 68 : 240);
 
   const sidebarStyle = {
     position: 'fixed',
@@ -153,21 +170,40 @@ export default function Sidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(v => !v)}
+        className="mobile-menu-toggle"
         style={{
-          display: 'none',
-          position: 'fixed', top: 18, left: 16, zIndex: 50,
-          width: 36, height: 36, borderRadius: 8,
-          background: 'var(--color-sidebar-bg, var(--color-bg-elevated, var(--color-bg)))',
+          display: isMobile ? 'flex' : 'none',
+          position: 'fixed', top: 12, left: 12, zIndex: 50,
+          width: 40, height: 40, borderRadius: 10,
+          background: 'var(--color-sidebar-bg, var(--color-bg-elevated, #1f2937))',
           border: '1px solid rgba(255,255,255,0.1)',
           alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer',
-          color: 'var(--color-text, currentColor)',
+          color: 'var(--color-text, #fff)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         }}
       >
-        <Menu size={18} />
+        <Menu size={20} />
       </button>
 
-      <aside style={sidebarStyle}>
+      {/* Mobile overlay */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 39,
+          }}
+        />
+      )}
+
+      <aside style={{
+        ...sidebarStyle,
+        transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+        transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1), width 220ms cubic-bezier(0.4,0,0.2,1)',
+      }}>
 
         {/* ── Logo ──────────────────────────────────────────────────────── */}
         <div style={logoAreaStyle}>
@@ -304,7 +340,9 @@ export default function Sidebar() {
       </aside>
 
       {/* Spacer so page content doesn't hide under the fixed sidebar */}
-      <div style={{ width: sidebarW, flexShrink: 0, transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }} />
+      {!isMobile && (
+        <div style={{ width: sidebarW, flexShrink: 0, transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }} />
+      )}
     </>
   );
 }

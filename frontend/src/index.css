@@ -748,15 +748,75 @@ a:hover {
 
 @media (max-width: 640px) {
   h1 {
-    font-size: 2rem;
-  }
-  
-  h2 {
     font-size: 1.75rem;
   }
   
-  h3 {
+  h2 {
     font-size: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+  }
+  
+  h4 {
+    font-size: 1.125rem;
+  }
+  
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .section {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  
+  .section-lg {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+  
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .btn-lg {
+    padding: 0.625rem 1.25rem;
+    font-size: 1rem;
+  }
+  
+  .card-body {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: flex !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-px-4 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 }
 

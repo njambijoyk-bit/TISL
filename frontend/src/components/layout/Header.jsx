@@ -529,11 +529,11 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <Link to="/login" style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }} className="dark:text-gray-200 dark:border-gray-600 dark:bg-gray-800">
+              <div className="auth-buttons" style={{ display: 'flex', gap: 6 }}>
+                <Link to="/login" className="auth-btn-signin" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }}>
                   Sign In
                 </Link>
-                <Link to="/register" style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
+                <Link to="/register" className="auth-btn-register hidden sm:block" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
                   Register
                 </Link>
               </div>
@@ -643,6 +643,14 @@ export default function Header() {
         }
         @media (min-width: 769px) {
           .show-mobile { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .auth-buttons { gap: 4px; }
+          .auth-btn-signin { padding: 5px 10px !important; font-size: 0.72rem !important; }
+          .auth-btn-register { padding: 5px 10px !important; font-size: 0.72rem !important; }
+        }
+        @media (max-width: 639px) {
+          .auth-btn-register { display: none !important; }
         }
       `}</style>
     </>

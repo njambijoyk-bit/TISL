@@ -304,6 +304,11 @@ export default function ProductCard({ product }) {
 
       <style>{`
         .product-card:hover { transform: translateY(-4px); }
+        
+        @media (max-width: 639px) {
+          .product-card { transform: none !important; }
+          .product-card:hover { transform: none !important; }
+        }
 
         .image-nav-btn {
           background-color: rgba(255,255,255,0.9); color: #374151;
