@@ -41,10 +41,10 @@ export default function ProductGrid({ products, loading, error }) {
   }
 
   return (
-    <div 
-  className="grid gap-8 sm:gap-5 md:gap-6"
+    <div
+  className="grid gap-4 sm:gap-5 md:gap-6"
   style={{
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 320px))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 320px))',
     justifyContent: 'center'
   }}
 >

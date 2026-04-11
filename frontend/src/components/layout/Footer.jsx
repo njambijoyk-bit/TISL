@@ -104,13 +104,13 @@ export default function Footer() {
     <footer className="bg-gray-900 text-gray-300">
 
       {/* ── Main grid ── */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 mobile-footer-padding">
         <div style={{
           display: 'grid',
           gridTemplateColumns: `2fr ${linkColumns.length > 0 ? `repeat(${linkColumns.length}, 1fr)` : ''}`,
           gap: '32px',
           alignItems: 'start',
-        }}>
+        }} className="footer-grid">
 
           {/* ── Brand block ── */}
           {isLoading ? <BrandSkeleton /> : (
@@ -188,6 +188,31 @@ export default function Footer() {
         </div>
       </div>
 
+      <style>{`
+        @media (max-width: 768px) {
+          .footer-grid {
+            grid-template-columns: 1fr !important;
+            gap: 28px !important;
+            text-align: center;
+          }
+          .footer-grid .flex.items-center.gap-4 {
+            justify-content: center;
+          }
+          .mobile-footer-padding {
+            padding-top: 2.5rem !important;
+            padding-bottom: 2.5rem !important;
+          }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+          .footer-grid {
+            grid-template-columns: 1fr 1fr !important;
+            text-align: left;
+          }
+          .footer-grid > div:first-child {
+            grid-column: 1 / -1;
+          }
+        }
+      `}</style>
     </footer>
   );
 }

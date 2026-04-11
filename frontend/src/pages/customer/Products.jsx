@@ -180,16 +180,16 @@ export default function Products() {
         <Breadcrumb items={[{ label: 'Products', href: '/products' }]} />
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Products</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontSize: '0.85rem' }}>
+            <h1 className="font-bold text-gray-900 dark:text-white" style={{ fontSize: 'clamp(1.5rem, 4vw, 1.875rem)' }}>Products</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontSize: '0.9rem' }}>
               {loading ? 'Loading…' : `${totalCount.toLocaleString()} product${totalCount !== 1 ? 's' : ''} found`}
             </p>
           </div>
           <div style={toggleStyles.wrap}>
-            <button type="button" onClick={() => setViewMode('large')} style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive) }}><LayoutGrid size={15} /> Large</button>
-            <button type="button" onClick={() => setViewMode('collapsed')} style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive) }}><List size={15} /> Compact</button>
+            <button type="button" onClick={() => setViewMode('large')} style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive), minHeight: 38 }}><LayoutGrid size={15} /> Large</button>
+            <button type="button" onClick={() => setViewMode('collapsed')} style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive), minHeight: 38 }}><List size={15} /> Compact</button>
           </div>
         </div>
 
@@ -200,7 +200,7 @@ export default function Products() {
         {categories.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
                 Browse by Category
               </span>
               {activeCategory && (

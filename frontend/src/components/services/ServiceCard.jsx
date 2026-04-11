@@ -181,22 +181,22 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
       </div>
 
       {/* Compact Content - Reduced padding */}
-      <div className="p-3">
+      <div className="p-3 service-card-content">
         {/* Category */}
         {service.category?.name && (
-          <div className="text-xs text-accent dark:text-primary-400 font-semibold mb-1">
+          <div className="text-xs text-accent dark:text-primary-400 font-semibold mb-1 service-card-category">
             {service.category.name}
           </div>
         )}
 
         {/* Title - Smaller font */}
-        <h3 className="text-base font-bold text-primary mb-1.5 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+        <h3 className="text-base font-bold text-primary mb-1.5 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors service-card-title">
           {service.name}
         </h3>
 
         {/* Short Description - Smaller, line-clamp-1 */}
         {service.short_description && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-1">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-1 service-card-desc">
             {service.short_description}
           </p>
         )}
@@ -326,4 +326,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   );
 };
 
-export default ServiceCard;
+export default React.memo(ServiceCard);
+
+/* Mobile responsive styles for ServiceCard are applied via CSS-in-JS in the component above
+   and rely on global responsive breakpoints from index.css */
