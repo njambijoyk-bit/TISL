@@ -572,8 +572,8 @@ export default function Header() {
 
         {/* ── Mobile menu ──────────────────────────────────────────────────── */}
         {mobileOpen && (
-          <div style={{ borderTop: '1px solid #f3f4f6', background: 'white', maxHeight: '80vh', overflowY: 'auto' }} className="dark:bg-gray-900 dark:border-gray-700">
-            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ borderTop: '1px solid #f3f4f6', background: 'white', maxHeight: '80vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="dark:bg-gray-900 dark:border-gray-700">
+            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
                 { label: 'Home', to: '/' },
                 { label: 'Products', to: '/products' },
@@ -584,7 +584,7 @@ export default function Header() {
                 { label: 'Manual', to: '/manual' },
               ].map(l => (
                 <Link key={l.to} to={l.to}
-                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, color: isActive(l.to) ? '#a855f7' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'rgba(168,85,247,0.08)' : 'transparent' }}
+                  style={{ padding: '12px 14px', borderRadius: 10, fontSize: '1rem', fontWeight: 600, color: isActive(l.to) ? '#a855f7' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'rgba(168,85,247,0.08)' : 'transparent', minHeight: 44, display: 'flex', alignItems: 'center' }}
                   className="dark:text-gray-200">
                   {l.label}
                 </Link>
@@ -592,15 +592,15 @@ export default function Header() {
 
               {isAuthenticated && (
                 <>
-                  <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>My Account</p>
+                  <div style={{ height: 1, background: '#f3f4f6', margin: '10px 0' }} />
+                  <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 14px' }}>My Account</p>
                   {customerLinks
                   .filter(link => !isAdmin || ['My Profile'].includes(link.label))
                   .map(l => (
                     <Link key={l.to} to={l.to}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '0.95rem', fontWeight: 500, color: '#374151', textDecoration: 'none', minHeight: 44 }}
                       className="dark:text-gray-300">
-                      <l.icon size={15} style={{ color: '#a855f7' }} /> {l.label}
+                      <l.icon size={18} style={{ color: '#a855f7' }} /> {l.label}
                     </Link>
                   ))}
                 </>
@@ -608,13 +608,13 @@ export default function Header() {
 
               {isAdmin && (
                 <>
-                  <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>
+                  <div style={{ height: 1, background: '#f3f4f6', margin: '10px 0' }} />
+                  <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 14px' }}>Admin</p>
                   {adminGroups.flatMap(g => g.items).map(item => (
                     <Link key={item.to} to={item.to}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.83rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10, fontSize: '0.95rem', fontWeight: 500, color: '#374151', textDecoration: 'none', minHeight: 44 }}
                       className="dark:text-gray-300">
-                      <item.icon size={14} style={{ color: '#a855f7' }} /> {item.label}
+                      <item.icon size={17} style={{ color: '#a855f7' }} /> {item.label}
                     </Link>
                   ))}
                 </>
@@ -622,13 +622,13 @@ export default function Header() {
 
               {isAuthenticated ? (
                 <button type="button" onClick={handleLogout}
-                  style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
-                  <LogOut size={15} /> Sign Out
+                  style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, fontSize: '1rem', fontWeight: 600, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', width: '100%', minHeight: 48 }}>
+                  <LogOut size={18} /> Sign Out
                 </button>
               ) : (
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <Link to="/login" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb' }}>Sign In</Link>
-                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)' }}>Register</Link>
+                <div style={{ display: 'flex', gap: 10, marginTop: 12, paddingBottom: 4 }}>
+                  <Link to="/login" style={{ flex: 1, textAlign: 'center', padding: '12px', borderRadius: 12, fontSize: '1rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Sign In</Link>
+                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '12px', borderRadius: 12, fontSize: '1rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Register</Link>
                 </div>
               )}
             </div>

@@ -211,9 +211,9 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
+      <div className="p-4 product-card-info">
         {/* Category & Brand */}
-        <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400 product-card-meta">
           {product?.category && (
             <span className="flex items-center gap-1">
               <Tag size={12} />
@@ -230,7 +230,7 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Name */}
-        <h3 className="text-sm font-semibold text-primary mb-2 line-clamp-2 min-h-[2.5rem]">
+        <h3 className="font-semibold text-primary mb-2 line-clamp-2 min-h-[2.5rem] product-card-name" style={{ fontSize: '0.95rem' }}>
           {product?.name}
         </h3>
 
@@ -352,6 +352,17 @@ export default function ProductCard({ product }) {
         .quote-btn.in-list { background-color: rgba(124,58,237,0.15); color: #7c3aed; border-color: #7c3aed; font-weight: 700; }
         .quote-btn.in-list:hover { background-color: #7c3aed; color: white; }
         .dark .quote-btn { background-color: rgba(168,85,247,0.1); color: #c084fc; border-color: rgba(168,85,247,0.3); }
+
+        @media (max-width: 640px) {
+          .product-card-info { padding: 14px !important; }
+          .product-card-meta { font-size: 0.82rem; }
+          .product-card-name { font-size: 1rem !important; min-height: 2.8rem !important; }
+          .product-card .text-lg { font-size: 1.1rem; }
+          .product-card .text-xs { font-size: 0.82rem; }
+          .product-card .add-to-cart-btn,
+          .product-card .buy-now-btn,
+          .product-card .quote-btn { min-height: 44px; font-size: 0.9rem; }
+        }
       `}</style>
     </div>
   );

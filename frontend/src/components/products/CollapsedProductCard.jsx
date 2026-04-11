@@ -149,19 +149,19 @@ export default function CollapsedProductCard({ product }) {
         .collapsed-thumb-img { width:100%; height:100%; object-fit:cover; }
         .collapsed-thumb-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
         .collapsed-info { flex:1; min-width:0; }
-        .collapsed-name { font-size:0.825rem; font-weight:600; color:#a855f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
-        .collapsed-desc { font-size:0.72rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.4; }
+        .collapsed-name { font-size:0.9rem; font-weight:600; color:#a855f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.35; }
+        .collapsed-desc { font-size:0.8rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.45; }
         .dark .collapsed-desc { color:#9ca3af; }
         .collapsed-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
         .collapsed-btn-row { display:flex; align-items:center; gap:5px; }
-        .collapsed-wand-btn { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; border:none; background:transparent; cursor:pointer; transition:background 150ms ease, transform 150ms ease; padding:0; }
+        .collapsed-wand-btn { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:none; background:transparent; cursor:pointer; transition:background 150ms ease, transform 150ms ease; padding:0; }
         .collapsed-wand-btn:hover { background:#faf5ff; transform:scale(1.12); }
         .dark .collapsed-wand-btn:hover { background:#374151; }
         .collapsed-price-group { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
-        .collapsed-price { font-size:0.78rem; font-weight:700; color:#a855f7; white-space:nowrap; }
-        .collapsed-price.out-of-stock { color:#ef4444; font-weight:500; font-size:0.72rem; }
-        .collapsed-original-price { font-size:0.68rem; color:#9ca3af; text-decoration:line-through; white-space:nowrap; }
-        .collapsed-action-btn { display:flex; align-items:center; gap:4px; padding:5px 11px; border-radius:20px; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 150ms ease; white-space:nowrap; border:none; }
+        .collapsed-price { font-size:0.88rem; font-weight:700; color:#a855f7; white-space:nowrap; }
+        .collapsed-price.out-of-stock { color:#ef4444; font-weight:500; font-size:0.82rem; }
+        .collapsed-original-price { font-size:0.76rem; color:#9ca3af; text-decoration:line-through; white-space:nowrap; }
+        .collapsed-action-btn { display:flex; align-items:center; gap:4px; padding:6px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; cursor:pointer; transition:all 150ms ease; white-space:nowrap; border:none; min-height:34px; }
         .collapsed-action-btn.primary { background:#a855f7; color:white; }
         .collapsed-action-btn.primary:hover:not(:disabled) { background:#9333ea; transform:scale(1.04); }
         .collapsed-action-btn.primary:disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
@@ -173,6 +173,17 @@ export default function CollapsedProductCard({ product }) {
         .collapsed-action-btn.in-quote-list { background:rgba(168,85,247,0.15); color:#7c3aed; border:1px solid #a855f7; font-weight:700; }
         .collapsed-action-btn.in-quote-list:hover { background:#7c3aed; color:white; }
         .dark .collapsed-action-btn.negotiable { background:#1e3a8a; color:#93c5fd; border-color:#1e40af; }
+
+        @media (max-width: 640px) {
+          .collapsed-card { padding: 12px 14px; gap: 14px; }
+          .collapsed-thumb { width: 56px; height: 56px; }
+          .collapsed-name { font-size: 0.95rem; }
+          .collapsed-desc { font-size: 0.85rem; }
+          .collapsed-price { font-size: 0.92rem; }
+          .collapsed-original-price { font-size: 0.8rem; }
+          .collapsed-action-btn { padding: 7px 14px !important; font-size: 0.85rem !important; min-height: 38px !important; }
+          .collapsed-wand-btn { width: 36px; height: 36px; }
+        }
       `}</style>
     </div>
   );

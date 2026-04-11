@@ -4,7 +4,7 @@ import {
   Star, Settings, LogOut, ChevronLeft, Menu, Tag, Award, BarChart2,
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
 
@@ -54,6 +54,15 @@ const MENU_GROUPS = [
 export default function Sidebar() {
   const [collapsed, setCollapsed]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuthStore();
@@ -153,10 +162,11 @@ export default function Sidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(v => !v)}
+        className="admin-mobile-toggle"
         style={{
           display: 'none',
           position: 'fixed', top: 18, left: 16, zIndex: 50,
-          width: 36, height: 36, borderRadius: 8,
+          width: 42, height: 42, borderRadius: 10,
           background: 'var(--color-sidebar-bg, var(--color-bg-elevated, var(--color-bg)))',
           border: '1px solid rgba(255,255,255,0.1)',
           alignItems: 'center', justifyContent: 'center',
@@ -164,10 +174,23 @@ export default function Sidebar() {
           color: 'var(--color-text, currentColor)',
         }}
       >
-        <Menu size={18} />
+        <Menu size={20} />
       </button>
 
-      <aside style={sidebarStyle}>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="admin-sidebar-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 39,
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(2px)',
+          }}
+        />
+      )}
+
+      <aside style={sidebarStyle} className={`admin-nav-aside${mobileOpen ? ' admin-sidebar-open' : ''}`}>
 
         {/* ── Logo ──────────────────────────────────────────────────────── */}
         <div style={logoAreaStyle}>
@@ -304,7 +327,35 @@ export default function Sidebar() {
       </aside>
 
       {/* Spacer so page content doesn't hide under the fixed sidebar */}
-      <div style={{ width: sidebarW, flexShrink: 0, transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }} />
+      <div className="admin-sidebar-spacer" style={{ width: sidebarW, flexShrink: 0, transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }} />
+
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-mobile-toggle {
+            display: flex !important;
+          }
+          .admin-nav-aside {
+            transform: translateX(-100%);
+            transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), width 220ms cubic-bezier(0.4,0,0.2,1) !important;
+            width: 260px !important;
+          }
+          .admin-nav-aside.admin-sidebar-open {
+            transform: translateX(0) !important;
+          }
+          .admin-sidebar-spacer {
+            width: 0 !important;
+          }
+          .admin-nav-aside nav a, .admin-nav-aside button {
+            font-size: 0.9rem;
+            min-height: 42px;
+          }
+        }
+        @media (min-width: 769px) {
+          .admin-sidebar-overlay {
+            display: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
