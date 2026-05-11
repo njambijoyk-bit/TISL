@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Models\Quote;
 use App\Models\Currency;
 use Illuminate\Http\Request;
@@ -2359,11 +2360,13 @@ class OrderController extends Controller
                     'amount_expected'             => $amount,  
                     'amount_received'             => $amount,  
                     'mpesa_amount_confirmed'      => $amount,  
-                    'mpesa_receipt_number'        => $request->payment_reference,  
+                    'mpesa_receipt_number'        => $request->payment_method === 'mpesa' ? $request->payment_reference : null,
                     'mpesa_transaction_date'      => now(),  
                     'is_partial'                  => $request->payment_status === 'partially_paid',  
-                    ...$snapshot,  
-                    'notes'                       => 'Manual payment recorded via admin panel',  
+                    ...$snapshot,   
+                    'notes'                       => $request->payment_method !== 'mpesa'   
+                                                    ? 'Manual payment via admin panel. Ref: ' . ($request->payment_reference ?? 'N/A')  
+                                                    : 'Manual payment recorded via admin panel',
                     'initiated_at'                => now(),  
                     'confirmed_at'                => now(),  
                 ]);  
@@ -2447,7 +2450,7 @@ class OrderController extends Controller
                 $item->update(['refund_amount' => $refundAmount, 'return_status' => 'completed']);  
             }  
             $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
-            
+
             } elseif ($requiresReturn) {
                 if ($request->has('refund_items')) {
                     foreach ($request->refund_items as $refundItem) {
