@@ -229,6 +229,9 @@ export default function OrderDetail() {
   const [orderPayments, setOrderPayments] = useState(null);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
 
+  const [paymentAmount, setPaymentAmount] = useState('');  
+  const [paymentMethod, setPaymentMethod] = useState('');
+
   const isCancelled   = order?.status === 'cancelled';
   const isPaidPending = order?.status === 'pending' && order?.payment_status === 'paid';
 
@@ -584,9 +587,27 @@ export default function OrderDetail() {
     await run(() => useOrderStore.getState().updateOrderStatus(id, { status: newStatus, admin_notes: adminNotes }), 'Status updated');
     setStatusModal(false);
   };
-  const handleUpdatePayment = async () => {
-    await run(() => useOrderStore.getState().updatePaymentStatus(id, { payment_status: newPaymentStatus, payment_reference: paymentReference }), 'Payment updated');
-    setPaymentModal(false);
+  const handleUpdatePayment = async () => {  
+    try {  
+      const payload = {  
+        payment_status: newPaymentStatus,  
+        payment_reference: paymentReference || undefined,  
+      };  
+        
+      if (newPaymentStatus === 'paid' || newPaymentStatus === 'partially_paid') {  
+        payload.payment_method = paymentMethod;  
+        if (newPaymentStatus === 'partially_paid') {  
+          payload.amount_paid = Number(paymentAmount);  
+        }  
+      }  
+        
+      await ordersAPI.updatePaymentStatus(order.id, payload);  
+      toast.success('Payment status updated');  
+      setPaymentModal(false);  
+      fetchOrder();  
+    } catch (err) {  
+      toast.error(err.response?.data?.message || 'Failed to update payment');  
+    }  
   };
   const handleSaveTotals  = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { subtotal, tax, shipping_cost: shippingCost, discount, total, order_type: orderType }), 'Totals saved');
   const handleSaveCourier = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { tracking_number: trackingNumber||null, courier_company: courierCompany||null, estimated_delivery_date: estimatedDeliveryDate||null }), 'Courier saved');
@@ -1749,29 +1770,68 @@ export default function OrderDetail() {
         </InlineModal>
       )}
 
-      {/* Payment */}
-      {paymentModal && (
-        <InlineModal title="Update Payment Status" subtitle={order.order_number} accentColor="#10b981" onClose={() => setPaymentModal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Payment Status</p>
-              <select value={newPaymentStatus} onChange={e => setNewPaymentStatus(e.target.value)} style={{ ...iStyle, appearance: 'none' }} onFocus={fIn} onBlur={fOut}>
-                {['unpaid','partially_paid','paid','failed'].map(s => (
-                  <option key={s} value={s}>{s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Payment Reference</p>
-              <input value={paymentReference} onChange={e => setPaymentReference(e.target.value)}
-                placeholder="Transaction ID, M-Pesa code, etc." style={iStyle} onFocus={fIn} onBlur={fOut} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
-              <Btn variant="outline" onClick={() => setPaymentModal(false)}>Cancel</Btn>
-              <Btn variant="success" icon={<CreditCard size={15} />} onClick={handleUpdatePayment}>Update Payment</Btn>
-            </div>
-          </div>
-        </InlineModal>
+      {/* Payment */}  
+      {paymentModal && (  
+        <InlineModal title="Update Payment Status" subtitle={order.order_number} accentColor="#10b981" onClose={() => setPaymentModal(false)}>  
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>  
+            <div>  
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Payment Status</p>  
+              <select value={newPaymentStatus} onChange={e => setNewPaymentStatus(e.target.value)} style={{ ...iStyle, appearance: 'none' }} onFocus={fIn} onBlur={fOut}>  
+                {['unpaid','partially_paid','paid','failed'].map(s => (  
+                  <option key={s} value={s}>{s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>  
+                ))}  
+              </select>  
+            </div>  
+              
+            {(newPaymentStatus === 'paid' || newPaymentStatus === 'partially_paid') && (  
+              <>  
+                <div>  
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Payment Method</p>  
+                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} style={{ ...iStyle, appearance: 'none' }} onFocus={fIn} onBlur={fOut}>  
+                    <option value="">Select method</option>  
+                    <option value="mpesa">M-Pesa</option>  
+                    <option value="bank_transfer">Bank Transfer</option>  
+                    <option value="cod">Cash on Delivery</option>  
+                    <option value="credit">Credit</option>  
+                  </select>  
+                </div>  
+                  
+                {newPaymentStatus === 'partially_paid' && (  
+                  <div>  
+                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Amount Paid (KES)</p>  
+                    <input   
+                      type="number"   
+                      value={paymentAmount}   
+                      onChange={e => setPaymentAmount(e.target.value)}  
+                      placeholder="Enter amount"   
+                      min="0"   
+                      step="0.01"  
+                      style={iStyle}   
+                      onFocus={fIn}   
+                      onBlur={fOut}   
+                    />  
+                  </div>  
+                )}  
+                  
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>  
+                  <p style={{ fontSize: '0.75rem', color: '#065f46', margin: 0 }}>  
+                    ℹ️ This will create a payment record and update the order's payment status based on confirmed payments.  
+                  </p>  
+                </div>  
+              </>  
+            )}  
+              
+            <div>  
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Payment Reference</p>  
+              <input value={paymentReference} onChange={e => setPaymentReference(e.target.value)}  
+                placeholder="Transaction ID, M-Pesa code, etc." style={iStyle} onFocus={fIn} onBlur={fOut} />  
+            </div>  
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>  
+              <Btn variant="outline" onClick={() => setPaymentModal(false)}>Cancel</Btn>  
+              <Btn variant="success" icon={<CreditCard size={15} />} onClick={handleUpdatePayment}>Update Payment</Btn>  
+            </div>  
+          </div>  
+        </InlineModal>  
       )}
 
       {/* Restore */}
