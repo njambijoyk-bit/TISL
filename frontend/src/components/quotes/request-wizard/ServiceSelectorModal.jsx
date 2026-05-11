@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Wrench, Check, Star, Clock, X } from 'lucide-react';
+import AdminPagination from '../../common/AdminPagination';
 import useServiceStore from '../../../store/serviceStore';
+import { servicesAPI } from '../../../api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = '#a855f7';
@@ -87,12 +89,68 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
   const [selectedType,     setSelectedType]     = useState('');
   const [localSelected,    setLocalSelected]    = useState([]);
 
+  const [localServices,  setLocalServices]  = useState([]);
+  const [localLoading,   setLocalLoading]   = useState(false);
+  const [pagination,     setPagination]     = useState({ 
+    current_page: 1, last_page: 1, per_page: 20, total: 0 
+  });
+  const [page, setPage] = useState(1);
+  const perPage = 20;
+
+  const fetchModalServices = useCallback(async (pageNum = 1, search = '', categoryId = '', type = '') => {
+    setLocalLoading(true);
+    try {
+      const params = {
+        page: pageNum,
+        per_page: perPage,
+        ...(search     ? { search }      : {}),
+        ...(categoryId ? { category_id: categoryId } : {}),
+        ...(type       ? { type }        : {}),
+      };
+      // Clean empty params
+      Object.keys(params).forEach(k => !params[k] && delete params[k]);
+      
+      // Use ADMIN endpoint (confirm this matches your Laravel route)
+      const res = await servicesAPI.getServices(params);
+      
+      setLocalServices(res.data || []);
+      setPagination({
+        current_page: res.current_page || 1,
+        last_page:    res.last_page    || 1,
+        per_page:     res.per_page     || perPage,
+        total:        res.total        || 0,
+      });
+    } catch (err) {
+      console.error('Failed to fetch modal services', err);
+    } finally {
+      setLocalLoading(false);
+    }
+  }, [perPage]);
+
   const alreadySelectedIds = useMemo(() =>
     selectedServices.filter(s => !s.is_custom && s.service_id).map(s => s.service_id),
     [selectedServices]
   );
 
-  useEffect(() => { fetchServices(); fetchCategories(); fetchTypes(); }, [fetchServices, fetchCategories, fetchTypes]);
+  const displayServices = useMemo(() => {
+    return localServices.filter(s => !alreadySelectedIds.includes(s?.id));
+  }, [localServices, alreadySelectedIds]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchTypes();
+  }, [fetchCategories, fetchTypes]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+    fetchModalServices(1, searchTerm, selectedCategory, selectedType);
+  }, [searchTerm, selectedCategory, selectedType]); // eslint-disable-line
+
+  // Fetch when page changes
+  useEffect(() => {
+    fetchModalServices(page, searchTerm, selectedCategory, selectedType);
+  }, [page]); // eslint-disable-line
 
   const filteredServices = useMemo(() => {
     if (!services) return [];
@@ -170,12 +228,12 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
                 <div style={{ width: 32, height: 32, border: `3px solid ${purpleLt}`, borderTopColor: purple, borderRadius: '50%', animation: 'ssmSpin 0.8s linear infinite' }} />
               </div>
-            ) : filteredServices.length === 0 ? (
+            ) : displayServices.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9ca3af' }}>
                 <Wrench size={48} style={{ margin: '0 auto 12px', opacity: 0.25 }} />
-                <p style={{ fontSize: '0.85rem' }}>{searchTerm || selectedCategory || selectedType ? 'No services match your filters' : 'No services available'}</p>
+                <p style={{ fontSize: '0.85rem' }}>{searchTerm || selectedCategory || selectedType ? 'No services match your filters' : 'Loading services...'}</p>
               </div>
-            ) : filteredServices.map(service => {
+            ) : displayServices.map(service => {
               const sel = isSelected(service.id);
               return (
                 <div key={service.id} className={`ssm-card${sel ? ' sel' : ''}`} onClick={() => toggleService(service)}>
@@ -232,7 +290,15 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
 
           {/* Footer */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+              {pagination.total} service{pagination.total !== 1 ? 's' : ''} available
+            </p>
+            
+            <AdminPagination
+              pagination={pagination}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="outline" onClick={onClose}>Cancel</Btn>
               <Btn variant="primary" onClick={() => onSelect(localSelected)} disabled={localSelected.length === 0}>

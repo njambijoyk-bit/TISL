@@ -17,13 +17,15 @@ import {
   Plus,
   Trash2,
   ShoppingBag,
-  TrendingUp
+  TrendingUp, Search
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import AdminLayout from '../../components/layout/AdminLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import DataTable from '../../components/admin/DataTable';
 import SearchBar from '../../components/admin/SearchBar';
 import StatsCard from '../../components/admin/StatsCard';
+import AdminPagination from '../../components/common/AdminPagination';
 import Select from '../../components/common/Select';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -48,23 +50,48 @@ export default function Orders() {
   const { user } = useAuthStore();
   const isSuperAdmin = user?.role === 'super_admin';
 
+  // update destructure:
   const { 
-    orders, 
-    statistics, 
-    loading, 
-    fetchAllOrders, 
-    fetchStatistics,
-    confirmOrder
+    orders, statistics, loading, pagination,
+    fetchAllOrders, fetchStatistics, confirmOrder
   } = useOrderStore();
-
+ 
   const [filters, setFilters] = useState({
     search: '',
     status: '',
     payment_status: '',
     order_type: '',
-    start_date: '',
-    end_date: '',
+    from_date: '',  // ✅ Changed from start_date
+    to_date: '',    // ✅ Changed from end_date
   });
+
+  // add page state near other useState calls:
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // update loadOrders to pass page:
+  const loadOrders = async (page = currentPage) => {
+    try {
+      const params = Object.fromEntries(
+        Object.entries(filters).filter(([_, value]) => value !== '' && value != null)
+      );
+      await fetchAllOrders({ ...params, page, per_page: 20 });
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  };
+
+  // add page change handler:
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    loadOrders(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // reset page when filters change — update the filters useEffect:
+  useEffect(() => {
+    setCurrentPage(1);
+    loadOrders(1);
+  }, [filters]);
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerHistoryModal, setCustomerHistoryModal] = useState(false);
@@ -73,8 +100,6 @@ export default function Orders() {
   const [customerOrders, setCustomerOrders] = useState([]);
   const [customerOrdersPagination, setCustomerOrdersPagination] = useState(null);
   const [customerOrdersLoading, setCustomerOrdersLoading] = useState(false);
-
-  const [pagination, setPagination] = useState(null);
 
   const [trashWarnOpen, setTrashWarnOpen] = useState(false);
   const [trashWarnOrders, setTrashWarnOrders] = useState([]); // full order objects
@@ -289,19 +314,6 @@ export default function Orders() {
     }
   }, [autoRefresh]);
 
-  // Orders.jsx
-  const loadOrders = async () => {
-    try {
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value !== '' && value != null)
-      );
-
-      await fetchAllOrders(params);
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-    }
-  };
-
   const handleCreateOrder = async (orderData) => {
     try {
       const { adminCreateOrder } = useOrderStore.getState();
@@ -339,9 +351,363 @@ export default function Orders() {
     }
   };
 
-  const handleExport = () => {
-    toast.success('Export functionality coming soon!');
-  };
+  const handleExport = async () => {
+  const toastId = toast.loading('Generating PDF report...');
+
+  try {
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const W  = pdf.internal.pageSize.getWidth();   // 297mm
+    const H  = pdf.internal.pageSize.getHeight();  // 210mm
+    const M  = 12;
+    const CW = W - M * 2;
+    let y = M;
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    const rgb = (hex) => {
+      const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r
+        ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) }
+        : { r: 124, g: 58, b: 237 };
+    };
+
+    const withOpacity = (op, fn) => {
+      pdf.setGState(pdf.GState({ opacity: op }));
+      fn();
+      pdf.setGState(pdf.GState({ opacity: 1 }));
+    };
+
+    const need = (h) => {
+      if (y + h > H - M) { pdf.addPage(); y = M; }
+    };
+
+    const hline = (colorHex = '#e5e7eb', lw = 0.2) => {
+      const { r, g, b } = rgb(colorHex);
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(lw);
+      pdf.line(M, y, W - M, y);
+    };
+
+    const fmtMoney = (val, curr = 'KES') => {
+      const n   = Number(val || 0);
+      const sym = { KES: 'KSh', USD: '$', EUR: '€', GBP: '£' }[curr] || curr;
+      return `${sym} ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
+    const fmtDate = (d) => {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      });
+    };
+
+    // pill with light tinted bg — no emoji, no broken opacity
+    const statusPill = (x, py, label, colorHex) => {
+      const { r, g, b } = rgb(colorHex);
+      pdf.setFontSize(6);
+      const tw = pdf.getTextWidth(label);
+      const pw = tw + 8;
+      withOpacity(0.12, () => {
+        pdf.setFillColor(r, g, b);
+        pdf.roundedRect(x, py - 3.5, pw, 5, 2, 2, 'F');
+      });
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(x, py - 3.5, pw, 5, 2, 2, 'S');
+      pdf.setTextColor(r, g, b);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, x + 4, py);
+      return pw + 3;
+    };
+
+    const STATUS_COLORS = {
+      pending: '#f59e0b', confirmed: '#3b82f6', processing: '#8b5cf6',
+      shipped: '#06b6d4', delivered: '#10b981', cancelled: '#ef4444', failed: '#6b7280',
+    };
+    const PAYMENT_COLORS = {
+      unpaid: '#ef4444', paid: '#10b981', partially_paid: '#f59e0b', refunded: '#6b7280',
+    };
+
+    // ══════════════════════════════════════════
+    // HEADER
+    // ══════════════════════════════════════════
+    pdf.setFillColor(124, 58, 237);
+    pdf.rect(0, 0, W, 3, 'F');
+    y = M + 4;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.setTextColor(28, 28, 28);
+    pdf.text('Orders Report', M, y);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(
+      `Generated: ${fmtDate(new Date())}  ·  ${orders?.length || 0} orders`,
+      W - M, y, { align: 'right' }
+    );
+
+    y += 8;
+    hline('#7c3aed', 0.3);
+    y += 6;
+
+    // ══════════════════════════════════════════
+    // STATS CARDS
+    // ══════════════════════════════════════════
+    if (statistics) {
+      need(28);
+
+      const cards = [
+        { label: 'Total Orders',   value: statistics.total_orders || 0,                                            color: '#7c3aed' },
+        { label: 'Pending',        value: statistics.pending || 0,       sub: `${statistics.confirmed || 0} confirmed`, color: '#f59e0b' },
+        { label: "Today's Orders", value: statistics.today || 0,         sub: `KSh ${Number(statistics.today_revenue || 0).toLocaleString()}`, color: '#3b82f6' },
+        { label: 'Total Revenue',  value: `KSh ${(Number(statistics.total_revenue || 0) / 1000).toFixed(1)}K`, sub: `${statistics.delivered || 0} delivered`, color: '#10b981' },
+      ];
+
+      const cardW = (CW - 9) / 4;
+
+      cards.forEach((card, i) => {
+        const cx = M + i * (cardW + 3);
+        const { r, g, b } = rgb(card.color);
+
+        // card — white bg, subtle colored border only
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(r, g, b);
+        pdf.setLineWidth(0.4);
+        pdf.roundedRect(cx, y, cardW, 22, 3, 3, 'FD');
+
+        // colored top accent line
+        pdf.setFillColor(r, g, b);
+        pdf.roundedRect(cx, y, cardW, 2.5, 2, 2, 'F');
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(card.label, cx + 4, y + 8);
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(r, g, b);
+        pdf.text(String(card.value), cx + 4, y + 16);
+
+        if (card.sub) {
+          pdf.setFontSize(5.5);
+          pdf.setTextColor(156, 163, 175);
+          pdf.text(card.sub, cx + 4, y + 20.5);
+        }
+      });
+
+      y += 28;
+    }
+
+    // ══════════════════════════════════════════
+    // ALERTS — no emoji, use plain text markers
+    // ══════════════════════════════════════════
+    const hasPendingPaid = orders?.some(o => o.status === 'pending' && o.payment_status === 'paid');
+    const hasBackorder   = (statistics?.orders_with_backorder || 0) > 0;
+
+    if (hasPendingPaid) {
+      need(12);
+      withOpacity(0.07, () => {
+        pdf.setFillColor(239, 68, 68);
+        pdf.roundedRect(M, y, CW, 11, 3, 3, 'F');
+      });
+      pdf.setDrawColor(239, 68, 68);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, 11, 3, 3, 'S');
+      pdf.setFillColor(239, 68, 68);
+      pdf.roundedRect(M, y, 3, 11, 2, 2, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(185, 28, 28);
+      pdf.text('Some orders are paid but still marked pending — review required.', M + 7, y + 7);
+      y += 15;
+    }
+
+    if (hasBackorder) {
+      need(12);
+      withOpacity(0.07, () => {
+        pdf.setFillColor(249, 115, 22);
+        pdf.roundedRect(M, y, CW, 11, 3, 3, 'F');
+      });
+      pdf.setDrawColor(249, 115, 22);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, 11, 3, 3, 'S');
+      pdf.setFillColor(249, 115, 22);
+      pdf.roundedRect(M, y, 3, 11, 2, 2, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(154, 52, 18);
+      pdf.text(`${statistics.orders_with_backorder} order(s) have items on backorder.`, M + 7, y + 7);
+      y += 15;
+    }
+
+    // ══════════════════════════════════════════
+    // TABLE
+    // ══════════════════════════════════════════
+    need(14);
+
+    // Section label
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(124, 58, 237);
+    pdf.text('Order Details', M, y);
+    y += 5;
+    hline('#7c3aed', 0.25);
+    y += 4;
+
+    // Column definitions — landscape A4 = 273mm content width
+    const cols = [
+      { label: 'Order #',   x: M,       w: 52  },
+      { label: 'Customer',  x: M + 52,  w: 42  },
+      { label: 'Items',     x: M + 94,  w: 22  },
+      { label: 'Currency',  x: M + 116, w: 18  },
+      { label: 'Amount',    x: M + 134, w: 38  },
+      { label: 'KES Equiv', x: M + 172, w: 38  },
+      { label: 'Status',    x: M + 210, w: 32  },
+      { label: 'Date',      x: M + 242, w: 31  },
+    ];
+
+    // Header band
+    withOpacity(0.07, () => {
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(M, y - 1, CW, 8, 'F');
+    });
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(107, 114, 128);
+    cols.forEach(c => pdf.text(c.label, c.x + 1, y + 5));
+    y += 8;
+
+    // ── Rows ─────────────────────────────────
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+
+    (orders || []).forEach((order, idx) => {
+      const ROW_H = 15;
+      need(ROW_H + 2);
+
+      // Zebra stripe
+      if (idx % 2 !== 0) {
+        withOpacity(0.04, () => {
+          pdf.setFillColor(124, 58, 237);
+          pdf.rect(M, y - 1, CW, ROW_H, 'F');
+        });
+      }
+
+      const midY = y + 5;
+
+      // Order number
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(28, 28, 28);
+      const orderNumLines = pdf.splitTextToSize(order.order_number, cols[0].w - 2);
+      pdf.text(orderNumLines[0], cols[0].x + 1, midY);
+      if (order.order_type && order.order_type !== 'standard') {
+        pdf.setFontSize(5.5);
+        pdf.setTextColor(124, 58, 237);
+        pdf.text(`[${order.order_type}]`, cols[0].x + 1, midY + 5);
+      }
+
+      // Customer
+      const custName = `${order.customer?.first_name || ''} ${order.customer?.last_name || ''}`.trim() || '—';
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(28, 28, 28);
+      pdf.text(pdf.splitTextToSize(custName, cols[1].w - 2)[0], cols[1].x + 1, midY);
+      if (order.customer?.email) {
+        pdf.setFontSize(5.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(pdf.splitTextToSize(order.customer.email, cols[1].w - 2)[0], cols[1].x + 1, midY + 5);
+      }
+
+      // Items
+      const orderItems   = Array.isArray(order.items) ? order.items : [];
+      const totalUnits   = orderItems.reduce((s, i) => s + Number(i.quantity || 0), 0);
+      const backorderQty = orderItems.reduce((s, i) => s + Number(i.backorder_quantity || 0), 0);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(28, 28, 28);
+      pdf.text(`${totalUnits}`, cols[2].x + 1, midY);
+      if (backorderQty > 0) {
+        pdf.setFontSize(5.5);
+        pdf.setTextColor(249, 115, 22);
+        pdf.text(`${backorderQty} BO`, cols[2].x + 1, midY + 5);
+      }
+
+      // Currency
+      const curr = order.currency || 'KES';
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(curr, cols[3].x + 1, midY);
+
+      // Amount (in order currency)
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(28, 28, 28);
+      pdf.text(fmtMoney(order.total, curr), cols[4].x + 1, midY);
+
+      // KES equivalent
+      if (curr !== 'KES' && order.total_kes) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(fmtMoney(order.total_kes, 'KES'), cols[5].x + 1, midY);
+      } else if (curr === 'KES') {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(156, 163, 175);
+        pdf.text('—', cols[5].x + 1, midY);
+      }
+
+      // Status pills — stacked
+      statusPill(cols[6].x + 1, midY, order.status || '—', STATUS_COLORS[order.status] || '#9ca3af');
+      statusPill(cols[6].x + 1, midY + 6, order.payment_status || '—', PAYMENT_COLORS[order.payment_status] || '#9ca3af');
+
+      // Date
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(fmtDate(order.created_at), cols[7].x + 1, midY);
+
+      y += ROW_H;
+
+      // Row divider
+      if (idx < (orders?.length || 0) - 1) {
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.15);
+        pdf.line(M, y, W - M, y);
+      }
+    });
+
+    // ══════════════════════════════════════════
+    // FOOTER
+    // ══════════════════════════════════════════
+    y += 6;
+    need(12);
+    hline('#e5e7eb', 0.25);
+    y += 5;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(
+      `Exported by ${user?.email || 'Admin'}  ·  Page ${pdf.internal.getNumberOfPages()}`,
+      M, y
+    );
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(124, 58, 237);
+    pdf.text('Orders Management System', W - M, y, { align: 'right' });
+
+    const fileName = `Orders-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+    pdf.save(fileName);
+    toast.success('PDF exported successfully!', { id: toastId });
+
+  } catch (err) {
+    console.error('PDF export failed:', err);
+    toast.error('Failed to generate PDF', { id: toastId });
+  }
+};
 
   const handleRefresh = () => {
     loadOrders();
@@ -532,13 +898,29 @@ export default function Orders() {
               e.stopPropagation();
               handleViewCustomerHistory(order.customer);
             }}
-            className="font-medium text-gray-900 dark:text-white hover:text-primary transition-colors text-left"
+            className="
+              inline-flex items-center gap-2
+              px-3 py-1.5
+              rounded-full
+              bg-gray-100 dark:bg-gray-800
+              text-gray-800 dark:text-gray-200
+              font-medium text-sm
+              
+              transform transition-all duration-200 ease-out
+              hover:bg-blue-50 dark:hover:bg-blue-900/30
+              hover:text-blue-700 dark:hover:text-blue-300
+              hover:shadow-md hover:-translate-y-0.5
+              
+              focus:outline-none focus:ring-2 focus:ring-blue-400
+            "
           >
             {order.customer?.first_name} {order.customer?.last_name}
           </button>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {order.customer?.email}
           </p>
+
           <p className="text-xs text-gray-400 dark:text-gray-500">
             ID: {order.customer_id}
           </p>
@@ -787,75 +1169,82 @@ export default function Orders() {
         title="Orders Management"
         subtitle="Manage and track all customer orders"
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="primary"
               icon={<Plus size={18} />}
               onClick={() => setCreateOrderModal(true)}
+              style={{ borderColor: '#7c3aed', color: '#7c3aed', background: 'rgba(124,58,237,0.08)' }}
             >
               Create Order
             </Button>
+
             <Button
               variant="outline"
               onClick={handleExport}
-              icon={<Download size={18} />}
+              icon={<Download size={18} style={{ color: '#10b981' }} />}
+              style={{ borderColor: '#10b981', color: '#10b981', background: 'rgba(16,185,129,0.08)' }}
             >
               Export
             </Button>
+
             <Button
               variant="outline"
               onClick={handleRefresh}
-              icon={<RefreshCw size={18} className={autoRefresh ? 'animate-spin' : ''} />}
+              icon={<RefreshCw size={18} className={autoRefresh ? 'animate-spin' : ''} style={{ color: '#0ea5e9' }} />}
+              style={{ borderColor: '#0ea5e9', color: '#0ea5e9', background: 'rgba(14,165,233,0.08)' }}
             >
               Refresh
             </Button>
+
             <Button
               variant={autoRefresh ? 'success' : 'outline'}
               onClick={() => setAutoRefresh(!autoRefresh)}
+              style={!autoRefresh ? { borderColor: '#8b5cf6', color: '#8b5cf6', background: 'rgba(139,92,246,0.08)' } : {}}
             >
               {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
             </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={openTrashModal}
-                  icon={<RotateCcw size={18} />}
-                >
-                  Trash
-                </Button>
+            <Button
+              variant="outline"
+              onClick={openTrashModal}
+              icon={<RotateCcw size={18} style={{ color: '#f59e0b' }} />}
+              style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245,158,11,0.08)' }}
+            >
+              Trash
+            </Button>
+
             {selectedOrders.length > 0 && (
               <>
-                {/* Show RESTORE if ALL selected are cancelled */}
                 {allSelectedCancelled ? (
                   <Button
                     variant="success"
                     onClick={() => setBulkRestoreModal(true)}
                     icon={<RefreshCw size={18} />}
+                    style={{ borderColor: '#10b981', color: '#10b981', background: 'rgba(16,185,129,0.08)' }}
                   >
                     Restore {selectedOrders.length} Order(s)
                   </Button>
                 ) : (
-                  /* Show CANCEL if NONE are cancelled */
                   !anySelectedCancelled && (
                     <Button
                       variant="danger"
                       onClick={() => setBulkCancelModal(true)}
+                      style={{ borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}
                     >
                       Cancel {selectedOrders.length} Order(s)
                     </Button>
                   )
                 )}
-
                 <Button
                   variant="danger"
                   onClick={softDeleteSelected}
                   disabled={!selectedOrders.length}
                   icon={<Trash2 size={18} />}
+                  style={{ borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}
                 >
                   Move to Trash ({selectedOrders.length})
                 </Button>
-                
-                {/* Show warning if mixed selection */}
                 {anySelectedCancelled && !allSelectedCancelled && (
                   <Badge variant="warning">
                     Mixed selection - separate cancelled and active orders
@@ -866,164 +1255,217 @@ export default function Orders() {
           </div>
         }
       />
-{/* Pending but paid alert */}
-{hasPendingPaid && (
-  <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-    <div className="flex items-start">
-      <AlertTriangle className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" />
-      <div>
-        <h3 className="text-sm font-medium text-secondary">
-          Some orders are paid but still pending
-        </h3>
-        <p className="text-sm text-blue-800 mt-1">
-          Filter by status “Pending” and payment “Paid” to review and confirm these orders.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatsCard
-            title="Total Orders"
-            value={statistics.total_orders || 0}
-            icon={Package}
-            variant="primary"
-          />
-          <StatsCard
-            title="Pending Orders"
-            value={statistics.pending || 0}
-            icon={Clock}
-            variant="warning"
-            subtitle={`${statistics.confirmed || 0} confirmed`}
-          />
-          <StatsCard
-            title="Today's Orders"
-            value={statistics.today || 0}
-            icon={Calendar}
-            variant="info"
-            subtitle={`KSh ${Number(statistics.today_revenue || 0).toLocaleString()}`}
-          />
-          <StatsCard
-            title="Total Revenue"
-            value={`KSh ${(Number(statistics.total_revenue || 0) / 1000).toFixed(1)}K`}
-            icon={DollarSign}
-            variant="success"
-            subtitle={`${statistics.delivered || 0} delivered`}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+          {[
+            {
+              label: 'Total Orders',
+              value: statistics.total_orders || 0,
+              sub: null,
+              bg: 'rgba(124,58,237,0.08)',
+              border: 'rgba(124,58,237,0.2)',
+              color: '#7c3aed',
+            },
+            {
+              label: 'Pending Orders',
+              value: statistics.pending || 0,
+              sub: `${statistics.confirmed || 0} confirmed`,
+              bg: 'rgba(245,158,11,0.08)',
+              border: 'rgba(245,158,11,0.2)',
+              color: '#d97706',
+            },
+            {
+              label: "Today's Orders",
+              value: statistics.today || 0,
+              sub: `KSh ${Number(statistics.today_revenue || 0).toLocaleString()}`,
+              bg: 'rgba(59,130,246,0.08)',
+              border: 'rgba(59,130,246,0.2)',
+              color: '#2563eb',
+            },
+            {
+              label: 'Total Revenue',
+              value: `KSh ${(Number(statistics.total_revenue || 0) / 1000).toFixed(1)}K`,
+              sub: `${statistics.delivered || 0} delivered`,
+              bg: 'rgba(16,185,129,0.08)',
+              border: 'rgba(16,185,129,0.2)',
+              color: '#059669',
+            },
+          ].map(({ label, value, sub, bg, border, color }) => (
+            <div key={label} style={{
+              background: bg,
+              border: `1px solid ${border}`,
+              borderRadius: 12,
+              padding: '16px 20px',
+            }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {label}
+              </p>
+              <p style={{ fontSize: '1.6rem', fontWeight: 700, color, lineHeight: 1.1, marginBottom: sub ? 4 : 0 }}>
+                {value}
+              </p>
+              {sub && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                  {sub}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
+      
+      {/* Alerts row */}
+      {(hasPendingPaid || statistics?.orders_with_backorder > 0) && (
+        <div className="flex gap-4 mb-6">
 
-      {/* Backorder Alert */}
-      {statistics?.orders_with_backorder > 0 && (
-        <div className="mb-6 bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-          <div className="flex items-center">
-            <AlertTriangle className="w-5 h-5 text-orange-400 mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-orange-800">
-                Backorder Alert
-              </h3>
-              <p className="text-sm text-orange-700 mt-1">
-                <strong>{statistics.orders_with_backorder}</strong> order(s) have items on backorder and need attention.
-              </p>
+          {hasPendingPaid && (
+            <div
+              className="flex-1 border-l-4 p-4 rounded-r-lg"
+              style={{ background: 'rgba(239,68,68,0.08)', borderColor: '#ef4444' }}
+            >
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                <div>
+                  <h3 className="text-sm font-medium" style={{ color: '#b91c1c' }}>
+                    Some orders are paid but still pending
+                  </h3>
+                  <p className="text-sm mt-1" style={{ color: '#dc2626' }}>
+                    Filter by status "Pending" and payment "Paid" to review and confirm these orders.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {statistics?.orders_with_backorder > 0 && (
+            <div
+              className="flex-1 border-l-4 p-4 rounded-r-lg"
+              style={{ background: 'rgba(249,115,22,0.08)', borderColor: '#f97316' }}
+            >
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-3 flex-shrink-0" style={{ color: '#f97316' }} />
+                <div>
+                  <h3 className="text-sm font-medium" style={{ color: '#9a3412' }}>
+                    Backorder Alert
+                  </h3>
+                  <p className="text-sm mt-1" style={{ color: '#c2410c' }}>
+                    <strong>{statistics.orders_with_backorder}</strong> order(s) have items on backorder and need attention.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
       {/* Filters */}
-      <Card className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <h3 className="font-semibold text-gray-900 dark:text-white">Filters</h3>
-            {hasActiveFilters && (
-              <Badge variant="primary" size="sm">
-                {Object.values(filters).filter(v => v !== '').length} active
-              </Badge>
-            )}
-          </div>
+      <div style={{
+        background: 'var(--color-background-primary)',
+        border: '1px solid var(--color-border-tertiary)',
+        borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        padding: '20px 24px', marginBottom: 24,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            Filters
+          </h3>
           {hasActiveFilters && (
-            <Button
-              size="sm"
-              variant="outline"
+            <button
               onClick={handleClearFilters}
-              icon={<X size={16} />}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                border: '1px solid var(--color-border-danger)',
+                background: 'var(--color-background-primary)',
+                color: 'var(--color-text-danger)', cursor: 'pointer', fontFamily: 'inherit',
+              }}
             >
-              Clear All
-            </Button>
+              <X size={14} /> Clear All Filters
+            </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <div className="xl:col-span-2">
-            <SearchBar
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
+            <input
+              type="text"
               placeholder="Search orders, customers..."
-              onSearch={(query) => setFilters({ ...filters, search: query })}
-              defaultValue={filters.search}
+              value={filters.search}
+              onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+              style={{
+                width: '100%', padding: '8px 36px', borderRadius: 8, fontSize: '0.875rem',
+                border: '1px solid var(--color-border-tertiary)',
+                background: 'var(--color-background-primary)',
+                color: 'var(--color-text-primary)', outline: 'none',
+                fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
             />
+            {filters.search && (
+              <button
+                onClick={() => setFilters(f => ({ ...f, search: '' }))}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-tertiary)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          <Select
-            label="Status"
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'confirmed', label: 'Confirmed' },
-              { value: 'processing', label: 'Processing' },
-              { value: 'shipped', label: 'Shipped' },
-              { value: 'delivered', label: 'Delivered' },
-              { value: 'cancelled', label: 'Cancelled' },
-              { value: 'failed', label: 'Failed' },
-              { value: 'ready_for_pickup', label: 'Ready for pickup' },
-            ]}
-          />
+          {/* Select row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+            {[
+              {
+                value: filters.status,
+                onChange: e => setFilters(f => ({ ...f, status: e.target.value })),
+                options: [['', 'All Statuses'], ['pending', 'Pending'], ['confirmed', 'Confirmed'], ['processing', 'Processing'], ['shipped', 'Shipped'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled'], ['failed', 'Failed'], ['ready_for_pickup', 'Ready for Pickup']],
+              },
+              {
+                value: filters.payment_status,
+                onChange: e => setFilters(f => ({ ...f, payment_status: e.target.value })),
+                options: [['', 'All Payments'], ['unpaid', 'Unpaid'], ['paid', 'Paid'], ['partially_paid', 'Partially Paid'], ['refunded', 'Refunded']],
+              },
+              {
+                value: filters.order_type,
+                onChange: e => setFilters(f => ({ ...f, order_type: e.target.value })),
+                options: [['', 'All Types'], ['standard', 'Standard'], ['quotation', 'Quotation'], ['bulk', 'Bulk'], ['b2b', 'B2B']],
+              },
+            ].map((sel, i) => (
+              <select key={i} value={sel.value} onChange={sel.onChange} style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                border: '1px solid var(--color-border-tertiary)',
+                background: 'var(--color-background-secondary)',
+                color: '#7b51c5', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+              }}>
+                {sel.options.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+              </select>
+            ))}
 
-          <Select
-            label="Payment"
-            value={filters.payment_status}
-            onChange={(e) => setFilters({ ...filters, payment_status: e.target.value })}
-            options={[
-              { value: '', label: 'All Payments' },
-              { value: 'unpaid', label: 'Unpaid' },
-              { value: 'paid', label: 'Paid' },
-              { value: 'partially_paid', label: 'Partially Paid' },
-              { value: 'refunded', label: 'Refunded' },
-            ]}
-          />
-
-          <Select
-            label="Type"
-            value={filters.order_type}
-            onChange={(e) => setFilters({ ...filters, order_type: e.target.value })}
-            options={[
-              { value: '', label: 'All Types' },
-              { value: 'standard', label: 'Standard' },
-              { value: 'quotation', label: 'Quotation' },
-              { value: 'bulk', label: 'Bulk' },
-              { value: 'b2b', label: 'B2B' },
-            ]}
-          />
-
-          <Input
-            label="From Date"
-            type="date"
-            value={filters.from_date}
-            onChange={(e) => setFilters({ ...filters, from_date: e.target.value })}
-          />
-
-          <Input
-            label="To Date"
-            type="date"
-            value={filters.to_date}
-            onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
-          />
+            {/* Date inputs */}
+            {[
+              { placeholder: 'From Date', value: filters.from_date, key: 'from_date' },
+              { placeholder: 'To Date', value: filters.to_date, key: 'to_date' },
+            ].map(({ placeholder, value, key }) => (
+              <input
+                key={key}
+                type="date"
+                value={value}
+                onChange={e => setFilters(f => ({ ...f, [key]: e.target.value }))}
+                title={placeholder}
+                style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                  border: '1px solid var(--color-border-tertiary)',
+                  background: 'var(--color-background-secondary)',
+                  color: value ? '#7b51c5' : 'var(--color-text-tertiary)',
+                  outline: 'none', fontFamily: 'inherit', cursor: 'pointer', boxSizing: 'border-box',
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </Card>
+      </div>
 
       {/* Orders Table */}
       {loading && !orders.length ? (
@@ -1040,6 +1482,12 @@ export default function Orders() {
               : "No orders found. Orders will appear here once customers start placing them."
           }
         />
+      )}
+
+      {/* Pagination — outside DataTable, always evaluated */}
+      {(() => { console.log('pagination state:', pagination); return null; })()}
+      {pagination && pagination.last_page > 1 && (
+        <AdminPagination pagination={pagination} onPageChange={handlePageChange} />
       )}
 
       {bulkCancelModal && (
@@ -1196,45 +1644,67 @@ export default function Orders() {
 
 
       {showTrashModal && (
-      <div className="fixed inset-0 z-50">
+      <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+        {/* Backdrop */}
         <div
-          className="absolute inset-0 bg-black/40 backdrop-blur-xl"
+          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)' }}
           onClick={() => setShowTrashModal(false)}
         />
 
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Modal */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{
+            width: '100%', maxWidth: 960,
+            maxHeight: 'calc(100vh - 48px)', // ← add this
+            overflowY: 'auto',               // ← and this
+            background: '#fff',
+            color: '#a855f7',
+            border: '1px solid var(--color-border-tertiary)',
+            borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--color-border-tertiary)' }}>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Orders Trash
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
                   Restore items or permanently delete (super admin only).
                 </p>
               </div>
-
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                style={{ padding: 8, borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Filters + actions */}
-            <div className="px-5 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex gap-2 w-full md:w-auto">
+            <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-tertiary)' }}>
+              {/* Left: search + status + refresh */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                   value={trashFilters.search}
                   onChange={(e) => setTrashFilters((p) => ({ ...p, search: e.target.value }))}
                   placeholder="Search trash..."
-                  className="w-full md:w-72 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                    border: '1px solid var(--color-border-tertiary)',
+                    background: 'var(--color-background-secondary)',
+                    color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'inherit', width: 240,
+                  }}
                 />
                 <select
                   value={trashFilters.status}
                   onChange={(e) => setTrashFilters((p) => ({ ...p, status: e.target.value }))}
-                  className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                    border: '1px solid var(--color-border-tertiary)',
+                    background: 'var(--color-background-secondary)',
+                    color: '#7b51c5', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                  }}
                 >
                   <option value="">All Statuses</option>
                   <option value="pending">Pending</option>
@@ -1245,39 +1715,49 @@ export default function Orders() {
                   <option value="cancelled">Cancelled</option>
                   <option value="failed">Failed</option>
                 </select>
-
-                <Button onClick={() => fetchTrash(1)} variant="secondary">
+                <Button
+                  onClick={() => fetchTrash(1)}
+                  variant="secondary"
+                  style={{ backgroundColor: '#F3F4F6', color: '#374151', borderColor: '#D1D5DB' }}
+                >
                   Refresh
                 </Button>
               </div>
 
-              <div className="flex gap-2">
+              {/* Right: restore + force delete */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
                   onClick={restoreSelected}
                   icon={<RotateCcw size={16} />}
                   variant="primary"
                   disabled={!trashSelectedIds.length}
+                  style={{ backgroundColor: '#7C3AED', color: '#fff', borderColor: '#7C3AED' }}
                 >
                   Restore Selected
                 </Button>
 
                 {isSuperAdmin && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={16} className="text-orange-500" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <AlertTriangle size={16} style={{ color: '#f97316' }} />
                       <input
                         value={deleteConfirm}
                         onChange={(e) => setDeleteConfirm(e.target.value)}
                         placeholder="Type DELETE"
-                        className="w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                        style={{
+                          width: 140, padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                          border: '1px solid var(--color-border-tertiary)',
+                          background: 'var(--color-background-secondary)',
+                          color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'inherit',
+                        }}
                       />
                     </div>
-
                     <Button
                       onClick={forceDeleteSelected}
                       icon={<Trash2 size={16} />}
                       variant="danger"
                       disabled={!trashSelectedIds.length || deleteConfirm !== 'DELETE'}
+                      style={{ backgroundColor: '#DC2626', color: '#fff', borderColor: '#DC2626' }}
                     >
                       Delete Forever
                     </Button>
@@ -1287,7 +1767,7 @@ export default function Orders() {
             </div>
 
             {/* Trash list */}
-            <div className="px-5 pb-5">
+            <div style={{ padding: '0 20px 20px' }}>
               <DataTable
                 columns={trashColumns}
                 data={trashedOrders}
@@ -1297,6 +1777,7 @@ export default function Orders() {
                 emptyMessage="Trash is empty"
               />
             </div>
+
           </div>
         </div>
       </div>

@@ -167,13 +167,11 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Find user
-        $user = User::where('email', $request->email)->first();
+        // Find user — include soft-deleted so they can be reactivated
+        $user = User::withTrashed()->where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         // Check if account is locked
@@ -189,14 +187,19 @@ class AuthController extends Controller
                 'message' => 'Your account is suspended. Please contact support.'
             ], 403);
         }
-
-        // Verify password
+        
+        // Verify password FIRST before restoring anything
         if (!Hash::check($request->password, $user->password)) {
-            $user->recordFailedLogin();
-            
-            return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
+            if (!$user->trashed()) $user->recordFailedLogin();
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        // Now restore if soft-deleted
+        if ($user->trashed()) {
+            $user->restore();
+            if ($user->customer()->withTrashed()->exists()) {
+                $user->customer()->withTrashed()->restore();
+            }
         }
 
         // Check if password change required

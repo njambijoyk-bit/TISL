@@ -15,6 +15,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState({});
   const [focused, setFocused] = useState('');
 
@@ -93,8 +94,8 @@ export default function Login() {
             <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>BlueArc</div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Solutions</div>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>Target</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Suppliers LTD</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -143,9 +144,9 @@ export default function Login() {
             }}>
               <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
             </div>
-            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>BlueArc</h2>
+            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Target</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>
-              Industrial Solutions
+              Industrial Suppliers LTD
             </p>
           </div>
 
@@ -256,8 +257,7 @@ export default function Login() {
             {/* Remember + forgot */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.8rem', cursor: 'pointer' }} className="text-gray-600 dark:text-gray-400">
-                <input type="checkbox" style={{ accentColor: '#a855f7', width: 14, height: 14 }} />
-                Remember me
+                
               </label>
               
               <Link to="/forgot-password" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', textDecoration: 'none' }}>
@@ -265,16 +265,34 @@ export default function Login() {
               </Link>
             </div>
 
+            {/* Terms checkbox */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <input
+                id="login-accept-terms"
+                type="checkbox"
+                checked={accepted}
+                onChange={e => setAccepted(e.target.checked)}
+                style={{ marginTop: 3, accentColor: '#a855f7', cursor: 'pointer', flexShrink: 0 }}
+              />
+              <label htmlFor="login-accept-terms" style={{ fontSize: '0.78rem', lineHeight: 1.6, cursor: 'pointer', color: '#6b7280' }}>
+                I agree to the{' '}
+                <Link to="/terms" style={{ color: '#a855f7', textDecoration: 'none' }}>Terms of Service</Link>
+                {' '}and{' '}
+                <Link to="/privacy" style={{ color: '#a855f7', textDecoration: 'none' }}>Privacy Policy</Link>
+              </label>
+            </div>
+
             {/* Submit */}
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || !accepted}
               style={{
-                height: 46, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                background: loading ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                color: loading ? '#9ca3af' : 'white', fontSize: '0.88rem', fontWeight: 700,
+                height: 46, borderRadius: 12, border: 'none', cursor: (loading || !accepted) ? 'not-allowed' : 'pointer',
+                background: (loading || !accepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: (loading || !accepted) ? '#9ca3af' : 'white', fontSize: '0.88rem', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: loading ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                boxShadow: (loading || !accepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
                 transition: 'all 200ms', letterSpacing: '0.04em',
+                opacity: !accepted ? 0.5 : 1,
               }}
             >
               {loading ? 'Signing in…' : <><span>Sign In</span> <ArrowRight size={16} /></>}

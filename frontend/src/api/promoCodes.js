@@ -110,6 +110,14 @@ const promoCodesAPI = {
     return data;
   },
 
+  /**
+   * Get redemptions (orders) for a promo code (admin)
+   */
+  getRedemptions: async (id) => {
+    const { data } = await api.get(`/admin/promo-codes/${id}/redemptions`);
+    return data;
+  },
+
   // ========================================
   // CUSTOMER ENDPOINTS
   // ========================================

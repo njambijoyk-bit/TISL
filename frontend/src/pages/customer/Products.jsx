@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LayoutGrid, List } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import Pagination from '../../components/common/Pagination';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Breadcrumb from '../../components/layout/Breadcrumb';
@@ -113,6 +114,9 @@ export default function Products() {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands]       = useState([]);
 
+  const [showCategories, setShowCategories] = useState(false);
+  const [showBrands, setShowBrands]         = useState(false);
+
   // ── On mount: sync URL params + fetch categories/brands ──────────────────
   useEffect(() => {
     const params = Object.fromEntries(searchParams.entries());
@@ -134,19 +138,36 @@ export default function Products() {
   useEffect(() => { fetchProducts(); }, [filters, pagination.current_page]);
 
   const fetchProducts = async () => {
-    try {
-      setLoading(true); setError(null);
-      const response = await productsAPI.getProducts({ ...filters, page: pagination.current_page, per_page: 20 });
-      let productsData = [], paginationData = null;
-      if (response.data) {
-        if (Array.isArray(response.data)) { productsData = response.data; paginationData = response.pagination || response.meta; }
-        else if (response.data.data && Array.isArray(response.data.data)) { productsData = response.data.data; paginationData = response.data.pagination || response.data.meta || response.data; }
-        else if (typeof response.data === 'object') { productsData = [response.data]; paginationData = response.pagination || response.meta; }
-      } else if (Array.isArray(response)) { productsData = response; }
-      setProducts(productsData, paginationData);
-    } catch (err) { setError(err.message || 'Failed to load products'); }
-    finally { setLoading(false); }
-  };
+  try {
+    setLoading(true); setError(null);
+
+    const res = await productsAPI.getProducts({ ...filters, page: pagination.current_page, per_page: 20 });
+
+    // same unwrap logic as ProductBulkPage
+    const unwrap = (res) => {
+      if (Array.isArray(res))                              return { items: res,           meta: null    };
+      if (res?.data && Array.isArray(res.data))            return { items: res.data,       meta: res.meta ?? res.pagination ?? null };
+      if (res?.data?.data && Array.isArray(res.data.data)) return { items: res.data.data,  meta: res.data };
+      return { items: [], meta: null };
+    };
+
+    const { items, meta } = unwrap(res);
+    const paginationSource = meta ?? res;
+
+    const paginationData = paginationSource?.current_page ? {
+      current_page: paginationSource.current_page ?? 1,
+      last_page:    paginationSource.last_page    ?? 1,
+      total:        paginationSource.total        ?? items.length,
+      per_page:     paginationSource.per_page     ?? 20,
+    } : null;
+
+    setProducts(items, paginationData);
+  } catch (err) {
+    setError(err.message || 'Failed to load products');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleFilterChange = (key, value) => {
     setFilter(key, value); setPage(1);
@@ -199,29 +220,92 @@ export default function Products() {
         {/* ── Categories ───────────────────────────────────────────────────── */}
         {categories.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <button
+              type="button"
+              onClick={() => setShowCategories(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: showCategories ? 10 : 0 }}
+            >
               <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
                 Browse by Category
               </span>
+              <span style={{ fontSize: '0.65rem', color: '#c084fc', transition: 'transform 150ms', display: 'inline-block', transform: showCategories ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
               {activeCategory && (
-                <button type="button" onClick={() => handleFilterChange('category_id', '')}
-                  style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
-                  Clear selection
-                </button>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
+                  1 active
+                </span>
               )}
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {categories.map((cat, idx) => (
-                <BrowseCard
-                  key={cat.id}
-                  label={cat.name}
-                  count={cat.products_count}
-                  active={String(filters.category_id) === String(cat.id)}
-                  accent={ACCENTS[idx % ACCENTS.length]}
-                  onClick={() => handleCategoryClick(cat)}
-                />
-              ))}
-            </div>
+            </button>
+
+            {showCategories && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  {activeCategory && (
+                    <button type="button" onClick={() => handleFilterChange('category_id', '')}
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {categories.map((cat, idx) => (
+                    <BrowseCard
+                      key={cat.id}
+                      label={cat.name}
+                      count={cat.products_count}
+                      active={String(filters.category_id) === String(cat.id)}
+                      accent={ACCENTS[idx % ACCENTS.length]}
+                      onClick={() => handleCategoryClick(cat)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {brands.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <button
+              type="button"
+              onClick={() => setShowBrands(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: showBrands ? 10 : 0 }}
+            >
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+                Browse by Brand
+              </span>
+              <span style={{ fontSize: '0.65rem', color: '#c084fc', transition: 'transform 150ms', display: 'inline-block', transform: showBrands ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+              {activeBrand && (
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
+                  1 active
+                </span>
+              )}
+            </button>
+
+            {showBrands && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  {activeBrand && (
+                    <button type="button" onClick={() => handleFilterChange('brand_id', '')}
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {brands.map((brand, idx) => (
+                    <BrowseCard
+                      key={brand.id}
+                      label={brand.name}
+                      count={brand.products_count}
+                      logo={brand.logo}
+                      active={String(filters.brand_id) === String(brand.id)}
+                      accent={ACCENTS[(idx + 3) % ACCENTS.length]}
+                      onClick={() => handleBrandClick(brand)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -250,53 +334,9 @@ export default function Products() {
           </div>
         )}
 
-        {/* ── Brands ───────────────────────────────────────────────────────── */}
-        {brands.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
-                Browse by Brand
-              </span>
-              {activeBrand && (
-                <button type="button" onClick={() => handleFilterChange('brand_id', '')}
-                  style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
-                  Clear selection
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {brands.map((brand, idx) => (
-                <BrowseCard
-                  key={brand.id}
-                  label={brand.name}
-                  count={brand.products_count}
-                  logo={brand.logo}
-                  active={String(filters.brand_id) === String(brand.id)}
-                  accent={ACCENTS[(idx + 3) % ACCENTS.length]}
-                  onClick={() => handleBrandClick(brand)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* ── Pagination ───────────────────────────────────────────────────── */}
-        {!loading && !error && pagination && pagination.last_page > 1 && (
-          <div className="mt-8 flex justify-center">
-            <div className="flex items-center space-x-2">
-              <button onClick={() => handlePageChange(pagination.current_page - 1)} disabled={pagination.current_page === 1} className="pagination-btn px-4 py-2 border rounded transition-colors">Previous</button>
-              {[...Array(pagination.last_page)].map((_, i) => {
-                const page = i + 1;
-                if (page === 1 || page === pagination.last_page || (page >= pagination.current_page - 2 && page <= pagination.current_page + 2)) {
-                  return <button key={page} onClick={() => handlePageChange(page)} className={`pagination-btn px-4 py-2 border rounded transition-colors ${page === pagination.current_page ? 'active' : ''}`}>{page}</button>;
-                } else if (page === pagination.current_page - 3 || page === pagination.current_page + 3) {
-                  return <span key={page} className="text-gray-500">…</span>;
-                }
-                return null;
-              })}
-              <button onClick={() => handlePageChange(pagination.current_page + 1)} disabled={pagination.current_page === pagination.last_page} className="pagination-btn px-4 py-2 border rounded transition-colors">Next</button>
-            </div>
-          </div>
+        {!loading && !error && (
+          <Pagination pagination={pagination} onPageChange={handlePageChange} />
         )}
       </div>
 

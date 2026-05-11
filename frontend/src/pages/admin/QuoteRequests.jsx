@@ -13,11 +13,13 @@ import {
   TrendingUp
 } from 'lucide-react';
 import useQuoteRequestStore from '../../store/quoteRequestStore';
+import AdminLayout from '../../components/layout/AdminLayout';
 import QuoteRequestCard from '../../components/quotes/QuoteRequestCard';
 import PageHeader from '../../components/layout/PageHeader';
 import EmptyState from '../../components/layout/EmptyState';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import Button from '../../components/common/Button';
+import AdminPagination from '../../components/common/AdminPagination';
 import Select from '../../components/common/Select';
 import Input from '../../components/common/Input';
 import Badge from '../../components/common/Badge';
@@ -107,6 +109,7 @@ const QuoteRequests = () => {
   };
 
   return (
+    <AdminLayout>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <PageHeader
@@ -118,241 +121,146 @@ const QuoteRequests = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
         {statistics && !loadingStatistics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-            {/* Total Requests */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
+            {[
+              { label: 'Total Requests', value: statistics.total_requests, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  Icon: FileText    },
+              { label: 'Pending',        value: statistics.pending,        color: '#eab308', bg: 'rgba(234,179,8,0.1)',   Icon: Clock       },
+              { label: 'Under Review',   value: statistics.reviewing,      color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', Icon: TrendingUp  },
+              { label: 'Quoted',         value: statistics.quoted,         color: '#10b981', bg: 'rgba(16,185,129,0.1)', Icon: CheckCircle },
+              { label: 'Rejected',       value: statistics.rejected,       color: '#ef4444', bg: 'rgba(239,68,68,0.1)',  Icon: XCircle     },
+              { label: 'Unassigned',     value: statistics.unassigned,     color: '#f97316', bg: 'rgba(249,115,22,0.1)', Icon: AlertCircle },
+            ].map(({ label, value, color, bg, Icon }) => (
+              <div key={label} style={{
+                background: 'var(--color-background-primary)',
+                border: '1px solid var(--color-border-tertiary)',
+                borderRadius: 12,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                padding: '20px 24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Total Requests
+                  <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {label}
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                    {statistics.total_requests}
+                  <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                    {value}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-                  <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={20} style={{ color }} />
                 </div>
               </div>
-            </div>
-
-            {/* Pending */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Pending
-                  </p>
-                  <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">
-                    {statistics.pending}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full">
-                  <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Under Review */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Under Review
-                  </p>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-                    {statistics.reviewing}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Quoted */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Quoted
-                  </p>
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
-                    {statistics.quoted}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Rejected */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Rejected
-                  </p>
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">
-                    {statistics.rejected}
-                  </p>
-                </div>
-                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                  <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Unassigned */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Unassigned
-                  </p>
-                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-2">
-                    {statistics.unassigned}
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
         {/* Filters Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div style={{
+          background: 'var(--color-background-primary)',
+          border: '1px solid var(--color-border-tertiary)',
+          borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          padding: '20px 24px', marginBottom: 24,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
               Filters
             </h3>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden text-primary-600 dark:text-primary-400 hover:text-primary-700"
+              style={{ display: 'none', background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer' }}
+              className="lg:hidden"
             >
-              <Filter className="w-5 h-5" />
+              <Filter size={18} />
             </button>
           </div>
 
-          <div className={`space-y-4 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Search */}
-            <form onSubmit={handleSearch} className="relative">
-              <Input
+            <div style={{ position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
+              <input
                 type="text"
                 placeholder="Search by request number, title, customer name..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch(e)}
+                style={{
+                  width: '100%', padding: '8px 36px', borderRadius: 8, fontSize: '0.875rem',
+                  border: '1px solid var(--color-border-tertiary)',
+                  background: 'var(--color-background-primary)',
+                  color: '#7c3aed', outline: 'none',
+                  fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               {searchTerm && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSearch('');
-                    fetchAdminQuoteRequests();
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => { setSearchTerm(''); setSearch(''); fetchAdminQuoteRequests(); }}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-tertiary)', cursor: 'pointer', padding: 0 }}
                 >
-                  <X className="w-5 h-5" />
+                  <X size={15} />
                 </button>
               )}
-            </form>
-
-            {/* Filter Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              {/* Status Filter */}
-              <Select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  handleFilterChange();
-                }}
-              >
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="reviewing">Under Review</option>
-                <option value="quoted">Quote Created</option>
-                <option value="rejected">Rejected</option>
-                <option value="expired">Expired</option>
-              </Select>
-
-              {/* Priority Filter */}
-              <Select
-                value={priorityFilter}
-                onChange={(e) => {
-                  setPriorityFilter(e.target.value);
-                  handleFilterChange();
-                }}
-              >
-                <option value="">All Priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </Select>
-
-              {/* Type Filter */}
-              <Select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  handleFilterChange();
-                }}
-              >
-                <option value="">All Types</option>
-                <option value="product">Product</option>
-                <option value="service">Service</option>
-                <option value="mixed">Mixed</option>
-                <option value="not_sure">Not Sure</option>
-              </Select>
-
-              {/* Assigned Filter */}
-              <Select
-                value={assignedFilter}
-                onChange={(e) => {
-                  setAssignedFilter(e.target.value);
-                  handleFilterChange();
-                }}
-              >
-                <option value="">All Requests</option>
-                <option value="true">Assigned</option>
-                <option value="false">Unassigned</option>
-              </Select>
-
-              {/* Clarification Filter */}
-              <div className="flex items-center">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={clarificationFilter}
-                    onChange={(e) => {
-                      setClarificationFilter(e.target.checked);
-                      handleFilterChange();
-                    }}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    Needs Clarification
-                  </span>
-                </label>
-              </div>
             </div>
 
-            {/* Clear Filters Button */}
+            {/* Filter Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+              {[
+                {
+                  value: statusFilter, onChange: e => { setStatusFilter(e.target.value); handleFilterChange(); },
+                  options: [['', 'All Statuses'], ['pending', 'Pending'], ['reviewing', 'Under Review'], ['quoted', 'Quote Created'], ['rejected', 'Rejected'], ['expired', 'Expired']],
+                },
+                {
+                  value: priorityFilter, onChange: e => { setPriorityFilter(e.target.value); handleFilterChange(); },
+                  options: [['', 'All Priorities'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['urgent', 'Urgent']],
+                },
+                {
+                  value: typeFilter, onChange: e => { setTypeFilter(e.target.value); handleFilterChange(); },
+                  options: [['', 'All Types'], ['product', 'Product'], ['service', 'Service'], ['mixed', 'Mixed'], ['not_sure', 'Not Sure']],
+                },
+                {
+                  value: assignedFilter, onChange: e => { setAssignedFilter(e.target.value); handleFilterChange(); },
+                  options: [['', 'All Requests'], ['true', 'Assigned'], ['false', 'Unassigned']],
+                },
+              ].map((sel, i) => (
+                <select key={i} value={sel.value} onChange={sel.onChange} style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+                  border: '1px solid var(--color-border-tertiary)',
+                  background: '#cccaca',
+                  color: '#7b51c5', outline: 'none',
+                  fontFamily: 'inherit', cursor: 'pointer',
+                }}>
+                  {sel.options.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                </select>
+              ))}
+
+              {/* Clarification checkbox */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-primary)', padding: '8px 0' }}>
+                <input
+                  type="checkbox"
+                  checked={clarificationFilter}
+                  onChange={e => { setClarificationFilter(e.target.checked); handleFilterChange(); }}
+                  style={{ width: 16, height: 16, accentColor: '#7c3aed', cursor: 'pointer' }}
+                />
+                Needs Clarification
+              </label>
+            </div>
+
+            {/* Clear Filters */}
             {hasActiveFilters && (
-              <Button
-                variant="outline"
-                onClick={handleClearFilters}
-                className="w-full sm:w-auto"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Clear All Filters
-              </Button>
+              <div>
+                <button
+                  onClick={handleClearFilters}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                    border: '1px solid var(--color-border-danger)',
+                    background: 'var(--color-background-primary)',
+                    color: 'var(--color-text-danger)', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <X size={14} /> Clear All Filters
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -419,57 +327,18 @@ const QuoteRequests = () => {
                 />
               ))}
             </div>
-
+{pagination?.total > 0 && (
+  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 text-center">
+    Showing {(pagination.current_page - 1) * pagination.per_page + 1}–
+    {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
+  </p>
+)}
             {/* Pagination */}
-            {pagination.last_page > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                {/* Previous Button */}
-                <Button
-                  variant="outline"
-                  onClick={() => handlePageChange(pagination.current_page - 1)}
-                  disabled={pagination.current_page === 1}
-                >
-                  Previous
-                </Button>
-
-                {/* Page Numbers */}
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                    let pageNum;
-
-                    // Show pages around current page
-                    if (pagination.last_page <= 5) {
-                      pageNum = i + 1;
-                    } else if (pagination.current_page <= 3) {
-                      pageNum = i + 1;
-                    } else if (pagination.current_page >= pagination.last_page - 2) {
-                      pageNum = pagination.last_page - 4 + i;
-                    } else {
-                      pageNum = pagination.current_page - 2 + i;
-                    }
-
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={pagination.current_page === pageNum ? 'primary' : 'outline'}
-                        onClick={() => handlePageChange(pageNum)}
-                        className="min-w-[40px]"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
-                </div>
-
-                {/* Next Button */}
-                <Button
-                  variant="outline"
-                  onClick={() => handlePageChange(pagination.current_page + 1)}
-                  disabled={pagination.current_page === pagination.last_page}
-                >
-                  Next
-                </Button>
-              </div>
+            {pagination?.last_page > 1 && (
+              <AdminPagination 
+                pagination={pagination} 
+                onPageChange={handlePageChange} 
+              />
             )}
           </>
         )}
@@ -530,6 +399,7 @@ const QuoteRequests = () => {
         )}
       </div>
     </div>
+    </AdminLayout>
   );
 };
 

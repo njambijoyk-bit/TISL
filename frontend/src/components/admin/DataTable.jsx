@@ -6,12 +6,12 @@ const thStyle = {
   padding: '10px 20px', textAlign: 'left',
   fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af',
   textTransform: 'uppercase', letterSpacing: '0.08em',
-  borderBottom: '1px solid #f3f4f6', whiteSpace: 'nowrap',
+  borderBottom: '1.5px solid #f3f4f6', whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
   padding: '12px 20px', fontSize: '0.82rem', color: '#374151',
-  borderBottom: '1px solid #f9fafb', verticalAlign: 'middle',
+  verticalAlign: 'middle',
 };
 
 const pageBtn = (disabled) => ({
@@ -46,7 +46,7 @@ export default function DataTable({
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
+              <tr style={{ background: '#fafafa' }}>
                 {selectable && (
                   <th style={{ ...thStyle, width: 44 }}>
                     <button onClick={onSelectAll} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -69,9 +69,23 @@ export default function DataTable({
                 const isSelected = selectable && selectedIds.includes(row.id);
                 return (
                   <tr key={rowIndex}
-                    style={{ background: isSelected ? 'rgba(168,85,247,0.04)' : 'transparent', transition: 'background 150ms' }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#fafafa'; }}
-                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                    style={{
+                      background: isSelected ? 'rgba(168,85,247,0.05)' : 'transparent',
+                      boxShadow: isSelected ? 'inset 3px 0 0 #a855f7' : 'inset 3px 0 0 transparent',
+                      transition: 'background 200ms ease, box-shadow 200ms ease',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = 'rgba(169, 85, 247, 0.28)';
+                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 rgba(168,85,247,0.35)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 transparent';
+                      }
+                    }}
                   >
                     {selectable && (
                       <td style={tdStyle}>

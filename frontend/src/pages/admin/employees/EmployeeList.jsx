@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  UserPlus, Building2, Phone, Mail, MoreHorizontal,
-  Calendar, Users, TrendingUp, Award, AlertCircle,
+  UserPlus, Building2, Phone, Mail, MoreHorizontal, Gift, History,
+  Calendar, Users, TrendingUp, Award, AlertCircle, Clock,
   Trash2, Edit3, Eye, RotateCcw, X, ShieldAlert, CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import employeesApi from '../../../api/employees';
+import useAuthStore from '../../../store/authStore';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -112,6 +113,8 @@ function SkeletonRow() {
 
 export default function EmployeeList() {
   const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const isAdminOrSuper = ['admin', 'super_admin'].includes(user?.role);
   const [employees, setEmployees]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
@@ -121,6 +124,18 @@ export default function EmployeeList() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy]         = useState('created_at');
   const [sortOrder, setSortOrder]   = useState('desc');
+
+  // Leave logs modal
+  const [showLeaveLogsModal, setShowLeaveLogsModal]   = useState(false);
+  const [leaveLogs, setLeaveLogs]                     = useState([]);
+  const [leaveLogsLoading, setLeaveLogsLoading]       = useState(false);
+  const [leaveLogsFilter, setLeaveLogsFilter]         = useState('');
+  const [leaveLogsPagination, setLeaveLogsPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
+
+  // Birthdays modal
+  const [showBirthdaysModal, setShowBirthdaysModal]   = useState(false);
+  const [birthdays, setBirthdays]                     = useState([]);
+  const [birthdaysLoading, setBirthdaysLoading]       = useState(false);
 
   // Trash modal
   const [showTrashModal, setShowTrashModal]     = useState(false);
@@ -155,6 +170,29 @@ export default function EmployeeList() {
     try { const data = await employeesApi.getEmployees({ trashed: 'only', per_page: 100 }); setTrashedEmployees(data.data || []); }
     catch { toast.error('Failed to load deleted employees'); setTrashedEmployees([]); }
     finally { setTrashLoading(false); }
+  };
+
+  const fetchLeaveLogs = async (page = 1) => {
+    setLeaveLogsLoading(true);
+    try {
+      const data = await employeesApi.getAllLeaveLogs({ per_page: 15, page });
+      setLeaveLogs(data.data || []);
+      setLeaveLogsPagination({
+        current_page: data.current_page || 1,
+        last_page: data.last_page || 1,
+        total: data.total || 0,
+      });
+    } catch { toast.error('Failed to load leave logs'); setLeaveLogs([]); }
+    finally { setLeaveLogsLoading(false); }
+  };
+
+  const fetchBirthdays = async () => {
+    setBirthdaysLoading(true);
+    try {
+      const data = await employeesApi.getUpcomingBirthdays(30);
+      setBirthdays(data.data || []);
+    } catch { toast.error('Failed to load upcoming birthdays'); setBirthdays([]); }
+    finally { setBirthdaysLoading(false); }
   };
 
   useEffect(() => { fetchEmployees(); fetchDepartments(); fetchStatistics(); }, [fetchEmployees, fetchDepartments, fetchStatistics]);
@@ -229,6 +267,41 @@ export default function EmployeeList() {
           >
             <Filter size={14} /> Filters
           </button>
+
+          {/* ── Admin-only buttons ── */}
+          {isAdminOrSuper && (
+            <>
+              <button
+                onClick={() => { setShowLeaveLogsModal(true); fetchLeaveLogs(1); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+                  fontFamily: 'inherit', cursor: 'pointer',
+                  background: 'rgba(37,99,235,0.06)', border: '1.5px solid rgba(37,99,235,0.2)', color: '#1d4ed8',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(37,99,235,0.11)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(37,99,235,0.06)'}
+              >
+                <History size={14} /> Leave Logs
+              </button>
+              <button
+                onClick={() => { setShowBirthdaysModal(true); fetchBirthdays(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+                  fontFamily: 'inherit', cursor: 'pointer',
+                  background: 'rgba(217,119,6,0.06)', border: '1.5px solid rgba(217,119,6,0.2)', color: '#b45309',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,119,6,0.11)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(217,119,6,0.06)'}
+              >
+                <Gift size={14} /> Birthdays
+              </button>
+            </>
+          )}
+
           <button
             onClick={() => { setShowTrashModal(true); fetchTrashed(); }}
             style={{
@@ -536,7 +609,7 @@ export default function EmployeeList() {
                       <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
                         {emp.job_title || '—'}{emp.department && ` · ${emp.department}`}
                       </p>
-                      <p style={{ fontSize: '0.65rem', color: '#d1d5db', margin: '1px 0 0' }}>
+                      <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '1px 0 0' }}>
                         Deleted {emp.deleted_at ? new Date(emp.deleted_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                       </p>
                     </div>
@@ -551,7 +624,7 @@ export default function EmployeeList() {
                   </div>
                 </div>
               ))}
-              <p style={{ fontSize: '0.68rem', color: '#d1d5db', textAlign: 'center', marginTop: 8 }}>
+              <p style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
                 {trashedEmployees.length} deleted — permanently deleted records cannot be recovered
               </p>
             </div>
@@ -596,6 +669,190 @@ export default function EmployeeList() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Leave Logs Modal ── */}
+      {showLeaveLogsModal && (
+        <Modal
+          onClose={() => { setShowLeaveLogsModal(false); setLeaveLogsFilter(''); setLeaveLogsPagination({ current_page: 1, last_page: 1, total: 0 }); }}
+          title="Leave Log History"
+          subtitle="All add / use leave activity across employees"
+          icon={<History size={18} style={{ color: '#1d4ed8' }} />}
+          iconBg="rgba(37,99,235,0.1)"
+        >
+          {/* Filter toggle */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {['', 'add', 'use'].map(v => (
+              <button
+                key={v}
+                onClick={() => setLeaveLogsFilter(v)}
+                style={{
+                  padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
+                  background: leaveLogsFilter === v
+                    ? (v === 'add' ? '#059669' : v === 'use' ? '#d97706' : '#a855f7')
+                    : 'rgba(168,85,247,0.07)',
+                  color: leaveLogsFilter === v ? 'white' : '#9ca3af',
+                }}
+              >
+                {v === '' ? 'All' : v === 'add' ? '+ Add' : '− Use'}
+              </button>
+            ))}
+          </div>
+
+          {leaveLogsLoading ? (
+            <div style={{ padding: '48px 0', textAlign: 'center' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading logs…</p>
+            </div>
+          ) : leaveLogs.filter(l => leaveLogsFilter === '' || l.action === leaveLogsFilter).length === 0 ? (
+            <div style={{ padding: '48px 0', textAlign: 'center' }}>
+              <History size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No leave logs yet</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {leaveLogs
+                .filter(l => leaveLogsFilter === '' || l.action === leaveLogsFilter)
+                .map(log => {
+                  const isAdd = log.action === 'add';
+                  return (
+                    <div key={log.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      padding: '11px 14px', borderRadius: 10,
+                      border: `1px solid ${isAdd ? 'rgba(5,150,105,0.12)' : 'rgba(217,119,6,0.12)'}`,
+                      background: isAdd ? 'rgba(5,150,105,0.03)' : 'rgba(217,119,6,0.03)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        {/* Action badge */}
+                        <span style={{
+                          flexShrink: 0, width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800,
+                          background: isAdd ? 'rgba(5,150,105,0.12)' : 'rgba(217,119,6,0.12)',
+                          color: isAdd ? '#059669' : '#d97706',
+                        }}>
+                          {isAdd ? '+' : '−'}
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {log.employee?.user?.name || 'Unknown Employee'}
+                          </p>
+                          <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '0 0 1px' }}>
+                            {log.reason || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No reason given</span>}
+                          </p>
+                          <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={10} />
+                            {new Date(log.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {log.actioned_by && ` · by ${log.actioned_by.name}`}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Days + balance */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ fontSize: '0.88rem', fontWeight: 800, color: isAdd ? '#059669' : '#d97706', margin: '0 0 2px' }}>
+                          {isAdd ? '+' : '−'}{log.days}d
+                        </p>
+                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
+                          {log.balance_before} → {log.balance_after} days
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+          {/* Pagination */}
+          {leaveLogsPagination.last_page > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+                Page {leaveLogsPagination.current_page} of {leaveLogsPagination.last_page} · {leaveLogsPagination.total} entries
+              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => fetchLeaveLogs(leaveLogsPagination.current_page - 1)}
+                  disabled={leaveLogsPagination.current_page <= 1}
+                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page <= 1 ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: leaveLogsPagination.current_page <= 1 ? 0.3 : 1 }}
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={() => fetchLeaveLogs(leaveLogsPagination.current_page + 1)}
+                  disabled={leaveLogsPagination.current_page >= leaveLogsPagination.last_page}
+                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 0.3 : 1 }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* ── Birthdays Modal ── */}
+      {showBirthdaysModal && (
+        <Modal
+          onClose={() => setShowBirthdaysModal(false)}
+          title="Upcoming Birthdays"
+          subtitle="Employees with birthdays in the next 30 days"
+          icon={<Gift size={18} style={{ color: '#d97706' }} />}
+          iconBg="rgba(217,119,6,0.1)"
+        >
+          {birthdaysLoading ? (
+            <div style={{ padding: '48px 0', textAlign: 'center' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
+            </div>
+          ) : birthdays.length === 0 ? (
+            <div style={{ padding: '48px 0', textAlign: 'center' }}>
+              <Gift size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No upcoming birthdays in the next 30 days</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {birthdays.map(emp => {
+                const isToday = emp.days_until_birthday === 0;
+                const isSoon  = emp.days_until_birthday <= 7;
+                const accentColor = isToday ? '#7c3aed' : isSoon ? '#d97706' : '#6b7280';
+                const accentBg    = isToday ? 'rgba(124,58,237,0.08)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
+
+                return (
+                  <div key={emp.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    padding: '11px 14px', borderRadius: 10,
+                    border: `1px solid ${isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'}`,
+                    background: isToday ? 'rgba(124,58,237,0.04)' : 'transparent',
+                    transition: 'border-color 150ms',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {/* Avatar */}
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: accentBg, color: accentColor, fontSize: '0.8rem', fontWeight: 800,
+                      }}>
+                        {emp.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{emp.name}</p>
+                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
+                          {new Date(emp.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long' })}
+                          {emp.age && ` · Turning ${emp.age + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Days pill */}
+                    <span style={{
+                      flexShrink: 0, padding: '4px 11px', borderRadius: 20,
+                      fontSize: '0.72rem', fontWeight: 700,
+                      background: accentBg, color: accentColor,
+                    }}>
+                      {isToday ? '🎂 Today!' : emp.days_until_birthday === 1 ? 'Tomorrow' : `${emp.days_until_birthday} days`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Modal>
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

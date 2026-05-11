@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Minimize2, Sparkles } from 'lucide-react';
 import api from '../../api/axios';
 
+
+const PURPLE_TEXT = '#a855f7';
+
 const SUGGESTED = [
   'What products do you have?',
   'What services do you offer?',
@@ -24,6 +27,99 @@ function TypingIndicator() {
   );
 }
 
+// ── Markdown renderer 
+function renderMarkdown(text) {
+  const lines = text.split('\n');
+  const elements = [];
+  let listBuffer = [];
+  let key = 0;
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+    elements.push(
+      <ul key={key++} style={{ margin: '6px 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {listBuffer.map((item, i) => (
+          <li key={i} style={{ fontSize: '0.83rem', lineHeight: 1.55, color: 'inherit' }}>
+            {inlineFormat(item)}
+          </li>
+        ))}
+      </ul>
+    );
+    listBuffer = [];
+  };
+
+  lines.forEach(line => {
+    // Bullet lines: -, *, •
+    if (/^[\-\*•]\s+/.test(line)) {
+      listBuffer.push(line.replace(/^[\-\*•]\s+/, ''));
+      return;
+    }
+
+    flushList();
+
+    // Empty line
+    if (!line.trim()) {
+      elements.push(<div key={key++} style={{ height: 6 }} />);
+      return;
+    }
+
+    // ### Heading
+    if (/^###\s+/.test(line)) {
+      elements.push(
+        <p key={key++} style={{ margin: '8px 0 2px', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.6 }}>
+          {line.replace(/^###\s+/, '')}
+        </p>
+      );
+      return;
+    }
+
+    // ## Heading
+    if (/^##\s+/.test(line)) {
+      elements.push(
+        <p key={key++} style={{ margin: '10px 0 3px', fontSize: '0.88rem', fontWeight: 800 }}>
+          {inlineFormat(line.replace(/^##\s+/, ''))}
+        </p>
+      );
+      return;
+    }
+
+    // Regular paragraph
+    elements.push(
+      <p key={key++} style={{ margin: '2px 0', fontSize: '0.83rem', lineHeight: 1.6 }}>
+        {inlineFormat(line)}
+      </p>
+    );
+  });
+
+  flushList();
+  return elements;
+}
+
+function inlineFormat(text) {
+  // Split on **bold**, *italic*, `code`
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((part, i) => {
+    if (/^\*\*[^*]+\*\*$/.test(part)) {
+      return <strong key={i} style={{ fontWeight: 800 }}>{part.slice(2, -2)}</strong>;
+    }
+    if (/^\*[^*]+\*$/.test(part)) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    if (/^`[^`]+`$/.test(part)) {
+      return (
+        <code key={i} style={{
+          fontFamily: 'monospace', fontSize: '0.8rem',
+          background: 'rgba(168,85,247,0.12)', color: '#7c3aed',
+          padding: '1px 5px', borderRadius: 4,
+        }}>
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
 function Message({ msg }) {
   const isUser = msg.role === 'user';
   return (
@@ -37,15 +133,18 @@ function Message({ msg }) {
         }}>M</div>
       )}
       <div style={{
-        maxWidth: '75%', padding: '10px 14px', borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        maxWidth: '75%', padding: '10px 14px',
+        borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
         background: isUser ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'white',
-        color: isUser ? 'white' : '#111827',
-        fontSize: '0.83rem', lineHeight: 1.55, fontWeight: 500,
+        
+        color: isUser ? 'white' : PURPLE_TEXT, // 
         border: isUser ? 'none' : '1px solid #f3f4f6',
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        whiteSpace: 'pre-wrap',
       }}>
-        {msg.content}
+        {isUser
+          ? <p style={{ margin: 0, fontSize: '0.83rem', lineHeight: 1.55, fontWeight: 500 }}>{msg.content}</p>
+          : renderMarkdown(msg.content)
+        }
       </div>
     </div>
   );
@@ -70,6 +169,7 @@ export default function Mimi({ embedded = false }) {
     if (open && !embedded) inputRef.current?.focus();
   }, [open]);
 
+  
   const sendMessage = async (text) => {
     const userMessage = text || input.trim();
     if (!userMessage || loading) return;
@@ -80,14 +180,26 @@ export default function Mimi({ embedded = false }) {
     setLoading(true);
 
     try {
-      const history = messages.map(m => ({ role: m.role, content: m.content }));
+      // 🔑 FIX: Only send last 20 messages as history (matches backend validation)
+      const allHistory = messages.map(m => ({ role: m.role, content: m.content }));
+      const history = allHistory.slice(-20); // ← Keep only last 20
+      
       const { data } = await api.post('/chat', { message: userMessage, history });
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch {
+      
+    } catch (err) {
+      // 🔍 Better error handling: show validation errors to user
+      const errorMsg = err.response?.data?.errors?.history?.[0] 
+        || err.response?.data?.message 
+        || "Sorry, I'm having trouble connecting right now.";
+        
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Sorry, I'm having trouble connecting right now. Please try again or contact us directly.",
+        content: `⚠️ ${errorMsg}`,
       }]);
+      
+      // Optional: log full error for debugging
+      console.error('Chat error:', err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -220,7 +332,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
         {/* Suggested questions */}
         {showSuggested && messages.length === 1 && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
               <Sparkles size={10} style={{ display: 'inline', marginRight: 4 }} />
               Suggested
             </p>

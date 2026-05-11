@@ -104,8 +104,8 @@ export default function QuoteList() {
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
-
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start"
+      style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {/* ── Item list ──────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {items.map(({ product, quantity, notes }) => (

@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Imports\CustomersImport;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -284,6 +288,64 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function downloadTemplate()
+    {
+        $columns = [
+            'name', 'email', 'phone', 'customer_number', 'company_name', 'tax_id',
+            'customer_type', 'tier', 'status', 'birthday', 'assigned_sales_rep', 'loyalty_points',
+            'notes', 'tags', 'preferences', 'default_shipping_address',
+            'default_billing_address', 'has_credit_account', 'credit_limit',
+            'discount_percentage', 'store_credit', 'website', 'whatsapp',
+        ];
+
+        $csv = collect([$columns])
+            ->map(fn($row) => implode(',', array_map(fn($cell) => '"' . str_replace('"', '""', $cell) . '"', $row)))
+            ->implode("\n");
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="customers_template.csv"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        ]);
+    }
+
+    public function bulkImport(Request $request)
+    {
+        $this->authorize('viewAny', User::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            Excel::import(new CustomersImport(), $request->file('file'));
+            return response()->json(['message' => 'Customers imported successfully.']);
+
+        } catch (ValidationException $e) {
+            $failures = collect($e->failures())->take(5)->map(fn($f) => [
+                'row'    => $f->row(),
+                'errors' => $f->errors(),
+            ]);
+            return response()->json([
+                'message' => 'Validation failed on some rows.',
+                'errors'  => $failures->toArray(),
+            ], 422);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                preg_match("/Duplicate entry '([^']+)' for key '([^']+)'/", $e->getMessage(), $matches);
+                return response()->json([
+                    'message' => "Import failed: Duplicate value '{$matches[1]}' on constraint '{$matches[2]}'.",
+                    'hint'    => 'Check that all values in your CSV are unique and not already registered.',
+                ], 422);
+            }
+            return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Get customer statistics (ADMIN)
      */
@@ -326,6 +388,162 @@ class CustomerController extends Controller
             ->get();
 
         return response()->json($customers, 200);
+    }
+
+    /**
+     * Get customers with upcoming birthdays (ADMIN)
+     */
+    public function upcomingBirthdays(Request $request)
+    {
+        $days = (int) $request->get('days', 30);
+        $today = now()->startOfDay();
+        $endDate = $today->copy()->addDays($days);
+
+        $customers = Customer::whereNotNull('birthday')
+            ->where(function ($query) use ($today, $endDate) {
+                $startMonth = $today->month;
+                $startDay   = $today->day;
+                $endMonth   = $endDate->month;
+                $endDay     = $endDate->day;
+
+                if ($startMonth <= $endMonth) {
+                    $query->whereRaw('MONTH(birthday) BETWEEN ? AND ?', [$startMonth, $endMonth])
+                        ->where(function ($q) use ($startMonth, $startDay, $endMonth, $endDay) {
+                            $q->whereRaw('(MONTH(birthday) > ? OR (MONTH(birthday) = ? AND DAY(birthday) >= ?))',
+                                    [$startMonth, $startMonth, $startDay])
+                                ->whereRaw('(MONTH(birthday) < ? OR (MONTH(birthday) = ? AND DAY(birthday) <= ?))',
+                                    [$endMonth, $endMonth, $endDay]);
+                        });
+                } else {
+                    $query->where(function ($q) use ($startMonth, $startDay) {
+                        $q->whereRaw('MONTH(birthday) > ?', [$startMonth])
+                        ->orWhereRaw('(MONTH(birthday) = ? AND DAY(birthday) >= ?)', [$startMonth, $startDay]);
+                    })->orWhere(function ($q) use ($endMonth, $endDay) {
+                        $q->whereRaw('MONTH(birthday) < ?', [$endMonth])
+                        ->orWhereRaw('(MONTH(birthday) = ? AND DAY(birthday) <= ?)', [$endMonth, $endDay]);
+                    });
+                }
+            })
+            ->whereIn('status', ['active', 'inactive']) // exclude suspended/blacklisted
+            ->get();
+
+        return response()->json([
+            'data' => $customers->map(function ($c) use ($today) {
+                $birthday = \Carbon\Carbon::parse($c->birthday);
+
+                try {
+                    $next = \Carbon\Carbon::createFromDate($today->year, $birthday->month, $birthday->day)->startOfDay();
+                } catch (\Exception $e) {
+                    $next = \Carbon\Carbon::createFromDate($today->year, 3, 1)->startOfDay();
+                }
+
+                if ($next->lt($today)) {
+                    try {
+                        $next = \Carbon\Carbon::createFromDate($today->year + 1, $birthday->month, $birthday->day)->startOfDay();
+                    } catch (\Exception $e) {
+                        $next = \Carbon\Carbon::createFromDate($today->year + 1, 3, 1)->startOfDay();
+                    }
+                }
+
+                $daysUntil = (int) $today->diffInDays($next);
+                $age = $birthday->age;
+
+                return [
+                    'id'               => $c->id,
+                    'name'             => trim($c->first_name . ' ' . $c->last_name),
+                    'email'            => $c->email,
+                    'phone'            => $c->phone,
+                    'birthday'         => $c->birthday,
+                    'tier'             => $c->tier,
+                    'status'           => $c->status,
+                    'age'              => $age,
+                    'turning'          => $age + 1,
+                    'days_until'       => $daysUntil,
+                    'customer_number'  => $c->customer_number,
+                    'profile_image_url'=> $c->profile_image_url ?? null,
+                ];
+            })->sortBy('days_until')->values()
+        ], 200);
+    }
+
+    /**
+     * Customer Health Dashboard (ADMIN)
+     */
+    public function health(Request $request)
+    {
+        $tab      = $request->get('tab', 'at_risk');
+        $perPage  = (int) $request->get('per_page', 20);
+        $page     = (int) $request->get('page', 1);
+
+        switch ($tab) {
+
+            case 'low_loyalty':
+                $threshold = (int) $request->get('threshold', 100);
+                $results = Customer::with('user')
+                    ->where('loyalty_points', '<', $threshold)
+                    ->orderBy('loyalty_points', 'asc')
+                    ->paginate($perPage, ['*'], 'page', $page);
+                break;
+
+            case 'idle_credit':
+                $minCredit = (float) $request->get('min_credit', 100);
+                $results = Customer::with('user')
+                    ->where('store_credit', '>=', $minCredit)
+                    ->orderBy('store_credit', 'desc')
+                    ->paginate($perPage, ['*'], 'page', $page);
+                break;
+
+            case 'at_risk':
+                $results = Customer::with('user')
+                    ->whereIn('status', ['suspended', 'blacklisted'])
+                    ->orderByRaw("FIELD(status, 'blacklisted', 'suspended')")
+                    ->paginate($perPage, ['*'], 'page', $page);
+                break;
+
+            case 'dormant_orders':
+                $days = $request->get('days');
+                $query = Customer::with('user');
+                if ($days === 'never') {
+                    $query->whereNull('last_order_date');
+                } else {
+                    $cutoff = now()->subDays((int) $days);
+                    $query->where(function ($q) use ($cutoff) {
+                        $q->whereNull('last_order_date')
+                        ->orWhere('last_order_date', '<', $cutoff);
+                    });
+                }
+                // MySQL-compatible NULL first: IS NULL sorts as 0 (false) DESC = nulls first
+                $results = $query
+                    ->orderByRaw('last_order_date IS NULL DESC')
+                    ->orderBy('last_order_date', 'asc')
+                    ->paginate($perPage, ['*'], 'page', $page);
+                break;
+
+            case 'dormant_login':
+                $days = $request->get('days');
+                $query = Customer::with('user')
+                    ->join('users', 'customers.user_id', '=', 'users.id')
+                    ->select('customers.*', 'users.last_login_at');
+                if ($days === 'never') {
+                    $query->whereNull('users.last_login_at');
+                } else {
+                    $cutoff = now()->subDays((int) $days);
+                    $query->where(function ($q) use ($cutoff) {
+                        $q->whereNull('users.last_login_at')
+                        ->orWhere('users.last_login_at', '<', $cutoff);
+                    });
+                }
+                $results = $query
+                    ->orderByRaw('users.last_login_at IS NULL DESC')
+                    ->orderBy('users.last_login_at', 'asc')
+                    ->paginate($perPage, ['*'], 'page', $page);
+                break;
+
+            default:
+                return response()->json(['message' => 'Invalid tab'], 422);
+        }
+
+        return response()->json($results, 200);
     }
 
     /**

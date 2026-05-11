@@ -10,6 +10,8 @@ import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import AdminPagination from '../../components/common/AdminPagination';
+import useQuoteStore from '../../store/quoteStore';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -144,24 +146,40 @@ function QuoteCard({ quote, onView }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const MyQuotes = () => {
   const navigate = useNavigate();
-  const [quotes, setQuotes]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { quotes, loading, pagination, fetchMyQuotes } = useQuoteStore();
+
   const [filter, setFilter]   = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => { fetchQuotes(); }, []);
 
-  const fetchQuotes = async () => {
-    setLoading(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Update fetchQuotes to use store action with pagination params
+  const loadQuotes = async (page = 1) => {
     try {
-      const response = await api.get('/customer/quotes');
-      setQuotes(response.data.data || response.data);
+      await fetchMyQuotes({ page, per_page: 10 }); // ✅ Pass pagination params
     } catch {
       toast.error('Failed to load quotes');
-    } finally {
-      setLoading(false);
     }
   };
+
+  // Add page change handler
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    loadQuotes(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    loadQuotes(1);
+  }, [filter, searchQuery]); // Add searchQuery if you want it to reset page
+
+  // Initial load
+  useEffect(() => {
+    loadQuotes(1);
+  }, []);
 
   const counts = {
     all:       quotes.length,
@@ -316,6 +334,24 @@ const MyQuotes = () => {
           </div>
         )}
       </div>
+
+      {/* MyQuotes.jsx - After the quotes grid, before Footer */}
+      {filteredQuotes.length > 0 && pagination?.last_page > 1 && (
+        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+          <AdminPagination 
+            pagination={pagination} 
+            onPageChange={handlePageChange} 
+          />
+        </div>
+      )}
+
+      {/* Optional: Show "Showing X–Y of Z" info */}
+      {pagination && (
+        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', marginTop: 8 }}>
+          Showing {(pagination.current_page - 1) * pagination.per_page + 1}–
+          {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
+        </p>
+      )}
 
       <Footer />
     </div>

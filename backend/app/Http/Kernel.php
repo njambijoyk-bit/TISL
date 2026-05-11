@@ -68,5 +68,6 @@ class Kernel extends HttpKernel
         
         // Custom TISL middleware (we'll create this)
         'role' => \App\Http\Middleware\CheckRole::class,
+        'applicant' => \App\Http\Middleware\EnsureApplicant::class,
     ];
 }

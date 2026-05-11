@@ -29,8 +29,14 @@ const useUsersStore = create((set, get) => ({
   error:         null,
 
   setFilter: (key, value) =>
-    set(s => ({ filters: { ...s.filters, [key]: value, page: 1 } })),
-
+    set(s => ({
+      filters: {
+        ...s.filters,
+        [key]: value,
+        // ✅ Only reset page to 1 if we're NOT changing the page itself
+        ...(key !== 'page' && { page: 1 }),
+      },
+    })),
   setTab: (tab) =>
     set(s => ({
       filters: { ...s.filters, tab, role: '', department: '', page: 1 },

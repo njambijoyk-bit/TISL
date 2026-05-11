@@ -354,22 +354,54 @@ const Services = () => {
     {
       header: 'Actions',
       accessor: (service) => (
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/services/${service.id}/edit`)}>
-            <Edit className="w-4 h-4" />
-          </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Edit */}
+          <button
+            onClick={() => navigate(`/admin/services/${service.id}/edit`)}
+            title="Edit"
+            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#7c3aed', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Edit size={15} />
+          </button>
+
+          {/* Publish toggle */}
           {service.status === 'active' ? (
-            <Button variant="ghost" size="sm" onClick={() => handleTogglePublish(service)} disabled={actionLoading}>
-              <PowerOff className="w-4 h-4 text-orange-600" />
-            </Button>
+            <button
+              onClick={() => handleTogglePublish(service)}
+              disabled={actionLoading}
+              title="Unpublish"
+              style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#f97316', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <PowerOff size={15} />
+            </button>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => handleTogglePublish(service)} disabled={actionLoading}>
-              <Power className="w-4 h-4 text-green-600" />
-            </Button>
+            <button
+              onClick={() => handleTogglePublish(service)}
+              disabled={actionLoading}
+              title="Publish"
+              style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#10b981', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Power size={15} />
+            </button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(service)} disabled={actionLoading}>
-            <Trash2 className="w-4 h-4 text-red-600" />
-          </Button>
+
+          {/* Delete */}
+          <button
+            onClick={() => handleDeleteClick(service)}
+            disabled={actionLoading}
+            title="Delete"
+            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#ef4444', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Trash2 size={15} />
+          </button>
         </div>
       ),
     },
@@ -382,7 +414,7 @@ const Services = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Wrench className="w-6 h-6" />
                 Services Management
               </h1>
@@ -404,23 +436,34 @@ const Services = () => {
         </div>
 
       {statistics && (
-        <div className="grid grid-cols-4 gap-6 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <p className="text-sm text-gray-600">Total</p>
-            <p className="text-2xl font-bold">{statistics.total_services || 0}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <p className="text-sm text-gray-600">Active</p>
-            <p className="text-2xl font-bold text-green-600">{statistics.active_services || 0}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <p className="text-sm text-gray-600">Draft</p>
-            <p className="text-2xl font-bold text-gray-600">{statistics.draft_services || 0}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <p className="text-sm text-gray-600">Featured</p>
-            <p className="text-2xl font-bold text-yellow-600">{statistics.featured_services || 0}</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {[
+            { label: 'Total',    value: statistics.total_services    || 0, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',   Icon: BarChart3   },
+            { label: 'Active',   value: statistics.active_services   || 0, color: '#10b981', bg: 'rgba(16,185,129,0.1)',  Icon: Power       },
+            { label: 'Draft',    value: statistics.draft_services    || 0, color: '#6b7280', bg: 'rgba(107,114,128,0.1)', Icon: Archive     },
+            { label: 'Featured', value: statistics.featured_services || 0, color: '#eab308', bg: 'rgba(234,179,8,0.1)',   Icon: CheckSquare },
+          ].map(({ label, value, color, bg, Icon }) => (
+            <div key={label} style={{
+              background: 'var(--color-background-primary)',
+              border: '1px solid var(--color-border-tertiary)',
+              borderRadius: 12,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              padding: '20px 24px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {label}
+                </p>
+                <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  {value}
+                </p>
+              </div>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={20} style={{ color }} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -553,40 +596,34 @@ const Services = () => {
       {/* Trash Modal */}
       <Modal
         isOpen={showTrashModal}
-        onClose={() => {
-          setShowTrashModal(false);
-          setSelectedTrashIds([]);
-        }}
+        onClose={() => { setShowTrashModal(false); setSelectedTrashIds([]); }}
         title="Trash"
         size="xl"
       >
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
           {/* Bulk Actions */}
           {selectedTrashIds.length > 0 && (
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8 }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>
                 {selectedTrashIds.length} service(s) selected
               </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
                   onClick={handleBulkRestore}
                   disabled={actionLoading}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(124,58,237,0.3)', background: 'white', color: '#7c3aed', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Restore Selected
-                </Button>
+                  <RotateCcw size={14} /> Restore Selected
+                </button>
                 {isSuperAdmin && (
-                  <Button
-                    variant="danger"
-                    size="sm"
+                  <button
                     onClick={handleBulkDelete}
                     disabled={actionLoading}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, border: 'none', background: '#ef4444', color: 'white', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Permanently
-                  </Button>
+                    <Trash2 size={14} /> Delete Permanently
+                  </button>
                 )}
               </div>
             </div>
@@ -594,112 +631,112 @@ const Services = () => {
 
           {/* Trashed Services List */}
           {loadingTrash ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-              <p className="text-gray-500 mt-2">Loading...</p>
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>Loading...</p>
             </div>
           ) : trashedServices.length === 0 ? (
-            <div className="text-center py-8">
-              <Archive className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">No services in trash</p>
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Archive size={40} style={{ color: 'var(--color-text-tertiary)', display: 'block', margin: '0 auto 10px' }} />
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>No services in trash</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
               {/* Select All */}
-              <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div style={{ padding: '10px 14px', background: 'var(--color-background-secondary)', borderRadius: 8 }}>
                 <button
                   onClick={toggleAllTrashSelection}
-                  className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
-                  {selectedTrashIds.length === trashedServices.length ? (
-                    <CheckSquare className="w-5 h-5 mr-2 text-primary-600" />
-                  ) : (
-                    <Square className="w-5 h-5 mr-2" />
-                  )}
+                  {selectedTrashIds.length === trashedServices.length
+                    ? <CheckSquare size={18} style={{ color: '#7c3aed' }} />
+                    : <Square size={18} style={{ color: 'var(--color-text-tertiary)' }} />
+                  }
                   Select All
                 </button>
               </div>
 
               {/* Services */}
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {trashedServices.map((service) => (
-                  <div
-                    key={service.id}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedTrashIds.includes(service.id)
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    onClick={() => toggleTrashSelection(service.id)}
-                  >
-                    {selectedTrashIds.includes(service.id) ? (
-                      <CheckSquare className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                    ) : (
-                      <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    )}
-                    
-                    {service.main_image && (
-                      <img
-                        src={service.main_image}
-                        alt={service.name}
-                        className="w-12 h-12 object-cover rounded flex-shrink-0"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    )}
+              <div style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {trashedServices.map(service => {
+                  const isSelected = selectedTrashIds.includes(service.id);
+                  return (
+                    <div
+                      key={service.id}
+                      onClick={() => toggleTrashSelection(service.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                        border: `1px solid ${isSelected ? '#7c3aed' : 'var(--color-border-tertiary)'}`,
+                        borderRadius: 8, cursor: 'pointer',
+                        background: isSelected ? 'rgba(124,58,237,0.05)' : 'var(--color-background-primary)',
+                        transition: 'border-color 150ms, background 150ms',
+                      }}
+                    >
+                      {isSelected
+                        ? <CheckSquare size={18} style={{ color: '#7c3aed', flexShrink: 0 }} />
+                        : <Square size={18} style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }} />
+                      }
 
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 dark:text-white truncate">
-                        {service.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        SKU: {service.sku} • Deleted {new Date(service.deleted_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRestore(service);
-                        }}
-                        disabled={actionLoading}
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-                      {isSuperAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSinglePermanentDelete(service.id);
-                          }}
-                          disabled={actionLoading}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
+                      {service.main_image && (
+                        <img
+                          src={service.main_image}
+                          alt={service.name}
+                          style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
                       )}
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {service.name}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
+                          SKU: {service.sku} • Deleted {new Date(service.deleted_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleRestore(service); }}
+                          disabled={actionLoading}
+                          title="Restore"
+                          style={{ width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#10b981', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.08)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleSinglePermanentDelete(service.id); }}
+                            disabled={actionLoading}
+                            title="Delete permanently"
+                            style={{ width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#ef4444', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Footer */}
-          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowTrashModal(false);
-                setSelectedTrashIds([]);
-              }}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 16, borderTop: '1px solid var(--color-border-tertiary)' }}>
+            <button
+              onClick={() => { setShowTrashModal(false); setSelectedTrashIds([]); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', cursor: 'pointer' }}
             >
               Close
-            </Button>
+            </button>
           </div>
+
         </div>
       </Modal>
     </div>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import useReferralsStore from '../../../store/referralsStore';
 import referralsAPI from '../../../api/referrals';
+import SettingsLayout from '../../../components/layout/SettingsLayout';
 import toast from 'react-hot-toast';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -282,6 +283,7 @@ export default function ReferralDetail() {
   );
 
   return (
+    <SettingsLayout>
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* ── Back ── */}
@@ -549,8 +551,8 @@ export default function ReferralDetail() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
-                          {['Customer', 'Order', 'Discount', 'Order value', 'Referrer reward', 'Status', 'Date'].map(h => (
-                            <th key={h} style={{ padding: '10px 16px', textAlign: 'left' }}>
+                          {['Referrer', 'Referred Customer', 'Order', 'Referred Discount', 'Referrer Reward', 'Status', 'IP Address', 'User Agent', 'Date'].map(h => (
+                            <th key={h} style={{ padding: '10px 16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
                               <TH_LABEL>{h}</TH_LABEL>
                             </th>
                           ))}
@@ -561,40 +563,68 @@ export default function ReferralDetail() {
                           const um     = USAGE_STATUS[u.status] ?? USAGE_STATUS.pending;
                           const isLast = i === usageData.data.length - 1;
                           return (
-                            <tr key={u.id} style={{
-                              borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
-                              transition: 'background 120ms',
-                            }}
+                            <tr key={u.id}
+                              style={{ borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)', transition: 'background 120ms' }}
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                              <td style={{ padding: '11px 16px' }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{u.customer?.user?.name || '—'}</p>
-                                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{u.customer?.customer_number}</p>
+                              {/* Referrer */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
+                                {u.referrer ? (
+                                  <>
+                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>
+                                      {u.referrer.user?.name || '—'}
+                                    </p>
+                                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>
+                                      {u.referrer.customer_number}
+                                    </p>
+                                  </>
+                                ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
-                              <td style={{ padding: '11px 16px' }}>
+
+                              {/* Referred Customer */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
+                                {u.customer ? (
+                                  <>
+                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>
+                                      {u.customer.user?.name || '—'}
+                                    </p>
+                                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>
+                                      {u.customer.customer_number}
+                                    </p>
+                                  </>
+                                ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                              </td>
+
+                              {/* Order */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.order
                                   ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>#{u.order.order_number}</span>
-                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
-                                }
+                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
-                              <td style={{ padding: '11px 16px' }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>-{fmt(u.discount_amount)}</span>
+
+                              {/* Referred Discount */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
+                                {parseFloat(u.order?.referral_discount) > 0
+                                  ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>
+                                      -{fmt(u.order.referral_discount)}
+                                    </span>
+                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
-                              <td style={{ padding: '11px 16px' }}>
-                                <span style={{ fontSize: '0.82rem', color: '#374151' }}>{fmt(u.order_value)}</span>
-                              </td>
-                              <td style={{ padding: '11px 16px' }}>
+
+                              {/* Referrer Reward */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.referrer_reward_amount ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{fmt(u.referrer_reward_amount)}</span>
                                     {u.referrer_reward_paid
                                       ? <BadgeCheck size={13} style={{ color: '#10b981' }} />
-                                      : <AlertCircle size={13} style={{ color: '#f59e0b' }} />
-                                    }
+                                      : <AlertCircle size={13} style={{ color: '#f59e0b' }} />}
                                   </div>
                                 ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
+
+                              {/* Status */}
                               <td style={{ padding: '11px 16px' }}>
                                 <span style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -606,7 +636,31 @@ export default function ReferralDetail() {
                                   {um.label}
                                 </span>
                               </td>
+
+                              {/* IP Address */}
                               <td style={{ padding: '11px 16px' }}>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#6b7280' }}>
+                                  {u.ip_address || '—'}
+                                </span>
+                              </td>
+
+                              {/* User Agent */}
+                              <td style={{ padding: '11px 16px', maxWidth: 180 }}>
+                                <span
+                                  title={u.user_agent}
+                                  style={{
+                                    fontSize: '0.68rem', color: '#9ca3af',
+                                    display: 'block', overflow: 'hidden',
+                                    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    maxWidth: 180,
+                                  }}
+                                >
+                                  {u.user_agent || '—'}
+                                </span>
+                              </td>
+
+                              {/* Date */}
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{fmtDT(u.created_at)}</span>
                               </td>
                             </tr>
@@ -616,7 +670,7 @@ export default function ReferralDetail() {
                     </table>
                   </div>
 
-                  {/* Usage pagination */}
+                  {/* Pagination — unchanged */}
                   {usageData.last_page > 1 && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
                       <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
@@ -657,5 +711,6 @@ export default function ReferralDetail() {
         </div>
       </div>
     </div>
+    </SettingsLayout>
   );
 }

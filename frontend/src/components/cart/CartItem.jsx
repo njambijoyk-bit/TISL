@@ -17,7 +17,7 @@ export default function CartItem({ item }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
-      padding: '16px 0', borderBottom: '1px solid #f3f4f6',
+      padding: '16px 0', borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
     }}>
 
       {/* Product image */}
@@ -62,17 +62,17 @@ export default function CartItem({ item }) {
             aria-label="Decrease quantity"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: '#f3f4f6', color: '#6b7280', transition: 'background 120ms',
+              borderRadius: 8, border: '1px solid rgba(168,85,247,0.3)', cursor: 'pointer',
+              background: 'transparent', color: '#a855f7', transition: 'background 120ms, border-color 120ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
-            onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = '#a855f7'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
           >
             <Minus size={14} />
           </button>
 
           <span style={{
-            minWidth: 32, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700,
+            minWidth: 32, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: '#a855f7',
           }}>
             {item.quantity}
           </span>
@@ -82,11 +82,11 @@ export default function CartItem({ item }) {
             aria-label="Increase quantity"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: '#f3f4f6', color: '#6b7280', transition: 'background 120ms',
+              borderRadius: 8, border: '1px solid rgba(168,85,247,0.3)', cursor: 'pointer',
+              background: 'transparent', color: '#a855f7', transition: 'background 120ms, border-color 120ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
-            onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = '#a855f7'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
           >
             <Plus size={14} />
           </button>
@@ -96,11 +96,11 @@ export default function CartItem({ item }) {
             aria-label="Remove item"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8, border: 'none', cursor: 'pointer', marginLeft: 4,
-              background: 'transparent', color: '#fca5a5', transition: 'background 120ms, color 120ms',
+              borderRadius: 8, border: '1px solid transparent', cursor: 'pointer', marginLeft: 4,
+              background: 'transparent', color: '#fca5a5', transition: 'background 120ms, color 120ms, border-color 120ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#fca5a5'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fca5a5'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#fca5a5'; e.currentTarget.style.borderColor = 'transparent'; }}
           >
             <Trash2 size={15} />
           </button>

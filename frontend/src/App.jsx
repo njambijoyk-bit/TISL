@@ -19,6 +19,8 @@ const ResetPassword       = lazy(() => import('./pages/auth/ResetPassword'));
 const Home                 = lazy(() => import('./pages/customer/Home'));
 const Products             = lazy(() => import('./pages/customer/Products'));
 const ProductDetail        = lazy(() => import('./pages/customer/ProductDetail'));
+const AuctionListPage      = lazy(() => import('./pages/customer/AuctionListPage'));
+const AuctionDetailPage    = lazy(() => import('./pages/customer/AuctionDetailPage'));
 const Cart                 = lazy(() => import('./pages/customer/Cart'));
 const Wishlist             = lazy(() => import('./pages/customer/Wishlist'));
 const QuoteList            = lazy(() => import('./pages/customer/QuoteList'));
@@ -39,14 +41,44 @@ const Profile              = lazy(() => import('./pages/customer/Profile'));
 const About                = lazy(() => import('./pages/customer/About'));
 const Contact              = lazy(() => import('./pages/customer/Contact'));
 const Manual               = lazy(() => import('./pages/customer/Manual'));
+const PrivacyPolicy        = lazy(() => import('./components/legal/PrivacyPolicy'));
+const TermsOfService       = lazy(() => import('./components/legal/TermsOfService'));
+const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./pages/customer/MyTicketDetail'));
+
+import CareersLayout       from './careers/layouts/CareersLayout';
+import CareersPage         from './careers/pages/CareersPage';
+import JobDetailPage       from './careers/pages/JobDetailPage';
+import ApplicantAuthPage   from './careers/pages/ApplicantAuthPage';
+import ApplicantPortalPage from './careers/pages/ApplicantPortalPage';
+import ApplicantGate       from './careers/components/ApplicantGate';
+import ForgotPasswordPage  from './careers/pages/ForgotPasswordPage';
+import ResetPasswordPage   from './careers/pages/ResetPasswordPage';
+import ApplicantProfilePage    from './careers/pages/ApplicantProfilePage';
+import ForceChangePasswordPage from './careers/pages/ForceChangePasswordPage';
+
+import AboutCareersPage      from './careers/pages/legal/AboutCareersPage';
+import ContactCareersPage    from './careers/pages/legal/ContactCareersPage';
+import PrivacyPolicyPage     from './careers/pages/legal/PrivacyPolicyPage';
+import TermsOfServicePage    from './careers/pages/legal/TermsOfServicePage';
+import CookiePolicyPage       from './careers/pages/legal/CookiePolicyPage';
+
+import AdminJobsPage          from './careers/admin/pages/AdminJobsPage';
+import AdminJobDetailPage     from './careers/admin/pages/AdminJobDetailPage';
+import AdminApplicationsPage  from './careers/admin/pages/AdminApplicationsPage';
+import AdminCareersStatsPage  from './careers/admin/pages/AdminCareersStatsPage';
+import AdminApplicantsPage    from './careers/admin/pages/AdminApplicantsPage'
+import AdminApplicantDetailPage from './careers/admin/pages/AdminApplicantDetailPage'
 
 // ── Admin Pages ───────────────────────────────────────────────────────────────
 const AdminProfile       = lazy(() => import('./pages/admin/AdminProfile'));
 const Dashboard          = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProducts      = lazy(() => import('./pages/admin/Products'));
 const ProductForm        = lazy(() => import('./pages/admin/ProductForm'));
+const AdminAuctions      = lazy(() => import('./pages/admin/AdminAuctions'));
+const AdminAuctionDetail = lazy(() => import('./pages/admin/AdminAuctionDetail'));
+const AdminAuctionCreator = lazy(() => import('./pages/admin/AdminAuctionCreator'));
 const Categories         = lazy(() => import('./pages/admin/Categories'));
 const CategoryForm       = lazy(() => import('./pages/admin/CategoryForm'));
 const Brands             = lazy(() => import('./pages/admin/Brands'));
@@ -84,8 +116,20 @@ const PromoCodes         = lazy(() => import('./pages/admin/referrals/PromoCodes
 const PromoCodeDetail    = lazy(() => import('./pages/admin/referrals/PromoCodeDetail'));
 const AdminTickets       = lazy(() => import('./pages/admin/Tickets'));
 const AdminTicketDetail  = lazy(() => import('./pages/admin/TicketDetail'));
+const PaymentsDashboard  = lazy(() => import('./pages/admin/finance/PaymentsDashboard'));
+const PaymentDetail      = lazy(() => import('./pages/admin/finance/PaymentDetail'));
+const OrderPaymentsPanel = lazy(() => import('./pages/admin/finance/OrderPaymentsPanel'));
+const InitiatePaymentModal = lazy(() => import('./pages/admin/finance/InitiatePaymentModal'));
+const LoyaltyLedger        = lazy(() => import('./pages/admin/LoyaltyLedger'));
+const LoyaltySettings      = lazy(() => import('./pages/admin/LoyaltySettings'));
+const LoyaltyLedgerDetail  = lazy(() => import('./pages/admin/LoyaltyLedgerDetail'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
+const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayout.jsx'))
+const ProductBulkPage      = lazy(() => import('./pages/admin/general/bulk/ProductBulkPage'));
+const CustomerBulkPage     = lazy(() => import('./pages/admin/general/bulk/CustomerBulkPage'));
+const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/EmployeeBulkPage'));
+
 const GeneralSettings      = lazy(() => import('./pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./pages/admin/settings/NotificationSettings'));
 const SecuritySettings     = lazy(() => import('./pages/admin/settings/SecuritySettings'));
@@ -130,9 +174,9 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
     return <Navigate to="/admin" replace />;
   }
 
-  // Admin routes (includes admin, super_admin, manager, sales_rep)
+  // Admin routes (includes admin, super_admin, manager, finance, logistics, sales_rep)
   if (requireAdmin) {
-    const allowedRoles = ['admin', 'super_admin', 'manager', 'sales_rep'];
+    const allowedRoles = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep'];
     if (!allowedRoles.includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
@@ -145,7 +189,7 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
 function RoleBasedProfile() {
   const { user } = useAuthStore();
   
-  const isStaff = ['admin', 'super_admin', 'manager', 'sales_rep'].includes(user?.role);
+  const isStaff = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep'].includes(user?.role);
   
   return isStaff ? <AdminProfile /> : <Profile />;
 }
@@ -194,6 +238,8 @@ function App() {
 
             {/* ── Public Routes ───────────────────────────────────────────── */}
             <Route path="/" element={<Home />} />
+            <Route path="/auctions" element={<AuctionListPage />} />
+            <Route path="/auctions/:id" element={<AuctionDetailPage />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/services" element={<Services />} />
@@ -208,6 +254,10 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/manual"  element={<Manual />} />
 
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms"   element={<TermsOfService />} />
+            <Route path="/cookies" element={<CookiePolicy />} />
+
             {/* ── Auth Routes ─────────────────────────────────────────────── */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -215,6 +265,35 @@ function App() {
             <Route path="/force-change-password" element={<ForceChangePassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+
+            <Route element={<CareersLayout />}>
+                <Route path="/careers/about"          element={<AboutCareersPage />} />
+                <Route path="/careers/contact"        element={<ContactCareersPage />} />
+                <Route path="/careers/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/careers/terms"          element={<TermsOfServicePage />} />
+                <Route path="/careers/cookies"        element={<CookiePolicyPage />} />
+                
+                <Route path="/careers"          element={<CareersPage />} />
+                <Route path="/careers/:slug"    element={<JobDetailPage />} />
+                <Route path="/careers/login"    element={<ApplicantAuthPage />} />
+                <Route path="/careers/register" element={<ApplicantAuthPage />} />
+                <Route path="/careers/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/careers/reset-password"  element={<ResetPasswordPage />} />
+                <Route path="/careers/portal"   element={
+                    <ApplicantGate>
+                        <ApplicantPortalPage />
+                    </ApplicantGate>
+                } />
+                <Route path="/careers/portal/profile" element={
+                  <ApplicantGate>
+                      <ApplicantProfilePage />
+                  </ApplicantGate>} />
+
+                <Route path="/careers/portal/change-password" element={
+                  <ApplicantGate>
+                    <ForceChangePasswordPage />
+                  </ApplicantGate>} />
+            </Route>
 
             {/* ── Protected Customer Routes ────────────────────────────────── */}
             <Route
@@ -340,6 +419,39 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Admin Career Management */}
+            <Route path="/admin/careers" element={
+                <ProtectedRoute requireAdmin>
+                    <AdminCareersStatsPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/admin/careers/jobs" element={
+                <ProtectedRoute requireAdmin>
+                    <AdminJobsPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/admin/careers/jobs/:id" element={
+                <ProtectedRoute requireAdmin>
+                    <AdminJobDetailPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/admin/careers/applications" element={
+                <ProtectedRoute requireAdmin>
+                    <AdminApplicationsPage />
+                </ProtectedRoute>
+            } />
+            // Admin
+            <Route path="/admin/careers/applicants"    element={
+              <ProtectedRoute requireAdmin>
+                <AdminApplicantsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/careers/applicants/:id" element={
+              <ProtectedRoute requireAdmin>
+                <AdminApplicantDetailPage />
+              </ProtectedRoute>
+            } />
+
             {/* Admin Profile */}
             <Route
               path="/admin/profile"
@@ -370,6 +482,32 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/admin/auctions"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctions />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/admin/auctions/create" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctionCreator />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Admin Auction Detail/Edit */}
+            <Route
+              path="/admin/auctions/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctionDetail />
                 </ProtectedRoute>
               }
             />
@@ -544,6 +682,34 @@ function App() {
               }
             />
 
+            {/* Payments Dashboard */}
+            <Route
+              path="/admin/finance/payments"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <PaymentsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            {/* Payment Detail */}
+            <Route
+              path="/admin/finance/payments/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <PaymentDetail />
+                </ProtectedRoute>
+              }
+            />
+            {/* Order Payment History (embedded panel) */}
+            <Route
+              path="/admin/orders/:id/payments"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <OrderPaymentsPanel />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Projects */}
             <Route
               path="/admin/projects"
@@ -697,6 +863,31 @@ function App() {
             />
 
             <Route
+              path="/admin/loyalty"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <LoyaltyLedger />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/loyalty/settings"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <LoyaltySettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/loyalty/:customerId"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <LoyaltyLedgerDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/admin/tickets"
               element={
                 <ProtectedRoute requireAdmin>
@@ -746,6 +937,30 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <GeneralSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/general/bulk/products"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ProductBulkPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/general/bulk/customers"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CustomerBulkPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/general/bulk/employees"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <EmployeeBulkPage />
                 </ProtectedRoute>
               }
             />

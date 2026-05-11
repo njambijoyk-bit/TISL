@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  ShieldCheck, CreditCard, Star, Eye, ArrowUpDown,
-  Building2, User, Package, Briefcase, TrendingUp,
+  ShieldCheck, CreditCard, Star, Eye, ArrowUpDown, Gift, X,
+  Building2, User, Package, Briefcase, TrendingUp, Activity,
 } from 'lucide-react';
+import AdminLayout from '../../components/layout/AdminLayout';
+import CustomerHealthModal from './CustomerHealthModal';
 import customersAPI from '../../api/customers';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -181,6 +183,14 @@ export default function Customers() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [showFilters,  setShowFilters]  = useState(false);
 
+  const [showHealthModal, setShowHealthModal] = useState(false);
+
+  // Birthdays modal
+  const [showBirthdaysModal, setShowBirthdaysModal] = useState(false);
+  const [birthdays, setBirthdays]                   = useState([]);
+  const [birthdaysLoading, setBirthdaysLoading]     = useState(false);
+  const [birthdayDays, setBirthdayDays]             = useState(30);
+
   useEffect(() => {
     customersAPI.getCustomerStatistics()
       .then(setStats).catch(() => {}).finally(() => setStatsLoading(false));
@@ -200,6 +210,15 @@ export default function Customers() {
     } catch {} finally { setLoading(false); }
   }, [page, perPage, sortBy, sortOrder, search, status, type, tier]);
 
+  const fetchBirthdays = async (days = birthdayDays) => {
+    setBirthdaysLoading(true);
+    try {
+      const data = await customersAPI.getUpcomingBirthdays(days);
+      setBirthdays(data.data || []);
+    } catch { toast.error('Failed to load birthdays'); setBirthdays([]); }
+    finally { setBirthdaysLoading(false); }
+  };
+
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
   useEffect(() => { setPage(1); }, [search, status, type, tier, sortBy, sortOrder]);
 
@@ -213,6 +232,7 @@ export default function Customers() {
   const activeFilterCount = [status, type, tier].filter(Boolean).length;
 
   return (
+    <AdminLayout>
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* ── Header ── */}
@@ -224,6 +244,36 @@ export default function Customers() {
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
             {meta.total.toLocaleString()} total customers
           </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => setShowHealthModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer',
+              background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.11)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+          >
+            <Activity size={14} /> Health
+          </button>
+          <button
+            onClick={() => { setShowBirthdaysModal(true); fetchBirthdays(30); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer',
+              background: 'rgba(217,119,6,0.06)', border: '1.5px solid rgba(217,119,6,0.2)', color: '#b45309',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,119,6,0.11)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(217,119,6,0.06)'}
+          >
+            <Gift size={14} /> Birthdays
+          </button>
         </div>
       </div>
 
@@ -619,6 +669,133 @@ export default function Customers() {
           </div>
         )}
       </div>
+      {/* ── Customer Birthdays Modal ── */}
+      {showBirthdaysModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
+          <div style={{ ...card, width: '100%', maxWidth: 620, maxHeight: '82vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(217,119,6,0.1)' }}>
+                  <Gift size={18} style={{ color: '#d97706' }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Customer Birthdays</p>
+                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Plan birthday promos in advance</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBirthdaysModal(false)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Window toggle */}
+            <div style={{ display: 'flex', gap: 6, padding: '14px 20px 0', flexShrink: 0 }}>
+              {[
+                { label: 'This week', days: 7 },
+                { label: '30 days',   days: 30 },
+                { label: '60 days',   days: 60 },
+                { label: '90 days',   days: 90 },
+              ].map(({ label, days }) => (
+                <button
+                  key={days}
+                  onClick={() => { setBirthdayDays(days); fetchBirthdays(days); }}
+                  style={{
+                    padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700,
+                    fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
+                    background: birthdayDays === days ? '#d97706' : 'rgba(217,119,6,0.08)',
+                    color: birthdayDays === days ? 'white' : '#b45309',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
+              {birthdaysLoading ? (
+                <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                  <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                  <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
+                </div>
+              ) : birthdays.length === 0 ? (
+                <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                  <Gift size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                  <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
+                    No customer birthdays in the next {birthdayDays} days
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {/* Count summary */}
+                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 6px' }}>
+                    {birthdays.length} customer{birthdays.length !== 1 ? 's' : ''} · next {birthdayDays} days
+                  </p>
+
+                  {birthdays.map(c => {
+                    const isToday  = c.days_until === 0;
+                    const isSoon   = c.days_until <= 7;
+                    const tr       = TIER_STYLES[c.tier] ?? TIER_STYLES.silver;
+                    const accent   = isToday ? '#7c3aed' : isSoon ? '#d97706' : '#6b7280';
+                    const accentBg = isToday ? 'rgba(124,58,237,0.08)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
+
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => { setShowBirthdaysModal(false); navigate(`/admin/customers/${c.id}`); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                          padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
+                          border: `1px solid ${isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'}`,
+                          background: isToday ? 'rgba(124,58,237,0.03)' : 'transparent',
+                          transition: 'border-color 150ms, background 150ms',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.background = 'rgba(168,85,247,0.03)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'; e.currentTarget.style.background = isToday ? 'rgba(124,58,237,0.03)' : 'transparent'; }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          {/* Avatar */}
+                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: accentBg, color: accent, fontSize: '0.8rem', fontWeight: 800 }}>
+                            {c.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 1 }}>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
+                              {/* Tier badge */}
+                              <span style={{ flexShrink: 0, padding: '1px 7px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: tr.bg, color: tr.color, boxShadow: `0 0 0 1px ${tr.ring}` }}>
+                                {c.tier}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '0 0 1px' }}>
+                              {new Date(c.birthday).toLocaleDateString('en-KE', { day: 'numeric', month: 'long' })}
+                              {c.turning && ` · Turning ${c.turning}`}
+                            </p>
+                            <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{c.email}</p>
+                          </div>
+                        </div>
+
+                        {/* Days pill */}
+                        <span style={{ flexShrink: 0, padding: '4px 11px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: accentBg, color: accent, whiteSpace: 'nowrap' }}>
+                          {isToday ? '🎂 Today!' : c.days_until === 1 ? 'Tomorrow' : `${c.days_until} days`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        </div>
+      )}
+      {showHealthModal && <CustomerHealthModal onClose={() => setShowHealthModal(false)} />}
     </div>
+    </AdminLayout>
   );
 }

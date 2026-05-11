@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Package, FileText, Heart } from 'lucide-react';
+import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
 import useQuoteListStore from '../../store/quoteListStore';
@@ -12,6 +12,9 @@ export default function CollapsedProductCard({ product }) {
   const { toggle, has } = useWishlistStore();
   const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   const [imageError, setImageError] = useState(false);
+
+  const hasAuction = product?.active_auction && product.active_auction.status === 'active';
+  const auction = product?.active_auction || null;
 
   // ---------- Normalize fields ----------
   const price = Number(product?.price ?? 0);
@@ -81,6 +84,8 @@ export default function CollapsedProductCard({ product }) {
 
   return (
     <div className="collapsed-card" onClick={handleViewProduct}>
+      {/* Full-width name banner on hover */}
+      <div className="collapsed-hover-name">{product?.name}</div>
       {/* Thumbnail */}
       <div className="collapsed-thumb">
         {!imageError && imageUrl ? (
@@ -99,40 +104,32 @@ export default function CollapsedProductCard({ product }) {
       {/* Right: price + buttons */}
       <div className="collapsed-right">
         {isPriceNegotiable ? null : <PriceLabel />}
-        <div className="collapsed-btn-row">
-          {/* Wishlist */}
-          <button type="button" onClick={handleToggleWishlist} className="collapsed-wand-btn" aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
-            <Heart size={13} style={{ color: '#a855f7', fill: wished ? '#a855f7' : 'none', transition: 'fill 150ms ease' }} />
-          </button>
 
-          {/* Quote list OR cart */}
-          {isPriceNegotiable ? (
-            <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'negotiable'}`} aria-label="Add to quote list">
-              <FileText size={13} />
-              {inQL ? 'In List →' : 'Quote'}
-            </button>
-          ) : (
-            <>
-              {/* Add to quote list (secondary) */}
-              <button
-                type="button"
-                onClick={handleAddToQuoteList}
-                className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'quote'}`}
-                aria-label="Add to quote list"
-                title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}
-              >
-                <FileText size={13} />
+        {hasAuction ? (
+          <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }} className="collapsed-action-btn auction" aria-label="Place bid">
+            <Gavel size={13} /> Bid
+          </button>
+        ) : (
+          <>
+            <div className="collapsed-btn-row">
+              <button type="button" onClick={handleToggleWishlist} className="collapsed-wand-btn" aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
+                <Heart size={13} style={{ color: '#a855f7', fill: wished ? '#a855f7' : 'none', transition: 'fill 150ms ease' }} />
               </button>
-
-            </>
-          )}
-          
-        </div>
-        {/* Add to cart */}
-          <button type="button" onClick={handleAddToCart} disabled={!inStock} className="collapsed-action-btn primary" aria-label="Add to cart">
-            <ShoppingCart size={13} />
-            {inStock ? 'Add' : 'N/A'}
-          </button>
+              {isPriceNegotiable ? (
+                <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'negotiable'}`}>
+                  <FileText size={13} /> {inQL ? 'In List →' : 'Quote'}
+                </button>
+              ) : (
+                <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'quote'}`} title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}>
+                  <FileText size={13} />
+                </button>
+              )}
+            </div>
+            <button type="button" onClick={handleAddToCart} disabled={!inStock} className="collapsed-action-btn primary">
+              <ShoppingCart size={13} /> {inStock ? 'Add' : 'N/A'}
+            </button>
+          </>
+        )}
       </div>
 
       <style>{`
@@ -141,6 +138,26 @@ export default function CollapsedProductCard({ product }) {
           padding: 10px 12px; background: white; border-radius: 12px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.07); cursor: pointer;
           transition: box-shadow 150ms ease, transform 150ms ease; width: 100%;
+          position: relative;
+        }
+        .collapsed-hover-name {
+          position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+          background: #a855f7; color: white;
+          font-size: 0.78rem; font-weight: 600; line-height: 1.4;
+          padding: 6px 12px; border-radius: 8px;
+          opacity: 0; pointer-events: none;
+          transition: opacity 150ms ease, transform 150ms ease;
+          transform: translateY(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 100;
+          white-space: normal; word-break: break-word;
+        }
+        .collapsed-hover-name::after {
+          content: ''; position: absolute; top: 100%; left: 20px;
+          border: 5px solid transparent; border-top-color: #1f2937;
+        }
+        .collapsed-card:hover .collapsed-hover-name {
+          opacity: 1; transform: translateY(0);
         }
         .collapsed-card:hover { box-shadow: 0 4px 12px rgba(168,85,247,0.12); transform: translateY(-1px); }
         .dark .collapsed-card { background: #1f2937; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -173,6 +190,8 @@ export default function CollapsedProductCard({ product }) {
         .collapsed-action-btn.in-quote-list { background:rgba(168,85,247,0.15); color:#7c3aed; border:1px solid #a855f7; font-weight:700; }
         .collapsed-action-btn.in-quote-list:hover { background:#7c3aed; color:white; }
         .dark .collapsed-action-btn.negotiable { background:#1e3a8a; color:#93c5fd; border-color:#1e40af; }
+        .collapsed-action-btn.auction { background-color: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.4); font-weight: 700; }
+        .collapsed-action-btn.auction:hover { background-color: #dc2626; color: white; }
       `}</style>
     </div>
   );

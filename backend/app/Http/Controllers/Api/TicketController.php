@@ -82,7 +82,16 @@ class TicketController extends Controller
         $tickets = $query->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 20));
 
-        return response()->json($tickets);
+        return response()->json([
+            'data' => $tickets->items(),
+            'meta' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page'    => $tickets->lastPage(),
+                'per_page'     => $tickets->perPage(),
+                'total'        => $tickets->total(),
+            ]
+        ]);
+       
     }
 
     /**
@@ -297,7 +306,15 @@ class TicketController extends Controller
         $tickets = $query->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
-        return response()->json($tickets);
+        return response()->json([
+            'data' => $tickets->items(),
+            'meta' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page'    => $tickets->lastPage(),
+                'per_page'     => $tickets->perPage(),
+                'total'        => $tickets->total(),
+            ]
+        ]);
     }
 
     /**

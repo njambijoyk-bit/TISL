@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Gavel,
 } from 'lucide-react';
 
 import Header from '../../components/layout/Header';
@@ -29,6 +30,7 @@ import ProductCard from '../../components/products/ProductCard';
 import ReviewCard from '../../components/products/ReviewCard';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import useWishlistStore from '../../store/wishlistStore';
+import useQuoteListStore from '../../store/quoteListStore';
 
 import { productsAPI } from '../../api';
 import { useCartStore, useProductStore, useAuthStore } from '../../store';
@@ -56,6 +58,9 @@ export default function ProductDetail() {
   const { setCurrentProduct } = useProductStore();
   const { toggle, has } = useWishlistStore();
   const wished = Boolean(product?.id) ? has(product.id) : false;
+
+  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
+  const inQL = Boolean(product?.id) ? inQuoteList(product.id) : false;
   const { isAuthenticated } = useAuthStore();
 
   const getImageUrl = (imagePath) => {
@@ -112,7 +117,11 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
-  const handleRequestQuote = () => { navigate(`/quotes?product=${product?.id}`); };
+  const handleRequestQuote = () => {
+    if (inQL) { navigate('/quote-list'); return; }
+    addToQuoteList({ ...product, selectedVariant }, quantity);
+    toast.success(`${product?.name} added to quote list`);
+  };
   const handleToggleWishlist = (e) => {
     e.stopPropagation();
     if (!product?.id) return;
@@ -159,6 +168,8 @@ export default function ProductDetail() {
   const inStock = product?.in_stock ?? product?.instock ?? false;
   const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
   const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
+  const hasAuction = product?.active_auction && product.active_auction.status === 'active';
+  const auction = product?.active_auction || null;
   const additionalImages = product?.additional_images ?? product?.additionalimages ?? [];
   const productImages = [
     product?.main_image_url, product?.mainimageurl, product?.main_image, product?.mainimage,
@@ -167,10 +178,13 @@ export default function ProductDetail() {
   ].filter(Boolean);
   const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
   const originalPrice = selectedVariant?.original_price ?? selectedVariant?.originalprice ?? product?.original_price ?? product?.originalprice ?? null;
-  const discountPercentage = product?.discount_percentage ?? product?.discountpercentage ??
-    (originalPrice && Number(originalPrice) > Number(currentPrice)
-      ? Math.round(((Number(originalPrice) - Number(currentPrice)) / Number(originalPrice)) * 100) : null);
-
+  
+  const priceDiff = originalPrice && Number(originalPrice) !== Number(currentPrice);
+  const isMarkdown = priceDiff && Number(originalPrice) > Number(currentPrice);
+  const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
+  const priceDeltaPct = priceDiff
+    ? Math.round(Math.abs(Number(originalPrice) - Number(currentPrice)) / Number(originalPrice) * 100)
+    : null;
   const hasVariants = product?.has_variants ?? product?.hasvariants ?? false;
   const variants = product?.variants;
   const hasSpecs = product?.specifications && Object.keys(product.specifications).length > 0;
@@ -257,11 +271,16 @@ export default function ProductDetail() {
                         <Sparkles size={11} /> New
                       </span>
                     )}
-                    {onSale == 1 && discountPercentage && (
-                      <span style={badgeStyle('#dc2626', '#fee2e2')}>
-                        -{discountPercentage}%
-                      </span>
-                    )}
+                    {isMarkdown && priceDeltaPct && (
+    <span style={badgeStyle('#dc2626', '#fee2e2')}>
+      −{priceDeltaPct}%
+    </span>
+  )}
+  {isMarkup && priceDeltaPct && (
+    <span style={badgeStyle('#d97706', '#fef3c7')}>
+      +{priceDeltaPct}%
+    </span>
+  )}
                     {isFeatured == 1 && (
                       <span style={badgeStyle('#7c3aed', '#ede9fe')}>
                         <Star size={11} /> Featured
@@ -408,31 +427,36 @@ export default function ProductDetail() {
                   <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>({totalReviews} reviews)</span>
                 </div>
 
-                {/* Price block */}
-                <div style={{ padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #f3f4f6' }}>
-                  {onSale == 1 && originalPrice ? (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em' }}>
-                        KSh {Number(currentPrice).toLocaleString()}
-                      </span>
-                      <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
-                        KSh {Number(originalPrice).toLocaleString()}
-                      </span>
-                      {discountPercentage && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', background: '#fee2e2', padding: '3px 8px', borderRadius: 6 }}>
-                          SAVE {discountPercentage}%
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.03em' }}>
+                <div style={{ padding: '16px 20px', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em' }}>
                       KSh {Number(currentPrice).toLocaleString()}
                     </span>
-                  )}
-                  {isPriceNegotiable && (
+
+                    {priceDiff && (
+                      <>
+                        <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
+                          KSh {Number(originalPrice).toLocaleString()}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+                          background: isMarkdown ? '#fee2e2' : 'rgba(239,68,68,0.1)',
+                          color: isMarkdown ? '#dc2626' : '#dc2626',
+                        }}>
+                          {isMarkdown ? `SAVE ${priceDeltaPct}%` : `+${priceDeltaPct}%`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {hasAuction ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: '#dc2626', marginTop: 6 }}>
+                      <Gavel size={13} /> This item is up for auction — place a bid to purchase
+                    </span>
+                  ) : isPriceNegotiable && (
                     <button type="button" onClick={handleRequestQuote}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
-                      Price is negotiable — request a quote
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, width: 'fit-content', marginTop: 6 }}>
+                      {inQL ? 'Price is negotiable — View in Quote List →' : 'Price is negotiable — request a quote'}
                     </button>
                   )}
                 </div>
@@ -499,58 +523,93 @@ export default function ProductDetail() {
                   </div>
 
                   {/* CTA buttons */}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button
-                      onClick={handleAddToCart}
-                      disabled={!inStock}
-                      type="button"
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12, border: '2px solid #111827',
-                        background: addedToCart ? '#111827' : 'white',
-                        color: addedToCart ? 'white' : '#111827',
-                        fontSize: '0.85rem', fontWeight: 700, cursor: inStock ? 'pointer' : 'not-allowed',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {addedToCart ? <><Check size={16} /> Added!</> : <><ShoppingCart size={16} /> Add to Cart</>}
-                    </button>
+                  {(() => {
+                    if (hasAuction) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/auctions/${auction.id}`)}
+                          style={{
+                            width: '100%', height: 48, borderRadius: 12,
+                            border: '1.5px solid rgba(220,38,38,0.4)',
+                            background: 'rgba(220,38,38,0.08)', color: '#dc2626',
+                            fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            transition: 'all 150ms ease', letterSpacing: '0.04em',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.color = 'white'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = '#dc2626'; }}
+                        >
+                          <Gavel size={18} /> Place Bid
+                        </button>
+                      );
+                    }
 
-                    <button
-                      onClick={handleBuyNow}
-                      disabled={!inStock}
-                      type="button"
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12, border: 'none',
-                        background: inStock ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#e5e7eb',
-                        color: 'white', fontSize: '0.85rem', fontWeight: 700,
-                        cursor: inStock ? 'pointer' : 'not-allowed',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        boxShadow: inStock ? '0 4px 15px rgba(168,85,247,0.35)' : 'none',
-                        transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      <ShoppingBag size={16} /> Buy Now
-                    </button>
-                  </div>
+                    return (
+                      <>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button
+                            onClick={handleAddToCart}
+                            disabled={!inStock}
+                            type="button"
+                            style={{
+                              flex: 1, height: 48, borderRadius: 12, border: '2px solid #111827',
+                              background: addedToCart ? '#111827' : 'white',
+                              color: addedToCart ? 'white' : '#111827',
+                              fontSize: '0.85rem', fontWeight: 700, cursor: inStock ? 'pointer' : 'not-allowed',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            {addedToCart ? <><Check size={16} /> Added!</> : <><ShoppingCart size={16} /> Add to Cart</>}
+                          </button>
+                          {!isPriceNegotiable && (
+                            <>
 
-                  {isPriceNegotiable && (
-                    <button
-                      onClick={handleRequestQuote}
-                      type="button"
-                      style={{
-                        width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #3b82f6',
-                        background: 'transparent', color: '#3b82f6',
-                        fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        transition: 'all 150ms ease', letterSpacing: '0.04em',
-                      }}
-                    >
-                      <FileText size={16} /> Request a Quote
-                    </button>
-                  )}
+                              <button
+                                onClick={handleBuyNow}
+                                disabled={!inStock}
+                                type="button"
+                                style={{
+                                  flex: 1, height: 48, borderRadius: 12, border: 'none',
+                                  background: inStock ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#e5e7eb',
+                                  color: 'white', fontSize: '0.85rem', fontWeight: 700,
+                                  cursor: inStock ? 'pointer' : 'not-allowed',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                  boxShadow: inStock ? '0 4px 15px rgba(168,85,247,0.35)' : 'none',
+                                  transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4,
+                                  letterSpacing: '0.04em',
+                                }}
+                              >
+                                <ShoppingBag size={16} /> Buy Now
+                              </button>
+                            </>
+                          )}
+
+                          {/* Quote button — full width when negotiable, icon-only when not */}
+                          <button
+                            onClick={handleRequestQuote}
+                            type="button"
+                            style={{
+                              ...(isPriceNegotiable ? { flex: 1 } : { width: 48, flexShrink: 0 }),
+                              height: 48, borderRadius: 12, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em',
+                              border: inQL ? '1.5px solid #a855f7' : '1.5px solid rgba(168,85,247,0.35)',
+                              background: inQL ? 'rgba(168,85,247,0.15)' : 'transparent',
+                              color: inQL ? '#7c3aed' : '#a855f7',
+                              transition: 'all 150ms ease',
+                            }}
+                            title={inQL ? 'In quote list — click to view' : 'Add to quote list'}
+                          >
+                            <FileText size={16} />
+                            {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Request a Quote') : ''}
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Trust strip */}
@@ -679,7 +738,7 @@ export default function ProductDetail() {
           {relatedProducts.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', margin: 0 }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#c084fc', letterSpacing: '-0.02em', margin: 0 }}>
                   You May Also Like
                 </h2>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedProducts.length} items</span>

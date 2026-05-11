@@ -127,11 +127,11 @@ function HeroSlide({ section, pageType }) {
             {/* Top: subtitle + title */}
             <div className="pt-2">
                 {section.subtitle && (
-                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-400 mb-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-400 mb-4"style={{ color: '#9ca3af' }}>
                     {section.subtitle}
                 </p>
                 )}
-                <h1 className="text-3xl lg:text-4xl font-bold text-white leading-[1.15]">
+                <h1 className="text-3xl lg:text-4xl font-bold text-white leading-[1.15]"style={{ color: '#c084fc' }}>
                 {section.title}
                 </h1>
             </div>
@@ -139,7 +139,7 @@ function HeroSlide({ section, pageType }) {
             {/* Bottom: body copy + CTA button */}
             <div className="pt-2">
                 {section.content && (
-                <p className="text-[13px] lg:text-[14px] text-white/70 leading-relaxed mb-6">
+                <p className="text-[13px] lg:text-[14px] text-white/70 leading-relaxed mb-6"style={{ color: '#9ca3af' }}>
                     {section.content}
                 </p>
                 )}
@@ -323,7 +323,7 @@ export function FeaturesSection({ section }) {
                 alignItems: 'center',
                 gap: '16px',
                 padding: '16px 0',
-                borderBottom: '1px solid #e5e7eb',
+                borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
               }}
             >
               {/* Icon */}
@@ -1048,7 +1048,7 @@ export function ValuesSection({ section }) {
                 alignItems: 'center',
                 gap: '16px',
                 padding: '16px 0',
-                borderBottom: '1px solid #e5e7eb',
+                borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
               }}
             >
               <div
@@ -1094,7 +1094,12 @@ export function ValuesSection({ section }) {
 
 function TeamCard({ item }) {
   return (
-    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5 transition-all duration-200"
+      style={{ border: '1.5px solid rgba(168,85,247,0.35)', boxShadow: '0 0 0 0px #c084fc' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 16px 2px rgba(192,132,252,0.35)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 0px #c084fc'}
+    >
+
       {/* Text LEFT */}
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-500 dark:text-primary-400 mb-1">
@@ -1106,8 +1111,8 @@ function TeamCard({ item }) {
       </div>
 
       {/* Circle photo RIGHT — fixed size, center-crop */}
-      <div style={{ flexShrink: 0, width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden' }}
-        className="ring-2 ring-gray-100 dark:ring-gray-700 bg-gray-100 dark:bg-gray-800">
+      <div style={{ flexShrink: 0, width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', ring: 'none' }}
+        className="ring-2 ring-purple-400/50 bg-gray-100 dark:bg-gray-800">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -1211,7 +1216,7 @@ export function ContactInfoSection({ section }) {
                   alignItems: 'center',
                   gap: '16px',
                   padding: '16px 0',
-                  borderBottom: '1px solid #e5e7eb',
+                  borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
                 }}
               >
                 <div
@@ -1282,8 +1287,9 @@ export function FaqSection({ section }) {
               className="rounded-lg border overflow-hidden"
               style={{
                 borderColor: open === i ? '#a855f7' : 'rgba(168,85,247,0.3)',
-                background: open === i ? 'rgba(168,85,247,0.08)' : 'transparent',
-                transition: 'background 0.2s, border-color 0.2s',
+                background: open === i ? 'rgba(168,85,247,0.15)' : 'rgba(192,132,252,0.07)',
+                boxShadow: open === i ? '0 0 16px rgba(192,132,252,0.2)' : '0 0 8px rgba(192,132,252,0.1)',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
               }}
             >
                 <button

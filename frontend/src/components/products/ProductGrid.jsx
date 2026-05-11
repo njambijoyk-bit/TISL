@@ -41,13 +41,13 @@ export default function ProductGrid({ products, loading, error }) {
   }
 
   return (
-    <div 
-  className="grid gap-8 sm:gap-5 md:gap-6"
-  style={{
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 320px))',
-    justifyContent: 'center'
-  }}
->
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '12px',
+      }}
+    >
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

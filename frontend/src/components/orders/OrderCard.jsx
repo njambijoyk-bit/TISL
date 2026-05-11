@@ -127,6 +127,19 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
                   🏷️ {order.promo_code}
                 </span>
               )}
+              {Number(order.store_credit_deduction) > 0 && (
+              <div className="flex justify-between items-center" style={{ color: '#059669' }}>
+                <span className="flex items-center gap-1">
+                  💳 Store credit
+                </span>
+                <div className="text-right">
+                  <span className="font-semibold">-{money(order.store_credit_deduction)}</span>
+                  {showKes && Number(order.store_credit_deduction_kes) > 0 && (
+                    <p className="text-gray-400">-{kesMoney(order.store_credit_deduction_kes)}</p>
+                  )}
+                </div>
+              </div>
+            )}
             </div>
             <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
               <span className="flex items-center gap-1.5"><Calendar size={12} color="#c084fc" />{new Date(order.created_at).toLocaleDateString()}</span>

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\QuoteRequest;
 use App\Models\Customer;
 use App\Models\Quote;
+use App\Services\Mail\QuoteRequestMailService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 class QuoteRequestController extends Controller
 {
+    public function __construct(private QuoteRequestMailService $mailer) {}
     // ========================================
     // CUSTOMER ROUTES
     // ========================================
@@ -110,6 +113,13 @@ class QuoteRequestController extends Controller
             'customer_notes' => $requestData['customer_notes'] ?? null,
             'status' => 'pending',
         ]);
+
+        try {
+            $quoteRequest->load('customer');
+            $this->mailer->sendQuoteRequestSubmitted($quoteRequest);
+        } catch (\Exception $e) {
+            Log::error('Quote request submitted email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Quote request submitted successfully',
@@ -305,7 +315,15 @@ class QuoteRequestController extends Controller
 
         $quoteRequests = $query->paginate($request->get('per_page', 20));
 
-        return response()->json($quoteRequests, 200);
+        return response()->json([
+            'data' => $quoteRequests->items(),
+            'meta' => [
+                'current_page' => $quoteRequests->currentPage(),
+                'last_page'    => $quoteRequests->lastPage(),
+                'per_page'     => $quoteRequests->perPage(),
+                'total'        => $quoteRequests->total(),
+            ]
+        ], 200);
     }
 
     /**
@@ -361,6 +379,13 @@ class QuoteRequestController extends Controller
 
         $quoteRequest->requireClarification($request->clarification_notes);
 
+        try {
+            $quoteRequest->load('customer');
+            $this->mailer->sendQuoteRequestClarification($quoteRequest);
+        } catch (\Exception $e) {
+            Log::error('Quote request clarification email failed: ' . $e->getMessage());
+        }
+
         // TODO: Send notification/email to customer
 
         return response()->json([
@@ -387,6 +412,12 @@ class QuoteRequestController extends Controller
         $quoteRequest->markAsRejected($request->rejection_reason);
 
         // TODO: Send notification/email to customer
+        try {
+            $quoteRequest->load('customer');
+            $this->mailer->sendQuoteRequestRejected($quoteRequest);
+        } catch (\Exception $e) {
+            Log::error('Quote request rejected email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Quote request rejected',
@@ -591,7 +622,7 @@ class QuoteRequestController extends Controller
             
             // Check if file exists
             if (!file_exists($filePath)) {
-                \Log::error('Attachment file not found', [
+                Log::error('Attachment file not found', [
                     'quote_request_id' => $id,
                     'attachment_index' => $index,
                     'path' => $attachment['path'],
@@ -619,7 +650,7 @@ class QuoteRequestController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Quote request not found'], 404);
         } catch (\Exception $e) {
-            \Log::error('Attachment download failed', [
+            Log::error('Attachment download failed', [
                 'quote_request_id' => $id,
                 'attachment_index' => $index,
                 'error' => $e->getMessage(),

@@ -39,6 +39,7 @@ import {
   Hash,
   Activity,
   Shield,
+  PrinterCheck,
 } from 'lucide-react';
 import AdminLayout from '../layout/AdminLayout';
 import LoadingSpinner from '../layout/LoadingSpinner';
@@ -198,7 +199,7 @@ const QuoteDetail = () => {
     return q?.customer_name || 'N/A';
   };
 
-const handleExportPDF = async () => {
+  const handleExportPDF = async () => {
   try {
     const doc    = new jsPDF({ unit: 'pt', format: 'a4' });
     const W      = doc.internal.pageSize.getWidth();
@@ -207,14 +208,14 @@ const handleExportPDF = async () => {
     const gray   = [107, 114, 128];
     const light  = [243, 244, 246];
 
-    // ── Decide whether to show discount/markup column ─────────────────
+    const pdfDate = (v) =>
+      v ? format(new Date(v), 'MMM d, yyyy') : '—';
+
+    // ── Decide whether to show adjustment column ──────────────────────
     const hasItemDiscount = items.some(i => parseFloat(i.discount_amount || 0) > 0.01);
-    const hasItemMarkup   = items.some(i => {
-      const lt = parseFloat(i.line_total || 0);
-      const la = parseFloat(i.line_total_after_discount || lt);
-      return la > lt + 0.01;
-    });
-    const showAdjCol = hasItemDiscount || hasItemMarkup;
+    const hasItemMarkup   = items.some(i => parseFloat(i.discount_amount || 0) < -0.01);
+    const showAdjCol      = hasItemDiscount || hasItemMarkup;
+    const adjLabel        = hasItemMarkup && !hasItemDiscount ? 'MARKUP' : 'DISCOUNT';
 
     // ── Header band ───────────────────────────────────────────────────
     doc.setFillColor(...purple);
@@ -229,19 +230,18 @@ const handleExportPDF = async () => {
 
     let y = 96;
 
-    // ── Two-column meta block ─────────────────────────────────────────
+    // ── Meta block: left = quote info, right = customer ───────────────
     const metaLeft  = 40;
     const metaRight = W / 2 + 10;
     const labelW    = 110;
 
-    const validFrom  = quote.valid_from  ? format(new Date(quote.valid_from),  'MMM d, yyyy') : '—';
-    const validUntil = quote.valid_until ? format(new Date(quote.valid_until), 'MMM d, yyyy') : '—';
-
     const metaLeftRows = [
       ['Quote Number', quote.quote_number],
-      ['Date',         format(new Date(quote.created_at), 'MMMM d, yyyy')],
-      ['Valid From',   validFrom],
-      ['Valid Until',  validUntil],
+      ['Date',         pdfDate(quote.created_at)],
+      ['Valid From',   pdfDate(quote.valid_from)],
+      ['Valid Until',  pdfDate(quote.valid_until)],
+      ['Status',       (quote.status || '—').replace(/_/g, ' ')],
+      ['Version',      `v${quote.version || 1}`],
     ];
 
     const metaRightRows = [
@@ -267,7 +267,38 @@ const handleExportPDF = async () => {
       doc.setFont('helvetica', 'normal'); doc.setTextColor(...gray); doc.text(String(val), metaRight + labelW, rowY);
     });
 
-    y = startY + Math.max(metaLeftRows.length, metaRightRows.length) * 18 + 20;
+    y = startY + Math.max(metaLeftRows.length, metaRightRows.length) * 18 + 16;
+
+    // ── Creator + Assigned To row ─────────────────────────────────────
+    const teamRows = [
+      quote.creator && [
+        'Prepared By',
+        quote.creator.name || `${quote.creator.first_name || ''} ${quote.creator.last_name || ''}`.trim(),
+        quote.creator.email || '',
+      ],
+      (quote.assigned_to || quote.assigned_to_name) && [
+        'Assigned To',
+        quote.assigned_to_name || quote.assigned_to?.name ||
+          `${quote.assigned_to?.first_name || ''} ${quote.assigned_to?.last_name || ''}`.trim(),
+        quote.assigned_to?.email || '',
+      ],
+    ].filter(Boolean);
+
+    if (teamRows.length > 0) {
+      doc.setFontSize(8);
+      teamRows.forEach(([role, name, email], i) => {
+        const tx = i === 0 ? metaLeft : metaRight;
+        doc.setFont('helvetica', 'bold');   doc.setTextColor(...dark); doc.text(role,  tx,          y);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(...dark); doc.text(name,  tx + labelW, y);
+        if (email) {
+          doc.setTextColor(...purple);
+          doc.setFontSize(7.5);
+          doc.text(email, tx + labelW, y + 11);
+          doc.setFontSize(8);
+        }
+      });
+      y += 24;
+    }
 
     // Divider
     doc.setDrawColor(...purple);
@@ -276,86 +307,115 @@ const handleExportPDF = async () => {
     y += 16;
 
     // ── Column positions ──────────────────────────────────────────────
+    // Column order: ITEM | UNIT | ORIG PRICE | UNIT PRICE | QTY | SUBTOTAL | [ADJ] | TOTAL
+    // A4 width = 595pt, margins 40pt each side → 515pt content
     const COL = showAdjCol ? {
       name:      40,
-      uom:       270,
-      qty:       330,
-      unitPrice: 375,
-      adj:       455,
+      uom:       160,
+      origPrice: 202,
+      unitPrice: 260,
+      qty:       318,
+      subtotal:  355,
+      adj:       413,
       total:     W - 40,
     } : {
       name:      40,
-      uom:       300,
-      qty:       365,
-      unitPrice: 415,
+      uom:       170,
+      origPrice: 215,
+      unitPrice: 278,
+      qty:       340,
+      subtotal:  385,
       total:     W - 40,
     };
 
-    // Table header
+    // ── Table header ──────────────────────────────────────────────────
     doc.setFillColor(...light);
     doc.rect(40, y, W - 80, 22, 'F');
     doc.setTextColor(...purple);
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold');
     doc.text('ITEM',       COL.name      + 4, y + 15);
     doc.text('UNIT',       COL.uom       + 4, y + 15);
-    doc.text('QTY',        COL.qty       + 4, y + 15);
+    doc.text('ORIG PRICE', COL.origPrice + 4, y + 15);
     doc.text('UNIT PRICE', COL.unitPrice + 4, y + 15);
-    if (showAdjCol) {
-      doc.text(hasItemMarkup && !hasItemDiscount ? 'MARKUP' : 'DISCOUNT', COL.adj + 4, y + 15);
-    }
-    doc.text('TOTAL', COL.total, y + 15, { align: 'right' });
+    doc.text('QTY',        COL.qty       + 4, y + 15);
+    doc.text('SUBTOTAL',   COL.subtotal  + 4, y + 15);
+    if (showAdjCol) doc.text(adjLabel,   COL.adj      + 4, y + 15);
+    doc.text('TOTAL',      COL.total,         y + 15, { align: 'right' });
     y += 22;
 
-    // Table rows
+    // ── Table rows ────────────────────────────────────────────────────
     doc.setFontSize(8.5);
     items.forEach((item, i) => {
       const nameText  = item.description || item.product_name || item.service_name || 'Item';
       const nameLines = doc.splitTextToSize(nameText, COL.uom - COL.name - 8);
-      const rowH      = Math.max(20, nameLines.length * 13 + 8);
+      const rowH      = Math.max(22, nameLines.length * 13 + 8);
 
       if (y + rowH > 780) { doc.addPage(); y = 40; }
 
-      const bg = i % 2 === 0 ? [255, 255, 255] : [250, 248, 255];
-      doc.setFillColor(...bg);
+      // Alternating row background
+      doc.setFillColor(...(i % 2 === 0 ? [255, 255, 255] : [250, 248, 255]));
       doc.rect(40, y, W - 80, rowH, 'F');
 
-      const midY = y + rowH / 2 + 4;
+      const midY    = y + rowH / 2 + 4;
+      const qty     = parseFloat(item.quantity           || 1);
+      const unitP   = parseFloat(item.unit_price         || 0);
+      const discAmt = parseFloat(item.discount_amount    || 0);
+      const lineTot = parseFloat(item.line_total         || qty * unitP);
+      const lineAft = parseFloat(item.line_total_after_discount || lineTot);
 
+      const origUnitP  = qty > 0 ? lineTot / qty : unitP;
+      const hasDiscount = discAmt >  0.01;
+      const hasMarkup   = discAmt < -0.01;
+
+      // Item name
       doc.setTextColor(...dark); doc.setFont('helvetica', 'normal');
       doc.text(nameLines, COL.name + 4, y + 13);
 
+      // Unit of measure
       doc.setTextColor(...gray);
+      doc.setFontSize(8);
       doc.text(item.unit_of_measure || 'each', COL.uom + 4, midY);
 
+      // Orig price — greyed when it differs from unit price
+      doc.setFontSize(8.5);
+      if (hasDiscount || hasMarkup) { doc.setTextColor(...gray); }
+      else                          { doc.setTextColor(...dark); }
+      doc.text(fmt(origUnitP), COL.origPrice + 4, midY);
+
+      // Unit price
       doc.setTextColor(...dark);
-      doc.text(String(parseFloat(item.quantity || 0)), COL.qty + 4, midY);
-      doc.text(fmt(item.unit_price), COL.unitPrice + 4, midY);
+      doc.text(fmt(unitP), COL.unitPrice + 4, midY);
 
+      // Qty
+      doc.setTextColor(...dark);
+      doc.text(String(qty), COL.qty + 4, midY);
+
+      // Subtotal (gross before adjustment)
+      doc.setTextColor(...gray);
+      doc.text(fmt(lineTot), COL.subtotal + 4, midY);
+
+      // Adjustment column
       if (showAdjCol) {
-        const discAmt   = parseFloat(item.discount_amount || 0);
-        const lineTotal = parseFloat(item.line_total || 0);
-        const lineAfter = parseFloat(item.line_total_after_discount || lineTotal);
-        const isMarkup  = lineAfter > lineTotal + 0.01;
-
-        if (discAmt > 0.01) {
+        if (hasDiscount) {
           doc.setTextColor(16, 185, 129);
           doc.text(`-${fmt(discAmt)}`, COL.adj + 4, midY);
-        } else if (isMarkup) {
+        } else if (hasMarkup) {
           doc.setTextColor(249, 115, 22);
-          doc.text(`+${fmt(lineAfter - lineTotal)}`, COL.adj + 4, midY);
+          doc.text(`+${fmt(Math.abs(discAmt))}`, COL.adj + 4, midY);
         } else {
           doc.setTextColor(...gray);
           doc.text('—', COL.adj + 4, midY);
         }
       }
 
+      // Line total
       doc.setTextColor(...dark); doc.setFont('helvetica', 'bold');
-      doc.text(fmt(item.line_total_after_discount || item.line_total), COL.total, midY, { align: 'right' });
+      doc.text(fmt(lineAft), COL.total, midY, { align: 'right' });
 
       y += rowH;
     });
 
-    // Currency legend
+    // Currency note
     y += 6;
     doc.setFontSize(7.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(...gray);
     doc.text(`* All amounts in ${cs} (${displayCurrency})`, 44, y);
@@ -367,13 +427,13 @@ const handleExportPDF = async () => {
 
     if (totals) {
       const totalRows = [
-        ['Subtotal',        fmt(totals.originalTotal)],
-        ...(totals.itemDiscounts > 0     ? [['Item Discounts',  `-${fmt(totals.itemDiscounts)}`]]  : []),
-        ...(totals.itemIncreases > 0     ? [['Item Increases',  `+${fmt(totals.itemIncreases)}`]]  : []),
-        ...(totals.quoteDiscount > 0     ? [['Quote Discount',  `-${fmt(totals.quoteDiscount)}`]]  : []),
-        ...(totals.tax > 0               ? [['Tax (VAT)',        fmt(totals.tax)]]                  : []),
-        ...(totals.shipping > 0          ? [['Shipping',         fmt(totals.shipping)]]             : []),
-      ];
+        ['Subtotal',                                              fmt(totals.originalTotal)],
+        totals.itemDiscounts > 0 && ['Item Discounts',          `-${fmt(totals.itemDiscounts)}`],
+        totals.itemIncreases > 0 && ['Item Increases',          `+${fmt(totals.itemIncreases)}`],
+        totals.quoteDiscount > 0 && ['Quote Discount',          `-${fmt(totals.quoteDiscount)}`],
+        totals.tax       > 0     && ['Tax (VAT)',                 fmt(totals.tax)],
+        totals.shipping  > 0     && ['Shipping',                  fmt(totals.shipping)],
+      ].filter(Boolean);
 
       doc.setFontSize(9);
       totalRows.forEach(([label, val]) => {
@@ -385,19 +445,42 @@ const handleExportPDF = async () => {
         y += 17;
       });
 
+      // ── Total band — taller when KES equivalent is present ──────────
       y += 4;
+      if (y > 780) { doc.addPage(); y = 40; }
+
+      const showKes = quote.currency !== 'KES' && quote.total_kes;
+      const bandH   = showKes ? 44 : 28;
+
       doc.setFillColor(...purple);
-      doc.rect(totalsX - 10, y, totalsW + 10, 28, 'F');
+      doc.rect(totalsX - 10, y, totalsW + 10, bandH, 'F');
+
+      // Primary TOTAL line
       doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL', totalsX, y + 19);
-      doc.text(`${cs} ${fmt(totals.total)}`, totalsX + totalsW, y + 19, { align: 'right' });
-      y += 44;
+      doc.text('TOTAL',                      totalsX,           y + 18);
+      doc.text(`${cs} ${fmt(totals.total)}`, totalsX + totalsW, y + 18, { align: 'right' });
+
+      // KES equivalent — second line inside the band
+      if (showKes) {
+        // Rate label (muted lavender)
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+        doc.setTextColor(210, 180, 255);
+        doc.text(
+          `1 ${quote.currency} = ${parseFloat(quote.exchange_rate_to_kes || 0).toFixed(4)} KES  ·  as of ${pdfDate(quote.converted_at || quote.created_at)}`,
+          totalsX, y + 36
+        );
+        // KES amount (bright white, bold)
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(`KES ${fmt(quote.total_kes)}`, totalsX + totalsW, y + 36, { align: 'right' });
+      }
+
+      y += bandH + 12;
     }
 
-    // ── Terms block ───────────────────────────────────────────────────
+    // ── Terms ─────────────────────────────────────────────────────────
     if (quote.terms_and_conditions || quote.payment_terms || quote.delivery_terms) {
       if (y > 680) { doc.addPage(); y = 40; }
-
       doc.setDrawColor(...purple);
       doc.setLineWidth(0.5);
       doc.line(40, y, W - 40, y);
@@ -408,9 +491,9 @@ const handleExportPDF = async () => {
       y += 14;
 
       [
-        quote.terms_and_conditions && ['General Terms',   quote.terms_and_conditions],
-        quote.payment_terms        && ['Payment Terms',   quote.payment_terms],
-        quote.delivery_terms       && ['Delivery Terms',  quote.delivery_terms],
+        quote.terms_and_conditions && ['General Terms',  quote.terms_and_conditions],
+        quote.payment_terms        && ['Payment Terms',  quote.payment_terms],
+        quote.delivery_terms       && ['Delivery Terms', quote.delivery_terms],
       ].filter(Boolean).forEach(([label, val]) => {
         if (y > 760) { doc.addPage(); y = 40; }
         doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...dark);
@@ -436,6 +519,7 @@ const handleExportPDF = async () => {
     }
 
     // ── Footer ────────────────────────────────────────────────────────
+    if (y > 780) { doc.addPage(); y = 40; }
     doc.setDrawColor(...purple);
     doc.setLineWidth(1);
     doc.line(40, y, W - 40, y);
@@ -499,6 +583,7 @@ const handleExportPDF = async () => {
   const showKes           = displayCurrency !== 'KES' && exchangeRateToKes > 0;
   const canEdit = ['draft', 'pending'].includes(quote.status);
   const canSend = quote.status === 'draft' && items.length > 0;
+  const isConverted = quote.status === 'converted';
   const customerDisplayName = getCustomerDisplayName(customer, quote);
 
   const csMap = { KES: 'KSh', USD: '$', EUR: '€', GBP: '£' };
@@ -593,6 +678,8 @@ const handleExportPDF = async () => {
           </div>
 
           <div className="qd-header-actions">
+            {isConverted && <Btn variant="ghost" size="sm" icon={<PrinterCheck size={14} />} onClick={() => navigate(`/admin/orders/${quote.converted_to_order_id}`)}>View Order</Btn>}
+            
             <Btn variant="outline" size="sm" icon={<Printer size={14} />} onClick={() => window.print()}>Print</Btn>
             
             <Btn variant="outline" size="sm" icon={<Download size={14} />} onClick={handleExportPDF}>

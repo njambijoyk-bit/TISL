@@ -105,6 +105,29 @@ class User extends Authenticatable
     {
         return $this->hasOne(Vendor::class);
     }
+
+    /**
+     * Deliveries assigned to this user as a driver.
+     */
+    public function deliveries()
+    {
+        return $this->hasMany(Delivery::class, 'driver_id');
+    }
+    /**
+     * Deliveries assigned by this user (logistics role).
+     */
+    public function assignedDeliveries()
+    {
+        return $this->hasMany(Delivery::class, 'assigned_by');
+    }
+
+    /**
+     * M-Pesa transactions initiated by this user (finance/admin prompt).
+     */
+    public function initiatedTransactions()
+    {
+        return $this->hasMany(MpesaTransaction::class, 'initiated_by');
+    }
     /**
      * Get orders placed by this user (who created the order).
      * This is for admin/sales rep who create orders on behalf of customers.
@@ -256,7 +279,11 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['admin', 'super_admin', 'manager', 'sales_rep']);
+        // Core admin roles that can access the admin panel generally
+        return in_array($this->role, [
+            'super_admin', 'admin', 'manager', 'sales_rep',
+            'finance', 'logistics',
+        ]);
     }
 
     /**
@@ -299,17 +326,54 @@ class User extends Authenticatable
         return $this->role === 'vendor';
     }
 
-    /**
-     * Check if user is staff (has employee record).
-     */
-    public function isStaff(): bool
+    public function isFinance(): bool
     {
-        return in_array($this->role, ['admin', 'manager', 'sales_rep', 'super_admin']);
+        return $this->role === 'finance';
+    }
+
+    public function isLogistics(): bool
+    {
+        return $this->role === 'logistics';
+    }
+
+    public function isDriver(): bool
+    {
+        return $this->role === 'driver';
     }
 
     /**
-     * Check if user has a specific permission.
+     * Staff = has an employee record.
+     * finance and logistics are operational staff — they get employee records.
+     * driver is portal-only like vendor, no employee record.
      */
+    public function isStaff(): bool
+    {
+        return in_array($this->role, [
+            'super_admin', 'admin', 'manager', 'sales_rep',
+            'finance', 'logistics',
+        ]);
+    }
+
+    /**
+     * Operational roles that access the panel but manage no users.
+     */
+    public function isOperational(): bool
+    {
+        return in_array($this->role, ['finance', 'logistics']);
+    }
+
+    /**
+     * Portal-only roles — external parties with limited access.
+     */
+    public function isPortalOnly(): bool
+    {
+        return in_array($this->role, ['vendor', 'driver']);
+    }
+
+    // ========================================
+    // PERMISSION HELPERS
+    // ========================================
+
     public function hasPermission(string $permission): bool
     {
         // Super admin has all permissions
@@ -322,8 +386,45 @@ class User extends Authenticatable
     }
 
     /**
+     * Finance-specific permission checks.
+     */
+    public function canProcessPayments(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'finance']);
+    }
+
+    public function canProcessRefunds(): bool
+    {
+        return in_array($this->role, ['super_admin', 'finance']);
+    }
+
+    public function canUpdateCurrencyRates(): bool
+    {
+        return in_array($this->role, ['super_admin', 'finance']);
+    }
+
+    public function canViewFinancialReports(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'finance']);
+    }
+
+    /**
+     * Logistics-specific permission checks.
+     */
+    public function canManageDeliveries(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'logistics']);
+    }
+
+    public function canAssignDrivers(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'logistics']);
+    }
+
+    /**
      * Check if user account is locked.
      */
+
     public function isLocked(): bool
     {
         return $this->locked_until && $this->locked_until > now();
@@ -349,9 +450,13 @@ class User extends Authenticatable
             return $this->employee->canLogin();
         }
 
-        // Vendors in pending_approval status cannot log in
-        if ($this->isVendor() && $this->vendor?->status === 'pending_approval') {
-            return false;
+        // Vendors and drivers in pending_approval cannot log in
+        if ($this->isPortalOnly()) {
+            $profile = $this->isVendor() ? $this->vendor : null;
+            // drivers don't have a profile record yet — allow login by default
+            if ($profile && $profile->status === 'pending_approval') {
+                return false;
+            }
         }
 
         return true;
@@ -547,7 +652,10 @@ class User extends Authenticatable
      */
     public function scopeAdmins($query)
     {
-        return $query->whereIn('role', ['super_admin', 'admin', 'manager', 'sales_rep']);
+        return $query->whereIn('role', [
+            'super_admin', 'admin', 'manager', 'sales_rep',
+            'finance', 'logistics',
+        ]);
     }
 
     /**
@@ -569,6 +677,21 @@ class User extends Authenticatable
     public function scopeSalesReps($query)
     {
         return $query->where('role', 'sales_rep');
+    }
+
+    public function scopeFinance($query)
+    {
+        return $query->where('role', 'finance');
+    }
+
+    public function scopeLogistics($query)
+    {
+        return $query->where('role', 'logistics');
+    }
+
+    public function scopeDrivers($query)
+    {
+        return $query->where('role', 'driver');
     }
 
     /**
@@ -614,7 +737,8 @@ class User extends Authenticatable
      */
     public function scopeMissingEmployee($query)
     {
-        return $query->whereIn('role', ['admin', 'manager', 'sales_rep'])
-            ->whereDoesntHave('employee');
+        return $query->whereIn('role', [
+            'admin', 'manager', 'sales_rep', 'finance', 'logistics',
+        ])->whereDoesntHave('employee');
     }
 }

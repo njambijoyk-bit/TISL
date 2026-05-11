@@ -2,18 +2,21 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  Tag, Zap, Clock, Sparkles, ArrowRight,
+  Tag, Zap, Clock, Sparkles, ArrowRight, Gavel, FileText,
   ShoppingCart, Heart, Star, Package, Wrench, ChevronRight,
   ChevronLeft, Flame, TrendingUp, BadgePercent, Truck, Award, Wand2
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
+import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import useProductStore from '../../store/productStore';
+import auctionsAPI from '../../api/auctions';
 import useServiceStore from '../../store/serviceStore';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
 import toast from 'react-hot-toast';
 import CollapsedProductCard from '../../components/products/CollapsedProductCard';
+import AuctionCard from '../../components/products/AuctionCard';
 import CollapsedServiceCard from '../../components/services/CollapsedServiceCard';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -264,19 +267,28 @@ const CollapsedSkeleton = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // SectionHead
 // ─────────────────────────────────────────────────────────────────────────────
-function SectionHead({ eyebrow, title, subtitle, cta, ctaLink, accent = 'text-yellow-400', icon: Icon }) {
+function SectionHead({ eyebrow, title, subtitle, cta, ctaLink, accent = '#c084fc', icon: Icon }) {
   return (
     <div className="flex items-end justify-between mb-6 gap-4">
       <div>
-        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${accent} mb-2`}>{eyebrow}</p>
-        <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3">
-          {Icon && <Icon size={22} className={accent} />}
+        <p
+          style={{ color: '#c084fc'}}
+          className="text-[10px] font-black uppercase tracking-[0.2em] mb-2"
+        >
+          {eyebrow}
+        </p>
+        <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3" style={{ color: '#a855f7'}}>
+          {Icon && <Icon size={22} />}
           {title}
         </h2>
         {subtitle && <p className="text-sm text-zinc-400 mt-1">{subtitle}</p>}
       </div>
       {cta && ctaLink && (
-        <Link to={ctaLink} className={`flex-shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider ${accent} hover:gap-2 transition-all`}>
+        <Link
+          to={ctaLink}
+          style={{ color: '#c084fc'}}
+          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider hover:gap-2 transition-all"
+        >
           {cta} <ChevronRight size={13} />
         </Link>
       )}
@@ -416,10 +428,10 @@ function WishlistSection() {
       {/* Header band */}
       <div className="flex items-end justify-between mb-6 gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-400 mb-2 flex items-center gap-1.5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-400 mb-2 flex items-center gap-1.5"style={{ color: '#fb3ccb' }}>
             <Wand2 size={10} /> Your Picks
           </p>
-          <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3">
+          <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3"style={{ color: '#fb3ccb' }}>
             <Heart size={22} className="text-pink-400 fill-pink-400" />
             What You Like
           </h2>
@@ -430,6 +442,7 @@ function WishlistSection() {
         <Link
           to="/wishlist"
           className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-pink-400 hover:gap-2 transition-all"
+          style={{ color: '#fb3ccb' }}
         >
           View all <ChevronRight size={13} />
         </Link>
@@ -494,11 +507,11 @@ function CartSection() {
       {/* Header band */}
       <div className="flex items-end justify-between mb-6 gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400 mb-2 flex items-center gap-1.5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400 mb-2 flex items-center gap-1.5"style={{ color: '#fb923c' }}>
             <ShoppingCart size={10} /> Your Cart
           </p>
-          <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3">
-            <ShoppingCart size={22} className="text-orange-400" />
+          <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3"style={{ color: '#fb923c' }}>
+            <ShoppingCart size={22} className="text-orange-400" style={{ color: '#fb923c' }} />
             Want to Clear Your Cart?
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
@@ -511,7 +524,10 @@ function CartSection() {
           <button
             type="button"
             onClick={handleClearCart}
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-red-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-secondary hover:text-red-400 transition-colors"
+            style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251, 60, 60, 0.35)', color: '#fb3c3c' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(251,60,60,0.25)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(251,60,60,0.15)'}
           >
             Clear all
           </button>
@@ -549,6 +565,82 @@ function CartSection() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AuctionSection — Live bidding grid
+// ─────────────────────────────────────────────────────────────────────────────
+function AuctionSection() {
+  const [auctions, setAuctions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      try {
+        setLoading(true);
+        // Reuses the same API structure as AuctionListPage
+        const res = await auctionsAPI.getAllAuctions({ status: 'active', page: 1, per_page: 4 });
+        setAuctions(res.data || []);
+      } catch {
+        setAuctions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAuctions();
+  }, []);
+
+  return (
+    <section>
+      <div className="flex items-end justify-between mb-6 gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-2 flex items-center gap-1.5" style={{ color: '#dc2626' }}>
+            <Gavel size={10} className="animate-pulse"/> Live Bidding 
+          </p>
+          <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight flex items-center gap-3"style={{ color: '#dc2626' }}>
+            Hot Auctions
+          </h2>
+          <p className="text-sm text-zinc-400 mt-1">
+            Bid before time runs out — prices update in real-time
+          </p>
+        </div>
+        <Link to="/auctions" className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-400 hover:gap-2 transition-all">
+          View all <ChevronRight size={13} />
+        </Link>
+      </div>
+
+      {/* Decorative left border */}
+      <div className="flex gap-5">
+        <div className="w-1 rounded-full bg-gradient-to-b from-red-500 via-red-500/40 to-transparent flex-shrink-0" />
+        <div className="flex-1">
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>
+              {Array.from({ length: 4 }).map((_, i) => <CollapsedSkeleton key={i} />)}
+            </div>
+          ) : auctions.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>
+              {auctions.map((a) => (
+                <div 
+                  key={a.id} 
+                  className="bg-zinc-900/50 rounded-xl overflow-hidden"  
+                  style={{ border: '1px solid rgba(168,85,247,0.2)' }}   
+                >
+                  <AuctionCard auction={a} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              icon={Gavel}
+              message="No active auctions right now."
+              sub="Check back soon or browse our regular products."
+              cta="Browse Products"
+              ctaLink="/products"
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // CartProductRow — collapsed card variant with quantity badge + remove button
 // ─────────────────────────────────────────────────────────────────────────────
@@ -674,6 +766,14 @@ export default function SpecialsPage() {
   const dealsToShow    = onSaleProducts.length > 0 ? onSaleProducts.slice(0, 8) : featuredProducts.slice(0, 8);
   const dealsAreOnSale = onSaleProducts.length > 0;
 
+  const isPageLoading = loadingOnSale || loadingFeatured || loadingNewArrivals || serviceLoading;
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950">
+        <LoadingSpinner fullScreen />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <Helmet>
@@ -685,6 +785,7 @@ export default function SpecialsPage() {
       <Header />
 
       <HeroCarousel slides={carouselSlides} countdown={countdown} loading={heroLoading} />
+      <div className="flex items-center justify-center gap-2 mb-5"></div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-16 space-y-24">
 
@@ -703,11 +804,17 @@ export default function SpecialsPage() {
           </div>
         </section>
 
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
+
         {/* ── What You Like (wishlist) ── */}
         <WishlistSection />
 
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
+
         {/* ── Want to clear your cart? ── */}
         <CartSection />
+
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
 
         {/* ── Featured products ── */}
         <section>
@@ -717,7 +824,7 @@ export default function SpecialsPage() {
             cta="View all" ctaLink="/products?featured=true"
             accent="text-yellow-400"
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px',color: '#a855f7'}}>
             {loadingFeatured
               ? Array.from({ length: 8 }).map((_, i) => <CollapsedSkeleton key={i} />)
               : featuredProducts.length > 0
@@ -728,6 +835,12 @@ export default function SpecialsPage() {
             }
           </div>
         </section>
+
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
+        
+        <AuctionSection />
+
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
 
         {/* ── New arrivals ── */}
         <section>
@@ -754,6 +867,8 @@ export default function SpecialsPage() {
           </div>
         </section>
 
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
+
         {/* ── Featured services ── */}
         <section>
           <SectionHead
@@ -775,26 +890,99 @@ export default function SpecialsPage() {
         </section>
 
         {/* ── Bottom CTA ── */}
-        <section>
-          <div className="relative rounded-2xl overflow-hidden border border-zinc-800">
+        <section className="mt-16 lg:mt-24">
+          <div 
+            className="relative rounded-2xl overflow-hidden group"
+            style={{
+              border: '1.5px solid rgba(168, 85, 247, 0.5)',
+              boxShadow: '0 0 24px rgba(168, 85, 247, 0.18)',
+              transition: 'all 0.3s ease-out',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)';
+              e.currentTarget.style.boxShadow = '0 0 36px rgba(168, 85, 247, 0.35)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+              e.currentTarget.style.boxShadow = '0 0 24px rgba(168, 85, 247, 0.18)';
+            }}
+          >
+            {/* Base gradient background */}
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800" />
-            <div className="absolute top-0 right-0 w-80 h-80 bg-yellow-400/4 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+            
+            {/* Purple glow orbs */}
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none 
+                            group-hover:bg-purple-500/20 transition-all duration-500" />
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-500/5 rounded-full blur-2xl pointer-events-none 
+                            group-hover:bg-purple-500/15 transition-all duration-500" />
+            
+            {/* Content */}
             <div className="relative px-8 py-14 lg:px-16 lg:py-20 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-yellow-400 mb-4">Need something specific?</p>
-              <h2 className="text-3xl lg:text-5xl font-black text-white mb-4 leading-[1.05]">Can't find what<br className="hidden lg:block" /> you're looking for?</h2>
-              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">Our team sources industrial equipment across East Africa. Send us a quote request and we'll respond within 24 hours.</p>
-              <div className="flex flex-wrap gap-3 justify-center">
-                <Link to="/request-quote" className="inline-flex items-center gap-2 px-8 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-lg text-sm transition-colors">
+              <div className="flex items-center justify-center gap-2 mb-5">
+                
+              </div>
+              {/* Headline */}
+              <h2 className="text-3xl lg:text-5xl font-black text-primary mb-5 leading-[1.05]">
+                Can't find what you're looking for?
+              </h2>
+              
+              {/* Description */}
+              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">
+                Send us a quote request and we'll respond within <span className="text-purple-400 font-semibold">24 hours</span>.
+              </p>
+              
+              {/* Buttons */}
+              <div className="flex flex-wrap gap-4 justify-center">
+                <Link 
+                  to="/request-quote" 
+                  className="inline-flex items-center gap-2 px-8 py-3.5 
+                            bg-gradient-to-r from-purple-500 to-purple-600 
+                            hover:from-purple-400 hover:to-purple-500 
+                            text-white font-black rounded-lg text-sm 
+                            transition-all duration-200
+                            shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40
+                            hover:-translate-y-0.5"
+                >
                   Request a Quote <ArrowRight size={15} />
                 </Link>
-                <Link to="/products" className="inline-flex items-center gap-2 px-8 py-3.5 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-semibold rounded-lg text-sm transition-colors">
+                
+                <Link 
+                  to="/products" 
+                  className="inline-flex items-center gap-2 px-8 py-3.5 
+                            border border-purple-500/40 hover:border-purple-400/70
+                            text-zinc-300 hover:text-purple-300 
+                            font-semibold rounded-lg text-sm 
+                            transition-all duration-200
+                            bg-zinc-900/50 hover:bg-zinc-900/80
+                            hover:-translate-y-0.5"
+                >
                   Browse Catalogue
                 </Link>
               </div>
+              
+              {/* Trust badges */}
+              <div className="flex flex-wrap items-center justify-center gap-6 mt-10 pt-8">
+                {[
+                  { icon: Truck, text: 'Nationwide Delivery' },
+                  { icon: BadgePercent, text: 'Price Match Guarantee' },
+                  { icon: Award, text: 'Verified Suppliers' },
+                ].map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex items-center gap-2 text-xs text-zinc-400">
+                    <Icon size={14} className="text-primary" />
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-2 mb-5">
+                
+              </div>
+              
+              
             </div>
           </div>
         </section>
+        <div className="flex items-center justify-center gap-2 mb-5"></div>
 
       </div>
       <Footer />

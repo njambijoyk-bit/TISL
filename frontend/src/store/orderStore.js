@@ -20,14 +20,30 @@ const useOrderStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await ordersAPI.getMyOrders(params);
+      
+      // Extract items (handles both paginated and flat responses)
+      const items = response?.data && Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response) ? response : [];
+
+      // ✅ Extract pagination from meta (Laravel standard)
+      const meta = response?.meta || response;
+      const pagination = meta?.current_page ? {
+        current_page: meta.current_page,
+        last_page:    meta.last_page,
+        total:        meta.total,
+        per_page:     meta.per_page,
+      } : null;
+
       set({ 
-        orders: response.data || response,
+        orders: items, 
+        pagination,  // ✅ Store pagination for customer orders too
         loading: false 
       });
       return response;
     } catch (error) {
       set({ 
-        error: error.response?.data?.message || 'Failed to fetch orders',
+        error: error.response?.data?.message || 'Failed to fetch orders', 
         loading: false 
       });
       throw error;
@@ -151,6 +167,8 @@ const useOrderStore = create((set, get) => ({
   // ========================================
   // ADMIN ACTIONS
   // ========================================
+  // add pagination to state (top of store):
+  pagination: null,
 
   /**
    * Fetch all orders (admin)
@@ -159,21 +177,30 @@ const useOrderStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await ordersAPI.getAllOrders(params);
-      set({ 
-        orders: response.data || response,
-        loading: false 
-      });
+      
+      // Safely extract items
+      const items = response?.data && Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response) ? response : [];
+
+      // Laravel pagination can live in meta, pagination, or root
+      const meta = response?.meta || response?.pagination || response;
+      
+      // Only build pagination object if we actually have page data
+      const pagination = (meta?.current_page !== undefined) ? {
+        current_page: meta.current_page,
+        last_page:    meta.last_page,
+        total:        meta.total,
+        per_page:     meta.per_page,
+      } : null;
+
+      set({ orders: items, pagination, loading: false });
       return response;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || 'Failed to fetch orders',
-        loading: false 
-      });
+      set({ error: error.response?.data?.message || 'Failed to fetch orders', loading: false });
       throw error;
     }
   },
-
-  // orderStore.js
 
 // ADMIN: fetch single order (for /admin/orders/:id)
 fetchAdminOrder: async (id) => {

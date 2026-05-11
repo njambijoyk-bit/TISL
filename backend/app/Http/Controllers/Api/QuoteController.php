@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\Currency;
+use App\Services\Mail\QuoteMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 
 class QuoteController extends Controller
 {
+    public function __construct(private QuoteMailService $mailer) {}
     /**
      * Admin quote list
      */
@@ -37,7 +39,18 @@ class QuoteController extends Controller
             })
             ->orderBy($request->get('sort_by', 'created_at'), $request->get('sort_order', 'desc'));
 
-        return $query->paginate($request->get('per_page', 200));
+        $quotes = $query->paginate($request->get('per_page', 20)); // ✅ Lower default for better UX
+
+        // ✅ Return consistent { data, meta } format
+        return response()->json([
+            'data' => $quotes->items(),
+            'meta' => [
+                'current_page' => $quotes->currentPage(),
+                'last_page'    => $quotes->lastPage(),
+                'per_page'     => $quotes->perPage(),
+                'total'        => $quotes->total(),
+            ]
+        ], 200);
     }
 
     public function trashIndex(Request $request)
@@ -52,7 +65,17 @@ class QuoteController extends Controller
             })
             ->orderBy($request->get('sort_by', 'deleted_at'), $request->get('sort_order', 'desc'));
 
-        return $query->paginate($request->get('per_page', 20));
+        $quotes = $query->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'data' => $quotes->items(),
+            'meta' => [
+                'current_page' => $quotes->currentPage(),
+                'last_page'    => $quotes->lastPage(),
+                'per_page'     => $quotes->perPage(),
+                'total'        => $quotes->total(),
+            ]
+        ], 200);
     }
 
     /**
@@ -67,8 +90,8 @@ class QuoteController extends Controller
             'items.product', 
             'items.service'
         ])->findOrFail($id);
+        return response()->json($quote->toArray()); // ← toArray()
 
-        return response()->json($quote);
     }
 
     /**
@@ -387,6 +410,12 @@ class QuoteController extends Controller
 
             DB::commit();
 
+            try {
+                $this->mailer->sendQuoteSent($quote->load(['customer', 'items.product', 'items.service']));
+            } catch (\Exception $e) {
+                Log::error('Quote sent email failed: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'message' => 'Quote created successfully',
                 'quote' => $quote->load(['customer', 'items.product', 'items.service'])
@@ -573,6 +602,15 @@ class QuoteController extends Controller
             $quote->applyKesSnapshot();
 
             DB::commit();
+            
+            try {
+                $updatedQuote = $quote->fresh()->load(['customer', 'items.product', 'items.service']);
+                if (in_array($request->status, ['pending', 'revised'])) {
+                    $this->mailer->sendQuoteSent($updatedQuote);
+                }
+            } catch (\Exception $e) {
+                Log::error('Quote update email failed: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'message' => 'Quote updated successfully',
@@ -593,10 +631,21 @@ class QuoteController extends Controller
     {
         $customer = Auth::user()->customer;
         
-        return Quote::withCount('items')
+        $quotes = Quote::withCount('items')
             ->where('customer_id', $customer->id)
             ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 10));
+            ->paginate($request->get('per_page', 10)); // ✅ Lower default for customer UX
+
+        // ✅ Return consistent { data, meta } format
+        return response()->json([
+            'data' => $quotes->items(),
+            'meta' => [
+                'current_page' => $quotes->currentPage(),
+                'last_page'    => $quotes->lastPage(),
+                'per_page'     => $quotes->perPage(),
+                'total'        => $quotes->total(),
+            ]
+        ], 200);
     }
 
     /**
@@ -610,7 +659,7 @@ class QuoteController extends Controller
             ->where('customer_id', $customer->id)
             ->findOrFail($id);
 
-        return response()->json($quote);
+        return response()->json($quote->toArray());
     }
 
     /**
@@ -651,6 +700,12 @@ class QuoteController extends Controller
             'responded_at' => now()
         ]);
 
+        try {
+            $this->mailer->sendQuoteApproved($quote->load('customer'));
+        } catch (\Exception $e) {
+            Log::error('Quote accepted email failed: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Quote accepted successfully']);
     }
 
@@ -673,6 +728,12 @@ class QuoteController extends Controller
             'rejection_reason' => $request->rejection_reason,
             'responded_at' => now()
         ]);
+
+        try {
+            $this->mailer->sendQuoteRejected($quote->load('customer'));
+        } catch (\Exception $e) {
+            Log::error('Quote rejected email failed: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Quote rejected']);
     }

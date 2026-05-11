@@ -71,6 +71,34 @@ const customersAPI = {
     return response.data;
   },
 
+  // ============================================
+  // ADMIN — Bulk Import & Template
+  // ============================================
+
+  /**
+   * Download CSV template for customer bulk import
+   * @returns {Promise<Blob>} - CSV file as blob
+   */
+  downloadTemplate: async () => {
+    const response = await api.get('/admin/customers/template', {
+      responseType: 'blob', // Critical: handle binary CSV response
+      headers: { 'Accept': 'text/csv' },
+    });
+    return response;
+  },
+
+  /**
+   * Bulk import customers via CSV/Excel upload
+   * @param {FormData} formData - FormData with 'file' field
+   * @returns {Promise<Object>} - { message: string, errors?: [] }
+   */
+  bulkImport: async (formData) => {
+    const response = await api.post('/admin/customers/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
   // ADMIN: Get customer statistics
   getCustomerStatistics: async () => {
     const response = await api.get('/admin/customers/statistics');
@@ -85,6 +113,16 @@ const customersAPI = {
     return response.data;
   },
 
+  getUpcomingBirthdays: async (days = 30) => {
+    const response = await api.get('/admin/customers/upcoming-birthdays', { params: { days } });
+    return response.data;
+  },
+
+  getHealth: async (params = {}) => {
+    const response = await api.get('/admin/customers/health', { params });
+    return response.data;
+  },
+  
   // ADMIN: Assign sales rep
   assignSalesRep: async (customerId, salesRepId) => {
     const response = await api.post(`/admin/customers/${customerId}/assign-sales-rep`, {

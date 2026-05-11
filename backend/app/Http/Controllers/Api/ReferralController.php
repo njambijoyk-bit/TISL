@@ -364,8 +364,12 @@ class ReferralController extends Controller
     {
         $code = ReferralCode::findOrFail($id);
 
-        $query = ReferralCodeUsage::with(['customer.user', 'referrer.user', 'order'])
-            ->where('referral_code_id', $id);
+        $query = ReferralCodeUsage::with([
+            'customer.user',
+            'referrer.user',
+            'order' => fn($q) => $q->withTrashed(), 
+        ])
+        ->where('referral_code_id', $id);
 
         if ($request->filled('status')) $query->where('status', $request->status);
 

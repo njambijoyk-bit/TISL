@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Customer;
 use App\Models\Employee;
-use App\Models\Vendor;                       // ← NEW
+use App\Models\Vendor;                       
 use App\Policies\UserPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -29,15 +29,24 @@ class UserController extends Controller
                 WHEN "super_admin" THEN 1
                 WHEN "admin"       THEN 2
                 WHEN "manager"     THEN 3
-                WHEN "sales_rep"   THEN 4
-                WHEN "customer"    THEN 5
-                WHEN "vendor"      THEN 6
+                WHEN "finance"     THEN 4
+                WHEN "logistics"   THEN 5
+                WHEN "sales_rep"   THEN 6
+                WHEN "customer"    THEN 7
+                WHEN "vendor"      THEN 8
+                WHEN "driver"      THEN 9
                 ELSE 99 END)', [UserPolicy::level($actor->role)]);    // ← added vendor case
 
         // ── Tab filtering ─────────────────────────────────────────────────────
         $tab = $request->input('tab', 'staff');
         if ($tab === 'staff') {
             $query->whereIn('role', ['admin', 'manager', 'sales_rep']);
+        } elseif ($tab === 'finance') {              // ← NEW
+            $query->where('role', 'finance');
+        } elseif ($tab === 'logistics') {           // ← NEW
+            $query->where('role', 'logistics');
+        } elseif ($tab === 'drivers') {             // ← NEW
+            $query->where('role', 'driver'); 
         } elseif ($tab === 'customers') {
             $query->where('role', 'customer');
         } elseif ($tab === 'vendors') {                                // ← NEW tab
@@ -86,14 +95,20 @@ class UserController extends Controller
             WHEN "super_admin" THEN 1
             WHEN "admin"       THEN 2
             WHEN "manager"     THEN 3
-            WHEN "sales_rep"   THEN 4
-            WHEN "customer"    THEN 5
-            WHEN "vendor"      THEN 6
-            ELSE 99 END)', [$actorLevel]);                             // ← added vendor case
+            WHEN "finance"     THEN 4
+            WHEN "logistics"   THEN 5
+            WHEN "sales_rep"   THEN 6
+            WHEN "customer"    THEN 7
+            WHEN "vendor"      THEN 8
+            WHEN "driver"      THEN 9
+            ELSE 99 END)', [$actorLevel]);
 
         return response()->json([
             'total'                => (clone $base)->count(),
             'staff'                => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep'])->count(),
+            'finance'              => (clone $base)->where('role', 'finance')->count(),    // ← NEW
+            'logistics'            => (clone $base)->where('role', 'logistics')->count(),  // ← NEW
+            'drivers'              => (clone $base)->where('role', 'driver')->count(),     // ← NEW
             'customers'            => (clone $base)->where('role', 'customer')->count(),
             'vendors'              => (clone $base)->where('role', 'vendor')->count(),                // ← NEW
             'active'               => (clone $base)->where('status', 'active')->count(),
@@ -102,11 +117,11 @@ class UserController extends Controller
             'locked'               => (clone $base)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
             'unverified'           => (clone $base)->whereNull('email_verified_at')->count(),
             'by_role'              => (clone $base)->selectRaw('role, COUNT(*) as count')->groupBy('role')->pluck('count', 'role'),
-            'by_department'        => (clone $base)->whereIn('role', ['admin','manager','sales_rep'])
+            'by_department'        => (clone $base)->whereIn('role', ['admin','manager','sales_rep','finance','logistics'])
                                         ->whereNotNull('department')
                                         ->selectRaw('department, COUNT(*) as count')
                                         ->groupBy('department')->pluck('count', 'department'),
-            'staff_without_employee_record' => (clone $base)->whereIn('role', ['admin','manager','sales_rep'])
+            'staff_without_employee_record' => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded
                                         ->whereDoesntHave('employee')->count(),
         ]);
     }
@@ -131,7 +146,7 @@ class UserController extends Controller
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
             'password'     => 'required|string|min:8',
-            'role'         => 'required|in:admin,manager,sales_rep,customer,vendor',  // ← added vendor
+            'role'         => 'sometimes|in:admin,manager,sales_rep,finance,logistics,driver,customer,vendor',
             'phone'        => 'nullable|string|unique:users,phone',
             'company_name' => 'nullable|string|max:255',
             'employee_id'  => 'nullable|string|unique:users,employee_id',
@@ -208,6 +223,10 @@ class UserController extends Controller
                     'created_by'         => $actor->id,
                 ]);
 
+            } elseif ($user->role === 'driver') {
+            // Driver is portal-only — no profile record until delivery system is built
+            // User record alone is sufficient for now, and avoids cluttering.
+
             } else {
                 Employee::create([
                     'user_id'                        => $user->id,
@@ -253,7 +272,7 @@ class UserController extends Controller
             'email'               => 'sometimes|email|unique:users,email,' . $id,
             'phone'               => 'nullable|string|unique:users,phone,' . $id,
             'company_name'        => 'nullable|string|max:255',
-            'role'                => 'sometimes|in:admin,manager,sales_rep,customer,vendor',  // ← added vendor
+            'role'                => 'sometimes|in:admin,manager,sales_rep,finance,logistics,driver,customer,vendor',
             'employee_id'         => 'nullable|string|unique:users,employee_id,' . $id,
             'department'          => 'nullable|string|max:255',
             'hired_at'            => 'nullable|date',
@@ -316,8 +335,8 @@ class UserController extends Controller
      */
     private function handleRoleTransition(User $user, string $oldRole, string $newRole, User $actor, Request $request): void
     {
-        $wasStaff    = in_array($oldRole, ['admin', 'manager', 'sales_rep']);
-        $isStaff     = in_array($newRole, ['admin', 'manager', 'sales_rep']);
+        $wasStaff    = in_array($oldRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics']);
+        $isStaff     = in_array($newRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics']);
         $wasCustomer = $oldRole === 'customer';
         $isCustomer  = $newRole === 'customer';
         $wasVendor   = $oldRole === 'vendor';
@@ -586,7 +605,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $departments = User::whereIn('role', ['admin', 'manager', 'sales_rep'])
+        $departments = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded to include new staff roles
             ->whereNotNull('department')
             ->distinct()
             ->pluck('department');
@@ -598,7 +617,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::whereIn('role', ['admin', 'manager', 'sales_rep'])
+        $users = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded to include new staff roles
             ->whereDoesntHave('employee')
             ->get(['id', 'name', 'email', 'role', 'department', 'employee_id']);
 

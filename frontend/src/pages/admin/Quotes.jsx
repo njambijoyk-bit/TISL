@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, Plus, Reply, CheckCircle, XCircle, Trash2, RotateCcw, X, AlertTriangle } from 'lucide-react';
+import { Eye, Plus, Reply, CheckCircle, XCircle, Trash2, RotateCcw, X, AlertTriangle, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import AdminLayout from '../../components/layout/AdminLayout';
@@ -8,27 +8,26 @@ import DataTable from '../../components/admin/DataTable';
 import SearchBar from '../../components/admin/SearchBar';
 import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
+import AdminPagination from '../../components/common/AdminPagination';
 import QuoteStatusBadge from '../../components/admin/QuoteStatusBadge';
 import Badge from '../../components/common/Badge';
 import { quotesAPI } from '../../api';
-import { useAuthStore } from '../../store';
+import { useAuthStore, useQuoteStore } from '../../store';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 export default function Quotes() {
-  const [quotes, setQuotes] = useState([]);
-  const [pagination, setPagination] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const { quotes, loading, pagination, fetchQuotes } = useQuoteStore();
   const [filters, setFilters] = useState({
     search: '',
     status: '',
     priority: '',
   });
 
-  const navigate = useNavigate();
-
-    const { user } = useAuthStore();
-    const isSuperAdmin = user?.role === 'super_admin';
 
     // selection
     const [selectedIds, setSelectedIds] = useState([]);
@@ -70,31 +69,23 @@ export default function Quotes() {
 
     const clearSelection = () => setSelectedIds([]);
 
+  // Replace local fetchQuotes with store action call
+  const loadQuotes = async (page = 1) => {
+    const params = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== '' && value != null)
+    );
+    await fetchQuotes({ ...params, page, per_page: 20 });
+  };
+
+  // Reset page when filters change
   useEffect(() => {
-    fetchQuotes();
+    loadQuotes(1);
   }, [filters]);
 
-  const fetchQuotes = async (page = 1) => {
-    try {
-      setLoading(true);
-      const response = await quotesAPI.getAllQuotes({
-        ...filters,
-        page,
-        per_page: 20,
-      });
-
-      const list = response?.data?.data ?? response?.data ?? [];
-      const meta = response?.data?.meta ?? response?.pagination ?? response?.meta ?? null;
-
-      setQuotes(Array.isArray(list) ? list : []);
-      setPagination(meta);
-    } catch (error) {
-      console.error('Failed to fetch quotes:', error);
-      toast.error('Failed to load quotes');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Initial load
+  useEffect(() => {
+    loadQuotes(1);
+  }, []);
 
   const handleViewCustomerHistory = async (customer) => {
   setSelectedCustomer(customer);
@@ -446,80 +437,120 @@ export default function Quotes() {
 
   return (
     <AdminLayout>
-      <PageHeader
-        title="Quotes"
-        subtitle="Manage customer quote requests"
-      >
-        <div className="flex gap-2">
+      <PageHeader title="Quotes" subtitle="Manage customer quote requests">
 
-          <Button
-            onClick={() => navigate('/admin/quotes/create')}
-            icon={<Plus size={16} />}
-            variant="primary"
-          >
-            Create Quote
-          </Button>
+  {/* Buttons */}
+  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    {[
+      { label: 'Create Quote', icon: <Plus size={15} />, onClick: () => navigate('/admin/quotes/create'), color: '#7c3aed', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.3)' },
+      { label: 'Trash', icon: <RotateCcw size={15} />, onClick: openTrashModal, color: 'var(--color-text-secondary)', bg: 'var(--color-background-secondary)', border: 'var(--color-border-tertiary)' },
+    ].map(({ label, icon, onClick, color, bg, border }) => (
+      <button key={label} onClick={onClick} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 16px', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600,
+        border: `1px solid ${border}`, background: bg, color, cursor: 'pointer', fontFamily: 'inherit',
+      }}>
+        {icon} {label}
+      </button>
+    ))}
 
-          <Button
-            onClick={openTrashModal}
-            icon={<RotateCcw size={16} />}
-            variant="secondary"
-          >
-            Trash
-          </Button>
+    <button
+      onClick={softDeleteSelected}
+      disabled={!selectedIds.length}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 16px', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600,
+        border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
+        color: selectedIds.length ? '#ef4444' : 'var(--color-text-tertiary)',
+        cursor: selectedIds.length ? 'pointer' : 'not-allowed', fontFamily: 'inherit', opacity: selectedIds.length ? 1 : 0.5,
+      }}
+    >
+      <Trash2 size={15} /> Move to Trash ({selectedIds.length})
+    </button>
+  </div>
 
-          <Button
-            onClick={softDeleteSelected}
-            icon={<Trash2 size={16} />}
-            variant="danger"
-            disabled={!selectedIds.length}
-          >
-            Move to Trash ({selectedIds.length})
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <SearchBar
-            placeholder="Search quotes..."
-            onSearch={(query) => setFilters({ ...filters, search: query })}
-            defaultValue={filters.search}
-          />
-          <Select
-            name="status"
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'reviewed', label: 'Reviewed' },
-              { value: 'quoted', label: 'Quoted' },
-              { value: 'accepted', label: 'Accepted' },
-              { value: 'rejected', label: 'Rejected' },
-              { value: 'expired', label: 'Expired' },
-            ]}
-          />
-          <Select
-            name="priority"
-            value={filters.priority}
-            onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-            options={[
-              { value: '', label: 'All Priorities' },
-              { value: 'low', label: 'Low' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'high', label: 'High' },
-              { value: 'urgent', label: 'Urgent' },
-            ]}
-          />
-        </div>
-      </PageHeader>
+  {/* Filters */}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+    {/* Search */}
+    <div style={{ position: 'relative' }}>
+      <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
+      <input
+        type="text"
+        placeholder="Search quotes..."
+        value={filters.search}
+        onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+        style={{
+          width: '100%', padding: '8px 36px', borderRadius: 8, fontSize: '0.875rem',
+          border: '1px solid var(--color-border-tertiary)',
+          background: 'var(--color-background-primary)',
+          color: 'var(--color-text-primary)', outline: 'none',
+          fontFamily: 'inherit', boxSizing: 'border-box',
+        }}
+      />
+      {filters.search && (
+        <button onClick={() => setFilters(f => ({ ...f, search: '' }))}
+          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-tertiary)', cursor: 'pointer', padding: 0 }}>
+          <X size={15} />
+        </button>
+      )}
+    </div>
+
+    {/* Selects + Clear */}
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      {[
+        {
+          value: filters.status,
+          onChange: e => setFilters(f => ({ ...f, status: e.target.value })),
+          options: [['', 'All Statuses'], ['pending', 'Pending'], ['reviewed', 'Reviewed'], ['quoted', 'Quoted'], ['accepted', 'Accepted'], ['rejected', 'Rejected'], ['expired', 'Expired']],
+        },
+        {
+          value: filters.priority,
+          onChange: e => setFilters(f => ({ ...f, priority: e.target.value })),
+          options: [['', 'All Priorities'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['urgent', 'Urgent']],
+        },
+      ].map((sel, i) => (
+        <select key={i} value={sel.value} onChange={sel.onChange} style={{
+          flex: '1 1 160px', padding: '8px 12px', borderRadius: 8, fontSize: '0.875rem',
+          border: '1px solid var(--color-border-tertiary)',
+          background: 'var(--color-background-secondary)',
+          color: '#7b51c5', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+        }}>
+          {sel.options.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+        </select>
+      ))}
+
+      {(filters.search || filters.status || filters.priority) && (
+        <button
+          onClick={() => setFilters({ search: '', status: '', priority: '' })}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '8px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+            border: '1px solid var(--color-border-danger)',
+            background: 'var(--color-background-primary)',
+            color: 'var(--color-text-danger)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+          }}
+        >
+          <X size={14} /> Clear Filters
+        </button>
+      )}
+    </div>
+  </div>
+
+</PageHeader>
 
       <DataTable
         columns={columns}
         data={quotes}
         loading={loading}
-        pagination={pagination}
-        onPageChange={fetchQuotes}
         emptyMessage="No quotes found"
       />
+
+      {pagination?.last_page > 1 && (
+        <AdminPagination 
+          pagination={pagination} 
+          onPageChange={(page) => loadQuotes(page)} 
+        />
+      )}
 
       {/* Customer History Modal */}
             <Modal

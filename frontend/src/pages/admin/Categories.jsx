@@ -4,262 +4,462 @@ import { categoriesAPI } from '../../api';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import {
+  Plus, Search, Edit2, Eye, Trash2, X,
+  Layers, CheckCircle, XCircle, GitBranch, AlertTriangle,
+} from 'lucide-react';
+
+// ─── Style tokens ─────────────────────────────────────────────────────────────
+
+const card = {
+  background: 'var(--color-background-primary)',
+  border: '1px solid var(--color-border-tertiary)',
+  borderRadius: 12,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: 8,
+  fontSize: '0.875rem',
+  border: '1px solid var(--color-border-tertiary)',
+  background: 'var(--color-background-primary)',
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  fontFamily: 'inherit',
+  boxSizing: 'border-box',
+};
+
+const thStyle = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: '0.68rem',
+  fontWeight: 700,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
+  borderBottom: '1px solid var(--color-border-tertiary)',
+  background: 'var(--color-background-secondary)',
+  whiteSpace: 'nowrap',
+};
+
+const tdStyle = {
+  padding: '12px 16px',
+  borderBottom: '1px solid var(--color-border-tertiary)',
+  fontSize: '0.875rem',
+  color: 'var(--color-text-primary)',
+  verticalAlign: 'middle',
+};
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+function Btn({ onClick, disabled, style, children, title }) {
+  return (
+    <button onClick={onClick} disabled={disabled} title={title} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '8px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+      border: '1px solid var(--color-border-tertiary)',
+      background: 'var(--color-background-primary)',
+      color: 'var(--color-text-primary)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.5 : 1,
+      fontFamily: 'inherit', transition: 'background 150ms', ...style,
+    }}>
+      {children}
+    </button>
+  );
+}
+
+function PrimaryBtn({ onClick, disabled, children, style }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+      border: 'none', background: '#7c3aed', color: 'white',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.6 : 1, fontFamily: 'inherit',
+      boxShadow: '0 2px 8px rgba(124,58,237,0.3)', ...style,
+    }}>
+      {children}
+    </button>
+  );
+}
+
+function DangerBtn({ onClick, disabled, children, style }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '8px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+      border: 'none', background: 'var(--color-background-danger)', color: 'var(--color-text-danger)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.6 : 1, fontFamily: 'inherit', ...style,
+    }}>
+      {children}
+    </button>
+  );
+}
+
+function IconBtn({ onClick, title, color, children }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      width: 32, height: 32, borderRadius: 7,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: 'none', background: 'transparent',
+      color, cursor: 'pointer', transition: 'background 150ms',
+    }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon: Icon, iconBg, iconColor }) {
+  return (
+    <div style={{ ...card, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div>
+        <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {label}
+        </p>
+        <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          {value}
+        </p>
+      </div>
+      <div style={{ width: 44, height: 44, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={20} style={{ color: iconColor }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+function StatusBadge({ active }) {
+  return active ? (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+      background: 'var(--color-background-success)', color: 'var(--color-text-success)',
+    }}>
+      <CheckCircle size={11} /> ACTIVE
+    </span>
+  ) : (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+      background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)',
+    }}>
+      <XCircle size={11} /> INACTIVE
+    </span>
+  );
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+
+function Modal({ children, onClose, maxWidth = 480 }) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ ...card, background: 'white', color: '#08070a', width: '100%', maxWidth, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Categories() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
   const [categories, setCategories] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, category: null, loading: false });
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
       const response = await categoriesAPI.getCategories();
       setCategories(response.data || response || []);
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
+    } catch {
       toast.error('Failed to load categories');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner />
-        </div>
-      </AdminLayout>
-    );
-  }
+  const handleDelete = async () => {
+    setDeleteModal(p => ({ ...p, loading: true }));
+    try {
+      await categoriesAPI.deleteCategory(deleteModal.category.id);
+      toast.success(`"${deleteModal.category.name}" deleted`);
+      setDeleteModal({ isOpen: false, category: null, loading: false });
+      fetchCategories();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to delete category');
+      setDeleteModal(p => ({ ...p, loading: false }));
+    }
+  };
+
+  const isActive     = (c) => Boolean(c.is_active) || c.is_active === 1 || c.is_active === '1';
+  const childCount   = (id) => categories.filter(c => c.parent_id === id).length;
+  const parentName   = (id) => categories.find(c => c.id === id)?.name || 'Unknown';
+
+  const filtered = categories.filter(c =>
+    !searchTerm ||
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const hasChildren = deleteModal.category ? childCount(deleteModal.category.id) > 0 : false;
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div style={{ padding: '24px 24px 48px', display: 'flex', flexDirection: 'column', gap: 24, minHeight: '100vh' }}>
+
+        {/* ── Page heading ───────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Categories
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Layers size={24} style={{ color: '#a855f7' }} /> Categories
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage product categories and subcategories
-            </p>
+            <p style={{ margin: 0, fontSize: '0.82rem' }}>Manage product categories and subcategories</p>
           </div>
-          <button
-            onClick={() => navigate('/admin/categories/create')}
-            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Category
-          </button>
+          <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
+            <Plus size={15} /> New Category
+          </PrimaryBtn>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Categories</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {categories.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        {/* ── Stat cards ─────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+          <StatCard label="Total"          value={categories.length}                            icon={Layers}      iconBg="rgba(124,58,237,0.1)" iconColor="#7c3aed" />
+          <StatCard label="Active"         value={categories.filter(isActive).length}            icon={CheckCircle} iconBg="rgba(16,185,129,0.1)" iconColor="#10b981" />
+          <StatCard label="Inactive"       value={categories.filter(c => !isActive(c)).length}   icon={XCircle}     iconBg="rgba(239,68,68,0.1)"  iconColor="#ef4444" />
+          <StatCard label="Subcategories"  value={categories.filter(c => c.parent_id).length}    icon={GitBranch}   iconBg="rgba(59,130,246,0.1)"  iconColor="#3b82f6" />
+        </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {categories.filter(c => c.is_active).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+        {/* ── Search ─────────────────────────────────────────────────────── */}
+        <div style={{ ...card, padding: 16 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search categories by name or slug…"
+                style={{ ...inputStyle, paddingLeft: 32 }}
+              />
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Subcategories</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {categories.filter(c => c.parent_id).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-              </div>
-            </div>
+            {searchTerm && (
+              <Btn onClick={() => setSearchTerm('')} style={{ color: 'var(--color-text-danger)', borderColor: 'var(--color-border-danger)' }}>
+                <X size={15} /> Clear
+              </Btn>
+            )}
           </div>
         </div>
 
-        {/* Categories List */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {categories.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No categories</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Get started by creating a new category.
+        {/* ── Table ──────────────────────────────────────────────────────── */}
+        <div style={{ ...card, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
+              <LoadingSpinner />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+              <Layers size={48} style={{ color: 'var(--color-text-tertiary)', display: 'block', margin: '0 auto 12px' }} />
+              <h3 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                {searchTerm ? 'No categories match your search' : 'No categories yet'}
+              </h3>
+              <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                {searchTerm ? 'Try a different search term' : 'Get started by creating your first category'}
               </p>
-              <button
-                onClick={() => navigate('/admin/categories/create')}
-                className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                Create Category
-              </button>
+              {!searchTerm && (
+                <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
+                  <Plus size={15} /> Create First Category
+                </PrimaryBtn>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Slug
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Parent
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Sort Order
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    {['Category', 'Slug', 'Parent', 'Status', 'Sort', ''].map((h, i) => (
+                      <th key={i} style={{ ...thStyle, textAlign: i === 5 ? 'right' : 'left' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {categories.map((category) => (
-                    <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {category.image_url && (
-                            <img
-                              src={category.image_url}
-                              alt={category.name}
-                              className="w-10 h-10 rounded-lg object-cover mr-3"
-                            />
-                          )}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {category.name}
-                              </div>
-                              {/* Show badge if has children */}
-                              {categories.filter(c => c.parent_id === category.id).length > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                  {categories.filter(c => c.parent_id === category.id).length} sub
-                                </span>
-                              )}
-                            </div>
-                            {category.description && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                {category.description}
+                <tbody>
+                  {filtered.map(category => {
+                    const kids = childCount(category.id);
+                    return (
+                      <tr
+                        key={category.id}
+                        style={{ transition: 'background 120ms' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {/* Category */}
+                        <td style={tdStyle}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {category.image_url ? (
+                              <img src={category.image_url} alt={category.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Layers size={18} style={{ color: 'var(--color-text-tertiary)' }} />
                               </div>
                             )}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                                  {category.name}
+                                </p>
+                                {kids > 0 && (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                                    padding: '1px 6px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700,
+                                    background: 'rgba(59,130,246,0.1)', color: '#3b82f6',
+                                  }}>
+                                    <GitBranch size={9} /> {kids}
+                                  </span>
+                                )}
+                              </div>
+                              {category.description && (
+                                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                                  {category.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                          {category.slug}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {category.parent_id ? (
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {categories.find(c => c.id === category.parent_id)?.name || 'Unknown'}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">
-                            Main Category
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          Boolean(category.is_active) === true || category.is_active === 1 || category.is_active === '1'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {Boolean(category.is_active) === true || category.is_active === 1 || category.is_active === '1' ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {category.sort_order || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {/* Edit button - always available */}
-                        <button
-                          onClick={() => navigate(`/admin/categories/${category.id}/edit`)}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-4"
-                        >
-                          Edit
-                        </button>
-                        
-                        {/* Delete/View button logic */}
-                        {(() => {
-                          const childrenCount = categories.filter(c => c.parent_id === category.id).length;
-                          
-                          if (childrenCount > 0) {
-                            // Has children - show view button
-                            return (
-                              <button
-                                onClick={() => navigate(`/admin/categories/${category.id}/edit?mode=view`)}
-                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                                title={`View details (has ${childrenCount} subcategories)`}
-                              >
-                                View
-                              </button>
-                            );
-                          } else {
-                            // No children - show delete button that navigates to view mode
-                            return (
-                              <button
-                                onClick={() => navigate(`/admin/categories/${category.id}/edit?mode=view`)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Delete
-                              </button>
-                            );
-                          }
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+
+                        {/* Slug */}
+                        <td style={tdStyle}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{category.slug}</span>
+                        </td>
+
+                        {/* Parent */}
+                        <td style={tdStyle}>
+                          {category.parent_id ? (
+                            <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <GitBranch size={12} style={{ color: 'var(--color-text-tertiary)' }} />
+                              {parentName(category.parent_id)}
+                            </span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              padding: '2px 7px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+                              background: 'rgba(124,58,237,0.08)', color: '#7c3aed',
+                            }}>
+                              Root
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td style={tdStyle}><StatusBadge active={isActive(category)} /></td>
+
+                        {/* Sort */}
+                        <td style={tdStyle}>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{category.sort_order ?? '—'}</span>
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ ...tdStyle, textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
+                            <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
+                              <Eye size={15} />
+                            </IconBtn>
+                            <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="#7c3aed">
+                              <Edit2 size={15} />
+                            </IconBtn>
+                            <IconBtn
+                              onClick={() => setDeleteModal({ isOpen: true, category, loading: false })}
+                              title={kids > 0 ? `Has ${kids} subcategories` : 'Delete'}
+                              color="var(--color-text-danger)"
+                            >
+                              <Trash2 size={15} />
+                            </IconBtn>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Delete modal ─────────────────────────────────────────────────── */}
+      {deleteModal.isOpen && (
+        <Modal onClose={() => setDeleteModal({ isOpen: false, category: null, loading: false })}>
+          <div style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: hasChildren ? 'var(--color-background-warning)' : 'var(--color-background-danger)',
+              }}>
+                {hasChildren
+                  ? <AlertTriangle size={20} style={{ color: '#f87171' }} />
+                  : <Trash2 size={20} style={{ color: 'var(--color-text-danger)' }} />
+                }
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 2px', fontSize: '1rem', fontWeight: 700, color: '#f87171' }}>
+                  {hasChildren ? 'Cannot delete category' : 'Delete category'}
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
+                  {hasChildren ? `Has ${childCount(deleteModal.category?.id)} subcategories` : 'This action cannot be undone'}
+                </p>
+              </div>
+            </div>
+
+            {hasChildren ? (
+              <>
+                <p style={{ margin: '0 0 20px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                  <strong style={{ color: '#f87171' }}>"{deleteModal.category?.name}"</strong> has subcategories.
+                  Please delete or reassign them before deleting this category.
+                </p>
+                <Btn onClick={() => setDeleteModal({ isOpen: false, category: null, loading: false })} style={{ width: '100%', justifyContent: 'center' }}>
+                  Got it
+                </Btn>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 20px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                  Are you sure you want to delete <strong style={{ color: 'var(--color-text-primary)' }}>"{deleteModal.category?.name}"</strong>?
+                </p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Btn onClick={() => setDeleteModal({ isOpen: false, category: null, loading: false })} disabled={deleteModal.loading} style={{ flex: 1, justifyContent: 'center' }}>
+                    Cancel
+                  </Btn>
+                  <DangerBtn onClick={handleDelete} disabled={deleteModal.loading} style={{ flex: 1, justifyContent: 'center', background: '#ef4444', color: 'white' }}>
+                    {deleteModal.loading ? <><LoadingSpinner /> Deleting…</> : 'Delete category'}
+                  </DangerBtn>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
     </AdminLayout>
   );
 }

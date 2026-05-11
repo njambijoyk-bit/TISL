@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ReferralCode;
 use App\Models\Customer;
+use App\Models\Order;
 use App\Services\PromoCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -388,9 +390,10 @@ class PromoCodeController extends Controller
     public function validateCode(Request $request)
     {
         $request->validate([
-            'code'              => 'required|string',
-            'order_value'       => 'required|numeric|min:0',
-            'referral_discount' => 'nullable|numeric|min:0',
+            'code'                => 'required|string',
+            'order_value'         => 'required|numeric|min:0',
+            'referral_discount'   => 'nullable|numeric|min:0',
+            'exchange_rate_to_kes'=> 'nullable|numeric|min:0.0001', // ← add
         ]);
 
         $customer = $request->user()->customer;
@@ -403,6 +406,7 @@ class PromoCodeController extends Controller
             customer:         $customer,
             orderValue:       (float) $request->order_value,
             referralDiscount: (float) ($request->referral_discount ?? 0),
+            exchangeRateToKes:(float) ($request->exchange_rate_to_kes ?? 1.0), // ← add
         );
 
         if (!$result['valid']) {
@@ -429,10 +433,11 @@ class PromoCodeController extends Controller
     public function adminValidate(Request $request)
     {
         $request->validate([
-            'code'              => 'required|string',
-            'order_value'       => 'required|numeric|min:0',
-            'customer_id'       => 'required|exists:customers,id',
-            'referral_discount' => 'nullable|numeric|min:0',
+            'code'                => 'required|string',
+            'order_value'         => 'required|numeric|min:0',
+            'customer_id'         => 'required|exists:customers,id',
+            'referral_discount'   => 'nullable|numeric|min:0',
+            'exchange_rate_to_kes'=> 'nullable|numeric|min:0.0001', // ← add
         ]);
 
         $customer = Customer::findOrFail($request->customer_id);
@@ -442,6 +447,7 @@ class PromoCodeController extends Controller
             customer:         $customer,
             orderValue:       (float) $request->order_value,
             referralDiscount: (float) ($request->referral_discount ?? 0),
+            exchangeRateToKes:(float) ($request->exchange_rate_to_kes ?? 1.0), // ← add
         );
 
         if (!$result['valid']) {
@@ -486,5 +492,28 @@ class PromoCodeController extends Controller
                 $c->reward_type === 'fixed_amount' ? $c->reward_value : 0
             ),
         ]);
+    }
+
+    public function redemptions(Request $request, $id): JsonResponse
+    {
+        $orders = Order::withTrashed()  // ← add this
+            ->where('promo_code_id', $id)
+            ->with('customer:id,first_name,last_name,email')
+            ->select('id','order_number','customer_id','subtotal_kes','promo_discount','total_kes','status','created_at')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($o) => [
+                'order_id'       => $o->id,
+                'order_number'   => $o->order_number,
+                'customer_name'  => $o->customer ? trim($o->customer->first_name . ' ' . $o->customer->last_name) : '—',
+                'customer_email' => $o->customer?->email ?? '—',
+                'subtotal_kes'   => round((float) $o->subtotal_kes, 2),
+                'promo_discount' => round((float) $o->promo_discount, 2),
+                'total_kes'      => round((float) $o->total_kes, 2),
+                'status'         => $o->status,
+                'redeemed_at'    => $o->created_at,
+            ]);
+
+        return response()->json(['redemptions' => $orders]);
     }
 }

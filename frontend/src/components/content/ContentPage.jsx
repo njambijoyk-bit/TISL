@@ -20,6 +20,7 @@ export default function ContentPage({ slug, loadingRows = 3 }) {
   const { publicPage, loading, fetchPublicPage, clearPublicPage } = useContentStore();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchPublicPage(slug);
     return () => clearPublicPage();
   }, [slug]);

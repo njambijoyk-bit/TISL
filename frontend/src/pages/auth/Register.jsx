@@ -5,6 +5,45 @@ import { authAPI } from '../../api';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
 
+// ── Reusable field renderer (must be OUTSIDE Register to preserve focus) ──
+function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange }) {
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? '#a855f7' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
+        <input
+          name={name} type={type}
+          value={value}
+          onChange={onChange || handleChange}
+          onFocus={() => setFocused(name)} onBlur={() => setFocused('')}
+          placeholder={placeholder}
+          style={{
+            width: '100%', padding: `10px ${rightEl ? '44px' : '13px'} 10px ${Icon ? '36px' : '13px'}`,
+            borderRadius: 10, fontSize: '0.85rem', outline: 'none', transition: 'border-color 150ms',
+            border: `1.5px solid ${fieldError ? '#ef4444' : focused === name ? '#a855f7' : '#e5e7eb'}`,
+            boxSizing: 'border-box',
+          }}
+          className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+        />
+        {rightEl}
+      </div>
+      {fieldError && <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: 3 }}>{fieldError}</p>}
+    </div>
+  );
+}
+
+function EyeBtn({ show, toggle }) {
+  return (
+    <button type="button" onClick={toggle}
+      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+      {show ? <EyeOff size={15} /> : <Eye size={15} />}
+    </button>
+  );
+}
+
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
@@ -71,40 +110,7 @@ export default function Register() {
 
   const handleOAuth = (provider) => authAPI.oauthRedirect(provider);
 
-  // ── Reusable field renderer ────────────────────────────────────────────────
-  const Field = ({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError }) => (
-    <div>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
-        {label}
-      </label>
-      <div style={{ position: 'relative' }}>
-        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? '#a855f7' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
-        <input
-          name={name} type={type}
-          value={formData[name]}
-          onChange={onChange || handleChange}
-          onFocus={() => setFocused(name)} onBlur={() => setFocused('')}
-          placeholder={placeholder}
-          style={{
-            width: '100%', padding: `10px ${rightEl ? '44px' : '13px'} 10px ${Icon ? '36px' : '13px'}`,
-            borderRadius: 10, fontSize: '0.85rem', outline: 'none', transition: 'border-color 150ms',
-            border: `1.5px solid ${fieldError ? '#ef4444' : focused === name ? '#a855f7' : '#e5e7eb'}`,
-            boxSizing: 'border-box',
-          }}
-          className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-        />
-        {rightEl}
-      </div>
-      {fieldError && <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: 3 }}>{fieldError}</p>}
-    </div>
-  );
-
-  const EyeBtn = ({ show, toggle }) => (
-    <button type="button" onClick={toggle}
-      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
-      {show ? <EyeOff size={15} /> : <Eye size={15} />}
-    </button>
-  );
+  const fieldProps = { focused, setFocused, handleChange };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -127,8 +133,8 @@ export default function Register() {
             <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>BlueArc</div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Solutions</div>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>Target</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Suppliers LTD</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -178,9 +184,9 @@ export default function Register() {
             }}>
               <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
             </div>
-            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>BlueArc</h2>
+            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Target</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', margin: '6px 0 0', fontWeight: 500 }}>
-              Industrial Solutions
+              Industrial Suppliers LTD
             </p>
           </div>
 
@@ -228,7 +234,7 @@ export default function Register() {
               Create your account
             </h1>
             <p style={{ fontSize: '0.82rem', margin: 0 }} className="text-gray-500 dark:text-gray-400">
-              Join BlueArc for easy industrial shopping
+              Join TISL for easy industrial shopping
             </p>
           </div>
 
@@ -290,14 +296,14 @@ export default function Register() {
 
             {/* Name + Email row */}
             <div className="tisl-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field name="name" label="Full Name" placeholder="John Doe" icon={User} error={errors.name} />
-              <Field name="email" label="Email" type="email" placeholder="you@example.com" icon={Mail} error={errors.email} />
+              <Field name="name" label="Full Name" placeholder="John Doe" icon={User} error={errors.name} value={formData.name} {...fieldProps} />
+              <Field name="email" label="Email" type="email" placeholder="you@example.com" icon={Mail} error={errors.email} value={formData.email} {...fieldProps} />
             </div>
 
             {/* Phone + Company row */}
             <div className="tisl-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field name="phone" label="Phone" type="tel" placeholder="+254712345678" icon={Phone} onChange={handlePhoneChange} error={errors.phone} />
-              <Field name="company_name" label="Company (Optional)" placeholder="Your Company" icon={Building} error={errors.company_name} />
+              <Field name="phone" label="Phone" type="tel" placeholder="+254712345678" icon={Phone} onChange={handlePhoneChange} error={errors.phone} value={formData.phone} {...fieldProps} />
+              <Field name="company_name" label="Company (Optional)" placeholder="Your Company" icon={Building} error={errors.company_name} value={formData.company_name} {...fieldProps} />
             </div>
 
             {/* Password */}
@@ -305,6 +311,7 @@ export default function Register() {
               name="password" label="Password" type={showPassword ? 'text' : 'password'}
               placeholder="At least 8 characters" icon={Lock} error={errors.password}
               rightEl={<EyeBtn show={showPassword} toggle={() => setShowPassword(s => !s)} />}
+              value={formData.password} {...fieldProps}
             />
 
             {/* Confirm */}
@@ -312,6 +319,7 @@ export default function Register() {
               name="password_confirmation" label="Confirm Password" type={showConfirm ? 'text' : 'password'}
               placeholder="Confirm your password" icon={Lock} error={errors.password_confirmation}
               rightEl={<EyeBtn show={showConfirm} toggle={() => setShowConfirm(s => !s)} />}
+              value={formData.password_confirmation} {...fieldProps}
             />
 
             {/* Terms */}

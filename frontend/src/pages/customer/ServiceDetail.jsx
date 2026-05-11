@@ -18,9 +18,12 @@ import {
   Check,
 } from 'lucide-react';
 import useServiceStore from '../../store/serviceStore';
+import useQuoteListStore from '../../store/quoteListStore';
+import toast from 'react-hot-toast';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import ServiceGrid from '../../components/services/ServiceGrid';
+import CollapsedServiceCard from '../../components/services/CollapsedServiceCard';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
@@ -38,6 +41,9 @@ const ServiceDetail = () => {
     fetchRelatedServices,
     clearCurrentService,
   } = useServiceStore();
+
+  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
+  const inQL = currentService?.id ? inQuoteList(currentService.id) : false;
 
   const [activeTab, setActiveTab] = useState('description');
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
@@ -76,7 +82,9 @@ const ServiceDetail = () => {
   };
 
   const handleRequestQuote = () => {
-    navigate('/request-quote', { state: { preselectedService: currentService } });
+    if (inQL) { navigate('/quote-list'); return; }
+    addToQuoteList(currentService, 1);
+    toast.success(`${currentService?.name} added to quote list`);
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -113,6 +121,7 @@ const ServiceDetail = () => {
   }
 
   const service = currentService;
+  
   const requiredProducts = service.required_products_full || [];
   const optionalProducts = service.optional_products_full || [];
 
@@ -294,7 +303,7 @@ const ServiceDetail = () => {
               )}
 
               {/* Price block */}
-              <div style={{ padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+              <div style={{ padding: '8px 0', borderRadius: 12 }}>
                 <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
                   {service.pricing_model_label || 'Pricing'}
                 </p>
@@ -302,7 +311,7 @@ const ServiceDetail = () => {
                   {getPricingDisplay()}
                 </span>
                 {service.minimum_charge && (
-                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 4 }}>
+                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 4, marginBottom: 0 }}>
                     Minimum charge: {formatCurrency(service.minimum_charge)}
                   </p>
                 )}
@@ -353,7 +362,8 @@ const ServiceDetail = () => {
                     letterSpacing: '0.04em',
                   }}
                 >
-                  <FileText size={17} /> Request a Quote
+                  <FileText size={17} />
+                  {inQL ? 'In Quote List →' : 'Request a Quote'}
                 </button>
                 {service.booking_required && (
                   <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', margin: 0 }}>
@@ -362,7 +372,12 @@ const ServiceDetail = () => {
                 )}
               </div>
 
-              {/* Deliverables */}
+            </div>
+          </div>
+
+          {/* ── TABS: Description / Features / Requirements ───────────────── */}
+          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 48 }}>
+            {/* Deliverables */}
               {hasDeliverables && (
                 <div style={{ background: 'white', borderRadius: 12, padding: '16px 18px', border: '1px solid #f3f4f6' }}>
                   <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -410,8 +425,7 @@ const ServiceDetail = () => {
                   </p>
                 </div>
               )}
-
-              {/* Optional products */}
+            {/* Optional products */}
               {optionalProducts.length > 0 && (
                 <div style={{ background: '#eff6ff', borderRadius: 12, padding: '16px 18px', border: '1px solid #bfdbfe' }}>
                   <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -437,11 +451,6 @@ const ServiceDetail = () => {
                 </div>
               )}
 
-            </div>
-          </div>
-
-          {/* ── TABS: Description / Features / Requirements ───────────────── */}
-          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 48 }}>
             {/* Tab headers */}
             <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px' }}>
               {tabs.map(tab => (
@@ -502,12 +511,16 @@ const ServiceDetail = () => {
           {relatedServices && relatedServices.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', margin: 0 }} className="dark:text-white">
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7c3aed', letterSpacing: '-0.02em', margin: 0 }} className="dark:text-white">
                   Related Services
                 </h2>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedServices.length} items</span>
               </div>
-              <ServiceGrid services={relatedServices} columns={4} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {relatedServices.map(s => (
+                  <CollapsedServiceCard key={s?.id} service={s} />
+                ))}
+            </div>
             </div>
           )}
 

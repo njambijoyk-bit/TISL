@@ -208,7 +208,7 @@ const usePromoCodeStore = create((set, get) => ({
    * Validate and apply a promo code at checkout.
    * Pass orderValue and optional referralDiscount for stacking check.
    */
-  applyPromoCode: async (code, orderValue, referralDiscount = 0) => {
+  applyPromoCode: async (code, orderValue, referralDiscount = 0, exchangeRateToKes = 1) => {
     if (!code?.trim()) return;
     set({ promoLoading: true, promoError: null });
     try {
@@ -216,6 +216,7 @@ const usePromoCodeStore = create((set, get) => ({
         code:               code.trim().toUpperCase(),
         order_value:        orderValue,
         referral_discount:  referralDiscount,
+        exchange_rate_to_kes: exchangeRateToKes,
       });
       set({
         appliedPromo: {
@@ -245,7 +246,7 @@ const usePromoCodeStore = create((set, get) => ({
   /**
    * Admin version — validate on behalf of a customer.
    */
-  adminApplyPromoCode: async (code, orderValue, customerId, referralDiscount = 0) => {
+  adminApplyPromoCode: async (code, orderValue, customerId, referralDiscount = 0, exchangeRateToKes = 1) => {
     if (!code?.trim()) return;
     set({ promoLoading: true, promoError: null });
     try {
@@ -254,6 +255,7 @@ const usePromoCodeStore = create((set, get) => ({
         order_value:        orderValue,
         customer_id:        customerId,
         referral_discount:  referralDiscount,
+        exchange_rate_to_kes: exchangeRateToKes,
       });
       set({
         appliedPromo: {

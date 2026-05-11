@@ -5,6 +5,7 @@ import { Ticket, Plus, Clock, CheckCircle, XCircle, MessageSquare, AlertTriangle
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import AdminPagination from '../../components/common/AdminPagination';
 import Modal from '../../components/common/Modal';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -65,7 +66,9 @@ const STATUS_TABS = [
 
 export default function MyTickets() {
   const navigate = useNavigate();
-  const { tickets, loading, fetchMyTickets, createTicket } = useTicketStore();
+  
+  const { tickets, pagination, loading, fetchMyTickets, createTicket } = useTicketStore();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -76,8 +79,13 @@ export default function MyTickets() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    fetchMyTickets({ status: statusFilter });
-  }, [statusFilter]);
+    fetchMyTickets({ status: statusFilter, page: currentPage, per_page: 15 });
+  }, [statusFilter, currentPage]);
+
+  const handleTabChange = (tabId) => {
+    setStatusFilter(tabId);
+    setCurrentPage(1);
+  };
 
   const allTickets = Array.isArray(tickets) ? tickets : [];
   const filtered = useMemo(() => {
@@ -197,6 +205,17 @@ export default function MyTickets() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {pagination?.last_page > 1 && (
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+            <AdminPagination 
+              pagination={pagination} 
+              onPageChange={(p) => { 
+                setCurrentPage(p); 
+                window.scrollTo({ top: 0, behavior: 'smooth' }); 
+              }} 
+            />
           </div>
         )}
       </main>

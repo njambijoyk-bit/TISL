@@ -5,6 +5,8 @@ import {
   Package, Wrench, AlertCircle, Download, MapPin, CreditCard, X,
   Truck, Clock, Info, User, UserCheck, MessageSquare, Trash2,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { format } from 'date-fns';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
@@ -77,18 +79,45 @@ function Chip({ children, color }) {
 
 function AlertBox({ type, title, body, children }) {
   const C = {
-    info:    { bg: 'bg-blue-50 dark:bg-blue-900/20',     border: 'border-blue-200 dark:border-blue-700',     ic: '#3b82f6', tc: 'text-blue-900 dark:text-blue-200',     bc: 'text-blue-700 dark:text-blue-300',     Icon: AlertCircle },
-    warning: { bg: 'bg-amber-50 dark:bg-amber-900/20',   border: 'border-amber-200 dark:border-amber-700',   ic: '#f59e0b', tc: 'text-amber-900 dark:text-amber-200',   bc: 'text-amber-700 dark:text-amber-300',   Icon: AlertCircle },
-    danger:  { bg: 'bg-red-50 dark:bg-red-900/20',       border: 'border-red-200 dark:border-red-700',       ic: '#ef4444', tc: 'text-red-900 dark:text-red-200',       bc: 'text-red-700 dark:text-red-300',       Icon: XCircle },
-    success: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700', ic: '#10b981', tc: 'text-emerald-900 dark:text-emerald-200', bc: 'text-emerald-700 dark:text-emerald-300', Icon: CheckCircle },
+    info:    { bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.25)', ic: '#3b82f6', tc: '#1e40af', bc: '#1d4ed8', Icon: AlertCircle },
+    warning: { bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.35)', ic: '#f59e0b', tc: '#92400e', bc: '#b45309', Icon: AlertCircle },
+    danger:  { bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.3)',   ic: '#ef4444', tc: '#991b1b', bc: '#b91c1c', Icon: XCircle },
+    success: { bg: 'rgba(16,185,129,0.06)',  border: 'rgba(16,185,129,0.3)',  ic: '#10b981', tc: '#065f46', bc: '#047857', Icon: CheckCircle },
   }[type] || {};
+
+  // Default to orange glow if type is missing or explicitly warning
+  const border = C.border || 'rgba(245,158,11,0.35)';
+  const bg = C.bg || 'rgba(245,158,11,0.08)';
+  const ic = C.ic || '#f59e0b';
+  const Icon = C.Icon || AlertCircle;
+
   return (
-    <div className={`${C.bg} ${C.border} border rounded-xl p-4 flex items-start gap-3`}>
-      <C.Icon size={15} color={C.ic} className="flex-shrink-0 mt-0.5" />
-      <div className="flex-1">
-        <p className={`text-sm font-extrabold ${C.tc}`}>{title}</p>
-        {body && <p className={`text-xs mt-1 ${C.bc}`}>{body}</p>}
-        {children && <div className="mt-3">{children}</div>}
+    <div 
+      style={{
+        padding: '14px 16px',
+        borderRadius: 12,
+        background: bg,
+        border: `1.5px solid ${border}`,
+        boxShadow: `0 0 0 1px rgba(245,158,11,0.15), 0 4px 20px rgba(245,158,11,0.1)`,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        transition: 'box-shadow 200ms ease, border-color 200ms ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = `0 0 0 1px rgba(245,158,11,0.25), 0 6px 24px rgba(245,158,11,0.15)`;
+        e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = `0 0 0 1px rgba(245,158,11,0.15), 0 4px 20px rgba(245,158,11,0.1)`;
+        e.currentTarget.style.borderColor = border;
+      }}
+    >
+      <Icon size={15} color={ic} style={{ flexShrink: 0, marginTop: 1 }} />
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: '0.82rem', fontWeight: 800, color: C.tc || '#92400e', margin: 0 }}>{title}</p>
+        {body && <p style={{ fontSize: '0.78rem', color: C.bc || '#b45309', margin: '4px 0 0' }}>{body}</p>}
+        {children && <div style={{ marginTop: 10 }}>{children}</div>}
       </div>
     </div>
   );
@@ -189,19 +218,6 @@ const CustomerQuoteDetail = () => {
     finally { setActionLoading(false); }
   };
 
-  const handleDownload = async () => {
-    setActionLoading(true);
-    try {
-      const isConverted = quote?.status === 'converted' && quote?.converted_to_order_id;
-      const res = isConverted ? await api.get(`/customer/orders/${quote.converted_to_order_id}`) : await api.get(`/customer/quotes/${quote.id}`);
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = isConverted ? `Order-${quote.converted_to_order_id}.json` : `${quote.quote_number || `Quote-${quote.id}`}.json`;
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    } catch { toast.error('Failed to download'); }
-    finally { setActionLoading(false); }
-  };
-
   const handleRequestRevision = async () => {
     setActionLoading(true);
     try { const res = await api.post(`/customer/quotes/${quote.id}/request-revision`); toast.success(res.data?.message || 'Revision requested'); if (res.data?.quote) setQuote(res.data.quote); }
@@ -219,6 +235,605 @@ const CustomerQuoteDetail = () => {
     } catch (err) { toast.error(err?.response?.data?.message || 'Failed to convert'); }
     finally { setActionLoading(false); }
   };
+
+  const handleDownloadPDF = async () => {
+  const toastId = toast.loading('Generating Quote PDF...');
+  try {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = pdf.internal.pageSize.getWidth();
+    const H = pdf.internal.pageSize.getHeight();
+    const M = 15;
+    const CW = W - M * 2;
+    let y = M;
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    const hexToRgb = (hex) => {
+      const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r
+        ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) }
+        : { r: 168, g: 85, b: 247 };
+    };
+
+    // opacity wrapper — GState wraps the draw call, not just the color setter
+    const withOpacity = (op, fn) => {
+      pdf.setGState(pdf.GState({ opacity: op }));
+      fn();
+      pdf.setGState(pdf.GState({ opacity: 1 }));
+    };
+
+    const need = (h) => { if (y + h > H - M) { pdf.addPage(); y = M; } };
+
+    const hline = (op = 1) => {
+      withOpacity(op, () => {
+        pdf.setDrawColor(168, 85, 247);
+        pdf.setLineWidth(0.3);
+        pdf.line(M, y, W - M, y);
+      });
+      y += 7;
+    };
+
+    const sectionTitle = (text) => {
+      need(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.setTextColor(124, 58, 237);
+      pdf.text(text, M, y);
+      y += 5;
+      withOpacity(0.3, () => {
+        pdf.setDrawColor(168, 85, 247);
+        pdf.setLineWidth(0.25);
+        pdf.line(M, y, W - M, y);
+      });
+      y += 6;
+    };
+
+    const kv = (label, value) => {
+      need(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(label, M, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(17, 24, 39);
+      const lines = pdf.splitTextToSize(String(value || '—'), CW - 5);
+      pdf.text(lines, M, y + 5);
+      y += 5 + lines.length * 4.5 + 4;
+    };
+
+    const pill = (x, py, label, colorHex) => {
+      const { r, g, b } = hexToRgb(colorHex);
+      pdf.setFontSize(7);
+      const tw = pdf.getTextWidth(label);
+      const pw = tw + 14;
+      withOpacity(0.12, () => {
+        pdf.setFillColor(r, g, b);
+        pdf.roundedRect(x, py - 4.5, pw, 6, 3, 3, 'F');
+      });
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(x, py - 4.5, pw, 6, 3, 3, 'S');
+      pdf.setFillColor(r, g, b);
+      pdf.circle(x + 4, py - 1.5, 1.2, 'F');
+      pdf.setTextColor(r, g, b);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, x + 8, py);
+      return pw + 3;
+    };
+
+    const pdfFmt = (v, d = 2) =>
+      Number.isNaN(Number(v)) ? '0.00' : Number(v).toFixed(d).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+
+    const pdfDate = (v) =>
+      v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+
+    // ── HEADER ───────────────────────────────────────────────────────────
+    pdf.setFillColor(168, 85, 247);
+    pdf.rect(0, 0, W, 3, 'F');
+    y = M + 5;
+
+    // Quote number
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(28, 28, 28);
+    pdf.text(quote.quote_number || 'QUOTE', M, y);
+
+    // Total — right
+    pdf.setFontSize(15);
+    pdf.setTextColor(124, 58, 237);
+    pdf.text(`${quote.currency || 'KES'} ${pdfFmt(quote.total)}`, W - M, y, { align: 'right' });
+
+    y += 6;
+
+    // Version + date
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(`Version v${quote.version || 1}  ·  Generated ${pdfDate(new Date())}`, M, y);
+
+    // KES equivalent if foreign currency
+    if (quote.total_kes && quote.currency !== 'KES') {
+      pdf.setFontSize(8);
+      pdf.text(`KES ${pdfFmt(quote.total_kes)}`, W - M, y, { align: 'right' });
+    }
+
+    y += 8;
+
+    // Status pill
+    const st = STATUS_CFG[quote.status] || STATUS_CFG.draft;
+    let px = M;
+    px += pill(px, y, st.label, st.color);
+    if (quote.currency !== 'KES' && quote.exchange_rate_to_kes) {
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(
+        `1 ${quote.currency} = ${pdfFmt(quote.exchange_rate_to_kes, 4)} KES  ·  as of ${pdfDate(quote.converted_at || quote.created_at)}`,
+        px + 4, y
+      );
+    }
+
+    y += 10;
+    hline(0.25);
+
+    // ── PREPARED BY / ASSIGNED TO ────────────────────────────────────────
+    sectionTitle('Team');
+
+    const personCard = (label, name, email, assignedAt) => {
+      need(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(label, M, y);
+      y += 5;
+
+      const cardH = 20;
+      // card border only — no fill so text is always readable
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, cardH, 4, 4, 'FD');
+
+      // Avatar circle
+      withOpacity(0.1, () => {
+        pdf.setFillColor(168, 85, 247);
+        pdf.circle(M + 13, y + 10, 7, 'F');
+      });
+      const initials = (name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(124, 58, 237);
+      pdf.text(initials, M + 13, y + 12, { align: 'center' });
+
+      // Name
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(name || '—', M + 26, y + 9);
+
+      // Email
+      if (email) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(124, 58, 237);
+        pdf.text(email, M + 26, y + 15);
+      }
+
+      // Date
+      if (assignedAt) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(pdfDate(assignedAt), W - M - 6, y + 9, { align: 'right' });
+      }
+
+      y += cardH + 6;
+    };
+
+    if (quote.creator) {
+      const creatorName = quote.creator.name ||
+        `${quote.creator.first_name || ''} ${quote.creator.last_name || ''}`.trim();
+      personCard('Prepared By', creatorName, quote.creator.email, quote.created_at);
+    }
+
+    if (quote.assigned_to_name || quote.assigned_to) {
+      const assignedName = quote.assigned_to_name || quote.assigned_to?.name ||
+        `${quote.assigned_to?.first_name || ''} ${quote.assigned_to?.last_name || ''}`.trim();
+      const assignedEmail = quote.assigned_to?.email;
+      personCard('Assigned To', assignedName, assignedEmail, quote.assigned_at);
+    }
+
+    // Customer notes
+    if (quote.customer_notes) {
+      need(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Customer Notes', M, y);
+      y += 5;
+
+      const notes = pdf.splitTextToSize(quote.customer_notes, CW - 12);
+      const notesH = notes.length * 4.5 + 14;
+      need(notesH);
+
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, notesH, 4, 4, 'FD');
+
+      // purple left accent
+      pdf.setFillColor(168, 85, 247);
+      pdf.roundedRect(M, y, 3, notesH, 2, 2, 'F');
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(notes, M + 8, y + 8);
+      y += notesH + 8;
+    }
+
+    hline(0.2);
+
+    // ── QUOTE ITEMS ──────────────────────────────────────────────────────
+    sectionTitle(`Quote Items  ·  ${(quote.items || []).length}`);
+
+    (quote.items || []).forEach((item, idx) => {
+      const isService = item.item_type?.includes('service');
+      const isFee     = item.item_type === 'fee';
+      const typeColor = isService ? '#10b981' : isFee ? '#ec4899' : '#a855f7';
+      const { r: ir, g: ig, b: ib } = hexToRgb(typeColor);
+
+      const qty       = parseFloat(item.quantity    || 1);
+      const unitPrice = parseFloat(item.unit_price  || 0);
+      const discAmt   = parseFloat(item.discount_amount || 0);
+      const lineTotal = parseFloat(item.line_total  || qty * unitPrice);
+      const lineAfter = parseFloat(item.line_total_after_discount || lineTotal);
+
+      const hasDiscount = discAmt >  0.01;
+      const hasMarkup   = discAmt < -0.01;
+
+      // original unit price derived from line_total / qty
+      const origUnitPrice = qty > 0 ? lineTotal / qty : unitPrice;
+
+      const nameLines  = pdf.splitTextToSize(item.product_name || item.service_name || `Item ${idx + 1}`, CW - 30);
+      const hasSchedule = !!(item.scheduled_start_date);
+      const hasVariants = item.variant_details && Object.keys(item.variant_details).filter(k => item.variant_details[k]).length > 0;
+      const hasLead     = !!(item.lead_time);
+      const hasPricing  = !!(item.pricing_notes);
+
+      const cardH = 8                                     // top pad
+        + nameLines.length * 5 + 2                       // name
+        + 14                                             // grid header + values
+        + (hasDiscount || hasMarkup ? 7 : 0)             // orig price row
+        + (hasSchedule ? 7 : 0)
+        + (hasLead     ? 7 : 0)
+        + (hasVariants ? 12 : 0)
+        + (hasPricing  ? 7 : 0)
+        + 8;                                             // bottom pad
+
+      need(cardH);
+      const cardTop = y;
+
+      // Card — white bg, light border
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, cardH, 4, 4, 'FD');
+
+      // Left accent bar
+      pdf.setFillColor(ir, ig, ib);
+      pdf.roundedRect(M, y, 3, cardH, 2, 2, 'F');
+
+      // Type icon square
+      pdf.setFillColor(ir, ig, ib);
+      pdf.roundedRect(M + 7, y + 5, 9, 9, 2, 2, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.text(isService ? 'S' : isFee ? 'F' : 'P', M + 11.5, y + 11, { align: 'center' });
+
+      // Item name
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(nameLines, M + 20, y + 8);
+
+      // Item type chip
+      pdf.setFontSize(6);
+      pdf.setTextColor(ir, ig, ib);
+      pdf.text((item.item_type || '').replace(/_/g, ' ').toUpperCase(), M + 20, y + 8 + nameLines.length * 5 + 1);
+
+      // ── Pricing grid ──────────────────────────────────────────────────
+      const gTop = y + 8 + nameLines.length * 5 + 6;
+
+      // header band
+      pdf.setFillColor(248, 246, 255);
+      pdf.rect(M + 4, gTop, CW - 8, 6, 'F');
+
+      // 5 columns: Unit Price | Qty | Subtotal | Discount/Markup/— | Total
+      const C = [
+        M + 6,          // Unit Price
+        M + CW * 0.22,  // Qty
+        M + CW * 0.37,  // Subtotal
+        M + CW * 0.58,  // Discount / Markup / —
+        M + CW - 5,     // Total (right-align)
+      ];
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(6);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Unit Price',    C[0], gTop + 4);
+      pdf.text('Qty',           C[1], gTop + 4);
+      pdf.text('Subtotal',      C[2], gTop + 4);
+      pdf.text(
+        hasDiscount ? 'Discount' : hasMarkup ? 'Markup' : '—',
+        C[3], gTop + 4
+      );
+      pdf.text('Total', C[4], gTop + 4, { align: 'right' });
+
+      // Values row
+      const vY = gTop + 11;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(pdfFmt(unitPrice), C[0], vY);
+      pdf.text(String(qty),       C[1], vY);
+
+      // Subtotal — strikethrough when adjusted
+      if (hasDiscount || hasMarkup) {
+        pdf.setTextColor(156, 163, 175);
+        pdf.text(pdfFmt(lineTotal), C[2], vY);
+      } else {
+        pdf.setTextColor(17, 24, 39);
+        pdf.text(pdfFmt(lineTotal), C[2], vY);
+      }
+
+      // Discount / Markup
+      if (hasDiscount) {
+        pdf.setTextColor(16, 185, 129);
+        pdf.text(`-${pdfFmt(discAmt)}`, C[3], vY);
+      } else if (hasMarkup) {
+        pdf.setTextColor(249, 115, 22);
+        pdf.text(`+${pdfFmt(Math.abs(discAmt))}`, C[3], vY);
+      } else {
+        pdf.setTextColor(156, 163, 175);
+        pdf.text('—', C[3], vY);
+      }
+
+      // Total
+      pdf.setTextColor(124, 58, 237);
+      pdf.setFontSize(8.5);
+      pdf.text(pdfFmt(lineAfter), C[4], vY, { align: 'right' });
+
+      // Unit of measure + original unit price
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6);
+      pdf.setTextColor(156, 163, 175);
+      if (item.unit_of_measure) {
+        pdf.text(`per ${item.unit_of_measure}`, C[0], vY + 5);
+      }
+
+      let innerY = vY + 7;
+
+      // Original unit price (when adjusted)
+      if (hasDiscount || hasMarkup) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(156, 163, 175);
+        pdf.text('orig:', C[0], innerY);
+        const origText  = pdfFmt(origUnitPrice);
+        const origTextX = C[0] + pdf.getTextWidth('orig: ');
+        pdf.text(origText, origTextX, innerY);
+        innerY += 6;
+      }
+
+      // Divider before extra details
+      if (hasSchedule || hasLead || hasVariants || hasPricing) {
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.2);
+        pdf.line(M + 4, innerY - 1, M + CW - 4, innerY - 1);
+      }
+
+      // Schedule
+      if (hasSchedule) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        const schedText = `Schedule: ${pdfDate(item.scheduled_start_date)}${item.scheduled_end_date ? ' -> ' + pdfDate(item.scheduled_end_date) : ''}`;
+        pdf.text(schedText, M + 6, innerY + 4);
+        innerY += 7;
+      }
+
+      // Lead time
+      if (hasLead) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(`Lead time: ${item.lead_time}`, M + 6, innerY + 4);
+        innerY += 7;
+      }
+
+      // Pricing notes
+      if (hasPricing) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(`Note: ${item.pricing_notes}`, M + 6, innerY + 4);
+        innerY += 7;
+      }
+
+      // Variants
+      if (hasVariants) {
+        const vKeys = Object.keys(item.variant_details).filter(k => item.variant_details[k]);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6);
+        pdf.setTextColor(168, 85, 247);
+        pdf.text('Variants:', M + 6, innerY + 4);
+        const vTxt = vKeys.map(k => `${k}: ${item.variant_details[k]}`).join('  ·  ');
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(17, 24, 39);
+        pdf.text(pdf.splitTextToSize(vTxt, CW - 30)[0], M + 26, innerY + 4);
+        innerY += 7;
+      }
+
+      y = cardTop + cardH + 5;
+    });
+
+    y += 4;
+    hline(0.2);
+
+    // ── PRICING SUMMARY ──────────────────────────────────────────────────
+    sectionTitle('Pricing Summary');
+
+    const summaryRows = [
+      { label: 'Subtotal',                              value: `${quote.currency || 'KES'} ${pdfFmt(quote.subtotal)}` },
+      quote.discount > 0 && { label: 'Discount',        value: `-${pdfFmt(quote.discount)}`,   color: '#10b981' },
+      quote.tax > 0      && { label: 'Tax (16%)',        value: pdfFmt(quote.tax) },
+      quote.shipping_cost > 0 && { label: 'Shipping',   value: pdfFmt(quote.shipping_cost) },
+      { label: 'Total', value: `${quote.currency || 'KES'} ${pdfFmt(quote.total)}`, bold: true },
+    ].filter(Boolean);
+
+    const showKes = !!(quote.total_kes && quote.currency !== 'KES');
+    const sumH = summaryRows.length * 9 + (showKes ? 18 : 0) + (quote.billing_schedule ? 10 : 0) + 12;
+    need(sumH);
+
+    pdf.setFillColor(249, 250, 251);
+    pdf.setDrawColor(229, 231, 235);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(M, y, CW, sumH, 4, 4, 'FD');
+
+    let sY = y + 7;
+    summaryRows.forEach((row, i) => {
+      const isLast = i === summaryRows.length - 1;
+      if (isLast) {
+        withOpacity(0.07, () => {
+          pdf.setFillColor(168, 85, 247);
+          pdf.rect(M, sY - 5, CW, 10, 'F');
+        });
+      }
+      pdf.setFont('helvetica', isLast ? 'bold' : 'normal');
+      pdf.setFontSize(isLast ? 10 : 8.5);
+
+      if (row.color) {
+        const { r, g, b } = hexToRgb(row.color);
+        pdf.setTextColor(r, g, b);
+      } else if (isLast) {
+        pdf.setTextColor(124, 58, 237);
+      } else {
+        pdf.setTextColor(107, 114, 128);
+      }
+      pdf.text(row.label, M + 8, sY);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(row.value, W - M - 8, sY, { align: 'right' });
+
+      if (!isLast) {
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.2);
+        pdf.line(M + 8, sY + 3, W - M - 8, sY + 3);
+      }
+      sY += 9;
+    });
+
+    // KES equivalent
+    if (showKes) {
+      pdf.setDrawColor(168, 85, 247);
+      pdf.setLineDashPattern([2, 2], 0);
+      pdf.line(M + 8, sY + 1, W - M - 8, sY + 1);
+      pdf.setLineDashPattern([], 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(124, 58, 237);
+      pdf.text(`KES Equivalent: ${pdfFmt(quote.total_kes)}`, M + 8, sY + 7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(
+        `1 ${quote.currency} = ${pdfFmt(quote.exchange_rate_to_kes, 6)} KES  ·  as of ${pdfDate(quote.converted_at || quote.created_at)}`,
+        M + 8, sY + 13
+      );
+      sY += 16;
+    }
+
+    // Billing schedule
+    if (quote.billing_schedule) {
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(124, 58, 237);
+      pdf.text(`Billing: ${quote.billing_schedule.replace(/_/g, ' ')}`, M + 8, sY + 5);
+    }
+
+    y += sumH + 10;
+    hline(0.2);
+
+    // ── DELIVERY & VALIDITY ──────────────────────────────────────────────
+    sectionTitle('Delivery & Validity');
+
+    // Shipping address — plain, no background
+    kv('Shipping Address', quote.shipping_address || 'Not provided');
+
+    // Validity dates — plain list, no card background
+    const validityDates = [
+      quote.valid_from        && { label: 'Valid From',    value: pdfDate(quote.valid_from) },
+      quote.valid_until       && { label: 'Valid Until',   value: pdfDate(quote.valid_until) },
+      quote.service_start_date && { label: 'Service Start',value: pdfDate(quote.service_start_date) },
+      quote.service_end_date   && { label: 'Service End',  value: pdfDate(quote.service_end_date) },
+    ].filter(Boolean);
+
+    validityDates.forEach(d => kv(d.label, d.value));
+
+    y += 4;
+
+    // ── TERMS & CONDITIONS ───────────────────────────────────────────────
+    if (quote.terms_and_conditions || quote.payment_terms) {
+      hline(0.2);
+      sectionTitle('Terms & Conditions');
+
+      if (quote.payment_terms) {
+        kv('Payment Terms', quote.payment_terms);
+      }
+
+      if (quote.terms_and_conditions) {
+        const tLines = pdf.splitTextToSize(quote.terms_and_conditions, CW);
+        need(tLines.length * 4 + 10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(tLines, M, y);
+        y += tLines.length * 4 + 10;
+      }
+    }
+
+    // ── FOOTER ───────────────────────────────────────────────────────────
+    y += 8;
+    need(18);
+
+    pdf.setDrawColor(229, 231, 235);
+    pdf.setLineWidth(0.3);
+    pdf.line(M, y, W - M, y);
+    y += 7;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(124, 58, 237);
+    pdf.text('Thank you for your business!', W / 2, y, { align: 'center' });
+
+    y += 6;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(
+      `Generated on ${format(new Date(), 'MMMM d, yyyy')} · ${quote.quote_number}`,
+      W / 2, y, { align: 'center' }
+    );
+
+    pdf.save(`Quote-${quote.quote_number || 'Detail'}.pdf`);
+    toast.success('PDF downloaded!', { id: toastId });
+
+  } catch (e) {
+    console.error(e);
+    toast.error('Failed to generate PDF', { id: toastId });
+  }
+};
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -277,6 +892,14 @@ const CustomerQuoteDetail = () => {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 mt-6">
+            {/* ✨ NEW PDF DOWNLOAD BUTTON */}
+            <button onClick={handleDownloadPDF} disabled={actionLoading} type="button"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+              style={{ background: 'transparent', border: '1.5px solid #a855f7', color: '#a855f7' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <Download size={14} /> Download PDF
+            </button>
             {canAct && (
               <>
                 <PurpleBtn onClick={handleAccept} disabled={actionLoading}><CheckCircle size={14} /> Accept Quote</PurpleBtn>
@@ -285,7 +908,6 @@ const CustomerQuoteDetail = () => {
             )}
             {isFinalized && (
               <>
-                <GhostBtn onClick={handleDownload} disabled={actionLoading}><Download size={14} /> Download</GhostBtn>
                 {quote.status === 'approved' && <PurpleBtn onClick={handleProceed} disabled={actionLoading}>Proceed to Order</PurpleBtn>}
                 {quote.status === 'rejected' && <TintBtn onClick={handleRequestRevision} disabled={actionLoading} color="#3b82f6">Request Revision</TintBtn>}
               </>
@@ -562,7 +1184,7 @@ const CustomerQuoteDetail = () => {
                                 </div>
                                 <div className="bg-white dark:bg-gray-800">
                                   {[
-                                    (item.scheduled_start_date || item.scheduled_end_date) && ['Schedule', '#10b981', 'rgba(16,185,129,0.06)', `${safeDate(item.scheduled_start_date)?.toLocaleDateString() || '—'}${item.scheduled_end_date ? ` → ${safeDate(item.scheduled_end_date)?.toLocaleDateString()}` : ''}`],
+                                    (item.scheduled_start_date || item.scheduled_end_date) && ['Schedule', '#10b981', 'rgba(16,185,129,0.06)', `${safeDate(item.scheduled_start_date)?.toLocaleDateString() || '—'}${item.scheduled_end_date ? ` -> ${safeDate(item.scheduled_end_date)?.toLocaleDateString()}` : ''}`],
                                     item.estimated_duration    && ['Duration',     '#a855f7', 'rgba(168,85,247,0.06)', item.estimated_duration],
                                     item.estimated_hours != null && ['Est. Hours', '#3b82f6', 'rgba(59,130,246,0.06)', `${parseFloat(item.estimated_hours).toFixed(1)} hrs`],
                                     item.hourly_rate != null   && ['Hourly Rate',  '#f59e0b', 'rgba(245,158,11,0.06)', `${cc} ${fmt(item.hourly_rate)} / hr`],
@@ -630,55 +1252,95 @@ const CustomerQuoteDetail = () => {
 
           {/* ── RIGHT SIDEBAR ─────────────────────────────────────────────── */}
           <div className="lg:col-span-1 w-full lg:sticky lg:top-6 h-fit">
-            {/* Pricing summary */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-              <div style={{ height: 3, background: '#a855f7' }} />
+            {/* Pricing Summary */}
+            <div className="rounded-2xl overflow-hidden" style={{
+              border: '1.5px solid rgba(168, 85, 247, 0.25)',
+              boxShadow: '0 0 0 1px rgba(168, 85, 247, 0.08), 0 4px 20px rgba(168, 85, 247, 0.06)',
+              transition: 'box-shadow 200ms ease'
+            }}>
               <div className="p-5">
-                <p className="text-xs font-extrabold uppercase tracking-widest mb-4" style={{ color: '#c084fc' }}>Pricing Summary</p>
-                <div className="flex flex-col gap-2.5 text-sm">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" 
+                      style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                    <DollarSign size={16} color="#a855f7" />
+                  </div>
+                  <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c084fc' }}>Pricing Summary</p>
+                </div>
+
+                {/* Rows */}
+                <div className="flex flex-col gap-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.subtotal)}</p>
-                      {showKes && <p className="text-xs text-gray-400 dark:text-gray-500">KES {fmt(quote.subtotal_kes)}</p>}
-                    </div>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.subtotal)}</span>
                   </div>
+
                   {quote.discount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Discount {quote.discount_percentage > 0 && `(${quote.discount_percentage}%)`}</span>
-                      <span className="font-bold" style={{ color: '#10b981' }}>-{cc} {fmt(quote.discount)}</span>
-                    </div>
+                    <>
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Discount {quote.discount_percentage > 0 && `(${quote.discount_percentage}%)`}
+                        </span>
+                        <span className="font-semibold" style={{ color: '#10b981' }}>-{cc} {fmt(quote.discount)}</span>
+                      </div>
+                    </>
                   )}
+
                   {quote.tax > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Tax</span>
-                      <span className="font-bold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.tax)}</span>
-                    </div>
+                    <>
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Tax</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.tax)}</span>
+                      </div>
+                    </>
                   )}
+
                   {quote.shipping_cost > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Shipping</span>
-                      <span className="font-bold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.shipping_cost)}</span>
-                    </div>
+                    <>
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Shipping</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.shipping_cost)}</span>
+                      </div>
+                    </>
                   )}
-                  <div className="flex justify-between pt-3 mt-1 border-t border-gray-100 dark:border-gray-700">
-                    <span className="font-extrabold text-gray-900 dark:text-white">Total</span>
-                    <div className="text-right">
-                      <p className="font-extrabold text-lg" style={{ color: '#a855f7' }}>{cc} {fmt(quote.total)}</p>
-                      {showKes && <p className="text-xs text-gray-400 dark:text-gray-500">KES {fmt(quote.total_kes)}</p>}
+
+                  {/* Total - Highlighted Box */}
+                  <div className="mt-4 rounded-xl" style={{ 
+                    padding: '18px 22px', // ← Vertical 18px, Horizontal 22px (adjust as needed)
+                    background: 'rgba(168, 85, 247, 0.04)', 
+                    border: '1px solid rgba(168, 85, 247, 0.2)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)'
+                  }}>
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-gray-900 dark:text-white">Total</span>
+                      <div className="text-right">
+                        <p className="font-extrabold text-lg" style={{ color: '#a855f7' }}>{cc} {fmt(quote.total)}</p>
+                        {showKes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">KES {fmt(quote.total_kes)}</p>}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Exchange Rate Info */}
                   {showKes && quote.exchange_rate_to_kes && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 flex items-start gap-1.5 pt-1">
+                    <div className="flex items-start gap-1.5 pt-2 text-xs text-gray-400 dark:text-gray-500">
                       <Info size={11} color="#a855f7" className="flex-shrink-0 mt-0.5" />
-                      1 {cc} = {fmt(quote.exchange_rate_to_kes, 6)} KES
-                      {quote.converted_currency_at && ` (${new Date(String(quote.converted_currency_at).replace(' ', 'T')).toLocaleDateString()})`}
-                    </p>
+                      <span>
+                        1 {cc} = {fmt(quote.exchange_rate_to_kes, 6)} KES
+                        {quote.converted_currency_at && ` (${new Date(String(quote.converted_currency_at).replace(' ', 'T')).toLocaleDateString()})`}
+                      </span>
+                    </div>
                   )}
+
+                  {/* Billing Schedule */}
                   {quote.billing_schedule && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <CreditCard size={11} /> Billing: <span className="font-bold">{quote.billing_schedule.replace('_', ' ')}</span>
-                    </p>
+                    <div className="flex items-center gap-1.5 pt-2 mt-1 text-xs text-gray-500 dark:text-gray-400" 
+                        style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+                      <CreditCard size={11} /> 
+                      Billing: <span className="font-bold text-gray-700 dark:text-gray-300">{quote.billing_schedule.replace('_', ' ')}</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -737,19 +1399,30 @@ const CustomerQuoteDetail = () => {
             </Section>
 
             {/* Validity */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5" style={{ border: '1.5px solid rgba(168,85,247,0.25)', boxShadow: '0 0 0 1px rgba(168,85,247,0.08), 0 4px 16px rgba(168,85,247,0.06)' }}>
               <p className="text-xs font-extrabold uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: '#c084fc' }}>
                 <Calendar size={12} color="#c084fc" /> Validity
               </p>
-              <div className="flex flex-col gap-0">
+              
+              {/* Changed gap-0 to gap-4 for clean spacing without lines */}
+              <div className="flex flex-col gap-4">
                 {[
                   { label: 'Valid From',    val: quote.valid_from },
                   { label: 'Valid Until',   val: quote.valid_until },
                   { label: 'Service Start', val: quote.service_start_date },
                   { label: 'Service End',   val: quote.service_end_date },
                 ].filter(t => t.val).map(({ label, val }) => (
-                  <div key={label} className="flex items-start gap-2.5 pb-3 mb-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0 last:pb-0 last:mb-0">
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a855f7', flexShrink: 0, marginTop: 5 }} />
+                  <div key={label} className="flex items-start gap-3">
+                    {/* Added subtle purple glow to the dot */}
+                    <span style={{ 
+                      width: 7, 
+                      height: 7, 
+                      borderRadius: '50%', 
+                      background: '#a855f7', 
+                      flexShrink: 0, 
+                      marginTop: 5, 
+                      boxShadow: '0 0 4px rgba(168,85,247,0.4)' 
+                    }} />
                     <div>
                       <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold">{label}</p>
                       <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mt-0.5">{new Date(val).toLocaleDateString()}</p>

@@ -10,7 +10,10 @@ import {
 import AdminLayout from '../../components/layout/AdminLayout';
 import CreateOrderModal from '../../components/admin/CreateOrderModal';
 import ReturnItemsModal from '../../components/admin/ReturnItemsModal';
+import InitiatePaymentModal from './finance/InitiatePaymentModal';
+import paymentsAPI from '../../api/payments';
 import useOrderStore from '../../store/orderStore';
+import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -216,9 +219,15 @@ export default function OrderDetail() {
   const [courierCompany,        setCourierCompany]        = useState('');
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
   const [expandedItems, setExpandedItems] = useState({});
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const toggleItemExpansion = (index) => {
     setExpandedItems(prev => ({ ...prev, [index]: !prev[index] }));
   };
+
+  // ── Payment History State ─────────────────────────────────────────────
+  const [orderPayments, setOrderPayments] = useState(null);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
 
   const isCancelled   = order?.status === 'cancelled';
   const isPaidPending = order?.status === 'pending' && order?.payment_status === 'paid';
@@ -245,6 +254,17 @@ export default function OrderDetail() {
     { total: 0, items: [] }
   ) || { total: 0, items: [] };
 
+  // Calculate remaining balance in KES for payment initiation
+  const getRemainingBalanceKes = () => {
+    if (!order) return 0;
+    
+    const totalKes = order.total_kes ?? (Number(order.total || 0) * Number(order.exchange_rate_to_kes || 1));
+    const confirmedPayments = order.payments?.filter(p => p.status === 'confirmed')
+      .reduce((sum, p) => sum + (Number(p.mpesa_amount_confirmed) || 0), 0) || 0;
+    
+    return Math.max(0, totalKes - confirmedPayments);
+  };
+
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -267,6 +287,25 @@ export default function OrderDetail() {
   }, [order]);
 
   useEffect(() => { setTotal(subtotal - discount + tax + shippingCost); }, [subtotal, tax, shippingCost, discount]);
+
+  // Fetch payment history when order loads
+  useEffect(() => {
+    if (!order?.id) return;
+    
+    const loadPayments = async () => {
+      setPaymentsLoading(true);
+      try {
+        const data = await paymentsAPI.getAdminOrderPaymentHistory(order.id);
+        setOrderPayments(data);
+      } catch (e) {
+        console.error('Failed to load payment history:', e);
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+    
+    loadPayments();
+  }, [order?.id]);
 
   const run = async (fn, successMsg, extra) => {
     try { const r = await fn(); toast.success(successMsg); if (extra) extra(r); await fetchAdminOrder(id); }
@@ -295,7 +334,7 @@ export default function OrderDetail() {
     const cust   = o?.customer || order.customer;
     const items  = o?.items    || order.items   || [];
 
-    // ── Decide whether to show discount/markup column ─────────────────
+    // ── Decide whether to show adjustment column ──────────────────────
     const hasItemDiscount = items.some(i => parseFloat(i.discount_amount || 0) > 0.01);
     const hasItemMarkup   = items.some(i => {
       const lineTotal = parseFloat(i.line_total || 0);
@@ -303,13 +342,14 @@ export default function OrderDetail() {
       return lineAfter > lineTotal + 0.01;
     });
     const showAdjCol = hasItemDiscount || hasItemMarkup;
+    const adjLabel   = hasItemMarkup && !hasItemDiscount ? 'MARKUP' : 'DISCOUNT';
 
     // ── Header band ───────────────────────────────────────────────────
     doc.setFillColor(...purple);
     doc.rect(0, 0, W, 70, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24); doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', 40, 46);
+    doc.text('PROFORMA INVOICE', 40, 46);
     doc.setFontSize(10); doc.setFont('helvetica', 'normal');
     doc.text(invNum, W - 40, 38, { align: 'right' });
     doc.setFontSize(8);
@@ -360,90 +400,112 @@ export default function OrderDetail() {
     y += 16;
 
     // ── Column positions ──────────────────────────────────────────────
-    // With adj col:    name | uom | qty | unitPrice | adj  | total
-    // Without adj col: name | uom | qty | unitPrice | total
+    // Column order: ITEM | UNIT | ORIG PRICE | UNIT PRICE | QTY | SUBTOTAL | [ADJ] | TOTAL
+    // Orig price is derived: line_total / quantity  (gross before any adjustment)
     const COL = showAdjCol ? {
       name:      40,
-      uom:       270,
-      qty:       330,
-      unitPrice: 375,
-      adj:       455,
+      uom:       160,
+      origPrice: 202,
+      unitPrice: 260,
+      qty:       318,
+      subtotal:  355,
+      adj:       413,
       total:     W - 40,
     } : {
       name:      40,
-      uom:       300,
-      qty:       365,
-      unitPrice: 415,
+      uom:       170,
+      origPrice: 215,
+      unitPrice: 278,
+      qty:       340,
+      subtotal:  385,
       total:     W - 40,
     };
 
-    // Table header
+    // ── Table header ──────────────────────────────────────────────────
     doc.setFillColor(...light);
     doc.rect(40, y, W - 80, 22, 'F');
     doc.setTextColor(...purple);
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold');
     doc.text('ITEM',       COL.name      + 4, y + 15);
     doc.text('UNIT',       COL.uom       + 4, y + 15);
-    doc.text('QTY',        COL.qty       + 4, y + 15);
+    doc.text('ORIG PRICE', COL.origPrice + 4, y + 15);
     doc.text('UNIT PRICE', COL.unitPrice + 4, y + 15);
-    if (showAdjCol) {
-      doc.text(hasItemMarkup && !hasItemDiscount ? 'MARKUP' : 'DISCOUNT', COL.adj + 4, y + 15);
-    }
-    doc.text('TOTAL', COL.total, y + 15, { align: 'right' });
+    doc.text('QTY',        COL.qty       + 4, y + 15);
+    doc.text('SUBTOTAL',   COL.subtotal  + 4, y + 15);
+    if (showAdjCol) doc.text(adjLabel,   COL.adj      + 4, y + 15);
+    doc.text('TOTAL',      COL.total,         y + 15, { align: 'right' });
     y += 22;
 
-    // Table rows
+    // ── Table rows ────────────────────────────────────────────────────
     doc.setFontSize(8.5);
     items.forEach((item, i) => {
       const nameText  = item.product_name || item.service_name || item.description || 'Item';
       const nameLines = doc.splitTextToSize(nameText, COL.uom - COL.name - 8);
-      const rowH      = Math.max(20, nameLines.length * 13 + 8);
+      const rowH      = Math.max(22, nameLines.length * 13 + 8);
 
       if (y + rowH > 780) { doc.addPage(); y = 40; }
 
-      const bg = i % 2 === 0 ? [255, 255, 255] : [250, 248, 255];
-      doc.setFillColor(...bg);
+      // Alternating row background
+      doc.setFillColor(...(i % 2 === 0 ? [255, 255, 255] : [250, 248, 255]));
       doc.rect(40, y, W - 80, rowH, 'F');
 
       const midY = y + rowH / 2 + 4;
 
-      // Name
+      const qty      = parseFloat(item.quantity || 1);
+      const unitP    = parseFloat(item.unit_price || 0);
+      const discAmt  = parseFloat(item.discount_amount || 0);
+      const lineTot  = parseFloat(item.line_total || qty * unitP);
+      const lineAft  = parseFloat(item.line_total_after_discount || lineTot);
+
+      // Orig unit price — derived from line_total (gross before adjustment) / qty
+      const origUnitP   = qty > 0 ? lineTot / qty : unitP;
+      const hasDiscount = discAmt > 0.01;
+      const hasMarkup   = lineAft > lineTot + 0.01;
+
+      // Item name
       doc.setTextColor(...dark); doc.setFont('helvetica', 'normal');
       doc.text(nameLines, COL.name + 4, y + 13);
 
       // Unit of measure
       doc.setTextColor(...gray);
+      doc.setFontSize(8);
       doc.text(item.unit_of_measure || 'each', COL.uom + 4, midY);
+
+      // Orig price — greyed when it differs from unit price
+      doc.setFontSize(8.5);
+      if (hasDiscount || hasMarkup) { doc.setTextColor(...gray); }
+      else                          { doc.setTextColor(...dark); }
+      doc.text(fmt(origUnitP), COL.origPrice + 4, midY);
+
+      // Unit price (the effective selling price)
+      doc.setTextColor(...dark);
+      doc.text(fmt(unitP), COL.unitPrice + 4, midY);
 
       // Qty
       doc.setTextColor(...dark);
-      doc.text(String(parseFloat(item.quantity || 0)), COL.qty + 4, midY);
+      doc.text(String(qty), COL.qty + 4, midY);
 
-      // Unit price
-      doc.text(fmt(item.unit_price), COL.unitPrice + 4, midY);
+      // Subtotal (gross line total before adjustment)
+      doc.setTextColor(...gray);
+      doc.text(fmt(lineTot), COL.subtotal + 4, midY);
 
-      // Discount / markup column
+      // Adjustment column
       if (showAdjCol) {
-        const discAmt   = parseFloat(item.discount_amount || 0);
-        const lineTotal = parseFloat(item.line_total || 0);
-        const lineAfter = parseFloat(item.line_total_after_discount || lineTotal);
-        const isMarkup  = lineAfter > lineTotal + 0.01;
-
-        if (discAmt > 0.01) {
-          doc.setTextColor(16, 185, 129); // green
+        if (hasDiscount) {
+          doc.setTextColor(16, 185, 129);                         // green
           doc.text(`-${fmt(discAmt)}`, COL.adj + 4, midY);
-        } else if (isMarkup) {
-          doc.setTextColor(249, 115, 22); // orange
-          doc.text(`+${fmt(lineAfter - lineTotal)}`, COL.adj + 4, midY);
+        } else if (hasMarkup) {
+          doc.setTextColor(249, 115, 22);                         // orange
+          doc.text(`+${fmt(lineAft - lineTot)}`, COL.adj + 4, midY);
         } else {
           doc.setTextColor(...gray);
           doc.text('—', COL.adj + 4, midY);
         }
       }
 
-      // Line total
+      // Line total (after adjustment)
       doc.setTextColor(...dark); doc.setFont('helvetica', 'bold');
-      doc.text(fmt(item.line_total_after_discount || item.line_total), COL.total, midY, { align: 'right' });
+      doc.text(fmt(lineAft), COL.total, midY, { align: 'right' });
 
       y += rowH;
     });
@@ -459,13 +521,18 @@ export default function OrderDetail() {
     const totalsW = 190;
 
     const totalRows = [
-      ['Subtotal',  fmt(o?.subtotal      || order.subtotal)],
-      ...(Number(o?.discount || order.discount) > 0
-        ? [['Order Discount', `-${fmt(o?.discount || order.discount)}`]]
-        : []),
-      ['Tax (16%)', fmt(o?.tax           || order.tax)],
-      ['Shipping',  fmt(o?.shipping_cost || order.shipping_cost)],
-    ];
+    ['Subtotal',  fmt(o?.subtotal      || order.subtotal)],
+    ...(Number(o?.discount || order.discount) > 0
+      ? [['Order Discount',    `-${fmt(o?.discount          || order.discount)}`]]          : []),
+    ...(Number(o?.referral_discount || order.referral_discount) > 0
+      ? [['Referral Discount', `-${fmt(o?.referral_discount || order.referral_discount)}`]] : []),
+    ...(Number(o?.promo_discount || order.promo_discount) > 0
+      ? [['Promo Discount',    `-${fmt(o?.promo_discount    || order.promo_discount)}`]]    : []),
+    ...(Number(o?.store_credit_deduction || order.store_credit_deduction) > 0
+      ? [['Store Credit',      `-${fmt(o?.store_credit_deduction || order.store_credit_deduction)}`]] : []),
+    ['Tax (16%)', fmt(o?.tax           || order.tax)],
+    ['Shipping',  fmt(o?.shipping_cost || order.shipping_cost)],
+  ];
 
     doc.setFontSize(9);
     totalRows.forEach(([label, val]) => {
@@ -477,15 +544,18 @@ export default function OrderDetail() {
       y += 17;
     });
 
+    // ── Total band ────────────────────────────────────────────────────
     y += 4;
+    if (y > 780) { doc.addPage(); y = 40; }
     doc.setFillColor(...purple);
     doc.rect(totalsX - 10, y, totalsW + 10, 28, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL', totalsX, y + 19);
-    doc.text(`${cs} ${fmt(o?.total || order.total)}`, totalsX + totalsW, y + 19, { align: 'right' });
+    doc.text('TOTAL',                                    totalsX,           y + 19);
+    doc.text(`${cs} ${fmt(o?.total || order.total)}`,   totalsX + totalsW, y + 19, { align: 'right' });
     y += 44;
 
     // ── Footer ────────────────────────────────────────────────────────
+    if (y > 780) { doc.addPage(); y = 40; }
     doc.setDrawColor(...purple);
     doc.setLineWidth(1);
     doc.line(40, y, W - 40, y);
@@ -494,10 +564,10 @@ export default function OrderDetail() {
     doc.text('Thank you for your business.', W / 2, y, { align: 'center' });
 
     doc.save(`${invNum}.pdf`);
-    toast.success('Invoice downloaded');
+    toast.success('Proforma Invoice downloaded');
   } catch (e) {
     console.error(e);
-    toast.error(e.response?.data?.message || 'Failed to generate invoice');
+    toast.error(e.response?.data?.message || 'Failed to generate proforma invoice');
   }
 };
 
@@ -733,7 +803,7 @@ export default function OrderDetail() {
             icon={order.invoice_number ? <Download size={15} /> : <FileText size={15} />}
             onClick={handleInvoice}
           >
-            {order.invoice_number ? 'Download Invoice' : 'Generate Invoice'}
+            {order.invoice_number ? 'Download Proforma Invoice' : 'Generate Proforma Invoice'}
           </Btn>
         </div>
       </div>
@@ -1176,6 +1246,18 @@ export default function OrderDetail() {
                     value: `-${money(order.promo_discount)}`, 
                     color: '#10b981' 
                   },
+                  Number(order.store_credit_deduction) > 0 && {
+                    label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        💳 Store Credit
+                      </span>
+                    ),
+                    value:  `-${money(order.store_credit_deduction)}`,
+                    color:  '#059669',
+                    kes:    showKes && Number(order.store_credit_deduction_kes) > 0
+                              ? kesMoney(order.store_credit_deduction_kes)
+                              : null,
+                  },
                   { label: 'Tax',       value: money(order.tax) },
                   { label: 'Shipping',  value: money(order.shipping_cost) },
                 ].filter(Boolean).map(({ label, value, color, kes }) => (
@@ -1199,9 +1281,199 @@ export default function OrderDetail() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
                 <Btn variant="ghost" icon={<Save size={14} />} onClick={handleSaveTotals} disabled={isCancelled} size="sm">Save Totals</Btn>
+                {/* ── Request Payment Button ───────────────────────────────────── */}
+                {(() => {
+                  // ✅ Matches backend PaymentController::initiate() guards
+                  const allowedOrderStatuses = ['confirmed', 'processing', 'ready_for_pickup', 'shipped', 'delivered'];
+                  const standardPaymentStatuses = ['unpaid', 'partially_paid'];
+                  
+                  const canStandardRequest = 
+                    allowedOrderStatuses.includes(order?.status) && 
+                    standardPaymentStatuses.includes(order?.payment_status);
+
+                  // 🔑 Super admin can bypass "paid/refunded" for edge cases (force_override)
+                  const isSuperAdmin = useAuthStore?.getState().user?.role === 'super_admin';
+                  const canOverride = isSuperAdmin && ['paid', 'refunded'].includes(order?.payment_status);
+
+                  if (!canStandardRequest && !canOverride) return null;
+
+                  const balance = order?.total_kes || order?.total || 0;
+                  const isFullyPaid = balance <= 0 && !canOverride;
+
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                      <Btn 
+                        variant={isFullyPaid ? 'outline' : 'ghost'} 
+                        icon={<Zap size={14} />} 
+                        onClick={() => setShowPaymentModal(true)}
+                        disabled={isFullyPaid}
+                      >
+                        {isFullyPaid ? 'Fully Paid' : 'Request Payment'}
+                      </Btn>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </Panel>
+
+          {/* ── Payment History Panel ───────────────────────────────────────── */}
+          {orderPayments && (
+            <Panel className="order-panel">
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <SectionLabel icon={CreditCard}>Payment History · {orderPayments.payments?.length || 0}</SectionLabel>
+                {orderPayments.balance_remaining > 0 && (
+                  <Pill color="#f59e0b">Balance: {kesMoney(orderPayments.balance_remaining)}</Pill>
+                )}
+              </div>
+              
+              <div style={{ padding: '16px 22px' }}>
+                {orderPayments.payments?.length === 0 ? (
+                  <p style={{ fontSize: '0.82rem', color: '#9ca3af', textAlign: 'center', padding: '20px 0' }}>
+                    No payment attempts yet.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {orderPayments.payments.map((p, idx) => {
+                      const isConfirmed = p.status === 'confirmed';
+                      const isFailed = p.status === 'failed';
+                      const isPending = p.status === 'pending';
+                      const isCancelled = p.status === 'cancelled';
+                      
+                      const statusCfg = {
+                        confirmed:  { color: '#10b981', label: 'Confirmed', icon: CheckCircle },
+                        failed:     { color: '#ef4444', label: 'Failed',    icon: XCircle },
+                        pending:    { color: '#f59e0b', label: 'Pending',   icon: Clock },
+                        cancelled:  { color: '#6b7280', label: 'Cancelled', icon: AlertTriangle },
+                      }[p.status] || { color: '#9ca3af', label: p.status, icon: Info };
+                      
+                      const StatusIcon = statusCfg.icon;
+                      
+                      return (
+                        <div 
+                          key={p.id} 
+                          style={{ 
+                            padding: '12px 14px', 
+                            borderRadius: 10, 
+                            border: `1px solid ${isConfirmed ? 'rgba(16,185,129,0.2)' : 'var(--border,#e5e7eb)'}`,
+                            background: isConfirmed ? 'rgba(16,185,129,0.04)' : 'var(--panel-bg,white)',
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            flexWrap: 'wrap'
+                          }}
+                        >
+                          {/* Left: Status + Meta */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <div style={{ 
+                              width: 32, height: 32, borderRadius: 8, 
+                              background: `${statusCfg.color}14`, 
+                              border: `1px solid ${statusCfg.color}30`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0 
+                            }}>
+                              <StatusIcon size={14} color={statusCfg.color} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {p.payment_number}
+                                {p.is_retry && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6b7280', background: 'var(--tag-bg,#f3f4f6)', padding: '1px 6px', borderRadius: 4 }}>Retry</span>}
+                              </p>
+                              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                                {p.phone_number} • {format(new Date(p.initiated_at), 'MMM d · h:mm a')}
+                              </p>
+                              {p.confirmed_at && (
+                                <p style={{ fontSize: '0.68rem', color: statusCfg.color, margin: '2px 0 0' }}>
+                                  Completed {format(new Date(p.confirmed_at), 'MMM d · h:mm a')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Center: Amounts */}
+                          <div style={{ textAlign: 'center', minWidth: 120 }}>
+                            <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Expected</p>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text,#374151)', margin: '2px 0' }}>
+                              {kesMoney(p.amount_expected)}
+                            </p>
+                            {isConfirmed && (
+                              <>
+                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>Received</p>
+                                <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', margin: 0 }}>
+                                  {kesMoney(p.mpesa_amount_confirmed || p.amount_received)}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Right: Receipt + Status */}
+                          <div style={{ textAlign: 'right', minWidth: 140 }}>
+                            <Pill color={statusCfg.color}>{statusCfg.label}</Pill>
+                            {isConfirmed && p.mpesa_receipt_number && (
+                              <p style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, margin: '6px 0 0', wordBreak: 'break-all' }}>
+                                {p.mpesa_receipt_number}
+                              </p>
+                            )}
+                            {isFailed && p.failure_reason && (
+                              <p style={{ fontSize: '0.68rem', color: '#ef4444', margin: '6px 0 0', maxWidth: 180, wordBreak: 'break-word' }}>
+                                {p.failure_reason}
+                              </p>
+                            )}
+                            {isPending && (
+                              <p style={{ fontSize: '0.68rem', color: '#f59e0b', margin: '6px 0 0' }}>
+                                Awaiting customer…
+                              </p>
+                            )}
+                            {/* Click to view full payment detail */}
+                            <button 
+                              onClick={() => navigate(`/admin/finance/payments/${p.id}`)}
+                              style={{ 
+                                fontSize: '0.7rem', color: purple, fontWeight: 600, 
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                padding: '4px 0', marginTop: 4, textDecoration: 'none'
+                              }}
+                            >
+                              View Details →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* Summary Footer */}
+                <div style={{ 
+                  marginTop: 16, padding: '12px 14px', borderRadius: 10, 
+                  background: purpleLt, border: `1px solid ${purpleBd}`,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  flexWrap: 'wrap', gap: 8
+                }}>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div>
+                      <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>Total Confirmed</p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981', margin: 0 }}>
+                        {kesMoney(orderPayments.total_confirmed_kes)}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>Balance Remaining</p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: orderPayments.balance_remaining > 0 ? '#ef4444' : '#10b981', margin: 0 }}>
+                        {kesMoney(orderPayments.balance_remaining)}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>Order Total</p>
+                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: purple, margin: 0 }}>
+                      {kesMoney(orderPayments.order_total_kes)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Panel>
+          )}
 
           {/* Shipping & Courier */}
           <Panel className="order-panel">
@@ -1323,7 +1595,7 @@ export default function OrderDetail() {
               </div>
               {order.invoice_number && (
                 <div style={{ padding: '10px 12px', borderRadius: 8, background: purpleLt, border: `1px solid ${purpleBd}` }}>
-                  <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: purple, marginBottom: 3 }}>Invoice</p>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: purple, marginBottom: 3 }}>Proforma Invoice</p>
                   <p style={{ fontSize: '0.82rem', fontWeight: 800, color: purple, margin: 0 }}>{order.invoice_number}</p>
                 </div>
               )}
@@ -1545,6 +1817,22 @@ export default function OrderDetail() {
             await fetchAdminOrder(id);
             setEditModal(false);
             toast.success('Order updated successfully');
+          }}
+        />
+      )}
+      {/* ── Request Payment Modal ───────────────────────────────────── */}
+      {showPaymentModal && order && (
+        <InitiatePaymentModal
+          orderId={order.id}
+          orderTotalKes={order.total_kes ?? (Number(order.total) * Number(order.exchange_rate_to_kes || 1))}
+          orderBalanceKes={getRemainingBalanceKes()}
+          onClose={(result) => {
+            setShowPaymentModal(false);
+            if (result?.payment_id) {
+              toast.success(`Payment ${result.payment_number} initiated`);
+              // Navigate to the new payment detail page
+              navigate(`/admin/finance/payments/${result.payment_id}`);
+            }
           }}
         />
       )}

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\AuctionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CustomerController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\ContentPageController;
 use App\Http\Controllers\Api\ContentSectionController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectParticipantController;
 use App\Http\Controllers\Api\ProjectLinkController;
@@ -36,7 +38,17 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\LoyaltyController;
 
+use App\Http\Controllers\Api\Careers\PublicJobController;
+use App\Http\Controllers\Api\Careers\ApplicantAuthController;
+use App\Http\Controllers\Api\Careers\ApplicantPortalController;
+use App\Http\Controllers\Api\Careers\AdminAIScreeningController;
+use App\Http\Controllers\Api\Careers\AdminApplicationController;
+use App\Http\Controllers\Api\Careers\AdminJobController;
+use App\Http\Controllers\Api\Careers\AdminApplicantController;
+
+//use App\Http\Controllers\Jobs\ScreenApplicationJob;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -46,7 +58,8 @@ use App\Http\Controllers\Api\TicketController;
 // ============================================
 // PUBLIC ROUTES (No Authentication Required)
 // ============================================
-Route::post('/chat', [ChatController::class, 'chat']);
+Route::post('/chat/guest', [ChatController::class, 'chatGuest'])
+    ->middleware('throttle:10,1'); // Strict limit for guests
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -54,6 +67,22 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
+});
+
+// ============================================
+// CAREERS — PUBLIC
+// ============================================
+Route::prefix('careers')->group(function () {
+    Route::get('/jobs',         [PublicJobController::class, 'index']);
+    Route::get('/jobs/{slug}',  [PublicJobController::class, 'show']);
+
+    Route::post('/forgot-password',[ApplicantAuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [ApplicantAuthController::class, 'resetPassword']);
+
+    Route::prefix('auth')->group(function () {
+        Route::post('/register',       [ApplicantAuthController::class, 'register']);
+        Route::post('/login',          [ApplicantAuthController::class, 'login']);
+    });
 });
 
 // OAuth Routes
@@ -69,6 +98,10 @@ Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verifyE
     ->middleware(['signed'])
     ->name('api.verify.email');
 
+// Daraja hits this directly — must not be behind any middleware
+Route::post('/payments/callback', [PaymentController::class, 'callback'])
+    ->name('payments.callback');
+
 // PUBLIC PRODUCTS - ANYONE CAN VIEW (NO AUTH REQUIRED)
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
@@ -77,6 +110,11 @@ Route::get('/products/on-sale', [ProductController::class, 'onSale']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products/{id}/reviews', [ProductReviewController::class, 'index']);
+
+// Auctions (Public)
+Route::get('/auctions', [AuctionController::class, 'index']);
+Route::get('/auctions/{id}', [AuctionController::class, 'show']);
+Route::get('/auctions/{id}/stream', [AuctionController::class, 'stream']);
 
 Route::get('/content', [ContentPageController::class, 'publicIndex']);
 Route::get('/content/{slug}', [ContentPageController::class, 'showBySlug']);
@@ -114,12 +152,32 @@ Route::post('/referral/validate', [ReferralController::class, 'validateCode']);
 // ============================================
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+    Route::post('/chat', [ChatController::class, 'chat'])
+        ->middleware('throttle:30,1');
     // Authentication
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
+    Route::post('/auctions/{auction}/bid', [AuctionController::class, 'placeBid']);
+
+    // ============================================
+    // CAREERS — APPLICANT PORTAL (auth:sanctum resolves Applicant model)
+    // ============================================
+    Route::prefix('careers')->middleware('applicant')->group(function () {
+        Route::post('/auth/logout',                [ApplicantAuthController::class, 'logout']);
+        Route::get('/auth/me',                     [ApplicantAuthController::class, 'me']);
+        Route::post('/jobs/{jobId}/apply',         [ApplicantPortalController::class, 'apply']);
+        Route::post('/applications/{id}/withdraw', [ApplicantPortalController::class, 'withdraw']);
+        Route::get('/applications',                [ApplicantPortalController::class, 'myApplications']);
+        Route::get('/applications/{id}',           [ApplicantPortalController::class, 'show']);
+        Route::post('/applications/{id}/documents',[ApplicantPortalController::class, 'uploadDocument']);
+        Route::patch('/portal/profile',            [ApplicantPortalController::class, 'updateProfile']);
+        Route::post('/portal/password',            [ApplicantPortalController::class, 'changePasswordSelf']);
+
+        Route::post('/portal/change-password', [ApplicantAuthController::class, 'changePassword']);
+    });
+    
     // ============================================
     // NOTIFICATIONS (ALL AUTHENTICATED USERS)
     // ============================================
@@ -167,6 +225,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore', [OrderController::class, 'customerRestore']);
             Route::post('/{id}/rate', [OrderController::class, 'rateOrder']); 
         });
+
+        Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);
 
         // Quotes
         Route::prefix('quotes')->group(function () {
@@ -232,6 +292,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/validate',  [PromoCodeController::class, 'validateCode']);
             Route::get('/my-codes',   [PromoCodeController::class, 'myCodes']);
         });
+
+        Route::prefix('loyalty')->group(function () {
+            Route::get('/',             [LoyaltyController::class, 'myBalance']);
+            Route::get('/transactions', [LoyaltyController::class, 'myTransactions']);
+            Route::post('/redeem',      [LoyaltyController::class, 'selfRedeem']);
+        });
         
         // Reviews
         Route::prefix('reviews')->group(function () {
@@ -253,7 +319,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // ADMIN/MANAGER/SALES REP ROUTES
     // ============================================
-    Route::middleware('role:admin,super_admin,manager,sales_rep')->prefix('admin')->group(function () {
+    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
         // Dashboard
         // Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
@@ -268,12 +334,28 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/trash', [ProductController::class, 'trashIndex']); // trashed products list
             Route::post('/restore-multiple', [ProductController::class, 'restoreMultiple']); // bulk restore
             Route::post('/force-delete-multiple', [ProductController::class, 'forceDeleteMultiple']); // bulk permanent delete
+
+            Route::post('/bulk-update-flags', [ProductController::class, 'bulkUpdateFlags']);
+
             Route::get('/{id}', [ProductController::class, 'show']); 
             Route::put('/{id}', [ProductController::class, 'update']);
+            Route::post('/{id}/bulk-update', [ProductController::class, 'bulkUpdate']);
             Route::delete('/{id}', [ProductController::class, 'destroy']);
             Route::post('/{id}/restore', [ProductController::class, 'restore']); // restore single
             Route::delete('/{id}/force', [ProductController::class, 'forceDelete']); // permanent delete single
             Route::put('/{id}/stock', [ProductController::class, 'updateStock']);
+        });
+
+        // Admin Auction Management
+        Route::prefix('auctions')->group(function () {
+            Route::post('/', [AuctionController::class, 'store']);
+            Route::get('/', [AuctionController::class, 'adminIndex']);
+            Route::get('/trashed', [AuctionController::class, 'trashed']);
+            Route::get('/{auction}', [AuctionController::class, 'adminShow']);
+            Route::put('/{auction}', [AuctionController::class, 'update']);
+            Route::delete('/{auction}', [AuctionController::class, 'destroy']);
+            Route::post('/{id}/restore', [AuctionController::class, 'restore']);  // ← new
+            Route::delete('/{id}/force', [AuctionController::class, 'forceDestroy']); 
         });
 
         // Categories Management
@@ -297,6 +379,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [CustomerController::class, 'index']);
             Route::get('/statistics', [CustomerController::class, 'statistics']);
             Route::get('/top', [CustomerController::class, 'topCustomers']);
+            Route::get('/template', [CustomerController::class, 'downloadTemplate']);
+            Route::post('/import', [CustomerController::class, 'bulkImport']);
+            Route::get('/upcoming-birthdays', [CustomerController::class, 'upcomingBirthdays']);
+            Route::get('/health', [CustomerController::class, 'health']);
             Route::get('/{id}', [CustomerController::class, 'show']);
             Route::put('/{id}', [CustomerController::class, 'update']);
             Route::post('/{id}/upload-image', [CustomerController::class, 'uploadImage']);
@@ -412,6 +498,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/net-total', [OrderController::class, 'getNetTotal']);
             Route::post('/{id}/generate-invoice', [OrderController::class, 'generateInvoice']);
             Route::put('/{id}/payment-status', [OrderController::class, 'updatePaymentStatus']);
+            
+            Route::get('/{id}/payments', [PaymentController::class, 'adminOrderPaymentHistory']);
             Route::delete('/{id}', [OrderController::class, 'destroy']);               // ✅ SOFT DELETE
             Route::post('/{id}/restore-trash', [OrderController::class, 'restore']);
         });
@@ -489,6 +577,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{project}/messages',          [ProjectMessageController::class, 'destroyBulk']);
         });
 
+        Route::prefix('employees')->group(function () {
+            Route::get('/my-record', [EmployeeController::class, 'myRecord']);
+            Route::get('/template', [EmployeeController::class, 'downloadTemplate']);
+            Route::post('/import', [EmployeeController::class, 'bulkImport']);
+        });
+
         // User Management
         Route::prefix('users')->group(function () {
             Route::get('/',                          [UserController::class, 'index']);
@@ -529,14 +623,39 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/statistics',            [ReferralController::class, 'statistics']);
             Route::get('/analytics',             [ReferralController::class, 'analytics']);
             Route::get('/top-performers',        [ReferralController::class, 'topPerformers']);
-            Route::post('/',                     [ReferralController::class, 'store']);
             Route::get('/{id}',                  [ReferralController::class, 'show']);
-            Route::put('/{id}',                  [ReferralController::class, 'update']);
-            Route::delete('/{id}',               [ReferralController::class, 'destroy']);
-            Route::post('/{id}/activate',        [ReferralController::class, 'activate']);
             Route::post('/{id}/pause',           [ReferralController::class, 'pause']);
             Route::post('/{id}/archive',         [ReferralController::class, 'archive']);
             Route::get('/{id}/usage',            [ReferralController::class, 'usage']);
+        });
+
+        // ── PROMO CODES — ADMINS ────────────────────────────────────────────────────
+        Route::prefix('promo-codes')->group(function () {
+            Route::get('/',                    [PromoCodeController::class, 'index']);
+            Route::get('/statistics',          [PromoCodeController::class, 'statistics']);
+            Route::post('/generate-birthday',  [PromoCodeController::class, 'triggerBirthday']);
+            Route::post('/generate-winback',   [PromoCodeController::class, 'triggerWinBack']);
+            Route::post('/expire',             [PromoCodeController::class, 'triggerExpire']);
+            Route::post('/validate',           [PromoCodeController::class, 'adminValidate']);
+            Route::get('/{id}',                [PromoCodeController::class, 'show']);
+            Route::post('/{id}/pause',         [PromoCodeController::class, 'pause']);
+            Route::post('/{id}/archive',       [PromoCodeController::class, 'archive']);
+            Route::get('/{id}/redemptions',    [PromoCodeController::class, 'redemptions']);
+        });
+
+        Route::prefix('loyalty')->group(function () {
+            Route::get('/',                           [LoyaltyController::class, 'index']);
+            Route::get('/settings',                   [LoyaltyController::class, 'getSettings']);
+            Route::put('/settings',                   [LoyaltyController::class, 'updateSettings']);
+            Route::post('/settings/rules',            [LoyaltyController::class, 'upsertRule']);
+            Route::delete('/settings/rules/{ruleId}', [LoyaltyController::class, 'deleteRule']);
+            Route::get('/{customerId}',               [LoyaltyController::class, 'show']);
+            Route::get('/{customerId}/transactions',  [LoyaltyController::class, 'transactions']);
+            Route::post('/{customerId}/grant-points', [LoyaltyController::class, 'grantPoints']);
+            Route::post('/{customerId}/deduct-points',[LoyaltyController::class, 'deductPoints']);
+            Route::post('/{customerId}/grant-credit', [LoyaltyController::class, 'grantCredit']);
+            Route::post('/{customerId}/deduct-credit',[LoyaltyController::class, 'deductCredit']);
+            Route::post('/{customerId}/redeem',       [LoyaltyController::class, 'redeem']);
         });
 
         Route::prefix('work')->group(function () {
@@ -574,6 +693,129 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ============================================
+    // FINANCE ROUTES
+    // ============================================
+    Route::middleware('role:finance,admin,super_admin')->prefix('admin')->group(function () {
+
+        // PAYMENTS
+        Route::prefix('payments')->group(function () {
+            Route::get('/',                          [PaymentController::class, 'index']);
+            Route::post('/initiate',                 [PaymentController::class, 'initiate']);
+            Route::get('/summary',                    [PaymentController::class, 'summary']);
+            Route::get('/order/{orderId}',           [PaymentController::class, 'orderPayments']);
+            
+            Route::get('/{payment}',                 [PaymentController::class, 'show']);
+            Route::get('/{payment}/status',          [PaymentController::class, 'status']);
+            Route::post('/{payment}/cancel',         [PaymentController::class, 'cancel']);
+            Route::post('/{payment}/retry',          [PaymentController::class, 'retry']);
+            Route::post('/{payment}/query-daraja',   [PaymentController::class, 'queryDaraja']);
+            Route::post('/{payment}/dispute',        [PaymentController::class, 'raiseDispute']);
+            Route::post('/{payment}/dispute/resolve',[PaymentController::class, 'resolveDispute']);
+            Route::post('/{payment}/notes',          [PaymentController::class, 'addNotes']);
+        });
+
+        // Projects — policy-gated, same as admin
+        Route::prefix('projects')->group(function () {
+            Route::get('/',                          [ProjectController::class, 'adminIndex']);
+            Route::get('/{project}',                 [ProjectController::class, 'adminShow']);
+            Route::get('/{project}/activity',        [ProjectActivityController::class, 'index']);
+            Route::get('/{project}/participants',    [ProjectParticipantController::class, 'index']);
+            Route::get('/{project}/links',           [ProjectLinkController::class, 'index']);
+            Route::get('/{project}/items',           [ProjectItemController::class, 'index']);
+            Route::get('/{project}/tasks',           [ProjectTaskController::class, 'index']);
+            Route::get('/{project}/milestones',      [ProjectMilestoneController::class, 'index']);
+            Route::get('/{project}/messages',        [ProjectMessageController::class, 'index']);
+            Route::post('/{project}/messages',       [ProjectMessageController::class, 'storeAdminMessage']);
+            Route::put('/{project}/messages/{message}',    [ProjectMessageController::class, 'update']);
+            Route::delete('/{project}/messages/{message}', [ProjectMessageController::class, 'destroy']);
+        });
+
+        // Referrals 
+        Route::prefix('referrals')->group(function () {
+            Route::get('/',                      [ReferralController::class, 'index']);
+            Route::get('/statistics',            [ReferralController::class, 'statistics']);
+            Route::get('/analytics',             [ReferralController::class, 'analytics']);
+            Route::get('/top-performers',        [ReferralController::class, 'topPerformers']);
+            Route::get('/{id}',                  [ReferralController::class, 'show']);
+            Route::post('/{id}/pause',           [ReferralController::class, 'pause']);
+            Route::post('/{id}/archive',         [ReferralController::class, 'archive']);
+            Route::get('/{id}/usage',            [ReferralController::class, 'usage']);
+        });
+
+        // Promo Codes — full ops, no destroy
+        Route::prefix('promo-codes')->group(function () {
+            Route::get('/',                    [PromoCodeController::class, 'index']);
+            Route::post('/',                   [PromoCodeController::class, 'store']);
+            Route::get('/statistics',          [PromoCodeController::class, 'statistics']);
+            Route::post('/generate-birthday',  [PromoCodeController::class, 'triggerBirthday']);
+            Route::post('/generate-winback',   [PromoCodeController::class, 'triggerWinBack']);
+            Route::post('/expire',             [PromoCodeController::class, 'triggerExpire']);
+            Route::post('/validate',           [PromoCodeController::class, 'adminValidate']);
+            Route::get('/{id}',                [PromoCodeController::class, 'show']);
+            Route::put('/{id}',                [PromoCodeController::class, 'update']);
+            Route::post('/{id}/activate',      [PromoCodeController::class, 'activate']);
+            Route::post('/{id}/pause',         [PromoCodeController::class, 'pause']);
+            Route::post('/{id}/archive',       [PromoCodeController::class, 'archive']);
+            Route::get('/{id}/redemptions',    [PromoCodeController::class, 'redemptions']);
+        });
+
+        // Reports — financial subset
+        Route::prefix('reports')->group(function () {
+            Route::get('revenue',       [ReportsController::class, 'revenue']);
+            Route::get('orders',        [ReportsController::class, 'orders']);
+            Route::get('quote-funnel',  [ReportsController::class, 'quoteFunnel']);
+            Route::get('promos',        [ReportsController::class, 'promos']);
+            Route::get('summary',       [ReportsController::class, 'summary']);
+        });
+
+        // Work dashboard
+        Route::prefix('work')->group(function () {
+            Route::get('/dashboard',    [WorkController::class, 'myDashboard']);
+            Route::get('/assignments',  [WorkController::class, 'myAssignmentsEndpoint']);
+            Route::get('/deadlines',    [WorkController::class, 'myDeadlinesEndpoint']);
+        });
+
+        // Own employee record
+        Route::prefix('employees')->group(function () {
+            Route::get('/my-record', [EmployeeController::class, 'myRecord']);
+        });
+    });
+
+    // ============================================
+    // LOGISTICS ROUTES
+    // ============================================
+    Route::middleware('role:logistics,admin,super_admin')->prefix('admin')->group(function () {
+
+        // Projects — policy-gated, same as admin
+        Route::prefix('projects')->group(function () {
+            Route::get('/',                          [ProjectController::class, 'adminIndex']);
+            Route::get('/{project}',                 [ProjectController::class, 'adminShow']);
+            Route::get('/{project}/activity',        [ProjectActivityController::class, 'index']);
+            Route::get('/{project}/participants',    [ProjectParticipantController::class, 'index']);
+            Route::get('/{project}/links',           [ProjectLinkController::class, 'index']);
+            Route::get('/{project}/items',           [ProjectItemController::class, 'index']);
+            Route::get('/{project}/tasks',           [ProjectTaskController::class, 'index']);
+            Route::get('/{project}/milestones',      [ProjectMilestoneController::class, 'index']);
+            Route::get('/{project}/messages',        [ProjectMessageController::class, 'index']);
+            Route::post('/{project}/messages',       [ProjectMessageController::class, 'storeAdminMessage']);
+            Route::put('/{project}/messages/{message}',    [ProjectMessageController::class, 'update']);
+            Route::delete('/{project}/messages/{message}', [ProjectMessageController::class, 'destroy']);
+        });
+
+        // Work dashboard
+        Route::prefix('work')->group(function () {
+            Route::get('/dashboard',    [WorkController::class, 'myDashboard']);
+            Route::get('/assignments',  [WorkController::class, 'myAssignmentsEndpoint']);
+            Route::get('/deadlines',    [WorkController::class, 'myDeadlinesEndpoint']);
+        });
+
+        // Own employee record
+        Route::prefix('employees')->group(function () {
+            Route::get('/my-record', [EmployeeController::class, 'myRecord']);
+        });
+    });
+
+    // ============================================
     // SUPER ADMIN & ADMIN ONLY ROUTES
     // ============================================
     Route::middleware('role:admin,super_admin')->prefix('admin')->group(function () {
@@ -585,19 +827,18 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // ── PROMO CODES — ADMIN ────────────────────────────────────────────────────
         Route::prefix('promo-codes')->group(function () {
-            Route::get('/',                    [PromoCodeController::class, 'index']);
             Route::post('/',                   [PromoCodeController::class, 'store']);
-            Route::get('/statistics',          [PromoCodeController::class, 'statistics']);
-            Route::post('/generate-birthday',  [PromoCodeController::class, 'triggerBirthday']);
-            Route::post('/generate-winback',   [PromoCodeController::class, 'triggerWinBack']);
-            Route::post('/expire',             [PromoCodeController::class, 'triggerExpire']);
-            Route::post('/validate',           [PromoCodeController::class, 'adminValidate']);
-            Route::get('/{id}',                [PromoCodeController::class, 'show']);
             Route::put('/{id}',                [PromoCodeController::class, 'update']);
             Route::delete('/{id}',             [PromoCodeController::class, 'destroy']);
             Route::post('/{id}/activate',      [PromoCodeController::class, 'activate']);
-            Route::post('/{id}/pause',         [PromoCodeController::class, 'pause']);
-            Route::post('/{id}/archive',       [PromoCodeController::class, 'archive']);
+        });
+
+        // Referral Codes Management
+        Route::prefix('referrals')->group(function () {
+            Route::post('/',                     [ReferralController::class, 'store']);
+            Route::put('/{id}',                  [ReferralController::class, 'update']);
+            Route::delete('/{id}',               [ReferralController::class, 'destroy']);
+            Route::post('/{id}/activate',        [ReferralController::class, 'activate']);
         });
 
         Route::prefix('employees')->group(function () {
@@ -607,7 +848,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/job-titles',               [EmployeeController::class, 'jobTitles']);
             Route::get('/potential-managers',       [EmployeeController::class, 'potentialManagers']);
             Route::get('/upcoming-birthdays',       [EmployeeController::class, 'upcomingBirthdays']);
-            Route::get('/my-record',                [EmployeeController::class, 'myRecord']); 
+            Route::get('/leave-logs',               [EmployeeController::class, 'allLeaveLogs']);
+            Route::get('/{id}/leave-logs',          [EmployeeController::class, 'leaveLogs']);
             Route::post('/',                        [EmployeeController::class, 'store']);
             Route::get('/{id}',                     [EmployeeController::class, 'show']);
             Route::put('/{id}',                     [EmployeeController::class, 'update']);
@@ -615,6 +857,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore',            [EmployeeController::class, 'restore']);
             Route::post('/{id}/add-skill',          [EmployeeController::class, 'addSkill']);
             Route::post('/{id}/remove-skill',       [EmployeeController::class, 'removeSkill']);
+            Route::post('/{id}/add-certification',        [EmployeeController::class, 'addCertification']);
+            Route::delete('/{id}/remove-certification/{index}', [EmployeeController::class, 'removeCertification']);
             Route::post('/{id}/add-leave-days',     [EmployeeController::class, 'addLeaveDays']);
             Route::post('/{id}/use-leave-days',     [EmployeeController::class, 'useLeaveDays']);
             Route::post('/{id}/update-status',      [EmployeeController::class, 'updateStatus']);
@@ -628,6 +872,38 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/overview', [WorkController::class, 'teamOverview']);
         });
     });
+
+    // ============================================
+    // CAREERS — ADMIN
+    // ============================================
+    Route::middleware(['role:admin,super_admin'])
+        ->prefix('admin/careers')
+        ->group(function () {
+            Route::get('/jobs',              [AdminJobController::class, 'index']);
+            Route::post('/jobs',             [AdminJobController::class, 'store']);
+            Route::get('/jobs/{id}',         [AdminJobController::class, 'show']);
+            Route::put('/jobs/{id}',         [AdminJobController::class, 'update']);
+            Route::delete('/jobs/{id}',      [AdminJobController::class, 'destroy']);
+            Route::post('/jobs/{id}/publish',[AdminJobController::class, 'publish']);
+            Route::post('/jobs/{id}/close',  [AdminJobController::class, 'close']);
+            
+            Route::get('/applications',              [AdminApplicationController::class, 'index']);
+            Route::get('/applications/stats',        [AdminApplicationController::class, 'stats']);
+            Route::get('/applications/{id}',         [AdminApplicationController::class, 'show']);
+            Route::put('/applications/{id}/status',  [AdminApplicationController::class, 'updateStatus']);
+            Route::post('/applications/{id}/note',   [AdminApplicationController::class, 'addNote']);
+            Route::get('/jobs/{jobId}/applications', [AdminApplicationController::class, 'byJob']);
+
+            Route::get('/applicants',               [AdminApplicantController::class, 'index']);
+            Route::get('/applicants/{id}',          [AdminApplicantController::class, 'show']);
+            Route::patch('/applicants/{id}/status', [AdminApplicantController::class, 'updateStatus']);
+            Route::post('/applicants/{id}/reset-password', [AdminApplicantController::class, 'resetPassword']);
+
+            Route::post('/applications/{id}/screen',       [AdminAIScreeningController::class, 'screenOne']);
+            Route::post('/jobs/{jobId}/screen-all',        [AdminAIScreeningController::class, 'screenBatch']);
+            Route::get('/documents/{document}/download',   [AdminApplicationController::class, 'downloadDocument'])
+                ->name('admin.careers.documents.download');
+        });
 
     // ============================================
     // SUPER ADMIN ONLY ROUTES

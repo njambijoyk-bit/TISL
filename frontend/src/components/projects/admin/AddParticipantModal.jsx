@@ -64,6 +64,7 @@ const PersonPicker = ({ type, selected, onSelect }) => {
   const [open,    setOpen]    = useState(false);
   const debounceRef           = useRef(null);
   const containerRef          = useRef(null);
+  const abortRef     = useRef(null); 
 
   useEffect(() => {
     const handler = (e) => {
@@ -74,19 +75,31 @@ const PersonPicker = ({ type, selected, onSelect }) => {
   }, []);
 
   const search = useCallback(async (q) => {
-    if (!q.trim()) { setResults([]); setOpen(false); return; }
+    if (abortRef.current) abortRef.current.abort();  // cancel previous
+    if (!q.trim()) { setResults([]); setOpen(false); setLoading(false); return; }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
+
     try {
       const endpoint = type === 'admin' ? '/admin/users' : '/admin/customers';
-      const { data } = await api.get(endpoint, { params: { search: q, per_page: 10 } });
+      const params   = type === 'admin'
+        ? { search: q, tab: 'staff', per_page: 25 }   // ← tab filter + sensible limit
+        : { search: q, per_page: 25 };
+
+      const { data } = await api.get(endpoint, { params, signal: controller.signal });
       const raw  = data?.data;
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
       setResults(list);
       setOpen(true);
-    } catch {
-      setResults([]);
-    } finally {
-      setLoading(false);
+      setLoading(false);                              // ← success only
+    } catch (err) {
+      if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+        setResults([]);
+        setLoading(false);                            // ← real errors only
+      }
+      // aborted: do nothing — new search already owns the spinner
     }
   }, [type]);
 

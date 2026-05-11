@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Save, User, Mail, Phone, Briefcase, Building2,
   Calendar, MapPin, DollarSign, Shield, AlertCircle, Users,
-  GraduationCap, Hash, CreditCard
+  GraduationCap, Hash, CreditCard, Search, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import employeesApi from '../../../api/employees';
+import currencyAPI from '../../../api/currency';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,17 @@ const MARITAL_OPTIONS = [
   { value: 'widowed', label: 'Widowed'       },
 ];
 
+const ROLE_OPTIONS = [
+  { value: 'sales_rep', label: 'Sales Rep' },
+  { value: 'manager',   label: 'Manager'   },
+  { value: 'admin',     label: 'Admin'     },
+];
+
+const ROLE_RANK = { sales_rep: 1, manager: 2, admin: 3 };
+
 const EMPTY_FORM = {
   name: '', email: '', phone: '',
+  role: 'sales_rep',
   employee_id: '', job_title: '', department: '',
   employment_type: 'full_time', hire_date: '',
   work_location: '', work_email: '', work_phone: '',
@@ -156,21 +166,50 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const [loading, setLoading]   = useState(isEditing);
-  const [saving, setSaving]     = useState(false);
-  const [managers, setManagers] = useState([]);
-  const [errors, setErrors]     = useState({});
-  const [form, setForm]         = useState(EMPTY_FORM);
+  const [loading, setLoading]             = useState(isEditing);
+  const [saving, setSaving]               = useState(false);
+  const [managers, setManagers]           = useState([]);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [currencies, setCurrencies]       = useState([]);
+  const [errors, setErrors]               = useState({});
+  const [form, setForm]                   = useState(EMPTY_FORM);
 
   useEffect(() => {
     fetchManagers();
+    fetchCurrencies();
     if (isEditing) fetchEmployee();
   }, [id]);
+
+  useEffect(() => {
+    if (!form.manager_id || !form.role) return;
+    const m = managers.find(m => String(m.id) === String(form.manager_id));
+    if (m && ROLE_RANK[m.role] < ROLE_RANK[form.role]) {
+      set('manager_id', '');
+      setManagerSearch('');
+    }
+  }, [form.role, managers]);
 
   const fetchManagers = async () => {
     try { const data = await employeesApi.getPotentialManagers(); setManagers(data.data || []); }
     catch { console.error('Failed to fetch managers'); }
   };
+
+  const fetchCurrencies = async () => {
+    try {
+      const data = await currencyAPI.getCurrencies();
+      const active = (data.data || data).filter(c => c.is_active);
+      setCurrencies(active);
+    } catch { console.error('Failed to fetch currencies'); }
+  };
+
+  const filteredManagers = managers.filter(m => {
+  const q = managerSearch.toLowerCase();
+  return !q
+    || m.name?.toLowerCase().includes(q)
+    || m.job_title?.toLowerCase().includes(q)
+    || m.department?.toLowerCase().includes(q)
+    || m.role?.toLowerCase().includes(q);
+});
 
   const fetchEmployee = async () => {
     try {
@@ -325,15 +364,85 @@ export default function EmployeeForm() {
           <Field label="Work Phone">
             <Input value={form.work_phone} onChange={v => set('work_phone', v)} icon={Phone} />
           </Field>
+          <Field label="System Role" required>
+            <Select value={form.role} onChange={v => set('role', v)} options={ROLE_OPTIONS} />
+          </Field>
           <Field label="Reports To">
-            <select value={form.manager_id} onChange={e => set('manager_id', e.target.value)} style={baseInput} onFocus={iFocus} onBlur={iBlur}>
-              <option value="">— No Manager —</option>
-              {managers.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role ? ` [${m.role.replace('_', ' ')}]` : ''}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+              {/* role restriction hint */}
+              {form.role === 'admin' && (
+                <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
+                  Admins can only report to another admin.
+                </p>
+              )}
+              {form.role === 'manager' && (
+                <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
+                  Managers can only report to a manager or admin — not a sales rep.
+                </p>
+              )}
+
+              {/* selected manager chip */}
+              {form.manager_id && (() => {
+                const m = managers.find(m => String(m.id) === String(form.manager_id));
+                return m ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 7, background: 'rgba(168,85,247,0.07)', border: '1.5px solid rgba(168,85,247,0.25)' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 600 }}>
+                      {m.name}{m.job_title ? ` · ${m.job_title}` : ''}
+                    </span>
+                    <button type="button" onClick={() => set('manager_id', '')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd', display: 'flex', padding: 2 }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : null;
+              })()}
+
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Filter managers…"
+                  value={managerSearch}
+                  onChange={e => setManagerSearch(e.target.value)}
+                  style={{ ...baseInput, paddingLeft: 30 }}
+                  onFocus={iFocus} onBlur={iBlur}
+                />
+                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#c4b5fd', pointerEvents: 'none' }} />
+                {managerSearch && (
+                  <button type="button" onClick={() => setManagerSearch('')}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {managerSearch && (
+                <select
+                  value={form.manager_id}
+                  onChange={e => { set('manager_id', e.target.value); setManagerSearch(''); }}
+                  style={{ ...baseInput, appearance: 'auto' }} onFocus={iFocus} onBlur={iBlur}
+                  size={Math.min(filteredManagers.filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role]).length + 1, 6)}>
+                  <option value="">— No Manager —</option>
+                  {filteredManagers
+                    .filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role])
+                    .map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role ? ` [${m.role.replace(/_/g, ' ')}]` : ''}
+                      </option>
+                    ))}
+                </select>
+              )}
+
+              {managerSearch && filteredManagers.filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role]).length === 0 && (
+                <p style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
+                  No eligible managers match "{managerSearch}"
+                </p>
+              )}
+            </div>
           </Field>
         </Grid>
       </SectionCard>
@@ -380,7 +489,23 @@ export default function EmployeeForm() {
         <Grid cols={4}>
           <Field label="Salary Grade"><Input value={form.salary_grade} onChange={v => set('salary_grade', v)} placeholder="G4" /></Field>
           <Field label="Base Salary"><Input value={form.base_salary} onChange={v => set('base_salary', v)} type="number" icon={DollarSign} placeholder="50000" /></Field>
-          <Field label="Currency"><Input value={form.currency} onChange={v => set('currency', v)} placeholder="KES" /></Field>
+          <Field label="Currency">
+            <select
+              value={form.currency}
+              onChange={e => set('currency', e.target.value)}
+              style={baseInput}
+              onFocus={iFocus} onBlur={iBlur}
+            >
+              {currencies.length === 0
+                ? <option value="KES">KES</option>
+                : currencies.map(c => (
+                    <option key={c.id} value={c.code}>
+                      {c.code} — {c.name}
+                    </option>
+                  ))
+              }
+            </select>
+          </Field>
           <Field label="Annual Leave Days"><Input value={form.annual_leave_days} onChange={v => set('annual_leave_days', v)} type="number" icon={Calendar} /></Field>
         </Grid>
       </SectionCard>

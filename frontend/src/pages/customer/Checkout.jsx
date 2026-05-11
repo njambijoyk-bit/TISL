@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, AlertTriangle, Tag, ChevronRight, Package, Truck, CreditCard, X } from 'lucide-react';
+import { Lock, AlertTriangle, Tag, ChevronRight, Package, Truck, CreditCard, X, Wallet, Loader2 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import PromoCodeInput from '../../components/common/PromoCodeInput';
@@ -96,7 +96,7 @@ function RadioCard({ value, current, onChange, label, sub, icon }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, getTotal, clearCart }    = useCartStore();
-  const { user }                          = useAuthStore();
+  const { user, customer }                = useAuthStore();
   const { createOrder }                   = useOrderStore();
   const { appliedPromo, clearPromo }      = usePromoCodeStore();
   const [loading, setLoading]             = useState(false);
@@ -110,6 +110,12 @@ export default function Checkout() {
     payment_method:    'mpesa',
     customer_notes:    '',
   });
+
+  const availableCredit                         = parseFloat(customer?.store_credit ?? 0);
+  const [applyCredit,      setApplyCredit]      = useState(false);
+  const [creditInput,      setCreditInput]      = useState('');
+  const [creditCalculating,setCreditCalculating]= useState(false);
+  const creditDebounce                          = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -136,6 +142,10 @@ export default function Checkout() {
         ...form,
         items: items.map(item => ({ product_id: item.id, item_type: 'product', quantity: item.quantity })),
         ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
+        ...(applyCredit && creditDeduction > 0 ? {
+          apply_store_credit: true,
+          store_credit_amount: creditDeduction,
+        } : {}),
       };
       const res = await createOrder(orderData);
       toast.success('Order placed successfully!');
@@ -156,15 +166,19 @@ export default function Checkout() {
   }, []);
 
   // Totals
-  const subtotal      = getTotal();
-  const promoDiscount = appliedPromo?.discount ?? 0;
-  const taxable       = subtotal - promoDiscount;
-  const tax           = taxable * 0.16;
-  const shipping      = form.delivery_method === 'express_delivery' ? 1500
-                      : form.delivery_method === 'courier'          ? 2000
-                      : form.delivery_method === 'pickup'           ? 0
-                      : subtotal >= 50000                           ? 0 : 500;
-  const total         = subtotal - promoDiscount + tax + shipping;
+  const subtotal        = getTotal();
+  const promoDiscount   = appliedPromo?.discount ?? 0;
+  const taxable         = subtotal - promoDiscount;
+  const tax             = taxable * 0.16;
+  const shipping        = form.delivery_method === 'express_delivery' ? 1500
+                        : form.delivery_method === 'courier'          ? 2000
+                        : form.delivery_method === 'pickup'           ? 0
+                        : subtotal >= 50000                           ? 0 : 500;
+  const preCredit       = subtotal - promoDiscount + tax + shipping;
+  const creditDeduction = applyCredit
+    ? Math.min(parseFloat(creditInput) || 0, availableCredit, preCredit)
+    : 0;
+  const total           = preCredit - creditDeduction;
 
   const fmt = (n) => Number(n).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 
@@ -343,6 +357,7 @@ export default function Checkout() {
                   </p>
                   <PromoCodeInput
                     orderValue={subtotal}
+                    exchangeRateToKes={1} 
                     onApplied={() => {}}
                     onCleared={() => {}}
                     disabled={loading}
@@ -350,11 +365,104 @@ export default function Checkout() {
                   />
                 </div>
 
+                {/* Store credit */}
+                {user && availableCredit > 0 && (
+                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, marginBottom: 14 }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Wallet size={10} /> Store credit
+                    </p>
+
+                    {/* Checkbox row */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !applyCredit;
+                        setApplyCredit(next);
+                        if (next) {
+                          const max = Math.min(availableCredit, preCredit);
+                          setCreditInput(String(max.toFixed(0)));
+                          setCreditCalculating(true);
+                          clearTimeout(creditDebounce.current);
+                          creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
+                        } else {
+                          setCreditInput('');
+                          setCreditCalculating(false);
+                        }
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        width: '100%', padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
+                        border: `1.5px solid ${applyCredit ? '#a855f7' : '#e5e7eb'}`,
+                        background: applyCredit ? 'rgba(168,85,247,0.04)' : 'white',
+                        fontFamily: 'inherit', transition: 'all 150ms',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 16, height: 16, borderRadius: 4, border: `2px solid ${applyCredit ? '#a855f7' : '#d1d5db'}`,
+                          background: applyCredit ? '#a855f7' : 'white', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms',
+                        }}>
+                          {applyCredit && <div style={{ width: 6, height: 6, background: 'white', borderRadius: 1 }} />}
+                        </div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>
+                          Apply store credit
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                        {fmt(availableCredit)} available
+                      </span>
+                    </button>
+
+                    {/* Amount input — shown when checked */}
+                    {applyCredit && (
+                      <div style={{ marginTop: 10 }}>
+                        <label style={{ ...labelStyle, marginBottom: 5 }}>
+                          Amount to use (max {fmt(Math.min(availableCredit, preCredit))})
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <span style={{
+                            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                            fontSize: '0.78rem', color: '#9ca3af', pointerEvents: 'none',
+                          }}>KES</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={Math.min(availableCredit, preCredit)}
+                            value={creditInput}
+                            onChange={e => {
+                              setCreditInput(e.target.value);
+                              setCreditCalculating(true);
+                              clearTimeout(creditDebounce.current);
+                              creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
+                            }}
+                            onBlur={e => {
+                              const max = Math.min(availableCredit, preCredit);
+                              const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
+                              setCreditInput(String(val.toFixed(0)));
+                            }}
+                            style={{ ...inputStyle, paddingLeft: 38 }}
+                            onFocus={inputFocus}
+                          />
+                          {creditCalculating && (
+                            <Loader2 size={13} style={{
+                              position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                              color: '#a855f7', animation: 'spin 700ms linear infinite',
+                            }} />
+                          )}
+                        </div>
+                        <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Totals */}
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { label: 'Subtotal', value: fmt(subtotal) },
-                    ...(promoDiscount > 0 ? [{ label: 'Promo discount', value: `−${fmt(promoDiscount)}`, color: '#a855f7' }] : []),
+                    ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: '#a855f7' }] : []),
+                    ...(creditDeduction > 0 ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
                     { label: 'Tax (16%)', value: fmt(tax) },
                     { label: 'Shipping',  value: shipping === 0 ? 'Free' : fmt(shipping) },
                   ].map(({ label, value, color }) => (
