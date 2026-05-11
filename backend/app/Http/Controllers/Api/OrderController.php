@@ -2323,28 +2323,77 @@ class OrderController extends Controller
         return response()->json(['message' => 'Invoice generated successfully', 'invoice_number' => $invoiceNumber, 'order' => $order->fresh()], 200);
     }
 
-    public function updatePaymentStatus(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'payment_status'    => 'required|in:unpaid,partially_paid,paid,refunded,failed',
-            'payment_reference' => 'nullable|string',
-        ]);
-        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
-
-        $order = Order::findOrFail($id);
-
-        if ($request->payment_status === 'paid') {  
-            // Use markAsPaid to trigger loyalty points  
-            $order->markAsPaid($request->payment_reference);  
-        } else {  
-            // For other statuses, update directly  
-            $order->update([  
-                'payment_status'    => $request->payment_status,  
-                'payment_reference' => $request->payment_reference ?? $order->payment_reference,  
-            ]);  
+    public function updatePaymentStatus(Request $request, $id)  
+    {  
+        $validator = Validator::make($request->all(), [  
+            'payment_status'    => 'required|in:unpaid,partially_paid,paid,refunded,failed',  
+            'payment_reference' => 'nullable|string',  
+            'amount_paid'       => 'nullable|numeric|min:0|required_if:payment_status,partially_paid',  
+            'payment_method'    => 'nullable|in:mpesa,bank_transfer,cod,credit|required_if:payment_status,paid,partially_paid',  
+        ]);  
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);  
+    
+        $order = Order::findOrFail($id);  
+    
+        // If setting to paid or partially_paid, create a payment record  
+        if (in_array($request->payment_status, ['paid', 'partially_paid'])) {  
+            DB::beginTransaction();  
+            try {  
+                $snapshot = \App\Models\Payment::buildSnapshot($order);  
+                $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
+                
+                // For paid status, amount is the full order total  
+                $amount = $request->payment_status === 'paid'   
+                    ? $snapshot['snapshot_total_kes']   
+                    : $request->amount_paid;  
+                
+                $payment = \App\Models\Payment::create([  
+                    'order_id'                    => $order->id,  
+                    'customer_id'                 => $order->customer_id,  
+                    'initiated_by'                => $request->user()->id,  
+                    'payment_number'              => $paymentNumber,  
+                    'method'                      => $request->payment_method,  
+                    'status'                      => 'confirmed', // Manual payments are auto-confirmed  
+                    'currency'                    => $order->currency ?? 'KES',  
+                    'exchange_rate_to_kes'        => $order->exchange_rate_to_kes ?? 1,  
+                    'amount_expected'             => $amount,  
+                    'amount_received'             => $amount,  
+                    'mpesa_amount_confirmed'      => $amount,  
+                    'mpesa_receipt_number'        => $request->payment_reference,  
+                    'mpesa_transaction_date'      => now(),  
+                    'is_partial'                  => $request->payment_status === 'partially_paid',  
+                    ...$snapshot,  
+                    'notes'                       => 'Manual payment recorded via admin panel',  
+                    'initiated_at'                => now(),  
+                    'confirmed_at'                => now(),  
+                ]);  
+    
+                // Update order payment_reference and payment_method  
+                $order->update([  
+                    'payment_reference' => $request->payment_reference,  
+                    'payment_method' => $request->payment_method === 'credit' ? 'credit' :   
+                                    ($request->payment_method === 'cod' ? 'pay_on_delivery' : $request->payment_method),  
+                ]);  
+    
+                // Sync order payment status based on all confirmed payments  
+                $payment->syncOrderPaymentStatus();  
+                
+                DB::commit();  
+                return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh(), 'payment' => $payment], 200);  
+            } catch (\Exception $e) {  
+                DB::rollBack();  
+                Log::error('Manual payment creation failed: ' . $e->getMessage());  
+                return response()->json(['message' => 'Failed to record payment', 'error' => $e->getMessage()], 500);  
+            }  
         }  
+    
+        // For other statuses (unpaid, refunded, failed), update directly  
+        $order->update([  
+            'payment_status'    => $request->payment_status,  
+            'payment_reference' => $request->payment_reference ?? $order->payment_reference,  
+        ]);  
         
-        return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh()], 200);
+        return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh()], 200);  
     }
 
     public function adminCancel(Request $request, $id)
@@ -2376,16 +2425,29 @@ class OrderController extends Controller
                 }
                 $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason]);
 
-            } elseif ($requiresRefund && !$requiresReturn) {
-                foreach ($order->items as $item) {
-                    if ($item->product && $item->in_stock_quantity > 0) {
-                        $item->product->increment('stock_quantity', $item->in_stock_quantity);
-                        $item->product->update(['in_stock' => true]);
-                    }
-                    $item->update(['refund_amount' => $item->line_total_after_discount, 'return_status' => 'completed']);
-                }
-                $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
-
+            } elseif ($requiresRefund && !$requiresReturn) {  
+            // Calculate actual amount paid from payments table  
+            $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
+            $totalOrderKes = (float) ($order->total_kes ?? $order->total ?? 0);  
+            
+            // Cap refund to actual amount paid  
+            $maxRefundable = min($totalOrderKes, $totalConfirmedPayments);  
+            
+            // Calculate proportional refund per item  
+            foreach ($order->items as $item) {  
+                if ($item->product && $item->in_stock_quantity > 0) {  
+                    $item->product->increment('stock_quantity', $item->in_stock_quantity);  
+                    $item->product->update(['in_stock' => true]);  
+                }  
+                
+                // Calculate proportional refund based on item's share of total  
+                $itemShare = $totalOrderKes > 0 ? ($item->line_total_after_discount / $totalOrderKes) : 0;  
+                $refundAmount = round($maxRefundable * $itemShare, 2);  
+                
+                $item->update(['refund_amount' => $refundAmount, 'return_status' => 'completed']);  
+            }  
+            $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
+            
             } elseif ($requiresReturn) {
                 if ($request->has('refund_items')) {
                     foreach ($request->refund_items as $refundItem) {

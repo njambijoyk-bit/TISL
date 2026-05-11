@@ -469,6 +469,16 @@ class Order extends Model
         }
     }
 
+    /**  
+     * Get total confirmed payments from payments table  
+     */  
+    public function getTotalConfirmedPayments(): float  
+    {  
+        return (float) \App\Models\Payment::where('order_id', $this->id)  
+            ->where('status', 'confirmed')  
+            ->sum('mpesa_amount_confirmed');  
+    }
+
     /**
      * Generate invoice number.
      */
