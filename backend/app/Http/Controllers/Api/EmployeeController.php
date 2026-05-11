@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use Carbon\Carbon;
+use App\Imports\EmployeesImport;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\LeaveLog;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\Log;
 
 class EmployeeController extends Controller
@@ -108,6 +113,7 @@ class EmployeeController extends Controller
             'email' => 'required_without:user_id|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:8',
+            'role' => 'nullable|in:admin,manager,sales_rep',
             
             // Either user_id or name/email must be provided
             'user_id' => 'nullable|exists:users,id',
@@ -167,15 +173,9 @@ class EmployeeController extends Controller
                     'email' => $request->email,
                     'phone' => $request->phone,
                     'password' => bcrypt($request->password ?? 'password123'), // default password
-                    'role' => 'sales_rep', // default role for new employees
+                    'role'  => $request->input('role', 'sales_rep'),
                     'status' => 'active',
                 ]);
-            }
-
-            // Verify the user is a staff member
-            if (!in_array($user->role, ['admin', 'manager', 'sales_rep', 'super_admin'])) {
-                // Update role if not a staff member
-                $user->update(['role' => 'sales_rep']);
             }
 
             $employee = Employee::create([
@@ -277,6 +277,7 @@ class EmployeeController extends Controller
             'certifications' => 'nullable|array',
             'status' => 'in:active,on_leave,suspended,terminated,probation',
             'notes' => 'nullable|string',
+            'role' => 'nullable|in:admin,manager,sales_rep',
         ]);
 
         if ($validator->fails()) {
@@ -298,11 +299,17 @@ class EmployeeController extends Controller
             ]));
 
             // Update user record to keep in sync
-            if ($request->filled('employee_id') || $request->filled('department')) {
-                $employee->user->update([
+            if ($request->filled('employee_id') || $request->filled('department') || $request->filled('role')) {
+                $updateData = [
                     'employee_id' => $request->employee_id ?? $employee->employee_id,
-                    'department' => $request->department ?? $employee->department,
-                ]);
+                    'department'  => $request->department  ?? $employee->department,
+                ];
+
+                if ($request->filled('role')) {
+                    $updateData['role'] = $request->role;
+                }
+
+                $employee->user->update($updateData);
             }
 
             // Handle status changes
@@ -486,6 +493,29 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Get the authenticated user's own employee record
+     */
+    public function myRecord(Request $request)
+    {
+        $employee = Employee::with(['manager.user', 'subordinates.user'])
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'No employee record found for your account',
+                'employee' => null,
+            ], 200);
+        }
+
+        // No authorize() needed — the query already scopes to their own record
+
+        return response()->json([
+            'employee' => $employee,
+        ], 200);
+    }
+
+    /**
      * Get potential managers (for dropdown)
      */
     public function potentialManagers()
@@ -507,6 +537,67 @@ class EmployeeController extends Controller
             });
 
         return response()->json(['data' => $managers], 200);
+    }
+
+    public function downloadTemplate()
+    {
+        $columns = [
+            'name', 'email', 'phone', 'employee_number', 'job_title', 'department',
+            'employment_type', 'hire_date', 'manager_id', 'work_location', 'base_salary',
+            'currency', 'annual_leave_days', 'id_number', 'kra_pin', 'nssf_number',
+            'nhif_number', 'date_of_birth', 'gender', 'marital_status', 'skills',
+            'certifications', 'status', 'notes', 'emergency_contact_name',
+            'emergency_contact_phone', 'emergency_contact_relationship', 'bank_name',
+            'bank_account_number', 'bank_account_name',
+        ];
+
+        // Build CSV in memory (no php://output issues)
+        $csv = collect([$columns])
+            ->map(fn($row) => implode(',', array_map(fn($cell) => '"' . str_replace('"', '""', $cell) . '"', $row)))
+            ->implode("\n");
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="employees_template.csv"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        ]);
+    }
+
+    public function bulkImport(Request $request)
+    {
+        $this->authorize('viewAny', User::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            Excel::import(new EmployeesImport(), $request->file('file'));
+            return response()->json(['message' => 'Employees imported successfully.']);
+
+        } catch (ValidationException $e) {
+            $failures = collect($e->failures())->take(5)->map(fn($f) => [
+                'row'    => $f->row(),
+                'errors' => $f->errors(),
+            ]);
+            return response()->json([
+                'message' => 'Validation failed on some rows.',
+                'errors'  => $failures->toArray(),
+            ], 422);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                preg_match("/Duplicate entry '([^']+)' for key '([^']+)'/", $e->getMessage(), $matches);
+                return response()->json([
+                    'message' => "Import failed: Duplicate value '{$matches[1]}' on constraint '{$matches[2]}'.",
+                    'hint'    => 'Check that all values in your CSV are unique and not already registered.',
+                ], 422);
+            }
+            return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -558,15 +649,16 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Add leave days to employee
+     * Add certification to employee
      */
-    public function addLeaveDays(Request $request, $id)
+    public function addCertification(Request $request, $id)
     {
         $this->authorize('update', Employee::class);
 
         $validator = Validator::make($request->all(), [
-            'days' => 'required|numeric|min:0',
-            'reason' => 'nullable|string|max:255'
+            'name'   => 'required|string|max:255',
+            'issuer' => 'nullable|string|max:255',
+            'date'   => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -574,12 +666,81 @@ class EmployeeController extends Controller
         }
 
         $employee = Employee::findOrFail($id);
-        $employee->addLeaveDays($request->days);
+
+        $certifications = $employee->certifications ?? [];
+        $certifications[] = array_filter([
+            'name'   => $request->name,
+            'issuer' => $request->issuer,
+            'date'   => $request->date,
+        ]);
+
+        $employee->update(['certifications' => $certifications]);
 
         return response()->json([
-            'message' => 'Leave days added successfully',
+            'message'  => 'Certification added successfully',
             'employee' => $employee->fresh(),
-            'new_balance' => $employee->leave_balance
+        ], 200);
+    }
+
+    /**
+     * Remove certification from employee by index
+     */
+    public function removeCertification(Request $request, $id, $index)
+    {
+        $this->authorize('update', Employee::class);
+
+        $employee = Employee::findOrFail($id);
+
+        $certifications = $employee->certifications ?? [];
+
+        if (!isset($certifications[$index])) {
+            return response()->json(['message' => 'Certification not found'], 404);
+        }
+
+        array_splice($certifications, $index, 1);
+        $employee->update(['certifications' => array_values($certifications)]);
+
+        return response()->json([
+            'message'  => 'Certification removed successfully',
+            'employee' => $employee->fresh(),
+        ], 200);
+    }
+
+    /**
+     * Add leave days to employee
+     */
+    public function addLeaveDays(Request $request, $id)
+    {
+        $this->authorize('update', Employee::class);
+
+        $validator = Validator::make($request->all(), [
+            'days'   => 'required|numeric|min:0',
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $employee = Employee::findOrFail($id);
+        $balanceBefore = $employee->leave_balance;
+
+        $employee->addLeaveDays($request->days);
+
+        LeaveLog::create([
+            'employee_id'    => $employee->id,
+            'action'         => 'add',
+            'days'           => $request->days,
+            'reason'         => $request->reason,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => $employee->fresh()->leave_balance,
+            'actioned_by'    => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'message'     => 'Leave days added successfully',
+            'employee'    => $employee->fresh(),
+            'new_balance' => $employee->fresh()->leave_balance,
         ], 200);
     }
 
@@ -591,8 +752,8 @@ class EmployeeController extends Controller
         $this->authorize('update', Employee::class);
 
         $validator = Validator::make($request->all(), [
-            'days' => 'required|numeric|min:0',
-            'reason' => 'nullable|string|max:255'
+            'days'   => 'required|numeric|min:0',
+            'reason' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -600,19 +761,72 @@ class EmployeeController extends Controller
         }
 
         $employee = Employee::findOrFail($id);
+        $balanceBefore = $employee->leave_balance;
 
         if (!$employee->useLeaveDays($request->days)) {
             return response()->json([
-                'message' => 'Insufficient leave balance',
-                'current_balance' => $employee->leave_balance
+                'message'         => 'Insufficient leave balance',
+                'current_balance' => $employee->leave_balance,
             ], 422);
         }
 
+        LeaveLog::create([
+            'employee_id'    => $employee->id,
+            'action'         => 'use',
+            'days'           => $request->days,
+            'reason'         => $request->reason,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => $employee->fresh()->leave_balance,
+            'actioned_by'    => $request->user()->id,
+        ]);
+
         return response()->json([
-            'message' => 'Leave days used successfully',
-            'employee' => $employee->fresh(),
-            'new_balance' => $employee->leave_balance
+            'message'     => 'Leave days used successfully',
+            'employee'    => $employee->fresh(),
+            'new_balance' => $employee->fresh()->leave_balance,
         ], 200);
+    }
+
+    /**
+     * Get leave log history for an employee
+     */
+    public function leaveLogs($id)
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        $logs = LeaveLog::where('employee_id', $id)
+            ->with('actionedBy:id,name')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $logs], 200);
+    }
+
+    /**
+     * All leave logs across all employees (global view)
+     */
+    public function allLeaveLogs(Request $request)
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        $query = LeaveLog::with([
+            'employee:id,employee_number,user_id',   // ← user_id required for nested load
+            'employee.user:id,name',
+            'actionedBy:id,name',
+        ])->orderBy('created_at', 'desc');
+
+        // Optional filters
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->employee_id);
+        }
+
+        $logs = $query->paginate($request->get('per_page', 50));
+
+        return response()->json($logs, 200);
     }
 
     /**
@@ -678,7 +892,7 @@ class EmployeeController extends Controller
     {
         $this->authorize('viewAny', Employee::class);
 
-        $days = $request->get('days', 30);
+        $days = (int) $request->get('days', 30);
         $today = now();
         $endDate = $today->copy()->addDays($days);
 
@@ -733,13 +947,27 @@ class EmployeeController extends Controller
      */
     private function daysUntilBirthday($birthDate): int
     {
-        $today = now();
-        $nextBirthday = $birthDate->copy()->year($today->year);
+        if (!$birthDate) return 999;
 
-        if ($nextBirthday->isPast()) {
-            $nextBirthday->addYear();
+        $today = now()->startOfDay();
+        $year  = $today->year;
+
+        // Handle Feb 29 born employees in non-leap years
+        try {
+            $nextBirthday = Carbon::createFromDate($year, $birthDate->month, $birthDate->day)->startOfDay();
+        } catch (\Exception $e) {
+            // Feb 29 on a non-leap year → use Mar 1
+            $nextBirthday = Carbon::createFromDate($year, 3, 1)->startOfDay();
         }
 
-        return $today->diffInDays($nextBirthday, false);
+        if ($nextBirthday->lt($today)) {
+            try {
+                $nextBirthday = Carbon::createFromDate($year + 1, $birthDate->month, $birthDate->day)->startOfDay();
+            } catch (\Exception $e) {
+                $nextBirthday = Carbon::createFromDate($year + 1, 3, 1)->startOfDay();
+            }
+        }
+
+        return (int) $today->diffInDays($nextBirthday);
     }
 }

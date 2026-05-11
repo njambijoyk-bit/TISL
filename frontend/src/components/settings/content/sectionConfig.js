@@ -14,12 +14,12 @@ export const SECTION_TYPES_BY_PAGE = {
   ],
   about: [
     { value: 'hero',            label: 'Hero' },
+    { value: 'custom',          label: 'Custom' },
     { value: 'mission_vision',  label: 'Mission & Vision' },
     { value: 'values',          label: 'Values' },
     { value: 'team',            label: 'Team' },
     { value: 'stats',           label: 'Stats' },
     { value: 'cta',             label: 'Call to Action' },
-    { value: 'custom',          label: 'Custom' },
   ],
   contact: [
     { value: 'hero',          label: 'Hero' },

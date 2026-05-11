@@ -185,6 +185,16 @@ class Customer extends Model
             ->where('type', 'customer_referral');
     }
 
+    public function loyaltyPointTransactions()
+    {
+        return $this->hasMany(\App\Models\LoyaltyPointTransaction::class);
+    }
+    
+    public function storeCreditTransactions()
+    {
+        return $this->hasMany(\App\Models\StoreCreditTransaction::class);
+    }
+
     /**
      * Get the sales representative assigned to this customer.
      */
@@ -684,6 +694,47 @@ class Customer extends Model
 
         $this->checkTierUpgrade();
         $this->triggerLoyaltyPromoIfEligible();
+
+        // ── Loyalty: referral credit to referrer on first completed order ─────────
+        try {
+            if (
+                $this->referred_by_customer_id &&
+                !$this->referral_completed_at  &&
+                $this->total_orders === 1
+            ) {
+                $referrer = Customer::find($this->referred_by_customer_id);
+                if ($referrer) {
+                    app(\App\Services\LoyaltyService::class)->grantReferralCredit($referrer, $order);
+                }
+                $this->update(['referral_completed_at' => now()]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Referral credit failed for customer {$this->id}: " . $e->getMessage());
+        }
+    }
+
+    // Customer model
+    public function recalculateStatistics(): void
+    {
+        $realTotal = Order::where('customer_id', $this->id)
+            ->whereNotIn('status', ['cancelled', 'failed'])
+            ->sum('total_kes');
+
+        $realCount = Order::where('customer_id', $this->id)
+            ->whereNotIn('status', ['cancelled', 'failed'])
+            ->count();
+
+        $this->update([
+            'total_orders'        => $realCount,
+            'total_spent'         => $realTotal,
+            'average_order_value' => $realCount > 0 ? round($realTotal / $realCount, 2) : 0,
+            'last_order_date'     => now(),
+            'first_order_date'    => $this->first_order_date ?? now(),
+        ]);
+
+        $this->refresh();
+        $this->checkTierUpgrade();
+        $this->triggerLoyaltyPromoIfEligible();
     }
 
     /**
@@ -752,15 +803,23 @@ class Customer extends Model
     public static function generateCustomerNumber(): string
     {
         $year = date('Y');
-        $lastCustomer = self::whereYear('created_at', $year)
-            ->orderBy('id', 'desc')
-            ->first();
 
-        $sequence = $lastCustomer 
-            ? (int) substr($lastCustomer->customer_number, -4) + 1 
-            : 1;
+        do {
+            $lastCustomer = self::withTrashed()
+                ->whereYear('created_at', $year)
+                ->orderBy('id', 'desc')
+                ->first();
 
-        return 'CUST-' . $year . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+            $sequence = $lastCustomer
+                ? (int) substr($lastCustomer->customer_number, -4) + 1
+                : 1;
+
+            $number = 'CUST-' . $year . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+
+            $exists = self::withTrashed()->where('customer_number', $number)->exists();
+        } while ($exists);
+
+        return $number;
     }
 
     /**

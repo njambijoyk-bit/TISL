@@ -61,15 +61,35 @@ export default function Cart() {
               </div>
             </div>
 
-            {/* Continue Shopping */}
             <div className="mt-8 text-center">
-              <Button
-                variant="outline"
+              <button
                 onClick={() => navigate('/products')}
-                icon={<ShoppingBag size={18} />}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 24px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(168,85,247,0.4)',
+                  background: 'transparent',
+                  color: '#a855f7',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+                  e.currentTarget.style.borderColor = '#a855f7';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                }}
               >
+                <ShoppingBag size={18} />
                 Continue Shopping
-              </Button>
+              </button>
             </div>
           </>
         )}

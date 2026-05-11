@@ -11,6 +11,15 @@ use App\Policies\UserPolicy;
 use App\Models\Vendor;
 use App\Policies\VendorPolicy;
 
+use App\Models\Employee;
+use App\Policies\EmployeePolicy;
+
+use App\Models\Payment;
+use App\Policies\PaymentPolicy;
+
+use App\Models\Customer;
+use App\Policies\LoyaltyPolicy;
+
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -19,6 +28,10 @@ class AuthServiceProvider extends ServiceProvider
         Project::class => ProjectPolicy::class,
         User::class => UserPolicy::class,
         Vendor::class => VendorPolicy::class,
+        Employee::class => EmployeePolicy::class,
+        Payment::class => PaymentPolicy::class,
+        Customer::class => LoyaltyPolicy::class,
+
     ];
 
     public function boot(): void

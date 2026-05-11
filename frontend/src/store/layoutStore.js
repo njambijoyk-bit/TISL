@@ -10,7 +10,7 @@ const useLayoutStore = create(
   persist(
     (set) => ({
       productsView: 'large',    // 'large' | 'collapsed'
-      servicesView: 'large',    // 'large' | 'collapsed'
+      servicesView: 'collapsed',    // 'large' | 'collapsed'
 
       setProductsView: (view) => set({ productsView: view }),
       setServicesView: (view) => set({ servicesView: view }),

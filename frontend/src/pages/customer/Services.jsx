@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader, LayoutGrid, List } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import useServiceStore from '../../store/serviceStore';
+import Pagination from '../../components/common/Pagination';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Breadcrumb from '../../components/layout/Breadcrumb';
@@ -317,35 +318,29 @@ const Services = () => {
         )}
 
         {/* ── Pagination ───────────────────────────────────────────────────── */}
-        {!loading && pagination && pagination.last_page > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
-            <button onClick={() => handlePageChange(pagination.current_page - 1)} disabled={pagination.current_page === 1} className="pagination-btn px-4 py-2 border rounded transition-colors">Previous</button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                let pageNum;
-                if (pagination.last_page <= 5) pageNum = i + 1;
-                else if (pagination.current_page <= 3) pageNum = i + 1;
-                else if (pagination.current_page >= pagination.last_page - 2) pageNum = pagination.last_page - 4 + i;
-                else pageNum = pagination.current_page - 2 + i;
-                return (
-                  <button key={pageNum} onClick={() => handlePageChange(pageNum)}
-                    className={`pagination-btn px-4 py-2 border rounded transition-colors ${pagination.current_page === pageNum ? 'active' : ''}`}>
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={() => handlePageChange(pagination.current_page + 1)} disabled={pagination.current_page === pagination.last_page} className="pagination-btn px-4 py-2 border rounded transition-colors">Next</button>
-          </div>
+        {!loading && (
+          <Pagination pagination={pagination} onPageChange={handlePageChange} />
         )}
 
         {/* ── CTA ──────────────────────────────────────────────────────────── */}
         <div className="mt-12 rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(124,58,237,0.05))', border: '1px solid rgba(168,85,247,0.15)' }}>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Can't find what you're looking for?</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">Request a custom quote and we'll help you find the perfect solution</p>
-          <Button variant="primary" size="lg" onClick={() => navigate('/request-quote')}>
+          <button
+            onClick={() => navigate('/request-quote')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '12px 28px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              color: 'white', fontSize: '0.95rem', fontWeight: 700,
+              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              transition: 'opacity 150ms',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
             Request Custom Quote
-          </Button>
+          </button>
         </div>
       </div>
 

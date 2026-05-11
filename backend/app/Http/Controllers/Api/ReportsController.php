@@ -17,6 +17,7 @@ use App\Models\ReferralCode;
 use App\Models\ReferralCodeUsage;
 use App\Models\Service;
 use App\Models\Ticket;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -50,33 +51,33 @@ class ReportsController extends Controller
 
     private function orderNetKes(Order $order): float
     {
-        $total    = (float) ($order->total ?? 0);
-        $refunded = (float) ($order->items_sum_refund_amount ?? 0);
-        $net      = max(0, $total - $refunded);
-        $ccy      = $order->currency ?? 'KES';
-
-        if ($ccy === 'KES') return $net;
-
         $totalKes = (float) ($order->total_kes ?? 0);
-        if ($totalKes > 0 && $total > 0) {
-            return $totalKes * ($net / $total);
+        $refunded = (float) ($order->items_sum_refund_amount ?? 0);
+
+        // convert refund to KES if foreign currency
+        if ($order->currency !== 'KES' && (float)($order->total ?? 0) > 0) {
+            $ratio    = $totalKes / (float) $order->total;
+            $refunded = $refunded * $ratio;
         }
 
-        $rate = (float) ($order->exchange_rate_to_kes ?? 0);
-        return $rate > 0 ? ($net * $rate) : 0;
+        return max(0, $totalKes - $refunded);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // GET /admin/reports/revenue
     // ──────────────────────────────────────────────────────────────────────────
 
+    // ── revenue() ────────────────────────────────────────────────────────────────
+
     public function revenue(Request $request): JsonResponse
     {
         [$start, $end] = $this->periodDates($request);
 
-        $allPaid = Order::with('items')->where('payment_status', 'paid')->get();
+        // All-time total (intentionally unfiltered — headline KPI)
+        $allPaid         = Order::with('items')->where('payment_status', 'paid')->get();
         $totalRevenueKes = $allPaid->sum(fn ($o) => $this->orderNetKes($o));
 
+        // ✅ Everything below should use the PERIOD, not all-time
         $periodPaid = Order::with('items')
             ->where('payment_status', 'paid')
             ->whereBetween('paid_at', [$start, $end])
@@ -84,16 +85,21 @@ class ReportsController extends Controller
 
         $periodRevenueKes = $periodPaid->sum(fn ($o) => $this->orderNetKes($o));
 
-        $paidCount = $allPaid->count();
-        $avgKes    = $paidCount > 0 ? $totalRevenueKes / $paidCount : 0;
+        // ✅ avg + paid count scoped to period
+        $periodCount = $periodPaid->count();
+        $avgKes      = $periodCount > 0 ? $periodRevenueKes / $periodCount : 0;
 
+        // ✅ unpaid scoped to period (created_at since unpaid orders have no paid_at)
         $unpaidKes = Order::with('items')
             ->where('payment_status', '!=', 'paid')
+            ->whereBetween('created_at', [$start, $end])   // ← was missing period filter
             ->get()
             ->sum(fn ($o) => $this->orderNetKes($o));
 
+        // ✅ by_currency scoped to period
         $byCurrency = Order::selectRaw('currency, COUNT(*) as order_count, SUM(total) as total_native, SUM(total_kes) as total_kes')
             ->where('payment_status', 'paid')
+            ->whereBetween('paid_at', [$start, $end])       // ← was missing period filter
             ->groupBy('currency')
             ->get()
             ->map(function ($row) {
@@ -113,11 +119,11 @@ class ReportsController extends Controller
             ->sortByDesc('total_kes')
             ->values();
 
+        // Trend stays as-is (always 12-month rolling)
         $trendMonths = collect();
         for ($i = 11; $i >= 0; $i--) {
             $trendMonths->push(now()->subMonths($i)->format('Y-m'));
         }
-
         $trendRaw = Order::selectRaw("DATE_FORMAT(paid_at,'%Y-%m') as month, SUM(total_kes) as revenue")
             ->where('payment_status', 'paid')
             ->whereNotNull('paid_at')
@@ -134,10 +140,10 @@ class ReportsController extends Controller
         return response()->json([
             'total_revenue_kes'   => round($totalRevenueKes, 2),
             'period_revenue_kes'  => round($periodRevenueKes, 2),
-            'avg_order_value_kes' => round($avgKes, 2),
-            'paid_orders'         => $paidCount,
-            'unpaid_kes'          => round($unpaidKes, 2),
-            'by_currency'         => $byCurrency,
+            'avg_order_value_kes' => round($avgKes, 2),       // ✅ now period-scoped
+            'paid_orders'         => $periodCount,            // ✅ now period-scoped
+            'unpaid_kes'          => round($unpaidKes, 2),    // ✅ now period-scoped
+            'by_currency'         => $byCurrency,             // ✅ now period-scoped
             'trend'               => $trend,
         ]);
     }
@@ -150,13 +156,16 @@ class ReportsController extends Controller
     {
         [$start, $end] = $this->periodDates($request);
 
-        $allOrders    = Order::with('items')->get();
-        $periodOrders = Order::whereBetween('created_at', [$start, $end])->get();
+        // 1. Fetch orders within the period for the specific status counts
+        // We use a query builder here so we don't load thousands of models into memory just to count them
+        $periodQuery = Order::whereBetween('created_at', [$start, $end]);
 
-        $todayOrders     = $allOrders->filter(fn ($o) => $o->created_at?->isToday());
+        // 2. Handle "Today" stats (this part was mostly fine, but let's keep it clean)
+        $todayOrders = Order::whereDate('created_at', Carbon::today())->get();
         $todayRevenueKes = $todayOrders->where('payment_status', 'paid')
             ->sum(fn ($o) => $this->orderNetKes($o));
 
+        // 3. The Trend Logic (keep your existing 12-month logic as is)
         $months = collect();
         for ($i = 11; $i >= 0; $i--) {
             $months->push(now()->subMonths($i)->format('Y-m'));
@@ -173,18 +182,21 @@ class ReportsController extends Controller
         ])->values();
 
         return response()->json([
-            'total_orders'          => Order::count(),
-            'period_orders'         => $periodOrders->count(),
-            'pending'               => Order::where('status', 'pending')->count(),
-            'confirmed'             => Order::where('status', 'confirmed')->count(),
-            'processing'            => Order::where('status', 'processing')->count(),
-            'shipped'               => Order::where('status', 'shipped')->count(),
-            'delivered'             => Order::where('status', 'delivered')->count(),
-            'cancelled'             => Order::where('status', 'cancelled')->count(),
+            'total_orders'          => Order::count(), // Total ever
+            'period_orders'         => (clone $periodQuery)->count(), // Orders in 7d/30d/90d
+            
+            // Use the $periodQuery to make sure these status numbers actually change when you filter!
+            'pending'               => (clone $periodQuery)->where('status', 'pending')->count(),
+            'confirmed'             => (clone $periodQuery)->where('status', 'confirmed')->count(),
+            'processing'            => (clone $periodQuery)->where('status', 'processing')->count(),
+            'shipped'               => (clone $periodQuery)->where('status', 'shipped')->count(),
+            'delivered'             => (clone $periodQuery)->where('status', 'delivered')->count(),
+            'cancelled'             => (clone $periodQuery)->where('status', 'cancelled')->count(),
+            
             'today'                 => $todayOrders->count(),
             'today_revenue'         => round($todayRevenueKes, 2),
-            'average_order_value'   => round(Order::avg('total_kes') ?? 0, 2),
-            'orders_with_backorder' => Order::whereHas('items', fn ($q) => $q->where('backorder_quantity', '>', 0))->count(),
+            'average_order_value'   => round((clone $periodQuery)->avg('total_kes') ?? 0, 2),
+            'orders_with_backorder' => (clone $periodQuery)->whereHas('items', fn ($q) => $q->where('backorder_quantity', '>', 0))->count(),
             'trend'                 => $trend,
         ]);
     }
@@ -511,42 +523,51 @@ class ReportsController extends Controller
     {
         [$start, $end] = $this->periodDates($request);
 
-        $total      = Ticket::count();
-        $open       = Ticket::where('status', 'open')->count();
-        $inProgress = Ticket::where('status', 'in_progress')->count();
-        $resolved   = Ticket::where('status', 'resolved')->count();
-        $closed     = Ticket::where('status', 'closed')->count();
-        $onHold     = Ticket::where('status', 'on_hold')->count();
-        $unassigned = Ticket::whereNull('assigned_to')->count();
+        // 1. Base Query for the selected period
+        $periodQuery = Ticket::whereBetween('created_at', [$start, $end]);
 
-        // Period tickets
-        $periodTotal    = Ticket::whereBetween('created_at', [$start, $end])->count();
-        $periodResolved = Ticket::whereBetween('created_at', [$start, $end])->where('status', 'resolved')->count();
+        // 2. Ticket Status Counts (Filtered by Period)
+        $open       = (clone $periodQuery)->where('status', 'open')->count();
+        $inProgress = (clone $periodQuery)->where('status', 'in_progress')->count();
+        $resolved   = (clone $periodQuery)->where('status', 'resolved')->count();
+        $closed     = (clone $periodQuery)->where('status', 'closed')->count();
+        $onHold     = (clone $periodQuery)->where('status', 'on_hold')->count();
+        $waitingCustomer = (clone $periodQuery)->where('status', 'waiting_customer')->count();
+        $unassigned = (clone $periodQuery)->whereNull('assigned_to')->count();
+        $periodTotal = (clone $periodQuery)->count();
 
-        // Average first response time (hours)
+        // 3. Average first response time for the period (hours)
         $avgFirstResponseHours = 0;
-        $responded = Ticket::whereNotNull('first_responded_at')->get(['created_at', 'first_responded_at']);
+        $responded = (clone $periodQuery)
+            ->whereNotNull('first_responded_at')
+            ->get(['created_at', 'first_responded_at']);
+            
         if ($responded->isNotEmpty()) {
-            $total_hrs = $responded->sum(fn ($t) => $t->created_at->diffInMinutes($t->first_responded_at));
-            $avgFirstResponseHours = round($total_hrs / $responded->count() / 60, 1);
+            $total_mins = $responded->sum(fn ($t) => $t->created_at->diffInMinutes($t->first_responded_at));
+            $avgFirstResponseHours = round($total_mins / $responded->count() / 60, 1);
         }
 
-        // Average resolution time (hours)
+        // 4. Average resolution time for the period (hours)
         $avgResolutionHours = 0;
-        $resolvedTickets = Ticket::whereNotNull('resolved_at')->get(['created_at', 'resolved_at']);
+        $resolvedTickets = (clone $periodQuery)
+            ->whereNotNull('resolved_at')
+            ->get(['created_at', 'resolved_at']);
+            
         if ($resolvedTickets->isNotEmpty()) {
-            $total_hrs = $resolvedTickets->sum(fn ($t) => $t->created_at->diffInMinutes($t->resolved_at));
-            $avgResolutionHours = round($total_hrs / $resolvedTickets->count() / 60, 1);
+            $total_mins = $resolvedTickets->sum(fn ($t) => $t->created_at->diffInMinutes($t->resolved_at));
+            $avgResolutionHours = round($total_mins / $resolvedTickets->count() / 60, 1);
         }
 
-        // By priority
-        $priorityCounts = Ticket::selectRaw('priority, COUNT(*) as count')
+        // 5. By priority (Filtered)
+        $priorityCounts = (clone $periodQuery)
+            ->selectRaw('priority, COUNT(*) as count')
             ->whereNotNull('priority')
             ->groupBy('priority')
             ->pluck('count', 'priority');
 
-        // By category
-        $byCategory = Ticket::selectRaw('category, COUNT(*) as count')
+        // 6. By category (Filtered)
+        $byCategory = (clone $periodQuery)
+            ->selectRaw('category, COUNT(*) as count')
             ->whereNotNull('category')
             ->groupBy('category')
             ->orderByDesc('count')
@@ -557,7 +578,7 @@ class ReportsController extends Controller
             ])
             ->values();
 
-        // Monthly trend
+        // 7. Monthly trend (Keep as 12-month historical view)
         $months = collect();
         for ($i = 11; $i >= 0; $i--) {
             $months->push(now()->subMonths($i)->format('Y-m'));
@@ -573,19 +594,20 @@ class ReportsController extends Controller
             'value' => (int) ($rawCounts[$m] ?? 0),
         ])->values();
 
-        // Resolution rate
-        $resolutionRate = $total > 0 ? round((($resolved + $closed) / $total) * 100, 1) : 0;
+        // 8. Resolution rate for the period
+        $resolutionRate = $periodTotal > 0 ? round((($resolved + $closed) / $periodTotal) * 100, 1) : 0;
 
         return response()->json([
-            'total'                     => $total,
+            'total'                     => Ticket::count(), // All time total
+            'period_total'              => $periodTotal,    // Total in filter
             'open'                      => $open,
             'in_progress'               => $inProgress,
             'resolved'                  => $resolved,
             'closed'                    => $closed,
             'on_hold'                   => $onHold,
+            'waiting_customer'          => $waitingCustomer,
             'unassigned'                => $unassigned,
-            'period_total'              => $periodTotal,
-            'period_resolved'           => $periodResolved,
+            'period_resolved'           => $resolved + $closed,
             'avg_first_response_hours'  => $avgFirstResponseHours,
             'avg_resolution_hours'      => $avgResolutionHours,
             'resolution_rate'           => $resolutionRate,
@@ -608,63 +630,74 @@ class ReportsController extends Controller
     {
         [$start, $end] = $this->periodDates($request);
 
-        $totalCodes   = ReferralCode::count();
-        $activeCodes  = ReferralCode::where('status', 'active')->count();
-        $expiredCodes = ReferralCode::where('status', 'expired')
-            ->orWhere(fn ($q) => $q->whereNotNull('valid_until')->where('valid_until', '<', now()))
+        // ── Sub-selects of promo vs referral code IDs ─────────────────────────
+        // Used repeatedly so we build them once as plain arrays (small tables).
+        $promoCodeIds    = ReferralCode::where('type', '!=', 'customer_referral')->pluck('id');
+        $referralCodeIds = ReferralCode::where('type', 'customer_referral')->pluck('id');
+
+        // ── All-time code inventory (promo codes only) ────────────────────────
+        $totalCodes    = ReferralCode::where('type', '!=', 'customer_referral')->count();
+        $activeCodes   = ReferralCode::where('type', '!=', 'customer_referral')->where('status', 'active')->count();
+        $expiredCodes  = ReferralCode::where('type', '!=', 'customer_referral')
+            ->where(function ($q) {
+                $q->where('status', 'expired')
+                  ->orWhere(function ($q2) {
+                      $q2->whereNotNull('valid_until')->where('valid_until', '<', now());
+                  });
+            })->count();
+        $depletedCodes = ReferralCode::where('type', '!=', 'customer_referral')->where('status', 'depleted')->count();
+        $pausedCodes   = ReferralCode::where('type', '!=', 'customer_referral')->where('status', 'paused')->count();
+        $expiringSoon  = ReferralCode::where('type', '!=', 'customer_referral')->expiringSoon(7)->count();
+
+        // ── Period-scoped financial impact (promo codes only) ─────────────────
+        $periodUses = Order::whereIn('promo_code_id', $promoCodeIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereNotNull('promo_code_id')
             ->count();
-        $depletedCodes = ReferralCode::where('status', 'depleted')->count();
-        $pausedCodes   = ReferralCode::where('status', 'paused')->count();
-        $expiringSoon  = ReferralCode::expiringSoon(7)->count();
 
-        // Totals
-        $totalDiscountGiven     = ReferralCode::sum('total_discount_given');
-        $totalRevenueFromPromos = ReferralCode::sum('total_revenue');
-        $totalUses              = ReferralCode::sum('times_used');
-        $totalReferrerRewards   = ReferralCode::sum('total_referrer_rewards');
+        $periodDiscountGiven = Order::whereIn('promo_code_id', $promoCodeIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('promo_discount');
 
-        // Top performing codes by revenue
-        $topByRevenue = ReferralCode::select('id', 'code', 'name', 'type', 'reward_type', 'reward_value',
+        $periodRevenueFromPromos = Order::whereIn('promo_code_id', $promoCodeIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('total_kes');
+
+        // ── All-time financial totals (promo codes only, backward-compat) ─────
+        $totalUses              = ReferralCode::where('type', '!=', 'customer_referral')->sum('times_used');
+        $totalDiscountGiven     = ReferralCode::where('type', '!=', 'customer_referral')->sum('total_discount_given');
+        $totalRevenueFromPromos = ReferralCode::where('type', '!=', 'customer_referral')->sum('total_revenue');
+
+        // ── Top codes by revenue (all types, frontend splits by type) ─────────
+        $topByRevenue = ReferralCode::select(
+                'id', 'code', 'name', 'type', 'reward_type', 'reward_value',
                 'times_used', 'successful_uses', 'total_revenue', 'total_discount_given',
-                'average_order_value', 'conversion_rate', 'status')
+                'average_order_value', 'conversion_rate', 'status'
+            )
             ->orderByDesc('total_revenue')
-            ->limit(10)
+            ->limit(20)
             ->get()
+            ->values()
             ->map(fn ($r, $i) => [
-                'rank'              => $i + 1,
-                'code'              => $r->code,
-                'name'              => $r->name,
-                'type'              => $r->type,
-                'reward_type'       => $r->reward_type,
-                'reward_value'      => (float) $r->reward_value,
-                'uses'              => (int) $r->times_used,
-                'successful_uses'   => (int) $r->successful_uses,
-                'revenue'           => round((float) $r->total_revenue, 2),
-                'discount_given'    => round((float) $r->total_discount_given, 2),
-                'avg_order_value'   => round((float) $r->average_order_value, 2),
-                'conversion_rate'   => round((float) $r->conversion_rate, 1),
-                'status'            => $r->status,
-            ])
-            ->values();
+                'rank'            => $i + 1,
+                'code'            => $r->code,
+                'name'            => $r->name,
+                'type'            => $r->type,
+                'reward_type'     => $r->reward_type,
+                'reward_value'    => (float) $r->reward_value,
+                'uses'            => (int) $r->times_used,
+                'successful_uses' => (int) $r->successful_uses,
+                'revenue'         => round((float) $r->total_revenue, 2),
+                'discount_given'  => round((float) $r->total_discount_given, 2),
+                'avg_order_value' => round((float) $r->average_order_value, 2),
+                'conversion_rate' => round((float) $r->conversion_rate, 1),
+                'status'          => $r->status,
+            ]);
 
-        // Top codes by usage count
-        $topByUsage = ReferralCode::select('id', 'code', 'name', 'type', 'times_used', 'total_revenue', 'status')
-            ->orderByDesc('times_used')
-            ->limit(10)
-            ->get()
-            ->map(fn ($r, $i) => [
-                'rank'    => $i + 1,
-                'code'    => $r->code,
-                'name'    => $r->name,
-                'type'    => $r->type,
-                'uses'    => (int) $r->times_used,
-                'revenue' => round((float) $r->total_revenue, 2),
-                'status'  => $r->status,
-            ])
-            ->values();
-
-        // By type breakdown
-        $byType = ReferralCode::selectRaw('type, COUNT(*) as count, SUM(total_revenue) as revenue, SUM(times_used) as uses')
+        // ── By type breakdown (all-time) ──────────────────────────────────────
+        $byType = ReferralCode::selectRaw(
+                'type, COUNT(*) as count, SUM(total_revenue) as revenue, SUM(times_used) as uses'
+            )
             ->groupBy('type')
             ->get()
             ->map(fn ($r) => [
@@ -675,42 +708,52 @@ class ReportsController extends Controller
             ])
             ->values();
 
-        // ── Referral-specific stats — sourced directly from referral_code_usage table ──
-        $totalReferralCodes  = ReferralCode::where('type', 'customer_referral')->count();
-        $totalReferrals      = ReferralCodeUsage::count();
-        $completedReferrals  = ReferralCodeUsage::where('status', 'completed')->count();
-        $pendingReferrals    = ReferralCodeUsage::where('status', 'pending')->count();
-        $periodReferrals     = ReferralCodeUsage::whereBetween('created_at', [$start, $end])->count();
-        $periodCompleted     = ReferralCodeUsage::where('status', 'completed')
-                                ->whereBetween('completed_at', [$start, $end])->count();
-        $totalRewardsPaid    = ReferralCodeUsage::where('referrer_reward_paid', true)
-                                ->sum('referrer_reward_amount');
-        $conversionRate      = $totalReferrals > 0
-                                ? round(($completedReferrals / $totalReferrals) * 100, 1)
-                                : 0;
+        // ── Referral programme stats (all-time) ───────────────────────────────
+        $totalReferralCodes = $referralCodeIds->count();
+
+        $totalReferrals = $referralCodeIds->isEmpty() ? 0
+            : ReferralCodeUsage::whereIn('referral_code_id', $referralCodeIds)->count();
+
+        $completedReferrals = $referralCodeIds->isEmpty() ? 0
+            : ReferralCodeUsage::whereIn('referral_code_id', $referralCodeIds)
+                ->where('status', 'completed')->count();
+
+        $pendingReferrals = $referralCodeIds->isEmpty() ? 0
+            : ReferralCodeUsage::whereIn('referral_code_id', $referralCodeIds)
+                ->where('status', 'pending')->count();
+
+        $totalReferrerRewards = ReferralCode::where('type', 'customer_referral')
+            ->sum('total_referrer_rewards');
+
+        $conversionRate = $totalReferrals > 0
+            ? round(($completedReferrals / $totalReferrals) * 100, 1)
+            : 0;
 
         $referralStats = [
             'total_referral_codes'   => $totalReferralCodes,
             'total_referrals'        => $totalReferrals,
             'completed_referrals'    => $completedReferrals,
             'pending_referrals'      => $pendingReferrals,
-            'period_referrals'       => $periodReferrals,
-            'period_completed'       => $periodCompleted,
             'conversion_rate'        => $conversionRate,
-            'total_referrer_rewards' => round((float) ($totalReferrerRewards + $totalRewardsPaid), 2),
+            'total_referrer_rewards' => round((float) $totalReferrerRewards, 2),
         ];
 
-        // Period usage trend
+        // ── Trend: promo code usage over last 12 months ───────────────────────
         $months = collect();
         for ($i = 11; $i >= 0; $i--) {
             $months->push(now()->subMonths($i)->format('Y-m'));
         }
-        $trendRaw = Order::selectRaw("DATE_FORMAT(orders.created_at,'%Y-%m') as month, COUNT(*) as count, SUM(orders.discount_amount) as discount")
-            ->whereNotNull('referral_code_id')
-            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
-            ->groupBy('month')
-            ->get()
-            ->keyBy('month');
+
+        if ($promoCodeIds->isEmpty()) {
+            $trendRaw = collect();
+        } else {
+            $trendRaw = Order::whereIn('promo_code_id', $promoCodeIds)
+                ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+                ->selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count, SUM(promo_discount) as discount")
+                ->groupBy('month')
+                ->get()
+                ->keyBy('month');
+        }
 
         $trend = $months->map(fn ($m) => [
             'month'    => $m,
@@ -720,20 +763,33 @@ class ReportsController extends Controller
         ])->values();
 
         return response()->json([
-            'total_codes'              => $totalCodes,
-            'active_codes'             => $activeCodes,
-            'expired_codes'            => $expiredCodes,
-            'depleted_codes'           => $depletedCodes,
-            'paused_codes'             => $pausedCodes,
-            'expiring_soon'            => $expiringSoon,
-            'total_discount_given'     => round((float) $totalDiscountGiven, 2),
-            'total_revenue_from_promos'=> round((float) $totalRevenueFromPromos, 2),
-            'total_uses'               => (int) $totalUses,
-            'top_by_revenue'           => $topByRevenue,
-            'top_by_usage'             => $topByUsage,
-            'by_type'                  => $byType,
-            'referrals'                => $referralStats,
-            'trend'                    => $trend,
+            // Inventory (all-time, promo codes only)
+            'total_codes'                  => $totalCodes,
+            'active_codes'                 => $activeCodes,
+            'expired_codes'                => $expiredCodes,
+            'depleted_codes'               => $depletedCodes,
+            'paused_codes'                 => $pausedCodes,
+            'expiring_soon'                => $expiringSoon,
+
+            // Period-scoped impact
+            'period_uses'                  => $periodUses,
+            'period_discount_given'        => round((float) $periodDiscountGiven, 2),
+            'period_revenue_from_promos'   => round((float) $periodRevenueFromPromos, 2),
+
+            // All-time totals (backward compat)
+            'total_uses'                   => (int) $totalUses,
+            'total_discount_given'         => round((float) $totalDiscountGiven, 2),
+            'total_revenue_from_promos'    => round((float) $totalRevenueFromPromos, 2),
+
+            // Tables
+            'top_by_revenue'               => $topByRevenue,
+            'by_type'                      => $byType,
+
+            // Referral programme
+            'referrals'                    => $referralStats,
+
+            // Trend
+            'trend'                        => $trend,
         ]);
     }
 
@@ -790,74 +846,85 @@ class ReportsController extends Controller
     // ──────────────────────────────────────────────────────────────────────────
 
     public function projects(Request $request): JsonResponse
-    {
-        [$start, $end] = $this->periodDates($request);
+{
+    [$start, $end] = $this->periodDates($request);
 
-        $statusCounts = Project::selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status');
+    // 1. Filtered Status Counts
+    $statusCounts = Project::whereBetween('created_at', [$start, $end])
+        ->selectRaw('status, COUNT(*) as count')
+        ->groupBy('status')
+        ->pluck('count', 'status');
 
-        $byStatus = [];
-        foreach (['planning', 'active', 'on_hold', 'completed', 'cancelled'] as $s) {
-            $byStatus[$s] = (int) ($statusCounts[$s] ?? 0);
-        }
-
-        $priorityCounts = Project::selectRaw('priority, COUNT(*) as count')
-            ->whereNotNull('priority')
-            ->groupBy('priority')
-            ->pluck('count', 'priority');
-
-        $total          = array_sum($byStatus);
-        $completed      = $byStatus['completed'];
-        $completionRate = $total > 0 ? ($completed / $total) * 100 : 0;
-
-        $overdueCount = Project::whereNotNull('target_end_date')
-            ->where('target_end_date', '<', now())
-            ->whereNotIn('status', ['completed', 'cancelled'])
-            ->count();
-
-        $unassigned = Project::whereNull('owner_admin_id')->count();
-
-        $overdueMilestones = ProjectMilestone::whereNotNull('due_date')
-            ->where('due_date', '<', now())
-            ->whereNotIn('status', ['completed', 'approved'])
-            ->count();
-
-        $months = collect();
-        for ($i = 11; $i >= 0; $i--) {
-            $months->push(now()->subMonths($i)->format('Y-m'));
-        }
-        $rawCounts = Project::selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
-            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
-            ->groupBy('month')
-            ->pluck('count', 'month');
-
-        $createdPerMonth = $months->map(fn ($m) => [
-            'month' => $m,
-            'label' => Carbon::createFromFormat('Y-m', $m)->format('M y'),
-            'value' => (int) ($rawCounts[$m] ?? 0),
-        ])->values();
-
-        return response()->json([
-            'total'              => $total,
-            'planning'           => $byStatus['planning'],
-            'active'             => $byStatus['active'],
-            'on_hold'            => $byStatus['on_hold'],
-            'completed'          => $byStatus['completed'],
-            'cancelled'          => $byStatus['cancelled'],
-            'overdue'            => $overdueCount,
-            'unassigned'         => $unassigned,
-            'overdue_milestones' => $overdueMilestones,
-            'completion_rate'    => round($completionRate, 2),
-            'by_priority'        => [
-                'urgent' => (int) ($priorityCounts['urgent'] ?? 0),
-                'high'   => (int) ($priorityCounts['high']   ?? 0),
-                'medium' => (int) ($priorityCounts['medium'] ?? 0),
-                'low'    => (int) ($priorityCounts['low']    ?? 0),
-            ],
-            'created_per_month'  => $createdPerMonth,
-        ]);
+    $byStatus = [];
+    foreach (['planning', 'active', 'on_hold', 'completed', 'cancelled'] as $s) {
+        $byStatus[$s] = (int) ($statusCounts[$s] ?? 0);
     }
+
+    // 2. Filtered Priority Counts
+    $priorityCounts = Project::whereBetween('created_at', [$start, $end])
+        ->selectRaw('priority, COUNT(*) as count')
+        ->whereNotNull('priority')
+        ->groupBy('priority')
+        ->pluck('count', 'priority');
+
+    $total          = array_sum($byStatus);
+    $completed      = $byStatus['completed'];
+    $completionRate = $total > 0 ? ($completed / $total) * 100 : 0;
+
+    // 3. Overdue Projects (Usually you want to see ALL currently overdue, 
+    // but if you want it filtered by period, add the whereBetween)
+    $overdueCount = Project::whereNotNull('target_end_date')
+        ->where('target_end_date', '<', now())
+        ->whereNotIn('status', ['completed', 'cancelled'])
+        ->whereBetween('created_at', [$start, $end]) // Filtered
+        ->count();
+
+    $unassigned = Project::whereNull('owner_admin_id')
+        ->whereBetween('created_at', [$start, $end]) // Filtered
+        ->count();
+
+    $overdueMilestones = ProjectMilestone::whereNotNull('due_date')
+        ->where('due_date', '<', now())
+        ->whereNotIn('status', ['completed', 'approved'])
+        ->whereBetween('created_at', [$start, $end]) // Filtered
+        ->count();
+
+    // 4. Trend Logic (Keep as is - 12 months is standard for trends)
+    $months = collect();
+    for ($i = 11; $i >= 0; $i--) {
+        $months->push(now()->subMonths($i)->format('Y-m'));
+    }
+    $rawCounts = Project::selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
+        ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+        ->groupBy('month')
+        ->pluck('count', 'month');
+
+    $createdPerMonth = $months->map(fn ($m) => [
+        'month' => $m,
+        'label' => Carbon::createFromFormat('Y-m', $m)->format('M y'),
+        'value' => (int) ($rawCounts[$m] ?? 0),
+    ])->values();
+
+    return response()->json([
+        'total'              => $total,
+        'planning'           => $byStatus['planning'],
+        'active'             => $byStatus['active'],
+        'on_hold'            => $byStatus['on_hold'],
+        'completed'          => $byStatus['completed'],
+        'cancelled'          => $byStatus['cancelled'],
+        'overdue'            => $overdueCount,
+        'unassigned'         => $unassigned,
+        'overdue_milestones' => $overdueMilestones,
+        'completion_rate'    => round($completionRate, 2),
+        'by_priority'        => [
+            'urgent' => (int) ($priorityCounts['urgent'] ?? 0),
+            'high'   => (int) ($priorityCounts['high']   ?? 0),
+            'medium' => (int) ($priorityCounts['medium'] ?? 0),
+            'low'    => (int) ($priorityCounts['low']    ?? 0),
+        ],
+        'created_per_month'  => $createdPerMonth,
+    ]);
+}
 
     // ──────────────────────────────────────────────────────────────────────────
     // GET /admin/reports/customers
@@ -873,9 +940,30 @@ class ReportsController extends Controller
         $newCustomers = Customer::whereBetween('created_at', [$start, $end])->count();
 
         // Top customers by spend
-        $topBySpend = Customer::select('id', 'first_name', 'last_name', 'email', 'company_name',
-                'customer_type', 'tier', 'total_spent', 'total_orders', 'last_order_date')
-            ->orderByDesc('total_spent')
+        // ✅ top_by_spend — derived from paid orders in period, not lifetime columns
+        $topBySpend = DB::table('orders')
+            ->join('customers', 'customers.id', '=', 'orders.customer_id')
+            ->select(
+                'customers.id',
+                'customers.first_name',
+                'customers.last_name',
+                'customers.email',
+                'customers.company_name',
+                'customers.customer_type',
+                'customers.tier',
+                DB::raw('SUM(orders.total_kes) as period_spent'),
+                DB::raw('COUNT(orders.id) as period_orders'),
+                DB::raw('MAX(orders.created_at) as last_order_at')
+            )
+            ->where('orders.payment_status', 'paid')
+            ->whereBetween('orders.created_at', [$start, $end])   // ← was missing
+            ->whereNotNull('orders.customer_id')
+            ->groupBy(
+                'customers.id', 'customers.first_name', 'customers.last_name',
+                'customers.email', 'customers.company_name',
+                'customers.customer_type', 'customers.tier'
+            )
+            ->orderByDesc('period_spent')
             ->limit(10)
             ->get()
             ->map(fn ($c, $i) => [
@@ -885,16 +973,37 @@ class ReportsController extends Controller
                 'email'        => $c->email,
                 'type'         => $c->customer_type,
                 'tier'         => $c->tier,
-                'total_spent'  => round((float) $c->total_spent, 2),
-                'total_orders' => (int) $c->total_orders,
-                'last_order'   => $c->last_order_date?->toDateString(),
+                'total_spent'  => round((float) $c->period_spent, 2),
+                'total_orders' => (int) $c->period_orders,
+                'last_order'   => $c->last_order_at
+                    ? Carbon::parse($c->last_order_at)->toDateString()
+                    : null,
             ])
             ->values();
 
-        // Top customers by order count
-        $topByOrders = Customer::select('id', 'first_name', 'last_name', 'email', 'company_name',
-                'customer_type', 'tier', 'total_orders', 'total_spent')
-            ->orderByDesc('total_orders')
+        // ✅ top_by_orders — same approach, ordered by order count in period
+        $topByOrders = DB::table('orders')
+            ->join('customers', 'customers.id', '=', 'orders.customer_id')
+            ->select(
+                'customers.id',
+                'customers.first_name',
+                'customers.last_name',
+                'customers.email',
+                'customers.company_name',
+                'customers.customer_type',
+                'customers.tier',
+                DB::raw('COUNT(orders.id) as period_orders'),
+                DB::raw('SUM(orders.total_kes) as period_spent')
+            )
+            ->where('orders.payment_status', 'paid')
+            ->whereBetween('orders.created_at', [$start, $end])   // ← was missing
+            ->whereNotNull('orders.customer_id')
+            ->groupBy(
+                'customers.id', 'customers.first_name', 'customers.last_name',
+                'customers.email', 'customers.company_name',
+                'customers.customer_type', 'customers.tier'
+            )
+            ->orderByDesc('period_orders')
             ->limit(10)
             ->get()
             ->map(fn ($c, $i) => [
@@ -904,20 +1013,22 @@ class ReportsController extends Controller
                 'email'        => $c->email,
                 'type'         => $c->customer_type,
                 'tier'         => $c->tier,
-                'total_orders' => (int) $c->total_orders,
-                'total_spent'  => round((float) $c->total_spent, 2),
+                'total_orders' => (int) $c->period_orders,
+                'total_spent'  => round((float) $c->period_spent, 2),
             ])
             ->values();
 
-        // Login hour distribution (0-23)
-        $loginHours = Customer::selectRaw('HOUR(last_login_at) as hour, COUNT(*) as count')
-            ->whereNotNull('last_login_at')
+        // ── customers() — login hour fix only ────────────────────────────────────────
+        $loginHours = DB::table('customers')
+            ->join('users', 'users.id', '=', 'customers.user_id')
+            ->selectRaw('HOUR(users.last_login_at) as hour, COUNT(*) as count')
+            ->whereNotNull('users.last_login_at')
             ->groupBy('hour')
             ->orderBy('hour')
             ->pluck('count', 'hour');
 
-        $loginHourDist = collect(range(0, 23))->map(fn ($h) => [
-            'hour'  => $h,
+        $loginHourDist = collect(range(0, 23))->map(fn($h) => [
+            'hour' => $h,
             'label' => sprintf('%02d:00', $h),
             'count' => (int) ($loginHours[$h] ?? 0),
         ])->values();

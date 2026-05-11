@@ -5,6 +5,9 @@ import {
   DollarSign, Clock, Paperclip, AlertCircle, CheckCircle,
   XCircle, UserCheck, MessageCircle, Download, Edit2, Mail,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
@@ -38,8 +41,26 @@ const STATUS_CFG = {
 // ── Section wrapper ───────────────────────────────────────────────────────────
 function Section({ title, icon: Icon, children, accentColor }) {
   return (
-    <div style={{ borderRadius: 16, border: '1px solid #c084fc', overflow: 'hidden' }}>
-      {accentColor && <div style={{ height: 3, background: accentColor }} />}
+    <div 
+      style={{ 
+        borderRadius: 16, 
+        border: '1.5px solid rgba(168, 85, 247, 0.35)', 
+        boxShadow: '0 0 0 1px rgba(168, 85, 247, 0.1), 0 2px 12px rgba(168, 85, 247, 0.08)',
+        overflow: 'hidden',
+        transition: 'box-shadow 200ms ease, border-color 200ms ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.7)';
+        e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.2), 0 4px 20px rgba(168, 85, 247, 0.15)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.35)';
+        e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.1), 0 2px 12px rgba(168, 85, 247, 0.08)';
+      }}
+    >
+      {/* Remove the accentColor top bar if you want pure glow: */}
+      {accentColor && <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />}
+
       <div style={{ padding: '22px 24px' }}>
         {title && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
@@ -56,7 +77,7 @@ function Section({ title, icon: Icon, children, accentColor }) {
 // ── Info row ─────────────────────────────────────────────────────────────────
 function InfoRow({ label, value, icon: Icon }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid #f9fafb' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid rgba(168, 85, 247, 0.25)', boxShadow: 'inset 0 -1px 0 rgba(168, 85, 247, 0.15)'  }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600, flexShrink: 0 }}>
         {Icon && <Icon size={13} />} {label}
       </span>
@@ -148,6 +169,537 @@ const MyQuoteRequestDetail = () => {
   const request = currentQuoteRequest;
   const cfg = STATUS_CFG[request.status] || { color: '#9ca3af', bg: '#f9fafb', border: '#e5e7eb', label: request.status };
 
+  const handleDownloadPDF = () => {
+  const toastId = toast?.loading?.('Generating PDF...') || null;
+
+  try {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W  = pdf.internal.pageSize.getWidth();
+    const H  = pdf.internal.pageSize.getHeight();
+    const M  = 15;
+    const CW = W - M * 2;
+    let y = M;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const rgb = (hex) => {
+      const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r
+        ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) }
+        : { r: 168, g: 85, b: 247 };
+    };
+
+    // opacity wrapper — sets GState, runs draw fn, resets
+    const withOpacity = (op, fn) => {
+      pdf.setGState(pdf.GState({ opacity: op }));
+      fn();
+      pdf.setGState(pdf.GState({ opacity: 1 }));
+    };
+
+    const need = (h) => {
+      if (y + h > H - M) { pdf.addPage(); y = M; }
+    };
+
+    const hline = (colorHex = '#e5e7eb', lw = 0.3) => {
+      const { r, g, b } = rgb(colorHex);
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(lw);
+      pdf.line(M, y, W - M, y);
+    };
+
+    const sectionHeading = (text) => {
+      need(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(124, 58, 237);
+      pdf.text(text, M, y);
+      y += 5;
+      hline('#a855f7', 0.25);
+      y += 6;
+    };
+
+    // pill with light tinted bg + colored border + text
+    const pill = (x, py, label, colorHex) => {
+      const { r, g, b } = rgb(colorHex);
+      pdf.setFontSize(7);
+      const tw = pdf.getTextWidth(label);
+      const pw = tw + 14;
+      withOpacity(0.12, () => {
+        pdf.setFillColor(r, g, b);
+        pdf.roundedRect(x, py - 4.5, pw, 6, 3, 3, 'F');
+      });
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(x, py - 4.5, pw, 6, 3, 3, 'S');
+      pdf.setFillColor(r, g, b);
+      pdf.circle(x + 4, py - 1.5, 1.2, 'F');
+      pdf.setTextColor(r, g, b);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, x + 8, py);
+      return pw + 3;
+    };
+
+    // small chip — white bg + colored border + text
+    const chip = (x, cy, label, colorHex) => {
+      const { r, g, b } = rgb(colorHex);
+      pdf.setFontSize(6);
+      const tw = pdf.getTextWidth(label);
+      const cw = tw + 8;
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, cy - 3.5, cw, 5, 2, 2, 'FD');
+      pdf.setTextColor(r, g, b);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, x + 4, cy);
+      return cw + 3;
+    };
+
+    // label + value stacked
+    const kv = (label, value) => {
+      need(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(label, M, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(17, 24, 39);
+      const lines = pdf.splitTextToSize(String(value || '—'), CW - 5);
+      pdf.text(lines, M, y + 5);
+      y += 5 + lines.length * 4.5 + 4;
+    };
+
+    // ── STATUS CONFIG ────────────────────────────────────────────────────────
+    const STATUS_COLORS = {
+      pending:              '#f59e0b',
+      submitted:            '#f59e0b',
+      under_review:         '#3b82f6',
+      quoted:               '#10b981',
+      accepted:             '#10b981',
+      rejected:             '#ef4444',
+      cancelled:            '#6b7280',
+      requires_clarification: '#f97316',
+    };
+
+    const statusColor = STATUS_COLORS[request.status] || '#9ca3af';
+    const statusLabel = (request.status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    // ══════════════════════════════════════════════════
+    // HEADER
+    // ══════════════════════════════════════════════════
+    pdf.setFillColor(168, 85, 247);
+    pdf.rect(0, 0, W, 3, 'F');
+
+    y = M + 5;
+
+    // Request number
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.setTextColor(28, 28, 28);
+    pdf.text(request.request_number, M, y);
+    y += 7;
+
+    // Title
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(124, 58, 237);
+    const titleLines = pdf.splitTextToSize(request.request_title || 'Quote Request', CW);
+    pdf.text(titleLines, M, y);
+    y += titleLines.length * 6 + 4;
+
+    // Status pill + submitted date on same line
+    let px = M;
+    px += pill(px, y, statusLabel, statusColor);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(`Submitted: ${formatDate(request.created_at)}`, px + 4, y);
+
+    y += 10;
+    hline();
+    y += 8;
+
+    // ══════════════════════════════════════════════════
+    // ASSIGNED HANDLER
+    // ══════════════════════════════════════════════════
+    if (request.assigned_to) {
+      sectionHeading('Assigned Handler');
+
+      const handlerName = request.assigned_to.name ||
+        `${request.assigned_to.first_name || ''} ${request.assigned_to.last_name || ''}`.trim() ||
+        'Team Member';
+
+      const cardH = 24;
+      need(cardH);
+
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, cardH, 4, 4, 'FD');
+
+      // Avatar circle
+      withOpacity(0.1, () => {
+        pdf.setFillColor(168, 85, 247);
+        pdf.circle(M + 14, y + 12, 8, 'F');
+      });
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(168, 85, 247);
+      const initials = handlerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      pdf.text(initials, M + 14, y + 14, { align: 'center' });
+
+      // Name
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(handlerName, M + 28, y + 10);
+
+      // Email
+      if (request.assigned_to.email) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(124, 58, 237);
+        pdf.text(request.assigned_to.email, M + 28, y + 17);
+      }
+
+      // Assigned date
+      if (request.assigned_at) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(`Assigned: ${formatDate(request.assigned_at)}`, M + CW - 8, y + 10, { align: 'right' });
+      }
+
+      y += cardH + 8;
+    }
+
+    // ══════════════════════════════════════════════════
+    // CLARIFICATION
+    // ══════════════════════════════════════════════════
+    if (request.clarification_notes) {
+      sectionHeading('Clarification');
+
+      const isWarning  = !!request.requires_clarification;
+      const alertColor = isWarning ? '#f59e0b' : '#3b82f6';
+      const { r: ar, g: ag, b: ab } = rgb(alertColor);
+
+      const noteLines  = pdf.splitTextToSize(request.clarification_notes, CW - 18);
+      const cardH      = noteLines.length * 4.5 + 18;
+      need(cardH);
+
+      withOpacity(0.07, () => {
+        pdf.setFillColor(ar, ag, ab);
+        pdf.roundedRect(M, y, CW, cardH, 4, 4, 'F');
+      });
+      pdf.setDrawColor(ar, ag, ab);
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(M, y, CW, cardH, 4, 4, 'S');
+
+      // Left accent bar
+      pdf.setFillColor(ar, ag, ab);
+      pdf.roundedRect(M, y, 3, cardH, 2, 2, 'F');
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(ar, ag, ab);
+      pdf.text(isWarning ? 'Clarification Required' : 'Clarification Note', M + 8, y + 7);
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(noteLines, M + 8, y + 13);
+
+      y += cardH + 6;
+
+      // Responses
+      if (request.clarification_response?.length > 0) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7);
+        pdf.setTextColor(16, 185, 129);
+        pdf.text(`Your Response${request.clarification_response.length > 1 ? 's' : ''}`, M, y);
+        y += 6;
+
+        request.clarification_response.forEach((resp) => {
+          const respLines = pdf.splitTextToSize(resp.response || '', CW - 12);
+          const rH = respLines.length * 4.5 + 14;
+          need(rH);
+
+          withOpacity(0.06, () => {
+            pdf.setFillColor(16, 185, 129);
+            pdf.roundedRect(M, y, CW, rH, 3, 3, 'F');
+          });
+          pdf.setDrawColor(16, 185, 129);
+          pdf.setLineWidth(0.3);
+          pdf.roundedRect(M, y, CW, rH, 3, 3, 'S');
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(7.5);
+          pdf.setTextColor(17, 24, 39);
+          pdf.text(respLines, M + 6, y + 8);
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6);
+          pdf.setTextColor(107, 114, 128);
+          pdf.text(formatDate(resp.responded_at), M + 6, y + rH - 4);
+
+          y += rH + 5;
+        });
+      }
+
+      y += 4;
+    }
+
+    // ══════════════════════════════════════════════════
+    // DESCRIPTION
+    // ══════════════════════════════════════════════════
+    sectionHeading('Description');
+
+    const descLines = pdf.splitTextToSize(request.request_description || 'No description provided.', CW);
+    need(descLines.length * 5 + 6);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(55, 65, 81);
+    pdf.text(descLines, M, y);
+    y += descLines.length * 5 + 10;
+
+    // ══════════════════════════════════════════════════
+    // REQUESTED ITEMS
+    // ══════════════════════════════════════════════════
+    sectionHeading(`Requested Items  ·  ${request.requested_items?.length || 0}`);
+
+    (request.requested_items || []).forEach((item, idx) => {
+      const isService  = item.item_type === 'service' || item.item_type === 'custom_service';
+      const typeColor  = isService ? '#10b981' : '#a855f7';
+      const { r: ir, g: ig, b: ib } = rgb(typeColor);
+
+      // Compute dynamic card height
+      const nameLines = pdf.splitTextToSize(item.description || `Item ${idx + 1}`, CW - 30);
+      const hasSpecs  = !!(item.specifications);
+      const hasNotes  = !!(item.notes);
+      const specLines = hasSpecs ? pdf.splitTextToSize(`Specs: ${item.specifications}`, CW - 12) : [];
+      const noteLines = hasNotes ? pdf.splitTextToSize(`Notes: ${item.notes}`, CW - 12) : [];
+
+      const cardH = 8                                        // top pad
+        + nameLines.length * 5 + 2                          // name
+        + 6                                                  // type chip row
+        + 8                                                  // meta chips row
+        + (hasSpecs ? specLines.length * 4 + 4 : 0)
+        + (hasNotes ? noteLines.length * 4 + 4 : 0)
+        + 8;                                                 // bottom pad
+
+      need(cardH);
+      const cardTop = y;
+
+      // Card
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, cardH, 4, 4, 'FD');
+
+      // Left accent bar
+      pdf.setFillColor(ir, ig, ib);
+      pdf.roundedRect(M, y, 3, cardH, 2, 2, 'F');
+
+      // Type icon
+      withOpacity(0.12, () => {
+        pdf.setFillColor(ir, ig, ib);
+        pdf.roundedRect(M + 7, y + 5, 9, 9, 2, 2, 'F');
+      });
+      pdf.setFillColor(ir, ig, ib);
+      pdf.roundedRect(M + 7, y + 5, 9, 9, 2, 2, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.text(isService ? 'S' : 'P', M + 11.5, y + 11, { align: 'center' });
+
+      // Item name
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(nameLines, M + 20, y + 8);
+
+      // Budget badge — top right
+      if (item.budget_per_unit) {
+        const budgetText = `Budget: KES ${parseFloat(item.budget_per_unit).toLocaleString()}/${item.unit_of_measure || 'unit'}`;
+        pdf.setFontSize(6.5);
+        const bw = pdf.getTextWidth(budgetText) + 10;
+        withOpacity(0.1, () => {
+          pdf.setFillColor(168, 85, 247);
+          pdf.roundedRect(M + CW - bw - 4, y + 4, bw, 6.5, 2, 2, 'F');
+        });
+        pdf.setDrawColor(168, 85, 247);
+        pdf.setLineWidth(0.3);
+        pdf.roundedRect(M + CW - bw - 4, y + 4, bw, 6.5, 2, 2, 'S');
+        pdf.setTextColor(124, 58, 237);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(budgetText, M + CW - bw, y + 9);
+      }
+
+      let innerY = y + 8 + nameLines.length * 5 + 2;
+
+      // Type chip row
+      let cx = M + 20;
+      cx += chip(cx, innerY, item.item_type.replace(/_/g, ' '), typeColor);
+      if (item.quantity) cx += chip(cx, innerY, `Qty: ${item.quantity}`, '#6b7280');
+      if (item.unit_of_measure) cx += chip(cx, innerY, item.unit_of_measure, '#6b7280');
+      innerY += 8;
+
+      // Meta row — lead time, hours, etc.
+      let mx = M + 20;
+      if (item.lead_time) mx += chip(mx, innerY, `Lead: ${item.lead_time}`, '#f59e0b');
+      if (isService && item.estimated_hours != null) mx += chip(mx, innerY, `${item.estimated_hours}h est.`, '#3b82f6');
+      if (item.lead_time || (isService && item.estimated_hours != null)) innerY += 8;
+
+      // Specs
+      if (hasSpecs) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(specLines, M + 6, innerY);
+        innerY += specLines.length * 4 + 4;
+      }
+
+      // Notes
+      if (hasNotes) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7);
+        pdf.setTextColor(107, 114, 128);
+        pdf.text(noteLines, M + 6, innerY);
+        innerY += noteLines.length * 4 + 4;
+      }
+
+      y = cardTop + cardH + 5;
+    });
+
+    y += 4;
+
+    // ══════════════════════════════════════════════════
+    // REQUEST DETAILS
+    // ══════════════════════════════════════════════════
+    sectionHeading('Request Details');
+
+    if (request.budget_range)      kv('Budget Range',      request.budget_range);
+    if (request.timeline_needed)   kv('Timeline Needed',   request.timeline_needed);
+    if (request.delivery_location) kv('Delivery Location', request.delivery_location);
+    if (request.customer_notes)    kv('Customer Notes',    request.customer_notes);
+
+    y += 4;
+
+    // ══════════════════════════════════════════════════
+    // TIMELINE
+    // ══════════════════════════════════════════════════
+    sectionHeading('Timeline');
+
+    [
+      { label: 'Submitted', val: request.created_at,  color: '#a855f7' },
+      { label: 'Quoted',    val: request.quoted_at,   color: '#10b981' },
+      { label: 'Expires',   val: request.expires_at,  color: '#f59e0b' },
+    ].filter(t => t.val).forEach((ev, i, arr) => {
+      need(16);
+      const { r, g, b } = rgb(ev.color);
+
+      pdf.setFillColor(r, g, b);
+      pdf.circle(M + 4, y + 3, 2.5, 'F');
+
+      if (i < arr.length - 1) {
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.5);
+        pdf.line(M + 4, y + 5.5, M + 4, y + 16);
+      }
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(ev.label, M + 12, y + 2);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(formatDate(ev.val), M + 12, y + 8);
+
+      y += 16;
+    });
+
+    // ══════════════════════════════════════════════════
+    // ATTACHMENTS
+    // ══════════════════════════════════════════════════
+    if (request.attachments?.length > 0) {
+      y += 4;
+      sectionHeading(`Attachments  ·  ${request.attachments.length}`);
+
+      request.attachments.forEach((file) => {
+        need(12);
+
+        // File card
+        pdf.setFillColor(249, 250, 251);
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.3);
+        pdf.roundedRect(M, y - 3, CW, 11, 3, 3, 'FD');
+
+        // File icon — simple coloured square instead of emoji (emoji breaks in jsPDF)
+        pdf.setFillColor(168, 85, 247);
+        pdf.roundedRect(M + 4, y - 1, 7, 7, 1, 1, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(5);
+        pdf.text('FILE', M + 7.5, y + 3.5, { align: 'center' });
+
+        // File name
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(17, 24, 39);
+        const maxNameW = CW - 40;
+        const nameText = pdf.splitTextToSize(file.name || 'Attachment', maxNameW)[0]; // one line only
+        pdf.text(nameText, M + 15, y + 3.5);
+
+        // File size
+        if (file.size) {
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6.5);
+          pdf.setTextColor(107, 114, 128);
+          pdf.text(formatFileSize(file.size), M + CW - 4, y + 3.5, { align: 'right' });
+        }
+
+        y += 14;
+      });
+    }
+
+    // ══════════════════════════════════════════════════
+    // FOOTER
+    // ══════════════════════════════════════════════════
+    y += 8;
+    need(18);
+
+    pdf.setDrawColor(229, 231, 235);
+    pdf.setLineWidth(0.3);
+    pdf.line(M, y, W - M, y);
+    y += 7;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(124, 58, 237);
+    pdf.text('Quote Request Summary', W / 2, y, { align: 'center' });
+
+    y += 6;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(
+      `Generated on ${format(new Date(), 'MMMM d, yyyy')} · ${request.request_number}`,
+      W / 2, y, { align: 'center' }
+    );
+
+    pdf.save(`QuoteRequest-${request.request_number}.pdf`);
+    toast?.success?.('PDF downloaded!', { id: toastId });
+
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    toast?.error?.('Failed to generate PDF', { id: toastId });
+  }
+};
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <Header />
@@ -200,12 +752,40 @@ const MyQuoteRequestDetail = () => {
               </div>
             </div>
 
-            {request.status === 'pending' && (
-              <button onClick={() => setShowEditModal(true)} type="button"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', flexShrink: 0 }}>
-                <Edit2 size={14} /> Edit Request
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: 10, flexShrink: 0 }}>
+              {/* ── Download PDF Button ───────────────────────────────────────────── */}
+              <button 
+                onClick={handleDownloadPDF} 
+                type="button"
+                style={{ 
+                  display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, 
+                  border: '1.5px solid rgba(168, 85, 247, 0.4)', background: 'transparent', color: '#a855f7', 
+                  fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+                  boxShadow: '0 0 0 1px rgba(168, 85, 247, 0.1), 0 2px 10px rgba(168, 85, 247, 0.08)',
+                  transition: 'all 150ms ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)';
+                  e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.25), 0 4px 18px rgba(168, 85, 247, 0.2)';
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+                  e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.1), 0 2px 10px rgba(168, 85, 247, 0.08)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <Download size={14} /> Download PDF
               </button>
-            )}
+
+              {/* ── Edit Button (only if pending) ────────────────────────────────── */}
+              {request.status === 'pending' && (
+                <button onClick={() => setShowEditModal(true)} type="button"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+                  <Edit2 size={14} /> Edit Request
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -311,7 +891,26 @@ const MyQuoteRequestDetail = () => {
                     const isService = item.item_type === 'service' || item.item_type === 'custom_service';
                     const Icon = isService ? Wrench : Package;
                     return (
-                      <div key={idx} style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid #f3f4f6', display: 'flex', gap: 14 }}>
+                      <div 
+                          key={idx} 
+                          style={{ 
+                            padding: '14px 16px', 
+                            borderRadius: 12, 
+                            border: '1.5px solid rgba(168, 85, 247, 0.4)', 
+                            boxShadow: '0 0 0 1px rgba(168, 85, 247, 0.15), 0 4px 20px rgba(168, 85, 247, 0.12)', 
+                            display: 'flex', 
+                            gap: 14,
+                            transition: 'box-shadow 200ms ease, border-color 200ms ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)';
+                            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.25), 0 6px 28px rgba(168, 85, 247, 0.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+                            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.15), 0 4px 20px rgba(168, 85, 247, 0.12)';
+                          }}
+                        >
                         <div style={{ width: 36, height: 36, borderRadius: 10, background: isService ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon size={16} color={isService ? '#3b82f6' : '#a855f7'} />
                         </div>
@@ -390,7 +989,7 @@ const MyQuoteRequestDetail = () => {
                   { label: 'Quoted', val: request.quoted_at },
                   { label: 'Expires', val: request.expires_at },
                 ].filter(t => t.val).map(({ label, val }) => (
-                  <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #f9fafb' }}>
+                  <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid rgba(168, 85, 247, 0.25)', boxShadow: 'inset 0 -1px 0 rgba(168, 85, 247, 0.15)' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c084fc', flexShrink: 0, marginTop: 5 }} />
                     <div>
                       <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>

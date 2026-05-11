@@ -1,27 +1,52 @@
 export default function PageHeader({ title, subtitle, actions, children }) {
   return (
-    <div className="mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ marginBottom: 32 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16,
+      }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 700,
+            margin: 0,
+            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p style={{
+              marginTop: 6,
+              marginBottom: 0,
+              fontSize: 14,
+              color: 'rgba(168,85,247,0.7)',
+            }}>
               {subtitle}
             </p>
           )}
         </div>
-        
+
         {actions && (
-          <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}>
             {actions}
           </div>
         )}
       </div>
-      
+
       {children && (
-        <div className="mt-6">
+        <div style={{ marginTop: 24 }}>
           {children}
         </div>
       )}

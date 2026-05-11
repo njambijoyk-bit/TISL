@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X, Plus, Trash2, AlertCircle, RefreshCw,
   Package, Wrench, Tag, ArrowUp, ArrowDown,
   ChevronDown, ChevronUp, DollarSign, Percent,
   UserCheck, MapPin, FileText, ShieldCheck,
-  Settings, CheckCircle, Info,
+  Settings, CheckCircle, Info, Wallet, Loader2,
 } from 'lucide-react';
-import ProductSelectorModal from '../quotes/request-wizard/ProductSelectorModal';
-import ServiceSelectorModal from '../quotes/request-wizard/ServiceSelectorModal';
+import ProductSelectorModalAdmin from '../quotes/request-wizard/ProductSelectorModalAdmin';
+import ServiceSelectorModalAdmin from '../quotes/request-wizard/ServiceSelectorModalAdmin';
 import CustomItemModal from '../quotes/request-wizard/CustomItemModal';
 import PricingValidationModal from '../quotes/PricingValidationModal';
+import CustomerSelectorModal from './CustomerSelectorModal';
 import PromoCodeInput from '../common/PromoCodeInput';
 import usePromoCodeStore from '../../store/promoCodeStore';
 import currencyAPI from '../../api/currency';
@@ -131,6 +132,9 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [customerId,       setCustomerId]       = useState('');
 
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedCustomer,  setSelectedCustomer]  = useState(null);
+
   // ── Currency ──────────────────────────────────────────────────────────────
   const [currencyOptions,   setCurrencyOptions]   = useState([]);
   const [loadingCurrencies, setLoadingCurrencies] = useState(false);
@@ -170,6 +174,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const [useDiscountPct, setUseDiscountPct] = useState(false);
   const [orderDiscount,  setOrderDiscount]  = useState(0);
   const [discountPct,    setDiscountPct]    = useState(0);
+
+  // ── Store credit ──────────────────────────────────────────────────────────
+  const availableCredit  = parseFloat(selectedCustomer?.store_credit ?? 0);
+  const [applyCredit,       setApplyCredit]       = useState(false);
+  const [creditInput,       setCreditInput]       = useState('');
+  const [creditCalculating, setCreditCalculating] = useState(false);
+  const creditDebounce = useRef(null);
 
   const { appliedPromo, clearPromo, adminApplyPromoCode } = usePromoCodeStore();
 
@@ -342,15 +353,24 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const itemsSubtotal   = validItems.reduce((s, i) => s + (parseFloat(i.line_total_after_discount) || 0), 0);
   const totalItemDisc   = validItems.reduce((s, i) => s + (parseFloat(i.discount_amount) || 0), 0);
   const origTotal       = validItems.reduce((s, i) => s + (parseFloat(i.line_total) || 0), 0);
-  
+
   const promoDiscountAmt = appliedPromo?.discount ?? 0;
   const afterOrderDisc   = itemsSubtotal - (parseFloat(orderDiscount) || 0) - promoDiscountAmt;
   const taxAmount        = applyTax ? afterOrderDisc * 0.16 : 0;
   const shipping         = parseFloat(shippingCost) || 0;
-  const grandTotal       = afterOrderDisc + taxAmount + shipping;
-  const totalSavings     = totalItemDisc + (parseFloat(orderDiscount) || 0) + promoDiscountAmt;
-  
+  const preCredit        = afterOrderDisc + taxAmount + shipping;
 
+  // Store credit: input is always KES, convert to order currency for display/total
+  const creditDeductionKes          = applyCredit
+    ? Math.min(parseFloat(creditInput) || 0, availableCredit, toKes(preCredit) || preCredit)
+    : 0;
+  const creditDeductionOrderCurrency = isBaseCurrency
+    ? creditDeductionKes
+    : exchangeRate > 0 ? creditDeductionKes / exchangeRate : 0;
+
+  const grandTotal   = preCredit - creditDeductionOrderCurrency;
+  const totalSavings = totalItemDisc + (parseFloat(orderDiscount) || 0) + promoDiscountAmt + creditDeductionKes;
+  
   // ── Discount sync ─────────────────────────────────────────────────────────
   const handleDiscountChange = (field, value) => {
     if (field === 'pct') {
@@ -529,6 +549,10 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
         payment_method:    paymentMethod,
         payment_reference: paymentReference || null,
         ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
+        ...(applyCredit && creditDeductionKes > 0 ? {
+          apply_store_credit: true,
+          store_credit_amount: creditDeductionKes,
+        } : {}),
         apply_tax:         applyTax,
         subtotal:          itemsSubtotal,
         subtotal_kes:      showKes ? toKes(itemsSubtotal) : itemsSubtotal,
@@ -615,7 +639,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   };
 
   const resetForm = () => {
-    setCustomerId(''); setOrderItems([blankItem(0)]); setExpandedItems({});
+    setSelectedCustomer(null);
+    setShowCustomerModal(false);
     setCurrency('KES'); setDeliveryMethod('standard_delivery');
     setShippingAddress(''); setBillingAddress(''); setBillingSame(true);
     setPriority('medium'); setOrderType('standard'); setBillingSchedule('');
@@ -626,6 +651,9 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     setOrderDiscount(0); setDiscountPct(0); setUseDiscountPct(false);
     setError(''); setLoading(false); setPricingErrors([]); setShowPricingModal(false);
     clearPromo();
+    setApplyCredit(false);
+    setCreditInput('');
+    setCreditCalculating(false);
   };
 
   if (!isOpen) return null;
@@ -749,23 +777,26 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
               <div style={sectionStyle}>
                 <SectionTitle icon={UserCheck}>Customer</SectionTitle>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input
-                    placeholder="Search by name or email…"
-                    value={customerSearch} onChange={e => setCustomerSearch(e.target.value)}
-                    disabled={loadingCustomers || loading}
-                    style={iBase} onFocus={fIn} onBlur={fOut}
-                  />
-                  <Field label="Select Customer" required>
-                    <select value={customerId} onChange={e => setCustomerId(e.target.value)} disabled={loadingCustomers || loading}
-                      style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
-                      <option value="">{loadingCustomers ? 'Loading…' : 'Select customer'}</option>
-                      {filteredCustomers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email} — {c.email}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomerModal(true)}
+                    disabled={loading}
+                    style={{
+                      ...iBase,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      color: selectedCustomer ? '#111827' : '#9ca3af',
+                      background: purpleLt, borderColor: purpleBd,
+                    }}
+                    onMouseEnter={e => { if (!loading) e.currentTarget.style.borderColor = purple; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = purpleBd; }}
+                  >
+                    <UserCheck size={14} color={selectedCustomer ? purple : '#9ca3af'} />
+                    {selectedCustomer
+                      ? `${[selectedCustomer.first_name, selectedCustomer.last_name].filter(Boolean).join(' ')} · ${selectedCustomer.email}`
+                      : 'Select a customer…'}
+                  </button>
+
                   {/* Currency */}
                   <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: 'white' }}>
                     <SectionTitle icon={DollarSign}>Currency</SectionTitle>
@@ -1169,18 +1200,6 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
-                <button onClick={() => { resetForm(); onClose(); }} disabled={loading} type="button"
-                  style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, background: 'transparent' }}>
-                  Cancel
-                </button>
-                <button onClick={handleSubmit} disabled={loading || validItemCount === 0} type="button"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10, border: 'none', cursor: (loading || validItemCount === 0) ? 'not-allowed' : 'pointer', background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', fontSize: '0.85rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(168,85,247,0.3)', opacity: (loading || validItemCount === 0) ? 0.6 : 1 }}>
-                  <Plus size={16} />
-                  {loading ? (editMode ? 'Saving…' : 'Creating…') : (editMode ? 'Save Changes' : 'Create Order')}
-                </button>
-              </div>
             </div>
 
             {/* ─ RIGHT: sticky summary sidebar ─────────────────────────── */}
@@ -1257,6 +1276,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                 </p>
                 <PromoCodeInput
                   orderValue={itemsSubtotal}
+                  exchangeRateToKes={exchangeRate}
                   referralDiscount={0}
                   customerId={customerId ? parseInt(customerId) : null}
                   onApplied={() => {}}
@@ -1271,6 +1291,101 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                 )}
               </div>
 
+              {/* Store credit */}
+              {selectedCustomer && availableCredit > 0 && (
+                <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid #e5e7eb', background: 'white' }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: purple, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Wallet size={11} /> Store Credit
+                  </p>
+
+                  {/* Toggle row */}
+                  <button type="button" disabled={editMode} onClick={() => {
+                    const next = !applyCredit;
+                    setApplyCredit(next);
+                    if (next) {
+                      const maxKes = Math.min(availableCredit, toKes(preCredit) || preCredit);
+                      setCreditInput(String(Math.round(maxKes)));
+                      setCreditCalculating(true);
+                      clearTimeout(creditDebounce.current);
+                      creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
+                    } else {
+                      setCreditInput('');
+                      setCreditCalculating(false);
+                    }
+                  }} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    width: '100%', padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                    border: `1.5px solid ${applyCredit ? purple : '#e5e7eb'}`,
+                    background: applyCredit ? purpleLt : 'white',
+                    fontFamily: 'inherit', transition: 'all 150ms',
+                    opacity: editMode ? 0.5 : 1, cursor: editMode ? 'not-allowed' : 'pointer',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4, border: `2px solid ${applyCredit ? purple : '#d1d5db'}`,
+                        background: applyCredit ? purple : 'white', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
+                      }}>
+                        {applyCredit && <CheckCircle size={10} color="white" />}
+                      </div>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>Apply store credit</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                      KSh {fmt(availableCredit)} available
+                    </span>
+                  </button>
+
+                  {/* Amount input */}
+                  {applyCredit && (
+                    <div style={{ marginTop: 10 }}>
+                      <label style={{ ...labelStyle, marginBottom: 5 }}>
+                        Amount to use — KES (max KSh {fmt(Math.min(availableCredit, toKes(preCredit) || preCredit))})
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#9ca3af', fontWeight: 600, pointerEvents: 'none' }}>KSh</span>
+                        <input
+                          type="number" min="1"
+                          max={Math.min(availableCredit, toKes(preCredit) || preCredit)}
+                          value={creditInput}
+                          onChange={e => {
+                            setCreditInput(e.target.value);
+                            setCreditCalculating(true);
+                            clearTimeout(creditDebounce.current);
+                            creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
+                          }}
+                          onBlur={e => {
+                            const max = Math.min(availableCredit, toKes(preCredit) || preCredit);
+                            const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
+                            setCreditInput(String(Math.round(val)));
+                          }}
+                          disabled={loading || editMode}
+                          style={{ ...iBase, paddingLeft: 38, opacity: editMode ? 0.5 : 1 }}
+                          onFocus={fIn}
+                          disabled={loading}
+                        />
+                        {creditCalculating && (
+                          <Loader2 size={13} style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            color: purple, animation: 'spin 700ms linear infinite',
+                          }} />
+                        )}
+                      </div>
+                      {!isBaseCurrency && creditDeductionOrderCurrency > 0 && (
+                        <p style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, marginTop: 5 }}>
+                          = {money(creditDeductionOrderCurrency)} deducted from order total
+                        </p>
+                      )}
+                      {editMode && (
+                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 6 }}>
+                          Store credit cannot be changed after order creation.
+                        </p>
+                      )}
+                      <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Financial summary */}
               {validItemCount > 0 && (
                 <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: purpleLt }}>
@@ -1281,7 +1396,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     { label: 'Item Discounts',       value: `-${money(totalItemDisc)}`,              show: totalItemDisc > 0, color: '#10b981' },
                     { label: 'After Item Discounts', value: money(itemsSubtotal),                    show: totalItemDisc > 0, divider: true },
                     { label: 'Order Discount',       value: `-${money(parseFloat(orderDiscount)||0)}`, show: parseFloat(orderDiscount) > 0, color: '#10b981' },
-                    { label: 'Promo Discount', value: `-${money(promoDiscountAmt)}`, show: promoDiscountAmt > 0, color: '#a855f7' },
+                    { label: 'Promo Discount',  value: `-${money(promoDiscountAmt)}`,              show: promoDiscountAmt > 0, color: '#a855f7' },
+                    { label: 'Store Credit',    value: `-KSh ${fmt(creditDeductionKes)}`,           show: creditDeductionKes > 0, color: '#059669' },
                     { label: 'VAT (16%)',            value: money(taxAmount),                        show: applyTax },
                     { label: 'Shipping',             value: money(shipping),                         show: shipping > 0 },
                   ].filter(r => r.show).map(({ label, value, color, divider }) => (
@@ -1330,6 +1446,25 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                       </div>
                     ))}
                   </div>
+                  
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
+                <button onClick={() => { resetForm(); onClose(); }} disabled={loading} type="button"
+                  style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, background: 'transparent' }}>
+                  Cancel
+                </button>
+                <button onClick={handleSubmit} disabled={loading || validItemCount === 0} type="button"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10, border: 'none', cursor: (loading || validItemCount === 0) ? 'not-allowed' : 'pointer', background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', fontSize: '0.85rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(168,85,247,0.3)', opacity: (loading || validItemCount === 0) ? 0.6 : 1 }}>
+                  <Plus size={16} />
+                  {loading ? (editMode ? 'Saving…' : 'Creating…') : (editMode ? 'Save Changes' : 'Create Order')}
+                </button>
+
+                {error && (
+                  <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <AlertCircle size={12} /> {error}
+                  </p>
+                )}
+              </div>
                 </div>
               )}
 
@@ -1351,15 +1486,26 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
       </div>
 
       {/* ── Sub-modals ───────────────────────────────────────────────────────── */}
+      {showCustomerModal && (
+        <CustomerSelectorModal
+          onClose={() => setShowCustomerModal(false)}
+          onSelect={(customer) => {
+            setSelectedCustomer(customer);
+            setCustomerId(String(customer.id));
+            setShowCustomerModal(false);
+          }}
+          currentCustomerId={customerId}
+        />
+      )}
       {showProductSelector && (
-        <ProductSelectorModal
+        <ProductSelectorModalAdmin
           onClose={() => setShowProductSelector(false)}
           onSelect={handleProductsSelected}
           excludeIds={orderItems.filter(i => i.product_id).map(i => i.product_id)}
         />
       )}
       {showServiceSelector && (
-        <ServiceSelectorModal
+        <ServiceSelectorModalAdmin
           onClose={() => setShowServiceSelector(false)}
           onSelect={handleServicesSelected}
           excludeIds={orderItems.filter(i => i.service_id).map(i => i.service_id)}

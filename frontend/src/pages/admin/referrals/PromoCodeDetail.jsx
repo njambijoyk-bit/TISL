@@ -4,9 +4,9 @@ import {
   ChevronLeft, Edit3, Play, Pause, Archive, Trash2,
   Copy, Check, Users, DollarSign, TrendingUp, Zap,
   Calendar, Tag, UserCheck, RefreshCw, AlertCircle,
-  BarChart2, Clock,
+  BarChart2, Clock, ShoppingBag,
 } from 'lucide-react';
-import AdminLayout from '../../../components/layout/AdminLayout';
+import SettingsLayout from '../../../components/layout/SettingsLayout';
 import usePromoCodeStore from '../../../store/promoCodeStore';
 import promoCodesAPI from '../../../api/promoCodes';
 import toast from 'react-hot-toast';
@@ -132,6 +132,15 @@ export default function PromoCodeDetail() {
   const [loading, setLoading] = useState(true);
   const [actLoading, setActLoading] = useState(null);
 
+  const [redemptions, setRedemptions] = useState([]);
+
+  useEffect(() => {
+    if (!id) return;
+    promoCodesAPI.getRedemptions(id)
+      .then(data => setRedemptions(data.redemptions ?? []))
+      .catch(() => setRedemptions([]));
+  }, [id]);
+
   useEffect(() => { load(); }, [id]);
 
   const load = async () => {
@@ -171,12 +180,12 @@ export default function PromoCodeDetail() {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <AdminLayout>
+    <SettingsLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${purpleBd}`, borderTopColor: purple, animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
-    </AdminLayout>
+    </SettingsLayout>
   );
 
   if (!code) return null;
@@ -197,7 +206,7 @@ export default function PromoCodeDetail() {
     : null;
 
   return (
-    <AdminLayout>
+    <SettingsLayout>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -297,6 +306,51 @@ export default function PromoCodeDetail() {
             </div>
           </Panel>
 
+          {/* Redemptions */}
+          <Panel>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
+              <SectionLabel icon={ShoppingBag}>Redemptions</SectionLabel>
+            </div>
+            <div style={{ padding: '18px 22px' }}>
+              {redemptions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: '0.85rem' }}>
+                  No orders have used this code yet.
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                      {['Order', 'Customer', 'Subtotal (KES)', 'Discount', 'Status', 'Date'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {redemptions.map((r, i) => (
+                      <tr key={r.order_id} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 10px', fontWeight: 700, color: purple }}>{r.order_number}</td>
+                        <td style={{ padding: '10px 10px' }}>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{r.customer_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{r.customer_email}</div>
+                        </td>
+                        <td style={{ padding: '10px 10px', fontWeight: 700 }}>KES {r.subtotal_kes.toLocaleString()}</td>
+                        <td style={{ padding: '10px 10px', color: '#ef4444', fontWeight: 700 }}>- KES {r.promo_discount.toLocaleString()}</td>
+                        <td style={{ padding: '10px 10px' }}>
+                          <span style={{
+                            padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+                            background: r.status === 'delivered' ? '#d1fae5' : r.status === 'cancelled' ? '#fee2e2' : '#fef3c7',
+                            color:      r.status === 'delivered' ? '#065f46' : r.status === 'cancelled' ? '#991b1b' : '#92400e',
+                          }}>{r.status}</span>
+                        </td>
+                        <td style={{ padding: '10px 10px', color: '#6b7280' }}>{new Date(r.redeemed_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </Panel>
+
           {/* Performance */}
           <Panel>
             <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
@@ -306,7 +360,7 @@ export default function PromoCodeDetail() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
                 {[
                   { label: 'Total Uses',    value: code.times_used      ?? 0 },
-                  { label: 'Revenue',       value: fmt(code.total_revenue) },
+                  { label: 'Revenue Subtotal',       value: fmt(code.total_revenue) },
                   { label: 'Discount Given',value: fmt(code.total_discount_given) },
                   { label: 'Conversion',    value: `${Number(code.conversion_rate ?? 0).toFixed(1)}%` },
                 ].map(({ label, value }) => (
@@ -493,6 +547,6 @@ export default function PromoCodeDetail() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </SettingsLayout>
   );
 }

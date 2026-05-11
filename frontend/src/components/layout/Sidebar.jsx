@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, FileText, Users,
   Star, Settings, LogOut, ChevronLeft, Menu, Tag, Award, BarChart2,
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
+  HomeIcon, Gavel, DollarSign,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
@@ -12,41 +13,44 @@ const MENU_GROUPS = [
   {
     label: 'Catalogue',
     items: [
-      { title: 'Products',           icon: Package,       path: '/admin/products' },
-      { title: 'Categories',         icon: Tag,           path: '/admin/categories' },
-      { title: 'Brands',             icon: Award,         path: '/admin/brands' },
-      { title: 'Services',           icon: Wrench,        path: '/admin/services' },
-      { title: 'Service Categories', icon: FolderTree,    path: '/admin/service-categories' },
+      { title: 'Products',           icon: Package,       path: '/admin/products',           color: '#a855f7' }, // purple
+      { title: 'Auctions',           icon: Gavel,         path: '/admin/auctions',           color: '#ef4444' },
+      { title: 'Categories',         icon: Tag,           path: '/admin/categories',         color: '#3b82f6' }, // blue
+      { title: 'Brands',             icon: Award,         path: '/admin/brands',             color: '#f59e0b' }, // amber
+      { title: 'Services',           icon: Wrench,        path: '/admin/services',           color: '#10b981' }, // emerald
+      { title: 'Service Categories', icon: FolderTree,    path: '/admin/service-categories', color: '#06b6d4' }, // cyan
     ],
   },
   {
     label: 'Sales',
     items: [
-      { title: 'Orders',         icon: ShoppingCart,  path: '/admin/orders' },
-      { title: 'Quotes',         icon: FileText,      path: '/admin/quotes' },
-      { title: 'Quote Requests', icon: MessageSquare, path: '/admin/quote-requests' },
-      { title: 'Projects',       icon: ClipboardList, path: '/admin/projects' },
+      { title: 'Orders',         icon: ShoppingCart,  path: '/admin/orders',         color: '#f97316' }, // orange
+      { title: 'Payments',       icon: DollarSign,    path: '/admin/finance/payments', color: '#10b981' }, // ← ADD THIS (emerald green)
+      { title: 'Quotes',         icon: FileText,      path: '/admin/quotes',         color: '#8b5cf6' }, // violet
+      { title: 'Quote Requests', icon: MessageSquare, path: '/admin/quote-requests', color: '#ec4899' }, // pink
+      { title: 'Projects',       icon: ClipboardList, path: '/admin/projects',       color: '#14b8a6' }, // teal
     ],
   },
   {
     label: 'People',
     items: [
-      { title: 'Customers',  icon: Users,   path: '/admin/customers' },
-      { title: 'Users',      icon: UserCog, path: '/admin/users' },
-      { title: 'Employees',  icon: Star,    path: '/admin/employees' },
+      { title: 'Customers',  icon: Users,   path: '/admin/customers',  color: '#6366f1' }, // indigo
+      {title: 'Loyalties',   icon: Award, path: '/admin/loyalty',      color: '#fc7bf5'},
+      { title: 'Users',      icon: UserCog, path: '/admin/users',      color: '#0ea5e9' }, // sky
+      { title: 'Employees',  icon: Star,    path: '/admin/employees',  color: '#eab308' }, // yellow
     ],
   },
   {
     label: 'Support',
     items: [
-      { title: 'Tickets', icon: LifeBuoy, path: '/admin/tickets' },
+      { title: 'Tickets', icon: LifeBuoy, path: '/admin/tickets', color: '#ef4444' }, // red
     ],
   },
   {
     label: 'System',
     items: [
-      { title: 'Settings', icon: Settings,  path: '/admin/settings' },
-      { title: 'Reports',  icon: BarChart2, path: '/admin/reports' },
+      { title: 'Settings', icon: Settings,  path: '/admin/settings', color: '#64748b' }, // slate
+      { title: 'Reports',  icon: BarChart2, path: '/admin/reports',  color: '#22c55e' }, // green
     ],
   },
 ];
@@ -58,10 +62,32 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { logout } = useAuthStore();
 
+  // ─── Role filter for menu items ─────────────────────────────────────
+  const { user } = useAuthStore();
+  const canSeePayments = ['admin', 'super_admin', 'finance'].includes(user?.role);
+
+  const filterMenuItems = (items) => {
+    return items.filter(item => {
+      // Payments is the only role-restricted item for now
+      if (item.path === '/admin/finance/payments') {
+        return canSeePayments;
+      }
+      return true; // all other items visible to all admin roles
+    });
+  };
+
   const isActive = (path) =>
     path === '/admin' ? location.pathname === path : location.pathname.startsWith(path);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  //const handleLogout = () => { logout(); navigate('/login'); };
+  
+  // 1. Add this state near your other useState calls
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // 2. Replace handleLogout with these two handlers
+  const handleLogoutClick = () => setShowLogoutModal(true);
+  const handleLogoutConfirm = () => { setShowLogoutModal(false); logout(); navigate('/login'); };
+  const handleLogoutCancel = () => setShowLogoutModal(false);
 
   // ─── styles ────────────────────────────────────────────────────────────────
   const sidebarW = collapsed ? 68 : 240;
@@ -172,8 +198,8 @@ export default function Sidebar() {
         {/* ── Logo ──────────────────────────────────────────────────────── */}
         <div style={logoAreaStyle}>
           {!collapsed && (
-            <Link to="/admin" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-              <div style={logoMarkStyle}>BA</div>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+              <div style={logoMarkStyle}><HomeIcon size={15} /></div>
               <div>
                 <p style={{
                   margin: 0, fontSize: '0.875rem', fontWeight: 800, letterSpacing: '-0.01em',
@@ -191,8 +217,8 @@ export default function Sidebar() {
             </Link>
           )}
           {collapsed && (
-            <Link to="/admin" style={{ textDecoration: 'none' }}>
-              <div style={logoMarkStyle}>BA</div>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <div style={logoMarkStyle}><HomeIcon size={15} /></div>
             </Link>
           )}
           {!collapsed && (
@@ -217,39 +243,44 @@ export default function Sidebar() {
             {!collapsed && 'Dashboard'}
           </Link>
 
-          {MENU_GROUPS.map(group => (
-            <div key={group.label}>
-              <p style={groupLabelStyle}>
-                {collapsed ? '·' : group.label}
-              </p>
-              {group.items.map(item => {
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    style={active ? linkActive : linkInactive}
-                    title={collapsed ? item.title : ''}
-                    onMouseEnter={e => {
-                      if (!active) {
-                        e.currentTarget.style.background = '#e9d5ff';
-                        e.currentTarget.style.color = '#a855f7';
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (!active) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))';
-                      }
-                    }}
-                  >
-                    <item.icon size={16} style={{ flexShrink: 0 }} />
-                    {!collapsed && item.title}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+          {MENU_GROUPS.map(group => {
+            const filteredItems = filterMenuItems(group.items); // ← APPLY FILTER
+            if (filteredItems.length === 0) return null; // skip empty groups
+
+            return (
+              <div key={group.label}>
+                <p style={groupLabelStyle}>
+                  {collapsed ? '·' : group.label}
+                </p>
+                {filteredItems.map(item => {  // ← USE FILTERED ITEMS
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      style={active ? { ...linkBase, background: item.color, color: '#fff' } : linkInactive}
+                      title={collapsed ? item.title : ''}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = `${item.color}22`;
+                          e.currentTarget.style.color = item.color;
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))';
+                        }
+                      }}
+                    >
+                      <item.icon size={16} style={{ flexShrink: 0, color: active ? '#fff' : item.color }} />
+                      {!collapsed && item.title}
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}
@@ -272,7 +303,7 @@ export default function Sidebar() {
           )}
 
           <button
-            onClick={handleLogout}
+            onClick={handleLogoutClick}
             title={collapsed ? 'Logout' : ''}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
@@ -305,6 +336,81 @@ export default function Sidebar() {
 
       {/* Spacer so page content doesn't hide under the fixed sidebar */}
       <div style={{ width: sidebarW, flexShrink: 0, transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }} />
+
+      {/* ── Logout Confirmation Modal ─────────────────────────────────── */}
+      {showLogoutModal && (
+        <div
+          onClick={handleLogoutCancel}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'white',
+              color: '#111827',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 12,
+              padding: '28px 28px 22px',
+              width: 300,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'rgba(239,68,68,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 4,
+            }}>
+              <LogOut size={18} color="#ef4444" />
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#ef4444' }}>
+              Sign out?
+            </p>
+            <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: 'var(--color-text-secondary, var(--color-text-muted))' }}>
+              You'll need to sign back in to access the admin panel.
+            </p>
+
+            <button
+              onClick={handleLogoutConfirm}
+              style={{
+                padding: '9px 0', borderRadius: 8, border: 'none',
+                background: '#ef4444', color: '#fff',
+                fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600,
+                cursor: 'pointer', width: '100%',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
+              onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
+            >
+              Yes, sign out
+            </button>
+
+            <button
+              onClick={handleLogoutCancel}
+              style={{
+                padding: '9px 0', borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'transparent',
+                color: 'var(--color-text-secondary, var(--color-text-muted))',
+                fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 500,
+                cursor: 'pointer', width: '100%',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              Stay logged in
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

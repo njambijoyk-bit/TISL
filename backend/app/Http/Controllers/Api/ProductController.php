@@ -19,7 +19,7 @@ class ProductController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Product::with(['brand', 'category']);
+        $query = Product::with(['brand', 'category', 'activeAuction']);
 
         // Search
         if ($request->has('search')) {
@@ -59,7 +59,7 @@ class ProductController extends Controller
     public function index(Request $request)
 {
     // Only filter by is_visible = 1 (no stock checking)
-    $query = Product::with(['brand', 'category'])
+    $query = Product::with(['brand', 'category', 'activeAuction'])
         ->where('is_visible', true)
         ->where('status', 'active');
 
@@ -245,179 +245,185 @@ class ProductController extends Controller
     }
 
     /**
-     * Display the specified product (PUBLIC)
+     * Display the specified product with full details (PUBLIC)
      */
-    /**
- * Display the specified product with full details (PUBLIC)
- */
-public function show($id)
-{
-    try {
-        $product = Product::with([
-            'brand',
-            'category',
-            'reviews' => function($query) {
-                $query->where('is_approved', true)  // Changed from status
-                    ->with('user:id,name,email')
-                    ->orderBy('created_at', 'desc');
-            }
-        ])
-        ->where('is_visible', true)
-        ->findOrFail($id);
-
-        // Increment view count
-        if (method_exists($product, 'incrementViewCount')) {
-            $product->incrementViewCount();
-        }
-
-        // Calculate average rating
-        $avgRating = $product->reviews()
-            ->where('is_approved', true)  // Changed from status
-            ->avg('rating');
-        
-        // Get rating breakdown (count per star)
-        $ratingBreakdown = $product->reviews()
-            ->where('is_approved', true)  // Changed from status
-            ->selectRaw('rating, COUNT(*) as count')
-            ->groupBy('rating')
-            ->orderBy('rating', 'desc')
-            ->pluck('count', 'rating')
-            ->toArray();
-
-        // Total reviews count
-        $totalReviews = $product->reviews()
-            ->where('is_approved', true)
-            ->count();
-
-        // Get related products (same category, excluding current)
-        $relatedProducts = Product::with(['brand', 'category'])
+    public function show($id)
+    {
+        try {
+            $product = Product::with([
+                'brand',
+                'category',
+                'activeAuction',
+                'reviews' => function($query) {
+                    $query->where('is_approved', true)  // Changed from status
+                        ->with('user:id,name,email')
+                        ->orderBy('created_at', 'desc');
+                }
+            ])
             ->where('is_visible', true)
-            ->where('category_id', $product->category_id)
-            ->where('id', '!=', $product->id)
-            ->limit(8)
-            ->get();
+            ->findOrFail($id);
 
-        // Calculate discount percentage
-        $discountPercentage = 0;
-        if ($product->original_price && $product->on_sale && $product->original_price > $product->price) {
-            $discountPercentage = round((($product->original_price - $product->price) / $product->original_price) * 100);
-        }
+            // Increment view count
+            if (method_exists($product, 'incrementViewCount')) {
+                $product->incrementViewCount();
+            }
 
-        return response()->json([
-            'product' => [
-                // Basic Info
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->slug,
-                'sku' => $product->sku,
-                
-                // Descriptions
-                'description' => $product->description,
-                'short_description' => $product->short_description,
-                
-                // Pricing
-                'price' => $product->price,
-                'original_price' => $product->original_price,
-                'price_is_negotiable' => $product->price_is_negotiable,
-                'on_sale' => $product->on_sale,
-                'discount_percentage' => $discountPercentage,
-                
-                // Stock
-                'in_stock' => $product->in_stock,
-                'stock_quantity' => $product->stock_quantity,
-                
-                // Images
-                'main_image' => $product->main_image,
-                'images' => $product->images ?? [],
-                
-                // Features & Specifications
-                'features' => $product->features ?? [],
-                'specifications' => $product->specifications ?? [],
-                
-                // Variants
-                'has_variants' => $product->has_variants,
-                'variants' => $product->variants ?? [],
-                
-                // Categories & Brand
-                'category' => $product->category ? [
-                    'id' => $product->category->id,
-                    'name' => $product->category->name,
-                    'slug' => $product->category->slug,
-                ] : null,
-                'brand' => $product->brand ? [
-                    'id' => $product->brand->id,
-                    'name' => $product->brand->name,
-                    'slug' => $product->brand->slug ?? null,
-                    'logo' => $product->brand->logo ?? null,
-                ] : null,
-                
-                // Badges & Status
-                'badge' => $product->badge,
-                'is_featured' => $product->is_featured,
-                'is_new' => $product->is_new,
-                
-                // Ratings & Reviews
-                'average_rating' => round($avgRating ?? 0, 1),
-                'total_reviews' => $totalReviews,
-                'rating_breakdown' => [
-                    '5' => $ratingBreakdown[5] ?? 0,
-                    '4' => $ratingBreakdown[4] ?? 0,
-                    '3' => $ratingBreakdown[3] ?? 0,
-                    '2' => $ratingBreakdown[2] ?? 0,
-                    '1' => $ratingBreakdown[1] ?? 0,
+            // Calculate average rating
+            $avgRating = $product->reviews()
+                ->where('is_approved', true)  // Changed from status
+                ->avg('rating');
+            
+            // Get rating breakdown (count per star)
+            $ratingBreakdown = $product->reviews()
+                ->where('is_approved', true)  // Changed from status
+                ->selectRaw('rating, COUNT(*) as count')
+                ->groupBy('rating')
+                ->orderBy('rating', 'desc')
+                ->pluck('count', 'rating')
+                ->toArray();
+
+            // Total reviews count
+            $totalReviews = $product->reviews()
+                ->where('is_approved', true)
+                ->count();
+
+            // Get related products (same category, excluding current)
+            $relatedProducts = Product::with(['brand', 'category'])
+                ->where('is_visible', true)
+                ->where('category_id', $product->category_id)
+                ->where('id', '!=', $product->id)
+                ->limit(8)
+                ->get();
+
+            // Calculate discount percentage
+            $discountPercentage = 0;
+            if ($product->original_price && $product->on_sale && $product->original_price > $product->price) {
+                $discountPercentage = round((($product->original_price - $product->price) / $product->original_price) * 100);
+            }
+
+            return response()->json([
+                'product' => [
+                    // Basic Info
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                    'sku' => $product->sku,
+                    
+                    // Descriptions
+                    'description' => $product->description,
+                    'short_description' => $product->short_description,
+                    
+                    // Pricing
+                    'price' => $product->price,
+                    'original_price' => $product->original_price,
+                    'price_is_negotiable' => $product->price_is_negotiable,
+                    'on_sale' => $product->on_sale,
+                    'discount_percentage' => $discountPercentage,
+                    
+                    // Stock
+                    'in_stock' => $product->in_stock,
+                    'stock_quantity' => $product->stock_quantity,
+                    
+                    'active_auction' => $product->activeAuction ? [
+                        'id' => $product->activeAuction->id,
+                        'status' => $product->activeAuction->status,
+                        'current_bid' => $product->activeAuction->current_bid,
+                        'start_price' => $product->activeAuction->start_price,
+                        'ends_at' => $product->activeAuction->ends_at,
+                    ] : null,
+                    
+                    // Images
+                    'main_image' => $product->main_image,
+                    'images' => $product->images ?? [],
+                    
+                    // Features & Specifications
+                    'features' => $product->features ?? [],
+                    'specifications' => $product->specifications ?? [],
+                    
+                    // Variants
+                    'has_variants' => $product->has_variants,
+                    'variants' => $product->variants ?? [],
+                    
+                    // Categories & Brand
+                    'category' => $product->category ? [
+                        'id' => $product->category->id,
+                        'name' => $product->category->name,
+                        'slug' => $product->category->slug,
+                    ] : null,
+                    'brand' => $product->brand ? [
+                        'id' => $product->brand->id,
+                        'name' => $product->brand->name,
+                        'slug' => $product->brand->slug ?? null,
+                        'logo' => $product->brand->logo ?? null,
+                    ] : null,
+                    
+                    // Badges & Status
+                    'badge' => $product->badge,
+                    'is_featured' => $product->is_featured,
+                    'is_new' => $product->is_new,
+                    
+                    // Ratings & Reviews
+                    'average_rating' => round($avgRating ?? 0, 1),
+                    'total_reviews' => $totalReviews,
+                    'rating_breakdown' => [
+                        '5' => $ratingBreakdown[5] ?? 0,
+                        '4' => $ratingBreakdown[4] ?? 0,
+                        '3' => $ratingBreakdown[3] ?? 0,
+                        '2' => $ratingBreakdown[2] ?? 0,
+                        '1' => $ratingBreakdown[1] ?? 0,
+                    ],
+                    
+                    // Reviews (first 5)
+                    'reviews' => $product->reviews()->where('is_approved', true)->get()->map(function($review) {
+                        return [
+                            'id' => $review->id,
+                            'rating' => $review->rating,
+                            'comment' => $review->comment,
+                            'user_name' => $review->user->name ?? 'Anonymous',
+                            'user_id' => $review->user_id,
+                            'created_at' => $review->created_at->format('M d, Y'),
+                            'helpful_count' => $review->helpful_count ?? 0,
+                        ];
+                    }),
+                    
+                    // Meta
+                    'view_count' => $product->view_count ?? 0,
+                    'created_at' => $product->created_at->format('M d, Y'),
                 ],
                 
-                // Reviews (first 5)
-                'reviews' => $product->reviews()->where('is_approved', true)->get()->map(function($review) {
+                // Related Products
+                'related_products' => $relatedProducts->map(function($item) {
+                    $itemAvgRating = $item->reviews()->where('is_approved', true)->avg('rating');
+                    $itemTotalReviews = $item->reviews()->where('is_approved', true)->count();
+                    
                     return [
-                        'id' => $review->id,
-                        'rating' => $review->rating,
-                        'comment' => $review->comment,
-                        'user_name' => $review->user->name ?? 'Anonymous',
-                        'user_id' => $review->user_id,
-                        'created_at' => $review->created_at->format('M d, Y'),
-                        'helpful_count' => $review->helpful_count ?? 0,
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'slug' => $item->slug,
+                        'price' => $item->price,
+                        'original_price' => $item->original_price,
+                        'price_is_negotiable' => $item->price_is_negotiable,
+                        'main_image' => $item->main_image,
+                        'average_rating' => round($itemAvgRating ?? 0, 1),
+                        'total_reviews' => $itemTotalReviews,
+                        'in_stock' => $item->in_stock,
+                        'badge' => $item->badge,
+                        'on_sale' => $item->on_sale,
+                        'brand' => $item->brand ? [
+                            'id' => $item->brand->id,
+                            'name' => $item->brand->name
+                        ] : null,
                     ];
                 }),
-                
-                // Meta
-                'view_count' => $product->view_count ?? 0,
-                'created_at' => $product->created_at->format('M d, Y'),
-            ],
+            ], 200);
             
-            // Related Products
-            'related_products' => $relatedProducts->map(function($item) {
-                $itemAvgRating = $item->reviews()->where('is_approved', true)->avg('rating');
-                $itemTotalReviews = $item->reviews()->where('is_approved', true)->count();
-                
-                return [
-                    'id' => $item->id,
-                    'name' => $item->name,
-                    'slug' => $item->slug,
-                    'price' => $item->price,
-                    'original_price' => $item->original_price,
-                    'price_is_negotiable' => $item->price_is_negotiable,
-                    'main_image' => $item->main_image,
-                    'average_rating' => round($itemAvgRating ?? 0, 1),
-                    'total_reviews' => $itemTotalReviews,
-                    'in_stock' => $item->in_stock,
-                    'badge' => $item->badge,
-                    'on_sale' => $item->on_sale,
-                    'brand' => $item->brand ? [
-                        'id' => $item->brand->id,
-                        'name' => $item->brand->name
-                    ] : null,
-                ];
-            }),
-        ], 200);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Product not found',
-            'error' => $e->getMessage()
-        ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Product not found',
+                'error' => $e->getMessage()
+            ], 404);
+        }
     }
-}
 
     /**
      * Update the specified product (ADMIN ONLY)
@@ -642,6 +648,134 @@ public function show($id)
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function bulkUpdate(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $request->validate([
+            'name'                => 'sometimes|string|max:255',
+            'stock_quantity'      => 'sometimes|integer|min:0',
+            'price'               => 'sometimes|numeric|min:0',
+            'original_price'      => 'sometimes|nullable|numeric|min:0',
+            'price_is_negotiable' => 'sometimes|boolean',
+            'category_id'         => 'sometimes|exists:categories,id',
+            'brand_id'            => 'sometimes|nullable|exists:brands,id',
+            'main_image'          => 'sometimes|file|image|max:5120',   // 5 MB max
+            'images.*'            => 'sometimes|file|image|max:5120',
+        ]);
+
+        $data = [];
+
+        // Data assignment block
+        if ($request->has('name'))           $data['name'] = $request->name;
+        if ($request->has('stock_quantity')) {
+            $data['stock_quantity'] = $request->stock_quantity;
+            $data['in_stock']       = $request->stock_quantity > 0;
+            // Auto-update status
+            if ($request->stock_quantity === 0 && $product->status === 'active') {
+                $data['status'] = 'out_of_stock';
+            } elseif ($request->stock_quantity > 0 && $product->status === 'out_of_stock') {
+                $data['status'] = 'active';
+            }
+        }
+
+        // ── Pricing fields ────────────────────────────────────────
+        if ($request->has('price'))               $data['price']               = $request->price;
+        if ($request->has('original_price'))      $data['original_price']      = $request->original_price;
+        if ($request->has('price_is_negotiable')) $data['price_is_negotiable'] = $request->boolean('price_is_negotiable');
+        if ($request->has('category_id'))         $data['category_id']         = $request->category_id;
+        if ($request->has('brand_id'))            $data['brand_id']            = $request->brand_id;
+
+        // Auto-set on_sale when price < original_price
+        if (isset($data['price']) && $product->original_price && $data['price'] < $product->original_price) {
+            $data['on_sale'] = true;
+        }
+
+        // ── Main image upload ─────────────────────────────────────
+        if ($request->hasFile('main_image') && $request->file('main_image')->isValid()) {
+            // Delete old local main image if it exists
+            if ($product->main_image && !str_starts_with($product->main_image, 'http')) {
+                \Storage::disk('public')->delete(str_replace('/storage/', '', $product->main_image));
+            }
+
+            $path = $request->file('main_image')->store('products', 'public');
+            $data['main_image'] = '/storage/' . $path;
+        }
+
+        // ── Additional images upload ──────────────────────────────
+        if ($request->hasFile('images')) {
+            $existingImages = $product->images ?? [];
+
+            foreach ($request->file('images') as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store('products', 'public');
+                    $existingImages[] = '/storage/' . $path;
+                }
+            }
+
+            $data['images'] = $existingImages;
+
+            // Set main_image from first image if not set
+            if (empty($data['main_image']) && empty($product->main_image) && !empty($existingImages)) {
+                $data['main_image'] = $existingImages[0];
+            }
+        }
+
+        // ── updated_by ────────────────────────────────────────────
+        $data['updated_by'] = auth()->id();
+
+        $product->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product updated successfully',
+            'data'    => $product->fresh(['category', 'brand']),
+        ]);
+    }
+
+    /**
+     * ADMIN: Bulk-set boolean flag(s) on multiple products.
+     *
+     * POST /admin/products/bulk-update-flags
+     * Body: { ids: [1,2,3], flags: { is_visible: true, is_featured: false, ... } }
+     */
+    public function bulkUpdateFlags(Request $request)
+    {
+        $request->validate([
+            'ids'              => 'required|array|min:1',
+            'ids.*'            => 'integer|exists:products,id',
+            'flags'            => 'required|array|min:1',
+            'flags.is_visible' => 'sometimes|boolean',
+            'flags.is_featured'=> 'sometimes|boolean',
+            'flags.is_new'     => 'sometimes|boolean',
+            'flags.on_sale'    => 'sometimes|boolean',
+        ]);
+
+        // Whitelist — never let the client sneak in other columns
+        $allowed = ['is_visible', 'is_featured', 'is_new', 'on_sale'];
+        $data    = array_intersect_key($request->input('flags'), array_flip($allowed));
+
+        if (empty($data)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid flags provided.',
+            ], 422);
+        }
+
+        // Cast everything to int (tinyint columns) and stamp who changed it
+        $data = array_map(fn($v) => (bool) $v ? 1 : 0, $data);
+        $data['updated_by'] = auth()->id();
+
+        $updated = Product::whereIn('id', $request->input('ids'))
+                        ->update($data);
+
+        return response()->json([
+            'success'  => true,
+            'message'  => "{$updated} product(s) updated successfully.",
+            'updated'  => $updated,
+        ]);
     }
 
     /**

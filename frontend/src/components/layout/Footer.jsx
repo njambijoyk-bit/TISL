@@ -1,13 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin, Youtube, Globe } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, Globe, Mail, Phone, MapPin } from 'lucide-react';
 import useContentStore from '../../store/contentStore';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Social icon resolver
-// Seeder stores: { label: 'Facebook', url: '#', icon: 'facebook' }
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Social icon resolver ───────────────────────────────────────────────────────
 const SOCIAL_ICONS = {
   facebook:  Facebook,
   twitter:   Twitter,
@@ -25,133 +21,235 @@ const SocialLink = ({ item }) => {
       target={item.url && item.url !== '#' ? '_blank' : undefined}
       rel="noopener noreferrer"
       aria-label={item.label ?? item.icon}
-      className="text-gray-400 hover:text-primary-500 transition-colors"
+      style={{
+        width: 34, height: 34, borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: '1px solid rgba(168,85,247,0.25)',
+        boxShadow: '0 0 8px rgba(168,85,247,0.08)',
+        color: '#9ca3af', transition: 'all 150ms ease',
+        textDecoration: 'none',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = '#a855f7';
+        e.currentTarget.style.color = '#a855f7';
+        e.currentTarget.style.boxShadow = '0 0 16px rgba(168,85,247,0.35)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+        e.currentTarget.style.color = '#9ca3af';
+        e.currentTarget.style.boxShadow = '0 0 8px rgba(168,85,247,0.08)';
+      }}
     >
-      <Icon size={20} />
+      <Icon size={15} />
     </a>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Skeletons
-// ─────────────────────────────────────────────────────────────────────────────
-
-const BrandSkeleton = () => (
-  <div className="space-y-3 animate-pulse">
-    <div className="h-9 w-16 bg-gray-700 rounded" />
-    <div className="h-3 w-52 bg-gray-800 rounded" />
-    <div className="h-3 w-40 bg-gray-800 rounded" />
-    <div className="flex gap-3 mt-3">
-      {[0,1,2,3].map(i => <div key={i} className="w-5 h-5 bg-gray-700 rounded" />)}
-    </div>
-  </div>
+// ── Skeletons ──────────────────────────────────────────────────────────────────
+const Skel = ({ w, h = 12, r = 4 }) => (
+  <div style={{ width: w, height: h, borderRadius: r, background: 'rgba(168,85,247,0.1)', animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
 );
 
-const ColumnSkeleton = () => (
-  <div className="space-y-3 animate-pulse">
-    <div className="h-4 w-24 bg-gray-700 rounded" />
-    {[0,1,2,3].map(i => <div key={i} className="h-3 w-32 bg-gray-800 rounded" />)}
-  </div>
-);
+// ── Flexible section matcher ───────────────────────────────────────────────────
+// Checks BOTH section_type AND section_key to catch CMS variations
+const matchesSection = (section, type, key) => {
+  if (!section?.is_active) return false;
+  if (type && section.section_type === type) return true;
+  if (key && section.section_key === key) return true;
+  // Fallback: check if either field contains the keyword (case-insensitive)
+  const st = (section.section_type ?? '').toLowerCase();
+  const sk = (section.section_key ?? '').toLowerCase();
+  const t = (type ?? '').toLowerCase();
+  const k = (key ?? '').toLowerCase();
+  return st.includes(t) || sk.includes(k) || st.includes(k) || sk.includes(t);
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Footer
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Seeder creates these sections in the footer page:
-//
-//   section_key   section_type   contains
-//   ─────────────────────────────────────────────────────────────
-//   brand_info    custom         title  = logo text
-//                                content = tagline
-//                                items  = [{ label, url, icon }] (socials)
-//
-//   company_links links          title  = column heading
-//   shop_links    links          items  = [{ label, url }]
-//   account_links links
-//
-//   copyright_text text          content = copyright string
-//
-// All values are editable from the FooterSettings admin page.
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Footer ─────────────────────────────────────────────────────────────────────
 export default function Footer() {
   const { footerPage, loading, fetchFooterPage } = useContentStore();
 
-  useEffect(() => {
-    fetchFooterPage(); // no-op if already loaded
-  }, []);
+  useEffect(() => { fetchFooterPage(); }, [fetchFooterPage]);
 
-  // ── Parse sections ──────────────────────────────────────────────────────
-  const sections = footerPage?.active_sections ?? footerPage?.activeSections ?? [];
+  const sections = useMemo(() => {
+    const raw = footerPage?.active_sections ?? footerPage?.activeSections ?? [];
+    return raw.filter(s => s.is_active !== false); // keep active or undefined
+  }, [footerPage]);
 
-  const brandSection     = sections.find(s => s.section_key  === 'brand_info'      && s.is_active);
-  const linkColumns      = sections.filter(s => s.section_type === 'links'          && s.is_active);
-  const copyrightSection = sections.find(s => s.section_key  === 'copyright_text'  && s.is_active);
+  // 🔍 Flexible matching: brand section (checks type OR key)
+  const brandSection = useMemo(() => 
+    sections.find(s => matchesSection(s, 'custom', 'brand_info')),
+    [sections]
+  );
 
-  // ── Brand values ────────────────────────────────────────────────────────
-  const logoText  = brandSection?.title   ?? 'TISL';
-  const tagline   = brandSection?.content ?? '';
-  const socials   = brandSection?.items   ?? [];   // [{ label, url, icon }]
+  // 🔍 Flexible matching: link columns (checks type 'links' OR key containing 'footer')
+  const linkColumns = useMemo(() => 
+    sections.filter(s => matchesSection(s, 'links', 'footer_links')),
+    [sections]
+  );
 
-  // ── Copyright ───────────────────────────────────────────────────────────
+  // 🔍 Flexible matching: copyright (checks type OR key)
+  const copyrightSection = useMemo(() => 
+    sections.find(s => matchesSection(s, 'text', 'copyright_text')),
+    [sections]
+  );
+
+  const logoText    = brandSection?.title       ?? 'TISL';
+  const subtitle    = brandSection?.subtitle    ?? null;
+  const tagline     = brandSection?.content     ?? 'Quality products & professional services in Nairobi.';
+  const logoImage   = brandSection?.image_url   ?? null;
+  const buttonText  = brandSection?.button_text ?? null;
+  const buttonLink  = brandSection?.button_link ?? null;
+  const socials     = brandSection?.items       ?? [];
+
   const copyright = copyrightSection?.content
-    ?? `© ${new Date().getFullYear()} Target Industrial Suppliers Limited. All rights reserved.`;
+    ?? `© ${new Date().getFullYear()} Target Industrial Suppliers 11 Limited. All rights reserved.`;
 
   const isLoading = loading.footer && sections.length === 0;
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer style={{ background: '#0f0a1a', color: '#9ca3af', borderTop: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 -4px 40px rgba(168,85,247,0.06)' }}>
+      
+      <style>{`
+        @keyframes skel-pulse {
+          0%,100% { opacity: 1; }
+          50%      { opacity: 0.4; }
+        }
+        .footer-outer {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 56px 24px 40px;
+          display: grid;
+          grid-template-columns: minmax(200px, 280px) 1fr;
+          gap: 40px;
+          align-items: start;
+        }
+        .footer-links-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 40px;
+          align-items: start;
+        }
+        @media (max-width: 768px) {
+          .footer-outer {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
 
       {/* ── Main grid ── */}
-      <div className="container mx-auto px-4 py-12">
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `2fr ${linkColumns.length > 0 ? `repeat(${linkColumns.length}, 1fr)` : ''}`,
-          gap: '32px',
-          alignItems: 'start',
-        }}>
+      <div className="footer-outer">
 
-          {/* ── Brand block ── */}
-          {isLoading ? <BrandSkeleton /> : (
-            <div>
-              {/* Logo pill */}
-              <div className="inline-flex items-center mb-4">
-                <div className="bg-primary-500 text-white font-bold text-2xl px-3 py-1 rounded">
-                  {logoText}
-                </div>
-              </div>
-
-              {/* Tagline */}
-              {tagline && (
-                <p className="text-sm leading-relaxed mb-5">{tagline}</p>
-              )}
-
-              {/* Social icons */}
-              {socials.length > 0 && (
-                <div className="flex items-center gap-4">
-                  {socials.map((item, i) => (
-                    <SocialLink key={i} item={item} />
-                  ))}
-                </div>
-              )}
+        {/* ── Brand block ── */}
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Skel w={52} h={32} r={8} />
+            <Skel w={200} />
+            <Skel w={160} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {[0,1,2,3].map(i => <Skel key={i} w={34} h={34} r={99} />)}
             </div>
-          )}
+          </div>
+        ) : (
+          <div>
+            {/* Logo */}
+            {logoImage ? (
+              <img
+                src={logoImage}
+                alt={logoText}
+                style={{ height: 40, objectFit: 'contain', marginBottom: 16 }}
+              />
+            ) : (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: 'white', fontWeight: 900, fontSize: '1.3rem',
+                padding: '6px 14px', borderRadius: 10, letterSpacing: '-0.02em',
+                boxShadow: '0 4px 18px rgba(168,85,247,0.35)',
+                marginBottom: 16,
+              }}>
+                {logoText}
+              </div>
+            )}
 
-          {/* ── CMS link columns ── */}
-          {isLoading
-            ? [0,1,2].map(i => <ColumnSkeleton key={i} />)
-            : linkColumns.map(section => (
+            {/* Subtitle */}
+            {subtitle && (
+              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c084fc', marginBottom: 6, letterSpacing: '0.02em' }}>
+                {subtitle}
+              </p>
+            )}
+
+            {/* Tagline / content */}
+            {tagline && (
+              <p style={{ fontSize: '0.82rem', lineHeight: 1.7, marginBottom: 20, color: '#6b7280', maxWidth: 220 }}>
+                {tagline}
+              </p>
+            )}
+
+            {/* Quick contact hints */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {[
+                { Icon: Mail,   text: 'web@targetisl.co.ke' },
+                { Icon: Phone,  text: '+254 700 000 000' },
+                { Icon: MapPin, text: 'Nairobi, Kenya' },
+              ].map(({ Icon, text }) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+                  <Icon size={13} style={{ color: '#c084fc', flexShrink: 0 }} />
+                  {text}
+                </div>
+              ))}
+            </div>
+
+            {/* CTA button */}
+            {buttonText && buttonLink && (
+              <Link
+                to={buttonLink}
+                style={{
+                  display: 'inline-block', marginBottom: 20,
+                  padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
+                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  color: 'white', textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+                  transition: 'opacity 150ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+              >
+                {buttonText}
+              </Link>
+            )}
+
+            {/* Socials */}
+            {socials.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {socials.map((item, i) => <SocialLink key={i} item={item} />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── CMS link columns ── */}
+        <div className="footer-links-grid">
+        {isLoading
+          ? [0,1,2].map(i => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Skel w={90} h={14} />
+                {[0,1,2,3].map(j => <Skel key={j} w={`${100 + j * 10}px`} />)}
+              </div>
+            ))
+          : linkColumns.length > 0 
+            ? linkColumns.map(section => (
                 <div key={section.id}>
-                  <h3 className="text-white font-semibold text-lg mb-4">
+                  <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
                     {section.title}
                   </h3>
-                  <ul className="space-y-2">
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {(section.items ?? []).map((item, i) => (
                       <li key={i}>
                         <Link
                           to={item.url}
-                          className="text-sm hover:text-primary-500 transition-colors"
+                          style={{ fontSize: '0.82rem', color: '#6b7280', textDecoration: 'none', transition: 'color 150ms ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#6b7280'; }}
                         >
                           {item.label}
                         </Link>
@@ -160,34 +258,57 @@ export default function Footer() {
                   </ul>
                 </div>
               ))
-          }
+            : /* Fallback: show default link columns if CMS has none */
+              [
+                { title: 'Products', items: [{ label: 'All Products', url: '/products' }, { label: 'Deals', url: '/specials' }, { label: 'New Arrivals', url: '/products?is_new=true' }] },
+                { title: 'Company', items: [{ label: 'About', url: '/about' }, { label: 'Contact', url: '/contact' }, { label: 'Request Quote', url: '/request-quote' }] },
+                { title: 'Support', items: [{ label: 'FAQ', url: '/faq' }, { label: 'Shipping', url: '/shipping' }, { label: 'Returns', url: '/returns' }] },
+              ].map((col, idx) => (
+                <div key={idx}>
+                  <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
+                    {col.title}
+                  </h3>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {col.items.map((item, i) => (
+                      <li key={i}>
+                        <Link
+                          to={item.url}
+                          style={{ fontSize: '0.82rem', color: '#6b7280', textDecoration: 'none', transition: 'color 150ms ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#6b7280'; }}
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+        }
         </div>
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="border-t border-gray-800">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-
-            {/* Copyright — from DB */}
-            <p className="text-sm text-center md:text-left">
-              {isLoading
-                ? <span className="inline-block h-3 w-72 bg-gray-800 rounded animate-pulse" />
-                : copyright
-              }
-            </p>
-
-            {/* Legal links — static (rarely change, no need to CMS-ify) */}
-            <div className="flex gap-6 text-sm flex-wrap justify-center">
-              <Link to="/privacy" className="hover:text-primary-500 transition-colors">Privacy Policy</Link>
-              <Link to="/terms"   className="hover:text-primary-500 transition-colors">Terms of Service</Link>
-              <Link to="/cookies" className="hover:text-primary-500 transition-colors">Cookie Policy</Link>
-            </div>
-
+      <div style={{ borderTop: '1px solid rgba(168,85,247,0.12)', padding: '18px 24px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: 0 }}>
+            {isLoading
+              ? <span style={{ display: 'inline-block', height: 12, width: 280, background: 'rgba(168,85,247,0.1)', borderRadius: 4, animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
+              : copyright
+            }
+          </p>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Cookie Policy', '/cookies']].map(([label, to]) => (
+              <Link key={to} to={to} style={{ fontSize: '0.75rem', color: '#4b5563', textDecoration: 'none', transition: 'color 150ms ease' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#4b5563'; }}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
-
     </footer>
   );
 }

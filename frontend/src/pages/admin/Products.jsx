@@ -207,7 +207,10 @@ function Modal({ children, onClose, maxWidth = 480 }) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
-        background: 'rgba(0,0,0,0.45)',
+        background: 'rgba(0,0,0,0.45)',           // ← change to line below
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)',              // ← add this
+        WebkitBackdropFilter: 'blur(6px)',        // ← add this (Safari)
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
       }}
@@ -215,6 +218,7 @@ function Modal({ children, onClose, maxWidth = 480 }) {
     >
       <div style={{
         ...card,
+        background: 'white', color: '#08070a',
         width: '100%', maxWidth,
         maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',
@@ -325,8 +329,8 @@ export default function Products() {
         {/* ── Page heading ───────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Package size={24} style={{ color: '#7c3aed' }} /> Products
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Package size={24} style={{ color: '#a855f7' }} /> Products
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage your product catalogue</p>
           </div>
@@ -536,15 +540,15 @@ export default function Products() {
           <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--color-background-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Trash2 size={20} style={{ color: 'var(--color-text-danger)' }} />
+                <Trash2 size={20} style={{ color: '#f87171' }} />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 2px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>Delete product</h3>
+                <h3 style={{ margin: '0 0 2px', fontSize: '1rem', fontWeight: 700, color: '#f87171' }}>Delete product</h3>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>This moves the product to trash</p>
               </div>
             </div>
             <p style={{ margin: '0 0 20px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-              Are you sure you want to delete <strong style={{ color: 'var(--color-text-primary)' }}>"{deleteModal.product?.name}"</strong>?
+              Are you sure you want to delete <strong style={{ color: '#f87171' }}>"{deleteModal.product?.name}"</strong>?
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn onClick={() => setDeleteModal({ isOpen: false, product: null, loading: false })} disabled={deleteModal.loading} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
@@ -563,10 +567,10 @@ export default function Products() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--color-border-tertiary)', flexShrink: 0, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Archive size={16} style={{ color: 'var(--color-text-secondary)' }} />
+                <Archive size={16} style={{ color: '#f87171' }} />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 1px', fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>Trash</h3>
+                <h3 style={{ margin: '0 0 1px', fontSize: '0.95rem', fontWeight: 700, color: '#f87171' }}>Trash</h3>
                 <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>Soft-deleted products</p>
               </div>
             </div>

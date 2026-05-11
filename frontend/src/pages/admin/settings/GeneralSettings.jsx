@@ -1,175 +1,208 @@
-import { Save, Globe, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// pages/admin/general/GeneralLayout.jsx
+import {
+  Package, Tags, Folder, ChevronRight,
+  LayoutGrid, Users, Briefcase,
+} from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
-import Button from '../../../components/common/Button';
-import Input from '../../../components/common/Input';
-import Textarea from '../../../components/common/TextArea';
-import toast from 'react-hot-toast';
 
-// ── Reusable section label (Apple "APPS WE LOVE" style) ──────────────────────
-const SectionLabel = ({ children }) => (
-  <p className="text-[11px] font-semibold tracking-widest uppercase text-primary-600 dark:text-primary-400 mb-3">
-    {children}
-  </p>
-);
+const GROUPS = [
+  {
+    label: 'Catalog',
+    items: [
+      {
+        name: 'Products',
+        icon: Package,
+        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+        color: '#a855f7',
+        path: '/admin/settings/general/bulk/products',
+        active: true,
+      },
+      {
+        name: 'Brands',
+        icon: Tags,
+        bg: 'linear-gradient(135deg,#ec4899,#f472b6)',
+        color: '#f472b6',
+        path: '/admin/settings/general/bulk/brands',
+        active: false,
+      },
+      {
+        name: 'Categories',
+        icon: Folder,
+        bg: 'linear-gradient(135deg,#10b981,#34d399)',
+        color: '#34d399',
+        path: '/admin/settings/general/bulk/categories',
+        active: false,
+      },
+    ],
+  },
+  {
+    label: 'People',
+    items: [
+      {
+        name: 'Customers',
+        icon: Users,
+        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
+        color: '#60a5fa',
+        path: '/admin/settings/general/bulk/customers',
+        active: true,
+      },
+      {
+        name: 'Employees',
+        icon: Briefcase,
+        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+        color: '#fbbf24',
+        path: '/admin/settings/general/bulk/employees',
+        active: true,
+      },
+    ],
+  },
+];
 
-// ── Clean field row used inside setting sections ──────────────────────────────
-const SettingRow = ({ label, hint, children }) => (
-  <div className="flex items-start justify-between gap-6 py-4 border-b border-gray-100 dark:border-gray-800 last:border-0">
-    <div className="min-w-0 flex-1">
-      <p className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{label}</p>
-      {hint && <p className="text-[13px] text-gray-400 dark:text-gray-500 mt-0.5">{hint}</p>}
+// ── Reusable Setting Row ──────────────────────────────────────────────────
+const SettingRow = ({ item, onClick, isLast }) => {
+  const Icon = item.icon;
+
+  return (
+    <button
+      onClick={() => item.active && onClick(item.path)}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 18px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+        cursor: item.active ? 'pointer' : 'default',
+        opacity: item.active ? 1 : 0.4,
+        fontFamily: 'inherit',
+        transition: 'background 150ms',
+        textAlign: 'left',
+      }}
+      onMouseEnter={e => {
+        if (item.active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      {/* Gradient Icon Square */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 9,
+        background: item.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }}>
+        <Icon size={16} color="white" strokeWidth={2.2} />
+      </div>
+
+      {/* Label */}
+      <span style={{
+        flex: 1,
+        fontSize: '0.88rem',
+        fontWeight: 600,
+        color: item.color,
+      }}>
+        {item.name}
+      </span>
+
+      {/* Badge or Arrow */}
+      {!item.active ? (
+        <span style={{
+          fontSize: '0.6rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--color-text-muted, var(--color-text-secondary, var(--color-text)))',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '2px 7px', borderRadius: 20,
+        }}>
+          Soon
+        </span>
+      ) : (
+        <ChevronRight size={13} strokeWidth={2.5} color="rgba(255,255,255,0.15)" />
+      )}
+    </button>
+  );
+};
+
+// ── Group Card ────────────────────────────────────────────────────────────
+const GroupCard = ({ group, onNavigate }) => (
+  <div>
+    <p style={{
+      fontSize: '0.6rem', fontWeight: 700,
+      letterSpacing: '0.1em', textTransform: 'uppercase',
+      color: '#a855f7',
+      padding: '0 2px 8px',
+      margin: 0, userSelect: 'none',
+    }}>
+      {group.label}
+    </p>
+    <div style={{
+      background: 'var(--color-bg-elevated, var(--color-bg))',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 12,
+      overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    }}>
+      {group.items.map((item, i) => (
+        <SettingRow
+          key={item.name}
+          item={item}
+          onClick={onNavigate}
+          isLast={i === group.items.length - 1}
+        />
+      ))}
     </div>
-    <div className="flex-shrink-0 w-64">{children}</div>
   </div>
 );
 
-export default function GeneralSettings() {
+// ── Main Layout ───────────────────────────────────────────────────────────
+export default function GeneralLayout() {
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    storeName: 'TISL Store',
-    storeEmail: 'info@tislstore.com',
-    storePhone: '+254 712 345 678',
-    storeAddress: 'Nairobi, Kenya',
-    taxRate: '16',
-    shippingFee: '500',
-    freeShippingThreshold: '5000',
-    storeDescription: 'Your trusted partner for quality products and services',
-  });
-
-  const handleSave = async () => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
-    setSaving(false);
-    toast.success('Settings saved');
-  };
-
-  const set = (field) => (e) =>
-    setSettings((prev) => ({ ...prev, [field]: e.target.value }));
 
   return (
-    <SettingsLayout>
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flex: 1 }}>
+        {/* Main admin sidebar */}
+        <SettingsLayout />
 
-      <div className="flex flex-1">
+        {/* Content area */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
 
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-3xl mx-auto px-8 py-10">
-
-            {/* Back link */}
-            <button
-              onClick={() => navigate('/admin/settings')}
-              className="flex items-center gap-1.5 text-[13px] text-primary-600 dark:text-primary-400 hover:underline mb-6"
-            >
-              <ArrowLeft size={14} /> Settings
-            </button>
-
-            {/* Page title — Apple Work style: big, bold, left */}
-            <div className="flex items-end justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[12px] bg-blue-500 flex items-center justify-center shadow-sm">
-                  <Globe size={20} className="text-white" />
-                </div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                  General
-                </h1>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+              }}>
+                <LayoutGrid size={16} color="white" strokeWidth={2} />
               </div>
-              <Button onClick={handleSave} icon={<Save size={16} />} disabled={saving}>
-                {saving ? 'Saving…' : 'Save Changes'}
-              </Button>
+              <h1 style={{
+                margin: 0,
+                fontSize: '1.6rem', fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: '#a855f7',
+              }}>
+                General
+              </h1>
             </div>
 
-            {/* ── STORE INFORMATION ──────────────────────────────── */}
-            <div className="mb-10">
-              <SectionLabel>Store Information</SectionLabel>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 px-6">
-                <SettingRow label="Store Name" hint="Displayed in receipts and emails">
-                  <input
-                    value={settings.storeName}
-                    onChange={set('storeName')}
-                    className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </SettingRow>
-                <SettingRow label="Store Email" hint="Used for transactional emails">
-                  <input
-                    type="email"
-                    value={settings.storeEmail}
-                    onChange={set('storeEmail')}
-                    className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </SettingRow>
-                <SettingRow label="Phone Number">
-                  <input
-                    value={settings.storePhone}
-                    onChange={set('storePhone')}
-                    className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </SettingRow>
-                <SettingRow label="Address" hint="Physical store location">
-                  <textarea
-                    value={settings.storeAddress}
-                    onChange={set('storeAddress')}
-                    rows={2}
-                    className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                  />
-                </SettingRow>
-                <SettingRow label="Description" hint="Shown on the storefront">
-                  <textarea
-                    value={settings.storeDescription}
-                    onChange={set('storeDescription')}
-                    rows={3}
-                    className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                  />
-                </SettingRow>
-              </div>
-            </div>
-
-            {/* ── TAX & SHIPPING ─────────────────────────────────── */}
-            <div className="mb-10">
-              <SectionLabel>Tax & Shipping</SectionLabel>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 px-6">
-                <SettingRow label="Tax Rate" hint="Applied to all taxable orders">
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={settings.taxRate}
-                      onChange={set('taxRate')}
-                      className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400">%</span>
-                  </div>
-                </SettingRow>
-                <SettingRow label="Default Shipping Fee" hint="Charged when below free threshold">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400">KES</span>
-                    <input
-                      type="number"
-                      value={settings.shippingFee}
-                      onChange={set('shippingFee')}
-                      className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-11 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                </SettingRow>
-                <SettingRow label="Free Shipping Threshold" hint="Orders above this get free shipping">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400">KES</span>
-                    <input
-                      type="number"
-                      value={settings.freeShippingThreshold}
-                      onChange={set('freeShippingThreshold')}
-                      className="w-full text-[14px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-11 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                </SettingRow>
-              </div>
+            {/* Group cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+              {GROUPS.map(group => (
+                <GroupCard key={group.label} group={group} onNavigate={navigate} />
+              ))}
             </div>
 
           </div>
         </div>
       </div>
     </div>
-    </SettingsLayout>
   );
 }

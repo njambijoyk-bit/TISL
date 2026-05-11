@@ -244,8 +244,8 @@ class ReferralCodeUsage extends Model
         $this->update([
             'status' => 'completed',
             'order_id' => $order->id,
-            'order_value' => $order->subtotal,
-            'final_price' => $order->total,
+            'order_value' => $order->subtotal_kes,
+            'final_price' => $order->total_kes,
             'discount_amount' => $order->referral_discount,
             'completed_at' => now(),
         ]);

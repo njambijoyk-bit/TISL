@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Auction;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -99,13 +100,19 @@ class Product extends Model
     {
         return $this->belongsTo(Brand::class);
     }
+
+    // Relationship: Check if product has an active auction
+    public function activeAuction()
+    {
+        return $this->hasOne(Auction::class)->where('status', 'active')->latest();
+    }
     /**
- * Get all reviews for this product (alias for productReviews).
- */
-public function reviews()
-{
-    return $this->hasMany(ProductReview::class);
-}
+     * Get all reviews for this product (alias for productReviews).
+     */
+    public function reviews()
+    {
+        return $this->hasMany(ProductReview::class);
+    }
 
     /**
      * Get all reviews for this product.

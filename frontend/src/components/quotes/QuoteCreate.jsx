@@ -5,11 +5,12 @@ import {
   DollarSign, Calendar, FileText, MapPin, ShieldCheck, Settings,
   CheckCircle, AlertTriangle, Info,
 } from 'lucide-react';
-import ProductSelectorModal from './request-wizard/ProductSelectorModal';
-import ServiceSelectorModal from './request-wizard/ServiceSelectorModal';
+import ProductSelectorModalAdmin from './request-wizard/ProductSelectorModalAdmin';
+import ServiceSelectorModalAdmin from './request-wizard/ServiceSelectorModalAdmin';
 import CustomItemModal from './request-wizard/CustomItemModal';
 import PricingValidationModal from './PricingValidationModal';
 import AssignModal from './AssignModal';
+import CustomerSelectorModal from '../admin/CustomerSelectorModal';
 import currencyAPI from '../../api/currency';
 import toast from 'react-hot-toast';
 
@@ -202,6 +203,8 @@ const QuoteCreate = ({ isOpen, onClose, onSuccess, prefilledData = null, custome
   const [showServiceSelector, setShowServiceSelector] = useState(false);
   const [showCustomModal,     setShowCustomModal]     = useState(null);
   const [showAssignModal,     setShowAssignModal]     = useState(false);
+  const [showCustomerModal,   setShowCustomerModal]  = useState(false);
+  const [selectedCustomer,    setSelectedCustomer]   = useState(null);
 
   const [formData, setFormData] = useState({
     customer_id: '', quote_type: 'mixed', status: 'pending', priority: 'medium', assigned_to: null,
@@ -634,12 +637,17 @@ const QuoteCreate = ({ isOpen, onClose, onSuccess, prefilledData = null, custome
                     <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {!isFromRequest && (
                         <Field label="Customer" required>
-                          <StyledSelect
-                            value={formData.customer_id}
-                            onChange={e => handleChange('customer_id', e.target.value)}
-                            options={customers.map(c => ({ value: c.id, label: `${c.first_name} ${c.last_name} (${c.email})` }))}
-                            placeholder="Select a customer"
-                          />
+                          <button type="button" onClick={() => setShowCustomerModal(true)} style={{
+                            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                            padding: '9px 14px', borderRadius: 9, fontSize: '0.83rem', fontWeight: 600,
+                            background: purpleLt, border: `1.5px solid ${purpleBd}`,
+                            color: selectedCustomer ? purple : '#9ca3af', cursor: 'pointer',
+                          }}>
+                            <UserCheck size={14} />
+                            {selectedCustomer
+                              ? `${selectedCustomer.first_name} ${selectedCustomer.last_name} · ${selectedCustomer.email}`
+                              : 'Select a customer…'}
+                          </button>
                         </Field>
                       )}
                       <div className="qc-grid-3">
@@ -1058,11 +1066,22 @@ const QuoteCreate = ({ isOpen, onClose, onSuccess, prefilledData = null, custome
               </div>
             </form>
           </div>
-            {showProductSelector && <ProductSelectorModal onClose={() => setShowProductSelector(false)} onSelect={handleProductsSelected} excludeIds={formData.items.filter(i => i.product_id).map(i => i.product_id)} />}
-            {showServiceSelector && <ServiceSelectorModal onClose={() => setShowServiceSelector(false)} onSelect={handleServicesSelected} excludeIds={formData.items.filter(i => i.service_id).map(i => i.service_id)} />}
+            {showProductSelector && <ProductSelectorModalAdmin onClose={() => setShowProductSelector(false)} onSelect={handleProductsSelected} excludeIds={formData.items.filter(i => i.product_id).map(i => i.product_id)} />}
+            {showServiceSelector && <ServiceSelectorModalAdmin onClose={() => setShowServiceSelector(false)} onSelect={handleServicesSelected} excludeIds={formData.items.filter(i => i.service_id).map(i => i.service_id)} />}
             {showCustomModal && <CustomItemModal type={showCustomModal.type} onClose={() => setShowCustomModal(null)} onSave={handleCustomItemCreated} />}
             {showPricingModal && <PricingValidationModal errors={pricingErrors} onClose={() => setShowPricingModal(false)} currencySymbol={cs} />}
             {showAssignModal && <AssignModal onClose={() => setShowAssignModal(false)} onAssign={handleAssign} currentAssignedId={formData.assigned_to} />}
+            {showCustomerModal && (
+              <CustomerSelectorModal
+                onClose={() => setShowCustomerModal(false)}
+                onSelect={(customer) => {
+                  setSelectedCustomer(customer);
+                  handleChange('customer_id', customer.id);
+                  setShowCustomerModal(false);
+                }}
+                currentCustomerId={formData.customer_id}
+              />
+            )}
         </div>
       </div>
 

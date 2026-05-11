@@ -231,6 +231,47 @@ const useProductStore = create(
           throw error;
         }
       },
+ 
+      // ══════════════════════════════════════════════════════════════════════
+      // BULK FLAG ACTIONS
+      // ══════════════════════════════════════════════════════════════════════
+ 
+      /**
+       * Bulk-set one or more boolean flags on multiple products.
+       *
+       * Applies an optimistic update to `products` in the store so the table
+       * reflects the change immediately, then calls the API. On failure the
+       * optimistic patch is rolled back and the error is re-thrown so the
+       * caller can show feedback.
+       *
+       * @param {number[]} ids   - Selected product IDs.
+       * @param {object}   flags - e.g. { is_featured: true } or { on_sale: false, is_new: false }
+       *
+       * Supported flag keys (mirrors the DB columns):
+       *   is_visible | is_featured | is_new | on_sale
+       */
+      bulkUpdateFlags: async (ids = [], flags = {}) => {
+        if (!ids.length || !Object.keys(flags).length) return;
+ 
+        // ── optimistic update ─────────────────────────────────────────────
+        const previousProducts = get().products;
+        set({
+          products: previousProducts.map((p) =>
+            ids.includes(p.id) ? { ...p, ...flags } : p
+          ),
+        });
+ 
+        try {
+          const response = await productsAPI.bulkUpdateFlags(ids, flags);
+          return response;
+        } catch (error) {
+          // ── rollback on failure ─────────────────────────────────────────
+          set({ products: previousProducts });
+          set({ error: error.response?.data?.message || 'Bulk update failed' });
+          throw error;
+        }
+      },
+  
     }),
     {
       name: 'product-storage',

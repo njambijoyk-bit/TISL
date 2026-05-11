@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
-import { customersAPI, authAPI, referralsAPI } from '../../api';
+import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI } from '../../api';
 import { useAuthStore, usePromoCodeStore } from '../../store';
 import toast from 'react-hot-toast';
 
@@ -113,6 +113,15 @@ export default function Profile() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
 
+  const [wallet,       setWallet]       = useState(null);
+  const [walletTxs,    setWalletTxs]    = useState(null);
+  const [walletLedger, setWalletLedger] = useState('points'); // 'points' | 'credit'
+  const [walletPage,   setWalletPage]   = useState(1);
+  const [walletLoading,setWalletLoading]= useState(false);
+  const [redeemModal,  setRedeemModal]  = useState(false);
+  const [redeemRule,   setRedeemRule]   = useState(null);
+  const [redeemLoading,setRedeemLoading]= useState(false);
+
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', alternate_phone: '',
     birthday: '', whatsapp: '', website: '',
@@ -134,6 +143,14 @@ export default function Profile() {
   useEffect(() => {
     if (activeTab === 'rewards') fetchMyCodes();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'wallet') loadWallet();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'wallet' && wallet) loadWalletTxs();
+  }, [activeTab, walletLedger, walletPage]);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -182,6 +199,37 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadWallet = async () => {
+    setWalletLoading(true);
+    try {
+      const res = await customerLoyaltyAPI.myBalance();
+      setWallet(res);
+    } catch { toast.error('Failed to load wallet'); }
+    finally { setWalletLoading(false); }
+  };
+
+  const loadWalletTxs = async () => {
+    try {
+      const res = await customerLoyaltyAPI.myTransactions({ ledger: walletLedger, page: walletPage, per_page: 15 });
+      setWalletTxs(res);
+    } catch {}
+  };
+
+  const handleRedeem = async () => {
+    if (!redeemRule) return;
+    setRedeemLoading(true);
+    try {
+      const res = await customerLoyaltyAPI.selfRedeem({ rule_id: redeemRule });
+      toast.success(res.message ?? 'Redeemed!');
+      setRedeemModal(false);
+      setRedeemRule(null);
+      loadWallet();
+      loadWalletTxs();
+    } catch (e) {
+      toast.error(e.response?.data?.message ?? 'Redemption failed');
+    } finally { setRedeemLoading(false); }
   };
 
   const set = (k) => (e) => {
@@ -330,6 +378,7 @@ export default function Profile() {
     { key: 'personal',  label: 'Personal' },
     { key: 'business',  label: 'Business' },
     { key: 'addresses', label: 'Addresses' },
+    { key: 'wallet',    label: '💳 Wallet' },
     { key: 'rewards',   label: '🎁 My Rewards' },
     { key: 'password',  label: 'Password'  },
   ];
@@ -603,6 +652,175 @@ export default function Profile() {
                     These are quick-entry text addresses for your default shipping and billing. For detailed saved addresses with contact info, landmarks, and delivery instructions, visit the <strong>My Addresses</strong> section in your account dashboard.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'wallet' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                {/* Balance cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={{ ...card, padding: '16px 20px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Loyalty Points</p>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7c3aed', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                      {walletLoading ? '…' : Number(wallet?.loyalty_points ?? customer.loyalty_points ?? 0).toLocaleString()}
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{wallet?.tier ?? customer.tier} tier · ×{wallet?.tier_benefits?.loyalty_points_multiplier ?? 1} multiplier</p>
+                  </div>
+                  <div style={{ ...card, padding: '16px 20px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Store Credit</p>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#059669', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                      {walletLoading ? '…' : Number(wallet?.store_credit ?? customer.store_credit ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 })}
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Available to spend at checkout</p>
+                  </div>
+                </div>
+
+                {/* Redemption rules */}
+                {wallet?.redemption_rules?.length > 0 && (
+                  <div style={card}>
+                    <p style={{ ...sectionTitle }}>🎁 Redeem Points</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {wallet.redemption_rules.map(rule => {
+                        const canRedeem = Number(wallet.loyalty_points ?? customer.loyalty_points ?? 0) >= rule.points_required;
+                        return (
+                          <div key={rule.id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px 14px', borderRadius: 10, gap: 12,
+                            border: `1.5px solid ${canRedeem ? 'rgba(168,85,247,0.2)' : '#f3f4f6'}`,
+                            background: canRedeem ? 'rgba(168,85,247,0.03)' : '#fafafa',
+                            opacity: canRedeem ? 1 : 0.6,
+                          }}>
+                            <div>
+                              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{rule.name}</p>
+                              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                                {Number(rule.points_required).toLocaleString()} pts
+                                {rule.value_kes > 0 && ` → KES ${Number(rule.value_kes).toLocaleString()}`}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => { setRedeemRule(rule.id); setRedeemModal(true); }}
+                              disabled={!canRedeem}
+                              style={{
+                                padding: '6px 14px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
+                                border: 'none', fontFamily: 'inherit', flexShrink: 0,
+                                background: canRedeem ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#e5e7eb',
+                                color: canRedeem ? 'white' : '#9ca3af',
+                                cursor: canRedeem ? 'pointer' : 'not-allowed',
+                              }}
+                            >
+                              Redeem
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '10px 0 0' }}>
+                      Minimum {Number(wallet.min_redemption_points ?? 0).toLocaleString()} points required to redeem.
+                    </p>
+                  </div>
+                )}
+
+                {/* Transaction history */}
+                <div style={card}>
+                  {/* Ledger tabs */}
+                  <div style={{ display: 'flex', gap: 0, marginBottom: 14, borderBottom: '2px solid #f3f4f6' }}>
+                    {[{ key: 'points', label: 'Points History' }, { key: 'credit', label: 'Credit History' }].map(t => (
+                      <button key={t.key} onClick={() => { setWalletLedger(t.key); setWalletPage(1); }} style={{
+                        padding: '7px 14px', fontSize: '0.78rem', fontWeight: walletLedger === t.key ? 700 : 500,
+                        color: walletLedger === t.key ? '#6366f1' : '#9ca3af',
+                        background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        borderBottom: `2px solid ${walletLedger === t.key ? '#6366f1' : 'transparent'}`,
+                        marginBottom: -2,
+                      }}>{t.label}</button>
+                    ))}
+                  </div>
+
+                  {/* Rows */}
+                  {!walletTxs ? (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', padding: '20px 0' }}>Loading…</p>
+                  ) : walletTxs.data?.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', padding: '20px 0' }}>No transactions yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {walletTxs.data.map(tx => {
+                        const val = walletLedger === 'credit' ? Number(tx.amount) : Number(tx.points);
+                        const positive = val > 0;
+                        return (
+                          <div key={tx.id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '9px 4px', borderBottom: '1px solid #f9fafb', gap: 10,
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>
+                                {(tx.type_label ?? tx.type ?? '').replace(/_/g, ' ')}
+                              </p>
+                              {tx.note && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.note}</p>}
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <p style={{ fontSize: '0.85rem', fontWeight: 800, color: positive ? '#059669' : '#dc2626', margin: '0 0 1px', fontVariantNumeric: 'tabular-nums' }}>
+                                {positive ? '+' : ''}{walletLedger === 'credit'
+                                  ? val.toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 })
+                                  : `${val.toLocaleString()} pts`}
+                              </p>
+                              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
+                                {new Date(tx.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {walletTxs?.meta?.last_page > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}>
+                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Page {walletTxs.meta.current_page} of {walletTxs.meta.last_page}</p>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {[{ label: '←', action: () => setWalletPage(p => Math.max(1, p - 1)), disabled: walletTxs.meta.current_page <= 1 },
+                          { label: '→', action: () => setWalletPage(p => p + 1), disabled: walletTxs.meta.current_page >= walletTxs.meta.last_page }
+                        ].map(({ label, action, disabled }) => (
+                          <button key={label} onClick={action} disabled={disabled} style={{
+                            width: 28, height: 28, borderRadius: 6, fontSize: '0.8rem', fontWeight: 700,
+                            border: '1px solid #e5e7eb', background: 'none', color: '#6366f1',
+                            cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
+                          }}>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Redeem confirm modal */}
+                {redeemModal && (
+                  <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+                  }}>
+                    <div style={{ ...card, maxWidth: 360, width: '100%' }}>
+                      <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: '0 0 8px' }}>Confirm Redemption</p>
+                      <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 20px' }}>
+                        {wallet?.redemption_rules?.find(r => r.id === redeemRule)?.name} — are you sure?
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setRedeemModal(false)} style={{
+                          padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                          background: 'none', border: '1px solid #e5e7eb', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit',
+                        }}>Cancel</button>
+                        <button onClick={handleRedeem} disabled={redeemLoading} style={{
+                          padding: '7px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', border: 'none',
+                          color: 'white', cursor: redeemLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                          opacity: redeemLoading ? 0.7 : 1,
+                        }}>
+                          {redeemLoading ? 'Redeeming…' : 'Confirm'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
 

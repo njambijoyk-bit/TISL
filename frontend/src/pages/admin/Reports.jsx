@@ -6,7 +6,7 @@ import {
   DollarSign, Activity, AlertCircle, CheckCircle, XCircle,
   Layers, ArrowRight, Package, Award, Wrench, Tag,
   Ticket, Star, BarChart, PieChart, Hash, Zap,
-  TrendingDown, UserPlus, ShieldCheck, Gift,
+  TrendingDown, UserPlus, ShieldCheck, Gift, Info,
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import reportsAPI from '../../api/reports';
@@ -80,6 +80,21 @@ const fmtNum  = (n) => Number(n || 0).toLocaleString();
 const fmtPct  = (n) => `${Number(n || 0).toFixed(1)}%`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 const fmtHrs  = (h) => h >= 24 ? `${(h / 24).toFixed(1)}d` : `${h}h`;
+
+const PERIOD_LABEL = {
+  '7d': 'Last 7 Days', '30d': 'Last 30 Days',
+  '90d': 'Last 90 Days', '12m': 'Last 12 Months', 'custom': 'Custom Range',
+};
+
+const PROMO_TYPE_LABELS = {
+  general:           'General',
+  customer_referral: 'Customer Referral',
+  first_time:        'First-Time',
+  bulk_order:        'Bulk Order',
+  vip:               'VIP',
+  birthday:          'Birthday',
+  event:             'Event / Campaign',
+};
 
 // ── Mini sparkline (pure SVG) ──────────────────────────────────────────────
 function Sparkline({ data = [], color = purple, height = 48, fill = true }) {
@@ -288,14 +303,17 @@ const StatusRow = ({ label, value, color, total }) => (
 );
 
 // ── Metric row ─────────────────────────────────────────────────────────────
-function MetricRow({ label, value, Icon, color }) {
+function MetricRow({ label, value, Icon, color, sub }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f9fafb' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ width: 28, height: 28, borderRadius: 7, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={13} color={color} />
         </div>
-        <span style={{ fontSize: 13, color: '#374151' }}>{label}</span>
+        <div>
+          <span style={{ fontSize: 13, color: '#374151' }}>{label}</span>
+          {sub && <div style={{ fontSize: 11, color: '#9ca3af' }}>{sub}</div>}
+        </div>
       </div>
       <span style={{ fontSize: 14, fontWeight: 700, color }}>{value}</span>
     </div>
@@ -326,12 +344,15 @@ function PeriodBar({ period, setPeriod, startDate, setStartDate, endDate, setEnd
         ))}
       </div>
       {period === 'custom' && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
             style={{ border: '1.5px solid #e5e7eb', borderRadius: 7, padding: '6px 10px', fontSize: 12, color: '#374151' }} />
           <span style={{ color: '#9ca3af', fontSize: 12 }}>to</span>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
             style={{ border: '1.5px solid #e5e7eb', borderRadius: 7, padding: '6px 10px', fontSize: 12, color: '#374151' }} />
+          <span style={{ fontSize: 11, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Info size={11} /> Set dates then click Refresh
+          </span>
         </div>
       )}
       <button onClick={onRefresh} disabled={loading} style={{
@@ -348,20 +369,44 @@ function PeriodBar({ period, setPeriod, startDate, setStartDate, endDate, setEnd
 
 // ── Login Hour Heatmap ─────────────────────────────────────────────────────
 function LoginHeatmap({ data = [] }) {
-  if (!data.length) return null;
+  // Expect 24 entries (hours 0–23). Guard against missing/empty data.
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: 13 }}>
+        <Clock size={28} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.4 }} />
+        No login activity recorded yet
+      </div>
+    );
+  }
+
   const max = Math.max(...data.map(d => d.count), 1);
+  const totalLogins = data.reduce((s, d) => s + d.count, 0);
+
   const morning   = data.slice(6, 12);
   const afternoon = data.slice(12, 18);
   const evening   = data.slice(18, 24);
   const night     = data.slice(0, 6);
   const sessions  = [
-    { label: 'Early AM (0–5)', items: night,     color: '#8b5cf6' },
-    { label: 'Morning (6–11)', items: morning,   color: '#f59e0b' },
+    { label: 'Early AM (0–5)',    items: night,     color: '#8b5cf6' },
+    { label: 'Morning (6–11)',    items: morning,   color: '#f59e0b' },
     { label: 'Afternoon (12–17)', items: afternoon, color: '#059669' },
-    { label: 'Evening (18–23)', items: evening,  color: '#3b82f6' },
+    { label: 'Evening (18–23)',   items: evening,   color: '#3b82f6' },
   ];
+
+  if (totalLogins === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: 13 }}>
+        <Clock size={28} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.4 }} />
+        No customer logins recorded yet
+      </div>
+    );
+  }
+
   return (
     <div>
+      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>
+        Distribution based on <strong>{fmtNum(totalLogins)}</strong> recorded customer logins (last login per customer)
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(24,1fr)', gap: 3, marginBottom: 8 }}>
         {data.map((d, i) => {
           const intensity = d.count / max;
@@ -387,7 +432,7 @@ function LoginHeatmap({ data = [] }) {
             <div key={s.label} style={{ padding: '10px 12px', borderRadius: 8, background: `${s.color}10`, border: `1px solid ${s.color}25` }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: s.color, marginBottom: 2 }}>{s.label}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{fmtNum(total)}</div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>Peak: {peak.label}</div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>Peak: {peak.count > 0 ? peak.label : '—'}</div>
             </div>
           );
         })}
@@ -411,7 +456,7 @@ async function initPDF(title, period) {
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
-  doc.text(`BlueArc — ${title}`, 14, 11);
+  doc.text(`TISL — ${title}`, 14, 11);
   doc.setFontSize(9); doc.setFont('helvetica', 'normal');
   doc.text(`Period: ${period.toUpperCase()}  |  Generated: ${fmtDate(new Date())}`, 14, 20);
 
@@ -461,16 +506,139 @@ function pdfFinalize(ctx, filename) {
     doc.rect(0, ph - 10, pw, 10, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-    doc.text('BlueArc Industrial Solutions — Confidential', 14, ph - 3.5);
+    doc.text('TISL — Target Industrial Suppliers Limited — Confidential', 14, ph - 3.5);
     doc.text(`Page ${p} of ${pages}`, pw - 14, ph - 3.5, { align: 'right' });
   }
   doc.save(filename);
 }
 
+function pdfBarRow(ctx, label, value, pct, color) {
+  const { doc, pw, ph } = ctx;
+  if (ctx.y > ph - 16) { doc.addPage(); ctx.y = 18; }
+  const barX = 85, barMaxW = pw - 108, barH = 3;
+  const barW = Math.max(0, (pct / 100) * barMaxW);
+  doc.setTextColor(55, 65, 81); doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  doc.text(label, 18, ctx.y);
+  doc.setTextColor(107, 114, 128); doc.setFontSize(8);
+  doc.text(`${pct.toFixed(1)}%`, 72, ctx.y);
+  doc.setFillColor(229, 231, 235);
+  doc.roundedRect(barX, ctx.y - 3, barMaxW, barH, 1, 1, 'F');
+  if (barW > 0.5) { doc.setFillColor(...color); doc.roundedRect(barX, ctx.y - 3, barW, barH, 1, 1, 'F'); }
+  doc.setTextColor(17, 24, 39); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.text(value, pw - 18, ctx.y, { align: 'right' });
+  ctx.y += 9;
+}
+
+function pdfSparkBars(ctx, trend) {
+  const { doc, pw, ph } = ctx;
+  if (ctx.y > ph - 55) { doc.addPage(); ctx.y = 18; }
+  const chartH = 32, chartX = 18, chartW = pw - 36, n = trend.length;
+  const slotW = chartW / n;
+  const barW = Math.min(slotW - 3, 14);
+  const vals = trend.map(d => Number(d.value ?? d.count ?? 0));
+  const maxVal = Math.max(...vals, 1);
+  doc.setDrawColor(229, 231, 235);
+  doc.line(chartX, ctx.y + chartH, chartX + chartW, ctx.y + chartH);
+  trend.forEach((d, i) => {
+    const val = vals[i];
+    const bH = Math.max(val > 0 ? 2 : 0, (val / maxVal) * (chartH - 6));
+    const bX = chartX + i * slotW + (slotW - barW) / 2;
+    const bY = ctx.y + chartH - bH;
+    doc.setFillColor(59, 130, 246);
+    if (bH > 0) doc.roundedRect(bX, bY, barW, bH, 1, 1, 'F');
+    doc.setTextColor(156, 163, 175); doc.setFontSize(6.5);
+    doc.text((d.label || '').slice(0, 3), bX + barW / 2, ctx.y + chartH + 5, { align: 'center' });
+    if (val > 0) {
+      doc.setTextColor(59, 130, 246); doc.setFontSize(6.5);
+      doc.text(String(val), bX + barW / 2, bY - 1.5, { align: 'center' });
+    }
+  });
+  ctx.y += chartH + 12;
+}
+
+// opts: { rightAlign: number[], highlightCols: { [colIndex]: rgbArray } }
+function pdfTable(ctx, headers, rows, colWidths, opts = {}) {
+  const { doc, pw, ph, purpleRgb } = ctx;
+  const tableW = pw - 36, tableX = 18;
+  if (ctx.y > ph - 18) { doc.addPage(); ctx.y = 18; }
+  doc.setFillColor(...purpleRgb);
+  doc.rect(tableX, ctx.y - 4, tableW, 8, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+  let xc = tableX + 2;
+  headers.forEach((h, i) => {
+    const cw = tableW * colWidths[i];
+    const right = opts.rightAlign?.includes(i);
+    doc.text(h.toUpperCase(), right ? xc + cw - 2 : xc, ctx.y, { align: right ? 'right' : 'left' });
+    xc += cw;
+  });
+  ctx.y += 7;
+  rows.forEach((row, ri) => {
+    if (ctx.y > ph - 12) { doc.addPage(); ctx.y = 18; }
+    if (ri % 2 === 0) { doc.setFillColor(249, 250, 251); doc.rect(tableX, ctx.y - 4, tableW, 7, 'F'); }
+    xc = tableX + 2;
+    row.forEach((cell, i) => {
+      const cw = tableW * colWidths[i];
+      const right = opts.rightAlign?.includes(i);
+      const hCol = opts.highlightCols?.[i];
+      if (hCol)      { doc.setTextColor(...hCol);    doc.setFont('helvetica', 'bold'); }
+      else if (i===0){ doc.setTextColor(17,24,39);   doc.setFont('helvetica', 'bold'); }
+      else           { doc.setTextColor(107,114,128); doc.setFont('helvetica', 'normal'); }
+      doc.setFontSize(8);
+      let txt = String(cell ?? '-');
+      const maxChars = Math.floor(cw / 2.2);
+      if (txt.length > maxChars) txt = txt.slice(0, maxChars - 1) + '.';
+      doc.text(txt, right ? xc + cw - 2 : xc, ctx.y, { align: right ? 'right' : 'left' });
+      xc += cw;
+    });
+    doc.setDrawColor(229, 231, 235); doc.line(tableX, ctx.y + 2, tableX + tableW, ctx.y + 2);
+    ctx.y += 7;
+  });
+}
+
+function pdfLoginHeatmap(ctx, hourDist) {
+  const { doc, pw, ph } = ctx;
+  if (ctx.y > ph - 40) { doc.addPage(); ctx.y = 18; }
+  const hours = Array.from({ length: 24 }, (_, h) => {
+    const e = hourDist.find(d => Number(d.hour ?? d.h) === h);
+    return e ? Number(e.count ?? e.value ?? 0) : 0;
+  });
+  const maxVal = Math.max(...hours, 1);
+  const tableW = pw - 36, cellW = tableW / 24, cellH = 11;
+  hours.forEach((val, h) => {
+    const t = val / maxVal; // 0..1 intensity
+    // lavender (230,220,255) -> deep purple (109,40,217)
+    const r = Math.round(230 - (230 - 109) * t);
+    const g = Math.round(220 - (220 -  40) * t);
+    const b = Math.round(255 - (255 - 217) * t);
+    doc.setFillColor(r, g, b);
+    doc.rect(18 + h * cellW, ctx.y, cellW - 0.3, cellH, 'F');
+    if (val > 0) {
+      doc.setTextColor(t > 0.45 ? 255 : 80, t > 0.45 ? 255 : 60, t > 0.45 ? 255 : 200);
+      doc.setFontSize(5.5); doc.setFont('helvetica', 'bold');
+      doc.text(String(val), 18 + h * cellW + cellW / 2, ctx.y + 7.5, { align: 'center' });
+    }
+    // tick every 3 hours
+    if (h % 3 === 0) {
+      doc.setTextColor(100, 100, 120); doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+      doc.text(`${h}h`, 18 + h * cellW + cellW / 2, ctx.y + cellH + 4, { align: 'center' });
+    }
+  });
+  ctx.y += cellH + 8;
+  const peaks = hours.map((v, h) => ({ h, v })).sort((a, b) => b.v - a.v).slice(0, 3).filter(x => x.v > 0);
+  if (peaks.length) {
+    doc.setTextColor(107, 114, 128); doc.setFontSize(8); doc.setFont('helvetica', 'italic');
+    doc.text(
+      'Peak hours: ' + peaks.map(p => `${String(p.h).padStart(2,'0')}:00 (${p.v} logins)`).join(' / '),
+      18, ctx.y
+    );
+    ctx.y += 7;
+  }
+}
+
 // ── Per-section PDF downloaders ────────────────────────────────────────────
 async function downloadSectionPDF(sectionId, data, period) {
   const date = new Date().toISOString().slice(0, 10);
-  const slug = `BlueArc-${sectionId}-${period}-${date}.pdf`;
+  const slug = `TISL-${sectionId}-${period}-${date}.pdf`;
 
   const ctx = await initPDF(SECTION_TITLES[sectionId] || sectionId, period);
   const { green, red, amber } = ctx;
@@ -478,215 +646,1018 @@ async function downloadSectionPDF(sectionId, data, period) {
   switch (sectionId) {
     case 'revenue': {
       const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. BIG STAT CARDS ROW ────────────────────────────────────────────
       pdfSection(ctx, 'Revenue Overview');
-      pdfRow(ctx, 'Total Revenue (KES)',  fmtKES(d?.total_revenue_kes));
-      pdfRow(ctx, 'Revenue This Period',  fmtKES(d?.period_revenue_kes));
-      pdfRow(ctx, 'Average Order Value',  fmtKES(d?.avg_order_value_kes));
-      pdfRow(ctx, 'Paid Orders',          fmtNum(d?.paid_orders));
-      pdfRow(ctx, 'Unpaid Balance',       fmtKES(d?.unpaid_kes), red);
-      if (d?.by_currency?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Revenue by Currency');
-        d.by_currency.forEach(c => pdfRow(ctx, `${c.currency}`, fmtKES(c.total_kes)));
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const cards = [
+        { label: 'Total Revenue (All-Time)', value: fmtKES(d?.total_revenue_kes), sub: 'across all paid orders',          rgb: [168,85,247],  accent: true  },
+        { label: 'Avg Order Value',          value: fmtKES(d?.avg_order_value_kes), sub: `per paid order - ${period}`,   rgb: [107,114,128], accent: false },
+        { label: `Revenue - ${period.toUpperCase()}`, value: fmtKES(d?.period_revenue_kes), sub: `${fmtNum(d?.paid_orders)} paid orders`, rgb: [168,85,247], accent: true },
+        { label: 'Unpaid Balance',           value: fmtKES(d?.unpaid_kes),          sub: `outstanding - ${period}`,      rgb: [220,38,38],   accent: false },
+      ];
+
+      const cardW = (pw - 36 - 9) / 4, cardH = 26, cardGap = 3;
+      let cx = 18;
+      cards.forEach(card => {
+        const [r, g, b] = card.rgb;
+        // background
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(
+          Math.round(r + (255 - r) * tint),
+          Math.round(g + (255 - g) * tint),
+          Math.round(b + (255 - b) * tint)
+        );
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r, g, b);
+        doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'S');
+        doc.setLineWidth(0.2);
+        // label
+        doc.setTextColor(r, g, b);
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold');
+        doc.text(card.label.toUpperCase(), cx + 3, ctx.y + 6);
+        // value
+        doc.setTextColor(17, 24, 39);
+        doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+        doc.text(card.value, cx + 3, ctx.y + 14);
+        // sub
+        doc.setTextColor(156, 163, 175);
+        doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+        doc.text(card.sub, cx + 3, ctx.y + 21);
+        cx += cardW + cardGap;
+      });
+      ctx.y += cardH + 10;
+
+      // ── 2. KEY METRICS ROW ──────────────────────────────────────────────
+      pdfSection(ctx, 'Period Metrics');
+      pdfRow(ctx, 'Paid Orders',           fmtNum(d?.paid_orders),           ctx.green);
+      pdfRow(ctx, 'Period Revenue',        fmtKES(d?.period_revenue_kes),    ctx.purpleRgb);
+      pdfRow(ctx, 'Avg Order Value',       fmtKES(d?.avg_order_value_kes),   [59,130,246]);
+      pdfRow(ctx, 'Unpaid Balance',        fmtKES(d?.unpaid_kes),            ctx.red);
+      pdfRow(ctx, 'All-Time Total',        fmtKES(d?.total_revenue_kes),     ctx.purpleRgb);
+      ctx.y += 4;
+
+      // ── 3. REVENUE TREND SPARKLINE ───────────────────────────────────────
+      if (d?.trend?.length > 1) {
+        pdfSection(ctx, 'Revenue Trend (12 Months)');
+        pdfSparkBars(ctx, d.trend.map(t => ({ ...t, value: t.value ?? t.total_kes ?? 0 })));
       }
+
+      // ── 4. CURRENCY BREAKDOWN ────────────────────────────────────────────
+      if (d?.by_currency?.length) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Revenue by Currency (KES Equivalent)');
+
+        // mini cards — 2 per row
+        const ccardW = (pw - 36 - 6) / 2, ccardH = 24;
+        d.by_currency.forEach((c, i) => {
+          if (ctx.y > ph - ccardH - 6) { doc.addPage(); ctx.y = 18; }
+          if (i % 2 === 0) { /* start new row */ }
+          const ccx = i % 2 === 0 ? 18 : 18 + ccardW + 6;
+          const isFirst = i === 0;
+
+          doc.setFillColor(isFirst ? 245 : 249, isFirst ? 243 : 250, isFirst ? 255 : 251);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'F');
+          doc.setDrawColor(isFirst ? 168 : 229, isFirst ? 85 : 231, isFirst ? 247 : 235);
+          doc.setLineWidth(isFirst ? 0.5 : 0.2);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'S');
+          doc.setLineWidth(0.2);
+
+          // currency code
+          doc.setTextColor(isFirst ? 168 : 17, isFirst ? 85 : 24, isFirst ? 247 : 39);
+          doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+          doc.text(c.currency, ccx + 4, ctx.y + 8);
+
+          // KES total
+          doc.setTextColor(17, 24, 39);
+          doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+          doc.text(fmtKES(c.total_kes), ccx + 4, ctx.y + 16);
+
+          // native amount + order count
+          doc.setTextColor(156, 163, 175);
+          doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+          const nativeTxt = `${fmtNum(c.order_count)} orders · ${c.native_symbol || ''}${Number(c.total_native || 0).toLocaleString()}`;
+          doc.text(nativeTxt, ccx + ccardW - 3, ctx.y + 16, { align: 'right' });
+
+          // advance y only after right card or last card
+          if (i % 2 === 1 || i === d.by_currency.length - 1) ctx.y += ccardH + 4;
+        });
+        ctx.y += 4;
+      }
+
+      // ── 5. SUMMARY CALLOUT ───────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(240, 253, 244); // light green
+      doc.roundedRect(18, ctx.y, pw - 36, 20, 3, 3, 'F');
+      doc.setDrawColor(...ctx.green); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw - 36, 20, 3, 3, 'S');
+      doc.setLineWidth(0.2);
+      doc.setTextColor(...ctx.green); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.text('REVENUE SUMMARY', 24, ctx.y + 7);
+      doc.setTextColor(55, 65, 81); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      const revSummary = `Period: ${fmtKES(d?.period_revenue_kes)} from ${fmtNum(d?.paid_orders)} paid orders (avg ${fmtKES(d?.avg_order_value_kes)} each). Unpaid balance: ${fmtKES(d?.unpaid_kes)}. All-time total: ${fmtKES(d?.total_revenue_kes)}.`;
+      doc.text(revSummary, 24, ctx.y + 14, { maxWidth: pw - 48 });
+      ctx.y += 28;
+
       break;
     }
+
     case 'orders': {
       const d = data;
-      pdfSection(ctx, 'Order Status');
-      pdfRow(ctx, 'Total Orders',    fmtNum(d?.total_orders));
-      pdfRow(ctx, 'Pending',         fmtNum(d?.pending), amber);
-      pdfRow(ctx, 'Confirmed',       fmtNum(d?.confirmed));
-      pdfRow(ctx, 'Processing',      fmtNum(d?.processing));
-      pdfRow(ctx, 'Shipped',         fmtNum(d?.shipped));
-      pdfRow(ctx, 'Delivered',       fmtNum(d?.delivered), green);
-      pdfRow(ctx, 'Cancelled',       fmtNum(d?.cancelled), red);
-      ctx.y += 4; pdfSection(ctx, 'Key Metrics');
-      pdfRow(ctx, "Today's Orders",       fmtNum(d?.today));
-      pdfRow(ctx, "Today's Revenue",      fmtKES(d?.today_revenue));
-      pdfRow(ctx, 'Avg Order Value',      fmtKES(d?.average_order_value));
-      pdfRow(ctx, 'Orders w/ Backorder',  fmtNum(d?.orders_with_backorder));
+      const orderTotal = d?.period_orders ?? d?.total_orders ?? 1;
+
+      // ── Section 1: Order Status Distribution (bar chart) ──────────────────
+      pdfSection(ctx, `Orders Breakdown — ${d?.period_label || 'Selected Period'}`);
+      const statusItems = [
+        { label: 'Pending',    value: d?.pending,    color: ctx.amber },
+        { label: 'Confirmed',  value: d?.confirmed,  color: [59, 130, 246] },
+        { label: 'Processing', value: d?.processing, color: [139, 92, 246] },
+        { label: 'Shipped',    value: d?.shipped,    color: [6, 182, 212] },
+        { label: 'Delivered',  value: d?.delivered,  color: ctx.green },
+        { label: 'Cancelled',  value: d?.cancelled,  color: ctx.red },
+      ];
+      statusItems.forEach(s => {
+        const pct = (Number(s.value || 0) / orderTotal) * 100;
+        pdfBarRow(ctx, s.label, fmtNum(s.value), pct, s.color);
+      });
+
+      // ── Section 2: Key Metrics ─────────────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'Key Metrics');
+      pdfRow(ctx, `Orders (${d?.period_label || 'Period'})`, fmtNum(d?.period_orders ?? d?.total_orders), [139, 92, 246]);
+      pdfRow(ctx, 'Total Orders (All-Time)',  fmtNum(d?.total_orders),          ctx.grey);
+      pdfRow(ctx, "Today's Orders",          fmtNum(d?.today),                  [59, 130, 246]);
+      pdfRow(ctx, "Today's Revenue",         fmtKES(d?.today_revenue),          ctx.green);
+      pdfRow(ctx, 'Avg Order Value',         fmtKES(d?.average_order_value),    [139, 92, 246]);
+      pdfRow(ctx, 'Orders w/ Backorder',     fmtNum(d?.orders_with_backorder),  ctx.amber);
+
+      // ── Section 3: Status Summary legend (mirrors the donut legend) ────────
+      ctx.y += 4;
+      pdfSection(ctx, 'Status Summary');
+      pdfSubheading(ctx, 'Count and share of all orders by fulfillment status.');
+      statusItems.forEach(s => {
+        const pct = orderTotal > 0
+          ? ((Number(s.value || 0) / orderTotal) * 100).toFixed(1)
+          : '0.0';
+        pdfRow(ctx,
+          `${s.label}  (${pct}%)`,
+          fmtNum(s.value),
+          s.color,
+        );
+      });
+
+      // ── Section 4: Monthly Trend sparkline ────────────────────────────────
+      if (d?.trend?.length > 1) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Order Volume Trend (12 Months)');
+        pdfSparkBars(ctx, d.trend);
+      }
+
       break;
     }
     case 'products': {
       const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. BIG STAT CARDS ROW ────────────────────────────────────────────
       pdfSection(ctx, 'Inventory Overview');
-      pdfRow(ctx, 'Total Products',  fmtNum(d?.total_products));
-      pdfRow(ctx, 'Active',          fmtNum(d?.active_products), green);
-      pdfRow(ctx, 'In Stock',        fmtNum(d?.in_stock), green);
-      pdfRow(ctx, 'Out of Stock',    fmtNum(d?.out_of_stock), red);
-      pdfRow(ctx, 'Low Stock',       fmtNum(d?.low_stock), amber);
-      pdfRow(ctx, 'Featured',        fmtNum(d?.featured));
-      pdfRow(ctx, 'On Sale',         fmtNum(d?.on_sale));
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const cards = [
+        { label: 'Total Products', value: fmtNum(d?.total_products), sub: 'in catalog', rgb: [168,85,247], accent: true },
+        { label: 'Active', value: fmtNum(d?.active_products), sub: 'published & visible', rgb: [5,150,105], accent: true },
+        { label: 'In Stock', value: fmtNum(d?.in_stock), sub: 'ready to ship', rgb: [5,150,105], accent: false },
+        { label: 'Low Stock', value: fmtNum(d?.low_stock), sub: 'reorder soon', rgb: [245,158,11], accent: true },
+      ];
+      const cardW = (pw - 36 - 9) / 4, cardH = 26, cardGap = 3;
+      let cx = 18;
+      cards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(Math.round(r + (255-r)*tint), Math.round(g + (255-g)*tint), Math.round(b + (255-b)*tint));
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), cx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, cx+3, ctx.y+14);
+        doc.setTextColor(156,163,175); doc.setFontSize(6); doc.setFont('helvetica','normal');
+        doc.text(card.sub, cx+3, ctx.y+21);
+        cx += cardW + cardGap;
+      });
+      ctx.y += cardH + 10;
+
+      // ── 2. SECONDARY STATS ROW ───────────────────────────────────────────
+      if (ctx.y > ph - 30) { doc.addPage(); ctx.y = 18; }
+      const secCards = [
+        { label: 'Out of Stock', value: fmtNum(d?.out_of_stock), sub: 'unavailable', rgb: [220,38,38], accent: true },
+        { label: 'Featured', value: fmtNum(d?.featured), sub: 'homepage highlights', rgb: [245,158,11], accent: false },
+        { label: 'On Sale', value: fmtNum(d?.on_sale), sub: 'discounted items', rgb: [59,130,246], accent: false },
+        { label: 'In-Stock Rate', value: fmtPct((d?.in_stock||0)/(d?.total_products||1)*100), sub: 'of total catalog', rgb: [5,150,105], accent: true },
+      ];
+      let sx = 18;
+      secCards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(Math.round(r + (255-r)*tint), Math.round(g + (255-g)*tint), Math.round(b + (255-b)*tint));
+        doc.roundedRect(sx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(sx, ctx.y, cardW, cardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), sx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, sx+3, ctx.y+14);
+        doc.setTextColor(156,163,175); doc.setFontSize(6); doc.setFont('helvetica','normal');
+        doc.text(card.sub, sx+3, ctx.y+21);
+        sx += cardW + cardGap;
+      });
+      ctx.y += cardH + 12;
+
+      // ── 3. CATEGORY BREAKDOWN (mini cards, 2-per-row) ────────────────────
+      if (d?.by_category?.length) {
+        pdfSection(ctx, 'Products by Category');
+        const ccardW = (pw - 36 - 6) / 2, ccardH = 24;
+        d.by_category.slice(0,6).forEach((c, i) => {
+          if (ctx.y > ph - ccardH - 6) { doc.addPage(); ctx.y = 18; }
+          const ccx = i % 2 === 0 ? 18 : 18 + ccardW + 6;
+          const isFirst = i === 0;
+          doc.setFillColor(isFirst ? 245 : 249, isFirst ? 243 : 250, isFirst ? 255 : 251);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'F');
+          doc.setDrawColor(isFirst ? 168 : 229, isFirst ? 85 : 231, isFirst ? 247 : 235);
+          doc.setLineWidth(isFirst ? 0.5 : 0.2);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+          doc.setTextColor(isFirst ? 168 : 17, isFirst ? 85 : 24, isFirst ? 247 : 39);
+          doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(c.category, ccx+4, ctx.y+8);
+          doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+          doc.text(fmtNum(c.product_count), ccx+4, ctx.y+16);
+          doc.setTextColor(156,163,175); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+          doc.text(`${fmtPct(c.product_count/(d.total_products||1)*100)} of catalog`, ccx+ccardW-3, ctx.y+16, {align:'right'});
+          if (i % 2 === 1 || i === Math.min(d.by_category.length,6)-1) ctx.y += ccardH + 4;
+        });
+        ctx.y += 4;
+      }
+
+      // ── 4. TOP PRODUCTS BY REVENUE ───────────────────────────────────────
       if (d?.top_by_revenue?.length) {
         ctx.y += 4; pdfSection(ctx, 'Top Products by Revenue');
         pdfSubheading(ctx, 'From paid order items in selected period');
-        d.top_by_revenue.slice(0, 10).forEach((p, i) =>
-          pdfRow(ctx, `${i+1}. ${p.name} (${p.sku || '—'})`, `${fmtKES(p.revenue)} · ${fmtNum(p.qty_sold)} units`));
+        d.top_by_revenue.slice(0,8).forEach((p,i) => {
+          const isTop = i < 3;
+          doc.setFillColor(isTop ? 245 : 249, isTop ? 243 : 250, isTop ? 255 : 251);
+          doc.roundedRect(18, ctx.y, pw-36, 16, 2, 2, 'F');
+          doc.setDrawColor(isTop ? 168 : 209, isTop ? 85 : 213, isTop ? 247 : 220);
+          doc.setLineWidth(isTop ? 0.4 : 0.2);
+          doc.roundedRect(18, ctx.y, pw-36, 16, 2, 2, 'S'); doc.setLineWidth(0.2);
+          doc.setTextColor(156,163,175); doc.setFontSize(7); doc.setFont('helvetica','bold');
+          doc.text(`#${i+1}`, 22, ctx.y+10);
+          doc.setTextColor(17,24,39); doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(`${p.name} ${p.sku ? `(${p.sku})` : ''}`, 32, ctx.y+10);
+          doc.setTextColor(isTop ? 168 : 5, isTop ? 85 : 150, isTop ? 247 : 105);
+          doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(fmtKES(p.revenue), pw-20, ctx.y+10, {align:'right'});
+          doc.setTextColor(156,163,175); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+          doc.text(`${fmtNum(p.qty_sold)} units · ${fmtNum(p.order_count)} orders`, pw-22, ctx.y+5, {align:'right'});
+          ctx.y += 18;
+          if (ctx.y > ph - 30) { doc.addPage(); ctx.y = 18; }
+        });
       }
-      if (d?.top_by_quantity?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Top Products by Quantity Sold');
-        d.top_by_quantity.slice(0, 10).forEach((p, i) =>
-          pdfRow(ctx, `${i+1}. ${p.name}`, `${fmtNum(p.qty_sold)} units · ${fmtKES(p.revenue)}`));
-      }
+
+      // ── 5. SUMMARY CALLOUT ───────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(240,253,244);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'F');
+      doc.setDrawColor(5,150,105); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'S'); doc.setLineWidth(0.2);
+      doc.setTextColor(5,150,105); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('INVENTORY SUMMARY', 24, ctx.y+7);
+      doc.setTextColor(55,65,81); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const stockRate = fmtPct((d?.in_stock||0)/(d?.total_products||1)*100);
+      const summary = `${fmtNum(d?.in_stock)} of ${fmtNum(d?.total_products)} products in stock (${stockRate}). ${fmtNum(d?.low_stock)} need reordering. Top performer: ${d?.top_by_revenue?.[0]?.name || 'N/A'} (${fmtKES(d?.top_by_revenue?.[0]?.revenue)}).`;
+      doc.text(summary, 24, ctx.y+14, {maxWidth: pw-48});
+      ctx.y += 28;
+
       break;
     }
+
     case 'brands': {
       const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. BIG STAT CARDS ROW ────────────────────────────────────────────
       pdfSection(ctx, 'Brand Catalog');
-      pdfRow(ctx, 'Total Brands',   fmtNum(d?.total_brands));
-      pdfRow(ctx, 'Active',         fmtNum(d?.active_brands), green);
-      pdfRow(ctx, 'Featured',       fmtNum(d?.featured_brands));
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const cards = [
+        { label: 'Total Brands', value: fmtNum(d?.total_brands), sub: 'in system', rgb: [168,85,247], accent: true },
+        { label: 'Active', value: fmtNum(d?.active_brands), sub: 'currently selling', rgb: [5,150,105], accent: true },
+        { label: 'Featured', value: fmtNum(d?.featured_brands), sub: 'homepage highlights', rgb: [245,158,11], accent: false },
+        { label: 'Avg Products', value: fmtNum(Math.round((d?.total_products||0)/(d?.total_brands||1))), sub: 'per brand', rgb: [59,130,246], accent: false },
+      ];
+      const cardW = (pw - 36 - 9) / 4, cardH = 26, cardGap = 3;
+      let cx = 18;
+      cards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(Math.round(r + (255-r)*tint), Math.round(g + (255-g)*tint), Math.round(b + (255-b)*tint));
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), cx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, cx+3, ctx.y+14);
+        doc.setTextColor(156,163,175); doc.setFontSize(6); doc.setFont('helvetica','normal');
+        doc.text(card.sub, cx+3, ctx.y+21);
+        cx += cardW + cardGap;
+      });
+      ctx.y += cardH + 10;
+
+      // ── 2. TOP BRANDS BY REVENUE (mini cards) ────────────────────────────
       if (d?.top_by_revenue?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Top Brands by Revenue');
+        pdfSection(ctx, 'Top Brands by Revenue');
         pdfSubheading(ctx, 'From paid order items in selected period');
-        d.top_by_revenue.slice(0, 10).forEach((b, i) =>
-          pdfRow(ctx, `${i+1}. ${b.brand}`, `${fmtKES(b.revenue)} · ${fmtNum(b.qty_sold)} units`));
+        const ccardW = (pw - 36 - 6) / 2, ccardH = 28;
+        d.top_by_revenue.slice(0,6).forEach((b, i) => {
+          if (ctx.y > ph - ccardH - 6) { doc.addPage(); ctx.y = 18; }
+          const ccx = i % 2 === 0 ? 18 : 18 + ccardW + 6;
+          const isTop = i < 2;
+          doc.setFillColor(isTop ? 245 : 249, isTop ? 243 : 250, isTop ? 255 : 251);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'F');
+          doc.setDrawColor(isTop ? 168 : 209, isTop ? 85 : 213, isTop ? 247 : 220);
+          doc.setLineWidth(isTop ? 0.5 : 0.2);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+          doc.setTextColor(isTop ? 168 : 156, isTop ? 85 : 163, isTop ? 247 : 175);
+          doc.setFontSize(7); doc.setFont('helvetica','bold');
+          doc.text(`#${i+1} ${b.brand}`, ccx+4, ctx.y+7);
+          doc.setTextColor(17,24,39); doc.setFontSize(11); doc.setFont('helvetica','bold');
+          doc.text(fmtKES(b.revenue), ccx+4, ctx.y+17);
+          doc.setTextColor(156,163,175); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+          doc.text(`${fmtNum(b.qty_sold)} units · ${fmtNum(b.order_count)} orders`, ccx+ccardW-3, ctx.y+17, {align:'right'});
+          if (i % 2 === 1 || i === Math.min(d.top_by_revenue.length,6)-1) ctx.y += ccardH + 4;
+        });
+        ctx.y += 4;
       }
+
+      // ── 3. PRODUCTS PER BRAND (horizontal list) ──────────────────────────
       if (d?.by_product_count?.length) {
         ctx.y += 4; pdfSection(ctx, 'Products per Brand');
-        d.by_product_count.slice(0, 10).forEach((b, i) =>
-          pdfRow(ctx, `${i+1}. ${b.brand}`, `${fmtNum(b.product_count)} products`));
+        d.by_product_count.slice(0,8).forEach((b,i) => {
+          const pct = Math.min(100, Math.round((b.product_count/(d?.total_products||1))*100));
+          doc.setFillColor(249,250,251); doc.roundedRect(18, ctx.y, pw-36, 14, 2, 2, 'F');
+          doc.setDrawColor(229,231,235); doc.setLineWidth(0.2);
+          doc.roundedRect(18, ctx.y, pw-36, 14, 2, 2, 'S');
+          doc.setTextColor(17,24,39); doc.setFontSize(8); doc.setFont('helvetica','bold');
+          doc.text(`${i+1}. ${b.brand}`, 22, ctx.y+9);
+          doc.setFillColor(245, 243, 255); doc.roundedRect(pw-60, ctx.y+2, Math.max(2, pct*0.4), 10, 1, 1, 'F');
+          doc.setTextColor(168,85,247); doc.setFontSize(7); doc.setFont('helvetica','bold');
+          doc.text(fmtNum(b.product_count), pw-22, ctx.y+9, {align:'right'});
+          ctx.y += 16;
+          if (ctx.y > ph - 30) { doc.addPage(); ctx.y = 18; }
+        });
       }
+
+      // ── 4. SUMMARY CALLOUT ───────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(245,243,255);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'F');
+      doc.setDrawColor(168,85,247); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'S'); doc.setLineWidth(0.2);
+      doc.setTextColor(168,85,247); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('BRAND SUMMARY', 24, ctx.y+7);
+      doc.setTextColor(55,65,81); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const topBrand = d?.top_by_revenue?.[0]?.brand || 'N/A';
+      const summary = `${fmtNum(d?.active_brands)} active brands driving ${fmtKES(d?.top_by_revenue?.reduce((a,b)=>a+b.revenue,0)||0)} in period revenue. Top performer: ${topBrand}.`;
+      doc.text(summary, 24, ctx.y+14, {maxWidth: pw-48});
+      ctx.y += 28;
+
       break;
     }
     case 'services': {
       const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. BIG STAT CARDS ROW ────────────────────────────────────────────
       pdfSection(ctx, 'Service Catalog');
-      pdfRow(ctx, 'Total Services',  fmtNum(d?.total_services));
-      pdfRow(ctx, 'Active',          fmtNum(d?.active_services), green);
-      pdfRow(ctx, 'Featured',        fmtNum(d?.featured_services));
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const cards = [
+        { label: 'Total Services', value: fmtNum(d?.total_services), sub: 'in catalog', rgb: [168,85,247], accent: true },
+        { label: 'Active', value: fmtNum(d?.active_services), sub: 'bookable now', rgb: [5,150,105], accent: true },
+        { label: 'Featured', value: fmtNum(d?.featured_services), sub: 'promoted listings', rgb: [245,158,11], accent: false },
+        { label: 'Service Revenue', value: fmtKES(d?.revenue_split?.service_revenue), sub: `period · ${period}`, rgb: [168,85,247], accent: true },
+      ];
+      const cardW = (pw - 36 - 9) / 4, cardH = 26, cardGap = 3;
+      let cx = 18;
+      cards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(Math.round(r + (255-r)*tint), Math.round(g + (255-g)*tint), Math.round(b + (255-b)*tint));
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), cx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, cx+3, ctx.y+14);
+        doc.setTextColor(156,163,175); doc.setFontSize(6); doc.setFont('helvetica','normal');
+        doc.text(card.sub, cx+3, ctx.y+21);
+        cx += cardW + cardGap;
+      });
+      ctx.y += cardH + 10;
+
+      // ── 2. REVENUE SPLIT VISUAL ──────────────────────────────────────────
       ctx.y += 4; pdfSection(ctx, 'Revenue Split (Period)');
-      pdfRow(ctx, 'Service Revenue', fmtKES(d?.revenue_split?.service_revenue), green);
-      pdfRow(ctx, 'Product Revenue', fmtKES(d?.revenue_split?.product_revenue));
+      const svcRev = d?.revenue_split?.service_revenue || 0;
+      const prodRev = d?.revenue_split?.product_revenue || 0;
+      const total = svcRev + prodRev || 1;
+      const svcPct = Math.round((svcRev/total)*100);
+      
+      // Progress bar background
+      doc.setFillColor(243,244,246); doc.roundedRect(18, ctx.y, pw-36, 12, 2, 2, 'F');
+      // Service portion
+      doc.setFillColor(168,85,247); doc.roundedRect(18, ctx.y, Math.max(2, (pw-36)*svcPct/100), 12, 2, 2, 'F');
+      // Border
+      doc.setDrawColor(168,85,247); doc.setLineWidth(0.3);
+      doc.roundedRect(18, ctx.y, pw-36, 12, 2, 2, 'S'); doc.setLineWidth(0.2);
+      
+      // Labels
+      doc.setTextColor(168,85,247); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text(`Services ${fmtPct(svcPct)}`, 22, ctx.y+8);
+      doc.setTextColor(5,150,105);
+      doc.text(`Products ${fmtPct(100-svcPct)}`, pw-20, ctx.y+8, {align:'right'});
+      ctx.y += 18;
+
+      // ── 3. SERVICES BY CATEGORY (mini cards, 2-per-row) ──────────────────
       if (d?.by_category?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Services by Category (from Orders)');
-        d.by_category.forEach(c =>
-          pdfRow(ctx, c.category, `${fmtNum(c.order_count)} orders · ${fmtKES(c.revenue)}`));
+        pdfSection(ctx, 'Services by Category');
+        const ccardW = (pw - 36 - 6) / 2, ccardH = 24;
+        d.by_category.slice(0,6).forEach((c, i) => {
+          if (ctx.y > ph - ccardH - 6) { doc.addPage(); ctx.y = 18; }
+          const ccx = i % 2 === 0 ? 18 : 18 + ccardW + 6;
+          const isFirst = i === 0;
+          doc.setFillColor(isFirst ? 245 : 249, isFirst ? 243 : 250, isFirst ? 255 : 251);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'F');
+          doc.setDrawColor(isFirst ? 168 : 229, isFirst ? 85 : 231, isFirst ? 247 : 235);
+          doc.setLineWidth(isFirst ? 0.5 : 0.2);
+          doc.roundedRect(ccx, ctx.y, ccardW, ccardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+          doc.setTextColor(isFirst ? 168 : 17, isFirst ? 85 : 24, isFirst ? 247 : 39);
+          doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(c.category, ccx+4, ctx.y+8);
+          doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+          doc.text(fmtNum(c.order_count), ccx+4, ctx.y+16);
+          doc.setTextColor(156,163,175); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+          doc.text(`${fmtKES(c.revenue)}`, ccx+ccardW-3, ctx.y+16, {align:'right'});
+          if (i % 2 === 1 || i === Math.min(d.by_category.length,6)-1) ctx.y += ccardH + 4;
+        });
+        ctx.y += 4;
       }
+
+      // ── 4. TOP SERVICES BY REVENUE ───────────────────────────────────────
       if (d?.top_by_revenue?.length) {
         ctx.y += 4; pdfSection(ctx, 'Top Services by Revenue');
-        d.top_by_revenue.slice(0, 10).forEach((s, i) =>
-          pdfRow(ctx, `${i+1}. ${s.name}`, `${fmtKES(s.revenue)} · ${fmtNum(s.qty_sold)} orders`));
+        d.top_by_revenue.slice(0,8).forEach((s,i) => {
+          const isTop = i < 3;
+          doc.setFillColor(isTop ? 245 : 249, isTop ? 243 : 250, isTop ? 255 : 251);
+          doc.roundedRect(18, ctx.y, pw-36, 16, 2, 2, 'F');
+          doc.setDrawColor(isTop ? 168 : 209, isTop ? 85 : 213, isTop ? 247 : 220);
+          doc.setLineWidth(isTop ? 0.4 : 0.2);
+          doc.roundedRect(18, ctx.y, pw-36, 16, 2, 2, 'S'); doc.setLineWidth(0.2);
+          doc.setTextColor(156,163,175); doc.setFontSize(7); doc.setFont('helvetica','bold');
+          doc.text(`#${i+1}`, 22, ctx.y+10);
+          doc.setTextColor(17,24,39); doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(`${s.name} ${s.category ? `· ${s.category}` : ''}`, 32, ctx.y+10);
+          doc.setTextColor(isTop ? 168 : 5, isTop ? 85 : 150, isTop ? 247 : 105);
+          doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(fmtKES(s.revenue), pw-20, ctx.y+10, {align:'right'});
+          doc.setTextColor(156,163,175); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+          doc.text(`${fmtNum(s.qty_sold)} orders`, pw-22, ctx.y+5, {align:'right'});
+          ctx.y += 18;
+          if (ctx.y > ph - 30) { doc.addPage(); ctx.y = 18; }
+        });
       }
+
+      // ── 5. SUMMARY CALLOUT ───────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(245,243,255);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'F');
+      doc.setDrawColor(168,85,247); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'S'); doc.setLineWidth(0.2);
+      doc.setTextColor(168,85,247); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('SERVICES SUMMARY', 24, ctx.y+7);
+      doc.setTextColor(55,65,81); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const topSvc = d?.top_by_revenue?.[0]?.name || 'N/A';
+      const summary = `${fmtNum(d?.active_services)} active services generated ${fmtKES(svcRev)} (${fmtPct(svcPct)} of mixed revenue). Top service: ${topSvc}.`;
+      doc.text(summary, 24, ctx.y+14, {maxWidth: pw-48});
+      ctx.y += 28;
+
       break;
     }
     case 'funnel': {
       const d = data;
-      pdfSection(ctx, 'Quote → Order Funnel');
-      pdfRow(ctx, 'Total Quote Requests',    fmtNum(d?.total_requests));
-      pdfRow(ctx, 'Converted to Quotes',     fmtNum(d?.converted_to_quotes));
-      pdfRow(ctx, 'Req → Quote Rate',        fmtPct(d?.req_to_quote_rate));
-      pdfRow(ctx, 'Quotes → Orders',         fmtNum(d?.converted_to_orders));
-      pdfRow(ctx, 'Quote → Order Rate',      fmtPct(d?.quote_to_order_rate));
-      pdfRow(ctx, 'End-to-End Rate',         fmtPct(d?.end_to_end_rate));
-      pdfRow(ctx, 'Avg Response Time',       `${(d?.avg_response_hours || 0).toFixed(1)} hrs`);
-      pdfRow(ctx, 'Unassigned Requests',     fmtNum(d?.unassigned), red);
-      ctx.y += 4; pdfSection(ctx, 'Request Status');
-      pdfRow(ctx, 'Pending',            fmtNum(d?.pending), amber);
-      pdfRow(ctx, 'Reviewing',          fmtNum(d?.reviewing));
-      pdfRow(ctx, 'Quoted',             fmtNum(d?.quoted), green);
-      pdfRow(ctx, 'Needs Clarity',      fmtNum(d?.requires_clarification));
-      pdfRow(ctx, 'Rejected',           fmtNum(d?.rejected), red);
-      pdfRow(ctx, 'Expired',            fmtNum(d?.expired));
+
+      // ── 1. STAGE BUBBLES ROW ─────────────────────────────────────────────
+      pdfSection(ctx, 'Quote Request -> Quote -> Order Funnel');
+
+      const stages = [
+        { label: 'Quote Requests', value: fmtNum(d?.total_requests),      sub: '100%',                           hex: [245,158,11]  },
+        { label: 'Quoted',         value: fmtNum(d?.converted_to_quotes),  sub: fmtPct(d?.req_to_quote_rate),    hex: [168,85,247]  },
+        { label: 'Orders',         value: fmtNum(d?.converted_to_orders),  sub: fmtPct(d?.quote_to_order_rate),  hex: [5,150,105]   },
+      ];
+
+      const { doc, pw, ph } = ctx;
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const boxW = 48, boxH = 28, gap = 14;
+      const totalRowW = stages.length * boxW + (stages.length - 1) * gap;
+      let bx = (pw - totalRowW) / 2;
+
+      stages.forEach((s, i) => {
+        const [r, g, b] = s.hex;
+        // background fill (10% tint)
+        doc.setFillColor(r + Math.round((255 - r) * 0.88), g + Math.round((255 - g) * 0.88), b + Math.round((255 - b) * 0.88));
+        doc.roundedRect(bx, ctx.y, boxW, boxH, 3, 3, 'F');
+        // border
+        doc.setDrawColor(r, g, b);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(bx, ctx.y, boxW, boxH, 3, 3, 'S');
+        doc.setLineWidth(0.2);
+        // big number
+        doc.setTextColor(r, g, b);
+        doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+        doc.text(s.value, bx + boxW / 2, ctx.y + 10, { align: 'center' });
+        // label
+        doc.setTextColor(55, 65, 81);
+        doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+        doc.text(s.label, bx + boxW / 2, ctx.y + 17, { align: 'center' });
+        // sub pct
+        doc.setTextColor(156, 163, 175);
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+        doc.text(s.sub, bx + boxW / 2, ctx.y + 23, { align: 'center' });
+
+        // arrow between boxes
+        if (i < stages.length - 1) {
+          const ax = bx + boxW + 2, ay = ctx.y + boxH / 2;
+          doc.setDrawColor(209, 213, 219); doc.setLineWidth(0.5);
+          doc.line(ax, ay, ax + gap - 4, ay);
+          // arrowhead
+          doc.setFillColor(209, 213, 219);
+          doc.triangle(ax + gap - 4, ay - 2, ax + gap - 4, ay + 2, ax + gap, ay, 'F');
+        }
+        bx += boxW + gap;
+      });
+      ctx.y += boxH + 12;
+
+      // ── 2. FUNNEL BARS ───────────────────────────────────────────────────
+      pdfSection(ctx, 'Pipeline Funnel');
+      const total = d?.total_requests || 1;
+      pdfBarRow(ctx, 'Quote Requests',       fmtNum(d?.total_requests),      100,                                              [245,158,11]);
+      pdfBarRow(ctx, 'Converted to Quotes',  fmtNum(d?.converted_to_quotes), ((d?.converted_to_quotes || 0)/total)*100,       [168,85,247]);
+      pdfBarRow(ctx, 'Converted to Orders',  fmtNum(d?.converted_to_orders), ((d?.converted_to_orders || 0)/total)*100,       [5,150,105]);
+      ctx.y += 4;
+
+      // ── 3. TWO-COLUMN SPLIT: Status | Metrics ───────────────────────────
+      if (ctx.y > ph - 80) { doc.addPage(); ctx.y = 18; }
+      const colL = 18, colR = pw / 2 + 4, colW = pw / 2 - 22, rowH = 9;
+
+      // column headers
+      const headerY = ctx.y;
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(colL - 2, headerY - 5, colW + 4, 11, 2, 2, 'F');
+      doc.roundedRect(colR - 2, headerY - 5, colW + 4, 11, 2, 2, 'F');
+      doc.setTextColor(...ctx.purpleRgb);
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text('REQUEST STATUS', colL + 2, headerY + 2);
+      doc.text('CONVERSION METRICS', colR + 2, headerY + 2);
+      ctx.y += 10;
+
+      // status rows
+      const statuses = [
+        { label: 'Pending',       value: d?.pending,                 rgb: [245,158,11]  },
+        { label: 'Reviewing',     value: d?.reviewing,               rgb: [59,130,246]  },
+        { label: 'Quoted',        value: d?.quoted,                  rgb: [168,85,247]  },
+        { label: 'Needs Clarity', value: d?.requires_clarification,  rgb: [249,115,22]  },
+        { label: 'Rejected',      value: d?.rejected,                rgb: [220,38,38]   },
+        { label: 'Expired',       value: d?.expired,                 rgb: [156,163,175] },
+      ];
+
+      const metrics = [
+        { label: 'Req -> Quote Rate',    value: fmtPct(d?.req_to_quote_rate),               rgb: [168,85,247]  },
+        { label: 'Quote -> Order Rate',  value: fmtPct(d?.quote_to_order_rate),             rgb: [5,150,105]   },
+        { label: 'End-to-End Rate',     value: fmtPct(d?.end_to_end_rate),                 rgb: [59,130,246]  },
+        { label: 'Avg Response Time',   value: `${(d?.avg_response_hours||0).toFixed(1)} hrs`, rgb: [245,158,11] },
+        { label: 'Unassigned',          value: fmtNum(d?.unassigned),                      rgb: [220,38,38]   },
+      ];
+
+      const maxRows = Math.max(statuses.length, metrics.length);
+      for (let ri = 0; ri < maxRows; ri++) {
+        if (ctx.y > ph - 14) { doc.addPage(); ctx.y = 18; }
+        const rowY = ctx.y;
+
+        // alternating stripe across both columns
+        if (ri % 2 === 0) {
+          doc.setFillColor(249, 250, 251);
+          doc.rect(colL - 2, rowY - 5, (colR + colW + 4) - (colL - 2), rowH, 'F');
+        }
+
+        // left: status
+        if (ri < statuses.length) {
+          const s = statuses[ri];
+          const pct = ((s.value || 0) / total) * 100;
+          doc.setFillColor(...s.rgb);
+          doc.circle(colL + 2, rowY - 0.5, 2, 'F');
+          doc.setTextColor(55, 65, 81); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+          doc.text(s.label, colL + 7, rowY + 0.5);
+          doc.setTextColor(107, 114, 128); doc.setFontSize(7.5);
+          doc.text(`${pct.toFixed(1)}%`, colL + colW - 26, rowY + 0.5);
+          doc.setTextColor(...s.rgb); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+          doc.text(fmtNum(s.value), colL + colW, rowY + 0.5, { align: 'right' });
+        }
+
+        // right: metric
+        if (ri < metrics.length) {
+          const m = metrics[ri];
+          doc.setTextColor(55, 65, 81); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+          doc.text(m.label, colR + 5, rowY + 0.5);
+          doc.setTextColor(...m.rgb); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+          doc.text(m.value, colR + colW, rowY + 0.5, { align: 'right' });
+        }
+
+        // divider line spanning both columns
+        doc.setDrawColor(229, 231, 235); doc.setLineWidth(0.2);
+        doc.line(colL - 2, rowY + 3, colR + colW + 2, rowY + 3);
+        ctx.y += rowH;
+      }
+
+      ctx.y += 6;
+
+      // ── 4. SUMMARY CALLOUT BOX ───────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(245, 243, 255); // very light purple
+      doc.roundedRect(18, ctx.y, pw - 36, 20, 3, 3, 'F');
+      doc.setDrawColor(...ctx.purpleRgb); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw - 36, 20, 3, 3, 'S');
+      doc.setLineWidth(0.2);
+      doc.setTextColor(...ctx.purpleRgb); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.text('FUNNEL SUMMARY', 24, ctx.y + 7);
+      doc.setTextColor(55, 65, 81); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      const summaryLine = `Of ${fmtNum(d?.total_requests)} requests, ${fmtNum(d?.converted_to_quotes)} were quoted (${fmtPct(d?.req_to_quote_rate)}) and ${fmtNum(d?.converted_to_orders)} converted to orders — an end-to-end rate of ${fmtPct(d?.end_to_end_rate)}.`;
+      doc.text(summaryLine, 24, ctx.y + 14, { maxWidth: pw - 48 });
+      ctx.y += 28;
+
       break;
     }
     case 'projects': {
       const d = data;
-      pdfSection(ctx, 'Project Status');
-      pdfRow(ctx, 'Total',      fmtNum(d?.total));
-      pdfRow(ctx, 'Planning',   fmtNum(d?.planning));
-      pdfRow(ctx, 'Active',     fmtNum(d?.active), green);
-      pdfRow(ctx, 'On Hold',    fmtNum(d?.on_hold), amber);
-      pdfRow(ctx, 'Completed',  fmtNum(d?.completed), green);
-      pdfRow(ctx, 'Cancelled',  fmtNum(d?.cancelled), red);
-      ctx.y += 4; pdfSection(ctx, 'Health Metrics');
-      pdfRow(ctx, 'Completion Rate',    fmtPct(d?.completion_rate));
-      pdfRow(ctx, 'Overdue',            fmtNum(d?.overdue), red);
-      pdfRow(ctx, 'Unassigned',         fmtNum(d?.unassigned), amber);
-      pdfRow(ctx, 'Overdue Milestones', fmtNum(d?.overdue_milestones), red);
-      ctx.y += 4; pdfSection(ctx, 'By Priority');
-      pdfRow(ctx, 'Urgent', fmtNum(d?.by_priority?.urgent), red);
-      pdfRow(ctx, 'High',   fmtNum(d?.by_priority?.high), [249,115,22]);
-      pdfRow(ctx, 'Medium', fmtNum(d?.by_priority?.medium), amber);
-      pdfRow(ctx, 'Low',    fmtNum(d?.by_priority?.low));
+      const projectTotal = d?.total || 1;
+
+      // ── Section 1: Status Breakdown (bar chart) ────────────────────────────
+      pdfSection(ctx, `Projects Overview — ${d?.period_label || 'Selected Period'}`);
+      const statusItems = [
+        { label: 'Planning',  value: d?.planning,  color: ctx.grey },
+        { label: 'Active',    value: d?.active,    color: [59, 130, 246] },
+        { label: 'On Hold',   value: d?.on_hold,   color: ctx.amber },
+        { label: 'Completed', value: d?.completed, color: ctx.green },
+        { label: 'Cancelled', value: d?.cancelled, color: ctx.red },
+      ];
+      statusItems.forEach(s => {
+        const pct = (Number(s.value || 0) / projectTotal) * 100;
+        pdfBarRow(ctx, s.label, fmtNum(s.value), pct, s.color);
+      });
+
+      // ── Section 2: Health Metrics ──────────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'Health Metrics');
+      pdfRow(ctx, 'Total Projects',     fmtNum(d?.total),             [59, 130, 246]);
+      pdfRow(ctx, 'Completion Rate',    fmtPct(d?.completion_rate),   ctx.green);
+      pdfRow(ctx, 'Overdue',            fmtNum(d?.overdue),           ctx.red);
+      pdfRow(ctx, 'Unassigned',         fmtNum(d?.unassigned),        ctx.amber);
+      pdfRow(ctx, 'Overdue Milestones', fmtNum(d?.overdue_milestones), [249, 115, 22]);
+
+      // Completion rate progress bar
+      ctx.y += 2;
+      pdfBarRow(ctx,
+        'Completion Rate',
+        fmtPct(d?.completion_rate),
+        Math.min(d?.completion_rate || 0, 100),
+        [5, 150, 105], // green
+      );
+
+      // ── Section 3: By Priority (bar chart) ────────────────────────────────
+      if (d?.by_priority) {
+        ctx.y += 4;
+        pdfSection(ctx, 'By Priority');
+        const priorityItems = [
+          { label: 'Urgent', value: d.by_priority?.urgent, color: ctx.red },
+          { label: 'High',   value: d.by_priority?.high,   color: [249, 115, 22] },
+          { label: 'Medium', value: d.by_priority?.medium, color: ctx.amber },
+          { label: 'Low',    value: d.by_priority?.low,    color: ctx.grey },
+        ];
+        const maxPriority = Math.max(...priorityItems.map(p => Number(p.value || 0)), 1);
+        priorityItems.forEach(p => {
+          const pct = (Number(p.value || 0) / maxPriority) * 100;
+          pdfBarRow(ctx, p.label, fmtNum(p.value), pct, p.color);
+        });
+      }
+
+      // ── Section 4: Monthly Creation Trend sparkline ────────────────────────
+      if (d?.created_per_month?.length > 1) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Projects Created per Month');
+        pdfSparkBars(ctx, d.created_per_month);
+      }
+
       break;
     }
     case 'customers': {
       const d = data;
+      const total = d?.total_customers || 1;
+
       pdfSection(ctx, 'Customer Overview');
       pdfRow(ctx, 'Total Customers',    fmtNum(d?.total_customers));
-      pdfRow(ctx, 'Active',             fmtNum(d?.active_customers), green);
-      pdfRow(ctx, 'New This Period',    fmtNum(d?.new_customers));
-      pdfRow(ctx, 'VIP (Gold+)',        fmtNum(d?.vip_customers), amber);
-      pdfRow(ctx, 'Credit Accounts',    fmtNum(d?.with_credit));
-      pdfRow(ctx, 'Avg Lifetime Value', fmtKES(d?.avg_lifetime_value));
-      ctx.y += 4; pdfSection(ctx, 'By Tier');
-      pdfRow(ctx, 'Platinum', fmtNum(d?.by_tier?.platinum), [139,92,246]);
-      pdfRow(ctx, 'Gold',     fmtNum(d?.by_tier?.gold), amber);
-      pdfRow(ctx, 'Silver',   fmtNum(d?.by_tier?.silver));
-      pdfRow(ctx, 'Bronze',   fmtNum(d?.by_tier?.bronze), [249,115,22]);
-      ctx.y += 4; pdfSection(ctx, 'By Type');
-      ['individual','business','wholesale','contractor'].forEach(t =>
-        pdfRow(ctx, t.charAt(0).toUpperCase() + t.slice(1), fmtNum(d?.by_type?.[t])));
-      if (d?.top_by_spend?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Top Customers by Lifetime Spend');
-        d.top_by_spend.slice(0, 10).forEach((c, i) =>
-          pdfRow(ctx, `${i+1}. ${c.name}`, `${fmtKES(c.total_spent)} · ${fmtNum(c.total_orders)} orders`));
+      pdfRow(ctx, 'Active Customers',   fmtNum(d?.active_customers),    green);
+      pdfRow(ctx, 'New This Period',    fmtNum(d?.new_customers),        [59,130,246]);
+      pdfRow(ctx, 'VIP (Gold+)',        fmtNum(d?.vip_customers),        amber);
+      pdfRow(ctx, 'Credit Accounts',    fmtNum(d?.with_credit),          [139,92,246]);
+      pdfRow(ctx, 'Avg Lifetime Value', fmtKES(d?.avg_lifetime_value),   green);
+
+      ctx.y += 4; pdfSection(ctx, 'Customers by Tier');
+      [
+        { key: 'platinum', label: 'Platinum', color: [139,92,246] },
+        { key: 'gold',     label: 'Gold',     color: [245,158,11] },
+        { key: 'silver',   label: 'Silver',   color: [156,163,175] },
+        { key: 'bronze',   label: 'Bronze',   color: [249,115,22] },
+      ].forEach(({ key, label, color }) => {
+        const count = d?.by_tier?.[key] || 0;
+        pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
+      });
+
+      ctx.y += 4; pdfSection(ctx, 'Customers by Type');
+      [
+        { key: 'individual', label: 'Individual', color: [59,130,246] },
+        { key: 'business',   label: 'Business',   color: [168,85,247] },
+        { key: 'wholesale',  label: 'Wholesale',  color: [5,150,105] },
+        { key: 'contractor', label: 'Contractor', color: [245,158,11] },
+      ].forEach(({ key, label, color }) => {
+        const count = d?.by_type?.[key] || 0;
+        pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
+      });
+
+      if (d?.trend?.length > 1) {
+        ctx.y += 4; pdfSection(ctx, 'New Customers - Monthly Trend');
+        pdfSparkBars(ctx, d.trend);
       }
+
+      if (d?.top_by_spend?.length) {
+        ctx.y += 4; pdfSection(ctx, 'Top Customers by Period Spend');
+        pdfTable(ctx,
+          ['#', 'Name', 'Type', 'Tier', 'Orders', 'Last Order', 'Total Spent'],
+          d.top_by_spend.slice(0, 15).map((c, i) => [
+            i + 1, c.name, c.type || '-', c.tier || '-',
+            fmtNum(c.total_orders),
+            c.last_order ? fmtDate(c.last_order) : '-',
+            fmtKES(c.total_spent),
+          ]),
+          [0.05, 0.24, 0.11, 0.11, 0.10, 0.15, 0.24],
+          { rightAlign: [0, 4, 5, 6], highlightCols: { 6: green } }
+        );
+      }
+
+      if (d?.top_by_orders?.length) {
+        ctx.y += 6; pdfSection(ctx, 'Top Customers by Order Count');
+        pdfTable(ctx,
+          ['#', 'Name', 'Type', 'Tier', 'Total Orders', 'Total Spent'],
+          d.top_by_orders.slice(0, 15).map((c, i) => [
+            i + 1, c.name, c.type || '-', c.tier || '-',
+            fmtNum(c.total_orders), fmtKES(c.total_spent),
+          ]),
+          [0.05, 0.30, 0.12, 0.12, 0.18, 0.23],
+          { rightAlign: [0, 4, 5], highlightCols: { 4: [168,85,247], 5: green } }
+        );
+      }
+
+      if (d?.login_hour_dist?.length) {
+        ctx.y += 6; pdfSection(ctx, 'Login Time Distribution (Hour of Day)');
+        pdfLoginHeatmap(ctx, d.login_hour_dist);
+      }
+
       break;
     }
     case 'tickets': {
       const d = data;
-      pdfSection(ctx, 'Ticket Status');
-      pdfRow(ctx, 'Total',       fmtNum(d?.total));
-      pdfRow(ctx, 'Open',        fmtNum(d?.open), red);
-      pdfRow(ctx, 'In Progress', fmtNum(d?.in_progress), amber);
-      pdfRow(ctx, 'Resolved',    fmtNum(d?.resolved), green);
-      pdfRow(ctx, 'Closed',      fmtNum(d?.closed));
-      pdfRow(ctx, 'On Hold',     fmtNum(d?.on_hold));
-      pdfRow(ctx, 'Unassigned',  fmtNum(d?.unassigned), red);
-      ctx.y += 4; pdfSection(ctx, 'SLA Metrics');
-      pdfRow(ctx, 'Resolution Rate',       fmtPct(d?.resolution_rate), green);
-      pdfRow(ctx, 'Avg First Response',    fmtHrs(d?.avg_first_response_hours || 0));
-      pdfRow(ctx, 'Avg Resolution Time',   fmtHrs(d?.avg_resolution_hours || 0));
-      pdfRow(ctx, 'Period Total',          fmtNum(d?.period_total));
-      pdfRow(ctx, 'Period Resolved',       fmtNum(d?.period_resolved), green);
-      ctx.y += 4; pdfSection(ctx, 'By Priority');
-      pdfRow(ctx, 'Urgent', fmtNum(d?.by_priority?.urgent), red);
-      pdfRow(ctx, 'High',   fmtNum(d?.by_priority?.high), [249,115,22]);
-      pdfRow(ctx, 'Medium', fmtNum(d?.by_priority?.medium), amber);
-      pdfRow(ctx, 'Low',    fmtNum(d?.by_priority?.low));
-      if (d?.by_category?.length) {
-        ctx.y += 4; pdfSection(ctx, 'By Category');
-        d.by_category.forEach(c => pdfRow(ctx, c.category, fmtNum(c.count)));
+
+      // ── Section 1: Status Overview ─────────────────────────────────────────
+      pdfSection(ctx, `Support Tickets — Status Overview`);
+      pdfSubheading(ctx, `Period: ${d?.period_label || 'selected period'}`);
+
+      const statusItems = [
+        { label: 'Open',        value: fmtNum(d?.open),             color: ctx.red },
+        { label: 'In Progress', value: fmtNum(d?.in_progress),      color: ctx.amber },
+        { label: 'Resolved',    value: fmtNum(d?.resolved),         color: ctx.green },
+        { label: 'Closed',      value: fmtNum(d?.closed),           color: ctx.grey },
+        { label: 'On Hold',     value: fmtNum(d?.on_hold),          color: [59, 130, 246] },
+        { label: 'Waiting',     value: fmtNum(d?.waiting_customer), color: [139, 92, 246] },
+      ];
+      statusItems.forEach(m => pdfRow(ctx, m.label, m.value, m.color));
+
+      // Resolution rate progress bar (mirrors the green bar on the page)
+      ctx.y += 2;
+      pdfBarRow(ctx,
+        'Resolution Rate',
+        fmtPct(d?.resolution_rate),
+        Math.min(d?.resolution_rate || 0, 100),
+        [5, 150, 105], // green
+      );
+
+      // ── Section 2: SLA & Performance ──────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'SLA & Performance');
+      pdfRow(ctx, 'Total Tickets (All-Time)', fmtNum(d?.total));
+      pdfRow(ctx, 'Unassigned',              fmtNum(d?.unassigned),    ctx.red);
+      pdfRow(ctx, 'Created This Period',     fmtNum(d?.period_total),  [59, 130, 246]);
+      pdfRow(ctx, 'Resolved This Period',    fmtNum(d?.period_resolved), ctx.green);
+      pdfRow(ctx, 'Avg First Response',      fmtHrs(d?.avg_first_response_hours || 0), ctx.amber);
+      pdfRow(ctx, 'Avg Resolution Time',     fmtHrs(d?.avg_resolution_hours    || 0), ctx.green);
+
+      // ── Section 3: Status Distribution (bar chart) ────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'Status Distribution');
+      const total = d?.total || 1;
+      statusItems.forEach(s => {
+        const rawVal = d?.[s.label.toLowerCase().replace(' ', '_')] ?? 0;
+        const pct = (rawVal / total) * 100;
+        pdfBarRow(ctx, s.label, fmtNum(rawVal), pct, s.color);
+      });
+
+      // ── Section 4: By Priority ────────────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'By Priority');
+      const priorityItems = [
+        { label: 'Urgent', value: d?.by_priority?.urgent, color: ctx.red },
+        { label: 'High',   value: d?.by_priority?.high,   color: [249, 115, 22] },
+        { label: 'Medium', value: d?.by_priority?.medium, color: ctx.amber },
+        { label: 'Low',    value: d?.by_priority?.low,    color: ctx.grey },
+      ];
+      const maxPriority = Math.max(...priorityItems.map(p => Number(p.value || 0)), 1);
+      priorityItems.forEach(p => {
+        const pct = (Number(p.value || 0) / maxPriority) * 100;
+        pdfBarRow(ctx, p.label, fmtNum(p.value), pct, p.color);
+      });
+
+      // ── Section 5: By Category (bar chart) ───────────────────────────────
+      if (d?.by_category?.length > 0) {
+        ctx.y += 4;
+        pdfSection(ctx, 'By Category');
+        const catColors = [
+          [245, 158, 11],
+          [59, 130, 246],
+          [139, 92, 246],
+          [5, 150, 105],
+          [239, 68, 68],
+        ];
+        const maxCat = Math.max(...d.by_category.map(c => Number(c.count || 0)), 1);
+        d.by_category.forEach((c, i) => {
+          const pct = (Number(c.count || 0) / maxCat) * 100;
+          pdfBarRow(ctx,
+            c.category || 'Uncategorised',
+            fmtNum(c.count),
+            pct,
+            catColors[i % catColors.length],
+          );
+        });
       }
+
+      // ── Section 6: Monthly Trend sparkline ────────────────────────────────
+      if (d?.trend?.length > 1) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Tickets Created per Month (12-Month Trend)');
+        pdfSparkBars(ctx, d.trend);
+      }
+
       break;
     }
     case 'promos': {
-      const { promos: d, referrals: ref } = data;
-      pdfSection(ctx, 'Promo Code Status');
-      pdfRow(ctx, 'Total Codes',          fmtNum(d?.total_codes));
-      pdfRow(ctx, 'Active',               fmtNum(d?.active_codes), green);
-      pdfRow(ctx, 'Expired',              fmtNum(d?.expired_codes), red);
-      pdfRow(ctx, 'Depleted',             fmtNum(d?.depleted_codes));
-      pdfRow(ctx, 'Paused',               fmtNum(d?.paused_codes), amber);
-      pdfRow(ctx, 'Expiring Soon (7d)',   fmtNum(d?.expiring_soon), amber);
-      ctx.y += 4; pdfSection(ctx, 'Financial Impact');
-      pdfRow(ctx, 'Total Discount Given',   fmtKES(d?.total_discount_given), red);
-      pdfRow(ctx, 'Revenue via Promos',     fmtKES(d?.total_revenue_from_promos), green);
-      pdfRow(ctx, 'Total Uses',             fmtNum(d?.total_uses));
-      ctx.y += 4; pdfSection(ctx, 'Referral Programme');
-      pdfRow(ctx, 'Referral Codes',         fmtNum(ref?.total_referral_codes || d?.referrals?.total_referral_codes));
-      pdfRow(ctx, 'Total Referrals',        fmtNum(ref?.total_referrals || d?.referrals?.total_referrals));
-      pdfRow(ctx, 'Completed',              fmtNum(ref?.completed_referrals || d?.referrals?.completed_referrals), green);
-      pdfRow(ctx, 'Pending',                fmtNum(ref?.pending_referrals || d?.referrals?.pending_referrals), amber);
-      pdfRow(ctx, 'Conversion Rate',        fmtPct(ref?.conversion_rate || 0));
-      pdfRow(ctx, 'Total Rewards Paid',     fmtKES(ref?.total_referrer_rewards || d?.referrals?.total_referrer_rewards));
-      if (d?.top_by_revenue?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Top Promo Codes by Revenue');
-        d.top_by_revenue.slice(0, 10).forEach((c, i) =>
-          pdfRow(ctx, `${i+1}. ${c.code} — ${c.name || ''}`, `${fmtKES(c.revenue)} · ${fmtNum(c.uses)} uses`));
+      const d = data;
+
+      // ── Section 1: Code Inventory ──────────────────────────────────────────
+      pdfSection(ctx, 'Promotional Codes — Code Inventory (All-Time)');
+      pdfSubheading(ctx, 'Discount codes distributed to customers — coupons, first-time offers, bulk, VIP, birthday, event campaigns.');
+
+      // 2-column mini-grid rendered as paired rows
+      const inventory = [
+        { label: 'Total Codes',      value: fmtNum(d?.total_codes),    color: null },
+        { label: 'Active',           value: fmtNum(d?.active_codes),   color: ctx.green },
+        { label: 'Expiring (7d)',    value: fmtNum(d?.expiring_soon),  color: ctx.amber },
+        { label: 'Expired',          value: fmtNum(d?.expired_codes),  color: ctx.red },
+        { label: 'Depleted',         value: fmtNum(d?.depleted_codes), color: ctx.grey },
+        { label: 'Paused',           value: fmtNum(d?.paused_codes),   color: [249, 115, 22] },
+      ];
+      inventory.forEach(m => pdfRow(ctx, m.label, m.value, m.color));
+
+      // ── Section 2: Financial Impact ────────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, `Financial Impact — ${d?.period_label || 'Selected Period'}`);
+      pdfSubheading(ctx, 'Usage recorded within the selected period only.');
+      pdfRow(ctx, 'Revenue from Promo Orders', fmtKES(d?.period_revenue_from_promos ?? d?.total_revenue_from_promos), ctx.green);
+      pdfRow(ctx, 'Discount Given',            fmtKES(d?.period_discount_given     ?? d?.total_discount_given),       ctx.red);
+      pdfRow(ctx, 'Code Uses',                 fmtNum(d?.period_uses               ?? d?.total_uses));
+
+      // ── Section 3: Revenue by Code Type (bar chart) ────────────────────────
+      const byType = (d?.by_type || []).filter(t => t.type !== 'customer_referral');
+      if (byType.length > 0) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Revenue by Code Type (All-Time)');
+        const maxRevenue = Math.max(...byType.map(t => Number(t.revenue || 0)), 1);
+        byType.forEach(t => {
+          const pct = (Number(t.revenue || 0) / maxRevenue) * 100;
+          pdfBarRow(ctx,
+            PROMO_TYPE_LABELS[t.type] || t.type,
+            fmtKES(t.revenue),
+            pct,
+            [139, 92, 246],   // purple
+          );
+        });
       }
+
+      // ── Section 4: Usage Trend sparkline ──────────────────────────────────
+      if (d?.trend?.length > 1) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Promo Code Usage Trend (12 Months)');
+        pdfSparkBars(ctx, d.trend);
+      }
+
+      // ── Section 5: Top Promo Codes table ──────────────────────────────────
+      const topPromos = (d?.top_by_revenue || []).filter(r => r.type !== 'customer_referral');
+      if (topPromos.length > 0) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Top Promotional Codes by All-Time Revenue');
+        pdfSubheading(ctx, 'Ranked by total revenue generated since each code was created.');
+        pdfTable(
+          ctx,
+          ['#', 'Code', 'Name', 'Type', 'Uses', 'Discount', 'Revenue'],
+          topPromos.slice(0, 10).map((r, i) => [
+            `${i + 1}`,
+            r.code,
+            r.name || '—',
+            PROMO_TYPE_LABELS[r.type] || r.type,
+            fmtNum(r.uses),
+            fmtKES(r.discount_given),
+            fmtKES(r.revenue),
+          ]),
+          [0.05, 0.12, 0.22, 0.18, 0.10, 0.16, 0.17],
+          { rightAlign: [4, 5, 6], highlightCols: { 5: ctx.red, 6: ctx.green } },
+        );
+      }
+
+      // ── Section 6: Customer Referral Programme ─────────────────────────────
+      ctx.y += 6;
+      pdfSection(ctx, 'Customer Referral Programme — Overview (All-Time)');
+      pdfSubheading(ctx, 'Each customer can share a personal referral link. Both referrer and new customer may earn a reward.');
+      pdfRow(ctx, 'Customers with Referral Codes', fmtNum(d?.referrals?.total_referral_codes));
+      pdfRow(ctx, 'Total Referrals',               fmtNum(d?.referrals?.total_referrals));
+      pdfRow(ctx, 'Completed Referrals',           fmtNum(d?.referrals?.completed_referrals), ctx.green);
+      pdfRow(ctx, 'Pending Referrals',             fmtNum(d?.referrals?.pending_referrals),   ctx.amber);
+
+      ctx.y += 4;
+      pdfSection(ctx, 'Conversion & Rewards');
+      pdfRow(ctx, 'Conversion Rate',         fmtPct(d?.referrals?.conversion_rate));
+      pdfRow(ctx, 'Rewards Paid to Referrers', fmtKES(d?.referrals?.total_referrer_rewards));
+
+      // Conversion progress bar (mirrors the visual bar on the page)
+      const convPct = Math.min(d?.referrals?.conversion_rate || 0, 100);
+      pdfBarRow(ctx,
+        'Referral Conversion',
+        fmtPct(d?.referrals?.conversion_rate),
+        convPct,
+        [124, 58, 237],  // purpleDk
+      );
+
+      // ── Section 7: Top Referrers table ────────────────────────────────────
+      const topReferrers = (d?.top_by_revenue || []).filter(r => r.type === 'customer_referral');
+      if (topReferrers.length > 0) {
+        ctx.y += 4;
+        pdfSection(ctx, 'Top Referrers by Revenue Generated');
+        pdfSubheading(ctx, 'Customers whose referral codes drove the most order revenue.');
+        pdfTable(
+          ctx,
+          ['#', 'Code', 'Customer', 'Referrals', 'Discount Given', 'Revenue'],
+          topReferrers.slice(0, 10).map((r, i) => [
+            `${i + 1}`,
+            r.code,
+            r.name || '—',
+            fmtNum(r.uses),
+            fmtKES(r.discount_given),
+            fmtKES(r.revenue),
+          ]),
+          [0.05, 0.13, 0.32, 0.14, 0.18, 0.18],
+          { rightAlign: [3, 4, 5], highlightCols: { 4: ctx.red, 5: ctx.green } },
+        );
+      }
+
       break;
     }
     default: break;
@@ -697,14 +1668,12 @@ async function downloadSectionPDF(sectionId, data, period) {
 
 // ── Full report PDF (all sections) ────────────────────────────────────────
 async function downloadFullPDF(allData, period) {
-  const { revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos, referrals } = allData;
-  await downloadSectionPDF('revenue',   revenue,   period);
-  // For full report, cascade downloads — stagger slightly to avoid popup blockers
+  const { revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos } = allData;
+  await downloadSectionPDF('revenue', revenue, period);
   const sections = [
     ['orders', orders], ['products', products], ['brands', brands],
     ['services', services], ['funnel', funnel], ['projects', projects],
-    ['customers', customers], ['tickets', tickets],
-    ['promos', { promos, referrals }],
+    ['customers', customers], ['tickets', tickets], ['promos', promos],
   ];
   for (const [id, data] of sections) {
     await new Promise(r => setTimeout(r, 300));
@@ -722,8 +1691,15 @@ const SECTION_TITLES = {
   projects:  'Projects Report',
   customers: 'Customers Report',
   tickets:   'Support Tickets',
- // promos:    'Promos & Referrals',
+  promos:    'Promos & Referrals',
 };
+
+// ── Blank 24-hour login dist (used as fallback) ────────────────────────────
+const BLANK_LOGIN_DIST = Array.from({ length: 24 }, (_, h) => ({
+  hour: h,
+  label: `${String(h).padStart(2, '0')}:00`,
+  count: 0,
+}));
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Main component
@@ -733,7 +1709,7 @@ export default function Reports() {
   const [startDate, setStartDate] = useState('');
   const [endDate,   setEndDate]   = useState('');
   const [loading,   setLoading]   = useState(true);
-  const [exporting, setExporting] = useState(null); // null | 'all' | tabId
+  const [exporting, setExporting] = useState(null);
   const [activeTab, setActiveTab] = useState('revenue');
 
   const [revenue,      setRevenue]      = useState(null);
@@ -746,9 +1722,8 @@ export default function Reports() {
   const [customers,    setCustomers]    = useState(null);
   const [tickets,      setTickets]      = useState(null);
   const [promos,       setPromos]       = useState(null);
-  const [referralStats, setReferralStats] = useState(null);
 
-  const params = useCallback(() => {
+  const buildParams = useCallback(() => {
     const p = { period };
     if (period === 'custom') { p.start = startDate; p.end = endDate; }
     return p;
@@ -757,21 +1732,21 @@ export default function Reports() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
+      const p = buildParams();
       const [
         revRes, ordRes, prodRes, brandRes, svcRes,
-        funnelRes, projRes, custRes, tickRes, promoRes, refRes
+        funnelRes, projRes, custRes, tickRes, promoRes,
       ] = await Promise.allSettled([
-        reportsAPI.getRevenue(params()),
-        reportsAPI.getOrders(params()),
-        reportsAPI.getProducts(params()),
-        reportsAPI.getBrands(params()),
-        reportsAPI.getServices(params()),
-        reportsAPI.getQuoteFunnel(params()),
-        reportsAPI.getProjects(params()),
-        reportsAPI.getCustomers(params()),
-        reportsAPI.getTickets(params()),
-        reportsAPI.getPromos(params()),
-        referralsAPI.getStatistics(),
+        reportsAPI.getRevenue(p),
+        reportsAPI.getOrders(p),
+        reportsAPI.getProducts(p),
+        reportsAPI.getBrands(p),
+        reportsAPI.getServices(p),
+        reportsAPI.getQuoteFunnel(p),
+        reportsAPI.getProjects(p),
+        reportsAPI.getCustomers(p),
+        reportsAPI.getTickets(p),
+        reportsAPI.getPromos(p),
       ]);
 
       const getVal = (res) => res.status === 'fulfilled' ? res.value : null;
@@ -786,9 +1761,8 @@ export default function Reports() {
       let cust = getVal(custRes);
       let tick = getVal(tickRes);
       let prmo = getVal(promoRes);
-      let refStats = getVal(refRes);
 
-      // Fallbacks for revenue/orders if new endpoints aren't live
+      // Fallbacks if new report endpoints aren't deployed yet
       if (!rev || !ord) {
         const [oStats, projStats, custStats] = await Promise.allSettled([
           ordersAPI.getOrderStatistics(),
@@ -799,14 +1773,16 @@ export default function Reports() {
           const s = oStats.value;
           ord = {
             total_orders: s.total_orders,
+            period_orders: s.total_orders, // fallback: all-time as period
             pending: s.pending, confirmed: s.confirmed,
             processing: s.processing, shipped: s.shipped,
             delivered: s.delivered, cancelled: s.cancelled,
             today: s.today, today_revenue: s.today_revenue,
+            average_order_value: s.average_order_value,
           };
           rev = {
             total_revenue_kes: s.total_revenue,
-            period_revenue_kes: s.today_revenue,
+            period_revenue_kes: s.total_revenue,
             avg_order_value_kes: s.average_order_value,
             paid_orders: s.delivered,
             unpaid_kes: s.unpaid_amount,
@@ -831,38 +1807,47 @@ export default function Reports() {
             new_customers: 0,
             avg_lifetime_value: s.total_revenue / (s.total_customers || 1),
             by_tier: s.by_tier, by_type: s.by_type,
-            trend: [], top_by_spend: [], top_by_orders: [], login_hour_dist: [],
+            trend: [], top_by_spend: [], top_by_orders: [],
+            login_hour_dist: BLANK_LOGIN_DIST, // proper fallback
           };
         }
       }
 
+      // Ensure login_hour_dist always has 24 entries so the heatmap renders
+      if (cust && (!cust.login_hour_dist || cust.login_hour_dist.length === 0)) {
+        cust = { ...cust, login_hour_dist: BLANK_LOGIN_DIST };
+      }
+
       setRevenue(rev); setOrders(ord); setProducts(prod); setBrands(brd);
       setServices(svc); setFunnel(fun); setProjects(proj); setCustomers(cust);
-      setTickets(tick); setPromos(prmo); setReferralStats(refStats);
+      setTickets(tick); setPromos(prmo);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load some report data');
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [buildParams]);
 
-  useEffect(() => { fetchAll(); }, [period]);
+  // Re-fetch whenever period changes (preset periods).
+  // For custom range, user sets dates then clicks Refresh.
+  useEffect(() => {
+    if (period !== 'custom') {
+      fetchAll();
+    }
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Allow Refresh button to always call current fetchAll
+  const handleRefresh = useCallback(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const handleTabExport = async () => {
     setExporting(activeTab);
     try {
       const sectionData = {
-        revenue:   revenue,
-        orders:    orders,
-        products:  products,
-        brands:    brands,
-        services:  services,
-        funnel:    funnel,
-        projects:  projects,
-        customers: customers,
-        tickets:   tickets,
-        //promos:    { promos, referrals: referralStats },
+        revenue, orders, products, brands, services,
+        funnel, projects, customers, tickets, promos,
       }[activeTab];
       await downloadSectionPDF(activeTab, sectionData, period);
     } catch (e) {
@@ -876,7 +1861,7 @@ export default function Reports() {
   const handleExportAll = async () => {
     setExporting('all');
     try {
-      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos, referrals: referralStats }, period);
+      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos }, period);
     } catch (e) {
       toast.error('PDF export failed');
     } finally {
@@ -895,12 +1880,14 @@ export default function Reports() {
     { id: 'projects',  label: 'Projects',   Icon: FolderOpen   },
     { id: 'customers', label: 'Customers',  Icon: Users        },
     { id: 'tickets',   label: 'Tickets',    Icon: Ticket       },
-    // id: 'promos',    label: 'Promos',     Icon: Tag          ,
+    { id: 'promos',    label: 'Promos',     Icon: Tag          },
   ];
 
   const Skeleton = ({ h = 180 }) => (
     <div style={{ height: h, borderRadius: 12, background: 'linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
   );
+
+  const periodLabel = PERIOD_LABEL[period] || period;
 
   return (
     <AdminLayout>
@@ -937,19 +1924,47 @@ export default function Reports() {
         <PeriodBar period={period} setPeriod={setPeriod}
           startDate={startDate} setStartDate={setStartDate}
           endDate={endDate} setEndDate={setEndDate}
-          onRefresh={fetchAll} loading={loading} />
+          onRefresh={handleRefresh} loading={loading} />
       </div>
 
       {/* ── Summary KPI strip ─────────────────────────────────────────────── */}
+      {/* All values here are scoped to the selected period */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 28 }}>
-        {loading ? [1,2,3,4,5,6,7].map(k => <Skeleton key={k} h={110} />) : <>
-          <StatCard label="Total Revenue"    value={fmtKES(revenue?.total_revenue_kes)}       Icon={DollarSign}  accent="#059669" spark={revenue?.trend} />
-          <StatCard label="Total Orders"     value={fmtNum(orders?.total_orders)}              Icon={ShoppingCart} accent={purple} />
-          <StatCard label="Total Products"   value={fmtNum(products?.total_products)}          Icon={Package}     accent="#f59e0b" />
-          <StatCard label="Active Brands"    value={fmtNum(brands?.active_brands)}             Icon={Award}       accent="#ec4899" />
-          <StatCard label="Total Customers"  value={fmtNum(customers?.total_customers)}        Icon={Users}       accent="#3b82f6" />
-          <StatCard label="Open Tickets"     value={fmtNum(tickets?.open)}                     Icon={Ticket}      accent="#ef4444" />
-          
+        {loading ? [1,2,3,4,5,6].map(k => <Skeleton key={k} h={110} />) : <>
+          <StatCard
+            label={`Revenue — ${periodLabel}`}
+            value={fmtKES(revenue?.period_revenue_kes)}
+            sub={`${fmtNum(revenue?.paid_orders)} paid orders`}
+            Icon={DollarSign} accent="#059669"
+            spark={revenue?.trend}
+          />
+          <StatCard
+            label={`Orders — ${periodLabel}`}
+            value={fmtNum(orders?.period_orders ?? orders?.total_orders)}
+            Icon={ShoppingCart} accent={purple}
+          />
+          <StatCard
+            label="Total Products"
+            value={fmtNum(products?.total_products)}
+            sub="catalog (all-time)"
+            Icon={Package} accent="#f59e0b"
+          />
+          <StatCard
+            label="Active Brands"
+            value={fmtNum(brands?.active_brands)}
+            sub="catalog (all-time)"
+            Icon={Award} accent="#ec4899"
+          />
+          <StatCard
+            label={`New Customers — ${periodLabel}`}
+            value={fmtNum(customers?.new_customers)}
+            Icon={Users} accent="#3b82f6"
+          />
+          <StatCard
+            label={`Open Tickets — ${periodLabel}`}
+            value={fmtNum(tickets?.open)}
+            Icon={Ticket} accent="#ef4444"
+          />
         </>}
       </div>
 
@@ -979,17 +1994,31 @@ export default function Reports() {
               <Panel accent>
                 <div style={{ fontSize: 11, color: purple, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Total Revenue (All-Time)</div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#111827' }}>{fmtKES(revenue?.total_revenue_kes)}</div>
-                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{fmtNum(revenue?.paid_orders)} paid orders</div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>across all paid orders</div>
               </Panel>
               <Panel>
                 <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Avg Order Value</div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#111827' }}>{fmtKES(revenue?.avg_order_value_kes)}</div>
-                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>per completed order</div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>per paid order · {periodLabel}</div>
+              </Panel>
+              <Panel accent>
+                <div style={{ fontSize: 11, color: purple, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+                  Revenue — {periodLabel}
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#111827' }}>
+                  {fmtKES(revenue?.period_revenue_kes)}
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                  {fmtNum(revenue?.paid_orders)} paid orders this period
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6, paddingTop: 6, borderTop: '1px solid #f3f4f6' }}>
+                  All-time total: {fmtKES(revenue?.total_revenue_kes)}
+                </div>
               </Panel>
               <Panel style={{ border: '1px solid rgba(220,38,38,0.2)', boxShadow: '0 1px 6px rgba(220,38,38,0.06)' }}>
                 <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Unpaid Balance</div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#dc2626' }}>{fmtKES(revenue?.unpaid_kes)}</div>
-                <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>outstanding receivables</div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>outstanding · {periodLabel}</div>
               </Panel>
             </div>
           )}
@@ -997,7 +2026,7 @@ export default function Reports() {
           {!loading && revenue?.trend?.length > 1 && (
             <Panel style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Revenue Trend</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Revenue Trend (12 months)</span>
                 <Pill color="#059669">KES</Pill>
               </div>
               <Sparkline data={revenue.trend} color="#059669" height={80} />
@@ -1010,7 +2039,7 @@ export default function Reports() {
 
           {!loading && (
             <Panel>
-              <SectionLabel Icon={Activity}>Revenue by Currency (KES Equivalent)</SectionLabel>
+              <SectionLabel Icon={Activity}>Revenue by Currency (KES Equivalent) — {periodLabel}</SectionLabel>
               {revenue?.by_currency?.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
                   {revenue.by_currency.map((c, i) => (
@@ -1024,7 +2053,7 @@ export default function Reports() {
               ) : (
                 <div style={{ textAlign: 'center', padding: '24px 0', color: '#9ca3af', fontSize: 13 }}>
                   <AlertCircle size={28} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.4 }} />
-                  Currency breakdown available once the Reports API is deployed.
+                  No paid orders in the selected period, or currency breakdown not yet available.
                 </div>
               )}
             </Panel>
@@ -1035,7 +2064,7 @@ export default function Reports() {
       {/* ══════════════ ORDERS TAB ══════════════════════════════════════════ */}
       {activeTab === 'orders' && (
         <div className="report-section">
-          <SectionLabel Icon={ShoppingCart}>Orders Breakdown</SectionLabel>
+          <SectionLabel Icon={ShoppingCart}>Orders Breakdown — {periodLabel}</SectionLabel>
           {loading ? <Skeleton h={320} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Panel>
@@ -1047,16 +2076,17 @@ export default function Reports() {
                   { label: 'Shipped',    value: orders?.shipped,    color: '#06b6d4' },
                   { label: 'Delivered',  value: orders?.delivered,  color: '#059669' },
                   { label: 'Cancelled',  value: orders?.cancelled,  color: '#ef4444' },
-                ].map(s => <StatusRow key={s.label} {...s} total={orders?.total_orders} />)}
+                ].map(s => <StatusRow key={s.label} {...s} total={orders?.period_orders ?? orders?.total_orders} />)}
               </Panel>
 
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Key Metrics</div>
-                <MetricRow label="Total Orders"         value={fmtNum(orders?.total_orders)}            Icon={ShoppingCart} color={purple}    />
-                <MetricRow label="Today's Orders"       value={fmtNum(orders?.today)}                   Icon={Calendar}     color="#3b82f6"  />
-                <MetricRow label="Today's Revenue"      value={fmtKES(orders?.today_revenue)}            Icon={DollarSign}   color="#059669"  />
-                <MetricRow label="Avg Order Value"      value={fmtKES(orders?.average_order_value)}      Icon={TrendingUp}   color={purple}   />
-                <MetricRow label="Orders w/ Backorder"  value={fmtNum(orders?.orders_with_backorder)}    Icon={AlertCircle}  color="#f59e0b"  />
+                <MetricRow label={`Orders (${periodLabel})`} value={fmtNum(orders?.period_orders ?? orders?.total_orders)} Icon={ShoppingCart} color={purple} />
+                <MetricRow label="Total Orders (All-Time)"   value={fmtNum(orders?.total_orders)}         Icon={Hash}         color="#9ca3af"  />
+                <MetricRow label="Today's Orders"            value={fmtNum(orders?.today)}                Icon={Calendar}     color="#3b82f6"  />
+                <MetricRow label="Today's Revenue"           value={fmtKES(orders?.today_revenue)}        Icon={DollarSign}   color="#059669"  />
+                <MetricRow label="Avg Order Value"           value={fmtKES(orders?.average_order_value)}  Icon={TrendingUp}   color={purple}   />
+                <MetricRow label="Orders w/ Backorder"       value={fmtNum(orders?.orders_with_backorder)} Icon={AlertCircle} color="#f59e0b"  />
               </Panel>
 
               <Panel style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
@@ -1105,7 +2135,6 @@ export default function Reports() {
           {loading ? <Skeleton h={400} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {/* Inventory overview */}
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Inventory Overview</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
@@ -1137,7 +2166,6 @@ export default function Reports() {
                 </div>
               </Panel>
 
-              {/* Products by category */}
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>By Category</div>
                 <HBar
@@ -1149,9 +2177,8 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Top products by revenue */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Products by Revenue (Period)</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Products by Revenue — {periodLabel}</div>
                 <RankedTable
                   rows={products?.top_by_revenue || []}
                   emptyMsg="No product revenue data for this period"
@@ -1166,9 +2193,8 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Top products by quantity */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>📦 Top Products by Quantity Sold (Period)</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>📦 Top Products by Quantity Sold — {periodLabel}</div>
                 <RankedTable
                   rows={products?.top_by_quantity || []}
                   emptyMsg="No quantity data for this period"
@@ -1182,10 +2208,9 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Revenue by brand */}
               {products?.brand_revenue?.length > 0 && (
                 <Panel style={{ gridColumn: '1/-1' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏷️ Revenue by Brand (Period)</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏷️ Revenue by Brand — {periodLabel}</div>
                   <RankedTable
                     rows={products.brand_revenue}
                     columns={[
@@ -1209,7 +2234,6 @@ export default function Reports() {
           {loading ? <Skeleton h={380} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {/* Overview stats */}
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Brand Catalog</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
@@ -1226,7 +2250,6 @@ export default function Reports() {
                 </div>
               </Panel>
 
-              {/* Product count per brand */}
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Products per Brand</div>
                 <HBar
@@ -1238,9 +2261,8 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Top brands by revenue */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Brands by Revenue (Period)</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Brands by Revenue — {periodLabel}</div>
                 {brands?.top_by_revenue?.length > 0 ? (
                   <RankedTable
                     rows={brands.top_by_revenue}
@@ -1259,7 +2281,6 @@ export default function Reports() {
                 )}
               </Panel>
 
-              {/* Brand catalog table */}
               <Panel style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Brand Catalog Detail</div>
                 <RankedTable
@@ -1287,7 +2308,6 @@ export default function Reports() {
           {loading ? <Skeleton h={380} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {/* Overview */}
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Service Catalog</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
@@ -1303,32 +2323,26 @@ export default function Reports() {
                   ))}
                 </div>
 
-                {/* Revenue split */}
-                {services?.revenue_split && (
-                  <>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Revenue Split (Period)</div>
-                    {(() => {
-                      const total = (services.revenue_split.service_revenue || 0) + (services.revenue_split.product_revenue || 0) || 1;
-                      const svcPct = ((services.revenue_split.service_revenue || 0) / total) * 100;
-                      return (
-                        <>
-                          <div style={{ height: 12, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden', marginBottom: 8 }}>
-                            <div style={{ height: '100%', width: `${svcPct}%`, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', borderRadius: 6, transition: 'width 0.6s' }} />
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                            <div><span style={{ color: purple, fontWeight: 700 }}>Services</span> {fmtKES(services.revenue_split.service_revenue)} ({fmtPct(svcPct)})</div>
-                            <div><span style={{ color: '#059669', fontWeight: 700 }}>Products</span> {fmtKES(services.revenue_split.product_revenue)}</div>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
+                {services?.revenue_split && (() => {
+                  const total = (services.revenue_split.service_revenue || 0) + (services.revenue_split.product_revenue || 0) || 1;
+                  const svcPct = ((services.revenue_split.service_revenue || 0) / total) * 100;
+                  return (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Revenue Split — {periodLabel}</div>
+                      <div style={{ height: 12, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden', marginBottom: 8 }}>
+                        <div style={{ height: '100%', width: `${svcPct}%`, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', borderRadius: 6, transition: 'width 0.6s' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <div><span style={{ color: purple, fontWeight: 700 }}>Services</span> {fmtKES(services.revenue_split.service_revenue)} ({fmtPct(svcPct)})</div>
+                        <div><span style={{ color: '#059669', fontWeight: 700 }}>Products</span> {fmtKES(services.revenue_split.product_revenue)}</div>
+                      </div>
+                    </>
+                  );
+                })()}
               </Panel>
 
-              {/* By category */}
               <Panel>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Services by Category (from Orders)</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Services by Category — {periodLabel}</div>
                 {services?.by_category?.length > 0 ? (
                   <HBar
                     data={(services.by_category || []).map(c => ({ label: c.category || 'Uncategorised', value: c.order_count || c.service_count }))}
@@ -1341,9 +2355,8 @@ export default function Reports() {
                 )}
               </Panel>
 
-              {/* Top services by revenue */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Services by Revenue (Period)</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🏆 Top Services by Revenue — {periodLabel}</div>
                 {services?.top_by_revenue?.length > 0 ? (
                   <RankedTable
                     rows={services.top_by_revenue}
@@ -1423,7 +2436,7 @@ export default function Reports() {
       {/* ══════════════ PROJECTS TAB ════════════════════════════════════════ */}
       {activeTab === 'projects' && (
         <div className="report-section">
-          <SectionLabel Icon={FolderOpen}>Projects Overview</SectionLabel>
+          <SectionLabel Icon={FolderOpen}>Projects Overview — {periodLabel}</SectionLabel>
           {loading ? <Skeleton h={320} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Panel>
@@ -1486,12 +2499,15 @@ export default function Reports() {
           {loading ? <Skeleton h={400} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {/* Key stats */}
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Key Stats</div>
                 <MetricRow label="Total Customers"    value={fmtNum(customers?.total_customers)}  Icon={Users}      color={purple}    />
                 <MetricRow label="Active"             value={fmtNum(customers?.active_customers)} Icon={CheckCircle} color="#059669"  />
-                <MetricRow label="New This Period"    value={fmtNum(customers?.new_customers)}    Icon={UserPlus}    color="#3b82f6"  />
+                <MetricRow
+                  label={`New — ${periodLabel}`}
+                  value={fmtNum(customers?.new_customers)}
+                  Icon={UserPlus} color="#3b82f6"
+                />
                 <MetricRow label="VIP (Gold+)"        value={fmtNum(customers?.vip_customers)}    Icon={Star}        color="#f59e0b"  />
                 <MetricRow label="Credit Accounts"    value={fmtNum(customers?.with_credit)}      Icon={ShieldCheck} color="#8b5cf6"  />
                 <MetricRow label="Avg Lifetime Value" value={fmtKES(customers?.avg_lifetime_value)} Icon={Target}   color="#059669"  />
@@ -1519,7 +2535,6 @@ export default function Reports() {
                 </Panel>
               </div>
 
-              {/* New customers trend */}
               {customers?.trend?.length > 1 && (
                 <Panel style={{ gridColumn: '1/-1' }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 12 }}>New Customers per Month</div>
@@ -1530,12 +2545,11 @@ export default function Reports() {
                 </Panel>
               )}
 
-              {/* Top customers by spend */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>💰 Top Customers by Lifetime Spend</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>💰 Top Customers by Spend — {periodLabel}</div>
                 <RankedTable
                   rows={customers?.top_by_spend || []}
-                  emptyMsg="No customer spend data available"
+                  emptyMsg="No customer spend data for this period"
                   columns={[
                     { label: '#  Name', key: 'name', render: r => r.name },
                     { label: 'Type', key: 'type', render: r => <Pill color={purple}>{r.type || '—'}</Pill> },
@@ -1550,12 +2564,11 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Top customers by order count */}
               <Panel style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🛒 Top Customers by Order Count</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🛒 Top Customers by Order Count — {periodLabel}</div>
                 <RankedTable
                   rows={customers?.top_by_orders || []}
-                  emptyMsg="No customer order data available"
+                  emptyMsg="No customer order data for this period"
                   columns={[
                     { label: '#  Name', key: 'name', render: r => r.name },
                     { label: 'Type', key: 'type', render: r => <Pill color={purple}>{r.type || '—'}</Pill> },
@@ -1569,13 +2582,11 @@ export default function Reports() {
                 />
               </Panel>
 
-              {/* Login hour heatmap */}
-              {customers?.login_hour_dist?.length > 0 && (
-                <Panel style={{ gridColumn: '1/-1' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🕐 Login Time Distribution (by Hour of Day)</div>
-                  <LoginHeatmap data={customers.login_hour_dist} />
-                </Panel>
-              )}
+              {/* Login heatmap — always renders (shows empty state if no data) */}
+              <Panel style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>🕐 Login Time Distribution (Hour of Day)</div>
+                <LoginHeatmap data={customers?.login_hour_dist || []} />
+              </Panel>
             </div>
           )}
         </div>
@@ -1584,21 +2595,20 @@ export default function Reports() {
       {/* ══════════════ TICKETS TAB ═════════════════════════════════════════ */}
       {activeTab === 'tickets' && (
         <div className="report-section">
-          <SectionLabel Icon={Ticket}>Support Tickets</SectionLabel>
+          <SectionLabel Icon={Ticket}>Support Tickets — {periodLabel}</SectionLabel>
           {loading ? <Skeleton h={360} /> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {/* Status overview */}
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Status Overview</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
                   {[
-                    { label: 'Total',       value: tickets?.total,       color: purple    },
                     { label: 'Open',        value: tickets?.open,        color: '#ef4444' },
                     { label: 'In Progress', value: tickets?.in_progress, color: '#f59e0b' },
                     { label: 'Resolved',    value: tickets?.resolved,    color: '#059669' },
                     { label: 'Closed',      value: tickets?.closed,      color: '#9ca3af' },
                     { label: 'On Hold',     value: tickets?.on_hold,     color: '#3b82f6' },
+                    { label: 'Waiting',     value: tickets?.waiting_customer, color: '#8b5cf6' },
                   ].map(m => (
                     <div key={m.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 8, background: `${m.color}08`, border: `1px solid ${m.color}20` }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{fmtNum(m.value)}</div>
@@ -1607,7 +2617,6 @@ export default function Reports() {
                   ))}
                 </div>
 
-                {/* Resolution rate */}
                 <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>Resolution Rate</span>
@@ -1619,7 +2628,6 @@ export default function Reports() {
                 </div>
               </Panel>
 
-              {/* SLA Metrics */}
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>SLA & Performance</div>
                 <MetricRow label="Total Tickets"       value={fmtNum(tickets?.total)}                           Icon={Ticket}      color={purple}   />
@@ -1629,7 +2637,6 @@ export default function Reports() {
                 <MetricRow label="Avg Resolution Time" value={fmtHrs(tickets?.avg_resolution_hours || 0)}       Icon={Clock}       color="#059669"  />
                 <MetricRow label="Resolved This Period" value={fmtNum(tickets?.period_resolved)}                Icon={CheckCircle} color="#059669"  />
 
-                {/* Priority breakdown */}
                 <div style={{ marginTop: 20 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>By Priority</div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -1648,7 +2655,6 @@ export default function Reports() {
                 </div>
               </Panel>
 
-              {/* Status distribution bar */}
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Status Distribution</div>
                 {[
@@ -1657,10 +2663,10 @@ export default function Reports() {
                   { label: 'Resolved',    value: tickets?.resolved,    color: '#059669' },
                   { label: 'Closed',      value: tickets?.closed,      color: '#9ca3af' },
                   { label: 'On Hold',     value: tickets?.on_hold,     color: '#3b82f6' },
+                  { label: 'Waiting',     value: tickets?.waiting_customer, color: '#8b5cf6' },
                 ].map(s => <StatusRow key={s.label} {...s} total={tickets?.total} />)}
               </Panel>
 
-              {/* By category */}
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>By Category</div>
                 {tickets?.by_category?.length > 0 ? (
@@ -1675,7 +2681,6 @@ export default function Reports() {
                 )}
               </Panel>
 
-              {/* Trend */}
               {tickets?.trend?.length > 1 && (
                 <Panel style={{ gridColumn: '1/-1' }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 12 }}>Tickets Created per Month</div>
@@ -1690,6 +2695,209 @@ export default function Reports() {
         </div>
       )}
 
+      {/* ══════════════ PROMOS TAB ══════════════════════════════════════════ */}
+      {activeTab === 'promos' && (
+        <div className="report-section">
+
+          {/* ── Section 1: Promotional Codes ───────────────────────────────── */}
+          <SectionLabel Icon={Tag}>Promotional Codes</SectionLabel>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>
+            Discount codes distributed to customers — including general coupons, first-time offers, bulk order discounts, VIP rewards, birthday codes and event campaigns.
+          </div>
+
+          {loading || !promos ? <Skeleton h={400} /> : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+
+              {/* Promo code inventory */}
+              <Panel accent>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Code Inventory (All-Time)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+                  {[
+                    { label: 'Total Codes',   value: promos.total_codes,   color: purple },
+                    { label: 'Active',        value: promos.active_codes,  color: '#059669' },
+                    { label: 'Expiring (7d)', value: promos.expiring_soon, color: '#f59e0b' },
+                    { label: 'Expired',       value: promos.expired_codes, color: '#ef4444' },
+                    { label: 'Depleted',      value: promos.depleted_codes, color: '#9ca3af' },
+                    { label: 'Paused',        value: promos.paused_codes,  color: '#f97316' },
+                  ].map(m => (
+                    <div key={m.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 8, background: `${m.color}08`, border: `1px solid ${m.color}20` }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{fmtNum(m.value)}</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2, fontWeight: 600 }}>{m.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              {/* Period-scoped financial impact */}
+              <Panel>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 6 }}>Financial Impact — {periodLabel}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 14 }}>
+                  Usage recorded within the selected period only
+                </div>
+                <MetricRow
+                  label="Total Revenue from Promo Orders"
+                  value={fmtKES(promos.period_revenue_from_promos ?? promos.total_revenue_from_promos)}
+                  sub="Order value where a code was applied"
+                  Icon={DollarSign} color="#059669"
+                />
+                <MetricRow
+                  label="Discount Given from Promos"
+                  value={fmtKES(promos.period_discount_given ?? promos.total_discount_given)}
+                  sub="Sum of all discounts applied"
+                  Icon={TrendingDown} color="#ef4444"
+                />
+                <MetricRow
+                  label="Code Uses"
+                  value={fmtNum(promos.period_uses ?? promos.total_uses)}
+                  sub="Times a promo code was redeemed"
+                  Icon={Activity} color={purple}
+                />
+              </Panel>
+
+              {/* Performance by type */}
+              {promos.by_type?.length > 0 && (
+                <Panel>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Revenue by Code Type (All-Time)</div>
+                  <HBar
+                    data={(promos.by_type || [])
+                      .filter(t => t.type !== 'customer_referral') // referrals shown separately
+                      .map(t => ({
+                        label: PROMO_TYPE_LABELS[t.type] || t.type,
+                        value: t.revenue,
+                      }))}
+                    labelKey="label" valueKey="value"
+                    color={['#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#4c1d95']}
+                    fmtValue={fmtKES}
+                  />
+                </Panel>
+              )}
+
+              {/* Trend */}
+              {promos.trend?.length > 1 && (
+                <Panel>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 12 }}>Promo Code Usage Trend (12 Months)</div>
+                  <Sparkline data={promos.trend} color={purple} height={70} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                    {promos.trend.map((d, i) => <span key={i} style={{ fontSize: 9, color: '#9ca3af' }}>{d.label?.slice(0, 3) || ''}</span>)}
+                  </div>
+                </Panel>
+              )}
+
+              {/* Top promo codes by revenue */}
+              <Panel style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>🏆 Top Promotional Codes by All-Time Revenue</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16 }}>Ranked by total revenue generated since each code was created</div>
+                <RankedTable
+                  rows={(promos.top_by_revenue || []).filter(r => r.type !== 'customer_referral')}
+                  emptyMsg="No promotional codes with revenue data"
+                  columns={[
+                    { label: '#  Code', key: 'code', render: r => <Pill color={purple}>{r.code}</Pill> },
+                    { label: 'Name', key: 'name', render: r => r.name || '—' },
+                    { label: 'Type', key: 'type', render: r => (
+                      <span style={{ fontSize: 11, color: '#6b7280' }}>{PROMO_TYPE_LABELS[r.type] || r.type}</span>
+                    )},
+                    { label: 'Uses', key: 'uses', right: true, render: r => fmtNum(r.uses) },
+                    { label: 'Discount', key: 'discount_given', right: true, render: r => fmtKES(r.discount_given), color: () => '#ef4444' },
+                    { label: 'Revenue', key: 'revenue', right: true, bold: true, render: r => fmtKES(r.revenue), color: () => '#059669' },
+                  ]}
+                />
+              </Panel>
+            </div>
+          )}
+
+          {/* ── Section 2: Customer Referral Programme ─────────────────────── */}
+          <div style={{ borderTop: '2px solid #f3f4f6', paddingTop: 28, marginTop: 4 }}>
+            <SectionLabel Icon={Gift}>Customer Referral Programme</SectionLabel>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>
+              Each registered customer can share a personal referral link. When a new customer signs up and completes a purchase via that link, both the referrer and the new customer may earn a reward.
+              <br />
+              <strong style={{ color: '#374151' }}>Referral code</strong> = unique link per customer. <strong style={{ color: '#374151' }}>Referral</strong> = one person who used that link. <strong style={{ color: '#374151' }}>Completed</strong> = the referred person made a qualifying purchase.
+            </div>
+
+            {loading || !promos ? <Skeleton h={220} /> : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+                <Panel accent>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Programme Overview (All-Time)</div>
+                  <MetricRow
+                    label="Customers with Referral Codes"
+                    value={fmtNum(promos.referrals?.total_referral_codes)}
+                    sub="Customers who have an active personal referral code"
+                    Icon={Tag} color={purple}
+                  />
+                  <MetricRow
+                    label="Total Referrals"
+                    value={fmtNum(promos.referrals?.total_referrals)}
+                    sub="People who signed up via a referral link"
+                    Icon={UserPlus} color="#3b82f6"
+                  />
+                  <MetricRow
+                    label="Completed Referrals"
+                    value={fmtNum(promos.referrals?.completed_referrals)}
+                    sub="Referred customers who made a qualifying purchase"
+                    Icon={CheckCircle} color="#059669"
+                  />
+                  <MetricRow
+                    label="Pending Referrals"
+                    value={fmtNum(promos.referrals?.pending_referrals)}
+                    sub="Signed up but have not yet made a purchase"
+                    Icon={Clock} color="#f59e0b"
+                  />
+                </Panel>
+
+                <Panel>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Conversion & Rewards</div>
+                  <MetricRow
+                    label="Conversion Rate"
+                    value={fmtPct(promos.referrals?.conversion_rate)}
+                    sub="% of referrals that completed a purchase"
+                    Icon={Target} color="#f59e0b"
+                  />
+                  <MetricRow
+                    label="Rewards Paid to Referrers"
+                    value={fmtKES(promos.referrals?.total_referrer_rewards)}
+                    sub="Total paid to customers for successful referrals"
+                    Icon={Gift} color={purple}
+                  />
+
+                  {/* Conversion progress bar */}
+                  <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 10, background: purpleLt, border: `1px solid ${purpleBd}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: purple }}>Referral Conversion Rate</span>
+                      <span style={{ fontSize: 18, fontWeight: 900, color: purple }}>{fmtPct(promos.referrals?.conversion_rate)}</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 4, background: purpleBd, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(promos.referrals?.conversion_rate || 0, 100)}%`, background: `linear-gradient(90deg,${purple},${purpleDk})`, borderRadius: 4, transition: 'width 0.6s' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: '#9ca3af' }}>
+                      <span>{fmtNum(promos.referrals?.completed_referrals)} completed</span>
+                      <span>{fmtNum(promos.referrals?.total_referrals)} total referred</span>
+                    </div>
+                  </div>
+                </Panel>
+
+                {/* Top referral codes */}
+                {promos.top_by_revenue?.filter(r => r.type === 'customer_referral').length > 0 && (
+                  <Panel style={{ gridColumn: '1/-1' }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>🏆 Top Referrers by Revenue Generated</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16 }}>Customers whose referral codes drove the most order revenue</div>
+                    <RankedTable
+                      rows={promos.top_by_revenue.filter(r => r.type === 'customer_referral')}
+                      columns={[
+                        { label: '#  Code', key: 'code', render: r => <Pill color="#3b82f6">{r.code}</Pill> },
+                        { label: 'Customer / Name', key: 'name', render: r => r.name || '—' },
+                        { label: 'Referrals', key: 'uses', right: true, render: r => fmtNum(r.uses) },
+                        { label: 'Discount Given', key: 'discount_given', right: true, render: r => fmtKES(r.discount_given), color: () => '#ef4444' },
+                        { label: 'Revenue', key: 'revenue', right: true, bold: true, render: r => fmtKES(r.revenue), color: () => '#059669' },
+                      ]}
+                    />
+                  </Panel>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

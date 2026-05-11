@@ -12,6 +12,8 @@ import {
   Package,
   Sparkles,
   Heart,
+  Gavel,
+  Info,
 } from 'lucide-react';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
@@ -24,6 +26,9 @@ export default function ProductCard({ product }) {
   const { addItem } = useCartStore();
   const { toggle, has } = useWishlistStore();
   const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
+  
+  const hasAuction = product?.active_auction && product.active_auction.status === 'active';
+  const auction = product.active_auction || null;
 
   // ---------- Normalize fields ----------
   const rating = Number(product?.average_rating ?? product?.averagerating ?? product?.rating ?? 0);
@@ -123,11 +128,12 @@ export default function ProductCard({ product }) {
 
         {/* Badges */}
         <div className="absolute top-2 left-2 z-40 flex flex-col gap-2 pointer-events-none">
+          {hasAuction && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg gap-1.5 animate-pulse">🔴 LIVE AUCTION</Badge></div>}
           {customBadge && <div className="pointer-events-auto"><Badge variant="info" size="sm" className="shadow-lg">{customBadge}</Badge></div>}
           {isNew && <div className="pointer-events-auto"><Badge variant="success" size="sm" className="shadow-lg gap-1.5"><Sparkles className="w-4 h-4" />New Arrival</Badge></div>}
           {onSale && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg gap-1.5"><Tag className="w-4 h-4" />On Sale</Badge></div>}
           {isFeatured && <div className="pointer-events-auto"><Badge variant="primary" size="sm" className="shadow-lg gap-1.5"><Star className="w-4 h-4" />Featured</Badge></div>}
-          {!inStock && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg">Out of Stock</Badge></div>}
+          {!inStock && !hasAuction && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg">Out of Stock</Badge></div>}
         </div>
 
         {/* Main image */}
@@ -193,8 +199,8 @@ export default function ProductCard({ product }) {
           {/* Quote list */}
           <button
             onClick={handleAddToQuoteList}
-            aria-label={inQL ? 'View quote list' : 'Add to quote list'}
-            title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}
+            aria-label={inQL ? 'View quote list' : 'Get Quote'}
+            title={inQL ? 'Already in quote list — click to view' : 'Get Quote'}
             type="button"
             style={{
               padding: '0.5rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
@@ -216,19 +222,25 @@ export default function ProductCard({ product }) {
         <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
           {product?.category && (
             <span className="flex items-center gap-1">
-              <Tag size={12} />
+              <Tag size={12} style={{ color: '#3c57f0' }}/>
               {typeof product.category === 'object' ? product.category.name : product.category}
             </span>
           )}
           {product?.brand && product?.category && <span>•</span>}
           {product?.brand && (
             <span className="flex items-center gap-1">
-              <Award size={12} />
+              <Award size={12} style={{ color: '#fb3ccb' }} />
               {typeof product.brand === 'object' ? product.brand.name : product.brand}
             </span>
           )}
         </div>
 
+        {product?.sku && (
+          <span className="flex items-center text-xs gap-1" style={{ color: '#f780ef' }}>
+            <Info size={12} />
+            SKU: {product?.sku}
+          </span>
+        )}
         {/* Name */}
         <h3 className="text-sm font-semibold text-primary mb-2 line-clamp-2 min-h-[2.5rem]">
           {product?.name}
@@ -257,7 +269,7 @@ export default function ProductCard({ product }) {
           {isPriceNegotiable && (
             <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
               className="mt-1 p-0 bg-transparent hover:bg-transparent border-none text-xs font-medium text-primary underline underline-offset-2"
-              title="Add to quote list">
+              title="Get Quote">
               Negotiable
             </button>
           )}
@@ -276,29 +288,38 @@ export default function ProductCard({ product }) {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          {/* Add to cart — hidden for negotiable-only, shown for all others */}
-          {!isPriceNegotiable && (
+          {hasAuction ? (
+            <button 
+              onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }} 
+              className="auction-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+              type="button"
+            >
+              <Gavel size={16} /> Place Bid
+            </button>
+          ) : (
             <>
-              <button onClick={handleAddToCart} disabled={!inStock} className="add-to-cart-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2" type="button">
-                <ShoppingCart size={16} />
-                Add to Cart
-              </button>
-              <button onClick={handleBuyNow} disabled={!inStock} className="buy-now-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2" type="button">
-                Buy Now
+              {inStock && (
+                <button onClick={handleAddToCart} className="add-to-cart-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2" type="button">
+                  <ShoppingCart size={16} />
+                  Add to Cart
+                </button>
+              )}
+              {!isPriceNegotiable && inStock && (
+                <button onClick={handleBuyNow} className="buy-now-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2" type="button">
+                  Buy Now
+                </button>
+              )}
+              <button
+                onClick={handleAddToQuoteList}
+                className={`quote-btn py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm ${isPriceNegotiable ? 'flex-1' : ''} ${inQL ? 'in-list' : ''}`}
+                title={inQL ? 'In quote list — click to view' : 'Get Quote'}
+                type="button"
+              >
+                <FileText size={16} />
+                {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Get Quote') : ''}
               </button>
             </>
           )}
-
-          {/* Quote list button — always visible, full width when negotiable */}
-          <button
-            onClick={handleAddToQuoteList}
-            className={`quote-btn py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm ${isPriceNegotiable ? 'flex-1' : ''} ${inQL ? 'in-list' : ''}`}
-            title={inQL ? 'In quote list — click to view' : 'Add to quote list'}
-            type="button"
-          >
-            <FileText size={16} />
-            {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Add to Quote List') : ''}
-          </button>
         </div>
       </div>
 
@@ -337,6 +358,11 @@ export default function ProductCard({ product }) {
         .dark .quick-view-btn { background-color: #1f2937; color: #d1d5db; }
         .dark .quick-view-btn:hover { background-color: #374151; color: #d8b4fe; }
 
+        .auction-btn { background-color: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.4); font-weight: 700; }
+        .auction-btn:hover { background-color: #dc2626; color: white; border-color: #dc2626; transform: translateY(-1px); }
+        .dark .auction-btn { background-color: rgba(220,38,38,0.15); color: #f87171; border-color: rgba(248,113,113,0.4); }
+        .dark .auction-btn:hover { background-color: #dc2626; color: white; }
+        
         .add-to-cart-btn { background-color: #a855f7; color: white; border: none; }
         .add-to-cart-btn:hover:not(:disabled) { background-color: white; color: #9333ea; border: 1px solid #9333ea; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .add-to-cart-btn:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }

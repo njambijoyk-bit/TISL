@@ -67,7 +67,6 @@ const productsAPI = {
     return response.data;
   },
 
-  // in api/products.js (where productsAPI lives)
   getCategories: async () => {
     const response = await api.get('/categories');
     return response.data;
@@ -126,6 +125,37 @@ const productsAPI = {
 
     // Fallback for JSON-only updates (no files)
     const response = await api.put(`/admin/products/${id}`, data);
+    return response.data;
+  },
+
+  bulkUpdateProduct: async (id, data) => {
+    if (data instanceof FormData) {
+      if (!data.get('_method')) data.append('_method', 'PUT');
+      const response = await api.post(`/admin/products/${id}/bulk-update`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    }
+    const response = await api.post(`/admin/products/${id}/bulk-update`, { ...data, _method: 'PUT' });
+    return response.data;
+  },
+ 
+  /**
+   * ADMIN: Bulk-set boolean flag(s) on multiple products in one request.
+   *
+   * @param {number[]} ids     - Array of product IDs to update.
+   * @param {object}   flags   - One or more of:
+   *                              { is_visible, is_featured, is_new, on_sale }
+   *                            Pass `true` to enable or `false` to disable.
+   *
+   * Example:
+   *   bulkUpdateFlags([1, 2, 3], { is_featured: true, on_sale: false })
+   *
+   * Expects the server to accept POST /admin/products/bulk-update-flags
+   * with body: { ids: [...], flags: { ... } }
+   */
+  bulkUpdateFlags: async (ids = [], flags = {}) => {
+    const response = await api.post('/admin/products/bulk-update-flags', { ids, flags });
     return response.data;
   },
 

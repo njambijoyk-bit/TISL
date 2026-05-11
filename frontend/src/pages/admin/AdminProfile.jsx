@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   User, Mail, Phone, Shield, Key, LogOut, ChevronRight,
   FolderOpen, FileText, AlertCircle, MapPin, ShoppingBag,
-  Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert,
-  UserCheck, ClipboardList, TrendingUp,
+  Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
+  UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
   MessageSquareQuote, ArrowRight, CalendarClock,
   ChevronDown, ChevronUp, Users, Star, Ticket,
 } from 'lucide-react';
@@ -12,6 +12,7 @@ import Header from '../../components/layout/Header';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store';
 import { authAPI, workAPI } from '../../api';
+import employeesAPI from '../../api/employees';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 
 // ─── Style constants (matching customer Profile) ──────────────────────────────
@@ -96,10 +97,13 @@ export default function AdminProfile() {
   const [savingPwd,setSavingPwd]= useState(false);
   const [pwdErrors,setPwdErrors]= useState({});
 
+  const [empRecord, setEmpRecord] = useState(null);
+  const [empLoading, setEmpLoading] = useState(false);
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
     fetchDashboard();
+    fetchEmployeeRecord();
   }, [user?.id]);
 
   const fetchDashboard = async () => {
@@ -117,6 +121,15 @@ export default function AdminProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchEmployeeRecord = async () => {
+    setEmpLoading(true);
+    try {
+      const data = await employeesAPI.getMyRecord();
+      setEmpRecord(data.employee);
+    } catch { /* not all admins have an employee record, silently fail */ }
+    finally { setEmpLoading(false); }
   };
 
   const refreshAssignments = async () => {
@@ -176,6 +189,7 @@ export default function AdminProfile() {
   const TABS = [
     { key: 'overview',    label: 'Overview',  icon: User },
     { key: 'assignments', label: 'My Work',   icon: ClipboardList },
+    { key: 'employee',    label: 'Employee Record', icon: UserCheck },
     { key: 'security',    label: 'Security',  icon: Key },
   ];
 
@@ -500,6 +514,147 @@ export default function AdminProfile() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* ── EMPLOYEE RECORD TAB ───────────────────────────────────── */}
+            {activeTab === 'employee' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {empLoading ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                    <div style={{ width: 28, height: 28, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  </div>
+                ) : !empRecord ? (
+                  <div style={{ ...card, textAlign: 'center', padding: 40 }}>
+                    <UserCheck size={36} style={{ color: '#d1d5db', display: 'block', margin: '0 auto 10px' }} />
+                    <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No employee record linked to your account.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Employment */}
+                    <div style={card}>
+                      <p style={sectionTitle}><Briefcase size={14} style={{ color: '#7c3aed' }} /> Employment Details</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {[
+                          { label: 'Employee Number', value: empRecord.employee_number },
+                          { label: 'Employee ID',     value: empRecord.employee_id },
+                          { label: 'Job Title',       value: empRecord.job_title },
+                          { label: 'Department',      value: empRecord.department },
+                          { label: 'Employment Type', value: empRecord.employment_type?.replace(/_/g, ' ') },
+                          { label: 'Status',          value: empRecord.status },
+                          { label: 'Work Location',   value: empRecord.work_location },
+                          { label: 'Work Email',      value: empRecord.work_email },
+                          { label: 'Work Phone',      value: empRecord.work_phone },
+                          { label: 'Hire Date',       value: fmtDate(empRecord.hire_date) },
+                          { label: 'Termination Date',value: fmtDate(empRecord.termination_date) },
+                          { label: 'Annual Leave Days', value: empRecord.annual_leave_days },
+                          { label: 'Leave Balance',   value: empRecord.leave_balance ? `${empRecord.leave_balance} days` : null },
+                        ].map(({ label, value }) => value ? (
+                          <div key={label}>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                          </div>
+                        ) : null)}
+                      </div>
+                    </div>
+
+                    {/* Personal */}
+                    <div style={card}>
+                      <p style={sectionTitle}><User size={14} style={{ color: '#7c3aed' }} /> Personal Information</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {[
+                          { label: 'Date of Birth',  value: fmtDate(empRecord.date_of_birth) },
+                          { label: 'Gender',         value: empRecord.gender?.replace(/_/g, ' ') },
+                          { label: 'Marital Status', value: empRecord.marital_status },
+                          { label: 'Education',      value: empRecord.education_level },
+                        ].map(({ label, value }) => value ? (
+                          <div key={label}>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                          </div>
+                        ) : null)}
+                      </div>
+                    </div>
+
+                    {/* Identification */}
+                    <div style={card}>
+                      <p style={sectionTitle}><Hash size={14} style={{ color: '#7c3aed' }} /> Identification</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {[
+                          { label: 'ID Number',   value: empRecord.id_number },
+                          { label: 'KRA PIN',     value: empRecord.kra_pin },
+                          { label: 'NSSF Number', value: empRecord.nssf_number },
+                          { label: 'NHIF Number', value: empRecord.nhif_number },
+                        ].map(({ label, value }) => value ? (
+                          <div key={label}>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6', fontFamily: 'monospace' }}>{value}</p>
+                          </div>
+                        ) : null)}
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact */}
+                    {(empRecord.emergency_contact_name || empRecord.emergency_contact_phone) && (
+                      <div style={card}>
+                        <p style={sectionTitle}><Users size={14} style={{ color: '#7c3aed' }} /> Emergency Contact</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          {[
+                            { label: 'Name',         value: empRecord.emergency_contact_name },
+                            { label: 'Phone',        value: empRecord.emergency_contact_phone },
+                            { label: 'Relationship', value: empRecord.emergency_contact_relationship },
+                          ].map(({ label, value }) => value ? (
+                            <div key={label}>
+                              <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
+                              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                            </div>
+                          ) : null)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {empRecord.skills?.length > 0 && (
+                      <div style={card}>
+                        <p style={sectionTitle}><Star size={14} style={{ color: '#7c3aed' }} /> Skills</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {empRecord.skills.map((skill, i) => (
+                            <span key={i} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ede9fe' }}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Certifications */}
+                    {empRecord.certifications?.length > 0 && (
+                      <div style={card}>
+                        <p style={sectionTitle}><Award size={14} style={{ color: '#7c3aed' }} /> Certifications</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {empRecord.certifications.map((cert, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+                              <Award size={15} style={{ color: '#7c3aed', flexShrink: 0, marginTop: 1 }} />
+                              <div>
+                                <p style={{ margin: '0 0 1px', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{cert.name || cert}</p>
+                                {cert.issuer && <p style={{ margin: '0 0 1px', fontSize: '0.72rem', color: '#6b7280' }}>{cert.issuer}</p>}
+                                {cert.date && <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>{fmtDate(cert.date)}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {empRecord.notes && (
+                      <div style={card}>
+                        <p style={sectionTitle}><FileText size={14} style={{ color: '#7c3aed' }} /> Notes</p>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{empRecord.notes}</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

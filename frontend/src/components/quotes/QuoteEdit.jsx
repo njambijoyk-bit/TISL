@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../layout/AdminLayout';
 import LoadingSpinner from '../layout/LoadingSpinner';
-import ProductSelectorModal from './request-wizard/ProductSelectorModal';
-import ServiceSelectorModal from './request-wizard/ServiceSelectorModal';
+import ProductSelectorModalAdmin from './request-wizard/ProductSelectorModalAdmin';
+import ServiceSelectorModalAdmin from './request-wizard/ServiceSelectorModalAdmin';
 import CustomItemModal from './request-wizard/CustomItemModal';
 import PricingValidationModal from './PricingValidationModal';
 import AssignModal from './AssignModal';
@@ -1160,8 +1160,8 @@ const QuoteEdit = () => {
         </form>
       </div>
 
-      {showProductSelector && <ProductSelectorModal onClose={() => setShowProductSelector(false)} onSelect={handleProductsSelected} excludeIds={formData.items.filter(i => i.product_id).map(i => i.product_id)} />}
-      {showServiceSelector && <ServiceSelectorModal onClose={() => setShowServiceSelector(false)} onSelect={handleServicesSelected} excludeIds={formData.items.filter(i => i.service_id).map(i => i.service_id)} />}
+      {showProductSelector && <ProductSelectorModalAdmin onClose={() => setShowProductSelector(false)} onSelect={handleProductsSelected} excludeIds={formData.items.filter(i => i.product_id).map(i => i.product_id)} />}
+      {showServiceSelector && <ServiceSelectorModalAdmin onClose={() => setShowServiceSelector(false)} onSelect={handleServicesSelected} excludeIds={formData.items.filter(i => i.service_id).map(i => i.service_id)} />}
       {showCustomModal && <CustomItemModal type={showCustomModal.type} onClose={() => setShowCustomModal(null)} onSave={handleCustomItemCreated} />}
       {showPricingModal && <PricingValidationModal errors={pricingErrors} onClose={() => setShowPricingModal(false)} currencySymbol={displayCurrency} />}
       {showAssignModal && <AssignModal onClose={() => setShowAssignModal(false)} onAssign={handleAssign} currentAssignedId={formData.assigned_to} />}

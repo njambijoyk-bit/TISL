@@ -263,7 +263,7 @@ export default function Header() {
 
       <header style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'white', borderBottom: '1px solid #f3f4f6',
+        background: 'white', borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
       }} className="dark:bg-gray-900 dark:border-gray-700">
 

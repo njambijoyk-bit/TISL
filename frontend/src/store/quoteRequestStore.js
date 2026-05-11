@@ -269,15 +269,16 @@ const useQuoteRequestStore = create((set, get) => ({
         page: get().filters.page,
         per_page: get().filters.per_page,
       };
-      const response = await getAdminQuoteRequests(params);
 
+
+      const response = await getAdminQuoteRequests(params);
       set({
         quoteRequests: response.data || response,
         pagination: {
-          current_page: response.current_page || 1,
-          last_page: response.last_page || 1,
-          per_page: response.per_page || 20,
-          total: response.total || response.length || 0,
+          current_page: response.current_page || response.meta?.current_page || 1,
+          last_page:    response.last_page    || response.meta?.last_page    || 1,
+          per_page:     response.per_page     || response.meta?.per_page     || 20,
+          total:        response.total        || response.meta?.total        || response.length || 0,
         },
         loading: false,
       });

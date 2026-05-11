@@ -429,7 +429,8 @@ class PromoCodeService
         string $code,
         Customer $customer,
         float $orderValue,
-        ?float $referralDiscount = 0
+        ?float $referralDiscount = 0,
+        float $exchangeRateToKes = 1.0 
     ): array {
         $promoCode = ReferralCode::where('code', strtoupper(trim($code)))
             ->whereNotIn('type', ['customer_referral']) // referral codes handled separately
@@ -468,15 +469,15 @@ class PromoCodeService
             return ['valid' => false, 'message' => $message];
         }
 
-        $discount = $promoCode->calculateDiscount($orderValue);
+        $discount = $promoCode->calculateDiscount($orderValue, $exchangeRateToKes);  
 
         return [
             'valid'    => true,
             'message'  => "Code applied! You save " . ($promoCode->reward_type === 'percentage'
                 ? "{$promoCode->reward_value}%"
-                : "KES " . number_format($discount, 2)),
+                : "KES " . number_format($discount * $exchangeRateToKes, 2)),  // ← convert back to KES for display
             'code'     => $promoCode,
-            'discount' => $discount,
+            'discount' => $discount,  // returned in ORDER currency for use at checkout
         ];
     }
 
@@ -488,13 +489,12 @@ class PromoCodeService
      * Record promo code usage after order is successfully created.
      * Increments attempts and records the attempt on the code.
      */
-    public function recordPromoUsage(ReferralCode $promoCode, float $orderValue): void
+    public function recordPromoUsage(ReferralCode $promoCode, float $revenueKes, float $discountKes): void
     {
-        $promoCode->recordAttempt();
-        $promoCode->recordSuccess(
-            $promoCode->calculateDiscount($orderValue),
-            $orderValue
-        );
+        // ✅ recordAttempt() is already called during validation in the controller.
+        // Removed here to prevent double-counting attempts.
+        
+        $promoCode->recordSuccess($discountKes, $revenueKes);
     }
 
     // ═══════════════════════════════════════════════════

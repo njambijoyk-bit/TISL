@@ -180,11 +180,13 @@ class ReferralCode extends Model
     }
 
     /**
-     * Get orders that used this code.
+     * Get orders that used this code as a promo/discount code at checkout.
+     * NOTE: referral_code_id is a separate column tracking which referral link
+     * originally acquired the customer — not where the code was applied at checkout.
      */
     public function orders()
     {
-        return $this->hasMany(Order::class, 'referral_code_id');
+        return $this->hasMany(Order::class, 'promo_code_id');
     }
 
     /**
@@ -430,14 +432,14 @@ return $frontendUrl . '/register?ref=' . $this->code;
     /**
      * Calculate discount amount for order.
      */
-    public function calculateDiscount(float $orderValue): float
+    public function calculateDiscount(float $orderValue, float $exchangeRateToKes = 1.0): float
     {
         return match($this->reward_type) {
-            'percentage' => ($this->reward_value / 100) * $orderValue,
-            'fixed_amount' => $this->reward_value,
-            'free_shipping' => 0, // Handled separately
-            'store_credit' => 0, // Handled separately
-            default => 0,
+            'percentage'    => ($this->reward_value / 100) * $orderValue,
+            'fixed_amount'  => $this->reward_value / $exchangeRateToKes, // KES 100 ÷ 129.03 = $0.775 USD
+            'free_shipping' => 0,
+            'store_credit'  => 0,
+            default         => 0,
         };
     }
 
@@ -460,20 +462,41 @@ return $frontendUrl . '/register?ref=' . $this->code;
 
     /**
      * Record successful use.
+     *
+     * All financial aggregates (total_discount_given, total_revenue,
+     * average_order_value) are stored in KES regardless of the order's
+     * original currency.
+     *
+     * @param float $discountAmount    Discount in the order's own currency (e.g. 100 USD)
+     * @param float $orderValue        Subtotal in the order's own currency
+     * @param float $exchangeRateToKes Rate to convert the order currency → KES
+     *                                 (use order->exchange_rate_to_kes; defaults to 1.0 for KES orders)
      */
-    public function recordSuccess(float $discountAmount, float $orderValue): void
-    {
+    public function recordSuccess(
+        float $discountAmount,
+        float $orderValue,
+        float $exchangeRateToKes = 1.0
+    ): void {
+        $discountKes = $discountAmount * $exchangeRateToKes;
+        $revenueKes  = $orderValue     * $exchangeRateToKes;
+
         $this->increment('times_used');
         $this->increment('successful_uses');
         $this->increment('total_orders');
-        $this->increment('total_discount_given', $discountAmount);
-        $this->increment('total_revenue', $orderValue);
-        
-        // Update average order value
+        $this->increment('total_discount_given', $discountKes);
+        $this->increment('total_revenue', $revenueKes);
+
+        // Refresh after increments — increment() fires raw SQL UPDATEs
+        // without updating the in-memory model, so $this->total_revenue
+        // and $this->total_orders would be stale without this.
+        $this->refresh();
+
         $this->update([
-            'average_order_value' => $this->total_revenue / $this->total_orders,
+            'average_order_value' => $this->total_orders > 0
+                ? round($this->total_revenue / $this->total_orders, 2)
+                : 0,
         ]);
-        
+
         $this->updateConversionRate();
         $this->checkIfDepleted();
     }

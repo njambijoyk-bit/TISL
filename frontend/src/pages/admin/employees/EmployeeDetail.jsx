@@ -20,6 +20,12 @@ const STATUS_META = {
   terminated: { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
 };
 
+const ROLE_META = {
+  admin:     { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', label: 'Admin'     },
+  manager:   { bg: 'rgba(59,130,246,0.1)',  color: '#1d4ed8', label: 'Manager'   },
+  sales_rep: { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', label: 'Sales Rep' },
+};
+
 const STATUS_OPTIONS = [
   { value: 'active',     label: 'Active',     color: '#10b981' },
   { value: 'on_leave',   label: 'On Leave',   color: '#f59e0b' },
@@ -51,6 +57,16 @@ function Badge({ status }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: s.bg, color: s.color, boxShadow: `0 0 0 1px ${s.ring}`, whiteSpace: 'nowrap' }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
       {s.label}
+    </span>
+  );
+}
+
+function RoleBadge({ role }) {
+  const r = ROLE_META[role] || { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', label: role || '—' };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: r.bg, color: r.color, whiteSpace: 'nowrap' }}>
+      <Shield size={10} />
+      {r.label}
     </span>
   );
 }
@@ -135,6 +151,12 @@ export default function EmployeeDetail() {
   const [leaveReason, setLeaveReason]         = useState('');
   const [newSkill, setNewSkill]               = useState('');
 
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [newCert, setNewCert] = useState({ name: '', issuer: '', date: '' });
+
+  const [editingTermDate, setEditingTermDate] = useState(false);
+  const [termDate, setTermDate]               = useState('');
+
   useEffect(() => { fetchEmployee(); }, [id]);
 
   const fetchEmployee = async () => {
@@ -168,6 +190,17 @@ export default function EmployeeDetail() {
     finally { setActionLoading(false); }
   };
 
+  const handleSaveTermDate = async () => {
+    setActionLoading(true);
+    try {
+      await employeesApi.updateEmployee(id, { termination_date: termDate || null });
+      toast.success('Termination date updated');
+      setEditingTermDate(false);
+      fetchEmployee();
+    } catch { toast.error('Failed to update termination date'); }
+    finally { setActionLoading(false); }
+  };
+
   const handleAddSkill = async () => {
     if (!newSkill.trim()) return toast.error('Enter a skill');
     setActionLoading(true);
@@ -180,6 +213,28 @@ export default function EmployeeDetail() {
     if (!confirm(`Remove "${skill}"?`)) return;
     try { await employeesApi.removeSkill(id, skill); toast.success('Skill removed'); fetchEmployee(); }
     catch { toast.error('Failed to remove skill'); }
+  };
+
+  const handleAddCertification = async () => {
+    if (!newCert.name.trim()) return toast.error('Enter a certification name');
+    setActionLoading(true);
+    try {
+      await employeesApi.addCertification(id, newCert);
+      toast.success('Certification added');
+      setNewCert({ name: '', issuer: '', date: '' });
+      setShowCertModal(false);
+      fetchEmployee();
+    } catch { toast.error('Failed to add certification'); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleRemoveCertification = async (index) => {
+    if (!confirm('Remove this certification?')) return;
+    try {
+      await employeesApi.removeCertification(id, index);
+      toast.success('Certification removed');
+      fetchEmployee();
+    } catch { toast.error('Failed to remove certification'); }
   };
 
   if (loading) return (
@@ -260,6 +315,7 @@ export default function EmployeeDetail() {
           <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20 }}>
             {[
               { label: 'Status',          content: <Badge status={employee.status} /> },
+              { label: 'Role',            content: <RoleBadge role={employee.user?.role} /> },
               { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: '#c4b5fd' }} />{employee.department || '—'}</span> },
               { label: 'Employment Type', content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{EMPLOYMENT_TYPE_LABELS[employee.employment_type] || '—'}</span> },
               { label: 'Hire Date',       content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} style={{ color: '#c4b5fd' }} />{fmtDate(employee.hire_date)}</span> },
@@ -274,6 +330,56 @@ export default function EmployeeDetail() {
               </div>
             ))}
           </div>
+        </div>
+        {/* Set / Reset Password link */}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+          <Link
+            to={`/admin/users/${employee.user_id}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: '#a855f7', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+            onMouseLeave={e => e.currentTarget.style.color = '#ff0000'}
+          >
+            <Shield size={13} />
+            Set / Reset Password for this Employee
+          </Link>
+        </div>
+        {/* Termination Date — inline editable */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
+          {editingTermDate ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="date"
+                value={termDate}
+                onChange={e => setTermDate(e.target.value)}
+                style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid rgba(168,85,247,0.35)', outline: 'none', color: '#374151', fontFamily: 'inherit', background: 'rgba(168,85,247,0.03)' }}
+                onFocus={iFocus} onBlur={iBlur}
+                autoFocus
+              />
+              <button onClick={handleSaveTermDate} disabled={actionLoading}
+                style={{ fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#a855f7', color: 'white', fontFamily: 'inherit', opacity: actionLoading ? 0.6 : 1 }}>
+                {actionLoading ? '…' : 'Save'}
+              </button>
+              <button onClick={() => setEditingTermDate(false)}
+                style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'none', color: '#6b7280', fontFamily: 'inherit' }}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: employee.termination_date ? '#b91c1c' : '#374151' }}>
+                {employee.termination_date ? fmtDate(employee.termination_date) : '—'}
+              </span>
+              <button
+                onClick={() => { setTermDate(employee.termination_date ? employee.termination_date.toString().slice(0, 10) : ''); setEditingTermDate(true); }}
+                style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'none', color: '#9ca3af', fontFamily: 'inherit' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+              >
+                {employee.termination_date ? 'Edit' : 'Set'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -384,7 +490,44 @@ export default function EmployeeDetail() {
                 <InfoRow label="Work Email" value={employee.work_email || employee.user?.email} />
                 <InfoRow label="Work Phone" value={employee.work_phone || employee.user?.phone} />
                 <InfoRow label="Hire Date" value={fmtDate(employee.hire_date)} />
-                {employee.termination_date && <InfoRow label="Termination Date" value={fmtDate(employee.termination_date)} />}
+                 {/* Termination Date — inline editable */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
+                  {editingTermDate ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        type="date"
+                        value={termDate}
+                        onChange={e => setTermDate(e.target.value)}
+                        style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid rgba(168,85,247,0.35)', outline: 'none', color: '#374151', fontFamily: 'inherit', background: 'rgba(168,85,247,0.03)' }}
+                        onFocus={iFocus} onBlur={iBlur}
+                        autoFocus
+                      />
+                      <button onClick={handleSaveTermDate} disabled={actionLoading}
+                        style={{ fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#a855f7', color: 'white', fontFamily: 'inherit', opacity: actionLoading ? 0.6 : 1 }}>
+                        {actionLoading ? '…' : 'Save'}
+                      </button>
+                      <button onClick={() => setEditingTermDate(false)}
+                        style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'none', color: '#6b7280', fontFamily: 'inherit' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: employee.termination_date ? '#b91c1c' : '#374151' }}>
+                        {employee.termination_date ? fmtDate(employee.termination_date) : '—'}
+                      </span>
+                      <button
+                        onClick={() => { setTermDate(employee.termination_date ? employee.termination_date.toString().slice(0, 10) : ''); setEditingTermDate(true); }}
+                        style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'none', color: '#9ca3af', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+                      >
+                        {employee.termination_date ? 'Edit' : 'Set'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </SectionCard>
               <SectionCard title="Compensation" icon={DollarSign}>
                 <InfoRow label="Salary Grade" value={employee.salary_grade} />
@@ -441,9 +584,7 @@ export default function EmployeeDetail() {
                         <button onClick={() => handleRemoveSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', display: 'flex', alignItems: 'center', lineHeight: 1 }}
                           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                           onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
-                        >
-                          <X size={12} />
-                        </button>
+                        ><X size={12} /></button>
                       </span>
                     ))}
                   </div>
@@ -452,22 +593,34 @@ export default function EmployeeDetail() {
                 )}
               </SectionCard>
 
-              {employee.certifications?.length > 0 && (
-                <SectionCard title="Certifications" icon={GraduationCap}>
+              <SectionCard title="Certifications" icon={GraduationCap} action={
+                <button onClick={() => setShowCertModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'rgba(168,85,247,0.08)', color: '#7c3aed' }}>
+                  <Plus size={12} /> Add Certification
+                </button>
+              }>
+                {employee.certifications?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
                     {employee.certifications.map((cert, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 9, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.08)' }}>
-                        <Award size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
-                        <div>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{cert.name || cert}</p>
-                          {cert.issuer && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px' }}>{cert.issuer}</p>}
-                          {cert.date && <p style={{ fontSize: '0.65rem', color: '#d1d5db', margin: 0 }}>{fmtDate(cert.date)}</p>}
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 9, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <Award size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
+                          <div>
+                            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{cert.name || cert}</p>
+                            {cert.issuer && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px' }}>{cert.issuer}</p>}
+                            {cert.date && <p style={{ fontSize: '0.65rem', color: '#d1d5db', margin: 0 }}>{fmtDate(cert.date)}</p>}
+                          </div>
                         </div>
+                        <button onClick={() => handleRemoveCertification(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#c4b5fd', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
+                        ><X size={13} /></button>
                       </div>
                     ))}
                   </div>
-                </SectionCard>
-              )}
+                ) : (
+                  <p style={{ fontSize: '0.78rem', color: '#d1d5db', padding: '8px 0' }}>No certifications added yet</p>
+                )}
+              </SectionCard>
             </div>
           )}
 
@@ -526,6 +679,31 @@ export default function EmployeeDetail() {
               <button onClick={() => { setShowSkillModal(false); setNewSkill(''); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleAddSkill} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
                 {actionLoading ? 'Adding…' : 'Add Skill'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showCertModal && (
+        <Modal onClose={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} title="Add Certification" icon={<GraduationCap size={16} style={{ color: '#7c3aed' }} />} iconBg="rgba(168,85,247,0.1)">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Certification Name *</label>
+              <input type="text" value={newCert.name} onChange={e => setNewCert(p => ({ ...p, name: e.target.value }))} placeholder="e.g. AWS Solutions Architect" style={inputStyle} onFocus={iFocus} onBlur={iBlur} autoFocus />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Issuing Body</label>
+              <input type="text" value={newCert.issuer} onChange={e => setNewCert(p => ({ ...p, issuer: e.target.value }))} placeholder="e.g. Amazon Web Services" style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Date Obtained</label>
+              <input type="date" value={newCert.date} onChange={e => setNewCert(p => ({ ...p, date: e.target.value }))} style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleAddCertification} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
+                {actionLoading ? 'Adding…' : 'Add Certification'}
               </button>
             </div>
           </div>

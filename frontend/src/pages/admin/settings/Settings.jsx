@@ -1,160 +1,187 @@
 import {
-  Globe,
-  DollarSign,
-  Palette,
-  Shield,
-  Bell,
-  Mail,
-  FileText,
-  Phone,
-  BookOpen,
-  Home,
-  Gift, 
-  Tag,
-  Briefcase,
-  BarChart2,
-  Zap,
-  HardDrive,
-  Users,
-  ChevronRight,
-  Settings as SettingsIcon,
-  Trash2,
-  FootprintsIcon,
+  Globe, DollarSign, FileText, Phone, BookOpen, Home,
+  Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap,
+  UserCheck, Settings as SettingsIcon, FootprintsIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../../components/layout/Header';
-import Footer from '../../../components/layout/Footer';
 import Sidebar from '../../../components/layout/Sidebar';
 
-// ─── Full settings hierarchy ─────────────────────────────────────────────────
 const GROUPS = [
   {
     label: 'Content',
     items: [
-      { name: 'About',    icon: FileText,    bg: 'bg-sky-500',    path: '/admin/settings/content/about',    active: true },
-      { name: 'Contact',  icon: Phone,       bg: 'bg-teal-500',   path: '/admin/settings/content/contact',  active: true },
-      { name: 'Manual',   icon: BookOpen,    bg: 'bg-indigo-500', path: '/admin/settings/content/manual',   active: true },
-      { name: 'Homepage', icon: Home,        bg: 'bg-green-500',  path: '/admin/settings/content/homepage', active: true },
-      { name: 'Footer',   icon: FootprintsIcon, bg: 'bg-slate-500',  path: '/admin/settings/content/footer',   active: true },
+      { name: 'About',    icon: FileText,       bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6', path: '/admin/settings/content/about',    active: true },
+      { name: 'Contact',  icon: Phone,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316', path: '/admin/settings/content/contact',  active: true },
+      { name: 'Manual',   icon: BookOpen,       bg: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#a855f7', path: '/admin/settings/content/manual',   active: true },
+      { name: 'Homepage', icon: Home,           bg: 'linear-gradient(135deg,#15803d,#22c55e)', color: '#22c55e', path: '/admin/settings/content/homepage', active: true },
+      { name: 'Footer',   icon: FootprintsIcon, bg: 'linear-gradient(135deg,#b45309,#f59e0b)', color: '#f59e0b', path: '/admin/settings/content/footer',   active: true },
     ],
   },
   {
     label: 'System',
     items: [
-      { name: 'General',    icon: Globe,       bg: 'bg-blue-500',    path: '/admin/settings/general',          active: true  },
-      { name: 'Currency',   icon: DollarSign,  bg: 'bg-emerald-500', path: '/admin/settings/currency',         active: true  },
+      { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#0e7490,#06b6d4)', color: '#06b6d4', path: '/admin/settings/general',  active: true },
+      { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981', path: '/admin/settings/currency', active: true },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { name: 'Work', icon: Briefcase, bg: 'bg-purple-500', path: '/admin/work', active: true },
+      { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/work', active: true },
+      { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', color: '#6366f1', path: '/admin/careers/jobs', active: true },
     ],
   },
   {
-    label: 'People',
+    label: 'People & Promos',
     items: [
-      { name: 'User Management', icon: Users, bg: 'bg-rose-500', path: '/admin/users', active: true },
-      { name: 'Referral Codes',    icon: Gift,  bg: 'bg-purple-500', path: '/admin/referrals',    active: true },
-      { name: 'Promo Codes',       icon: Tag,   bg: 'bg-violet-500', path: '/admin/promo-codes',  active: true },
+      { name: 'Employee Management', icon: UserCheck,   bg: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#eab308', path: '/admin/employees',   active: true },
+      { name: 'User Management',     icon: Users, bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6', path: '/admin/users',       active: true },
+      { name: 'Referral Codes',      icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/admin/referrals',   active: true },
+      { name: 'Promo Codes',         icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa', path: '/admin/promo-codes', active: true },
     ],
   },
 ];
 
-// ─── Single item row ──────────────────────────────────────────────────────────
-const SettingRow = ({ item, onClick }) => {
+const SettingRow = ({ item, onClick, isLast }) => {
   const Icon = item.icon;
+
   return (
     <button
       onClick={() => item.active && onClick(item.path)}
-      className={[
-        'group w-full flex items-center gap-3.5 px-4 py-3',
-        'border-b border-gray-100 dark:border-gray-800 last:border-0',
-        'transition-colors duration-100',
-        item.active
-          ? 'hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer'
-          : 'cursor-default opacity-40',
-      ].join(' ')}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 18px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+        cursor: item.active ? 'pointer' : 'default',
+        opacity: item.active ? 1 : 0.4,
+        fontFamily: 'inherit',
+        transition: 'background 150ms',
+        textAlign: 'left',
+      }}
+      onMouseEnter={e => {
+        if (item.active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'transparent';
+      }}
     >
-      {/* Rounded-square icon — Apple style */}
-      <div className={[
-        'w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 shadow-sm',
-        item.bg,
-      ].join(' ')}>
-        <Icon size={15} className="text-white" strokeWidth={2.2} />
+      <div style={{
+        width: 36, height: 36, borderRadius: 9,
+        background: item.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }}>
+        <Icon size={16} color="white" strokeWidth={2.2} />
       </div>
 
-      {/* Label */}
-      <span className="flex-1 text-[14px] font-medium text-gray-800 dark:text-gray-200 text-left">
+      <span style={{
+        flex: 1,
+        fontSize: '0.88rem',
+        fontWeight: 600,
+        color: item.color,
+      }}>
         {item.name}
       </span>
 
-      {/* Coming soon pill OR chevron */}
       {!item.active ? (
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+        <span style={{
+          fontSize: '0.6rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--color-text-muted, var(--color-text-secondary, var(--color-text)))',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '2px 7px', borderRadius: 20,
+        }}>
           Soon
         </span>
       ) : (
-        <ChevronRight
-          size={14}
-          strokeWidth={2.5}
-          className="text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors flex-shrink-0"
-        />
+        <ChevronRight size={13} strokeWidth={2.5} color="rgba(255,255,255,0.15)" />
       )}
     </button>
   );
 };
 
-// ─── Group card ───────────────────────────────────────────────────────────────
 const GroupCard = ({ group, onNavigate }) => (
-  <div className="flex flex-col">
-    <p className="text-[11px] font-bold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-2 px-1">
+  <div>
+    <p style={{
+      fontSize: '0.6rem', fontWeight: 700,
+      letterSpacing: '0.1em', textTransform: 'uppercase',
+      color: '#a855f7',
+      padding: '0 2px 8px',
+      margin: 0, userSelect: 'none',
+    }}>
       {group.label}
     </p>
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-      {group.items.map((item) => (
-        <SettingRow key={item.name} item={item} onClick={onNavigate} />
+    <div style={{
+      background: 'var(--color-bg-elevated, var(--color-bg))',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 12,
+      overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    }}>
+      {group.items.map((item, i) => (
+        <SettingRow
+          key={item.name}
+          item={item}
+          onClick={onNavigate}
+          isLast={i === group.items.length - 1}
+        />
       ))}
     </div>
   </div>
 );
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Settings() {
   const navigate = useNavigate();
 
-  const leftGroups  = GROUPS.filter((_, i) => i % 2 === 0); // System, Content, Platform
-  const rightGroups = GROUPS.filter((_, i) => i % 2 !== 0); // Communication, Operations, People
+  const leftGroups  = GROUPS.filter((_, i) => i % 2 === 0);
+  const rightGroups = GROUPS.filter((_, i) => i % 2 !== 0);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-      <Header />
-
-      <div className="flex flex-1">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar />
 
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-3xl mx-auto px-8 py-10">
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
 
-            {/* Page title */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-9 h-9 rounded-[10px] bg-gray-800 dark:bg-gray-700 flex items-center justify-center shadow-sm">
-                <SettingsIcon size={17} className="text-white" strokeWidth={2} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+              }}>
+                <SettingsIcon size={16} color="white" strokeWidth={2} />
               </div>
-              <h1 className="text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
+              <h1 style={{
+                margin: 0,
+                fontSize: '1.6rem', fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: '#a855f7',
+              }}>
                 Settings
               </h1>
             </div>
 
-            {/* Two-column layout */}
-            <div className="grid grid-cols-2 gap-x-5 gap-y-6">
-              <div className="flex flex-col gap-6">
-                {leftGroups.map((group) => (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '20px 20px',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {leftGroups.map(group => (
                   <GroupCard key={group.label} group={group} onNavigate={navigate} />
                 ))}
               </div>
-              <div className="flex flex-col gap-6">
-                {rightGroups.map((group) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {rightGroups.map(group => (
                   <GroupCard key={group.label} group={group} onNavigate={navigate} />
                 ))}
               </div>
@@ -163,8 +190,6 @@ export default function Settings() {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

@@ -5,12 +5,13 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import OrderCard from '../../components/orders/OrderCard';
+import AdminPagination from '../../components/common/AdminPagination';
 import Button from '../../components/common/Button';
 import useOrderStore from '../../store/orderStore';
 import toast from 'react-hot-toast';
 
 const STATUS_TABS = [
-  { id: 'all',       label: 'All' },
+  { id: 'all',       label: 'Recent' },
   { id: 'pending',   label: 'Pending',   color: '#f59e0b' },
   { id: 'confirmed', label: 'Confirmed', color: '#3b82f6' },
   { id: 'delivered', label: 'Delivered', color: '#10b981' },
@@ -27,12 +28,30 @@ export default function MyOrders() {
   const [searchQuery, setSearchQuery]       = useState('');
   const [searchActive, setSearchActive]     = useState(false);
 
-  useEffect(() => { loadOrders(); }, []);
+  // Add near your other useState calls (after searchQuery, etc.)
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const loadOrders = async () => {
-    try { await fetchMyOrders(); }
-    catch { toast.error('Failed to load orders'); }
+  // Update loadOrders to accept and use page parameter
+  const loadOrders = async (page = 1) => {
+    try {
+      await fetchMyOrders({ page, per_page: 10 }); // ✅ Pass pagination params
+    } catch {
+      toast.error('Failed to load orders');
+    }
   };
+
+  // Add page change handler
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    loadOrders(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset page when filters change (update your existing useEffect)
+  useEffect(() => {
+    setCurrentPage(1);  // ✅ Reset to page 1
+    loadOrders(1);
+  }, [statusFilter, showCancelled]); // Add dependencies that affect the list
 
   const allOrders          = Array.isArray(orders) ? orders : orders?.data || [];
   const cancelledOrders    = allOrders.filter(o => o.status === 'cancelled');
@@ -303,6 +322,24 @@ export default function MyOrders() {
           </div>
         )}
       </div>
+
+      {/* After the orders grid, before the Cancel Modal */}
+      {displayOrders.length > 0 && (
+        <>
+          {/* Debug log (optional, remove later) */}
+          {(() => { console.log('📦 Customer pagination:', useOrderStore.getState().pagination); return null; })()}
+          
+          {/* Pagination component */}
+          {useOrderStore.getState().pagination?.last_page > 1 && (
+            <div className="mt-8">
+              <AdminPagination 
+                pagination={useOrderStore.getState().pagination} 
+                onPageChange={handlePageChange} 
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* ── Cancel Modal ─────────────────────────────────────────────────── */}
       {cancelModal && (

@@ -28,6 +28,16 @@ const useReferralsStore = create((set, get) => ({
   setFilter: (key, value) =>
     set(s => ({ filters: { ...s.filters, [key]: value, page: 1 } })),
 
+  setFilter: (key, value) =>
+    set(s => ({
+      filters: {
+        ...s.filters,
+        [key]: value,
+        // ✅ Only reset page to 1 if we're NOT changing the page itself
+        ...(key !== 'page' && { page: 1 }),
+      },
+    })),
+
   resetFilters: () =>
     set(s => ({
       filters: {

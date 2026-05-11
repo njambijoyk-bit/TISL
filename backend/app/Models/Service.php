@@ -110,8 +110,6 @@ class Service extends Model
         'main_image_url',
         'images_url',
         'is_published',
-        'required_products_full',
-        'optional_products_full',
     ];
 
     // ========================================
@@ -221,7 +219,8 @@ class Service extends Model
         }
 
         // Case 2: JSON array
-        $images = json_decode($this->main_image, true);
+        //$images = json_decode($this->main_image, true);
+        $images = json_decode($this->main_image ?? '', true);
         if (is_array($images) && count($images) > 0) {
             return asset($images[0]);
         }

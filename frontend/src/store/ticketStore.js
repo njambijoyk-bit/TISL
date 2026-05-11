@@ -16,10 +16,18 @@ const useTicketStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await ticketsAPI.getMyTickets(params);
+      const items = response?.data && Array.isArray(response.data) ? response.data : [];
+      const meta  = response?.meta || response;
+      
       set({
-        tickets:    response.data ?? response,
-        pagination: response.meta ?? null,
-        loading:    false,
+        tickets: items,
+        pagination: meta?.current_page ? {
+          current_page: meta.current_page,
+          last_page:    meta.last_page,
+          per_page:     meta.per_page,
+          total:        meta.total,
+        } : null,
+        loading: false,
       });
       return response;
     } catch (error) {
@@ -92,10 +100,18 @@ const useTicketStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await ticketsAPI.getAdminTickets(params);
+      const items = response?.data && Array.isArray(response.data) ? response.data : [];
+      const meta  = response?.meta || response;
+      
       set({
-        tickets:    response.data ?? response,
-        pagination: response.meta ?? null,
-        loading:    false,
+        tickets: items,
+        pagination: meta?.current_page ? {
+          current_page: meta.current_page,
+          last_page:    meta.last_page,
+          per_page:     meta.per_page,
+          total:        meta.total,
+        } : null,
+        loading: false,
       });
       return response;
     } catch (error) {

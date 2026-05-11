@@ -7,6 +7,7 @@ import {
   Info, ExternalLink,
 } from 'lucide-react';
 import useReferralsStore from '../../../store/referralsStore';
+import SettingsLayout from '../../../components/layout/SettingsLayout';
 import toast from 'react-hot-toast';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -254,6 +255,7 @@ export default function Referrals() {
   const activeFilterCount = [filters.type, filters.status, filters.reward_type, filters.expiring && 'expiring'].filter(Boolean).length;
 
   return (
+    <SettingsLayout>
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* ── Header ── */}
@@ -663,5 +665,6 @@ export default function Referrals() {
         )}
       </div>
     </div>
+    </SettingsLayout>
   );
 }

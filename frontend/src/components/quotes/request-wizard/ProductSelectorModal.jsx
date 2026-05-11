@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Package, Check, X } from 'lucide-react';
+import AdminPagination from '../../common/AdminPagination';
 import useProductStore from '../../../store/productStore';
+import { productsAPI } from '../../../api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = '#a855f7';
@@ -65,35 +67,78 @@ const fmt = (amount) => `KES ${parseFloat(amount || 0).toLocaleString()}`;
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const ProductSelectorModal = ({ onClose, onSelect, selectedProducts = [] }) => {
-  const { products, categories, loading, fetchProducts, fetchCategories } = useProductStore();
+  const { categories, fetchCategories } = useProductStore();
 
   const [searchTerm,       setSearchTerm]       = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [localSelected,    setLocalSelected]    = useState([]);
   const [previewImage,     setPreviewImage]     = useState(null);
 
+  // FIX 1: Declare the missing state that was used but never defined
+  const [localProducts,  setLocalProducts]  = useState([]);
+  const [localLoading,   setLocalLoading]   = useState(false);
+  const [pagination,     setPagination]     = useState({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
+
+  const [page, setPage] = useState(1);
+  const perPage = 20;
+
+  // FIX 2: Accept search/category as arguments so callers always pass the
+  // current values — no stale-closure bugs when page changes independently.
+  const fetchModalProducts = useCallback(async (pageNum = 1, search = '', categoryId = '') => {
+    setLocalLoading(true);
+    try {
+      const params = {
+        page: pageNum,
+        per_page: perPage,
+        ...(search     ? { search }                    : {}),
+        ...(categoryId ? { category_id: categoryId }  : {}),
+      };
+
+      const res = await productsAPI.getProducts(params);
+
+      setLocalProducts(res.data || []);
+      setPagination({
+        current_page: res.current_page || 1,
+        last_page:    res.last_page    || 1,
+        per_page:     res.per_page     || perPage,
+        total:        res.total        || 0,
+      });
+    } catch (err) {
+      console.error('Failed to fetch modal products', err);
+    } finally {
+      setLocalLoading(false);
+    }
+  }, [perPage]);
+
+  // FIX 3: Already-selected ids — defined BEFORE displayProducts so it's in scope
   const alreadySelectedIds = useMemo(() =>
-    selectedProducts.filter(p => !p.is_custom && p.product_id).map(p => Number(p.product_id)),
+    selectedProducts
+      .filter(p => !p.is_custom && p.product_id)
+      .map(p => Number(p.product_id)),
     [selectedProducts]
   );
 
-  useEffect(() => { fetchProducts({ per_page: 100 }); fetchCategories(); }, [fetchProducts, fetchCategories]);
+  // FIX 4: Single displayProducts declaration, using localProducts (not store)
+  const displayProducts = useMemo(() =>
+    localProducts.filter(p => !alreadySelectedIds.includes(Number(p?.id))),
+    [localProducts, alreadySelectedIds]
+  );
 
-  const filteredProducts = useMemo(() => {
-    const list = Array.isArray(products) ? products : [];
-    return list.filter(product => {
-      if (alreadySelectedIds.includes(Number(product?.id))) return false;
-      const isAvailable = product?.is_available === undefined ? true : !!product.is_available;
-      const isVisible   = product?.is_visible   === undefined ? true : !!product.is_visible;
-      if (!isAvailable || !isVisible) return false;
-      if (selectedCategory && Number(product?.category_id) !== Number(selectedCategory)) return false;
-      if (searchTerm.trim()) {
-        const s = searchTerm.toLowerCase();
-        if (!product?.name?.toLowerCase().includes(s) && !product?.sku?.toLowerCase().includes(s) && !product?.brand?.name?.toLowerCase().includes(s)) return false;
-      }
-      return true;
-    });
-  }, [products, searchTerm, selectedCategory, alreadySelectedIds]);
+  // Fetch categories once
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // FIX 5: When search/category change, reset to page 1 and fetch with fresh values
+  useEffect(() => {
+    setPage(1);
+    fetchModalProducts(1, searchTerm, selectedCategory);
+  }, [searchTerm, selectedCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FIX 6: When page changes, fetch with the current search/category values passed explicitly
+  useEffect(() => {
+    fetchModalProducts(page, searchTerm, selectedCategory);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleProduct = (product) => {
     const exists = localSelected.some(p => p.id === product.id);
@@ -115,6 +160,7 @@ const ProductSelectorModal = ({ onClose, onSelect, selectedProducts = [] }) => {
         .psm-card { border-radius:12px; border:1.5px solid var(--border,#f3f4f6); overflow:hidden; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; }
         .psm-card:hover { border-color:${purpleBd}; }
         .psm-card.sel { border-color:${purple}; box-shadow:0 0 0 2px ${purpleBd}; background:${purpleLt}; }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Backdrop */}
@@ -151,18 +197,18 @@ const ProductSelectorModal = ({ onClose, onSelect, selectedProducts = [] }) => {
 
           {/* Product grid */}
           <div style={{ padding: '16px 24px', maxHeight: '52vh', overflowY: 'auto' }}>
-            {loading ? (
+            {localLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
                 <div style={{ width: 32, height: 32, border: `3px solid ${purpleLt}`, borderTopColor: purple, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : displayProducts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9ca3af' }}>
                 <Package size={48} style={{ margin: '0 auto 12px', opacity: 0.25 }} />
                 <p style={{ fontSize: '0.85rem' }}>{searchTerm || selectedCategory ? 'No products match your filters' : 'No products available'}</p>
               </div>
             ) : (
               <div className="psm-grid">
-                {filteredProducts.map(product => {
+                {displayProducts.map(product => {
                   const sel = isSelected(product.id);
                   return (
                     <div key={product.id} className={`psm-card${sel ? ' sel' : ''}`} onClick={() => toggleProduct(product)}>
@@ -205,9 +251,13 @@ const ProductSelectorModal = ({ onClose, onSelect, selectedProducts = [] }) => {
             )}
           </div>
 
-          {/* Footer */}
+          {/* Footer — FIX 7: AdminPagination only here, removed the duplicate above */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{pagination.total} product{pagination.total !== 1 ? 's' : ''} available</p>
+            <AdminPagination
+              pagination={pagination}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="outline" onClick={onClose}>Cancel</Btn>
               <Btn variant="primary" onClick={() => onSelect(localSelected)} disabled={localSelected.length === 0}>
@@ -227,8 +277,6 @@ const ProductSelectorModal = ({ onClose, onSelect, selectedProducts = [] }) => {
           <img src={previewImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} onClick={e => e.stopPropagation()} />
         </div>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 };

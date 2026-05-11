@@ -47,4 +47,8 @@ return [
         'redirect' => env('MICROSOFT_REDIRECT_URL'),
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+    ],
+
 ];

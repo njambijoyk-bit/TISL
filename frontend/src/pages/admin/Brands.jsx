@@ -4,261 +4,417 @@ import { brandsAPI } from '../../api';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import {
+  Plus, Search, Edit2, Eye, Trash2, X,
+  Tag, CheckCircle, XCircle, TrendingUp, Globe, Star,
+} from 'lucide-react';
+
+// ─── Style tokens (mirrors Products page) ────────────────────────────────────
+
+const card = {
+  background: 'var(--color-background-primary)',
+  border: '1px solid var(--color-border-tertiary)',
+  borderRadius: 12,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: 8,
+  fontSize: '0.875rem',
+  border: '1px solid var(--color-border-tertiary)',
+  background: 'var(--color-background-primary)',
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  fontFamily: 'inherit',
+  boxSizing: 'border-box',
+};
+
+const thStyle = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: '0.68rem',
+  fontWeight: 700,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
+  borderBottom: '1px solid var(--color-border-tertiary)',
+  background: 'var(--color-background-secondary)',
+  whiteSpace: 'nowrap',
+};
+
+const tdStyle = {
+  padding: '12px 16px',
+  borderBottom: '1px solid var(--color-border-tertiary)',
+  fontSize: '0.875rem',
+  color: 'var(--color-text-primary)',
+  verticalAlign: 'middle',
+};
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+function Btn({ onClick, disabled, style, children, title }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+        border: '1px solid var(--color-border-tertiary)',
+        background: 'var(--color-background-primary)',
+        color: 'var(--color-text-primary)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        fontFamily: 'inherit',
+        transition: 'background 150ms',
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PrimaryBtn({ onClick, disabled, children, style }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+        border: 'none', background: '#7c3aed', color: 'white',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        fontFamily: 'inherit',
+        boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DangerBtn({ onClick, disabled, children, style }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+        border: 'none', background: 'var(--color-background-danger)', color: 'var(--color-text-danger)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        fontFamily: 'inherit',
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconBtn({ onClick, title, color, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 32, height: 32, borderRadius: 7,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: 'none', background: 'transparent',
+        color, cursor: 'pointer', transition: 'background 150ms',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon: Icon, iconBg, iconColor }) {
+  return (
+    <div style={{ ...card, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div>
+        <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {label}
+        </p>
+        <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          {value}
+        </p>
+      </div>
+      <div style={{ width: 44, height: 44, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={20} style={{ color: iconColor }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+function StatusBadge({ active }) {
+  return active ? (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+      background: 'var(--color-background-success)', color: 'var(--color-text-success)',
+    }}>
+      <CheckCircle size={11} /> ACTIVE
+    </span>
+  ) : (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+      background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)',
+    }}>
+      <XCircle size={11} /> INACTIVE
+    </span>
+  );
+}
+
+// ─── Delete modal ─────────────────────────────────────────────────────────────
+
+function Modal({ children, onClose }) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        ...card,
+        background: 'white', color: '#08070a',
+        width: '100%', maxWidth: 480,
+        maxHeight: '92vh',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Brands() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [brands, setBrands] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, brand: null, loading: false });
 
-  useEffect(() => {
-    fetchBrands();
-  }, []);
+  useEffect(() => { fetchBrands(); }, []);
 
   const fetchBrands = async () => {
-  try {
-    setLoading(true);
-    const response = await brandsAPI.getAdminBrands();
-    
-    // Handle different response formats
-    const brandsData = Array.isArray(response) 
-      ? response 
-      : (response.data || []);
-    
-    console.log('Brands data:', brandsData);
-    setBrands(brandsData);
-  } catch (error) {
-    console.error('Failed to fetch brands:', error);
-    toast.error('Failed to load brands');
-  } finally {
-    setLoading(false);
-  }
-};
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner />
-        </div>
-      </AdminLayout>
-    );
-  }
+    try {
+      setLoading(true);
+      const response = await brandsAPI.getAdminBrands();
+      const brandsData = Array.isArray(response) ? response : (response.data || []);
+      setBrands(brandsData);
+    } catch {
+      toast.error('Failed to load brands');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteModal(p => ({ ...p, loading: true }));
+    try {
+      await brandsAPI.deleteBrand(deleteModal.brand.id);
+      toast.success(`"${deleteModal.brand.name}" deleted`);
+      setDeleteModal({ isOpen: false, brand: null, loading: false });
+      fetchBrands();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to delete brand');
+      setDeleteModal(p => ({ ...p, loading: false }));
+    }
+  };
+
+  const isActive = (b) => Boolean(b.is_active) || b.is_active === 1 || b.is_active === '1';
+
+  const filtered = brands.filter(b =>
+    !searchTerm ||
+    b.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div style={{ padding: '24px 24px 48px', display: 'flex', flexDirection: 'column', gap: 24, minHeight: '100vh' }}>
+
+        {/* ── Page heading ───────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Brands
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Tag size={24} style={{ color: '#a855f7' }} /> Brands
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage product brands and manufacturers
-            </p>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage product brands and manufacturers</p>
           </div>
-          <button
-            onClick={() => navigate('/admin/brands/create')}
-            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Brand
-          </button>
+          <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
+            <Plus size={15} /> New Brand
+          </PrimaryBtn>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Brands</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {brands.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
+        {/* ── Stat cards ─────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+          <StatCard label="Total Brands" value={brands.length}                          icon={Tag}         iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
+          <StatCard label="Active"        value={brands.filter(isActive).length}         icon={CheckCircle} iconBg="rgba(16,185,129,0.1)"  iconColor="#10b981" />
+          <StatCard label="Inactive"      value={brands.filter(b => !isActive(b)).length} icon={XCircle}    iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
+          <StatCard label="Featured"      value={brands.filter(b => b.is_featured).length} icon={TrendingUp} iconBg="rgba(245,158,11,0.1)"  iconColor="#f59e0b" />
+        </div>
+
+        {/* ── Search ─────────────────────────────────────────────────────── */}
+        <div style={{ ...card, padding: 16 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search brands by name or slug…"
+                style={{ ...inputStyle, paddingLeft: 32 }}
+              />
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {brands.filter(b => b.is_active).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Inactive</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-        {brands.filter(b => !Boolean(b.is_active)).length}
-      </p>
-    </div>
-    <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
-      <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M18.364 5.636L5.636 18.364M5.636 5.636l12.728 12.728" />
-      </svg>
-    </div>
-  </div>
-</div>
-
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Featured</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {brands.filter(b => b.is_featured).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-            </div>
+            {searchTerm && (
+              <Btn onClick={() => setSearchTerm('')} style={{ color: 'var(--color-text-danger)', borderColor: 'var(--color-border-danger)' }}>
+                <X size={15} /> Clear
+              </Btn>
+            )}
           </div>
         </div>
 
-        {/* Brands List */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {brands.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No brands</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Get started by creating a new brand.
+        {/* ── Brands table ───────────────────────────────────────────────── */}
+        <div style={{ ...card, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
+              <LoadingSpinner />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+              <Tag size={48} style={{ color: 'var(--color-text-tertiary)', display: 'block', margin: '0 auto 12px' }} />
+              <h3 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                {searchTerm ? 'No brands match your search' : 'No brands yet'}
+              </h3>
+              <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
+                {searchTerm ? 'Try a different search term' : 'Get started by creating your first brand'}
               </p>
-              <button
-                onClick={() => navigate('/admin/brands/create')}
-                className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                Create Brand
-              </button>
+              {!searchTerm && (
+                <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
+                  <Plus size={15} /> Create First Brand
+                </PrimaryBtn>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Brand
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Slug
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Website
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Sort
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Featured
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    {['Brand', 'Slug', 'Website', 'Status', 'Sort', 'Featured', ''].map((h, i) => (
+                      <th key={i} style={{ ...thStyle, textAlign: i === 6 ? 'right' : 'left' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {brands.map((brand) => (
-                    <tr key={brand.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {brand.logo_url && (
-                            <img
-                              src={brand.logo_url}
-                              alt={brand.name}
-                              className="w-10 h-10 rounded-lg object-cover mr-3"
-                            />
-                          )}
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {brand.name}
+                <tbody>
+                  {filtered.map(brand => (
+                    <tr
+                      key={brand.id}
+                      style={{ transition: 'background 120ms' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {/* Brand */}
+                      <td style={tdStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {brand.logo_url ? (
+                            <img src={brand.logo_url} alt={brand.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Tag size={18} style={{ color: 'var(--color-text-tertiary)' }} />
                             </div>
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                              {brand.name}
+                            </p>
                             {brand.description && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
                                 {brand.description}
-                              </div>
+                              </p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                          {brand.slug}
-                        </span>
+
+                      {/* Slug */}
+                      <td style={tdStyle}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{brand.slug}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+
+                      {/* Website */}
+                      <td style={tdStyle}>
                         {brand.website ? (
                           <a
                             href={brand.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}
                           >
-                            Visit
+                            <Globe size={13} /> Visit
                           </a>
                         ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          Boolean(brand.is_active) === true || brand.is_active === 1 || brand.is_active === '1'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {Boolean(brand.is_active) === true || brand.is_active === 1 || brand.is_active === '1' ? 'Active' : 'Inactive'}
-                        </span>
+
+                      {/* Status */}
+                      <td style={tdStyle}><StatusBadge active={isActive(brand)} /></td>
+
+                      {/* Sort */}
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{brand.sort_order ?? '—'}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-  {brand.sort_order ?? '-'}
-</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+
+                      {/* Featured */}
+                      <td style={tdStyle}>
                         {brand.is_featured ? (
-                          <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b' }}>
+                            <Star size={13} fill="#f59e0b" /> Yes
+                          </span>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => navigate(`/admin/brands/${brand.id}/edit`)}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => navigate(`/admin/brands/${brand.id}/edit?mode=view`)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          Delete
-                        </button>
+
+                      {/* Actions */}
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
+                          <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
+                            <Eye size={15} />
+                          </IconBtn>
+                          <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="#7c3aed">
+                            <Edit2 size={15} />
+                          </IconBtn>
+                          <IconBtn onClick={() => setDeleteModal({ isOpen: true, brand, loading: false })} title="Delete" color="var(--color-text-danger)">
+                            <Trash2 size={15} />
+                          </IconBtn>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -268,6 +424,32 @@ export default function Brands() {
           )}
         </div>
       </div>
+
+      {/* ── Delete modal ─────────────────────────────────────────────────── */}
+      {deleteModal.isOpen && (
+        <Modal onClose={() => setDeleteModal({ isOpen: false, brand: null, loading: false })}>
+          <div style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--color-background-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Trash2 size={20} style={{ color: '#f87171' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 2px', fontSize: '1rem', fontWeight: 700, color: '#f87171' }}>Delete brand</h3>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>This action cannot be undone</p>
+              </div>
+            </div>
+            <p style={{ margin: '0 0 20px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+              Are you sure you want to delete <strong style={{ color: '#f87171' }}>"{deleteModal.brand?.name}"</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Btn onClick={() => setDeleteModal({ isOpen: false, brand: null, loading: false })} disabled={deleteModal.loading} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
+              <DangerBtn onClick={handleDelete} disabled={deleteModal.loading} style={{ flex: 1, justifyContent: 'center', background: '#ef4444', color: 'white' }}>
+                {deleteModal.loading ? <><LoadingSpinner /> Deleting…</> : 'Delete brand'}
+              </DangerBtn>
+            </div>
+          </div>
+        </Modal>
+      )}
     </AdminLayout>
   );
 }

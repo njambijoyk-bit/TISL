@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, Search, Filter, MoreHorizontal,
-  Shield, ShieldAlert, Lock, Unlock,
+  Shield, ShieldAlert, Lock, Unlock, Info, ExternalLink, Upload,
   KeyRound, UserX, UserCheck, Trash2, RotateCcw,
   ChevronLeft, ChevronRight, AlertCircle, CheckCircle, Eye,
   ArrowUpDown, ChevronDown, ChevronUp, Building2,
@@ -219,6 +219,7 @@ export default function UsersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedIds,     setSelectedIds]     = useState([]);
   const [showFilters,     setShowFilters]     = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => { fetchStatistics(); fetchDepartments(); }, []);
   useEffect(() => { fetchUsers(); setSelectedIds([]); }, [filters]);
@@ -284,21 +285,85 @@ export default function UsersPage() {
             {statistics?.total?.toLocaleString() ?? 0} total users
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
-            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
-            transition: 'box-shadow 150ms',
-          }}
-          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
-        >
-          <UserPlus size={15} /> New user
-        </button>
+        
+        {/* New user button — customers self-register, so show info popover */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onMouseEnter={() => setShowInfo(true)}
+            onMouseLeave={() => setShowInfo(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              transition: 'box-shadow 150ms',
+            }}
+            onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
+            onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+          >
+            <UserPlus size={15} /> New user
+          </button>
+
+          {showInfo && (
+            <div
+              onMouseEnter={() => setShowInfo(true)}
+              onMouseLeave={() => setShowInfo(false)}
+              style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
+                background: 'white', borderRadius: 12, padding: 16,
+                border: '1.5px solid rgba(168,85,247,0.2)',
+                boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+              }}
+            >
+              {/* Top — explanation */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <Info size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+                    Customers can't be created by admins
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Customers register themselves or can be added in bulk via a manual import. No admin of any role can create a customer account directly.
+                  </p>
+                </div>
+              </div>
+
+              {/* Import hint */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 10px', borderRadius: 8, marginBottom: 12,
+                background: 'rgba(168,85,247,0.04)',
+                border: '1px solid rgba(168,85,247,0.12)',
+              }}>
+                <Upload size={13} style={{ color: '#a855f7', flexShrink: 0 }} />
+                <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
+                  Need to add many customers at once?{' '}
+                  <span style={{ color: '#7c3aed', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
+                </p>
+              </div>
+
+              {/* Divider + employee CTA */}
+              <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 12 }}>
+                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
+                  Looking to add a staff member instead?
+                </p>
+                <button
+                  onClick={() => navigate('/admin/employees/create')}
+                  style={{
+                    width: '100%', padding: '8px', borderRadius: 8,
+                    fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                    boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                  }}
+                >
+                  Create new employee <ExternalLink size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Stat cards ── */}

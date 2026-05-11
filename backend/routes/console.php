@@ -12,3 +12,6 @@ Artisan::command('inspire', function () {
 Schedule::command('promo:birthday')->dailyAt('08:00');
 Schedule::command('promo:winback')->dailyAt('09:00');
 Schedule::command('promo:expire')->dailyAt('23:00');
+Schedule::command('auctions:close')->everyMinute();
+
+Schedule::command('loyalty:expire-points')->monthly();

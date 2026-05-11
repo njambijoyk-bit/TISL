@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import ProjectTrashModal from './ProjectTrashModal';
 import AdminLayout from '../../components/layout/AdminLayout';
 import PageHeader from '../../components/layout/PageHeader';
+import AdminPagination from '../../components/common/AdminPagination';
 import ProjectFilters from '../../components/admin/ProjectFilters';
 import ProjectTable from '../../components/admin/ProjectTable';
 import useProjectStore from '../../store/projectStore';
@@ -97,32 +98,13 @@ const Projects = () => {
           onDelete={canDelete ? (project) => setConfirmDelete(project) : null}
         />
 
-        {pagination && pagination.last_page > 1 && (
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Page {pagination.current_page} of {pagination.last_page}
-              &nbsp;·&nbsp;{pagination.total} total
-            </p>
-            <div className="flex gap-2">
-              <button
-                disabled={pagination.current_page <= 1}
-                onClick={() => handlePageChange(pagination.current_page - 1)}
-                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-                  text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed
-                  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Previous
-              </button>
-              <button
-                disabled={pagination.current_page >= pagination.last_page}
-                onClick={() => handlePageChange(pagination.current_page + 1)}
-                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-                  text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed
-                  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Next
-              </button>
-            </div>
+        {/* ✅ NEW: Reusable Admin Pagination */}
+        {pagination?.last_page > 1 && (
+          <div className="mt-6 flex justify-center">
+            <AdminPagination 
+              pagination={pagination} 
+              onPageChange={handlePageChange} 
+            />
           </div>
         )}
       </div>

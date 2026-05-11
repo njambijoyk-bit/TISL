@@ -12,6 +12,7 @@ use App\Models\Currency;
 use Illuminate\Http\Request;
 use App\Mail\OrderConfirmation;
 use App\Mail\OrderShipped;
+use App\Services\Mail\OrderMailService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ use App\Services\PromoCodeService;
 
 class OrderController extends Controller
 {
+    public function __construct(private OrderMailService $mailer) {}
     // ========================================
     // SHARED PRICING HELPER
     // ========================================
@@ -123,6 +125,8 @@ class OrderController extends Controller
             'items.*.item_type'      => 'required|in:product,service,fee,custom_product,custom_service',
             'items.*.is_custom_item' => 'nullable|boolean',
             'items.*.quantity'       => 'required|numeric|min:0.01',
+            'apply_store_credit'     => 'nullable|boolean',      
+            'store_credit_amount'    => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -359,6 +363,7 @@ class OrderController extends Controller
                     customer:         $customer,
                     orderValue:       $subtotal,
                     referralDiscount: $referralDiscount,
+                    exchangeRateToKes: (float) ($request->exchange_rate_to_kes ?? 1.0),
                 );
                 if ($promoResult['valid']) {
                     $promoDiscount = $promoResult['discount'];
@@ -371,6 +376,25 @@ class OrderController extends Controller
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
             $total         = $subtotal - $discount - $referralDiscount - $promoDiscount + $tax + $shippingCost;
+
+            // ── Store credit deduction ────────────────────────────────────────────────────
+            $exchangeRate            = (float) ($request->exchange_rate_to_kes ?? 1.0);
+            $preliminaryTotalKes     = round($total * ($exchangeRate > 0 ? $exchangeRate : 1), 2);
+            $creditDeductionKes      = 0;
+            $creditDeductionCurrency = 0;
+
+            if ($customer && $request->boolean('apply_store_credit') && (float) $customer->store_credit > 0) {
+                $requested = (float) ($request->input('store_credit_amount') ?? $customer->store_credit);
+                $deduction = app(\App\Services\LoyaltyService::class)->applyStoreCreditToOrder(
+                    customer:     $customer,
+                    requestedKes: $requested,
+                    totalKes:     $preliminaryTotalKes,
+                    exchangeRate: $exchangeRate,
+                );
+                $creditDeductionKes      = $deduction['deduction_kes'];
+                $creditDeductionCurrency = $deduction['deduction_order_currency'];
+                $total                  -= $creditDeductionCurrency;
+            }
             
             $totalORDQty    = (int) round(collect($request->items)->sum('quantity'));
             $year        = date('Y');
@@ -399,6 +423,8 @@ class OrderController extends Controller
                 'referral_discount'        => $referralDiscount,
                 'promo_code_id'            => $promoCodeId,
                 'promo_discount'           => $promoDiscount,
+                'store_credit_deduction'     => $creditDeductionCurrency,  
+                'store_credit_deduction_kes' => $creditDeductionKes,  
                 'discount'                 => $discount, 
                 
                 'currency'                 => $request->currency           ?? 'KES',
@@ -422,28 +448,36 @@ class OrderController extends Controller
             ]);
 
             $order->applyKesSnapshot();
-            
+
+            // ── Spend store credit ────────────────────────────────────────────────────────
+            if ($creditDeductionKes > 0) {
+                try {
+                    app(\App\Services\LoyaltyService::class)->spendCredit($customer, $creditDeductionKes, $order);
+                } catch (\Exception $e) {
+                    Log::warning("Store credit spend failed for order {$order->id}: " . $e->getMessage());
+                }
+            }
+
             // ── Record promo code usage if applied ────────────────────────────────────
             if ($promoCodeId) {
                 $promoService = new PromoCodeService();
                 $promoService->recordPromoUsage(
                     \App\Models\ReferralCode::find($promoCodeId),
-                    $subtotal
+                    $order->subtotal_kes,                     // ✅ KES revenue
+                    $promoDiscount * $order->exchange_rate_to_kes // ✅ KES discount
                 );
             }
 
             // ✅ STEP 5: Create order items
             $this->createOrderItems($order->id, $itemsData);
 
-            // ✅ STEP 6: Update customer statistics
-            if ($customer && !$customer->is_guest) {
-                $customer->updateOrderStatistics($order->fresh());
-            }
-
             DB::commit();
 
             try {
                 //Mail::to($customer->email)->send(new OrderConfirmation($order));
+                $order->load(['items.product', 'customer']);
+                $this->mailer->sendOrderCreated($order);
+
             } catch (\Exception $e) {
                 Log::error('Order confirmation email failed: ' . $e->getMessage());
             }
@@ -810,6 +844,10 @@ class OrderController extends Controller
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
             $total         = $subtotal - $discount - $referralDiscount - $promoDiscount + $tax + $shippingCost;
+            // Carry forward existing store credit deduction
+            $existingCreditDeduction    = (float) ($order->store_credit_deduction     ?? 0);
+            $existingCreditDeductionKes = (float) ($order->store_credit_deduction_kes ?? 0);
+            $total -= $existingCreditDeduction;
 
             // ✅ STEP 4: Update order
             $order->update([
@@ -817,6 +855,8 @@ class OrderController extends Controller
                 'tax'              => $tax,
                 'referral_discount'=> $referralDiscount,
                 'promo_discount'   => $promoDiscount,
+                'store_credit_deduction'     => $existingCreditDeduction,
+                'store_credit_deduction_kes' => $existingCreditDeductionKes,
                 'discount'         => $discount,
                 'shipping_cost'    => $shippingCost,
                 'total'            => $total,
@@ -827,6 +867,7 @@ class OrderController extends Controller
                 'shipping_address' => $request->shipping_address,
                 'customer_notes'   => $request->customer_notes,
             ]);
+            $order->applyKesSnapshot();
 
             // ✅ STEP 5: Create new order items
             $this->createOrderItems($order->id, $itemsData, true);
@@ -938,7 +979,14 @@ class OrderController extends Controller
 
             $order->refresh();
             $order->applyKesSnapshot();
+            $this->refundOrderStoreCredit($order);
             DB::commit();
+
+            try {
+                $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
+            } catch (\Exception $e) {
+                Log::error('Customer cancel email failed: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'message' => 'Order cancelled successfully.',
@@ -1005,6 +1053,7 @@ class OrderController extends Controller
                     . '[RESTORED BY CUSTOMER on ' . now()->format('Y-m-d H:i:s') . ']',
             ]);
 
+            $this->rechargeOrderStoreCredit($order);
             DB::commit();
 
             return response()->json([
@@ -1049,8 +1098,16 @@ class OrderController extends Controller
 
         return response()->json([
             'data' => $orders->items(),
-            'meta' => ['current_page' => $orders->currentPage(), 'per_page' => $orders->perPage(), 'total' => $orders->total()],
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page'    => $orders->lastPage(),    // ✅ ADD THIS
+                'per_page'     => $orders->perPage(),
+                'total'        => $orders->total(),
+                'from'         => $orders->firstItem(),   // optional but useful
+                'to'           => $orders->lastItem(),    // optional but useful
+            ],
         ]);
+
     }
 
     public function adminCustomerOrders(Request $request, $customerId)
@@ -1425,6 +1482,8 @@ class OrderController extends Controller
             'shipping_cost'          => 'nullable|numeric|min:0',
             'subtotal_kes'           => 'nullable|numeric',
             'total_kes'              => 'nullable|numeric',
+            'apply_store_credit'     => 'nullable|boolean',      
+            'store_credit_amount'    => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -1644,6 +1703,7 @@ class OrderController extends Controller
                     customer:         $customer,
                     orderValue:       $subtotal,
                     referralDiscount: $referralDiscount,
+                    exchangeRateToKes: (float) ($request->exchange_rate_to_kes ?? 1.0), 
                 );
                 if ($promoResult['valid']) {
                     $promoDiscount = $promoResult['discount'];
@@ -1660,6 +1720,25 @@ class OrderController extends Controller
                                         ? floatval($request->shipping_cost)
                                         : $this->calculateShippingCost($request->delivery_method, $subtotalAfterDiscount);
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
+
+            // ── Store credit deduction ────────────────────────────────────────────────
+            $exchangeRate            = (float) ($request->exchange_rate_to_kes ?? 1.0);
+            $preliminaryTotalKes     = round($total * ($exchangeRate > 0 ? $exchangeRate : 1), 2);
+            $creditDeductionKes      = 0;
+            $creditDeductionCurrency = 0;
+
+            if ($request->boolean('apply_store_credit') && (float) $customer->store_credit > 0) {
+                $requested = (float) ($request->input('store_credit_amount') ?? $customer->store_credit);
+                $deduction = app(\App\Services\LoyaltyService::class)->applyStoreCreditToOrder(
+                    customer:     $customer,
+                    requestedKes: $requested,
+                    totalKes:     $preliminaryTotalKes,
+                    exchangeRate: $exchangeRate,
+                );
+                $creditDeductionKes      = $deduction['deduction_kes'];
+                $creditDeductionCurrency = $deduction['deduction_order_currency'];
+                $total                  -= $creditDeductionCurrency;
+            }
 
             $totalORDQty   = (int) round(collect($request->items)->sum('quantity'));
             $year       = date('Y');
@@ -1691,6 +1770,8 @@ class OrderController extends Controller
                 'referral_discount'        => $referralDiscount,
                 'promo_code_id'            => $promoCodeId,
                 'promo_discount'           => $promoDiscount,
+                'store_credit_deduction'     => $creditDeductionCurrency,  
+                'store_credit_deduction_kes' => $creditDeductionKes, 
                 'discount'                 => $orderDiscount,
 
                 'currency'                 => $request->currency           ?? 'KES',
@@ -1714,13 +1795,21 @@ class OrderController extends Controller
             ]);
 
             $order->applyKesSnapshot();
+            if ($creditDeductionKes > 0) {
+                try {
+                    app(\App\Services\LoyaltyService::class)->spendCredit($customer, $creditDeductionKes, $order);
+                } catch (\Exception $e) {
+                    Log::warning("Store credit spend failed for order {$order->id}: " . $e->getMessage());
+                }
+            }
 
-            // ── Record promo usage ────────────────────────────────────────────────────
+            // ── Record promo code usage if applied ────────────────────────────────────
             if ($promoCodeId) {
                 $promoService = new PromoCodeService();
                 $promoService->recordPromoUsage(
                     \App\Models\ReferralCode::find($promoCodeId),
-                    $subtotal
+                    $order->subtotal_kes,                     // ✅ KES revenue
+                    $promoDiscount * $order->exchange_rate_to_kes // ✅ KES discount
                 );
             }
 
@@ -1734,6 +1823,13 @@ class OrderController extends Controller
             DB::commit();
 
             $order->load(['items', 'customer']);
+
+            try {
+                $this->mailer->sendOrderCreated($order);
+            } catch (\Exception $e) {
+                Log::error('Admin order created email failed: ' . $e->getMessage());
+            }
+
             $hasBackorder     = collect($itemsData)->sum('backorder_quantity') > 0;
             $backorderMessage = $hasBackorder ? ' (includes ' . collect($itemsData)->sum('backorder_quantity') . ' item(s) on backorder)' : '';
 
@@ -2046,6 +2142,10 @@ class OrderController extends Controller
                                         ? floatval($request->shipping_cost)
                                         : $this->calculateShippingCost($request->delivery_method, $subtotalAfterDiscount);
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
+            // Carry forward existing store credit deduction
+            $existingCreditDeduction    = (float) ($order->store_credit_deduction     ?? 0);
+            $existingCreditDeductionKes = (float) ($order->store_credit_deduction_kes ?? 0);
+            $total -= $existingCreditDeduction;
 
             // ── STEP 5: Update order ───────────────────────────────────────────
             $order->update([
@@ -2055,6 +2155,8 @@ class OrderController extends Controller
                 'referral_discount'        => $referralDiscount,
                 'promo_code_id'            => $order->promo_code_id,
                 'promo_discount'           => $promoDiscount,
+                'store_credit_deduction'     => $existingCreditDeduction,
+                'store_credit_deduction_kes' => $existingCreditDeductionKes,
                 'discount'                 => $orderDiscount,
                 'currency'                 => $request->currency             ?? $order->currency,
                 'exchange_rate_to_kes'     => $request->exchange_rate_to_kes ?? $order->exchange_rate_to_kes,
@@ -2084,34 +2186,17 @@ class OrderController extends Controller
 
             // ── STEP 6: Create new order items ─────────────────────────────────
             $this->createOrderItems($order->id, $itemsData, true);
-            $customer->updateOrderStatistics($order->fresh());
 
             // ✅ STEP 7: Recalculate customer statistics after order edit
-            // If customer_id changed, recalculate both old and new customer
+            // Recalculate stats for any affected customers
             $affectedCustomerIds = array_unique(array_filter([
-                $order->getOriginal('customer_id'), // old customer (before update)
-                $order->customer_id,                // new customer (after update)
+                $order->getOriginal('customer_id'),
+                $order->customer_id,
             ]));
 
             foreach ($affectedCustomerIds as $cid) {
-                $affectedCustomer = \App\Models\Customer::find($cid);
-                if (!$affectedCustomer) continue;
-
-                $realTotal = \App\Models\Order::where('customer_id', $cid)
-                    ->whereNotIn('status', ['cancelled', 'failed'])
-                    ->sum('total_kes');
-
-                $realCount = \App\Models\Order::where('customer_id', $cid)
-                    ->whereNotIn('status', ['cancelled', 'failed'])
-                    ->count();
-
-                $affectedCustomer->update([
-                    'total_orders'        => $realCount,
-                    'total_spent'         => $realTotal,
-                    'average_order_value' => $realCount > 0
-                        ? round($realTotal / $realCount, 2)
-                        : 0,
-                ]);
+                $affected = \App\Models\Customer::find($cid);
+                $affected?->recalculateStatistics();
             }
 
             DB::commit();
@@ -2162,6 +2247,12 @@ class OrderController extends Controller
         if ($order->status !== 'pending') return response()->json(['message' => 'Only pending orders can be confirmed'], 400);
         $order->markAsConfirmed($request->user());
 
+        try {
+            $this->mailer->sendOrderConfirmed($order->load('customer'));
+        } catch (\Exception $e) {
+            Log::error('Order confirmed email failed: ' . $e->getMessage());
+        }
+
         // ── Complete referral if this is the customer's first order ──
         if ($order->referral_code_id) {
             $usage = \App\Models\ReferralCodeUsage::where('referral_code_id', $order->referral_code_id)
@@ -2174,7 +2265,7 @@ class OrderController extends Controller
                 // Update referral code success stats
                 $referralCode = $order->referralCode;
                 if ($referralCode) {
-                    $referralCode->recordSuccess($order->referral_discount, $order->subtotal);
+                    $referralCode->recordSuccess($order->referral_discount, $order->subtotal_kes);
                 }
             }
         }
@@ -2182,7 +2273,7 @@ class OrderController extends Controller
         // ── Update customer order stats → triggers loyalty + tier checks ──────
         $customer = $order->customer;
         if ($customer) {
-            $customer->updateOrderStatistics($order);
+            $customer->recalculateStatistics();
             // updateOrderStatistics() calls checkTierUpgrade() → triggerVipPromoIfEligible()
             // and triggerLoyaltyPromoIfEligible() — both wired in Customer model
         }
@@ -2207,6 +2298,12 @@ class OrderController extends Controller
             'courier_company'          => $request->courier_company,
             'estimated_delivery_date'  => $request->estimated_delivery_date,
         ]);
+
+        try {
+            $this->mailer->sendOrderShipped($order->fresh(['customer']));
+        } catch (\Exception $e) {
+            Log::error('Order shipped email failed: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Order marked as shipped', 'order' => $order->fresh()], 200);
     }
@@ -2235,12 +2332,18 @@ class OrderController extends Controller
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         $order = Order::findOrFail($id);
-        $order->update([
-            'payment_status'    => $request->payment_status,
-            'payment_reference' => $request->payment_reference ?? $order->payment_reference,
-        ]);
-        if ($request->payment_status === 'paid' && !$order->paid_at) $order->update(['paid_at' => now()]);
 
+        if ($request->payment_status === 'paid') {  
+            // Use markAsPaid to trigger loyalty points  
+            $order->markAsPaid($request->payment_reference);  
+        } else {  
+            // For other statuses, update directly  
+            $order->update([  
+                'payment_status'    => $request->payment_status,  
+                'payment_reference' => $request->payment_reference ?? $order->payment_reference,  
+            ]);  
+        }  
+        
         return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh()], 200);
     }
 
@@ -2307,7 +2410,15 @@ class OrderController extends Controller
                 $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
             }
 
+            $this->refundOrderStoreCredit($order);
             DB::commit();
+
+            try {
+                $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
+            } catch (\Exception $e) {
+                Log::error('Admin cancel email failed: ' . $e->getMessage());
+            }
+
             return response()->json(['message' => 'Order cancelled successfully', 'order' => $order->fresh('items.product', 'customer'), 'requires_refund' => $requiresRefund, 'requires_return' => $requiresReturn], 200);
 
         } catch (\Exception $e) {
@@ -2392,6 +2503,7 @@ class OrderController extends Controller
                     . ($hadRefund ? ' [Payment reset to unpaid — new payment required]' : ''),
             ]);
 
+            $this->rechargeOrderStoreCredit($order);
             DB::commit();
             return response()->json([
                 'message'         => 'Order restored successfully. Payment has been reset — a new payment is required.',
@@ -2472,6 +2584,7 @@ class OrderController extends Controller
                             . ': ' . $request->cancellation_reason,
                     ]);
 
+                    $this->refundOrderStoreCredit($order);
                     $successCount++;
                 } catch (\Exception $e) {
                     $failedOrders[] = [
@@ -2610,6 +2723,13 @@ class OrderController extends Controller
                             . ($request->restore_reason ? ': ' . $request->restore_reason : ''),
                     ]);
 
+                    try {
+                        $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
+                    } catch (\Exception $e) {
+                        Log::error("Bulk cancel email failed for {$order->order_number}: " . $e->getMessage());
+                    }
+
+                    $this->rechargeOrderStoreCredit($order);
                     $successCount++;
                 } catch (\Exception $e) {
                     $failedOrders[] = [
@@ -2811,5 +2931,48 @@ class OrderController extends Controller
             'courier'           => 2000,
             default             => 500,
         };
+    }
+    private function refundOrderStoreCredit(Order $order): void
+    {
+        $deductionKes = (float) ($order->store_credit_deduction_kes ?? 0);
+        if ($deductionKes <= 0) return;
+        if (!$order->customer) return;
+
+        try {
+            app(\App\Services\LoyaltyService::class)->grantRefundCredit(
+                $order->customer, $deductionKes, $order
+            );
+        } catch (\Exception $e) {
+            Log::warning("Store credit refund failed for order {$order->id}: " . $e->getMessage());
+        }
+    }
+
+    private function rechargeOrderStoreCredit(Order $order): void
+    {
+        $deductionKes      = (float) ($order->store_credit_deduction_kes ?? 0);
+        $deductionCurrency = (float) ($order->store_credit_deduction     ?? 0);
+        if ($deductionKes <= 0) return;
+
+        $customer = $order->customer;
+        if (!$customer) return;
+
+        if ((float) $customer->store_credit < $deductionKes) {
+            // Customer spent the refunded credit elsewhere — zero out deduction,
+            // add it back to the order total so it's not discounted for free
+            $order->update([
+                'store_credit_deduction'     => 0,
+                'store_credit_deduction_kes' => 0,
+                'total'                      => round((float) $order->total + $deductionCurrency, 2),
+            ]);
+            $order->applyKesSnapshot();
+            Log::info("Order {$order->id} restored without store credit — customer balance insufficient.");
+            return;
+        }
+
+        try {
+            app(\App\Services\LoyaltyService::class)->spendCredit($customer, $deductionKes, $order);
+        } catch (\Exception $e) {
+            Log::warning("Store credit re-spend failed for order {$order->id}: " . $e->getMessage());
+        }
     }
 }

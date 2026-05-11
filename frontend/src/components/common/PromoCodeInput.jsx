@@ -18,6 +18,7 @@ export default function PromoCodeInput({
   orderValue       = 0,
   referralDiscount = 0,
   customerId       = null,
+  exchangeRateToKes = 1, 
   onApplied,
   onCleared,
   disabled         = false,
@@ -43,12 +44,16 @@ export default function PromoCodeInput({
     if (!input.trim()) return;
     try {
       if (customerId) {
-        await adminApplyPromoCode(input, orderValue, customerId, referralDiscount);
+        await adminApplyPromoCode(input, orderValue, customerId, referralDiscount, exchangeRateToKes); // ← add
       } else {
-        await applyPromoCode(input, orderValue, referralDiscount);
+        await applyPromoCode(input, orderValue, referralDiscount, exchangeRateToKes); // ← add
       }
       onApplied?.(usePromoCodeStore.getState().appliedPromo);
     } catch {
+     // Fallback error
+      usePromoCodeStore.getState().clearPromo();
+      usePromoCodeStore.setState({ promoError: 'Failed to apply code. Please try again.' });
+
       // error already set in store
     }
   };

@@ -33,6 +33,7 @@ import {
   Activity,
 } from 'lucide-react';
 import useQuoteRequestStore from '../../store/quoteRequestStore';
+import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import AssignModal from '../../components/quotes/AssignModal';
 import RejectModal from '../../components/quotes/RejectModal';
@@ -282,6 +283,7 @@ const QuoteRequestDetail = () => {
   const canAct  = request.status !== 'rejected' && !request.quote_id;
 
   return (
+    <AdminLayout>
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 20px 40px' }}>
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -786,6 +788,7 @@ const QuoteRequestDetail = () => {
         />
       )}
     </div>
+    </AdminLayout>
   );
 };
 
