@@ -12,6 +12,7 @@ import CreateOrderModal from '../../components/admin/CreateOrderModal';
 import ReturnItemsModal from '../../components/admin/ReturnItemsModal';
 import InitiatePaymentModal from './finance/InitiatePaymentModal';
 import paymentsAPI from '../../api/payments';
+import ordersAPI from '../../api/orders';
 import useOrderStore from '../../store/orderStore';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
@@ -231,6 +232,9 @@ export default function OrderDetail() {
 
   const [paymentAmount, setPaymentAmount] = useState('');  
   const [paymentMethod, setPaymentMethod] = useState('');
+
+  const [updatingPayment, setUpdatingPayment] = useState(false);  
+  const [paymentError, setPaymentError] = useState('');
 
   const isCancelled   = order?.status === 'cancelled';
   const isPaidPending = order?.status === 'pending' && order?.payment_status === 'paid';
@@ -588,6 +592,8 @@ export default function OrderDetail() {
     setStatusModal(false);
   };
   const handleUpdatePayment = async () => {  
+    setUpdatingPayment(true);  
+    setPaymentError('');  
     try {  
       const payload = {  
         payment_status: newPaymentStatus,  
@@ -604,9 +610,14 @@ export default function OrderDetail() {
       await ordersAPI.updatePaymentStatus(order.id, payload);  
       toast.success('Payment status updated');  
       setPaymentModal(false);  
-      fetchOrder();  
+      setPaymentError('');  
+      fetchAdminOrder(order.id);  
     } catch (err) {  
-      toast.error(err.response?.data?.message || 'Failed to update payment');  
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to update payment';  
+      setPaymentError(msg);  
+      toast.error(msg);  
+    } finally {  
+      setUpdatingPayment(false);  
     }  
   };
   const handleSaveTotals  = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { subtotal, tax, shipping_cost: shippingCost, discount, total, order_type: orderType }), 'Totals saved');
@@ -1812,6 +1823,14 @@ export default function OrderDetail() {
                     />  
                   </div>  
                 )}  
+
+                {paymentError && (  
+                  <div style={{ padding: 10, borderRadius: 8, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>  
+                    <p style={{ fontSize: '0.75rem', color: '#991b1b', margin: 0 }}>  
+                      ⚠️ {paymentError}  
+                    </p>  
+                  </div>  
+                )}
                   
                 <div style={{ padding: 10, borderRadius: 8, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>  
                   <p style={{ fontSize: '0.75rem', color: '#065f46', margin: 0 }}>  
@@ -1828,7 +1847,9 @@ export default function OrderDetail() {
             </div>  
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>  
               <Btn variant="outline" onClick={() => setPaymentModal(false)}>Cancel</Btn>  
-              <Btn variant="success" icon={<CreditCard size={15} />} onClick={handleUpdatePayment}>Update Payment</Btn>  
+              <Btn variant="success" icon={<CreditCard size={15} />} onClick={handleUpdatePayment} disabled={updatingPayment}>  
+                {updatingPayment ? 'Updating...' : 'Update Payment'}  
+              </Btn>
             </div>  
           </div>  
         </InlineModal>  
