@@ -2621,6 +2621,14 @@ class OrderController extends Controller
                     . ($hadRefund ? ' [Payment reset to unpaid — new payment required]' : ''),
             ]);
 
+            \App\Models\Payment::where('order_id', $order->id)  
+            ->where('method', 'refund')  
+            ->update([  
+                'status'      => 'cancelled',  
+                'cancelled_at' => now(),  
+                'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Refund record cancelled — order restored')"),  
+            ]);
+
             $this->rechargeOrderStoreCredit($order);
             DB::commit();
             return response()->json([
