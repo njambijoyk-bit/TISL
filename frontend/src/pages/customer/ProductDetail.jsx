@@ -52,6 +52,20 @@ export default function ProductDetail() {
   
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
+
+  const [canReview, setCanReview] = useState(false);  
+  const [eligibleOrders, setEligibleOrders] = useState([]);  
+  const [showReviewForm, setShowReviewForm] = useState(false);  
+  const [reviewData, setReviewData] = useState({  
+    order_id: '',  
+    rating: 0,  
+    title: '',  
+    comment: '',  
+    images: [],  
+  });  
+  const [submittingReview, setSubmittingReview] = useState(false);  
+  const [reviewError, setReviewError] = useState('');
+  
   const handleImageError = (idx) => setImageErrors(prev => ({ ...prev, [idx]: true }));
 
   const { addItem } = useCartStore();
@@ -71,7 +85,13 @@ export default function ProductDetail() {
     return `http://localhost:8000/storage/${imagePath}`;
   };
 
-  useEffect(() => { setImageErrors({}); fetchProductData(); }, [id]);
+  useEffect(() => {   
+    setImageErrors({});   
+    setShowReviewForm(false);  
+    setCanReview(false);  
+    setReviewError('');  
+    fetchProductData();   
+  }, [id]);
 
   const fetchProductData = async () => {
     try {
@@ -91,6 +111,21 @@ export default function ProductDetail() {
       } catch (err) {  
           console.warn('Failed to fetch reviews:', err);  
           setReviews([]);  
+      }
+
+      // Check if logged-in user can review this product  
+      if (isAuthenticated) {  
+        try {  
+          const eligibility = await productsAPI.canReview(id);  
+          setCanReview(eligibility.can_review);  
+          setEligibleOrders(eligibility.orders || []);  
+          if (eligibility.orders?.length === 1) {  
+            setReviewData(prev => ({ ...prev, order_id: eligibility.orders[0].order_id }));  
+          }  
+        } catch (err) {  
+          console.warn('Failed to check review eligibility:', err);  
+          setCanReview(false);  
+        }  
       }
       
       const normalizeRelatedProduct = (p) => {
@@ -148,6 +183,36 @@ export default function ProductDetail() {
       } else {  
         toast.error('Failed to mark review as helpful');  
       }  
+    }  
+  };
+
+  const handleSubmitReview = async () => {  
+    if (!reviewData.rating || !reviewData.order_id) {  
+      setReviewError('Please select a rating and an order');  
+      return;  
+    }  
+    setSubmittingReview(true);  
+    setReviewError('');  
+    try {  
+      const formData = new FormData();  
+      formData.append('order_id', reviewData.order_id);  
+      formData.append('rating', reviewData.rating);  
+      if (reviewData.title) formData.append('title', reviewData.title);  
+      if (reviewData.comment) formData.append('comment', reviewData.comment);  
+      if (reviewData.images?.length) {  
+        reviewData.images.forEach(img => formData.append('images[]', img));  
+      }  
+      await productsAPI.createReview(id, formData);  
+      toast.success('Review submitted! It will appear after approval.');  
+      setShowReviewForm(false);  
+      setReviewData({ order_id: '', rating: 0, title: '', comment: '', images: [] });  
+      fetchProductData(); // Refresh reviews and eligibility  
+    } catch (err) {  
+      const msg = err.response?.data?.message || err.response?.data?.errors?.rating?.[0] || 'Failed to submit review';  
+      setReviewError(msg);  
+      toast.error(msg);  
+    } finally {  
+      setSubmittingReview(false);  
     }  
   };
 
@@ -732,6 +797,160 @@ export default function ProductDetail() {
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 4 }}>{totalReviews} reviews</div>
                       </div>
                     </div>
+
+                    {/* Write a Review section */}  
+                    {canReview && !showReviewForm && (  
+                      <div style={{ marginBottom: 24, textAlign: 'center' }}>  
+                        <button  
+                          onClick={() => setShowReviewForm(true)}  
+                          style={{  
+                            padding: '12px 28px', borderRadius: 12, border: 'none',  
+                            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',  
+                            color: 'white', fontSize: '0.88rem', fontWeight: 700,  
+                            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,  
+                            boxShadow: '0 4px 14px rgba(168,85,247,0.3)',  
+                            transition: 'all 0.2s ease',  
+                          }}  
+                        >  
+                          <Star size={16} fill="white" /> Write a Review  
+                        </button>  
+                      </div>  
+                    )}  
+                      
+                    {!isAuthenticated && (  
+                      <div style={{ marginBottom: 24, textAlign: 'center', padding: '16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>  
+                        <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>  
+                          <a href="/login" style={{ color: '#a855f7', fontWeight: 600 }}>Log in</a> to write a review  
+                        </p>  
+                      </div>  
+                    )}  
+                      
+                    {isAuthenticated && !canReview && (  
+                      <div style={{ marginBottom: 24, textAlign: 'center', padding: '16px', background: '#fefce8', borderRadius: 12, border: '1px solid #fef08a' }}>  
+                        <p style={{ fontSize: '0.85rem', color: '#92400e', margin: 0 }}>  
+                          Purchase this product to leave a review  
+                        </p>  
+                      </div>  
+                    )}  
+                      
+                    {showReviewForm && (  
+                      <div style={{ marginBottom: 28, padding: 24, borderRadius: 16, border: '1.5px solid rgba(168,85,247,0.2)', background: 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)' }}>  
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>  
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>Write Your Review</h3>  
+                          <button onClick={() => { setShowReviewForm(false); setReviewError(''); }}  
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>  
+                        </div>  
+                      
+                        {/* Order selector (if multiple eligible orders) */}  
+                        {eligibleOrders.length > 1 && (  
+                          <div style={{ marginBottom: 16 }}>  
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 6 }}>Select Order *</label>  
+                            <select  
+                              value={reviewData.order_id}  
+                              onChange={e => setReviewData(prev => ({ ...prev, order_id: e.target.value }))}  
+                              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', color: '#111827', background: '#fff' }}  
+                            >  
+                              <option value="">Choose an order...</option>  
+                              {eligibleOrders.map(o => (  
+                                <option key={o.order_id} value={o.order_id}>Order #{o.order_number}</option>  
+                              ))}  
+                            </select>  
+                          </div>  
+                        )}  
+                      
+                        {/* Star rating (1-5) */}  
+                        <div style={{ marginBottom: 16 }}>  
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 6 }}>Rating *</label>  
+                          <div style={{ display: 'flex', gap: 6 }}>  
+                            {[1, 2, 3, 4, 5].map(n => (  
+                              <button key={n} onClick={() => setReviewData(prev => ({ ...prev, rating: n }))} type="button"  
+                                style={{  
+                                  background: 'none', border: 'none', cursor: 'pointer', padding: 2, transition: 'transform 0.1s',  
+                                }}  
+                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}  
+                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}  
+                              >  
+                                <Star size={28} fill={n <= reviewData.rating ? '#f59e0b' : 'none'} color={n <= reviewData.rating ? '#f59e0b' : '#d1d5db'} />  
+                              </button>  
+                            ))}  
+                            {reviewData.rating > 0 && (  
+                              <span style={{ alignSelf: 'center', marginLeft: 8, fontSize: '0.82rem', fontWeight: 600, color: '#6b7280' }}>  
+                                {reviewData.rating === 1 ? 'Poor' : reviewData.rating === 2 ? 'Fair' : reviewData.rating === 3 ? 'Good' : reviewData.rating === 4 ? 'Very Good' : 'Excellent'}  
+                              </span>  
+                            )}  
+                          </div>  
+                        </div>  
+                      
+                        {/* Title */}  
+                        <div style={{ marginBottom: 16 }}>  
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 6 }}>Review Title</label>  
+                          <input  
+                            value={reviewData.title}  
+                            onChange={e => setReviewData(prev => ({ ...prev, title: e.target.value }))}  
+                            placeholder="Sum up your review in one line"  
+                            maxLength={255}  
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', color: '#111827', background: '#fff', boxSizing: 'border-box' }}  
+                          />  
+                        </div>  
+                      
+                        {/* Comment */}  
+                        <div style={{ marginBottom: 16 }}>  
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 6 }}>Your Review</label>  
+                          <textarea  
+                            value={reviewData.comment}  
+                            onChange={e => setReviewData(prev => ({ ...prev, comment: e.target.value }))}  
+                            placeholder="What did you like or dislike about this product?"  
+                            rows={4}  
+                            maxLength={2000}  
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', color: '#111827', background: '#fff', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}  
+                          />  
+                        </div>  
+                      
+                        {/* Image upload */}  
+                        <div style={{ marginBottom: 20 }}>  
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#374151', marginBottom: 6 }}>Photos (optional, max 5)</label>  
+                          <input  
+                            type="file"  
+                            accept="image/*"  
+                            multiple  
+                            onChange={e => {  
+                              const files = Array.from(e.target.files).slice(0, 5);  
+                              setReviewData(prev => ({ ...prev, images: files }));  
+                            }}  
+                            style={{ fontSize: '0.82rem', color: '#6b7280' }}  
+                          />  
+                          {reviewData.images.length > 0 && (  
+                            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 4 }}>{reviewData.images.length} image(s) selected</p>  
+                          )}  
+                        </div>  
+                      
+                        {/* Error message */}  
+                        {reviewError && (  
+                          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>  
+                            <p style={{ fontSize: '0.82rem', color: '#dc2626', margin: 0 }}>{reviewError}</p>  
+                          </div>  
+                        )}  
+                      
+                        {/* Submit */}  
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>  
+                          <button onClick={() => { setShowReviewForm(false); setReviewError(''); }}  
+                            style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>  
+                            Cancel  
+                          </button>  
+                          <button onClick={handleSubmitReview} disabled={submittingReview || !reviewData.rating}  
+                            style={{  
+                              padding: '10px 24px', borderRadius: 10, border: 'none',  
+                              background: !reviewData.rating ? '#d1d5db' : 'linear-gradient(135deg, #a855f7, #7c3aed)',  
+                              color: 'white', fontSize: '0.85rem', fontWeight: 700,  
+                              cursor: !reviewData.rating ? 'not-allowed' : 'pointer',  
+                              opacity: submittingReview ? 0.7 : 1,  
+                              display: 'inline-flex', alignItems: 'center', gap: 6,  
+                            }}>  
+                            {submittingReview ? 'Submitting...' : 'Submit Review'}  
+                          </button>  
+                        </div>  
+                      </div>  
+                    )}
 
                     {reviews.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
