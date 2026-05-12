@@ -140,10 +140,23 @@ export default function Reviews() {
           <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
             {review.comment}
           </p>
-          {review.images && review.images.length > 0 && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {review.images.length} image(s)
-            </p>
+          {review.image_urls && review.image_urls.length > 0 && (  
+            <div className="flex gap-1 mt-2">  
+              {review.image_urls.slice(0, 3).map((url, i) => (  
+                <img  
+                  key={i}  
+                  src={url}  
+                  alt={`Review img ${i + 1}`}  
+                  className="w-10 h-10 object-cover rounded border border-gray-200"  
+                  onError={(e) => { e.target.style.display = 'none'; }}  
+                />  
+              ))}  
+              {review.image_urls.length > 3 && (  
+                <span className="text-xs text-gray-500 self-center ml-1">  
+                  +{review.image_urls.length - 3} more  
+                </span>  
+              )}  
+            </div>  
           )}
         </div>
       ),

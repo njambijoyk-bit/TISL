@@ -29,20 +29,7 @@ class ProductReview extends Model
     ];
 
     protected $appends = ['image_urls'];  
-  
-    public function getImageUrlsAttribute(): array  
-    {  
-        if (empty($this->images)) {  
-            return [];  
-        }  
-    
-        return array_map(function ($image) {  
-            if (str_starts_with($image, 'http')) {  
-                return $image;  
-            }  
-            return asset('storage/' . $image);  
-        }, $this->images);  
-    }
+
 
     // ========================================
     // RELATIONSHIPS
@@ -213,6 +200,11 @@ class ProductReview extends Model
             }
             return asset('storage/' . $image);
         }, $this->images);
+    }
+
+    public function getImageUrlsAttribute(): array  
+    {  
+        return $this->getImageUrls();  
     }
 
     /**

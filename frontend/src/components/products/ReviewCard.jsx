@@ -106,9 +106,7 @@ export default function ReviewCard({ review, onMarkHelpful }) {
                 src={url}  
                 alt={`Review ${index + 1}`}  
                 className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 group-hover:border-primary transition-all"  
-                onError={(e) => {  
-                  e.target.src = '/placeholder-product.png';  
-                }}  
+                onError={(e) => { e.target.src = '/placeholder-product.png'; }}  
               />  
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all" />  
             </button>  
