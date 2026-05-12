@@ -220,4 +220,14 @@ class ProductReview extends Model
         }
         return '';
     }
+
+    protected static function boot()  
+    {  
+        parent::boot();  
+        
+        static::deleting(function($review) {  
+            // Clean up helpful votes when review is deleted  
+            \DB::table('review_helpful_votes')->where('review_id', $review->id)->delete();  
+        });  
+    }
 }

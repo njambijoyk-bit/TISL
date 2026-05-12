@@ -93,14 +93,25 @@ class ProductReviewController extends Controller
         }
 
         // Verify order belongs to user
-        $order = Order::where('id', $request->order_id)
-            ->where('user_id', $request->user()->id)
-            ->first();
-
-        if (!$order) {
-            return response()->json([
-                'message' => 'Order not found or does not belong to you'
-            ], 404);
+        $customer = \App\Models\Customer::where('user_id', $request->user()->id)->first();  
+        if (!$customer) {  
+            return response()->json(['message' => 'Customer record not found'], 404);  
+        }  
+        
+        $order = Order::where('id', $request->order_id)  
+            ->where('customer_id', $customer->id)  
+            ->where(function($q) {  
+                $q->where('status', 'delivered')  
+                ->orWhere('status', 'shipped')
+                ->orWhere('payment_status', 'paid')  
+                ->orWhere('payment_status', 'partially_paid');  
+            })  
+            ->first();  
+        
+        if (!$order) {  
+            return response()->json([  
+                'message' => 'Order not found, does not belong to you, or is not paid/delivered'  
+            ], 404);  
         }
 
         // Verify order contains this product
@@ -246,15 +257,52 @@ class ProductReviewController extends Controller
     /**
      * Mark review as helpful (PUBLIC - once per user)
      */
-    public function markHelpful(Request $request, $id)
-    {
-        $review = ProductReview::findOrFail($id);
-        $review->incrementHelpful();
-
-        return response()->json([
-            'message' => 'Marked as helpful',
-            'helpful_count' => $review->helpful_count
-        ], 200);
+    public function markHelpful(Request $request, $id)  
+    {  
+        $review = ProductReview::findOrFail($id);  
+        
+        // Get identifier  
+        $identifier = null;  
+        $identifierType = 'ip';  
+        $ipAddress = $request->ip();  
+        
+        if (auth()->check()) {  
+            $identifier = auth()->id();  
+            $identifierType = 'user_id';  
+        } else {  
+            $identifier = $ipAddress;  
+        }  
+        
+        // Check if already voted  
+        $existingVote = \DB::table('review_helpful_votes')  
+            ->where('review_id', $id)  
+            ->where('user_identifier', $identifier)  
+            ->where('identifier_type', $identifierType)  
+            ->first();  
+        
+        if ($existingVote) {  
+            return response()->json([  
+                'message' => 'You have already marked this review as helpful',  
+                'helpful_count' => $review->helpful_count  
+            ], 400);  
+        }  
+        
+        // Record the vote  
+        \DB::table('review_helpful_votes')->insert([  
+            'review_id' => $id,  
+            'user_identifier' => $identifier,  
+            'identifier_type' => $identifierType,  
+            'ip_address' => $ipAddress,  
+            'created_at' => now(),  
+            'updated_at' => now(),  
+        ]);  
+        
+        $review->incrementHelpful();  
+    
+        return response()->json([  
+            'message' => 'Marked as helpful',  
+            'helpful_count' => $review->fresh()->helpful_count  
+        ], 200);  
     }
 
     // ============================================

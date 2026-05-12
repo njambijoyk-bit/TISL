@@ -16,11 +16,18 @@ export default function ReviewCard({ review, onMarkHelpful }) {
     return `http://localhost:8000${imagePath}`;
   };
 
-  const handleMarkHelpful = () => {
-    if (!isHelpful && onMarkHelpful) {
-      onMarkHelpful(review.id);
-      setIsHelpful(true);
-    }
+  const handleMarkHelpful = async () => {  
+    if (!isHelpful && onMarkHelpful) {  
+      try {  
+        await onMarkHelpful(review.id);  
+        setIsHelpful(true);  
+      } catch (err) {  
+        // If already voted, just show as helpful (idempotent)  
+        if (err.response?.status === 400) {  
+          setIsHelpful(true);  
+        }  
+      }  
+    }  
   };
 
   // Parse rating as number

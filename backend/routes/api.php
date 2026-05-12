@@ -110,6 +110,7 @@ Route::get('/products/on-sale', [ProductController::class, 'onSale']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products/{id}/reviews', [ProductReviewController::class, 'index']);
+Route::post('/reviews/{id}/helpful', [ProductReviewController::class, 'markHelpful']);
 
 // Auctions (Public)
 Route::get('/auctions', [AuctionController::class, 'index']);

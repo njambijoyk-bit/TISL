@@ -128,9 +128,19 @@ export default function ProductDetail() {
     toggle(product.id);
     toast.success(wished ? 'Removed from wishlist' : 'Added to wishlist');
   };
-  const handleMarkHelpful = async (reviewId) => {
-    try { await productsAPI.markReviewHelpful(reviewId); toast.success('Thank you!'); fetchProductData(); }
-    catch { toast.error('Failed to mark review as helpful'); }
+
+  const handleMarkHelpful = async (reviewId) => {  
+    try {   
+      await productsAPI.markReviewHelpful(reviewId);   
+      toast.success('Thank you!');   
+      fetchProductData();   
+    } catch (err) {  
+      if (err.response?.status === 400) {  
+        toast.info('You have already marked this review as helpful');  
+      } else {  
+        toast.error('Failed to mark review as helpful');  
+      }  
+    }  
   };
 
   if (loading) {
