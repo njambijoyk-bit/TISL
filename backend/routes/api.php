@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
+use App\Http\Controllers\Api\ReviewEligibilityController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -299,6 +300,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/transactions', [LoyaltyController::class, 'myTransactions']);
             Route::post('/redeem',      [LoyaltyController::class, 'selfRedeem']);
         });
+
+        Route::post('/products/{productId}/reviews', [ProductReviewController::class, 'store']);
+        Route::get('/products/{productId}/can-review', [ReviewEligibilityController::class, 'canReview']);
         
         // Reviews
         Route::prefix('reviews')->group(function () {

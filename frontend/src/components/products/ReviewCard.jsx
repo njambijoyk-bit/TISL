@@ -49,7 +49,7 @@ export default function ReviewCard({ review, onMarkHelpful }) {
                 <p className="font-semibold text-gray-900">
                   {review.user?.name || review.customer_name || 'Anonymous'}
                 </p>
-                {review.is_verified_purchase === 1 && (
+                {review.is_verified_purchase && (
                   <Badge variant="success" size="sm" className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" />
                     Verified Purchase

@@ -83,8 +83,16 @@ export default function ProductDetail() {
       const productData = productRes?.product || productRes;
       setProduct(productData);
       setCurrentProduct(productData);
-      setReviews(Array.isArray(productData?.reviews) ? productData.reviews : []);
-
+      // productData.reviews is an integer count, not review objects  
+      // Fetch actual reviews from the dedicated endpoint  
+      try {  
+          const reviewsRes = await productsAPI.getProductReviews(id);  
+          setReviews(reviewsRes?.reviews?.data || []);  
+      } catch (err) {  
+          console.warn('Failed to fetch reviews:', err);  
+          setReviews([]);  
+      }
+      
       const normalizeRelatedProduct = (p) => {
         const rawMain = p?.main_image_url ?? p?.mainimageurl ?? p?.mainimage ?? p?.main_image ?? null;
         const rawAdditional = p?.additional_images ?? p?.additionalimages ?? p?.images ?? [];

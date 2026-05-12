@@ -263,7 +263,7 @@ class ProductReviewController extends Controller
         
         // Get identifier  
         $identifier = null;  
-        $identifierType = 'ip';  
+        $identifierType = 'ip_address';
         $ipAddress = $request->ip();  
         
         if (auth()->check()) {  
