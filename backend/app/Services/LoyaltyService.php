@@ -119,6 +119,82 @@ class LoyaltyService
         );
     }
 
+     /**  
+     * Reverse earned points when a paid order is cancelled.  
+     * Idempotent: checks if already reversed for this order.  
+     */  
+    public function reversePointsForCancelledOrder(Order $order): void  
+    {  
+        $customer = $order->customer;  
+        if (!$customer) return;  
+    
+        // Idempotency: skip if already reversed  
+        $alreadyReversed = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_cancel')  
+            ->exists();  
+        if ($alreadyReversed) return;  
+    
+        // Find the original earn for this order  
+        $earnTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_earn')  
+            ->first();  
+        if (!$earnTx || $earnTx->points <= 0) return;  
+    
+        // Cap to customer's current balance (they may have spent some)  
+        $toDeduct = min($earnTx->points, $customer->loyalty_points);  
+        if ($toDeduct <= 0) return;  
+    
+        $this->writePointTransaction(  
+            customer:      $customer,  
+            points:        -$toDeduct,  
+            type:          'order_cancel',  
+            pointType:     'permanent',  
+            note:          "Points reversed — order {$order->order_number} cancelled",  
+            referenceType: Order::class,  
+            referenceId:   $order->id,  
+        );  
+    }  
+    
+    /**  
+     * Re-award points when a cancelled order is restored.  
+     * Idempotent: checks if already re-awarded for this order.  
+     */  
+    public function restorePointsForRestoredOrder(Order $order): void  
+    {  
+        $customer = $order->customer;  
+        if (!$customer) return;  
+    
+        // Idempotency: skip if already restored  
+        $alreadyRestored = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_restore')  
+            ->exists();  
+        if ($alreadyRestored) return;  
+    
+        // Find the cancel deduction for this order  
+        $cancelTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_cancel')  
+            ->first();  
+        if (!$cancelTx) return;  
+    
+        // Re-award the absolute value of what was deducted  
+        $toRestore = abs($cancelTx->points);  
+        if ($toRestore <= 0) return;  
+    
+        $this->writePointTransaction(  
+            customer:      $customer,  
+            points:        $toRestore,  
+            type:          'order_restore',  
+            pointType:     'permanent',  
+            note:          "Points re-awarded — order {$order->order_number} restored",  
+            referenceType: Order::class,  
+            referenceId:   $order->id,  
+        );  
+    }
+
     /**
      * Admin manually grants points to a customer.
      */
