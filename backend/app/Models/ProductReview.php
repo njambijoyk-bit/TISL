@@ -28,6 +28,22 @@ class ProductReview extends Model
         'is_approved' => 'boolean',
     ];
 
+    protected $appends = ['image_urls'];  
+  
+    public function getImageUrlsAttribute(): array  
+    {  
+        if (empty($this->images)) {  
+            return [];  
+        }  
+    
+        return array_map(function ($image) {  
+            if (str_starts_with($image, 'http')) {  
+                return $image;  
+            }  
+            return asset('storage/' . $image);  
+        }, $this->images);  
+    }
+
     // ========================================
     // RELATIONSHIPS
     // ========================================
