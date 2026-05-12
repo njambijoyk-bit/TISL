@@ -16,14 +16,27 @@ class ReviewEligibilityController extends Controller
     public function canReview(Request $request, $productId)
     {
         // Get all delivered orders for this user that contain the product
-        $eligibleOrders = Order::where('user_id', $request->user()->id)
-            ->where('status', 'delivered')
-            ->whereHas('items', function($q) use ($productId) {
-                $q->where('product_id', $productId);
-            })
-            ->with(['items' => function($q) use ($productId) {
-                $q->where('product_id', $productId);
-            }])
+        $customer = \App\Models\Customer::where('user_id', $request->user()->id)->first();  
+        if (!$customer) {  
+            return response()->json([  
+                'can_review' => false,  
+                'reason' => 'Customer record not found'  
+            ], 200);  
+        }  
+        
+        // Get paid or delivered orders that contain the product  
+        $eligibleOrders = Order::where('customer_id', $customer->id)  
+            ->where(function($q) {  
+                $q->where('status', 'delivered')  
+                ->orWhere('payment_status', 'paid')  
+                ->orWhere('payment_status', 'partially_paid');  
+            })  
+            ->whereHas('items', function($q) use ($productId) {  
+                $q->where('product_id', $productId);  
+            })  
+            ->with(['items' => function($q) use ($productId) {  
+                $q->where('product_id', $productId);  
+            }])  
             ->get();
 
         if ($eligibleOrders->isEmpty()) {
@@ -36,7 +49,7 @@ class ReviewEligibilityController extends Controller
         // Check which orders haven't been reviewed yet
         $ordersToReview = [];
         foreach ($eligibleOrders as $order) {
-            $hasReviewed = ProductReview::where('user_id', $request->user()->id)
+            $hasReviewed = ProductReview::where('user_id', $request->user()->id) // Keep user_id for reviews table
                 ->where('product_id', $productId)
                 ->where('order_id', $order->id)
                 ->exists();
