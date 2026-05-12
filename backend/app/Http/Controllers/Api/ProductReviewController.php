@@ -317,7 +317,7 @@ class ProductReviewController extends Controller
         $query = ProductReview::with(['product', 'user', 'order']);
 
         // Filter by approval status
-        if ($request->has('approved')) {
+        if ($request->filled('approved')) {
             if ($request->approved === 'true') {
                 $query->approved();
             } else {
@@ -326,12 +326,12 @@ class ProductReviewController extends Controller
         }
 
         // Filter by rating
-        if ($request->has('rating')) {
+        if ($request->filled('rating')) {
             $query->rating($request->rating);
         }
 
         // Search
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
