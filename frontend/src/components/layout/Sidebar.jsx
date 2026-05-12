@@ -43,6 +43,7 @@ const MENU_GROUPS = [
   {
     label: 'Support',
     items: [
+      { title: 'Reviews', icon: Star, path: '/admin/reviews', color: '#f59e0b' }, 
       { title: 'Tickets', icon: LifeBuoy, path: '/admin/tickets', color: '#ef4444' }, // red
     ],
   },
