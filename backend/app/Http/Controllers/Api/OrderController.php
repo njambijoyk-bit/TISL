@@ -2483,6 +2483,7 @@ class OrderController extends Controller
 
             // ── Mark/record payment refunds ─────────────────────────────────  
             if ($requiresRefund) {  
+                
                 $totalRefundedAmount = $order->items->sum('refund_amount');  
                 $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
                 
@@ -2522,6 +2523,18 @@ class OrderController extends Controller
                     ]);  
                 }  
             }
+            // ── Loyalty: reverse earned points on cancellation ─────────────  
+            if ($requiresRefund) {  
+                try {  
+                    $order->load('customer');  
+                    if ($order->customer) {  
+                        app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);  
+                    }  
+                } catch (\Exception $e) {  
+                    Log::warning("Loyalty point reversal failed for order {$order->id}: " . $e->getMessage());  
+                }  
+            }
+            
             $this->refundOrderStoreCredit($order);
             DB::commit();
 
@@ -2628,6 +2641,16 @@ class OrderController extends Controller
                 'cancelled_at' => now(),  
                 'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Refund record cancelled — order restored')"),  
             ]);
+
+            // ── Loyalty: re-award points if they were reversed during cancel ─  
+            try {  
+                $order->load('customer');  
+                if ($order->customer) {  
+                    app(\App\Services\LoyaltyService::class)->restorePointsForRestoredOrder($order);  
+                }  
+            } catch (\Exception $e) {  
+                Log::warning("Loyalty point restore failed for order {$order->id}: " . $e->getMessage());  
+            }
 
             $this->rechargeOrderStoreCredit($order);
             DB::commit();

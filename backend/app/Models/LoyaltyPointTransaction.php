@@ -105,6 +105,8 @@ class LoyaltyPointTransaction extends Model
             'expiry'         => 'gray',
             'admin_deduct'   => 'red',
             'adjustment'     => 'yellow',
+            'order_cancel'   => 'red',  
+            'order_restore'  => 'green',
             default          => 'gray',
         };
     }
@@ -121,6 +123,8 @@ class LoyaltyPointTransaction extends Model
             'redemption'     => 'Redeemed',
             'expiry'         => 'Expired',
             'adjustment'     => 'Adjustment',
+            'order_cancel'   => 'Order Cancelled',
+            'order_restore'  => 'Order Restored',
             default          => ucfirst($this->type),
         };
     }
