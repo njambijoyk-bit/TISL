@@ -94,26 +94,26 @@ export default function ReviewCard({ review, onMarkHelpful }) {
       </p>
 
       {/* Review Images */}
-      {review.images && review.images.length > 0 && (
-        <div className="flex gap-3 mb-4 overflow-x-auto pb-2">
-          {review.images.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => setImagePreview(getImageUrl(image))}
-              className="relative flex-shrink-0 group"
-            >
-              <img
-                src={getImageUrl(image)}
-                alt={`Review ${index + 1}`}
-                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 group-hover:border-primary transition-all"
-                onError={(e) => {
-                  e.target.src = '/placeholder-product.png';
-                }}
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all" />
-            </button>
-          ))}
-        </div>
+      {review.image_urls && review.image_urls.length > 0 && (  
+        <div className="flex gap-3 mb-4 overflow-x-auto pb-2">  
+          {review.image_urls.map((url, index) => (  
+            <button  
+              key={index}  
+              onClick={() => setImagePreview(url)}  
+              className="relative flex-shrink-0 group"  
+            >  
+              <img  
+                src={url}  
+                alt={`Review ${index + 1}`}  
+                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 group-hover:border-primary transition-all"  
+                onError={(e) => {  
+                  e.target.src = '/placeholder-product.png';  
+                }}  
+              />  
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all" />  
+            </button>  
+          ))}  
+        </div>  
       )}
 
       {/* Footer */}
@@ -143,25 +143,23 @@ export default function ReviewCard({ review, onMarkHelpful }) {
       </div>
 
       {/* Image Preview Modal */}
-      {imagePreview && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
-          onClick={() => setImagePreview(null)}
-        >
-          <div className="relative max-w-4xl max-h-full">
-            <img
-              src={imagePreview}
-              alt="Review preview"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
-            <button
-              onClick={() => setImagePreview(null)}
-              className="absolute top-4 right-4 bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-100 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+      {review.image_urls && review.image_urls.length > 0 && (  
+        <div className="flex gap-1 mt-2">  
+          {review.image_urls.slice(0, 3).map((url, i) => (  
+            <img  
+              key={i}  
+              src={url}  
+              alt={`Review img ${i + 1}`}  
+              className="w-10 h-10 object-cover rounded border border-gray-200"  
+              onError={(e) => { e.target.style.display = 'none'; }}  
+            />  
+          ))}  
+          {review.image_urls.length > 3 && (  
+            <span className="text-xs text-gray-500 self-center ml-1">  
+              +{review.image_urls.length - 3} more  
+            </span>  
+          )}  
+        </div>  
       )}
     </div>
   );
