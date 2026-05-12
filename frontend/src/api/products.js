@@ -84,9 +84,10 @@ const productsAPI = {
   },
 
   // Create product review
-  createReview: async (productId, data) => {
-    const response = await api.post(`/customer/products/${productId}/reviews`, data);
-    return response.data;
+  createReview: async (productId, data) => {  
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};  
+    const response = await api.post(`/customer/products/${productId}/reviews`, data, config);  
+    return response.data;  
   },
 
   // Check if can review
