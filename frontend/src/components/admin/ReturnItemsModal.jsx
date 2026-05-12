@@ -61,6 +61,13 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     ? new Date(order.converted_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' })
     : null;
 
+  // Calculate total confirmed payments from order payments data  
+  const totalConfirmedPayments = (order?.payments || [])  
+    .filter(p => p.status === 'confirmed')  
+    .reduce((sum, p) => sum + (Number(p.mpesa_amount_confirmed) || 0), 0);  
+    
+  const totalOrderKes = Number(order?.total_kes || order?.total || 0);  
+  const maxRefundable = requiresRefund ? Math.min(totalOrderKes, totalConfirmedPayments) : 0;
   const canCancel = () => {
     if (!order)                              return { valid: false, reason: 'Order data is not available. Please try again.' };
     if (order.payment_status === 'refunded') return { valid: false, reason: 'This order has already been refunded and cannot be cancelled again.' };
@@ -115,11 +122,15 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     setRefundItems(items);
   };
 
-  const handleRefundAmountChange = (index, amount) => {
-    const items = [...refundItems];
-    if (!canRefund) { items[index].refund_amount = '0.00'; return; }
-    items[index].refund_amount = Math.min(Math.max(0, parseFloat(amount) || 0), items[index].line_total).toFixed(2);
-    setRefundItems(items);
+  const handleRefundAmountChange = (index, amount) => {  
+    const items = [...refundItems];  
+    if (!canRefund) { items[index].refund_amount = '0.00'; return; }  
+    // Cap to proportional share of actual confirmed payments  
+    const itemMaxRefund = totalOrderKes > 0   
+      ? (items[index].line_total / totalOrderKes) * maxRefundable   
+      : items[index].line_total;  
+    items[index].refund_amount = Math.min(Math.max(0, parseFloat(amount) || 0), itemMaxRefund).toFixed(2);  
+    setRefundItems(items);  
   };
 
   const handleReturnStatusChange = (index, status) => {
@@ -381,7 +392,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                         <div>
                           <label style={labelStyle}>Refund Amount ({sym(currency)})</label>
                           <input
-                            type="number" min="0" max={item.line_total} step="0.01"
+                            type="number" min="0" max={totalOrderKes > 0 ? (item.line_total / totalOrderKes) * maxRefundable : item.line_total} step="0.01"
                             value={item.refund_amount}
                             disabled={!canRefund}
                             onChange={e => handleRefundAmountChange(index, e.target.value)}
@@ -432,17 +443,29 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             </div>
           )}
 
-          {/* Auto-refund notice (paid, not delivered/shipped) */}
-          {requiresRefund && !requiresReturn && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderRadius: 10, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>
-              <DollarSign size={16} color="#3b82f6" style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8', margin: '0 0 4px' }}>Full refund will be processed automatically</p>
-                <p style={{ fontSize: '0.82rem', color: '#3b82f6', margin: 0 }}>
-                  Total Amount: <strong>{money(order.total || 0, currency)}</strong>
-                </p>
-              </div>
-            </div>
+          {requiresRefund && !requiresReturn && (  
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderRadius: 10, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>  
+              <DollarSign size={16} color="#3b82f6" style={{ flexShrink: 0, marginTop: 1 }} />  
+              <div>  
+                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8', margin: '0 0 4px' }}>  
+                  Refund will be processed automatically  
+                </p>  
+                <p style={{ fontSize: '0.82rem', color: '#3b82f6', margin: '0 0 4px' }}>  
+                  Order Total: <strong>{money(order.total || 0, currency)}</strong>  
+                </p>  
+                <p style={{ fontSize: '0.82rem', color: '#3b82f6', margin: '0 0 4px' }}>  
+                  Total Confirmed Payments: <strong>{money(totalConfirmedPayments, 'KES')}</strong>  
+                </p>  
+                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8', margin: 0 }}>  
+                  Max Refundable: <strong>{money(maxRefundable, 'KES')}</strong>  
+                </p>  
+                {totalConfirmedPayments < totalOrderKes && totalConfirmedPayments > 0 && (  
+                  <p style={{ fontSize: '0.75rem', color: '#f59e0b', margin: '6px 0 0', fontWeight: 600 }}>  
+                    ⚠️ This order was only partially paid. Refund is capped to the amount actually received.  
+                  </p>  
+                )}  
+              </div>  
+            </div>  
           )}
 
           {/* Actions */}

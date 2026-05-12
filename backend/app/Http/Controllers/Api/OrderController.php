@@ -2467,14 +2467,61 @@ class OrderController extends Controller
                         }
                     }
                 }
-                if ($returnlessRefund) {
-                    foreach ($order->items as $item) {
-                        $item->update(['refund_amount' => $item->line_total_after_discount, 'quantity_returned' => 0, 'return_status' => 'completed']);
-                    }
+                if ($returnlessRefund) {  
+                    $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
+                    $totalOrderKes = (float) ($order->total_kes ?? $order->total ?? 0);  
+                    $maxRefundable = min($totalOrderKes, $totalConfirmedPayments);  
+                    
+                    foreach ($order->items as $item) {  
+                        $itemShare = $totalOrderKes > 0 ? ($item->line_total_after_discount / $totalOrderKes) : 0;  
+                        $refundAmount = round($maxRefundable * $itemShare, 2);  
+                        $item->update(['refund_amount' => $refundAmount, 'quantity_returned' => 0, 'return_status' => 'completed']);  
+                    }  
                 }
                 $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
             }
 
+            // ── Mark/record payment refunds ─────────────────────────────────  
+            if ($requiresRefund) {  
+                $totalRefundedAmount = $order->items->sum('refund_amount');  
+                $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
+                
+                $isFullRefund = $totalRefundedAmount >= $totalConfirmedPayments;  
+                
+                if ($isFullRefund) {  
+                    // Full refund — mark all confirmed payments as refunded  
+                    \App\Models\Payment::where('order_id', $order->id)  
+                        ->where('status', 'confirmed')  
+                        ->update([  
+                            'status' => 'refunded',  
+                            'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Marked as refunded — order cancelled (full refund)')"),  
+                        ]);  
+                } else {  
+                    // Partial refund — create a refund payment record for audit trail  
+                    // Keep original payments as confirmed (they were real)  
+                    $snapshot = \App\Models\Payment::buildSnapshot($order);  
+                    $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
+                    
+                    \App\Models\Payment::create([  
+                        'order_id'             => $order->id,  
+                        'customer_id'          => $order->customer_id,  
+                        'initiated_by'         => $request->user()->id,  
+                        'payment_number'       => $paymentNumber,  
+                        'method'               => 'refund',  
+                        'status'               => 'confirmed',  
+                        'currency'             => $order->currency ?? 'KES',  
+                        'exchange_rate_to_kes' => $order->exchange_rate_to_kes ?? 1,  
+                        'amount_expected'      => $totalRefundedAmount,  
+                        'amount_received'      => $totalRefundedAmount,  
+                        'mpesa_amount_confirmed' => $totalRefundedAmount,  
+                        'is_partial'           => true,  
+                        ...$snapshot,  
+                        'notes'                => "Partial refund for cancelled order. Refund amount: {$totalRefundedAmount}",  
+                        'initiated_at'         => now(),  
+                        'confirmed_at'         => now(),  
+                    ]);  
+                }  
+            }
             $this->refundOrderStoreCredit($order);
             DB::commit();
 
@@ -2484,7 +2531,13 @@ class OrderController extends Controller
                 Log::error('Admin cancel email failed: ' . $e->getMessage());
             }
 
-            return response()->json(['message' => 'Order cancelled successfully', 'order' => $order->fresh('items.product', 'customer'), 'requires_refund' => $requiresRefund, 'requires_return' => $requiresReturn], 200);
+            return response()->json([  
+                'message' => 'Order cancelled successfully',   
+                'order' => $order->fresh('items.product', 'customer'),   
+                'requires_refund' => $requiresRefund,   
+                'requires_return' => $requiresReturn,  
+                'total_confirmed_payments' => $order->getTotalConfirmedPayments(),  
+            ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -2677,41 +2730,55 @@ class OrderController extends Controller
         }
     }
 
-    public function refundPreview(Request $request, $id)
-    {
-        $order = Order::with('items')->findOrFail($id);
-
-        $requiresRefund = in_array($order->payment_status, ['paid', 'partially_paid']);
-        $requiresReturn = in_array($order->status, ['delivered', 'shipped']) && $requiresRefund;
-
-        $items = $order->items->map(function ($item) use ($requiresReturn) {
-            $quantity = round((float) ($item->quantity ?? 0), 4);
-            $quantityReturned = round((float) ($item->quantity_returned ?? 0), 4);
-
-            return [
-                'id'                      => $item->id,
-                'product_name'            => $item->product_name,
-                'product_sku'             => $item->product_sku,
-                'quantity'                => $quantity,
-                'quantity_returned'       => $quantityReturned,
-                'max_returnable'          => max(0, round($quantity - $quantityReturned, 4)),
-                'unit_price'              => (float) ($item->unit_price ?? 0),
-                'line_total'              => (float) ($item->line_total_after_discount ?? 0),
-                'current_refund_amount'   => (float) ($item->refund_amount ?? 0),
-                'suggested_refund_amount' => $requiresReturn ? 0 : (float) ($item->line_total_after_discount ?? 0),
-                'return_status'           => $item->return_status,
-            ];
-        });
-
-        return response()->json([
-            'order_number'    => $order->order_number,
-            'status'          => $order->status,
-            'payment_status'  => $order->payment_status,
-            'total'           => (float) ($order->total ?? 0),
-            'requires_refund' => $requiresRefund,
-            'requires_return' => $requiresReturn,
-            'items'           => $items,
-        ], 200);
+    public function refundPreview(Request $request, $id)  
+    {  
+        $order = Order::with('items')->findOrFail($id);  
+    
+        $requiresRefund = in_array($order->payment_status, ['paid', 'partially_paid']);  
+        $requiresReturn = in_array($order->status, ['delivered', 'shipped']) && $requiresRefund;  
+        
+        $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
+        $totalOrderKes = (float) ($order->total_kes ?? $order->total ?? 0);  
+        $maxRefundable = $requiresRefund ? min($totalOrderKes, $totalConfirmedPayments) : 0;  
+    
+        $items = $order->items->map(function ($item) use ($requiresReturn, $totalOrderKes, $maxRefundable) {  
+            $quantity = round((float) ($item->quantity ?? 0), 4);  
+            $quantityReturned = round((float) ($item->quantity_returned ?? 0), 4);  
+            $lineTotal = (float) ($item->line_total_after_discount ?? 0);  
+            
+            // Cap suggested refund to proportional share of actual payments  
+            $itemShare = $totalOrderKes > 0 ? ($lineTotal / $totalOrderKes) : 0;  
+            $suggestedRefund = $requiresReturn ? 0 : round($maxRefundable * $itemShare, 2);  
+            $maxItemRefund = round($maxRefundable * $itemShare, 2);  
+    
+            return [  
+                'id'                      => $item->id,  
+                'product_name'            => $item->product_name,  
+                'product_sku'             => $item->product_sku,  
+                'quantity'                => $quantity,  
+                'quantity_returned'       => $quantityReturned,  
+                'max_returnable'          => max(0, round($quantity - $quantityReturned, 4)),  
+                'unit_price'              => (float) ($item->unit_price ?? 0),  
+                'line_total'              => $lineTotal,  
+                'max_refundable'          => $maxItemRefund,  
+                'current_refund_amount'   => (float) ($item->refund_amount ?? 0),  
+                'suggested_refund_amount' => $suggestedRefund,  
+                'return_status'           => $item->return_status,  
+            ];  
+        });  
+    
+        return response()->json([  
+            'order_number'              => $order->order_number,  
+            'status'                    => $order->status,  
+            'payment_status'            => $order->payment_status,  
+            'total'                     => (float) ($order->total ?? 0),  
+            'total_kes'                 => $totalOrderKes,  
+            'total_confirmed_payments'  => $totalConfirmedPayments,  
+            'max_refundable'            => $maxRefundable,  
+            'requires_refund'           => $requiresRefund,  
+            'requires_return'           => $requiresReturn,  
+            'items'                     => $items,  
+        ], 200);  
     }
 
     public function bulkRestore(Request $request)
