@@ -1883,7 +1883,7 @@ export default function OrderDetail() {
         key={`cancel-${order?.id}-${order?.status}-${order?.payment_status}`}
         isOpen={returnModal}
         onClose={() => setReturnModal(false)}
-        order={order}
+        order={{ ...order, payments: orderPayments?.payments || order?.payments || [] }}
         onConfirmCancel={handleAdminCancel}
       />
 
