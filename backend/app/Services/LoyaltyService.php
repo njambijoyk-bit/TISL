@@ -128,12 +128,18 @@ class LoyaltyService
         $customer = $order->customer;  
         if (!$customer) return;  
     
-        // Idempotency: skip if already reversed  
-        $alreadyReversed = LoyaltyPointTransaction::where('reference_type', Order::class)  
+        // Idempotency: compare cancel vs restore counts to handle cancel-restore-cancel cycles  
+        $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_cancel')  
-            ->exists();  
-        if ($alreadyReversed) return;  
+            ->count();  
+        $restoreCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_restore')  
+            ->count();  
+        
+        // If there are more cancels than restores, the last cancel hasn't been restored yet — skip  
+        if ($cancelCount > $restoreCount) return;
     
         // Find the original earn for this order  
         $earnTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
@@ -166,19 +172,26 @@ class LoyaltyService
         $customer = $order->customer;  
         if (!$customer) return;  
     
-        // Idempotency: skip if already restored  
-        $alreadyRestored = LoyaltyPointTransaction::where('reference_type', Order::class)  
+        // Idempotency: compare cancel vs restore counts to handle cancel-restore-cancel cycles  
+        $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
+            ->where('reference_id', $order->id)  
+            ->where('type', 'order_cancel')  
+            ->count();  
+        $restoreCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_restore')  
-            ->exists();  
-        if ($alreadyRestored) return;  
-    
-        // Find the cancel deduction for this order  
+            ->count();  
+        
+        // If restores already match or exceed cancels, nothing to restore — skip  
+        if ($restoreCount >= $cancelCount) return;  
+        
+        // Find the LATEST cancel deduction for this order (not a stale one from a previous cycle)  
         $cancelTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_cancel')  
+            ->latest()  
             ->first();  
-        if (!$cancelTx) return;  
+        if (!$cancelTx) return;
     
         // Re-award the absolute value of what was deducted  
         $toRestore = abs($cancelTx->points);  
