@@ -14,6 +14,7 @@ import CustomerSelectorModal from './CustomerSelectorModal';
 import PromoCodeInput from '../common/PromoCodeInput';
 import usePromoCodeStore from '../../store/promoCodeStore';
 import currencyAPI from '../../api/currency';
+import shippingAPI from '../../api/shipping';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -81,7 +82,6 @@ const PRODUCT_UNITS  = ['each','unit','piece','box','pack','set','dozen','kg','g
 const SERVICE_UNITS  = ['hour','day','week','month','session','visit','project','job','each'];
 const FEE_UNITS      = ['one-time','per_transaction','per_user','per_month','per_year','per_project','per_item','flat_rate','each'];
 
-const DELIVERY_OPTS   = [['pickup','Pickup (Free)'],['standard_delivery','Standard Delivery'],['express_delivery','Express Delivery'],['courier','Courier']];
 const PRIORITY_OPTS   = [['low','Low'],['medium','Medium'],['high','High'],['urgent','Urgent']];
 const ORDER_TYPE_OPTS = [['standard','Standard'],['quotation','Quotation'],['bulk','Bulk'],['b2b','B2B'],['service','Service'],['mixed','Mixed'],['project','Project'],['subscription','Subscription']];
 const PAY_STATUS_OPTS = [['unpaid','Unpaid'],['partially_paid','Partially Paid'],['paid','Paid']];
@@ -169,6 +169,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const [paymentReference, setPaymentReference] = useState('');
   const [applyTax,         setApplyTax]         = useState(true);
   const [shippingCost,     setShippingCost]     = useState(0);
+  const [shippingOptions,  setShippingOptions]  = useState([]);
+  const [overrideShipping, setOverrideShipping] = useState(false);
 
   // ── Discounts ─────────────────────────────────────────────────────────────
   const [useDiscountPct, setUseDiscountPct] = useState(false);
@@ -193,6 +195,10 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   }, [isOpen]);
 
   useEffect(() => {
+    shippingAPI.getOptions().then(opts => setShippingOptions(opts)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!isOpen || !editMode || !initialData) return;
 
     setCustomerId(String(initialData.customer_id || ''));
@@ -214,7 +220,20 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     setPaymentMethod(initialData.payment_method || 'request_invoice');
     setPaymentReference(initialData.payment_reference || '');
     setApplyTax(Number(initialData.tax) > 0);
-    setShippingCost(Number(initialData.shipping_cost || 0));
+    const savedCost = Number(initialData.shipping_cost || 0);
+    setShippingCost(savedCost);
+    // Check if the saved cost differs from what the shipping option would give
+    // If so, admin had overridden — preserve that
+    shippingAPI.getOptions().then(opts => {
+      const opt = opts.find(o => o.slug === (initialData.delivery_method || 'standard_delivery'));
+      if (opt) {
+        const sub = Number(initialData.subtotal || 0);
+        const expected = (opt.free_above && sub >= parseFloat(opt.free_above)) ? 0 : parseFloat(opt.cost);
+        if (Math.abs(savedCost - expected) > 0.01) {
+          setOverrideShipping(true);
+        }
+      }
+    }).catch(() => {});
     setOrderDiscount(Number(initialData.discount || 0));
     if (Number(initialData.subtotal || 0) > 0) {
       setDiscountPct(((Number(initialData.discount || 0) / Number(initialData.subtotal)) * 100).toFixed(3));
@@ -353,6 +372,16 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const itemsSubtotal   = validItems.reduce((s, i) => s + (parseFloat(i.line_total_after_discount) || 0), 0);
   const totalItemDisc   = validItems.reduce((s, i) => s + (parseFloat(i.discount_amount) || 0), 0);
   const origTotal       = validItems.reduce((s, i) => s + (parseFloat(i.line_total) || 0), 0);
+
+  useEffect(() => {
+    if (overrideShipping) return;
+    const opt = shippingOptions.find(o => o.slug === deliveryMethod);
+    if (!opt) { setShippingCost(0); return; }
+    const cost = (opt.free_above && itemsSubtotal >= parseFloat(opt.free_above))
+      ? 0
+      : parseFloat(opt.cost);
+    setShippingCost(cost);
+  }, [deliveryMethod, shippingOptions, itemsSubtotal, overrideShipping]);
 
   const promoDiscountAmt = appliedPromo?.discount ?? 0;
   const afterOrderDisc   = itemsSubtotal - (parseFloat(orderDiscount) || 0) - promoDiscountAmt;
@@ -647,7 +676,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     setProjectName(''); setServiceStartDate(''); setServiceEndDate('');
     setCustomerNotes(''); setAdminNotes('');
     setPaymentStatus('unpaid'); setPaymentMethod('request_invoice');
-    setPaymentReference(''); setApplyTax(true); setShippingCost(0);
+    setPaymentReference(''); setApplyTax(true); setShippingCost(0); setOverrideShipping(false);
     setOrderDiscount(0); setDiscountPct(0); setUseDiscountPct(false);
     setError(''); setLoading(false); setPricingErrors([]); setShowPricingModal(false);
     clearPromo();
@@ -1086,18 +1115,26 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
               <div style={sectionStyle}>
                 <SectionTitle icon={MapPin}>Delivery</SectionTitle>
                 <div className="com-grid-2" style={{ marginBottom: 14 }}>
-                  <Field label="Delivery Method" required>
-                    <select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)} disabled={loading}
-                      style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
-                      {DELIVERY_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                  </Field>
                   <Field label="Priority">
                     <select value={priority} onChange={e => setPriority(e.target.value)} disabled={loading}
                       style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
                       {PRIORITY_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                   </Field>
+                  <Field label="Delivery Method" required>
+                    <select value={deliveryMethod} onChange={e => { setDeliveryMethod(e.target.value); setOverrideShipping(false); }} disabled={loading}
+                      style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
+                      {shippingOptions.length > 0
+                        ? shippingOptions.map(opt => (
+                            <option key={opt.slug} value={opt.slug}>
+                              {opt.name}{parseFloat(opt.cost) === 0 ? ' (Free)' : ` — KES ${Number(opt.cost).toLocaleString()}`}
+                            </option>
+                          ))
+                        : <option value="standard_delivery">Standard Delivery</option>
+                      }
+                    </select>
+                  </Field>
+                  
                 </div>
                 <Field label="Shipping Address" required>
                   <textarea value={shippingAddress}
@@ -1224,10 +1261,25 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
 
               {/* Shipping cost */}
               <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid #e5e7eb', background: 'white' }}>
-                <Field label="Shipping Cost">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={labelStyle}>Shipping Cost</label>
+                  <button type="button" onClick={() => setOverrideShipping(!overrideShipping)}
+                    style={{ fontSize: '0.68rem', color: purple, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {overrideShipping ? 'Use auto' : 'Override'}
+                  </button>
+                </div>
+                {overrideShipping ? (
                   <PrefixInput type="number" min="0" step="0.01" value={shippingCost}
                     onChange={e => setShippingCost(e.target.value)} disabled={loading} prefix={cs} />
-                </Field>
+                ) : (
+                  <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', margin: 0, fontFamily: 'monospace' }}>
+                    {cs} {Number(shippingCost).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                    {shippingOptions.find(o => o.slug === deliveryMethod)?.free_above &&
+                      itemsSubtotal >= parseFloat(shippingOptions.find(o => o.slug === deliveryMethod).free_above) && (
+                      <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600, marginLeft: 8, fontFamily: 'inherit' }}>Free shipping applied</span>
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Order-level discount */}
