@@ -21,7 +21,7 @@ class ProductReviewController extends Controller
     {
         $product = Product::findOrFail($productId);
 
-        $query = ProductReview::with(['user'])
+        $query = ProductReview::with(['user.customer'])
             ->where('product_id', $productId)
             ->approved();
 
@@ -314,7 +314,7 @@ class ProductReviewController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = ProductReview::with(['product', 'user', 'order']);
+        $query = ProductReview::with(['product', 'user.customer', 'order']);
 
         // Filter by approval status
         if ($request->filled('approved')) {

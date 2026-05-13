@@ -256,7 +256,7 @@ class ProductController extends Controller
                 'activeAuction',
                 'reviews' => function($query) {
                     $query->where('is_approved', true)  // Changed from status
-                        ->with('user:id,name,email')
+                        ->with(['user:id,name,email', 'user.customer:id,user_id,first_name,last_name,profile_image'])
                         ->orderBy('created_at', 'desc');
                 }
             ])

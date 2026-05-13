@@ -77,6 +77,13 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    /**
+     * Append custom attributes.
+     */
+    protected $appends = [
+        'profile_picture_url',
+    ];
+
     // ========================================
     // RELATIONSHIPS
     // ========================================
@@ -544,7 +551,7 @@ class User extends Authenticatable
         }
 
         // Local storage image
-        return asset('storage/customers' . $this->profile_picture);
+        return asset('storage/' . $this->profile_picture);
     }
 
     /**

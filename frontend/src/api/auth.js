@@ -33,7 +33,15 @@ const authAPI = {
 
   forceChangePassword: (data) =>
     api.post('/auth/force-change-password', data).then((r) => r.data),
-
+ 
+  // Upload profile picture
+  uploadProfilePicture: async (formData) => {
+    const response = await api.post('/auth/profile-picture', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  
   // Forgot password
   forgotPassword: async (email) => {
     const response = await api.post('/auth/forgot-password', { email });
