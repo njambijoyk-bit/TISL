@@ -367,15 +367,18 @@ export default function UserDetail() {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', paddingTop: 4 }}>
 
           {/* Avatar */}
-          <div style={{
-            width: 64, height: 64, borderRadius: 14, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: rm.bg, color: rm.color,
-            fontSize: '1.5rem', fontWeight: 800,
-            boxShadow: `0 0 0 1px ${rm.ring}`,
-          }}>
-            {user.name?.[0]?.toUpperCase() ?? '?'}
-          </div>
+          <img
+            src={
+              user.role === 'customer'
+                ? (user.customer?.profile_image_url || user.profile_picture_url)
+                : user.profile_picture_url
+            }
+            alt={user.name}
+            style={{
+              width: 64, height: 64, borderRadius: '50%', objectFit: 'cover',
+              flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block',
+            }}
+          />
 
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>

@@ -79,7 +79,7 @@ class UserController extends Controller
 
         $perPage = (int) $request->input('per_page', 20);
         $users   = $query->paginate($perPage);
-        $users->load(['employee.manager.user', 'vendor']);             // ← added vendor eager load
+        $users->load(['employee.manager.user', 'vendor', 'customer']);
 
         return response()->json($users);
     }
