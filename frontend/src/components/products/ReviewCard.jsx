@@ -1,164 +1,192 @@
 import { Star, ThumbsUp, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import Badge from '../common/Badge';
 
-export default function ReviewCard({ review, onMarkHelpful }) {
-  const [imagePreview, setImagePreview] = useState(null);
+export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
   const [isHelpful, setIsHelpful] = useState(false);
 
-  // Helper to resolve image URLs
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
     return `http://localhost:8000${imagePath}`;
   };
 
-  const handleMarkHelpful = async () => {  
-    if (!isHelpful && onMarkHelpful) {  
-      try {  
-        await onMarkHelpful(review.id);  
-        setIsHelpful(true);  
-      } catch (err) {  
-        // If already voted, just show as helpful (idempotent)  
-        if (err.response?.status === 400) {  
-          setIsHelpful(true);  
-        }  
-      }  
-    }  
+  const handleMarkHelpful = async () => {
+    if (!isHelpful && onMarkHelpful) {
+      try {
+        await onMarkHelpful(review.id);
+        setIsHelpful(true);
+      } catch (err) {
+        if (err.response?.status === 400) setIsHelpful(true);
+      }
+    }
   };
 
-  // Parse rating as number
   const rating = parseInt(review.rating) || 0;
+  const initial = (review.user?.name || review.customer_name || 'A')[0].toUpperCase();
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+    <div
+      style={{
+        background: 'white',
+        border: '1px solid rgba(168,85,247,0.12)',
+        borderRadius: 14,
+        padding: '18px 20px',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+        e.currentTarget.style.boxShadow = '0 2px 16px rgba(168,85,247,0.08)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.12)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            {/* User Avatar */}
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {(review.user?.name || review.customer_name || 'A')[0].toUpperCase()}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+          {/* Avatar */}
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', fontSize: '0.82rem', fontWeight: 800,
+          }}>
+            {initial}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>
+                {review.user?.name || review.customer_name || 'Anonymous'}
+              </span>
+              {review.is_verified_purchase && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                  fontSize: '0.62rem', fontWeight: 700, color: '#059669',
+                  background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+                  padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}>
+                  <CheckCircle size={9} /> Verified
+                </span>
+              )}
             </div>
-            
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-gray-900">
-                  {review.user?.name || review.customer_name || 'Anonymous'}
-                </p>
-                {review.is_verified_purchase && (
-                  <Badge variant="success" size="sm" className="flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" />
-                    Verified Purchase
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-gray-500">
-                {review.created_at ? format(new Date(review.created_at), 'MMMM d, yyyy') : 'Recently'}
-              </p>
-            </div>
+            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>
+              {review.created_at ? format(new Date(review.created_at), 'MMMM d, yyyy') : 'Recently'}
+            </p>
           </div>
         </div>
 
         {/* Rating */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 1 }}>
             {[...Array(5)].map((_, i) => (
               <Star
-                key={i}
-                className={`w-5 h-5 ${
-                  i < rating
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'fill-gray-200 text-gray-200'
-                }`}
+                key={i} size={13}
+                style={{
+                  color: i < rating ? '#f59e0b' : '#e5e7eb',
+                  fill: i < rating ? '#f59e0b' : '#e5e7eb',
+                }}
               />
             ))}
           </div>
-          <span className="font-semibold text-gray-700">{rating}.0</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }}>{rating}.0</span>
         </div>
       </div>
 
-      {/* Review Title */}
+      {/* Title */}
       {review.title && (
-        <h4 className="font-semibold text-lg text-gray-900 mb-3">
+        <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.3 }}>
           {review.title}
-        </h4>
+        </p>
       )}
 
-      {/* Review Comment */}
-      <p className="text-gray-700 leading-relaxed mb-4">
+      {/* Comment */}
+      <p style={{ fontSize: '0.82rem', color: '#4b5563', lineHeight: 1.7, margin: '0 0 12px' }}>
         {review.comment || review.review}
       </p>
 
-      {/* Review Images */}
-      {review.image_urls && review.image_urls.length > 0 && (  
-        <div className="flex gap-3 mb-4 overflow-x-auto pb-2">  
-          {review.image_urls.map((url, index) => (  
-            <button  
-              key={index}  
-              onClick={() => setImagePreview(url)}  
-              className="relative flex-shrink-0 group"  
-            >  
-              <img  
-                src={url}  
-                alt={`Review ${index + 1}`}  
-                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 group-hover:border-primary transition-all"  
-                onError={(e) => { e.target.src = '/placeholder-product.png'; }}  
-              />  
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all" />  
-            </button>  
-          ))}  
-        </div>  
+      {/* Review Images — small thumbnails */}
+      {review.image_urls && review.image_urls.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {review.image_urls.slice(0, 5).map((url, i) => (
+            <img
+              key={i}
+              src={getImageUrl(url)}
+              alt={`Review ${i + 1}`}
+              onClick={() => onImageClick?.(getImageUrl(url))}
+              onError={e => { e.target.style.display = 'none'; }}
+              style={{
+                width: 44, height: 44, objectFit: 'cover',
+                borderRadius: 8,
+                border: '1.5px solid rgba(168,85,247,0.2)',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = '#a855f7';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          ))}
+          {review.image_urls.length > 5 && (
+            <div
+              onClick={() => onImageClick?.(getImageUrl(review.image_urls[5]))}
+              style={{
+                width: 44, height: 44, borderRadius: 8,
+                background: 'rgba(168,85,247,0.06)',
+                border: '1.5px solid rgba(168,85,247,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed',
+                cursor: 'pointer',
+              }}
+            >
+              +{review.image_urls.length - 5}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        {/* Helpful Button */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)',
+      }}>
         <button
           onClick={handleMarkHelpful}
           disabled={isHelpful}
-          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-            isHelpful
-              ? 'text-primary cursor-default'
-              : 'text-gray-600 hover:text-primary'
-          }`}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: '0.75rem', fontWeight: 600,
+            color: isHelpful ? '#a855f7' : '#9ca3af',
+            background: isHelpful ? 'rgba(168,85,247,0.06)' : 'transparent',
+            border: isHelpful ? '1px solid rgba(168,85,247,0.15)' : '1px solid transparent',
+            padding: '5px 10px', borderRadius: 8,
+            cursor: isHelpful ? 'default' : 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { if (!isHelpful) { e.currentTarget.style.color = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; } }}
+          onMouseLeave={e => { if (!isHelpful) { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; } }}
         >
-          <ThumbsUp className={`w-4 h-4 ${isHelpful ? 'fill-primary' : ''}`} />
-          <span>
-            {isHelpful ? 'Marked as helpful' : 'Helpful'} ({review.helpful_count || 0})
-          </span>
+          <ThumbsUp size={12} style={{ fill: isHelpful ? '#a855f7' : 'none' }} />
+          {isHelpful ? 'Helpful' : 'Helpful'} ({review.helpful_count || 0})
         </button>
 
-        {/* Additional Info */}
         {review.variant && (
-          <Badge variant="secondary" size="sm">
+          <span style={{
+            fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af',
+            background: '#f9fafb', border: '1px solid #f3f4f6',
+            padding: '3px 8px', borderRadius: 6,
+          }}>
             Variant: {review.variant}
-          </Badge>
+          </span>
         )}
       </div>
-
-      {/* Image Preview Modal */}
-      {review.image_urls && review.image_urls.length > 0 && (  
-        <div className="flex gap-1 mt-2">  
-          {review.image_urls.slice(0, 3).map((url, i) => (  
-            <img  
-              key={i}  
-              src={url}  
-              alt={`Review img ${i + 1}`}  
-              className="w-10 h-10 object-cover rounded border border-gray-200"  
-              onError={(e) => { e.target.style.display = 'none'; }}  
-            />  
-          ))}  
-          {review.image_urls.length > 3 && (  
-            <span className="text-xs text-gray-500 self-center ml-1">  
-              +{review.image_urls.length - 3} more  
-            </span>  
-          )}  
-        </div>  
-      )}
     </div>
   );
 }
