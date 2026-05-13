@@ -1,7 +1,7 @@
 import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home,
   Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap,
-  UserCheck, Settings as SettingsIcon, FootprintsIcon,
+  UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../../components/layout/Sidebar';
@@ -22,6 +22,8 @@ const GROUPS = [
     items: [
       { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#0e7490,#06b6d4)', color: '#06b6d4', path: '/admin/settings/general',  active: true },
       { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981', path: '/admin/settings/currency', active: true },
+      { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fb923c', path: '/admin/settings/shipping', active: true },
+      
     ],
   },
   {

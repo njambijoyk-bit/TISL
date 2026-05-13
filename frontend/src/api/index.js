@@ -5,6 +5,7 @@ export { default as auctionsAPI } from './auctions';
 export { default as productsAPI } from './products';
 export { default as ordersAPI } from './orders';
 export { default as currencyAPI } from './currency';
+export { default as shippingAPI } from './shipping';
 export { default as quotesAPI } from './quotes';
 export { default as categoriesAPI } from './categories';
 export { default as brandsAPI } from './brands';

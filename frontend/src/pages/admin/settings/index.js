@@ -3,6 +3,7 @@
 
 export { default as Settings } from './Settings';
 export { default as CurrencySettings } from './CurrencySettings';
+export { default as ShippingSettings } from './ShippingSettings';
 export { default as GeneralSettings } from './GeneralSettings';
 export { default as NotificationSettings } from './NotificationSettings';
 export { default as SecuritySettings } from './SecuritySettings';

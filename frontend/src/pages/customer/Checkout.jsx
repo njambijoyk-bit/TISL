@@ -7,6 +7,7 @@ import PromoCodeInput from '../../components/common/PromoCodeInput';
 import { useCartStore, useAuthStore } from '../../store';
 import useOrderStore from '../../store/orderStore';
 import usePromoCodeStore from '../../store/promoCodeStore';
+import shippingAPI from '../../api/shipping';
 import toast from 'react-hot-toast';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -102,6 +103,18 @@ export default function Checkout() {
   const [loading, setLoading]             = useState(false);
   const [errors,  setErrors]              = useState({});
 
+  const [shippingOptions, setShippingOptions] = useState([]);
+
+  useEffect(() => {
+    shippingAPI.getActiveOptions().then(opts => {
+      setShippingOptions(opts);
+      // Default to first option if available
+      if (opts.length > 0 && !opts.find(o => o.slug === 'standard_delivery')) {
+        setForm(f => ({ ...f, delivery_method: opts[0].slug }));
+      }
+    }).catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     customer_email:    user?.email || '',
     customer_phone:    user?.phone || '',
@@ -170,10 +183,10 @@ export default function Checkout() {
   const promoDiscount   = appliedPromo?.discount ?? 0;
   const taxable         = subtotal - promoDiscount;
   const tax             = taxable * 0.16;
-  const shipping        = form.delivery_method === 'express_delivery' ? 1500
-                        : form.delivery_method === 'courier'          ? 2000
-                        : form.delivery_method === 'pickup'           ? 0
-                        : subtotal >= 50000                           ? 0 : 500;
+  const selectedShipping = shippingOptions.find(o => o.slug === form.delivery_method);
+  const shipping         = !selectedShipping ? 0
+                         : (selectedShipping.free_above && subtotal >= parseFloat(selectedShipping.free_above)) ? 0
+                         : parseFloat(selectedShipping.cost);
   const preCredit       = subtotal - promoDiscount + tax + shipping;
   const creditDeduction = applyCredit
     ? Math.min(parseFloat(creditInput) || 0, availableCredit, preCredit)
@@ -273,13 +286,16 @@ export default function Checkout() {
 
                 <p style={{ ...labelStyle, marginTop: 16, marginBottom: 10 }}>Delivery method</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { value: 'standard_delivery', label: 'Standard delivery',  sub: '2–3 business days · KES 500',   icon: <Truck size={16} /> },
-                    { value: 'express_delivery',  label: 'Express delivery',   sub: '1 business day · KES 1,500',    icon: <Truck size={16} /> },
-                    { value: 'courier',           label: 'Courier service',    sub: 'Same-day in Nairobi · KES 2,000',icon: <Truck size={16} /> },
-                    { value: 'pickup',            label: 'Store pickup',       sub: 'Free · Collect from our store', icon: <Package size={16} /> },
-                  ].map(opt => (
-                    <RadioCard key={opt.value} {...opt} current={form.delivery_method} onChange={v => setForm(f => ({ ...f, delivery_method: v }))} />
+                  {shippingOptions.map(opt => (
+                    <RadioCard
+                      key={opt.slug}
+                      value={opt.slug}
+                      label={opt.name}
+                      sub={`${opt.description || ''}${opt.description ? ' · ' : ''}${parseFloat(opt.cost) === 0 ? 'Free' : `KES ${Number(opt.cost).toLocaleString()}`}${opt.free_above ? ` (free above KES ${Number(opt.free_above).toLocaleString()})` : ''}`}
+                      icon={opt.icon === 'Package' ? <Package size={16} /> : <Truck size={16} />}
+                      current={form.delivery_method}
+                      onChange={v => setForm(f => ({ ...f, delivery_method: v }))}
+                    />
                   ))}
                 </div>
               </div>
