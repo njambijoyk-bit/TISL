@@ -15,6 +15,7 @@ import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import AddItemModal from '../../components/common/AddItemModal';
 import useOrderStore from '../../store/orderStore';
 import paymentsAPI from '../../api/payments';
+import shippingAPI from '../../api/shipping';
 import useProductStore from '../../store/productStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -158,6 +159,7 @@ export default function CustomerOrderDetail() {
   const [items, setItems] = useState([]);
   const [paymentMethod, setPaymentMethod]   = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState('');
+  const [shippingOptions, setShippingOptions] = useState([]);
   const [courierCompany, setCourierCompany] = useState('');
   const [orderType, setOrderType]           = useState('standard');
   const [shippingAddress, setShippingAddress] = useState('');
@@ -213,6 +215,10 @@ export default function CustomerOrderDetail() {
       setItemVariants(variants);
     }
   }, [order]);
+
+  useEffect(() => {
+    shippingAPI.getActiveOptions().then(opts => setShippingOptions(opts)).catch(() => {});
+  }, []);
 
   const totalQty    = items.reduce((s, i) => s + Number(i.quantity || 0), 0);
   const canEdit     = order?.status === 'pending';
@@ -1574,15 +1580,19 @@ export default function CustomerOrderDetail() {
                       <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Payment</p>
                     </div>
                     {canEdit ? (
-                      <Select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
-                        options={[
-                          { value: 'request_invoice', label: 'Request Invoice' },
-                          { value: 'pay_on_delivery', label: 'Pay on Delivery' },
-                          { value: 'mpesa', label: 'M-Pesa' },
-                          { value: 'bank_transfer', label: 'Bank Transfer' },
-                          { value: 'credit_card', label: 'Credit Card' },
-                          { value: 'credit', label: 'Credit' },
-                        ]} />
+                      <Select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}
+                        options={shippingOptions.length > 0
+                          ? shippingOptions.map(opt => ({
+                              value: opt.slug,
+                              label: `${opt.name}${parseFloat(opt.cost) === 0 ? '' : ` — KES ${Number(opt.cost).toLocaleString()}`}`,
+                            }))
+                          : [
+                              { value: 'pickup',            label: 'Pickup' },
+                              { value: 'standard_delivery', label: 'Standard Delivery' },
+                              { value: 'express_delivery',  label: 'Express Delivery' },
+                              { value: 'courier',           label: 'Courier' },
+                            ]
+                        } />
                     ) : (
                       <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{paymentMethod.replace(/_/g, ' ')}</p>
                     )}

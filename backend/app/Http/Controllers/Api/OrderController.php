@@ -1870,7 +1870,7 @@ class OrderController extends Controller
             'items.*.is_custom_item'   => 'nullable|boolean',
             'items.*.quantity'         => 'required|numeric|min:0.01',
             'items.*.allow_backorder'  => 'nullable|boolean',
-            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method'          => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
             'shipping_address'         => 'required|string',
             'billing_address'          => 'nullable|string',
             'billing_same_as_shipping' => 'nullable|boolean',
