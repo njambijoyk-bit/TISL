@@ -101,6 +101,7 @@ const AdminReviews       = lazy(() => import('./pages/admin/Reviews'));
 const Reports            = lazy(() => import('./pages/admin/Reports'));
 const Settings           = lazy(() => import('./pages/admin/settings/Settings'));
 const CurrencySettings   = lazy(() => import('./pages/admin/settings/CurrencySettings'));
+const ShippingSettings   = lazy(() => import('./pages/admin/settings/ShippingSettings'));
 const ProjectDashboard   = lazy(() => import('./pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./pages/admin/Projects'));
 const ProjectCreate      = lazy(() => import('./pages/admin/ProjectCreate'));
@@ -929,6 +930,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <CurrencySettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/shipping"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ShippingSettings />
                 </ProtectedRoute>
               }
             />

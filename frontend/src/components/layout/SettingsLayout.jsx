@@ -3,7 +3,7 @@ import {
   FileText, Phone, BookOpen, Home,
   Briefcase, Gift, UserCheck,
   Tag, Users, Settings as SettingsIcon,
-  FootprintsIcon, ChevronLeft,
+  FootprintsIcon, ChevronLeft, Truck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -15,6 +15,7 @@ const GROUPS = [
     items: [
       { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general',          active: true },
       { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/currency',         active: true },
+      { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', path: '/admin/settings/shipping',         active: true },
     ],
   },
   {

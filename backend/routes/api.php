@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
+use App\Http\Controllers\Api\ShippingOptionController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -69,6 +70,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
 });
+
+// Public shipping options (for checkout)
+Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 
 // ============================================
 // CAREERS — PUBLIC
@@ -448,6 +452,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{id}/status', [CurrencyController::class, 'toggleStatus']);
             Route::delete('/{id}', [CurrencyController::class, 'destroy']);
             Route::post('/convert', [CurrencyController::class, 'convert']);
+        });
+
+        // Shipping Management
+        Route::prefix('shipping')->group(function () {
+            Route::get('/',              [ShippingOptionController::class, 'index']);
+            Route::get('/activity',      [ShippingOptionController::class, 'activity']);
+            Route::post('/',             [ShippingOptionController::class, 'store']);
+            Route::put('/{id}',          [ShippingOptionController::class, 'update']);
+            Route::patch('/{id}/status', [ShippingOptionController::class, 'toggleStatus']);
+            Route::delete('/{id}',       [ShippingOptionController::class, 'destroy']);
         });
 
         // Quotes Management

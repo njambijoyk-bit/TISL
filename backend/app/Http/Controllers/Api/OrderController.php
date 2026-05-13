@@ -10,6 +10,8 @@ use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Quote;
 use App\Models\Currency;
+use App\Models\ShippingOption;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use App\Mail\OrderConfirmation;
 use App\Mail\OrderShipped;
@@ -117,7 +119,7 @@ class OrderController extends Controller
             'customer_email'         => 'required|email',
             'customer_phone'         => 'required|string',
             'shipping_address'       => 'required|string',
-            'delivery_method'        => 'required|in:pickup,standard_delivery,express_delivery,courier',
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
             'payment_method'         => 'required|in:request_invoice,pay_on_delivery,mpesa,bank_transfer,credit_card,credit',
             'customer_notes'         => 'nullable|string',
             'items'                  => 'required|array|min:1',
@@ -601,7 +603,7 @@ class OrderController extends Controller
 
         $validator = Validator::make($request->all(), [
             'payment_method'         => 'required|in:request_invoice,pay_on_delivery,mpesa,bank_transfer,credit_card,credit',
-            'delivery_method'        => 'required|in:pickup,standard_delivery,express_delivery,courier',
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
             'courier_company'        => 'required_if:delivery_method,courier|nullable|string',
             'order_type'             => 'required|in:standard,bulk,b2b,quotation,service,mixed,project,subscription',
             'shipping_address'       => 'required|string',
@@ -1462,7 +1464,7 @@ class OrderController extends Controller
             'items.*.quantity'       => 'required|numeric|min:0.01',
             'items.*.allow_backorder' => 'boolean',
             'items.*.discount'       => 'nullable|numeric',
-            'delivery_method'        => 'required|in:pickup,standard_delivery,express_delivery,courier',
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
             'shipping_address'       => 'required|string',
             'priority'               => 'nullable|in:low,medium,high,urgent',
             'order_type'             => 'nullable|in:standard,quotation,bulk,b2b,service,mixed,project,subscription',
@@ -1868,7 +1870,7 @@ class OrderController extends Controller
             'items.*.is_custom_item'   => 'nullable|boolean',
             'items.*.quantity'         => 'required|numeric|min:0.01',
             'items.*.allow_backorder'  => 'nullable|boolean',
-            'delivery_method'          => 'required|in:pickup,standard_delivery,express_delivery,courier',
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
             'shipping_address'         => 'required|string',
             'billing_address'          => 'nullable|string',
             'billing_same_as_shipping' => 'nullable|boolean',
@@ -3085,15 +3087,15 @@ class OrderController extends Controller
 
     private function calculateShippingCost(string $deliveryMethod, float $subtotal): float
     {
-        if ($subtotal >= 50000) return 0;
+        $option = ShippingOption::where('slug', $deliveryMethod)
+            ->where('is_active', true)
+            ->first();
 
-        return match($deliveryMethod) {
-            'pickup'            => 0,
-            'standard_delivery' => 500,
-            'express_delivery'  => 1500,
-            'courier'           => 2000,
-            default             => 500,
-        };
+        if (!$option) {
+            return 0;
+        }
+
+        return $option->costForSubtotal($subtotal);
     }
     private function refundOrderStoreCredit(Order $order): void
     {
