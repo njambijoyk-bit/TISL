@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   User, Mail, Phone, Shield, Key, LogOut, ChevronRight,
@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
   MessageSquareQuote, ArrowRight, CalendarClock,
-  ChevronDown, ChevronUp, Users, Star, Ticket,
+  ChevronDown, ChevronUp, Users, Star, Ticket, Camera,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import toast from 'react-hot-toast';
@@ -70,7 +70,7 @@ const STATUS_COLORS = {
 
 export default function AdminProfile() {
   const navigate  = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [loading,   setLoading]   = useState(true);
@@ -99,6 +99,27 @@ export default function AdminProfile() {
 
   const [empRecord, setEmpRecord] = useState(null);
   const [empLoading, setEmpLoading] = useState(false);
+
+  // Profile picture
+  const imgInputRef = useRef(null);
+  const [imgLoading, setImgLoading] = useState(false);
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setImgLoading(true);
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await authAPI.uploadProfilePicture(formData);
+      updateUser({ ...user, profile_picture_url: res.profile_picture_url });
+      toast.success('Profile picture updated');
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setImgLoading(false);
+    }
+  };
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
@@ -202,15 +223,52 @@ export default function AdminProfile() {
       <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: 'white' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 16,
-              background: 'rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(4px)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', flexShrink: 0,
-            }}>
-              {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AD'}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              {imgLoading ? (
+                <div style={{
+                  width: 72, height: 72, borderRadius: 16,
+                  background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Loader2 size={20} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
+                </div>
+              ) : user?.profile_picture_url && !user.profile_picture_url.includes('ui-avatars.com') ? (
+                <img
+                  src={user.profile_picture_url}
+                  alt={user.name}
+                  style={{
+                    width: 72, height: 72, borderRadius: 16, objectFit: 'cover',
+                    border: '2px solid rgba(255,255,255,0.3)', display: 'block',
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: 72, height: 72, borderRadius: 16,
+                  background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
+                }}>
+                  {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AD'}
+                </div>
+              )}
+              <button
+                onClick={() => imgInputRef.current?.click()}
+                disabled={imgLoading}
+                style={{
+                  position: 'absolute', bottom: -4, right: -4, width: 26, height: 26,
+                  borderRadius: '50%', background: 'white', border: '1.5px solid rgba(255,255,255,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  transition: 'border-color 150ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'}
+              >
+                <Camera size={11} style={{ color: '#7c3aed' }} />
+              </button>
+              <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>

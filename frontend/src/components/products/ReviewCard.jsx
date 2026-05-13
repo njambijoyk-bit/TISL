@@ -22,8 +22,11 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
     }
   };
 
+  const [imgError, setImgError] = useState(false);
+
   const rating = parseInt(review.rating) || 0;
   const initial = (review.user?.name || review.customer_name || 'A')[0].toUpperCase();
+  const profileImg = review.user?.customer?.profile_image_url || review.user?.profile_image_url;
 
   return (
     <div
@@ -46,15 +49,28 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-          {/* Avatar */}
-          <div style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: '0.82rem', fontWeight: 800,
-          }}>
-            {initial}
-          </div>
+          {/* Avatar — profile image or initial */}
+          {profileImg && !imgError ? (
+            <img
+              src={profileImg}
+              alt={review.user?.name || 'User'}
+              onError={() => setImgError(true)}
+              style={{
+                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                objectFit: 'cover', background: '#f3f4f6',
+                border: '1.5px solid rgba(168,85,247,0.15)',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: '0.82rem', fontWeight: 800,
+            }}>
+              {initial}
+            </div>
+          )}
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>

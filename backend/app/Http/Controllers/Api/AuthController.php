@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Mail\WelcomeEmail;
 use Illuminate\Support\Str;
@@ -377,6 +378,32 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password changed successfully'
         ], 200);
+    }
+
+    /**
+     * UPLOAD PROFILE PICTURE (when logged in)
+     */
+    public function uploadProfilePicture(Request $request)
+    {
+        $request->validate(['image' => 'required|image|max:2048']);
+
+        $user = $request->user();
+
+        // Delete old image if it's a local file
+        if ($user->profile_picture &&
+            !str_starts_with($user->profile_picture, 'http')) {
+            Storage::disk('public')->delete($user->profile_picture);
+        }
+
+        $path = $request->file('image')->store('users', 'public');
+        $user->update(['profile_picture' => $path]);
+        $fresh = $user->fresh();
+
+        return response()->json([
+            'message'             => 'Profile picture updated',
+            'profile_picture_url' => $fresh->profile_picture_url,
+            'user'                => $fresh,
+        ]);
     }
 
     /**
