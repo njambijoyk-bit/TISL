@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
 import shippingAPI from '../../../api/shipping';
+import { useAuthStore } from '../../../store';
 import {
   Plus, Edit2, Save, X, Check, Trash2,
   ChevronDown, ChevronUp, Truck, Package,
@@ -346,17 +347,8 @@ export default function ShippingSettings() {
   const [showLog,       setShowLog]       = useState(true);
 
   // Detect role from auth (adjust if your auth store exposes role differently)
-  const userRole = (() => {
-    try {
-      const stored = localStorage.getItem('auth-storage');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed?.state?.user?.role || '';
-      }
-    } catch { /* ignore */ }
-    return '';
-  })();
-  const isSuperAdmin = userRole === 'superadmin';
+  const { user: authUser } = useAuthStore();
+  const isSuperAdmin = authUser?.role === 'super_admin';
 
   useEffect(() => { loadData(); loadActivity(); }, []);
 
