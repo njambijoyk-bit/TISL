@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Auth\MustVerifyEmail;
 
@@ -541,17 +542,19 @@ class User extends Authenticatable
     public function getProfilePictureUrlAttribute(): ?string
     {
         if (!$this->profile_picture) {
-            // Return default avatar based on name
             return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&size=200&background=0D8ABC&color=fff';
         }
-
-        // If OAuth provider image (full URL)
-        if (str_starts_with($this->profile_picture, 'http')) {
+ 
+        if (str_starts_with($this->profile_picture, 'http://') ||
+            str_starts_with($this->profile_picture, 'https://')) {
             return $this->profile_picture;
         }
-
-        // Local storage image
-        return asset('storage/' . $this->profile_picture);
+ 
+        if (str_starts_with($this->profile_picture, '/storage/')) {
+            return url($this->profile_picture);
+        }
+ 
+        return url(\Illuminate\Support\Facades\Storage::url($this->profile_picture));
     }
 
     /**

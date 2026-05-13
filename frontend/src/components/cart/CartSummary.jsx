@@ -10,11 +10,11 @@ export default function CartSummary() {
   const { items, getTotal } = useCartStore();
   const { isAuthenticated } = useAuthStore();
 
-  const subtotal = getTotal();
-  const tax      = subtotal * 0.16;
-  const shipping = subtotal >= 50000 ? 0 : 500;
-  const total    = subtotal + tax + shipping;
-  const toFree   = 50000 - subtotal;
+  const subtotal     = getTotal();
+  const tax          = subtotal * 0.16;
+  const total        = subtotal + tax;         
+  const freeShipping = subtotal >= 50000;
+  const toFree       = 50000 - subtotal;
 
   const handleCheckout = () => {
     navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout');
@@ -36,22 +36,23 @@ export default function CartSummary() {
         {[
           { label: `Subtotal (${items.length} item${items.length !== 1 ? 's' : ''})`, value: fmt(subtotal) },
           { label: 'Tax (16% VAT)', value: fmt(tax) },
-          {
-            label: 'Shipping',
-            value: shipping === 0
-              ? <span style={{ color: '#059669', fontWeight: 700 }}>Free</span>
-              : fmt(shipping),
-          },
         ].map(({ label, value }) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
             <span style={{ color: '#6b7280' }}>{label}</span>
             <span style={{ fontWeight: 600, color: '#374151' }}>{value}</span>
           </div>
         ))}
+        {/* Shipping row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+          <span style={{ color: '#6b7280' }}>Shipping</span>
+          <span style={{ fontWeight: 600, color: freeShipping ? '#22c55e' : '#9ca3af', fontStyle: freeShipping ? 'normal' : 'italic' }}>
+            {freeShipping ? 'FREE' : 'Calculated at checkout'}
+          </span>
+        </div>
       </div>
 
       {/* Free shipping progress */}
-      {shipping > 0 && toFree > 0 && (
+      {!freeShipping && toFree > 0 && (
         <div style={{
           padding: '9px 12px', borderRadius: 8, marginBottom: 14,
           background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
