@@ -532,11 +532,14 @@ export default function ShippingSettings() {
                     {/* Status */}
                     <td style={{ padding: '12px 16px' }}>
                       <button
-                        onClick={() => handleToggle(opt.id, opt.is_active)}
+                        onClick={() => opt.slug !== 'standard_delivery' && handleToggle(opt.id, opt.is_active)}
+                        disabled={opt.slug === 'standard_delivery'}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 5,
                           padding: '3px 10px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700,
-                          border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                          border: 'none', fontFamily: 'inherit',
+                          cursor: opt.slug === 'standard_delivery' ? 'default' : 'pointer',
+                          opacity: opt.slug === 'standard_delivery' ? 0.6 : 1,
                           background: opt.is_active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)',
                           color: opt.is_active ? '#065f46' : '#991b1b',
                           transition: 'background 120ms',
@@ -563,7 +566,7 @@ export default function ShippingSettings() {
                           <Edit2 size={12} />
                         </button>
 
-                        {isSuperAdmin && (
+                        {isSuperAdmin && opt.slug !== 'standard_delivery' && (
                           <button onClick={() => handleDelete(opt.id)} style={{
                             width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
                             background: 'rgba(239,68,68,0.07)', color: '#ef4444',

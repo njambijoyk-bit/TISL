@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 class ShippingOptionController extends Controller
 {
     use LogsShippingActivity;
+    /** Slug that can never be deleted or deactivated */
+    private const PROTECTED_SLUG = 'standard_delivery';
 
     /**
      * GET /admin/shipping
@@ -120,6 +122,10 @@ class ShippingOptionController extends Controller
             'is_active' => 'required|boolean',
         ]);
 
+        if ($option->slug === self::PROTECTED_SLUG && !$request->is_active) {
+            return response()->json(['message' => 'Standard delivery cannot be deactivated'], 403);
+        }
+
         $option->update(['is_active' => $request->is_active]);
 
         $action = $request->is_active ? 'ACTIVATED' : 'DEACTIVATED';
@@ -142,6 +148,10 @@ class ShippingOptionController extends Controller
         }
 
         $option = ShippingOption::findOrFail($id);
+
+        if ($option->slug === self::PROTECTED_SLUG) {
+            return response()->json(['message' => 'Standard delivery cannot be deleted'], 403);
+        }
 
         $this->logShippingActivity($option, 'DELETED', [
             'name' => $option->name,
