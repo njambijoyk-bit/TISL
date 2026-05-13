@@ -632,15 +632,18 @@ export default function UsersPage() {
                           {/* User */}
                           <td style={{ padding: '12px 20px', cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${user.id}`)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                              <div style={{
-                                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: rm.bg, color: rm.color,
-                                fontSize: '0.9rem', fontWeight: 800,
-                                boxShadow: `0 0 0 1px ${rm.ring}`,
-                              }}>
-                                {user.name?.[0]?.toUpperCase() ?? '?'}
-                              </div>
+                              <img
+                                src={
+                                  user.role === 'customer'
+                                    ? (user.customer?.profile_image_url || user.profile_picture_url)
+                                    : user.profile_picture_url
+                                }
+                                alt={user.name}
+                                style={{
+                                  width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
+                                  flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block',
+                                }}
+                              />
                               <div style={{ minWidth: 0 }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {user.name}
