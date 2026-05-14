@@ -4,13 +4,14 @@ import {
   ChevronLeft, Camera, Edit2, Save, X, Plus, Trash2, Check,
   MapPin, ShieldCheck, ShieldOff, AlertTriangle, Ban,
   Star, CreditCard, Coins, TrendingUp, Package, Calendar,
-  Phone, Mail, Globe, MessageCircle, Building2, Tag,
+  Phone, Mail, Globe, MessageCircle, Building2, Tag, UserCheck,
   User, Briefcase, FileText, Clock, Hash, ChevronDown, ChevronRight,
   Home, Warehouse, MoreHorizontal, Settings, Loader2,
 } from 'lucide-react';
 import customersAPI from '../../api/customers';
 import customerTiersAPI from '../../api/customerTiers';
 import ordersAPI from '../../api/orders';
+import AssignModal from '../../components/quotes/AssignModal';
 
 // ── Style constants ───────────────────────────────────────────────────────────
 
@@ -394,7 +395,7 @@ export default function CustomerDetail() {
   const [form,        setForm]        = useState({});
   const [saving,      setSaving]      = useState(false);
   const [toastMsg,    setToastMsg]    = useState(null);
-  const [adminUsers,  setAdminUsers]  = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showStatus,  setShowStatus]  = useState(false);
   const [showCredit,  setShowCredit]  = useState(false);
   const [showPoints,  setShowPoints]  = useState(false);
@@ -496,9 +497,8 @@ export default function CustomerDetail() {
   useEffect(() => { loadCustomer(); }, [loadCustomer]);
 
   useEffect(() => {
-    customersAPI.getAdminUsers()
-      .then(data => setAdminUsers(Array.isArray(data) ? data : data.data ?? []))
-      .catch(() => {});
+    customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {});
+    customerTiersAPI.getActiveTypes().then(setTypeOptions).catch(() => {});
   }, []);
   useEffect(() => {
     if (tab !== 'addresses') return;
@@ -537,6 +537,19 @@ export default function CustomerDetail() {
       setCustomer(data.customer); setEditing(false); notify('Customer updated');
     } catch (e) { notify(e?.response?.data?.message ?? 'Failed to save', 'error'); }
     finally { setSaving(false); }
+  };
+
+  const handleAssignRep = async (adminId) => {
+    try {
+      const data = await customersAPI.assignSalesRep(id, adminId);
+      setCustomer(data.customer);
+      setForm(buildForm(data.customer));
+      setShowAssignModal(false);
+      notify('Sales rep assigned');
+    } catch (e) {
+      notify(e?.response?.data?.message ?? 'Failed to assign sales rep', 'error');
+      throw e; // re-throw so the modal shows the error
+    }
   };
 
   const cancelEdit = () => { setForm(buildForm(customer)); setEditing(false); };
@@ -960,10 +973,58 @@ export default function CustomerDetail() {
                     )}
 
                     <Field label="Assigned sales rep">
-                      <Select value={form.assigned_sales_rep} onChange={setField('assigned_sales_rep')} disabled={!editing}>
-                        <option value="">— None —</option>
-                        {adminUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
-                      </Select>
+                      {customer?.sales_rep ? (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                          padding: '7px 11px', borderRadius: 8, background: 'rgba(168,85,247,0.04)',
+                          border: '1.5px solid rgba(168,85,247,0.18)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <div style={{
+                              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '0.58rem', fontWeight: 700, color: '#c084fc',
+                              border: '1.5px solid rgba(168,85,247,0.25)',
+                            }}>
+                              {`${customer.sales_rep.first_name ?? ''} ${customer.sales_rep.last_name ?? ''}`.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {`${customer.sales_rep.first_name ?? ''} ${customer.sales_rep.last_name ?? ''}`.trim() || customer.sales_rep.name || customer.sales_rep.email}
+                              </p>
+                              {customer.sales_rep.email && (
+                                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{customer.sales_rep.email}</p>
+                              )}
+                            </div>
+                          </div>
+                          {editing && (
+                            <button type="button" onClick={() => setShowAssignModal(true)} style={{
+                              padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700,
+                              background: 'rgba(168,85,247,0.08)', color: '#a855f7',
+                              border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer',
+                              transition: 'background 150ms',
+                            }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                            >Reassign</button>
+                          )}
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setShowAssignModal(true)} disabled={!editing} style={{
+                          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                          background: editing ? 'rgba(168,85,247,0.06)' : 'rgba(168,85,247,0.03)',
+                          border: '1.5px dashed rgba(168,85,247,0.25)',
+                          color: editing ? '#a855f7' : '#c4b5fd',
+                          cursor: editing ? 'pointer' : 'not-allowed',
+                          transition: 'background 150ms, border-color 150ms',
+                        }}
+                          onMouseEnter={e => { if (editing) { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; } }}
+                          onMouseLeave={e => { e.currentTarget.style.background = editing ? 'rgba(168,85,247,0.06)' : 'rgba(168,85,247,0.03)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
+                        >
+                          <UserCheck size={14} /> Assign Sales Rep
+                        </button>
+                      )}
                     </Field>
                   </div>
                 </div>
@@ -1649,5 +1710,13 @@ export default function CustomerDetail() {
 
       </div>
     </div>
+
+      {showAssignModal && (
+        <AssignModal
+          onClose={() => setShowAssignModal(false)}
+          onAssign={handleAssignRep}
+          currentAssignedId={customer?.assigned_sales_rep || null}
+        />
+      )}
   );
 }
