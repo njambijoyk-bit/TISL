@@ -9,6 +9,7 @@ import {
   Home, Warehouse, MoreHorizontal, Settings, Loader2,
 } from 'lucide-react';
 import customersAPI from '../../api/customers';
+import customerTiersAPI from '../../api/customerTiers';
 import ordersAPI from '../../api/orders';
 
 // ── Style constants ───────────────────────────────────────────────────────────
@@ -56,12 +57,20 @@ const STATUS_STYLES = {
   blacklisted: { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444',  ring: 'rgba(239,68,68,0.3)'   },
 };
 
-const TIER_STYLES = {
+const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.3)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.25)' },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.3)'   },
   platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.3)'  },
 };
+
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 
 const ADDR_TYPE_ICONS = {
   home:      <Home       size={13} />,
@@ -443,6 +452,9 @@ export default function CustomerDetail() {
 
   const [customerUser, setCustomerUser] = useState(null);
 
+  const [tierOptions, setTierOptions] = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
+
   const loadCustomer = useCallback(async () => {
     setLoading(true);
     try {
@@ -625,7 +637,7 @@ export default function CustomerDetail() {
   if (!customer) return null;
 
   const st = STATUS_STYLES[customer.status] ?? STATUS_STYLES.inactive;
-  const tr = TIER_STYLES[editing ? form.tier : customer.tier] ?? TIER_STYLES.silver;
+  const tr = tierStyle(editing ? form.tier : customer.tier, tierOptions);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -853,8 +865,13 @@ export default function CustomerDetail() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <Field label="Customer type">
                       <Select value={form.customer_type} onChange={setField('customer_type')} disabled={!editing}>
-                        {['individual','business','wholesale','contractor'].map(t => (
-                          <option key={t} value={t} style={{ textTransform: 'capitalize' }}>{t}</option>
+                        {(typeOptions.length > 0 ? typeOptions : [
+                          { slug: 'individual', name: 'Individual' },
+                          { slug: 'business', name: 'Business' },
+                          { slug: 'wholesale', name: 'Wholesale' },
+                          { slug: 'contractor', name: 'Contractor' },
+                        ]).map(t => (
+                          <option key={t.slug} value={t.slug}>{t.name}</option>
                         ))}
                       </Select>
                     </Field>
@@ -882,8 +899,13 @@ export default function CustomerDetail() {
                     <Field label="Tier">
                       {editing ? (
                         <Select value={form.tier} onChange={setField('tier')}>
-                          {['bronze','silver','gold','platinum'].map(t => (
-                            <option key={t} value={t} style={{ textTransform: 'capitalize' }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                          {(tierOptions.length > 0 ? tierOptions : [
+                            { slug: 'bronze', name: 'Bronze' },
+                            { slug: 'silver', name: 'Silver' },
+                            { slug: 'gold', name: 'Gold' },
+                            { slug: 'platinum', name: 'Platinum' },
+                          ]).map(t => (
+                            <option key={t.slug} value={t.slug}>{t.name}</option>
                           ))}
                         </Select>
                       ) : (

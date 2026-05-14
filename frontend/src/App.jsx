@@ -99,9 +99,6 @@ const AdminCustomers     = lazy(() => import('./pages/admin/Customers'));
 const CustomerDetail     = lazy(() => import('./pages/admin/CustomerDetail'));
 const AdminReviews       = lazy(() => import('./pages/admin/Reviews'));
 const Reports            = lazy(() => import('./pages/admin/Reports'));
-const Settings           = lazy(() => import('./pages/admin/settings/Settings'));
-const CurrencySettings   = lazy(() => import('./pages/admin/settings/CurrencySettings'));
-const ShippingSettings   = lazy(() => import('./pages/admin/settings/ShippingSettings'));
 const ProjectDashboard   = lazy(() => import('./pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./pages/admin/Projects'));
 const ProjectCreate      = lazy(() => import('./pages/admin/ProjectCreate'));
@@ -130,6 +127,11 @@ const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayou
 const ProductBulkPage      = lazy(() => import('./pages/admin/general/bulk/ProductBulkPage'));
 const CustomerBulkPage     = lazy(() => import('./pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/EmployeeBulkPage'));
+
+const Settings             = lazy(() => import('./pages/admin/settings/Settings'));
+const CurrencySettings     = lazy(() => import('./pages/admin/settings/CurrencySettings'));
+const ShippingSettings     = lazy(() => import('./pages/admin/settings/ShippingSettings'));
+const CustomerTierSettings = lazy(() => import('./pages/admin/settings/CustomerTierSettings'));
 
 const GeneralSettings      = lazy(() => import('./pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./pages/admin/settings/NotificationSettings'));
@@ -930,6 +932,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <CurrencySettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/customer-tiers"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CustomerTierSettings />
                 </ProtectedRoute>
               }
             />

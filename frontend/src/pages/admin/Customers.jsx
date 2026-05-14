@@ -8,6 +8,7 @@ import {
 import AdminLayout from '../../components/layout/AdminLayout';
 import CustomerHealthModal from './CustomerHealthModal';
 import customersAPI from '../../api/customers';
+import customerTiersAPI from '../../api/customerTiers';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -18,13 +19,20 @@ const STATUS_STYLES = {
   blacklisted: { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444',  ring: 'rgba(239,68,68,0.25)'   },
 };
 
-const TIER_STYLES = {
+const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
 };
 
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 const STAT_META = [
   { key: 'total_customers',  label: 'Total customers',  icon: <Users size={18} />,        accent: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
   { key: 'active_customers', label: 'Active',           icon: <ShieldCheck size={18} />,  accent: '#059669', bg: 'rgba(5,150,105,0.08)'   },
@@ -191,9 +199,17 @@ export default function Customers() {
   const [birthdaysLoading, setBirthdaysLoading]     = useState(false);
   const [birthdayDays, setBirthdayDays]             = useState(30);
 
+  const [tierOptions, setTierOptions] = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
+
   useEffect(() => {
     customersAPI.getCustomerStatistics()
       .then(setStats).catch(() => {}).finally(() => setStatsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {});
+    customerTiersAPI.getActiveTypes().then(setTypeOptions).catch(() => {});
   }, []);
 
   const fetchCustomers = useCallback(async () => {
@@ -349,11 +365,17 @@ export default function Customers() {
             </select>
             <select value={type} onChange={e => setType(e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
               <option value="">All types</option>
-              {['individual','business','wholesale','contractor'].map(t => <option key={t} value={t}>{t}</option>)}
+              {(typeOptions.length > 0 ? typeOptions : [
+                { slug: 'individual', name: 'Individual' },{ slug: 'business', name: 'Business' },
+                { slug: 'wholesale', name: 'Wholesale' },{ slug: 'contractor', name: 'Contractor' },
+              ]).map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
             </select>
             <select value={tier} onChange={e => setTier(e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
               <option value="">All tiers</option>
-              {['bronze','silver','gold','platinum'].map(t => <option key={t} value={t}>{t}</option>)}
+              {(tierOptions.length > 0 ? tierOptions : [
+                { slug: 'bronze', name: 'Bronze' },{ slug: 'silver', name: 'Silver' },
+                { slug: 'gold', name: 'Gold' },{ slug: 'platinum', name: 'Platinum' },
+              ]).map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
             </select>
             <select
               value={`${sortBy}:${sortOrder}`}
@@ -461,7 +483,7 @@ export default function Customers() {
 
                   : customers.map((c, i) => {
                       const st    = STATUS_STYLES[c.status] ?? STATUS_STYLES.inactive;
-                      const tr    = TIER_STYLES[c.tier]     ?? TIER_STYLES.silver;
+                      const tr    = tierStyle(c.tier, tierOptions);
                       const isLast = i === customers.length - 1;
 
                       return (
@@ -740,7 +762,7 @@ export default function Customers() {
                   {birthdays.map(c => {
                     const isToday  = c.days_until === 0;
                     const isSoon   = c.days_until <= 7;
-                    const tr       = TIER_STYLES[c.tier] ?? TIER_STYLES.silver;
+                    const tr       = tierStyle(c.tier, tierOptions);
                     const accent   = isToday ? '#7c3aed' : isSoon ? '#d97706' : '#6b7280';
                     const accentBg = isToday ? 'rgba(124,58,237,0.08)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
 
