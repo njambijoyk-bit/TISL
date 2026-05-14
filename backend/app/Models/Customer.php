@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use App\Models\CustomerTier;
+use App\Models\CustomerTypeDiscount;
 
 class Customer extends Model
 {
@@ -313,36 +315,32 @@ class Customer extends Model
     }
 
     /**
-     * Get tier benefits based on customer tier.
+     * Get tier benefits from DB.
      */
     public function getTierBenefitsAttribute(): array
     {
-        $benefits = [
-            'bronze' => [
+        $tier = CustomerTier::where('slug', $this->tier)->first();
+
+        if (!$tier) {
+            $tier = CustomerTier::where('slug', 'bronze')->first();
+        }
+
+        if (!$tier) {
+            return [
                 'discount' => 0,
                 'priority_support' => false,
                 'free_shipping_threshold' => 50000,
                 'loyalty_points_multiplier' => 1,
-            ],
-            'silver' => [
-                'discount' => 5,
-                'priority_support' => false,
-                'free_shipping_threshold' => 30000,
-                'loyalty_points_multiplier' => 1.2,
-            ],
-            'gold' => [
-                'discount' => 10,
-                'priority_support' => true,
-                'free_shipping_threshold' => 20000,
-                'loyalty_points_multiplier' => 1.5,
-            ],
-            'platinum' => [
-                'discount' => 15,
-                'priority_support' => true,
-                'free_shipping_threshold' => 0, // Always free
-                'loyalty_points_multiplier' => 2,
-            ],
+            ];
+        }
+
+        return [
+            'discount' => (float) $tier->discount_percentage,
+            'priority_support' => (bool) $tier->priority_support,
+            'free_shipping_threshold' => $tier->free_shipping_threshold !== null ? (float) $tier->free_shipping_threshold : 0,
+            'loyalty_points_multiplier' => (float) $tier->loyalty_points_multiplier,
         ];
+    }
 
         return $benefits[$this->tier] ?? $benefits['bronze'];
     }
@@ -396,9 +394,11 @@ class Customer extends Model
      */
     public function scopeVip($query)
     {
-        return $query->whereIn('tier', ['gold', 'platinum']);
+        $vipSlugs = CustomerTier::where('is_active', true)
+            ->where('priority_support', true)
+            ->pluck('slug');
+        return $query->whereIn('tier', $vipSlugs);
     }
-
     /**
      * Scope to get customers with credit accounts.
      */
@@ -577,26 +577,23 @@ class Customer extends Model
     }
 
     /**
-     * Calculate total discount for customer.
+     * Calculate total discount for customer (from DB).
      */
     public function calculateTotalDiscount(): float
     {
         $discounts = [];
 
-        // Personal discount
+        // Personal discount (already in DB per customer)
         $discounts[] = $this->discount_percentage;
 
-        // Tier discount
+        // Tier discount (from customer_tiers table)
         $discounts[] = $this->tier_benefits['discount'];
 
-        // Customer type discount
-        $typeDiscounts = [
-            'individual' => 0,
-            'business' => 5,
-            'wholesale' => 15,
-            'contractor' => 10,
-        ];
-        $discounts[] = $typeDiscounts[$this->customer_type] ?? 0;
+        // Customer type discount (from customer_type_discounts table)
+        $typeRow = CustomerTypeDiscount::where('slug', $this->customer_type)
+            ->where('is_active', true)
+            ->first();
+        $discounts[] = $typeRow ? (float) $typeRow->discount_percentage : 0;
 
         // Total (max 30%)
         return min(array_sum($discounts), 30);
@@ -742,24 +739,27 @@ class Customer extends Model
      */
     public function checkTierUpgrade(): void
     {
-        $newTier = $this->tier;
+        $tiers = CustomerTier::where('is_active', true)
+            ->orderBy('sort_order', 'desc')
+            ->get();
 
-        if ($this->total_orders >= 100 || $this->total_spent >= 1000000) {
-            $newTier = 'platinum';
-        } elseif ($this->total_orders >= 50 || $this->total_spent >= 500000) {
-            $newTier = 'gold';
-        } elseif ($this->total_orders >= 10 || $this->total_spent >= 100000) {
-            $newTier = 'silver';
-        } else {
-            $newTier = 'bronze';
+        $newTier = 'bronze'; // fallback
+
+        foreach ($tiers as $t) {
+            $meetsOrders = $t->min_orders !== null && $this->total_orders >= $t->min_orders;
+            $meetsSpent  = $t->min_spent !== null && $this->total_spent >= (float) $t->min_spent;
+
+            if ($meetsOrders || $meetsSpent) {
+                $newTier = $t->slug;
+                break;
+            }
         }
 
         if ($newTier !== $this->tier) {
             $oldTier = $this->tier;
             $this->update(['tier' => $newTier]);
-            $this->triggerVipPromoIfEligible($newTier); 
-            
-            // Notify customer of upgrade
+            $this->triggerVipPromoIfEligible($newTier);
+
             // Notification::send($this->user, new TierUpgraded($oldTier, $newTier));
         }
     }

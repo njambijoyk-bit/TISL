@@ -11,6 +11,7 @@ import {
 import AdminLayout from '../../components/layout/AdminLayout';
 import reportsAPI from '../../api/reports';
 import referralsAPI from '../../api/referrals';
+import customerTiersAPI from '../../api/customerTiersAPI';
 import { ordersAPI, customersAPI, projectsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
@@ -1387,10 +1388,10 @@ async function downloadSectionPDF(sectionId, data, period) {
 
       ctx.y += 4; pdfSection(ctx, 'Customers by Tier');
       [
-        { key: 'platinum', label: 'Platinum', color: [139,92,246] },
-        { key: 'gold',     label: 'Gold',     color: [245,158,11] },
-        { key: 'silver',   label: 'Silver',   color: [156,163,175] },
-        { key: 'bronze',   label: 'Bronze',   color: [249,115,22] },
+        ...(d?.by_tier ? Object.keys(d.by_tier).map(slug => {
+          const colorMap = { platinum: [139,92,246], gold: [245,158,11], silver: [156,163,175], bronze: [249,115,22] };
+          return { key: slug, label: slug.charAt(0).toUpperCase() + slug.slice(1), color: colorMap[slug] || [156,163,175] };
+        }) : []),
       ].forEach(({ key, label, color }) => {
         const count = d?.by_tier?.[key] || 0;
         pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
@@ -2516,12 +2517,10 @@ export default function Reports() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <Panel>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>By Tier</div>
-                  {[
-                    { label: 'Platinum', color: '#8b5cf6' },
-                    { label: 'Gold',     color: '#f59e0b' },
-                    { label: 'Silver',   color: '#9ca3af' },
-                    { label: 'Bronze',   color: '#f97316' },
-                  ].map(t => <StatusRow key={t.label} label={t.label} value={customers?.by_tier?.[t.label.toLowerCase()]} color={t.color} total={customers?.total_customers} />)}
+                  {customers?.by_tier && Object.entries(customers.by_tier).map(([slug, count]) => {
+                    const colors = { platinum: '#8b5cf6', gold: '#f59e0b', silver: '#9ca3af', bronze: '#f97316' };
+                    return <StatusRow key={slug} label={slug.charAt(0).toUpperCase() + slug.slice(1)} value={count} color={colors[slug] || '#9ca3af'} total={customers?.total_customers} />;
+                  })}                 
                 </Panel>
 
                 <Panel>

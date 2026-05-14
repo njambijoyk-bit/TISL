@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, X, Check, AlertCircle,
 } from 'lucide-react';
 import loyaltyAPI from '../../api/loyalty';
+import customerTiersAPI from '../../api/customerTiers';
 import { useAuthStore } from '../../store';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -38,12 +39,20 @@ const inputStyle = {
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
-const TIER_STYLES = {
-  bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c' },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563' },
-  gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309' },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed' },
+const TIER_STYLES_FALLBACK = {
+  bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
+  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
 };
+
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 
 const TYPE_COLORS = {
   order_earn: '#059669', admin_grant: '#7c3aed', admin_deduct: '#dc2626',
@@ -476,7 +485,7 @@ export default function LoyaltyLedgerDetail() {
     total:        txData?.total        ?? 0,
     };
   const initials     = `${customer.first_name?.[0] ?? ''}${customer.last_name?.[0] ?? ''}`.toUpperCase();
-  const tierStyle    = TIER_STYLES[customer.tier] ?? TIER_STYLES.bronze;
+  const tierStyle    = tierStyle(editing ? form.tier : customer.tier, tierOptions);
   const activeRules  = (settings?.redemption_rules ?? []).filter(r => r.active);
 
   return (

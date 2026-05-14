@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Download, Upload, AlertCircle, CheckCircle, ArrowLeft, FileText, Rocket, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GeneralLayout from '../../../../components/layout/GeneralLayout';
-import { customersAPI } from '../../../../api';
+import { customersAPI, customerTiersAPI } from '../../../../api';
 
 const glowBorder = {
   border: '1px solid var(--accent, #7c3aed)',
@@ -258,8 +258,8 @@ export default function CustomerBulkPage() {
           <strong style={{ fontSize: 13, color: '#7c3aed' }}>Tips</strong>
           <ul style={{ margin: '10px 0 0', paddingLeft: 20, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
             <li><strong>email</strong> is required and must be unique</li>
-            <li>Use <code>customer_type</code>: <code>individual</code>, <code>business</code>, <code>wholesale</code>, or <code>contractor</code></li>
-            <li>Use <code>tier</code>: <code>bronze</code>, <code>silver</code>, <code>gold</code>, or <code>platinum</code></li>
+            <li>Use <code>customer_type</code>: slug from Settings → Customer Tiers → Types tab</li>
+            <li>Use <code>tier</code>: slug from Settings → Customer Tiers → Tiers tab</li>
             <li>JSON fields (<code>tags</code>, <code>preferences</code>) should be valid JSON arrays e.g. <code>["priority","wholesale"]</code></li>
             <li>Existing customers (by email) will be updated; new ones will be created</li>
           </ul>

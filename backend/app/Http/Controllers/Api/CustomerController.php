@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use App\Models\CustomerTier;
+use App\Models\CustomerTypeDiscount;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -98,8 +101,8 @@ class CustomerController extends Controller
             'company_name'                  => 'nullable|string|max:255',
             'company_registration_number'   => 'nullable|string|max:255',
             'tax_id'                        => 'nullable|string|max:100',
-            'customer_type'                 => 'in:individual,business,wholesale,contractor',
-            'tier'                          => 'in:bronze,silver,gold,platinum',
+            'customer_type'                 => ['sometimes', Rule::in(CustomerTypeDiscount::where('is_active', true)->pluck('slug'))],
+            'tier'                          => ['sometimes', Rule::in(CustomerTier::where('is_active', true)->pluck('slug'))],
             'discount_percentage'           => 'numeric|min:0|max:100',
             'has_credit_account'            => 'boolean',
             'credit_limit'                  => 'nullable|numeric|min:0',
@@ -356,18 +359,12 @@ class CustomerController extends Controller
             'active_customers' => Customer::active()->count(),
             'vip_customers' => Customer::vip()->count(),
             'with_credit' => Customer::withCredit()->count(),
-            'by_tier' => [
-                'bronze' => Customer::byTier('bronze')->count(),
-                'silver' => Customer::byTier('silver')->count(),
-                'gold' => Customer::byTier('gold')->count(),
-                'platinum' => Customer::byTier('platinum')->count(),
-            ],
-            'by_type' => [
-                'individual' => Customer::byType('individual')->count(),
-                'business' => Customer::byType('business')->count(),
-                'wholesale' => Customer::byType('wholesale')->count(),
-                'contractor' => Customer::byType('contractor')->count(),
-            ],
+            'by_tier' => CustomerTier::orderBy('sort_order')->get()->mapWithKeys(function ($t) {
+                return [$t->slug => Customer::byTier($t->slug)->count()];
+            }),
+            'by_type' => CustomerTypeDiscount::orderBy('sort_order')->get()->mapWithKeys(function ($t) {
+                return [$t->slug => Customer::byType($t->slug)->count()];
+            }),   
             'total_revenue' => Customer::sum('total_spent'),
         ];
 

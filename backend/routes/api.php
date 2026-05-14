@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
 use App\Http\Controllers\Api\ShippingOptionController;
+use App\Http\Controllers\Api\CustomerTierController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -74,6 +75,9 @@ Route::prefix('auth')->group(function () {
 // Public shipping options (for checkout)
 Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 
+// ── Public: Customer tiers & types (for checkout/dropdowns) ──
+Route::get('/customer-tiers', [CustomerTierController::class, 'publicTiers']);
+Route::get('/customer-type-discounts', [CustomerTierController::class, 'publicTypes']);
 // ============================================
 // CAREERS — PUBLIC
 // ============================================
@@ -453,6 +457,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [CurrencyController::class, 'destroy']);
             Route::post('/convert', [CurrencyController::class, 'convert']);
         });
+
+        // Customer Tiers & Type Discounts Management
+        Route::prefix('customer-tiers')->group(function () {
+            Route::get('/',              [CustomerTierController::class, 'tierIndex']);
+            Route::post('/',             [CustomerTierController::class, 'tierStore']);
+            Route::put('/{id}',          [CustomerTierController::class, 'tierUpdate']);
+            Route::patch('/{id}/status', [CustomerTierController::class, 'tierToggleStatus']);
+            Route::delete('/{id}',       [CustomerTierController::class, 'tierDestroy']);
+        });
+
+        Route::prefix('customer-type-discounts')->group(function () {
+            Route::get('/',              [CustomerTierController::class, 'typeIndex']);
+            Route::post('/',             [CustomerTierController::class, 'typeStore']);
+            Route::put('/{id}',          [CustomerTierController::class, 'typeUpdate']);
+            Route::patch('/{id}/status', [CustomerTierController::class, 'typeToggleStatus']);
+            Route::delete('/{id}',       [CustomerTierController::class, 'typeDestroy']);
+        });
+
+        Route::get('/customer-tier-activity', [CustomerTierController::class, 'activity']);
 
         // Shipping Management
         Route::prefix('shipping')->group(function () {

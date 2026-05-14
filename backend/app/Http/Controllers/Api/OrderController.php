@@ -338,12 +338,14 @@ class OrderController extends Controller
                 $subtotal += $p['lineAfter']; // final payable / net
             }
 
-            // Customer-level discount
+            // Customer-level discount (personal + tier + type, capped at 30%)
             $discount = 0;
-            if ($customer && $customer->discount_percentage > 0) {
-                $discount = ($customer->discount_percentage / 100) * $subtotal;
+            if ($customer) {
+                $totalDiscountPct = $customer->calculateTotalDiscount();
+                if ($totalDiscountPct > 0) {
+                    $discount = ($totalDiscountPct / 100) * $subtotal;
+                }
             }
-
             // Referral discount (first order only, separate column)
             $referralDiscount = 0;
             $referralCodeId   = null;
@@ -831,8 +833,11 @@ class OrderController extends Controller
 
             $customer      = $order->customer;
             $discount      = 0;
-            if ($customer && $customer->discount_percentage > 0) {
-                $discount = ($customer->discount_percentage / 100) * $subtotal;
+            if ($customer) {
+                $totalDiscountPct = $customer->calculateTotalDiscount();
+                if ($totalDiscountPct > 0) {
+                    $discount = ($totalDiscountPct / 100) * $subtotal;
+                }
             }
 
             // Preserve both discounts — never recalculate on edit, only cap at subtotal

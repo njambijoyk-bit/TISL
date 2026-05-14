@@ -7,7 +7,7 @@ import {
 import AdminLayout from '../../components/layout/AdminLayout';
 import reportsAPI from '../../api/reports';
 import referralsAPI from '../../api/referrals';
-import { ordersAPI, customersAPI, projectsAPI } from '../../api';
+import { ordersAPI, customersAPI, projectsAPI, customerTiersAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
@@ -824,15 +824,17 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex gap-3 flex-wrap">
-                  {customers?.by_tier?.platinum > 0 && (
-                    <Pill color="#8b5cf6">{fmtNum(customers.by_tier.platinum)} Platinum</Pill>
-                  )}
-                  {customers?.by_tier?.gold > 0 && (
-                    <Pill color="#f59e0b">{fmtNum(customers.by_tier.gold)} Gold</Pill>
-                  )}
-                  {customers?.by_tier?.silver > 0 && (
-                    <Pill color="#9ca3af">{fmtNum(customers.by_tier.silver)} Silver</Pill>
-                  )}
+                  {customers?.by_tier && Object.entries(customers.by_tier)
+                    .filter(([, count]) => count > 0)
+                    .map(([slug, count]) => {
+                      const colors = { platinum: '#8b5cf6', gold: '#f59e0b', silver: '#9ca3af', bronze: '#f97316' };
+                      return (
+                        <Pill key={slug} color={colors[slug] || '#9ca3af'}>
+                          {fmtNum(count)} {slug.charAt(0).toUpperCase() + slug.slice(1)}
+                        </Pill>
+                      );
+                    })
+                  }
                 </div>
                 {customers?.top_by_spend?.[0] && (
                   <div
