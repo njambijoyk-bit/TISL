@@ -1708,15 +1708,14 @@ export default function CustomerDetail() {
           </div>
         )}
 
+        {showAssignModal && (
+          <AssignModal
+            onClose={() => setShowAssignModal(false)}
+            onAssign={handleAssignRep}
+            currentAssignedId={customer?.assigned_sales_rep || null}
+          />
+        )}
       </div>
     </div>
-
-      {showAssignModal && (
-        <AssignModal
-          onClose={() => setShowAssignModal(false)}
-          onAssign={handleAssignRep}
-          currentAssignedId={customer?.assigned_sales_rep || null}
-        />
-      )}
   );
 }
