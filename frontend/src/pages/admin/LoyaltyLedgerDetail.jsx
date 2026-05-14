@@ -413,6 +413,9 @@ export default function LoyaltyLedgerDetail() {
   const [modal,     setModal]     = useState(null); // 'grant-points'|'deduct-points'|'grant-credit'|'deduct-credit'|'redeem'
   const [toast,     setToast]     = useState(null);
 
+  const [tierOptions, setTierOptions] = useState([]);
+  useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
+
   const role = user?.role;
   const canGrantPoints  = ['super_admin','admin','manager','finance','sales_rep'].includes(role);
   const canDeductPoints = ['super_admin','admin','manager','finance'].includes(role);
@@ -485,7 +488,7 @@ export default function LoyaltyLedgerDetail() {
     total:        txData?.total        ?? 0,
     };
   const initials     = `${customer.first_name?.[0] ?? ''}${customer.last_name?.[0] ?? ''}`.toUpperCase();
-  const tierStyle    = tierStyle(editing ? form.tier : customer.tier, tierOptions);
+  const tierSt       = tierStyle(customer.tier, tierOptions);
   const activeRules  = (settings?.redemption_rules ?? []).filter(r => r.active);
 
   return (
@@ -532,7 +535,7 @@ export default function LoyaltyLedgerDetail() {
             <span style={{
               display: 'inline-block', padding: '2px 9px', borderRadius: 20,
               fontSize: '0.65rem', fontWeight: 700, textTransform: 'capitalize',
-              background: tierStyle.bg, color: tierStyle.color,
+              background: tierSt.bg, color: tierSt.color,
             }}>{customer.tier}</span>
           </div>
         </div>

@@ -71,7 +71,7 @@ function StatCard({ icon, label, value, sub, color = '#a855f7' }) {
   );
 }
 
-function TierBadge({ tier }) {
+function TierBadge({ tier, tierOptions = [] }) {
   const s = tierStyle(tier, tierOptions);
   return (
     <span style={{
@@ -294,7 +294,7 @@ export default function LoyaltyLedger() {
 
                   {/* Tier */}
                   <td style={{ padding: '11px 16px' }}>
-                    <TierBadge tier={c.tier} />
+                    <TierBadge tier={c.tier} tierOptions={tierOptions} />
                   </td>
 
                   {/* Points */}

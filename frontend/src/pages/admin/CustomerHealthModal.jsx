@@ -86,14 +86,13 @@ function Empty({ message }) {
 }
 
 function TierBadge({ tier }) {
-  const t = tierStyle(tier, tierOptions);
+  const t = tierStyle(tier);
   return (
     <span style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700, background: t.bg, color: t.color, boxShadow: `0 0 0 1px ${t.ring}`, textTransform: 'capitalize' }}>
       {tier}
     </span>
   );
 }
-
 function CustomerRow({ c, onClick, right }) {
   return (
     <div

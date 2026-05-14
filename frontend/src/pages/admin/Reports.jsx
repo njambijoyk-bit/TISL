@@ -1399,10 +1399,10 @@ async function downloadSectionPDF(sectionId, data, period) {
 
       ctx.y += 4; pdfSection(ctx, 'Customers by Type');
       [
-        { key: 'individual', label: 'Individual', color: [59,130,246] },
-        { key: 'business',   label: 'Business',   color: [168,85,247] },
-        { key: 'wholesale',  label: 'Wholesale',  color: [5,150,105] },
-        { key: 'contractor', label: 'Contractor', color: [245,158,11] },
+        ...(d?.by_type ? Object.keys(d.by_type).map(slug => {
+          const colorMap = { individual: [59,130,246], business: [168,85,247], wholesale: [5,150,105], contractor: [245,158,11] };
+          return { key: slug, label: slug.charAt(0).toUpperCase() + slug.slice(1), color: colorMap[slug] || [156,163,175] };
+        }) : []),
       ].forEach(({ key, label, color }) => {
         const count = d?.by_type?.[key] || 0;
         pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
@@ -2525,12 +2525,10 @@ export default function Reports() {
 
                 <Panel>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>By Type</div>
-                  {[
-                    { label: 'Individual', color: '#3b82f6' },
-                    { label: 'Business',   color: purple    },
-                    { label: 'Wholesale',  color: '#059669' },
-                    { label: 'Contractor', color: '#f59e0b' },
-                  ].map(t => <StatusRow key={t.label} label={t.label} value={customers?.by_type?.[t.label.toLowerCase()]} color={t.color} total={customers?.total_customers} />)}
+                  {customers?.by_type && Object.entries(customers.by_type).map(([slug, count]) => {
+                    const colors = { individual: '#3b82f6', business: purple, wholesale: '#059669', contractor: '#f59e0b' };
+                    return <StatusRow key={slug} label={slug.charAt(0).toUpperCase() + slug.slice(1)} value={count} color={colors[slug] || '#9ca3af'} total={customers?.total_customers} />;
+                  })}
                 </Panel>
               </div>
 
