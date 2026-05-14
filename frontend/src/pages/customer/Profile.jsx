@@ -130,6 +130,9 @@ export default function Profile() {
   const [redeemRule,   setRedeemRule]   = useState(null);
   const [redeemLoading,setRedeemLoading]= useState(false);
 
+  const [tierOptions, setTierOptions] = useState([]);
+  useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
+
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', alternate_phone: '',
     birthday: '', whatsapp: '', website: '',
@@ -376,7 +379,7 @@ export default function Profile() {
   if (!customer) return null;
 
   const tier    = customer.tier ?? 'bronze';
-  const tierClr = tierStyle[tier] ?? tierStyle.bronze;
+  const tierClr = tierStyle(tier, tierOptions);
   const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 

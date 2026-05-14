@@ -342,9 +342,6 @@ class Customer extends Model
         ];
     }
 
-        return $benefits[$this->tier] ?? $benefits['bronze'];
-    }
-
     // ========================================
     // SCOPES (Query Filters)
     // ========================================
