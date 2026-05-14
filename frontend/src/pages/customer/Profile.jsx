@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
-import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI } from '../../api';
+import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI } from '../../api';
 import { useAuthStore, usePromoCodeStore } from '../../store';
 import toast from 'react-hot-toast';
 
@@ -52,12 +52,20 @@ const sectionTitle = {
   borderBottom: '1px solid #f3f4f6',
 };
 
-const TIER_COLORS = {
-  bronze:   { bg: '#fff7ed', color: '#c2410c', ring: '#fed7aa' },
-  silver:   { bg: '#f8fafc', color: '#475569', ring: '#cbd5e1' },
-  gold:     { bg: '#fffbeb', color: '#b45309', ring: '#fde68a' },
-  platinum: { bg: '#f5f3ff', color: '#6d28d9', ring: '#ddd6fe' },
+const TIER_STYLES_FALLBACK = {
+  bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
+  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
 };
+
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 
 // ── Field component ───────────────────────────────────────────────────────────
 
@@ -368,7 +376,7 @@ export default function Profile() {
   if (!customer) return null;
 
   const tier    = customer.tier ?? 'bronze';
-  const tierClr = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
+  const tierClr = tierStyle[tier] ?? tierStyle.bronze;
   const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 

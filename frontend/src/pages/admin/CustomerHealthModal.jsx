@@ -6,15 +6,24 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import customersAPI from '../../api/customers';
+import customerTiersAPI from '../../api/customerTiers';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const TIER_STYLES = {
+const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
 };
+
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 
 const STATUS_STYLES = {
   suspended:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
@@ -77,7 +86,7 @@ function Empty({ message }) {
 }
 
 function TierBadge({ tier }) {
-  const t = TIER_STYLES[tier] ?? TIER_STYLES.silver;
+  const t = tierStyle(tier, tierOptions);
   return (
     <span style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700, background: t.bg, color: t.color, boxShadow: `0 0 0 1px ${t.ring}`, textTransform: 'capitalize' }}>
       {tier}
