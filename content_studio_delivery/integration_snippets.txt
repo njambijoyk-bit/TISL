@@ -1,0 +1,43 @@
+// --- backend/routes/api.php ---
+
+use App\Http\Controllers\Api\PublicationController;
+use App\Http\Controllers\Api\PublicationCommentController;
+
+// Public
+Route::get('/publications', [PublicationController::class, 'publicIndex']);
+Route::get('/publications/{slug}', [PublicationController::class, 'publicShow']);
+Route::post('/publications/{id}/comments', [PublicationCommentController::class, 'store']);
+
+// Admin
+Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->prefix('admin')->group(function () {
+    Route::apiResource('publications', PublicationController::class);
+    Route::get('publications/{id}/comments', [PublicationCommentController::class, 'index']);
+    Route::patch('comments/{id}', [PublicationCommentController::class, 'updateStatus']);
+    Route::delete('comments/{id}', [PublicationCommentController::class, 'destroy']);
+});
+
+
+// --- frontend/src/App.jsx ---
+
+// Import new pages
+const StudioEditor   = lazy(() => import('./pages/admin/StudioEditor'));
+const BrochureDetail = lazy(() => import('./pages/customer/BrochureDetail'));
+
+// Add Admin Routes
+<Route
+  path="/admin/publications/:id/edit"
+  element={
+    <ProtectedRoute requireAdmin>
+      <StudioEditor />
+    </ProtectedRoute>
+  }
+/>
+
+// Add Public Routes
+<Route path="/brochures/:slug" element={<BrochureDetail />} />
+
+
+// --- frontend/src/pages/admin/settings/Settings.jsx ---
+
+// Inside GROUPS array, Content section:
+{ name: 'Publications', icon: FileText, bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#a855f7', path: '/admin/publications', active: true },
