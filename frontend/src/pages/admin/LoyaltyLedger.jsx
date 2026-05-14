@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import loyaltyAPI from '../../api/loyalty';
+import customerTiersAPI from '../../api/customerTiers';
 import { useAuthStore } from '../../store';
 
 // ── Style tokens ──────────────────────────────────────────────────────────────
@@ -31,12 +32,20 @@ const pill = (active) => ({
   transition: 'all 150ms',
 });
 
-const TIER_STYLES = {
-  bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c' },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563' },
-  gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309' },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed' },
+const TIER_STYLES_FALLBACK = {
+  bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
+  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
 };
+
+function tierStyle(slug, tierOptions = []) {
+  const opt = tierOptions.find(t => t.slug === slug);
+  if (opt?.color) {
+    return { bg: `${opt.color}18`, color: opt.color, ring: `${opt.color}40` };
+  }
+  return TIER_STYLES_FALLBACK[slug] ?? TIER_STYLES_FALLBACK.silver;
+}
 
 const fmtKes  = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 const fmtPts  = (n) => Number(n ?? 0).toLocaleString();
@@ -63,7 +72,7 @@ function StatCard({ icon, label, value, sub, color = '#a855f7' }) {
 }
 
 function TierBadge({ tier }) {
-  const s = TIER_STYLES[tier] ?? TIER_STYLES.bronze;
+  const s = tierStyle(tier, tierOptions);
   return (
     <span style={{
       display: 'inline-block', padding: '2px 9px', borderRadius: 20,
@@ -89,6 +98,9 @@ export default function LoyaltyLedger() {
   const [hasPoints,setHasPoints]= useState(false);
   const [hasCredit,setHasCredit]= useState(false);
   const [sort,     setSort]     = useState('loyalty_points');
+
+  const [tierOptions, setTierOptions] = useState([]);
+  useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
 
   const searchRef  = useRef(null);
   const debounceRef= useRef(null);
@@ -182,8 +194,11 @@ export default function LoyaltyLedger() {
           style={{ ...inputStyle, paddingLeft: 10, flex: '0 0 120px', cursor: 'pointer' }}
         >
           <option value="">All tiers</option>
-          {['bronze','silver','gold','platinum'].map(t => (
-            <option key={t} value={t} style={{ textTransform: 'capitalize' }}>{t}</option>
+          {(tierOptions.length > 0 ? tierOptions : [
+            { slug: 'bronze', name: 'Bronze' },{ slug: 'silver', name: 'Silver' },
+            { slug: 'gold', name: 'Gold' },{ slug: 'platinum', name: 'Platinum' },
+          ]).map(t => (
+            <option key={t.slug} value={t.slug}>{t.name}</option>
           ))}
         </select>
 
