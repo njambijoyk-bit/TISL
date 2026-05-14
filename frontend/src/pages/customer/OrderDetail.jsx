@@ -1580,6 +1580,26 @@ export default function CustomerOrderDetail() {
                       <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Payment</p>
                     </div>
                     {canEdit ? (
+                      <Select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                        options={[
+                          { value: 'request_invoice', label: 'Request Invoice' },
+                          { value: 'pay_on_delivery', label: 'Pay on Delivery' },
+                          { value: 'mpesa', label: 'M-Pesa' },
+                          { value: 'bank_transfer', label: 'Bank Transfer' },
+                          { value: 'credit_card', label: 'Credit Card' },
+                          { value: 'credit', label: 'Credit' },
+                        ]} />
+                    ) : (
+                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{paymentMethod.replace(/_/g, ' ')}</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Truck size={11} color="#c084fc" /><span></span>
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}> Delivery</p>
+                    </div>
+                    {canEdit ? (
                       <Select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}
                         options={shippingOptions.length > 0
                           ? shippingOptions.map(opt => ({
@@ -1593,24 +1613,6 @@ export default function CustomerOrderDetail() {
                               { value: 'courier',           label: 'Courier' },
                             ]
                         } />
-                    ) : (
-                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{paymentMethod.replace(/_/g, ' ')}</p>
-                    )}
-                  </div>
-
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Truck size={11} color="#c084fc" /><span></span>
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}> Delivery</p>
-                    </div>
-                    {canEdit ? (
-                      <Select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}
-                        options={[
-                          { value: 'pickup',            label: 'Pickup' },
-                          { value: 'standard_delivery', label: 'Standard Delivery' },
-                          { value: 'express_delivery',  label: 'Express Delivery' },
-                          { value: 'courier',           label: 'Courier' },
-                        ]} />
                     ) : (
                       <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{deliveryMethod.replace(/_/g, ' ')}</p>
                     )}
