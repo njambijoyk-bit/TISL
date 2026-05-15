@@ -29,7 +29,8 @@ import {
     Trash2,
     Check,
     Video,
-    Quote
+    Quote,
+    X
 } from 'lucide-react';
 import useStudioStore from '../../store/studioStore';
 import { SortableBlock } from './SortableBlock';
@@ -88,15 +89,15 @@ export default function StudioEditor() {
     const selectedBlock = activePublication.blocks?.find(b => (b.id || b._id) === selectedBlockId);
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
             {/* Toolbar */}
-            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px', color:'#a855f7' }}>
+            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <button onClick={() => navigate('/admin/settings/publications')} style={{ background: 'none', border: 'none', cursor: 'pointer', color:'#a855f7'  }}>
+                    <button onClick={() => navigate('/admin/settings/publications')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                         <ChevronLeft size={20} />
                     </button>
                     <div>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color:'#a855f7' }}>{activePublication.title}</h2>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>{activePublication.title}</h2>
                         <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>{activePublication.type} Editor</span>
                     </div>
                 </div>
@@ -114,7 +115,7 @@ export default function StudioEditor() {
                 {/* Left Sidebar: Block Library */}
                 <div style={{ width: 260, background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
                     <div style={{ padding: 20 }}>
-                        <p style={{ ...labelStyle, color: '#a855f7' }}>Blocks</p>
+                        <p style={labelStyle}>Blocks</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
                             <BlockIcon label="Rich Text" icon={Type} onClick={() => addBlock('rich_text', { html: 'Enter text here' })} />
                             <BlockIcon label="Image" icon={ImageIcon} onClick={() => addBlock('image', { url: '' })} />
@@ -134,7 +135,7 @@ export default function StudioEditor() {
 
                 {/* Center: Canvas */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '40px 0' }}>
-                    <div style={{ maxWidth: 800, margin: '0 auto', minHeight: '1000px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
+                    <div style={{ maxWidth: 800, margin: '0 auto', background: 'white', minHeight: '1000px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <SortableContext items={activePublication.blocks?.map(b => b.id || b._id) || []} strategy={verticalListSortingStrategy}>
                                 {activePublication.blocks?.map((block) => (
@@ -162,8 +163,8 @@ export default function StudioEditor() {
                     {selectedBlock ? (
                         <div style={{ padding: 20 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#a855f7' }}>Edit {selectedBlock.type.replace('_', ' ')}</h3>
-                                <button onClick={() => setSelectedBlockId(null)} style={{ background: 'none', border: 'none', color: '#a855f7', cursor: 'pointer' }}><Check size={18} /></button>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Edit {selectedBlock.type.replace('_', ' ')}</h3>
+                                <button onClick={() => setSelectedBlockId(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><Check size={18} /></button>
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
@@ -191,7 +192,7 @@ export default function StudioEditor() {
                         <div style={{ padding: 20 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                                 <Settings size={18} color="#a855f7" />
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#a855f7' }}>Publication Settings</h3>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Publication Settings</h3>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
@@ -328,6 +329,44 @@ function PropertyFields({ block, onChange }) {
                     <textarea style={inputStyle} value={c.description || ''} onChange={(e) => onChange({ ...c, description: e.target.value })} />
                     <label style={fieldLabel}>Link URL</label>
                     <input style={inputStyle} value={c.link || ''} onChange={(e) => onChange({ ...c, link: e.target.value })} />
+                </>
+            );
+        case 'bio_card':
+            return (
+                <>
+                    <label style={fieldLabel}>Author Name</label>
+                    <input style={inputStyle} value={c.name || ''} onChange={(e) => onChange({ ...c, name: e.target.value })} />
+                    <label style={fieldLabel}>Role / Designation</label>
+                    <input style={inputStyle} value={c.role || ''} onChange={(e) => onChange({ ...c, role: e.target.value })} />
+                    <label style={fieldLabel}>Short Bio</label>
+                    <textarea style={inputStyle} value={c.bio || ''} onChange={(e) => onChange({ ...c, bio: e.target.value })} />
+                </>
+            );
+        case 'price_table':
+            const rows = c.rows || [];
+            const updateRow = (idx, field, val) => {
+                const newRows = [...rows];
+                newRows[idx] = { ...newRows[idx], [field]: val };
+                onChange({ ...c, rows: newRows });
+            };
+            const addRow = () => onChange({ ...c, rows: [...rows, { item: '', price: '' }] });
+            const removeRow = (idx) => onChange({ ...c, rows: rows.filter((_, i) => i !== idx) });
+
+            return (
+                <>
+                    <label style={fieldLabel}>Price Table Rows</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                        {rows.map((row, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                                <input style={{ ...inputStyle, flex: 2 }} placeholder="Item" value={row.item} onChange={e => updateRow(i, 'item', e.target.value)} />
+                                <input style={{ ...inputStyle, flex: 1 }} placeholder="Price" value={row.price} onChange={e => updateRow(i, 'price', e.target.value)} />
+                                <button onClick={() => removeRow(i)} style={{ border: 'none', background: 'none', color: '#ef4444' }}><X size={14} /></button>
+                            </div>
+                        ))}
+                        <button onClick={addRow} style={{ ...btnStyle, width: '100%', justifyContent: 'center', marginTop: 5 }}>
+                            <Plus size={14} /> Add Row
+                        </button>
+                    </div>
                 </>
             );
         case 'cta':

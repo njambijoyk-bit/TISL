@@ -124,8 +124,33 @@ function BlockRenderer({ block }) {
                     </div>
                 </div>
             );
+
+        case 'price_table':
+            const rows = c.rows || [];
+            return (
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc' }}>
+                            <tr>
+                                <th style={{ textAlign: 'left', padding: 12, fontSize: '0.75rem', fontWeight: 800 }}>ITEM</th>
+                                <th style={{ textAlign: 'right', padding: 12, fontSize: '0.75rem', fontWeight: 800 }}>PRICE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.length > 0 ? rows.map((r, i) => (
+                                <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: 12, fontSize: '0.9rem' }}>{r.item}</td>
+                                    <td style={{ padding: 12, fontSize: '0.9rem', textAlign: 'right', fontWeight: 700 }}>{r.price}</td>
+                                </tr>
+                            )) : (
+                                <tr><td colSpan="2" style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No rows added yet.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            );
             
         default:
-            return <div style={{ padding: 10, borderRadius: 4, fontSize: '0.75rem', color: '#64748b' }}>Block: {block.type}</div>;
+            return <div style={{ padding: 10, background: '#f1f5f9', borderRadius: 4, fontSize: '0.75rem', color: '#64748b' }}>Block: {block.type}</div>;
     }
 }
