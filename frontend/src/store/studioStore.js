@@ -1,8 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-// API base URL - adjust if needed
-const API_URL = '/api';
+import api from '../api/axios'; // Use the project's configured axios instance
 
 const useStudioStore = create((set, get) => ({
     publications: [],
@@ -15,7 +12,7 @@ const useStudioStore = create((set, get) => ({
     fetchPublications: async (type = '') => {
         set({ loading: true });
         try {
-            const res = await axios.get(`${API_URL}/admin/publications?type=${type}`);
+            const res = await api.get(`/admin/publications?type=${type}`);
             // Handle potential pagination wrap
             const data = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
             set({ publications: data, loading: false });
@@ -27,7 +24,7 @@ const useStudioStore = create((set, get) => ({
     fetchPublication: async (id) => {
         set({ loading: true });
         try {
-            const res = await axios.get(`${API_URL}/admin/publications/${id}`);
+            const res = await api.get(`/admin/publications/${id}`);
             const data = res.data.data ?? res.data;
             set({ activePublication: data, loading: false });
             return data;
@@ -39,7 +36,7 @@ const useStudioStore = create((set, get) => ({
     createPublication: async (data) => {
         set({ loading: true });
         try {
-            const res = await axios.post(`${API_URL}/admin/publications`, data);
+            const res = await api.post(`/admin/publications`, data);
             const newItem = res.data.data ?? res.data;
             set(state => ({ 
                 publications: [newItem, ...state.publications],
@@ -55,7 +52,7 @@ const useStudioStore = create((set, get) => ({
     updatePublication: async (id, data) => {
         set({ loading: true });
         try {
-            const res = await axios.put(`${API_URL}/admin/publications/${id}`, data);
+            const res = await api.put(`/admin/publications/${id}`, data);
             const updatedItem = res.data.data ?? res.data;
             set(state => ({
                 activePublication: updatedItem,
@@ -71,7 +68,7 @@ const useStudioStore = create((set, get) => ({
 
     deletePublication: async (id) => {
         try {
-            await axios.delete(`${API_URL}/admin/publications/${id}`);
+            await api.delete(`/admin/publications/${id}`);
             set(state => ({
                 publications: state.publications.filter(p => p.id !== id),
                 activePublication: state.activePublication?.id === id ? null : state.activePublication
@@ -129,7 +126,7 @@ const useStudioStore = create((set, get) => ({
     fetchPublicPublications: async (type = '') => {
         set({ loading: true });
         try {
-            const res = await axios.get(`${API_URL}/publications?type=${type}`);
+            const res = await api.get(`/publications?type=${type}`);
             return res.data; // Component handles data.data or data
         } catch (err) {
             set({ error: err.message, loading: false });
@@ -141,7 +138,7 @@ const useStudioStore = create((set, get) => ({
     fetchPublicPublication: async (slug) => {
         set({ loading: true });
         try {
-            const res = await axios.get(`${API_URL}/publications/${slug}`);
+            const res = await api.get(`/publications/${slug}`);
             return res.data.data ?? res.data;
         } catch (err) {
             set({ error: err.message, loading: false });
