@@ -46,6 +46,7 @@ const TermsOfService       = lazy(() => import('./components/legal/TermsOfServic
 const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./pages/customer/MyTicketDetail'));
+const BrochureDetail       = lazy(() => import('./pages/customer/BrochureDetail'));
 
 import CareersLayout       from './careers/layouts/CareersLayout';
 import CareersPage         from './careers/pages/CareersPage';
@@ -127,6 +128,7 @@ const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayou
 const ProductBulkPage      = lazy(() => import('./pages/admin/general/bulk/ProductBulkPage'));
 const CustomerBulkPage     = lazy(() => import('./pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/EmployeeBulkPage'));
+const StudioEditor         = lazy(() => import('./components/studio/StudioEditor'));
 
 const Settings             = lazy(() => import('./pages/admin/settings/Settings'));
 const CurrencySettings     = lazy(() => import('./pages/admin/settings/CurrencySettings'));
@@ -260,6 +262,8 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms"   element={<TermsOfService />} />
             <Route path="/cookies" element={<CookiePolicy />} />
+
+            <Route path="/brochures/:slug" element={<BrochureDetail />} />
 
             {/* ── Auth Routes ─────────────────────────────────────────────── */}
             <Route path="/login" element={<Login />} />
@@ -751,6 +755,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <Work />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/publications/:id/edit"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <StudioEditor />
                 </ProtectedRoute>
               }
             />

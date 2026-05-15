@@ -42,6 +42,8 @@ use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
 use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
+use App\Http\Controllers\Api\PublicationController;
+use App\Http\Controllers\Api\PublicationCommentController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -78,6 +80,12 @@ Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']
 // ── Public: Customer tiers & types (for checkout/dropdowns) ──
 Route::get('/customer-tiers', [CustomerTierController::class, 'publicTiers']);
 Route::get('/customer-type-discounts', [CustomerTierController::class, 'publicTypes']);
+
+// Public
+Route::get('/publications', [PublicationController::class, 'publicIndex']);
+Route::get('/publications/{slug}', [PublicationController::class, 'publicShow']);
+Route::post('/publications/{id}/comments', [PublicationCommentController::class, 'store']);
+
 // ============================================
 // CAREERS — PUBLIC
 // ============================================
@@ -862,6 +870,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // SUPER ADMIN & ADMIN ONLY ROUTES
     // ============================================
     Route::middleware('role:admin,super_admin')->prefix('admin')->group(function () {
+        Route::apiResource('publications', PublicationController::class);
+        Route::get('publications/{id}/comments', [PublicationCommentController::class, 'index']);
+        Route::patch('comments/{id}', [PublicationCommentController::class, 'updateStatus']);
+        Route::delete('comments/{id}', [PublicationCommentController::class, 'destroy']);
+        
         Route::prefix('projects')->group(function () {
             Route::delete('/{project}', [ProjectController::class, 'adminDestroy']);          // soft delete → trash
             Route::post('/{project}/transfer-ownership', [ProjectController::class, 'transferOwnership']);
