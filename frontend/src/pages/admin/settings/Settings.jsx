@@ -32,6 +32,7 @@ const GROUPS = [
     items: [
       { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/work', active: true },
       { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', color: '#6366f1', path: '/admin/careers/jobs', active: true },
+      { name: 'Publications', icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#a855f7', path: '/admin/publications', active: true },
     ],
   },
   {

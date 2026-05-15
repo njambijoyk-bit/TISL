@@ -1709,8 +1709,6 @@ export default function CustomerDetail() {
         )}
 
       </div>
-    </div>
-
       {showAssignModal && (
         <AssignModal
           onClose={() => setShowAssignModal(false)}
@@ -1718,5 +1716,6 @@ export default function CustomerDetail() {
           currentAssignedId={customer?.assigned_sales_rep || null}
         />
       )}
+    </div>
   );
 }
