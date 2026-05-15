@@ -46,7 +46,10 @@ const TermsOfService       = lazy(() => import('./components/legal/TermsOfServic
 const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./pages/customer/MyTicketDetail'));
+
+const BrochureListPage     = lazy(() => import('./pages/customer/BrochureListPage'));
 const BrochureDetail       = lazy(() => import('./pages/customer/BrochureDetail'));
+const PublicationDetail    = lazy(() => import('./pages/customer/PublicationDetail'));
 
 import CareersLayout       from './careers/layouts/CareersLayout';
 import CareersPage         from './careers/pages/CareersPage';
@@ -128,7 +131,9 @@ const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayou
 const ProductBulkPage      = lazy(() => import('./pages/admin/general/bulk/ProductBulkPage'));
 const CustomerBulkPage     = lazy(() => import('./pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/EmployeeBulkPage'));
+
 const StudioEditor         = lazy(() => import('./components/studio/StudioEditor'));
+const PublicationListPage  = lazy(() => import('./pages/admin/PublicationListPage'));
 
 const Settings             = lazy(() => import('./pages/admin/settings/Settings'));
 const CurrencySettings     = lazy(() => import('./pages/admin/settings/CurrencySettings'));
@@ -263,7 +268,10 @@ function App() {
             <Route path="/terms"   element={<TermsOfService />} />
             <Route path="/cookies" element={<CookiePolicy />} />
 
+            <Route path="/brochures" element={<BrochureListPage />} />
             <Route path="/brochures/:slug" element={<BrochureDetail />} />
+            <Route path="/news/:slug" element={<PublicationDetail />} />
+            <Route path="/blog/:slug" element={<PublicationDetail />} />
 
             {/* ── Auth Routes ─────────────────────────────────────────────── */}
             <Route path="/login" element={<Login />} />
@@ -759,7 +767,15 @@ function App() {
               }
             />
             <Route
-              path="/admin/publications/:id/edit"
+              path="/admin/settings/publications"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <PublicationListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/publications/:id/edit"
               element={
                 <ProtectedRoute requireAdmin>
                   <StudioEditor />
