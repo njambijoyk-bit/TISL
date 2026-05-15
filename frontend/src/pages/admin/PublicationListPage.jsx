@@ -16,7 +16,7 @@ import {
     Archive
 } from 'lucide-react';
 import useStudioStore from '../../store/studioStore';
-import Sidebar from '../../components/layout/Sidebar';
+import SettingsLayout from '../../components/layout/SettingsLayout';
 
 export default function PublicationListPage() {
     const navigate = useNavigate();
@@ -57,8 +57,8 @@ export default function PublicationListPage() {
     );
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
-            <Sidebar />
+        <div style={{ minHeight: '100vh', display: 'flex' }}>
+            <SettingsLayout />
             
             <div style={{ flex: 1, padding: '40px 32px' }}>
                 <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -183,7 +183,7 @@ export default function PublicationListPage() {
             {showCreateModal && (
                 <div style={modalOverlay}>
                     <div style={modalContent}>
-                        <h2 style={{ margin: '0 0 20px 0' }}>Create Publication</h2>
+                        <h2 style={{ margin: '0 0 20px 0', color: '#333' }}>Create Publication</h2>
                         <form onSubmit={handleCreate}>
                             <div style={{ marginBottom: 15 }}>
                                 <label style={labelStyle}>Title</label>

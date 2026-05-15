@@ -1,6 +1,6 @@
 import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home, Crown,
-  Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap,
+  Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap, Award,
   UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,8 +38,8 @@ const GROUPS = [
   {
     label: 'People & Promos',
     items: [
-      { name: 'Employee Management', icon: UserCheck,   bg: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#eab308', path: '/admin/employees',   active: true },
       { name: 'User Management',     icon: Users, bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6', path: '/admin/users',       active: true },
+      { name: 'Loyalties',           icon: Award, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/loyalty',     active: true },
       { name: 'Referral Codes',      icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/admin/referrals',   active: true },
       { name: 'Promo Codes',         icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa', path: '/admin/promo-codes', active: true },
     ],

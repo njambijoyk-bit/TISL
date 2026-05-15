@@ -4,7 +4,7 @@ import {
   Coins, CreditCard, Search, ChevronLeft, ChevronRight,
   TrendingUp, Users, Filter, ChevronDown, Loader2, Settings,
 } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout';
+import SettingsLayout from '../../components/layout/SettingsLayout';
 import loyaltyAPI from '../../api/loyalty';
 import customerTiersAPI from '../../api/customerTiers';
 import { useAuthStore } from '../../store';
@@ -139,7 +139,7 @@ export default function LoyaltyLedger() {
   const totalCred  = customers.reduce((s, c) => s + Number(c.store_credit ?? 0), 0);
 
   return (
-    <AdminLayout>
+    <SettingsLayout>
     <div style={{ padding: '24px 28px', maxWidth: 1280, margin: '0 auto' }}>
 
       {/* Header */}
@@ -387,6 +387,6 @@ export default function LoyaltyLedger() {
       </div>
 
     </div>
-    </AdminLayout>
+    </SettingsLayout>
   );
 }
