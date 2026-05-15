@@ -16,7 +16,9 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.get(`${API_URL}/admin/publications?type=${type}`);
-            set({ publications: res.data, loading: false });
+            // Handle potential pagination wrap
+            const data = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
+            set({ publications: data, loading: false });
         } catch (err) {
             set({ error: err.message, loading: false });
         }
@@ -26,8 +28,9 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.get(`${API_URL}/admin/publications/${id}`);
-            set({ activePublication: res.data, loading: false });
-            return res.data;
+            const data = res.data.data ?? res.data;
+            set({ activePublication: data, loading: false });
+            return data;
         } catch (err) {
             set({ error: err.message, loading: false });
         }
@@ -37,11 +40,12 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.post(`${API_URL}/admin/publications`, data);
+            const newItem = res.data.data ?? res.data;
             set(state => ({
-                publications: [res.data, ...state.publications],
+                publications: [newItem, ...state.publications],
                 loading: false
             }));
-            return res.data;
+            return newItem;
         } catch (err) {
             set({ error: err.message, loading: false });
             throw err;
@@ -52,12 +56,13 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.put(`${API_URL}/admin/publications/${id}`, data);
+            const updatedItem = res.data.data ?? res.data;
             set(state => ({
-                activePublication: res.data,
-                publications: state.publications.map(p => p.id === id ? res.data : p),
+                activePublication: updatedItem,
+                publications: state.publications.map(p => p.id === id ? updatedItem : p),
                 loading: false
             }));
-            return res.data;
+            return updatedItem;
         } catch (err) {
             set({ error: err.message, loading: false });
             throw err;
@@ -103,7 +108,7 @@ const useStudioStore = create((set, get) => ({
         set(state => ({
             activePublication: {
                 ...state.activePublication,
-                blocks: state.activePublication.blocks.filter(b => (b.id || b._id) !== blockId)
+                blocks: (state.activePublication.blocks || []).filter(b => (b.id || b._id) !== blockId)
             }
         }));
     },
@@ -112,7 +117,7 @@ const useStudioStore = create((set, get) => ({
         set(state => ({
             activePublication: {
                 ...state.activePublication,
-                blocks: state.activePublication.blocks.map(b =>
+                blocks: (state.activePublication.blocks || []).map(b =>
                     (b.id || b._id) === blockId ? { ...b, ...data } : b
                 )
             }
@@ -125,7 +130,7 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.get(`${API_URL}/publications?type=${type}`);
-            return res.data;
+            return res.data; // Component handles data.data or data
         } catch (err) {
             set({ error: err.message, loading: false });
         } finally {
@@ -137,7 +142,7 @@ const useStudioStore = create((set, get) => ({
         set({ loading: true });
         try {
             const res = await axios.get(`${API_URL}/publications/${slug}`);
-            return res.data;
+            return res.data.data ?? res.data;
         } catch (err) {
             set({ error: err.message, loading: false });
         } finally {

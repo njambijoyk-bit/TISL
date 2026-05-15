@@ -49,8 +49,11 @@ export default function PublicationListPage() {
         }
     };
 
-    const filteredPubs = publications.filter(p =>
-        p.title.toLowerCase().includes(searchTerm.toLowerCase())
+    // FIX: Guard against non-array publications
+    const pubList = Array.isArray(publications) ? publications : (publications?.data || []);
+
+    const filteredPubs = pubList.filter(p =>
+        p.title?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
