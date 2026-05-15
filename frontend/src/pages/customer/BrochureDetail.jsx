@@ -29,8 +29,8 @@ export default function BrochureDetail() {
                 <div className="max-w-4xl mx-auto px-6 py-8 flex justify-end no-print">
                     <button 
                         onClick={() => window.print()}
-                        className="px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-105"
-                        style={{ background: accent }}
+                        className="px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105"
+                        style={{ background: accent, color: '#ffffff' }}
                     >
                         Download PDF
                     </button>
@@ -81,7 +81,7 @@ function PublicBlockRenderer({ block, accent }) {
         case 'cta':
             return (
                 <div className="text-center py-8">
-                    <a href={block.content?.link} className="inline-block px-10 py-4 rounded-2xl font-black text-white text-lg shadow-xl" style={{ background: accent }}>
+                    <a href={block.content?.link} className="inline-block px-10 py-4 rounded-2xl font-black text-lg shadow-xl" style={{ background: accent, color: '#ffffff' }}>
                         {block.content?.text}
                     </a>
                 </div>

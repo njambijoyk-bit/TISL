@@ -88,15 +88,15 @@ export default function StudioEditor() {
     const selectedBlock = activePublication.blocks?.find(b => (b.id || b._id) === selectedBlockId);
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
             {/* Toolbar */}
-            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px' }}>
+            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px', color:'#a855f7' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <button onClick={() => navigate('/admin/publications')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <button onClick={() => navigate('/admin/settings/publications')} style={{ background: 'none', border: 'none', cursor: 'pointer', color:'#a855f7'  }}>
                         <ChevronLeft size={20} />
                     </button>
                     <div>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>{activePublication.title}</h2>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color:'#a855f7' }}>{activePublication.title}</h2>
                         <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>{activePublication.type} Editor</span>
                     </div>
                 </div>
@@ -114,7 +114,7 @@ export default function StudioEditor() {
                 {/* Left Sidebar: Block Library */}
                 <div style={{ width: 260, background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
                     <div style={{ padding: 20 }}>
-                        <p style={labelStyle}>Blocks</p>
+                        <p style={{ ...labelStyle, color: '#a855f7' }}>Blocks</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
                             <BlockIcon label="Rich Text" icon={Type} onClick={() => addBlock('rich_text', { html: 'Enter text here' })} />
                             <BlockIcon label="Image" icon={ImageIcon} onClick={() => addBlock('image', { url: '' })} />
@@ -134,7 +134,7 @@ export default function StudioEditor() {
 
                 {/* Center: Canvas */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '40px 0' }}>
-                    <div style={{ maxWidth: 800, margin: '0 auto', background: 'white', minHeight: '1000px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
+                    <div style={{ maxWidth: 800, margin: '0 auto', minHeight: '1000px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <SortableContext items={activePublication.blocks?.map(b => b.id || b._id) || []} strategy={verticalListSortingStrategy}>
                                 {activePublication.blocks?.map((block) => (
@@ -162,8 +162,8 @@ export default function StudioEditor() {
                     {selectedBlock ? (
                         <div style={{ padding: 20 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Edit {selectedBlock.type.replace('_', ' ')}</h3>
-                                <button onClick={() => setSelectedBlockId(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><Check size={18} /></button>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#a855f7' }}>Edit {selectedBlock.type.replace('_', ' ')}</h3>
+                                <button onClick={() => setSelectedBlockId(null)} style={{ background: 'none', border: 'none', color: '#a855f7', cursor: 'pointer' }}><Check size={18} /></button>
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
@@ -191,7 +191,7 @@ export default function StudioEditor() {
                         <div style={{ padding: 20 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                                 <Settings size={18} color="#a855f7" />
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Publication Settings</h3>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#a855f7' }}>Publication Settings</h3>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
