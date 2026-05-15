@@ -63,7 +63,7 @@ export function ProductCardB({ product, accentColor = '#a855f7' }) {
                 style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover' }} 
             />
             <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>{product.name}</h4>
+                <h4 style={{ fontSize: '0.9rem', color: '#a855f7', fontWeight: 700, margin: 0 }}>{product.name}</h4>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '2px 0' }}>{product.description}</p>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: accentColor }}>{product.price}</span>
             </div>
@@ -136,11 +136,11 @@ export function ProductCardC({ product, accentColor = '#a855f7' }) {
                     <Info size={12} color={accentColor} />
                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase' }}>Industrial Grade</span>
                 </div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', margin: 0 }}>{product.name}</h4>
+                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{product.name}</h4>
                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>{product.description}</p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white' }}>{product.price}</span>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', textDecoration: 'line-through' }}>KES 4,500</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#22b64e' }}>{product.price}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#b90f2b', textDecoration: 'line-through' }}>KES 4,500</span>
                 </div>
                 <Link 
                     to={product.link}

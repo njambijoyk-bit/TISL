@@ -126,6 +126,6 @@ function BlockRenderer({ block }) {
             );
             
         default:
-            return <div style={{ padding: 10, background: '#f1f5f9', borderRadius: 4, fontSize: '0.75rem', color: '#64748b' }}>Block: {block.type}</div>;
+            return <div style={{ padding: 10, borderRadius: 4, fontSize: '0.75rem', color: '#64748b' }}>Block: {block.type}</div>;
     }
 }
