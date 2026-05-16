@@ -4,6 +4,7 @@ import { Calendar, User, Tag, ChevronLeft, MessageSquare } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import useStudioStore from '../../store/studioStore';
+import { ProductCardA, ProductCardB, ProductCardC } from '../../components/studio/blocks/ProductCards';
 
 export default function PublicationDetail() {
     const { slug } = useParams();
@@ -63,10 +64,10 @@ export default function PublicationDetail() {
                     </div>
                 )}
 
-                {/* Content Blocks */}
-                <div className="space-y-10">
+                {/* Content Blocks with Flex Wrap Support */}
+                <div className="flex flex-wrap items-start -mx-4">
                     {publication.blocks?.map((block, i) => (
-                        <div key={i} className="publication-block">
+                        <div key={i} className="px-4 mb-8 box-border" style={{ width: block.style?.width || '100%' }}>
                             <BlockRenderer block={block} />
                         </div>
                     ))}
@@ -85,7 +86,7 @@ export default function PublicationDetail() {
                     )}
 
                     {/* Comments Placeholder */}
-                    <div className="bg-purple-50 rounded-3xl p-8 md:p-12 text-center">
+                    <div className="bg-purple-50 rounded-3xl p-8 md:p-12 text-center w-full">
                         <MessageSquare size={48} className="mx-auto text-purple-200 mb-4" />
                         <h3 className="text-2xl font-black text-gray-900 mb-2">Join the Conversation</h3>
                         <p className="text-gray-600 mb-6">Comments are moderated and will appear once approved by an administrator.</p>
@@ -108,28 +109,67 @@ function BlockRenderer({ block }) {
             return <div className="prose prose-lg md:prose-xl max-w-none prose-purple" dangerouslySetInnerHTML={{ __html: c.html }} />;
         case 'image':
             return (
-                <figure className="my-8">
+                <figure>
                     <img src={c.url} className="w-full rounded-2xl" alt={c.caption || ""} />
                     {c.caption && <figcaption className="mt-4 text-center text-gray-400 text-sm italic">{c.caption}</figcaption>}
                 </figure>
             );
+        case 'product_card':
+            if (c.variant === 'B') return <ProductCardB product={c} />;
+            if (c.variant === 'C') return <ProductCardC product={c} />;
+            return <ProductCardA product={c} />;
+        case 'bio_card':
+            return (
+                <div className="flex flex-col gap-4 p-8 bg-gray-50 rounded-3xl border border-gray-100 h-full">
+                    <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden">
+                        {c.image && <img src={c.image} className="w-full h-full object-cover" alt="" />}
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-black text-gray-900">{c.name}</h4>
+                        <p className="text-purple-600 font-bold text-xs uppercase tracking-wider">{c.role}</p>
+                        <p className="mt-3 text-gray-600 text-sm leading-relaxed line-clamp-4">{c.bio}</p>
+                    </div>
+                </div>
+            );
+        case 'price_table':
+            const rows = c.rows || [];
+            return (
+                <div className="overflow-hidden rounded-3xl border border-gray-100 shadow-sm h-full bg-white">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500">Item</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {rows.map((r, i) => (
+                                <tr key={i}>
+                                    <td className="px-4 py-3 text-gray-900 text-xs font-medium">{r.item}</td>
+                                    <td className="px-4 py-3 text-purple-600 text-xs font-black text-right">{r.price}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
         case 'pull_quote':
             return (
-                <div className="my-12 py-10 px-8 md:px-12 bg-gray-50 border-l-8 border-purple-500 rounded-r-3xl">
-                    <p className="text-2xl md:text-3xl font-black text-gray-900 leading-tight italic">
+                <div className="py-8 px-6 bg-gray-50 border-l-4 border-purple-500 rounded-r-2xl h-full">
+                    <p className="text-lg font-black text-gray-900 leading-tight italic">
                         "{c.text}"
                     </p>
                     {c.attribution && (
-                        <p className="mt-6 text-purple-600 font-black uppercase tracking-widest text-sm">— {c.attribution}</p>
+                        <p className="mt-4 text-purple-600 font-black uppercase tracking-widest text-[10px]">— {c.attribution}</p>
                     )}
                 </div>
             );
         case 'cta':
             return (
-                <div className="my-12 p-10 bg-gray-900 rounded-3xl text-center">
-                    <h4 className="text-2xl font-black text-white mb-6">Ready to take the next step?</h4>
-                    <a href={c.link} className="inline-block px-10 py-4 bg-purple-500 text-white font-black rounded-xl shadow-lg hover:bg-purple-400 transition-colors">
-                        {c.text}
+                <div className="p-8 bg-gray-900 rounded-3xl text-center h-full flex flex-col justify-center">
+                    <h4 className="text-xl font-black text-white mb-4">{c.text}</h4>
+                    <a href={c.link} className="inline-block px-6 py-3 bg-purple-500 text-white font-black rounded-xl text-sm">
+                        Action
                     </a>
                 </div>
             );

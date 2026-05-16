@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\HamperController;
+use App\Http\Controllers\Api\PublicHamperController;
+use App\Http\Controllers\Api\HamperCheckoutController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\NotificationController;
@@ -246,6 +249,15 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);
+
+        // ── Customer hamper routes (auth required) ────────────────────────────────────
+        Route::prefix('hampers')->group(function () {
+            Route::get('/',                              [PublicHamperController::class, 'index']);
+            Route::get('/{slug}',                       [PublicHamperController::class, 'show']);
+            Route::get('/{slug}/checkout',              [HamperCheckoutController::class, 'load']);
+            Route::post('/{slug}/checkout/validate-promo', [HamperCheckoutController::class, 'validatePromo']);
+            Route::post('/{slug}/checkout/place-order', [HamperCheckoutController::class, 'placeOrder']);
+        });
 
         // Quotes
         Route::prefix('quotes')->group(function () {
@@ -879,6 +891,29 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{project}', [ProjectController::class, 'adminDestroy']);          // soft delete → trash
             Route::post('/{project}/transfer-ownership', [ProjectController::class, 'transferOwnership']);
             Route::post('/{id}/restore', [ProjectController::class, 'adminRestore']);
+        });
+        
+        // ── Admin hamper routes ───────────────────────────────────────────────────────
+        Route::prefix('hampers')->group(function () {
+            Route::get('/',                                     [HamperController::class, 'index']);
+            Route::post('/',                                    [HamperController::class, 'store']);
+            Route::get('/{id}',                                 [HamperController::class, 'show']);
+            Route::put('/{id}',                                 [HamperController::class, 'update']);
+            Route::delete('/{id}',                              [HamperController::class, 'destroy']);
+        
+            // products
+            Route::post('/{id}/products',                       [HamperController::class, 'addProduct']);
+            Route::delete('/{id}/products/{productId}',         [HamperController::class, 'removeProduct']);
+            Route::get('/{id}/suggest-products',                [HamperController::class, 'suggestProducts']);
+        
+            // eligibility
+            Route::get('/{id}/eligibility',                     [HamperController::class, 'listEligibility']);
+            Route::post('/{id}/eligibility',                    [HamperController::class, 'addCustomer']);
+            Route::patch('/{id}/eligibility/{customerId}',      [HamperController::class, 'updateCustomerStatus']);
+            Route::get('/{id}/eligibility/search',              [HamperController::class, 'searchCustomers']);
+        
+            // orders
+            Route::get('/{id}/orders',                          [HamperController::class, 'orders']);
         });
         
         // ── PROMO CODES — ADMIN ────────────────────────────────────────────────────

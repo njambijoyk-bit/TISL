@@ -13,15 +13,19 @@ export function SortableBlock({ block, isSelected, onClick }) {
         transition,
     } = useSortable({ id: block.id || block._id });
 
+    // Handle width from style
+    const width = block.style?.width || '100%';
+
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        marginBottom: 16,
+        width,
         position: 'relative',
         borderRadius: 8,
         border: isSelected ? '2px solid #a855f7' : '2px solid transparent',
         padding: 4,
         background: isSelected ? 'rgba(168,85,247,0.02)' : 'transparent',
+        boxSizing: 'border-box',
     };
 
     return (
@@ -32,19 +36,19 @@ export function SortableBlock({ block, isSelected, onClick }) {
                 {...listeners} 
                 style={{ 
                     position: 'absolute', 
-                    left: -24, 
-                    top: '50%', 
-                    transform: 'translateY(-50%)', 
+                    left: 0, 
+                    top: 10, 
                     cursor: 'grab', 
                     color: '#cbd5e1',
                     display: isSelected ? 'flex' : 'none',
-                    padding: 4
+                    padding: 4,
+                    zIndex: 10
                 }}
             >
                 <GripVertical size={18} />
             </div>
 
-            <div style={{ padding: 10 }}>
+            <div style={{ padding: '10px 10px 10px 20px' }}>
                 <BlockRenderer block={block} />
             </div>
         </div>
@@ -116,11 +120,13 @@ function BlockRenderer({ block }) {
         case 'bio_card':
             return (
                 <div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: 20, borderRadius: 12, background: '#f8fafc' }}>
-                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#e2e8f0' }} />
-                    <div>
-                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{c.name || 'Author Name'}</h4>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#e2e8f0', flexShrink: 0, overflow: 'hidden' }}>
+                        {c.image && <img src={c.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                        <h4 style={{ margin: 0, fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'Author Name'}</h4>
                         <p style={{ margin: 0, fontSize: '0.8rem', color: '#a855f7', fontWeight: 700 }}>{c.role || 'Designation'}</p>
-                        <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#64748b' }}>{c.bio || 'Short biography goes here.'}</p>
+                        <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.bio || 'Short biography goes here.'}</p>
                     </div>
                 </div>
             );
