@@ -17,52 +17,101 @@ export default function BrochureDetail() {
     if (loading || !brochure) return <div className="min-h-screen flex items-center justify-center">Loading Brochure...</div>;
 
     const accent = brochure.style_config?.accent || '#a855f7';
+    const template = brochure.template || 'minimal';
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className={`min-h-screen brochure-page template-${template}`} style={{ '--accent': accent }}>
             <Header />
             
-            <div className={`brochure-shell template-${brochure.template}`} style={{ '--accent': accent }}>
-                
-                {/* PDF Print Download Button */}
-                <div className="max-w-6xl mx-auto px-6 py-8 flex justify-end no-print">
-                    <button 
-                        onClick={() => window.print()}
-                        className="px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-105"
-                        style={{ background: accent }}
-                    >
-                        Download PDF
-                    </button>
-                </div>
+            {/* Template-specific Header Shell */}
+            <BrochureHeader brochure={brochure} accent={accent} template={template} />
 
-                <div className="max-w-6xl mx-auto px-6 pb-20">
-                    <header className="mb-16 text-center">
-                        <h1 className="text-5xl font-black mb-4" style={{ color: '#111827' }}>{brochure.title}</h1>
-                        <div className="w-24 h-1 mx-auto" style={{ background: accent }}></div>
-                    </header>
-
-                    {/* Flex Wrap Container for Blocks */}
-                    <div className="flex flex-wrap items-start -mx-4">
-                        {brochure.blocks?.map((block, i) => (
-                            <div key={i} className="px-4 mb-8 box-border" style={{ width: block.style?.width || '100%' }}>
-                                <PublicBlockRenderer block={block} accent={accent} />
-                            </div>
-                        ))}
-                    </div>
+            <main className="max-w-6xl mx-auto px-6 py-12 md:py-20">
+                {/* Flex Wrap Container for Blocks */}
+                <div className="flex flex-wrap items-start -mx-4">
+                    {brochure.blocks?.map((block, i) => (
+                        <div key={i} className="px-4 mb-12 box-border" style={{ width: block.style?.width || '100%' }}>
+                            <PublicBlockRenderer block={block} accent={accent} />
+                        </div>
+                    ))}
                 </div>
-            </div>
+            </main>
 
             <Footer />
 
             <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap');
+
+                .brochure-page { font-family: 'Inter', sans-serif; }
+
+                /* ── MINIMAL ── */
+                .template-minimal { background: #fff; }
+                .template-minimal .block-card { border-radius: 0; border: none; background: transparent; }
+
+                /* ── BOLD ── */
+                .template-bold { background: #fcfcfc; font-family: 'Outfit', sans-serif; }
+                .template-bold h1 { text-transform: uppercase; letter-spacing: -0.04em; }
+                .template-bold .header-banner { background: #0f172a; color: white; padding: 120px 24px; }
+
+                /* ── CORPORATE ── */
+                .template-corporate { background: #f8fafc; }
+                .template-corporate .header-flex { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 4px solid var(--accent); padding-bottom: 20px; }
+
                 @media print {
                     .no-print { display: none !important; }
-                    body { background: white !important; }
-                    .brochure-shell { padding: 0 !important; }
+                    body, .brochure-page { background: white !important; padding: 0 !important; margin: 0 !important; }
+                    header, footer { display: none !important; }
+                    .max-w-6xl { max-width: 100% !important; width: 100% !important; }
                 }
-                .template-bold h1 { text-transform: uppercase; letter-spacing: -0.02em; }
-                .template-corporate { font-family: 'Inter', sans-serif; }
             `}</style>
+        </div>
+    );
+}
+
+function BrochureHeader({ brochure, accent, template }) {
+    const handlePrint = () => window.print();
+
+    if (template === 'bold') {
+        return (
+            <div className="header-banner text-center relative overflow-hidden">
+                <div className="absolute top-8 right-8 no-print">
+                    <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-bold backdrop-blur-md transition-all">Download PDF</button>
+                </div>
+                <div className="max-w-4xl mx-auto">
+                    <span className="inline-block px-4 py-1 bg-white/10 text-white rounded-full text-xs font-bold uppercase tracking-widest mb-6">Catalogue 2026</span>
+                    <h1 className="text-6xl md:text-8xl font-black mb-8 leading-none">{brochure.title}</h1>
+                    <div className="w-24 h-2 mx-auto bg-white/20"></div>
+                </div>
+            </div>
+        );
+    }
+
+    if (template === 'corporate') {
+        return (
+            <div className="bg-white border-b border-gray-100 py-12 md:py-16">
+                <div className="max-w-6xl mx-auto px-6">
+                    <div className="header-flex">
+                        <div className="max-w-2xl">
+                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">{brochure.title}</h1>
+                            <p className="mt-4 text-gray-500 font-medium">Target Industrial Suppliers Limited — Official Document</p>
+                        </div>
+                        <div className="no-print">
+                            <button onClick={handlePrint} className="px-8 py-4 rounded-xl font-bold text-white shadow-xl" style={{ background: accent }}>Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Default: Minimal
+    return (
+        <div className="max-w-4xl mx-auto px-6 pt-20 text-center">
+            <div className="flex justify-center mb-10 no-print">
+                <button onClick={handlePrint} className="text-gray-400 hover:text-gray-900 font-bold flex items-center gap-2 border-b-2 border-transparent hover:border-gray-900 transition-all">Download PDF</button>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-light text-gray-900 mb-6">{brochure.title}</h1>
+            <div className="w-20 h-0.5 mx-auto bg-gray-200 mb-20"></div>
         </div>
     );
 }
@@ -94,33 +143,33 @@ function PublicBlockRenderer({ block, accent }) {
             );
         case 'bio_card':
             return (
-                <div className="flex flex-col md:flex-row gap-6 items-center p-8 bg-gray-50 rounded-3xl border border-gray-100 h-full box-border">
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                <div className="flex flex-col md:flex-row gap-8 items-center p-10 bg-gray-50 rounded-[40px] border border-gray-100 h-full box-border shadow-sm">
+                    <div className="w-32 h-32 rounded-[32px] bg-gray-200 flex-shrink-0 overflow-hidden rotate-3">
                         {c.image && <img src={c.image} className="w-full h-full object-cover" alt="" />}
                     </div>
                     <div>
-                        <h4 className="text-xl font-black text-gray-900">{c.name}</h4>
+                        <h4 className="text-2xl font-black text-gray-900">{c.name}</h4>
                         <p className="text-purple-600 font-bold text-sm uppercase tracking-wider">{c.role}</p>
-                        <p className="mt-4 text-gray-600 text-sm leading-relaxed">{c.bio}</p>
+                        <p className="mt-4 text-gray-600 leading-relaxed">{c.bio}</p>
                     </div>
                 </div>
             );
         case 'price_table':
             const rows = c.rows || [];
             return (
-                <div className="overflow-hidden rounded-3xl border border-gray-100 shadow-sm h-full bg-white">
+                <div className="overflow-hidden rounded-3xl border border-gray-100 shadow-xl h-full bg-white">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 text-xs font-black uppercase text-gray-500">Item</th>
-                                <th className="px-6 py-4 text-xs font-black uppercase text-gray-500 text-right">Price</th>
+                                <th className="px-8 py-6 text-xs font-black uppercase text-gray-500">Item / Description</th>
+                                <th className="px-8 py-6 text-xs font-black uppercase text-gray-500 text-right">Price</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y-2 divide-gray-50">
                             {rows.map((r, i) => (
-                                <tr key={i}>
-                                    <td className="px-6 py-4 text-gray-900 font-medium">{r.item}</td>
-                                    <td className="px-6 py-4 text-purple-600 font-black text-right">{r.price}</td>
+                                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-8 py-6 text-gray-900 font-bold">{r.item}</td>
+                                    <td className="px-8 py-6 text-purple-600 font-black text-right text-xl">{r.price}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -129,13 +178,34 @@ function PublicBlockRenderer({ block, accent }) {
             );
         case 'pull_quote':
             return (
-                <div className="py-10 px-8 bg-gray-50 border-l-8 border-purple-500 rounded-r-3xl h-full box-border">
-                    <p className="text-xl font-black text-gray-900 leading-tight italic">
-                        "{c.text}"
+                <div className="py-12 px-10 bg-gray-900 rounded-[40px] h-full box-border relative overflow-hidden group">
+                    <div className="absolute -top-10 -left-10 text-[200px] text-white/5 font-black pointer-events-none select-none">“</div>
+                    <p className="text-2xl md:text-3xl font-black text-white leading-tight italic relative z-10">
+                        {c.text}
                     </p>
                     {c.attribution && (
-                        <p className="mt-6 text-purple-600 font-black uppercase tracking-widest text-xs">— {c.attribution}</p>
+                        <p className="mt-8 text-purple-400 font-black uppercase tracking-widest text-xs relative z-10">— {c.attribution}</p>
                     )}
+                </div>
+            );
+        case 'video':
+            // Simple YouTube/Vimeo embed logic
+            let embedUrl = c.url;
+            if (c.url?.includes('youtube.com/watch?v=')) {
+                embedUrl = c.url.replace('watch?v=', 'embed/');
+            } else if (c.url?.includes('vimeo.com/')) {
+                embedUrl = c.url.replace('vimeo.com/', 'player.vimeo.com/video/');
+            }
+            return (
+                <div className="w-full md:-mx-20 md:w-[calc(100%+10rem)] my-12">
+                    <div className="aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black">
+                        {embedUrl ? (
+                            <iframe src={embedUrl} className="w-full h-full border-none" allowFullScreen title="Video Content"></iframe>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-500">No Video Loaded</div>
+                        )}
+                    </div>
+                    {c.caption && <p className="mt-4 text-center text-gray-400 text-sm italic">{c.caption}</p>}
                 </div>
             );
         default:
