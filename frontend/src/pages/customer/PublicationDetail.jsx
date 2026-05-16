@@ -67,7 +67,7 @@ export default function PublicationDetail() {
                 {/* Content Blocks with Flex Wrap Support */}
                 <div className="flex flex-wrap items-start -mx-4">
                     {publication.blocks?.map((block, i) => (
-                        <div key={i} className="px-4 mb-8 box-border" style={{ width: block.style?.width || '100%' }}>
+                        <div key={i} className="px-4 mb-12 box-border" style={{ width: block.style?.width || '100%' }}>
                             <BlockRenderer block={block} />
                         </div>
                     ))}
@@ -110,7 +110,7 @@ function BlockRenderer({ block }) {
         case 'image':
             return (
                 <figure>
-                    <img src={c.url} className="w-full rounded-2xl" alt={c.caption || ""} />
+                    <img src={c.url} className="w-full rounded-2xl shadow-xl" alt={c.caption || ""} />
                     {c.caption && <figcaption className="mt-4 text-center text-gray-400 text-sm italic">{c.caption}</figcaption>}
                 </figure>
             );
@@ -142,7 +142,7 @@ function BlockRenderer({ block }) {
                                 <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 text-right">Price</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-100">
                             {rows.map((r, i) => (
                                 <tr key={i}>
                                     <td className="px-4 py-3 text-gray-900 text-xs font-medium">{r.item}</td>
@@ -162,6 +162,25 @@ function BlockRenderer({ block }) {
                     {c.attribution && (
                         <p className="mt-4 text-purple-600 font-black uppercase tracking-widest text-[10px]">— {c.attribution}</p>
                     )}
+                </div>
+            );
+        case 'video':
+            let embedUrl = c.url;
+            if (c.url?.includes('youtube.com/watch?v=')) {
+                embedUrl = c.url.replace('watch?v=', 'embed/');
+            } else if (c.url?.includes('vimeo.com/')) {
+                embedUrl = c.url.replace('vimeo.com/', 'player.vimeo.com/video/');
+            }
+            return (
+                <div className="w-full md:-mx-12 md:w-[calc(100%+6rem)] my-12">
+                    <div className="aspect-video rounded-3xl overflow-hidden shadow-xl bg-black">
+                        {embedUrl ? (
+                            <iframe src={embedUrl} className="w-full h-full border-none" allowFullScreen title="Video"></iframe>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">No Video URL set</div>
+                        )}
+                    </div>
+                    {c.caption && <p className="mt-4 text-center text-gray-400 text-xs italic">{c.caption}</p>}
                 </div>
             );
         case 'cta':

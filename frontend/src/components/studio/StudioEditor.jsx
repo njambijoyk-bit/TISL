@@ -85,21 +85,23 @@ export default function StudioEditor() {
         }
     };
 
-    if (loading || !activePublication) return <div>Loading...</div>;
+    if (loading || !activePublication) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Studio...</div>;
 
     const selectedBlock = activePublication.blocks?.find(b => (b.id || b._id) === selectedBlockId);
+    const template = activePublication.template || 'minimal';
+    const accent = activePublication.style_config?.accent || '#a855f7';
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
             {/* Toolbar */}
-            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px' }}>
+            <div style={{ height: 60, background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', px: 20, justifyContent: 'space-between', padding: '0 20px', zIndex: 50 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
                     <button onClick={() => navigate('/admin/settings/publications')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                         <ChevronLeft size={20} />
                     </button>
                     <div>
                         <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>{activePublication.title}</h2>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>{activePublication.type} Editor</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>{activePublication.type} Editor • {template}</span>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -124,19 +126,32 @@ export default function StudioEditor() {
                             <BlockIcon label="Bio Card" icon={User} onClick={() => addBlock('bio_card', { name: '', role: '', bio: '', image: '' }, { width: '100%' })} />
                             <BlockIcon label="CTA" icon={MousePointer2} onClick={() => addBlock('cta', { text: 'Click Here', link: '#' }, { width: '100%' })} />
                             <BlockIcon label="Table" icon={Layout} onClick={() => addBlock('price_table', { rows: [] }, { width: '100%' })} />
-                            {(activePublication.type === 'news' || activePublication.type === 'blog') && (
-                                <>
-                                    <BlockIcon label="Pull Quote" icon={Quote} onClick={() => addBlock('pull_quote', { text: '', attribution: '' }, { width: '100%' })} />
-                                    <BlockIcon label="Video" icon={Video} onClick={() => addBlock('video', { url: '' }, { width: '100%' })} />
-                                </>
-                            )}
+                            <BlockIcon label="Pull Quote" icon={Quote} onClick={() => addBlock('pull_quote', { text: '', attribution: '' }, { width: '100%' })} />
+                            <BlockIcon label="Video" icon={Video} onClick={() => addBlock('video', { url: '' }, { width: '100%' })} />
                         </div>
                     </div>
                 </div>
 
                 {/* Center: Canvas */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '40px 0' }}>
-                    <div style={{ maxWidth: 900, margin: '0 auto', background: 'white', minHeight: '1100px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
+                    <div className={`canvas-container template-${template}`} style={{ maxWidth: 850, margin: '0 auto', background: 'white', minHeight: '1100px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40, position: 'relative', '--accent': accent }}>
+                        
+                        {/* Fake Canvas Header Preview */}
+                        <div style={{ marginBottom: 40, borderBottom: template === 'corporate' ? `4px solid ${accent}` : 'none', paddingBottom: 20 }}>
+                            <h1 style={{ 
+                                fontSize: template === 'minimal' ? '2.5rem' : '3.5rem', 
+                                fontWeight: template === 'minimal' ? 300 : 900,
+                                textAlign: template === 'minimal' ? 'center' : 'left',
+                                textTransform: template === 'bold' ? 'uppercase' : 'none',
+                                color: template === 'bold' ? 'white' : '#1e293b',
+                                background: template === 'bold' ? '#0f172a' : 'transparent',
+                                margin: template === 'bold' ? '-40px -40px 40px -40px' : '0',
+                                padding: template === 'bold' ? '80px 40px' : '0'
+                            }}>
+                                {activePublication.title}
+                            </h1>
+                        </div>
+
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0, alignItems: 'flex-start' }}>
                                 <SortableContext items={activePublication.blocks?.map(b => b.id || b._id) || []} strategy={rectSortingStrategy}>
@@ -417,6 +432,15 @@ function PropertyFields({ block, onChange }) {
                     <textarea style={inputStyle} value={c.text || ''} onChange={(e) => onChange({ ...c, text: e.target.value })} />
                     <label style={fieldLabel}>Attribution (Author)</label>
                     <input style={inputStyle} value={c.attribution || ''} onChange={(e) => onChange({ ...c, attribution: e.target.value })} />
+                </>
+            );
+        case 'video':
+            return (
+                <>
+                    <label style={fieldLabel}>Video URL (YouTube/Vimeo)</label>
+                    <input style={inputStyle} value={c.url || ''} placeholder="https://..." onChange={(e) => onChange({ ...c, url: e.target.value })} />
+                    <label style={{ ...fieldLabel, marginTop: 10, display: 'block' }}>Caption</label>
+                    <input style={inputStyle} value={c.caption || ''} onChange={(e) => onChange({ ...c, caption: e.target.value })} />
                 </>
             );
         default:

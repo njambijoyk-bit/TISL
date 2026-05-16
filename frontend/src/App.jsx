@@ -46,6 +46,9 @@ const TermsOfService       = lazy(() => import('./components/legal/TermsOfServic
 const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./pages/customer/MyTicketDetail'));
+const HamperListPage       = lazy(() => import('./pages/customer/HamperListPage'));
+const HamperDetail         = lazy(() => import('./pages/customer/HamperDetail'));
+const HamperCheckout       = lazy(() => import('./pages/customer/HamperCheckout'));
 
 const BrochureListPage     = lazy(() => import('./pages/customer/BrochureListPage'));
 const BrochureDetail       = lazy(() => import('./pages/customer/BrochureDetail'));
@@ -125,6 +128,9 @@ const InitiatePaymentModal = lazy(() => import('./pages/admin/finance/InitiatePa
 const LoyaltyLedger        = lazy(() => import('./pages/admin/LoyaltyLedger'));
 const LoyaltySettings      = lazy(() => import('./pages/admin/LoyaltySettings'));
 const LoyaltyLedgerDetail  = lazy(() => import('./pages/admin/LoyaltyLedgerDetail'));
+const AdminHampers         = lazy(() => import('./pages/admin/hampers/AdminHampers'));
+const AdminHamperDetail    = lazy(() => import('./pages/admin/hampers/AdminHamperDetail'));
+const AdminHamperCreate    = lazy(() => import('./pages/admin/hampers/AdminHamperCreate'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
 const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayout.jsx'))
@@ -311,6 +317,9 @@ function App() {
             </Route>
 
             {/* ── Protected Customer Routes ────────────────────────────────── */}
+            <Route path="/hampers" element={<ProtectedRoute><HamperListPage /></ProtectedRoute>} />
+            <Route path="/hampers/:slug" element={<ProtectedRoute><HamperDetail /></ProtectedRoute>} />
+            <Route path="/hampers/:slug/checkout" element={<ProtectedRoute><HamperCheckout /></ProtectedRoute>} />
             <Route
               path="/checkout"
               element={
@@ -500,7 +509,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+            <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
+            <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
+            <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />            
             <Route
               path="/admin/auctions"
               element={

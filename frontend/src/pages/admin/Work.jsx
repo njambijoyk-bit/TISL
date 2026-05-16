@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SettingsLayout from '../../components/layout/SettingsLayout';
+import WorkTimetable from '../../components/timetable/WorkTimetable';
 import workAPI from '../../api/work';
 import { useAuthStore } from '../../store';
 
@@ -277,6 +278,7 @@ export default function Work() {
   const [loading, setLoading]     = useState(true);
   const [data, setData]           = useState(null);
   const [refreshHover, setRefreshHover] = useState(false);
+  const [showTimetable, setShowTimetable] = useState(false);
 
   useEffect(() => { fetchOverview(); }, []);
 
@@ -354,6 +356,24 @@ export default function Work() {
             </div>
           </div>
 
+          <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowTimetable(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 16px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+              fontFamily: 'inherit', cursor: 'pointer',
+              border: '1.5px solid rgba(168,85,247,0.2)',
+              background: 'white', color: '#7c3aed',
+              transition: 'background 150ms',
+              boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+          >
+            <CalendarClock size={13} />
+            Timetable
+          </button>
           <button
             onClick={fetchOverview}
             disabled={loading}
@@ -376,6 +396,7 @@ export default function Work() {
             />
             Refresh
           </button>
+        </div>
         </div>
 
         {/* ── Loading ── */}
@@ -737,6 +758,9 @@ export default function Work() {
               </div>
             </div>
           </>
+        )}
+        {showTimetable && (
+          <WorkTimetable data={data} onClose={() => setShowTimetable(false)} />
         )}
       </div>
     </SettingsLayout>

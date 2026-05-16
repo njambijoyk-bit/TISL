@@ -3,6 +3,7 @@ export { default as api } from './axios';
 export { default as authAPI } from './auth';
 export { default as auctionsAPI } from './auctions';
 export { default as productsAPI } from './products';
+export { default as hampersAPI } from './hampers';
 export { default as ordersAPI } from './orders';
 export { default as currencyAPI } from './currency';
 export { default as shippingAPI } from './shipping';

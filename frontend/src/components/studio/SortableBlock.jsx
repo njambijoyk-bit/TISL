@@ -112,8 +112,16 @@ function BlockRenderer({ block }) {
 
         case 'video':
             return (
-                <div style={{ aspectScale: '16/9', background: '#000', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <p>Video Embed: {c.url || 'No URL set'}</p>
+                <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', overflow: 'hidden' }}>
+                    {c.url ? (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1e293b' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: 10 }}>🎬</div>
+                            <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Video Preview: {c.url}</p>
+                            {c.caption && <p style={{ fontSize: '0.7rem', marginTop: 10, fontStyle: 'italic' }}>{c.caption}</p>}
+                        </div>
+                    ) : (
+                        <p>No Video URL set</p>
+                    )}
                 </div>
             );
 

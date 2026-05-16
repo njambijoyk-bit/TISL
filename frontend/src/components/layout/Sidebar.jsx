@@ -14,6 +14,7 @@ const MENU_GROUPS = [
     label: 'Catalogue',
     items: [
       { title: 'Products',           icon: Package,       path: '/admin/products',           color: '#a855f7' }, // purple
+      {title:  'Hampers',            icon: Award,         path: '/admin/hampers',            color: '#fc7bf5'},
       { title: 'Auctions',           icon: Gavel,         path: '/admin/auctions',           color: '#ef4444' },
       { title: 'Categories',         icon: Tag,           path: '/admin/categories',         color: '#3b82f6' }, // blue
       { title: 'Brands',             icon: Award,         path: '/admin/brands',             color: '#f59e0b' }, // amber
@@ -35,7 +36,7 @@ const MENU_GROUPS = [
     label: 'People',
     items: [
       { title: 'Customers',  icon: Users,   path: '/admin/customers',  color: '#6366f1' }, // indigo
-      {title: 'Loyalties',   icon: Award, path: '/admin/loyalty',      color: '#fc7bf5'},
+      {title: 'Loyalties',   icon: Award,   path: '/admin/loyalty',      color: '#fc7bf5'},
       { title: 'Users',      icon: UserCog, path: '/admin/users',      color: '#0ea5e9' }, // sky
       { title: 'Employees',  icon: Star,    path: '/admin/employees',  color: '#eab308' }, // yellow
     ],

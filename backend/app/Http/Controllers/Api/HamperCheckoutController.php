@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Hamper;
 use App\Models\HamperOrder;
+use App\Models\ReferralCode;
+use App\Models\ReferralCodeUsage;
 use App\Models\ShippingOption;
 use App\Models\StoreCreditTransaction;
-use App\Models\PromoCode;
+use App\Models\LoyaltyPointTransaction;
 use App\Services\HamperEligibilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,10 +28,8 @@ class HamperCheckoutController extends Controller
         [$customer, $hamper, $error] = $this->resolveAndGate($slug);
         if ($error) return $error;
 
-        // shipping options from shipping_options table
         $shippingOptions = ShippingOption::active()->get(['id', 'name', 'description', 'cost', 'free_above', 'icon']);
 
-        // store credit balance
         $creditBalance = $hamper->allow_store_credit
             ? (float) ($customer->store_credit_balance ?? 0)
             : 0;
@@ -54,7 +54,7 @@ class HamperCheckoutController extends Controller
 
     /**
      * POST /hampers/{slug}/checkout/validate-promo
-     * Validate a promo code against this hamper.
+     * Validate a promo/referral code against this hamper.
      */
     public function validatePromo(Request $request, $slug): JsonResponse
     {
@@ -67,48 +67,41 @@ class HamperCheckoutController extends Controller
 
         $request->validate(['code' => 'required|string']);
 
-        $promo = PromoCode::where('code', strtoupper($request->code))
-            ->where('is_active', true)
-            ->first();
+        $code = ReferralCode::where('code', strtoupper($request->code))->first();
 
-        if (!$promo) {
+        if (!$code || !$code->is_valid) {
+            $code?->recordAttempt();
             return response()->json(['message' => 'Invalid or expired promo code'], 422);
         }
 
-        // check promo validity dates
-        if ($promo->starts_at && now()->lt($promo->starts_at)) {
-            return response()->json(['message' => 'This promo code is not yet active'], 422);
-        }
-        if ($promo->expires_at && now()->gt($promo->expires_at)) {
-            return response()->json(['message' => 'This promo code has expired'], 422);
+        $code->recordAttempt();
+
+        // use the model's built-in canBeUsedBy check
+        if (!$code->canBeUsedBy($customer, (float) $hamper->price)) {
+            return response()->json(['message' => 'This code cannot be applied to your order'], 422);
         }
 
-        // check usage limit
-        if ($promo->max_uses && $promo->used_count >= $promo->max_uses) {
-            return response()->json(['message' => 'This promo code has reached its usage limit'], 422);
-        }
-
-        // check per-customer usage on hamper_orders
-        if ($promo->max_uses_per_customer) {
-            $customerUses = HamperOrder::where('customer_id', $customer->id)
-                ->where('promo_code_id', $promo->id)
+        // per-customer usage check against hamper_orders
+        if ($code->max_uses_per_customer) {
+            $usedOnHampers = HamperOrder::where('customer_id', $customer->id)
+                ->where('referral_code_id', $code->id)
                 ->whereNotIn('status', ['cancelled', 'refunded'])
                 ->count();
 
-            if ($customerUses >= $promo->max_uses_per_customer) {
-                return response()->json(['message' => 'You have already used this promo code the maximum number of times'], 422);
+            if ($usedOnHampers >= $code->max_uses_per_customer) {
+                return response()->json(['message' => 'You have already used this code the maximum number of times'], 422);
             }
         }
 
-        $discount = $this->calculatePromoDiscount($promo, (float) $hamper->price);
+        $discount = $code->calculateDiscount((float) $hamper->price);
 
         return response()->json([
-            'valid'         => true,
-            'promo_code_id' => $promo->id,
-            'code'          => $promo->code,
-            'type'          => $promo->type,
-            'discount'      => $discount,
-            'description'   => $promo->description,
+            'valid'            => true,
+            'referral_code_id' => $code->id,
+            'code'             => $code->code,
+            'reward_type'      => $code->reward_type,
+            'discount'         => $discount,
+            'description'      => $code->description,
         ]);
     }
 
@@ -121,14 +114,14 @@ class HamperCheckoutController extends Controller
         if ($error) return $error;
 
         $request->validate([
-            'shipping_option_id' => 'required|exists:shipping_options,id',
-            'shipping_address'   => 'required|array',
+            'shipping_option_id'       => 'required|exists:shipping_options,id',
+            'shipping_address'         => 'required|array',
             'shipping_address.line1'   => 'required|string',
             'shipping_address.city'    => 'required|string',
             'shipping_address.country' => 'required|string',
-            'promo_code'         => 'nullable|string',
-            'store_credit_amount'=> 'nullable|numeric|min:0',
-            'notes'              => 'nullable|string',
+            'promo_code'               => 'nullable|string',
+            'store_credit_amount'      => 'nullable|numeric|min:0',
+            'notes'                    => 'nullable|string',
         ]);
 
         // re-check purchase limit
@@ -145,25 +138,23 @@ class HamperCheckoutController extends Controller
             }
         }
 
-        // shipping cost
+        // shipping
         $shippingOption = ShippingOption::findOrFail($request->shipping_option_id);
         $shippingCost   = $shippingOption->costForSubtotal((float) $hamper->price);
 
-        // promo discount
-        $discount      = 0;
-        $promoCodeId   = null;
-        $promoCodeStr  = null;
-        $promoModel    = null;
+        // promo / referral code
+        $discount        = 0;
+        $referralCodeId  = null;
+        $promoCodeStr    = null;
+        $referralCode    = null;
 
         if ($request->filled('promo_code') && $hamper->allow_promo_codes) {
-            $promoModel = PromoCode::where('code', strtoupper($request->promo_code))
-                ->where('is_active', true)
-                ->first();
+            $referralCode = ReferralCode::where('code', strtoupper($request->promo_code))->first();
 
-            if ($promoModel) {
-                $discount     = $this->calculatePromoDiscount($promoModel, (float) $hamper->price);
-                $promoCodeId  = $promoModel->id;
-                $promoCodeStr = $promoModel->code;
+            if ($referralCode && $referralCode->is_valid && $referralCode->canBeUsedBy($customer, (float) $hamper->price)) {
+                $discount       = $referralCode->calculateDiscount((float) $hamper->price);
+                $referralCodeId = $referralCode->id;
+                $promoCodeStr   = $referralCode->code;
             }
         }
 
@@ -180,12 +171,8 @@ class HamperCheckoutController extends Controller
         $vatAmount = $hamper->apply_vat ? round($subtotal * 0.16, 2) : 0;
         $total     = max(0, $subtotal + $vatAmount + $shippingCost - $discount - $creditUsed);
 
-        // loyalty points
-        $loyaltyPoints = 0;
-        if ($hamper->earn_loyalty_points) {
-            // simple rule: 1 point per 100 KES spent
-            $loyaltyPoints = (int) floor($total / 100);
-        }
+        // loyalty points: 1 point per 100 KES
+        $loyaltyPoints = $hamper->earn_loyalty_points ? (int) floor($total / 100) : 0;
 
         DB::beginTransaction();
         try {
@@ -202,13 +189,13 @@ class HamperCheckoutController extends Controller
                 'shipping_cost'         => $shippingCost,
                 'total'                 => $total,
                 'promo_code'            => $promoCodeStr,
-                'promo_code_id'         => $promoCodeId,
+                'referral_code_id'      => $referralCodeId,
                 'loyalty_points_earned' => $loyaltyPoints,
                 'shipping_address'      => $request->shipping_address,
                 'notes'                 => $request->notes,
             ]);
 
-            // decrement stock
+            // decrement hamper stock
             $hamper->decrementStock();
 
             // deduct store credit
@@ -221,21 +208,27 @@ class HamperCheckoutController extends Controller
                     'reference_type' => HamperOrder::class,
                     'reference_id'   => $order->id,
                     'note'           => "Used on hamper order {$order->order_number}",
-                    'created_by'     => $customer->user_id ?? null,
+                    'created_by'     => auth()->id(),
                 ]);
-
                 $customer->decrement('store_credit_balance', $creditUsed);
             }
 
-            // increment promo usage
-            if ($promoModel) {
-                $promoModel->increment('used_count');
+            // record referral code success
+            if ($referralCode) {
+                $referralCode->recordSuccess($discount, $subtotal);
+
+                ReferralCodeUsage::create([
+                    'referral_code_id' => $referralCode->id,
+                    'customer_id'      => $customer->id,
+                    'order_id'         => $order->id,
+                    'discount_amount'  => $discount,
+                    'status'           => 'completed',
+                ]);
             }
 
             // award loyalty points
             if ($loyaltyPoints > 0) {
-                // assumes LoyaltyService or direct insert — adjust to match your existing pattern
-                \App\Models\LoyaltyPointTransaction::create([
+                LoyaltyPointTransaction::create([
                     'customer_id'    => $customer->id,
                     'points'         => $loyaltyPoints,
                     'type'           => 'earn',
@@ -261,10 +254,6 @@ class HamperCheckoutController extends Controller
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Resolve customer + hamper, run eligibility gate.
-     * Returns [$customer, $hamper, $errorResponse|null]
-     */
     private function resolveAndGate($slug): array
     {
         $customer = auth()->user()->customer;
@@ -274,7 +263,6 @@ class HamperCheckoutController extends Controller
         }
 
         $hamper = Hamper::available()->where('slug', $slug)->firstOrFail();
-
         $status = $this->eligibility->getStatus($customer, $hamper);
 
         if ($status !== 'eligible') {
@@ -285,15 +273,6 @@ class HamperCheckoutController extends Controller
         }
 
         return [$customer, $hamper, null];
-    }
-
-    private function calculatePromoDiscount(PromoCode $promo, float $subtotal): float
-    {
-        if ($promo->type === 'percentage') {
-            return round($subtotal * ($promo->value / 100), 2);
-        }
-
-        return min((float) $promo->value, $subtotal);
     }
 
     private function buildHamperSnapshot(Hamper $hamper): array
