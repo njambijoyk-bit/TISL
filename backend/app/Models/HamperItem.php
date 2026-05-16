@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class HamperItem extends Model
+{
+    protected $fillable = [
+        'hamper_id',
+        'product_id',
+        'quantity',
+        'snapshot',
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'snapshot' => 'array',
+    ];
+
+    // ── Relationships ─────────────────────────────────────────────────────────
+
+    public function hamper(): BelongsTo
+    {
+        return $this->belongsTo(Hamper::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Build a frozen snapshot of a product at the time it is added to a hamper.
+     */
+    public static function buildSnapshot(Product $product): array
+    {
+        return [
+            'id'          => $product->id,
+            'name'        => $product->name,
+            'sku'         => $product->sku,
+            'price'       => $product->price,
+            'main_image'  => $product->main_image,
+            'description' => $product->short_description,
+        ];
+    }
+}

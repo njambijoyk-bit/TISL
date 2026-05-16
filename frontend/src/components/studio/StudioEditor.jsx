@@ -12,7 +12,7 @@ import {
     arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
+    rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { 
     Save, 
@@ -30,7 +30,8 @@ import {
     Check,
     Video,
     Quote,
-    X
+    X,
+    Columns
 } from 'lucide-react';
 import useStudioStore from '../../store/studioStore';
 import { SortableBlock } from './SortableBlock';
@@ -65,7 +66,7 @@ export default function StudioEditor() {
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
-        if (active.id !== over.id) {
+        if (over && active.id !== over.id) {
             const oldIndex = activePublication.blocks.findIndex(b => (b.id || b._id) === active.id);
             const newIndex = activePublication.blocks.findIndex(b => (b.id || b._id) === over.id);
             setBlocks(arrayMove(activePublication.blocks, oldIndex, newIndex));
@@ -117,16 +118,16 @@ export default function StudioEditor() {
                     <div style={{ padding: 20 }}>
                         <p style={labelStyle}>Blocks</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-                            <BlockIcon label="Rich Text" icon={Type} onClick={() => addBlock('rich_text', { html: 'Enter text here' })} />
-                            <BlockIcon label="Image" icon={ImageIcon} onClick={() => addBlock('image', { url: '' })} />
-                            <BlockIcon label="Product" icon={ShoppingBag} onClick={() => addBlock('product_card', { name: '', price: '', variant: 'A', description: '', link: '#' })} />
-                            <BlockIcon label="Bio Card" icon={User} onClick={() => addBlock('bio_card', { name: '', role: '', bio: '' })} />
-                            <BlockIcon label="CTA" icon={MousePointer2} onClick={() => addBlock('cta', { text: 'Click Here', link: '#' })} />
-                            <BlockIcon label="Table" icon={Layout} onClick={() => addBlock('price_table', { rows: [] })} />
+                            <BlockIcon label="Rich Text" icon={Type} onClick={() => addBlock('rich_text', { html: 'Enter text here' }, { width: '100%' })} />
+                            <BlockIcon label="Image" icon={ImageIcon} onClick={() => addBlock('image', { url: '' }, { width: '100%' })} />
+                            <BlockIcon label="Product" icon={ShoppingBag} onClick={() => addBlock('product_card', { name: '', price: '', variant: 'A', description: '', link: '#', image: '' }, { width: '50%' })} />
+                            <BlockIcon label="Bio Card" icon={User} onClick={() => addBlock('bio_card', { name: '', role: '', bio: '', image: '' }, { width: '100%' })} />
+                            <BlockIcon label="CTA" icon={MousePointer2} onClick={() => addBlock('cta', { text: 'Click Here', link: '#' }, { width: '100%' })} />
+                            <BlockIcon label="Table" icon={Layout} onClick={() => addBlock('price_table', { rows: [] }, { width: '100%' })} />
                             {(activePublication.type === 'news' || activePublication.type === 'blog') && (
                                 <>
-                                    <BlockIcon label="Pull Quote" icon={Quote} onClick={() => addBlock('pull_quote', { text: '', attribution: '' })} />
-                                    <BlockIcon label="Video" icon={Video} onClick={() => addBlock('video', { url: '' })} />
+                                    <BlockIcon label="Pull Quote" icon={Quote} onClick={() => addBlock('pull_quote', { text: '', attribution: '' }, { width: '100%' })} />
+                                    <BlockIcon label="Video" icon={Video} onClick={() => addBlock('video', { url: '' }, { width: '100%' })} />
                                 </>
                             )}
                         </div>
@@ -135,18 +136,20 @@ export default function StudioEditor() {
 
                 {/* Center: Canvas */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '40px 0' }}>
-                    <div style={{ maxWidth: 800, margin: '0 auto', background: 'white', minHeight: '1000px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
+                    <div style={{ maxWidth: 900, margin: '0 auto', background: 'white', minHeight: '1100px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderRadius: 8, padding: 40 }}>
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                            <SortableContext items={activePublication.blocks?.map(b => b.id || b._id) || []} strategy={verticalListSortingStrategy}>
-                                {activePublication.blocks?.map((block) => (
-                                    <SortableBlock 
-                                        key={block.id || block._id} 
-                                        block={block} 
-                                        isSelected={selectedBlockId === (block.id || block._id)}
-                                        onClick={() => setSelectedBlockId(block.id || block._id)}
-                                    />
-                                ))}
-                            </SortableContext>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0, alignItems: 'flex-start' }}>
+                                <SortableContext items={activePublication.blocks?.map(b => b.id || b._id) || []} strategy={rectSortingStrategy}>
+                                    {activePublication.blocks?.map((block) => (
+                                        <SortableBlock 
+                                            key={block.id || block._id} 
+                                            block={block} 
+                                            isSelected={selectedBlockId === (block.id || block._id)}
+                                            onClick={() => setSelectedBlockId(block.id || block._id)}
+                                        />
+                                    ))}
+                                </SortableContext>
+                            </div>
                         </DndContext>
                         
                         {(!activePublication.blocks || activePublication.blocks.length === 0) && (
@@ -168,6 +171,31 @@ export default function StudioEditor() {
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                                {/* Layout Width Control */}
+                                <div>
+                                    <label style={fieldLabel}>Block Width</label>
+                                    <div style={{ display: 'flex', gap: 5, marginTop: 5 }}>
+                                        {[
+                                            { label: 'Full', value: '100%' },
+                                            { label: '1/2',  value: '50%' },
+                                            { label: '1/3',  value: '33.33%' }
+                                        ].map(w => (
+                                            <button 
+                                                key={w.value} 
+                                                onClick={() => updateBlock(selectedBlockId, { style: { ...selectedBlock.style, width: w.value } })}
+                                                style={{ 
+                                                    flex: 1, padding: '8px', fontSize: '0.7rem', fontWeight: 700, borderRadius: 8, border: '1px solid #e2e8f0',
+                                                    background: (selectedBlock.style?.width || '100%') === w.value ? '#f1f5f9' : 'white'
+                                                }}
+                                            >
+                                                {w.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ height: 1, background: '#e2e8f0', margin: '5px 0' }} />
+
                                 <PropertyFields 
                                     block={selectedBlock} 
                                     onChange={(content) => updateBlock(selectedBlockId, { content })} 
@@ -325,6 +353,8 @@ function PropertyFields({ block, onChange }) {
                     <input style={inputStyle} value={c.name || ''} onChange={(e) => onChange({ ...c, name: e.target.value })} />
                     <label style={fieldLabel}>Price</label>
                     <input style={inputStyle} value={c.price || ''} onChange={(e) => onChange({ ...c, price: e.target.value })} />
+                    <label style={fieldLabel}>Product Image URL</label>
+                    <input style={inputStyle} value={c.image || ''} placeholder="https://..." onChange={(e) => onChange({ ...c, image: e.target.value })} />
                     <label style={fieldLabel}>Description</label>
                     <textarea style={inputStyle} value={c.description || ''} onChange={(e) => onChange({ ...c, description: e.target.value })} />
                     <label style={fieldLabel}>Link URL</label>
@@ -336,6 +366,8 @@ function PropertyFields({ block, onChange }) {
                 <>
                     <label style={fieldLabel}>Author Name</label>
                     <input style={inputStyle} value={c.name || ''} onChange={(e) => onChange({ ...c, name: e.target.value })} />
+                    <label style={fieldLabel}>Author Photo URL</label>
+                    <input style={inputStyle} value={c.image || ''} placeholder="https://..." onChange={(e) => onChange({ ...c, image: e.target.value })} />
                     <label style={fieldLabel}>Role / Designation</label>
                     <input style={inputStyle} value={c.role || ''} onChange={(e) => onChange({ ...c, role: e.target.value })} />
                     <label style={fieldLabel}>Short Bio</label>

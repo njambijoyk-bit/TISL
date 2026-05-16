@@ -13,6 +13,7 @@ use App\Services\Mail\QuoteRequestMailService;
 use App\Services\PromoCodeService;
 use App\Services\DarajaService;
 use App\Services\LoyaltyService;
+use App\Services\HamperEligibilityService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PromoCodeService::class);
         $this->app->singleton(DarajaService::class);
         $this->app->singleton(LoyaltyService::class);
+        $this->app->singleton(HamperEligibilityService::class);
     }
 
     /**
