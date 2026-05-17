@@ -198,8 +198,8 @@ export default function AdminHamperEdit() {
   const [selectedTypes, setSelectedTypes] = useState([]);
 
   useEffect(() => {
-    api.get('/admin/tiers').then(r  => setTiers(r.data || [])).catch(() => {});
-    api.get('/admin/customer-types').then(r => setCustomerTypes(r.data || [])).catch(() => {});
+    api.get('/admin/customer-tiers').then(r  => setTiers(r.data || [])).catch(() => {});
+    api.get('/admin/customer-type-discounts').then(r => setCustomerTypes(r.data || [])).catch(() => {});
 
     hampersAPI.getHamper(id).then(data => {
       // format datetime-local values
