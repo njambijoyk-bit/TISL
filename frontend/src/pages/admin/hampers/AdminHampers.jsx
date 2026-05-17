@@ -112,6 +112,7 @@ export default function AdminHampers() {
   const [filters, setFilters]       = useState({ search: '', status: '', eligibility_type: '' });
   const [searchInput, setSearchInput] = useState('');
   const searchDebounce = useRef(null);
+  const [stats, setStats] = useState({ total: 0, active: 0, sold_out: 0, draft: 0 });
 
   // debounced search — only update filters after 400ms of no typing
   const handleSearchChange = useCallback((value) => {
@@ -123,6 +124,7 @@ export default function AdminHampers() {
   }, []);
 
   useEffect(() => { fetchHampers(1); }, [filters]);
+  useEffect(() => { hampersAPI.getHamperStats().then(setStats).catch(() => {}); }, []);
 
   const fetchHampers = async (page = 1) => {
     setLoading(true);
@@ -134,10 +136,7 @@ export default function AdminHampers() {
     finally { setLoading(false); }
   };
 
-  // ── Derived stats ─────────────────────────────────────────────────────────
-  const total    = pagination?.total ?? hampers.length;
-  const active   = hampers.filter(h => h.status === 'active').length;
-  const soldOut  = hampers.filter(h => h.is_sold_out).length;
+  const { total, active, sold_out: soldOut, draft } = stats;
 
   return (
     <AdminLayout>
@@ -165,7 +164,7 @@ export default function AdminHampers() {
           <StatCard label="Total Hampers" value={total}   icon={Package}      iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
           <StatCard label="Active"        value={active}  icon={Zap}          iconBg="rgba(34,197,94,0.1)"   iconColor="#22c55e" />
           <StatCard label="Sold Out"      value={soldOut} icon={TrendingDown}  iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
-          <StatCard label="Draft"         value={hampers.filter(h => h.status === 'draft').length} icon={ShoppingBag} iconBg="rgba(107,114,128,0.1)" iconColor="#6b7280" />
+          <StatCard label="Draft"         value={draft} icon={ShoppingBag} iconBg="rgba(107,114,128,0.1)" iconColor="#6b7280" />
         </div>
 
         {/* Filters */}
