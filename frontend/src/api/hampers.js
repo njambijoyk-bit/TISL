@@ -112,31 +112,31 @@ const hampersAPI = {
 
   // Get all hampers eligible for the logged-in customer
   getPublicHampers: async () => {
-    const response = await api.get('/hampers');
+    const response = await api.get('/customer/hampers');
     return response.data;
   },
 
   // Get a single hamper by slug — 403 if not eligible
   getPublicHamper: async (slug) => {
-    const response = await api.get(`/hampers/${slug}`);
+    const response = await api.get(`/customer/hampers/${slug}`);
     return response.data;
   },
 
   // Load checkout data for a hamper
   loadCheckout: async (slug) => {
-    const response = await api.get(`/hampers/${slug}/checkout`);
+    const response = await api.get(`/customer/hampers/${slug}/checkout`);
     return response.data;
   },
 
   // Validate a promo/referral code against a hamper
   validatePromo: async (slug, code) => {
-    const response = await api.post(`/hampers/${slug}/checkout/validate-promo`, { code });
+    const response = await api.post(`/customer/hampers/${slug}/checkout/validate-promo`, { code });
     return response.data;
   },
 
   // Place a hamper order
   placeOrder: async (slug, data) => {
-    const response = await api.post(`/hampers/${slug}/checkout/place-order`, data);
+    const response = await api.post(`/customer/hampers/${slug}/checkout/place-order`, data);
     return response.data;
   },
 };
