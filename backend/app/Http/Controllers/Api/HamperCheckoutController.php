@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Hamper;
 use App\Models\HamperOrder;
 use App\Models\ReferralCode;
-use App\Models\ReferralCodeUsage;
 use App\Models\ShippingOption;
 use App\Models\StoreCreditTransaction;
 use App\Models\LoyaltyPointTransaction;
@@ -31,7 +30,7 @@ class HamperCheckoutController extends Controller
         $shippingOptions = ShippingOption::active()->get(['id', 'name', 'description', 'cost', 'free_above', 'icon']);
 
         $creditBalance = $hamper->allow_store_credit
-            ? (float) ($customer->store_credit_balance ?? 0)
+            ? (float) ($customer->store_credit ?? 0)
             : 0;
 
         return response()->json([
@@ -149,24 +148,28 @@ class HamperCheckoutController extends Controller
             $referralCode = ReferralCode::where('code', strtoupper($request->promo_code))->first();
 
             if ($referralCode && $referralCode->is_valid && $referralCode->canBeUsedBy($customer, (float) $hamper->price)) {
+                $referralCode->recordAttempt();
                 $discount       = $referralCode->calculateDiscount((float) $hamper->price);
                 $referralCodeId = $referralCode->id;
                 $promoCodeStr   = $referralCode->code;
             }
         }
 
+        // totals
+        $subtotal           = (float) $hamper->price;
+        $taxableAmount      = max(0, $subtotal - $discount);
+        $vatAmount          = $hamper->apply_vat ? round($taxableAmount * 0.16, 2) : 0;
+        $preTotalBeforeCredit = round($subtotal - $discount + $vatAmount + $shippingCost, 2);
+
         // store credit
         $creditUsed = 0;
         if ($request->filled('store_credit_amount') && $hamper->allow_store_credit) {
-            $available  = (float) ($customer->store_credit_balance ?? 0);
+            $available  = (float) ($customer->store_credit ?? 0);
             $requested  = (float) $request->store_credit_amount;
-            $creditUsed = min($requested, $available);
+            $creditUsed = max(0, round(min($requested, $available, $preTotalBeforeCredit), 2));
         }
 
-        // totals
-        $subtotal  = (float) $hamper->price;
-        $vatAmount = $hamper->apply_vat ? round($subtotal * 0.16, 2) : 0;
-        $total     = max(0, $subtotal + $vatAmount + $shippingCost - $discount - $creditUsed);
+        $total = max(0, round($preTotalBeforeCredit - $creditUsed, 2));
 
         // loyalty points: 1 point per 100 KES
         $loyaltyPoints = $hamper->earn_loyalty_points ? (int) floor($total / 100) : 0;
@@ -197,42 +200,42 @@ class HamperCheckoutController extends Controller
 
             // deduct store credit
             if ($creditUsed > 0) {
+                $newCreditBalance = max(0, round((float) $customer->store_credit - $creditUsed, 2));
+
                 StoreCreditTransaction::create([
                     'customer_id'    => $customer->id,
                     'amount'         => -$creditUsed,
-                    'balance_after'  => max(0, (float) $customer->store_credit_balance - $creditUsed),
+                    'balance_after'  => $newCreditBalance,
                     'type'           => 'order_spend',
                     'reference_type' => HamperOrder::class,
                     'reference_id'   => $order->id,
                     'note'           => "Used on hamper order {$order->order_number}",
-                    'created_by'     => auth()->id(),
                 ]);
-                $customer->decrement('store_credit_balance', $creditUsed);
+
+                $customer->update(['store_credit' => $newCreditBalance]);
             }
 
             // record referral code success
             if ($referralCode) {
                 $referralCode->recordSuccess($discount, $subtotal);
-
-                ReferralCodeUsage::create([
-                    'referral_code_id' => $referralCode->id,
-                    'customer_id'      => $customer->id,
-                    'order_id'         => $order->id,
-                    'discount_amount'  => $discount,
-                    'status'           => 'completed',
-                ]);
             }
 
             // award loyalty points
             if ($loyaltyPoints > 0) {
+                $newPointBalance = (int) $customer->loyalty_points + $loyaltyPoints;
+
                 LoyaltyPointTransaction::create([
                     'customer_id'    => $customer->id,
                     'points'         => $loyaltyPoints,
-                    'type'           => 'earn',
+                    'balance_after'  => $newPointBalance,
+                    'type'           => 'order_earn',
+                    'point_type'     => 'permanent',
                     'reference_type' => HamperOrder::class,
                     'reference_id'   => $order->id,
                     'note'           => "Earned on hamper order {$order->order_number}",
                 ]);
+
+                $customer->update(['loyalty_points' => $newPointBalance]);
             }
 
             DB::commit();

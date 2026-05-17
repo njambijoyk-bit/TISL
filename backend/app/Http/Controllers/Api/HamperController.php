@@ -262,8 +262,8 @@ class HamperController extends Controller
         // check current status before adding
         $adminStatus = $this->eligibility->getCustomerStatusForAdmin($customer, $hamper);
 
-        // if already blacklisted, only allow reactivation via updateCustomerStatus
-        if ($adminStatus['status'] === 'blacklisted') {
+        // if already blacklisted or suspended, only allow changes via updateCustomerStatus
+        if (in_array($adminStatus['status'], ['blacklisted', 'suspended'])) {
             return response()->json([
                 'message' => $adminStatus['message'],
                 'status'  => $adminStatus,
