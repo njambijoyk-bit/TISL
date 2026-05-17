@@ -20,6 +20,9 @@ use App\Policies\PaymentPolicy;
 use App\Models\Customer;
 use App\Policies\LoyaltyPolicy;
 
+use App\Models\Booking;
+use App\Policies\BookingPolicy;
+
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -31,6 +34,7 @@ class AuthServiceProvider extends ServiceProvider
         Employee::class => EmployeePolicy::class,
         Payment::class => PaymentPolicy::class,
         Customer::class => LoyaltyPolicy::class,
+        Booking::class => BookingPolicy::class,
 
     ];
 

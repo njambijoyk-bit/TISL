@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HamperItem extends Model
 {
+    // hamper_items table has no created_at / updated_at columns
+    public $timestamps = false;
+
     protected $fillable = [
         'hamper_id',
         'product_id',
@@ -43,7 +46,7 @@ class HamperItem extends Model
             'name'        => $product->name,
             'sku'         => $product->sku,
             'price'       => $product->price,
-            'main_image'  => $product->main_image,
+            'main_image'  => $product->main_image_url ?? $product->main_image,
             'description' => $product->short_description,
         ];
     }

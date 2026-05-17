@@ -186,8 +186,8 @@ const LinkProjectModal = ({ project, onClose }) => {
       background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', padding: 16,
     }}>
       <div style={{
-        width: '100%', maxWidth: 500, maxHeight: '92vh', minHeight: 0,
-        display: 'flex', flexDirection: 'column',
+        width: '100%', minHeight: 0, maxHeight: '90vh',
+        display: 'flex', flexDirection: 'column', paddingTop: 10,
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
         border: '1px solid rgba(168,85,247,0.3)',
@@ -352,7 +352,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                 No {tab.label} found.
               </p>
             ) : (
-              <div style={{ maxHeight: 210, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 210, overflowY: 'auto', paddingBottom: 10, paddingTop: 4 }}>
                 {visibleDocs.map((doc, i) => {
                   const sel = isSelected(doc);
                   const badge = doc.status ? (STATUS_BADGE[doc.status] ?? { bg: 'rgba(107,114,128,0.12)', color: '#4b5563' }) : null;
@@ -414,7 +414,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                 </p>
               </div>
 
-              <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 260, overflowY: 'auto', paddingBottom: 10, paddingTop: 4 }}>
                 {selectionList.map(({ doc, link_type, relation, notes }, i) => {
                   const k = selKey(link_type, doc.id);
                   const m = TAB_META[link_type];

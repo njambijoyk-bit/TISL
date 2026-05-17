@@ -4,6 +4,8 @@ import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
 } from 'lucide-react';
 import useServiceStore from '../../store/serviceStore';
+import ProductSelectorModalAdmin from '../../components/quotes/request-wizard/ProductSelectorModalAdmin';
+import ServiceSelectorModalAdmin from '../../components/quotes/request-wizard/ServiceSelectorModalAdmin';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import { getAvailableServices, getAvailableProducts } from '../../api/services';
@@ -48,6 +50,51 @@ function Field({ label, hint, children }) {
       {label && <label style={labelStyle}>{label}</label>}
       {children}
       {hint && <p style={hintStyle}>{hint}</p>}
+    </div>
+  );
+}
+
+function ProductPills({ products, onRemove, onAdd, note }) {
+  return (
+    <div>
+      {products.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          {products.map(p => (
+            <span key={p.id} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
+              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+              border: '1px solid rgba(168,85,247,0.22)',
+            }}>
+              {p.name}
+              {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
+              <button type="button" onClick={() => onRemove(p)} style={{
+                width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+              >
+                <X size={9} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {note && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginBottom: 8 }}>{note}</p>}
+      <button type="button" onClick={onAdd} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
+        background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+        border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+        transition: 'background 150ms',
+      }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+      >
+        <Plus size={13} /> Browse products{products.length > 0 ? ` (${products.length} selected)` : ''}
+      </button>
     </div>
   );
 }
@@ -325,23 +372,15 @@ const ServiceForm = () => {
   const [galleryUrls,      setGalleryUrls]      = useState(['']);
   const [galleryPreviews,  setGalleryPreviews]  = useState([]);
 
-  const [availableServices, setAvailableServices] = useState([]);
-  const [availableProducts, setAvailableProducts] = useState([]);
+  const [showServiceSelector, setShowServiceSelector] = useState(false);
+  const [productSelectorTarget, setProductSelectorTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCategories({ all: true });
-    loadAvailableServicesAndProducts();
     if (isEditMode && id) fetchServiceById(id);
     return () => { clearCurrentService(); clearError(); };
   }, [id]);
-
-  const loadAvailableServicesAndProducts = async () => {
-    try {
-      const [svc, prd] = await Promise.all([getAvailableServices(), getAvailableProducts()]);
-      setAvailableServices(svc || []); setAvailableProducts(prd || []);
-    } catch { setAvailableServices([]); setAvailableProducts([]); }
-  };
 
   useEffect(() => {
     if (!isEditMode || !currentService) return;
@@ -369,9 +408,17 @@ const ServiceForm = () => {
     setRequirements(cs.requirements?.length > 0 ? cs.requirements : ['']);
     setDeliverables(cs.deliverables?.length > 0 ? cs.deliverables : ['']);
     setPricingTiers(cs.pricing_tiers || []);
-    setRelatedServices(cs.related_services || []);
-    setRequiredProducts(cs.required_products || []);
-    setOptionalProducts(cs.optional_products || []);
+    const normalizeItems = arr => (arr || []).map(s =>
+      typeof s === 'object' ? { id: s.id, name: s.name } : { id: s, name: `Service #${s}` }
+    );
+    setRelatedServices(normalizeItems(cs.related_services_data ?? cs.related_services));
+    const normalize = arr => (arr || []).map(p =>
+      typeof p === 'object' ? { id: p.id, name: p.name, sku: p.sku } : { id: p, name: `Product #${p}` }
+    );
+
+    setRequiredProducts(normalize(cs.required_products_full ?? cs.required_products));
+    setOptionalProducts(normalize(cs.optional_products_full ?? cs.optional_products));
+    
     if (cs.main_image) { setMainImagePreview(cs.main_image); if (cs.main_image.startsWith('http')) setMainImageUrl(cs.main_image); }
     if (Array.isArray(cs.images) && cs.images.length > 0) {
       const urls = cs.images.filter(i => typeof i === 'string');
@@ -408,15 +455,8 @@ const ServiceForm = () => {
     const previews = []; files.forEach(f => { const r = new FileReader(); r.onloadend = () => { previews.push(r.result); if (previews.length === files.length) setGalleryPreviews([...previews]); }; r.readAsDataURL(f); });
   };
 
-  // Related toggles
-  const toggleRelated  = (sid) => setRelatedServices(p => p.includes(sid) ? p.filter(x => x !== sid) : [...p, sid]);
-  const toggleRequired = (pid) => {
-    setRequiredProducts(p => {
-      if (!p.includes(pid)) { setOptionalProducts(o => o.filter(x => x !== pid)); return [...p, pid]; }
-      return p.filter(x => x !== pid);
-    });
-  };
-  const toggleOptional = (pid) => setOptionalProducts(p => p.includes(pid) ? p.filter(x => x !== pid) : [...p, pid]);
+  // Related toggles dead codes
+  //const toggleRelated  = (sid) => setRelatedServices(p => p.includes(sid) ? p.filter(x => x !== sid) : [...p, sid]);
 
   const validateForm = () => {
     if (!formData.name.trim()) return 'Service name is required';
@@ -439,9 +479,9 @@ const ServiceForm = () => {
         requirements: requirements.filter(r => r.trim()),
         deliverables: deliverables.filter(d => d.trim()),
         pricing_tiers:    pricingTiers.length > 0 ? pricingTiers.map(t => ({ ...t, min_quantity: t.min_quantity ? parseInt(t.min_quantity) : null, max_quantity: t.max_quantity ? parseInt(t.max_quantity) : null, price: t.price ? parseFloat(t.price) : null })) : null,
-        related_services:  relatedServices,
-        required_products: requiredProducts,
-        optional_products: optionalProducts,
+        related_services: relatedServices.map(s => s.id ?? s),
+        required_products: requiredProducts.map(p => p.id ?? p),
+        optional_products: optionalProducts.map(p => p.id ?? p),
         mainImageFile,
         mainImageUrl: mainImageUrl && !mainImageFile ? mainImageUrl : null,
         galleryFiles,
@@ -689,33 +729,66 @@ const ServiceForm = () => {
               {/* Related services & products */}
               <SectionCard title="Related services & products (optional)">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <Field label="Related services" hint="Commonly purchased together — type to search">
-                    <SearchPicker
-                      items={availableServices.filter(s => s.id !== parseInt(id))}
-                      selected={relatedServices}
-                      onToggle={toggleRelated}
-                      emptyMsg="No other services available"
-                      placeholder="Search services…"
+
+                  <Field label="Related services" hint="Commonly purchased together">
+                    {relatedServices.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                        {relatedServices.map(s => (
+                          <span key={s.id} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
+                            background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                            border: '1px solid rgba(168,85,247,0.22)',
+                          }}>
+                            {s.name}
+                            <button type="button" onClick={() => setRelatedServices(prev => prev.filter(x => x.id !== s.id))}
+                              style={{ width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                                background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                            >
+                              <X size={9} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" onClick={() => setShowServiceSelector(true)} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
+                      background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                      border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                    >
+                      <Plus size={13} /> Browse services{relatedServices.length > 0 ? ` (${relatedServices.length} selected)` : ''}
+                    </button>
+                  </Field>
+
+                  {/* Required products */}
+                  <Field label="Required products" hint="Must be purchased with this service">
+                    <ProductPills
+                      products={requiredProducts}
+                      onRemove={p => setRequiredProducts(prev => prev.filter(x => x.id !== p.id))}
+                      onAdd={() => setProductSelectorTarget('required')}
+                      label="required"
                     />
                   </Field>
-                  <Field label="Required products" hint="Must be purchased with this service — type to search">
-                    <SearchPicker
-                      items={availableProducts}
-                      selected={requiredProducts}
-                      onToggle={toggleRequired}
-                      emptyMsg="No products available"
-                      placeholder="Search products…"
+
+                  {/* Optional products */}
+                  <Field label="Optional products" hint="Recommended add-ons">
+                    <ProductPills
+                      products={optionalProducts}
+                      onRemove={p => setOptionalProducts(prev => prev.filter(x => x.id !== p.id))}
+                      onAdd={() => setProductSelectorTarget('optional')}
+                      label="optional"
+                      // Exclude already-required ones
+                      note={requiredProducts.length > 0 ? `${requiredProducts.length} product(s) already marked required` : undefined}
                     />
                   </Field>
-                  <Field label="Optional products" hint="Recommended add-ons — type to search">
-                    <SearchPicker
-                      items={availableProducts.filter(p => !requiredProducts.includes(p.id))}
-                      selected={optionalProducts}
-                      onToggle={toggleOptional}
-                      emptyMsg={requiredProducts.length > 0 ? 'All products are marked required' : 'No products available'}
-                      placeholder="Search products…"
-                    />
-                  </Field>
+
                 </div>
               </SectionCard>
 
@@ -891,6 +964,44 @@ const ServiceForm = () => {
           </div>
         </form>
       </div>
+      {productSelectorTarget && (
+        <ProductSelectorModalAdmin
+          onClose={() => setProductSelectorTarget(null)}
+          selectedProducts={[
+            ...requiredProducts.map(p => ({ product_id: p.id })),
+            ...optionalProducts.map(p => ({ product_id: p.id })),
+          ]}
+          onSelect={(newProducts) => {
+            if (productSelectorTarget === 'required') {
+              setRequiredProducts(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                return [...prev, ...newProducts.filter(p => !existingIds.has(p.id))];
+              });
+              // also remove from optional if it ends up required
+              setOptionalProducts(prev => prev.filter(p => !newProducts.some(np => np.id === p.id)));
+            } else {
+              setOptionalProducts(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                return [...prev, ...newProducts.filter(p => !existingIds.has(p.id))];
+              });
+            }
+            setProductSelectorTarget(null);
+          }}
+        />
+      )}
+      {showServiceSelector && (
+        <ServiceSelectorModalAdmin
+          onClose={() => setShowServiceSelector(false)}
+          selectedServices={relatedServices.map(s => ({ service_id: s.id }))}
+          onSelect={(newServices) => {
+            setRelatedServices(prev => {
+              const existingIds = new Set(prev.map(s => s.id));
+              return [...prev, ...newServices.filter(s => !existingIds.has(s.id))];
+            });
+            setShowServiceSelector(false);
+          }}
+        />
+      )}
     </AdminLayout>
   );
 };

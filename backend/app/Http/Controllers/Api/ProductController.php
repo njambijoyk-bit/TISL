@@ -53,6 +53,27 @@ class ProductController extends Controller
         return response()->json($products, 200);
     }
 
+    public function adminShow($id)
+    {
+        $product = Product::with(['brand', 'category', 'activeAuction'])->findOrFail($id);
+
+        $relatedProductsData = collect([]);
+        if (!empty($product->related_products)) {
+            $relatedProductsData = Product::with(['brand', 'category'])
+                ->whereIn('id', $product->related_products)
+                ->where('id', '!=', $id)
+                ->get(['id', 'name', 'sku', 'price', 'main_image', 'slug']);
+        }
+
+        return response()->json([
+            'product' => array_merge($product->toArray(), [
+                'related_products_data' => $relatedProductsData,
+            ]),
+            // also expose at top level so the res.related_products fallback works too
+            'related_products_data' => $relatedProductsData,
+        ], 200);
+    }
+
     /**
      * Display a listing of products (PUBLIC - with filters)
      */
