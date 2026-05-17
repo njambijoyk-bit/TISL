@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Package, ShoppingBag, X, Eye, Tag, Wallet, Star, Zap, TrendingDown } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
@@ -110,6 +110,17 @@ export default function AdminHampers() {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading]       = useState(true);
   const [filters, setFilters]       = useState({ search: '', status: '', eligibility_type: '' });
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounce = useRef(null);
+
+  // debounced search — only update filters after 400ms of no typing
+  const handleSearchChange = useCallback((value) => {
+    setSearchInput(value);
+    clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(() => {
+      setFilters(f => ({ ...f, search: value }));
+    }, 400);
+  }, []);
 
   useEffect(() => { fetchHampers(1); }, [filters]);
 
@@ -123,7 +134,7 @@ export default function AdminHampers() {
     finally { setLoading(false); }
   };
 
-  // ── Derived stats from current page ────────────────────────────────────────
+  // ── Derived stats ─────────────────────────────────────────────────────────
   const total    = pagination?.total ?? hampers.length;
   const active   = hampers.filter(h => h.status === 'active').length;
   const soldOut  = hampers.filter(h => h.is_sold_out).length;
@@ -163,8 +174,8 @@ export default function AdminHampers() {
             <div style={{ flex: 2, minWidth: 200, position: 'relative' }}>
               <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
               <input
-                type="text" value={filters.search}
-                onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+                type="text" value={searchInput}
+                onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search by name…"
                 style={{ ...inputStyle, paddingLeft: 32 }}
               />
@@ -184,8 +195,8 @@ export default function AdminHampers() {
               <option value="customer_type">By Type</option>
               <option value="manual">Manual</option>
             </select>
-            {(filters.search || filters.status || filters.eligibility_type) && (
-              <Btn onClick={() => setFilters({ search: '', status: '', eligibility_type: '' })}
+            {(searchInput || filters.status || filters.eligibility_type) && (
+              <Btn onClick={() => { setSearchInput(''); setFilters({ search: '', status: '', eligibility_type: '' }); }}
                 style={{ color: 'var(--color-text-danger)', borderColor: 'var(--color-border-danger)' }}>
                 <X size={14} /> Clear
               </Btn>

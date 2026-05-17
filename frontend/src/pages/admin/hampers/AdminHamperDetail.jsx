@@ -596,7 +596,7 @@ function EligibilityTab({ hamper }) {
       </div>
 
       {/* Full list — no pagination */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      <div style={{ ...card }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
             Eligibility Records ({filteredRows.length})
@@ -618,6 +618,7 @@ function EligibilityTab({ hamper }) {
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>No eligibility records</p>
           </div>
         ) : (
+          <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -665,6 +666,7 @@ function EligibilityTab({ hamper }) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
