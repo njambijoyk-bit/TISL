@@ -23,6 +23,8 @@ class HamperController extends Controller
     {
         $hampers = Hamper::with(['items', 'createdBy:id,name'])
             ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+            ->when($request->filled('eligibility_type'), fn($q) => $q->where('eligibility_type', $request->eligibility_type))
+            ->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 20));
 
@@ -102,6 +104,24 @@ class HamperController extends Controller
         $hamper = Hamper::findOrFail($id);
         $hamper->delete();
         return response()->json(['message' => 'Hamper deleted']);
+    }
+
+    public function uploadCoverImage(Request $request, $id): JsonResponse
+    {
+        $hamper = Hamper::findOrFail($id);
+
+        $request->validate([
+            'cover_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $path = $request->file('cover_image')->store('hampers/covers', 'public');
+
+        $hamper->update(['cover_image' => asset('storage/' . $path)]);
+
+        return response()->json([
+            'message'     => 'Cover image uploaded',
+            'cover_image' => asset('storage/' . $path),
+        ]);
     }
 
     // ── Products ──────────────────────────────────────────────────────────────
@@ -228,7 +248,7 @@ class HamperController extends Controller
 
         // reactivating a blacklisted customer requires admin role
         if ($row->status === 'blacklisted' && $request->status === 'active') {
-            if (auth()->user()->role !== 'admin' && auth()->user()->role !== 'superadmin') {
+            if (auth()->user()->role !== 'admin' && auth()->user()->role !== 'super_admin') {
                 return response()->json(['message' => 'Only admin can reactivate a blacklisted customer'], 403);
             }
             $row->update([
