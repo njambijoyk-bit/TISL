@@ -10,6 +10,12 @@ const hampersAPI = {
     return response.data;
   },
 
+  // Get aggregate stats (total, active, sold_out, draft)
+  getHamperStats: async () => {
+    const response = await api.get('/admin/hampers/stats');
+    return response.data;
+  },
+
   // Create a new hamper
   createHamper: async (data) => {
     const response = await api.post('/admin/hampers', data);
