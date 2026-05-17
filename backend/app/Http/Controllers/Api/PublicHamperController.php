@@ -35,9 +35,8 @@ class PublicHamperController extends Controller
 
             return array_merge($hamper->toArray(), [
                 'is_sold_out'       => $hamper->is_sold_out,
-                'is_backorderable'  => $hamper->is_backorderable,
                 'at_purchase_limit' => $atLimit,
-                'can_purchase'      => !$atLimit && (!$hamper->is_sold_out || $hamper->is_backorderable),
+                'can_purchase'      => !$atLimit && !$hamper->is_sold_out,
             ]);
         });
 
@@ -73,9 +72,8 @@ class PublicHamperController extends Controller
 
         return response()->json(array_merge($hamper->toArray(), [
             'is_sold_out'       => $hamper->is_sold_out,
-            'is_backorderable'  => $hamper->is_backorderable,
             'at_purchase_limit' => $atLimit,
-            'can_purchase'      => !$atLimit && (!$hamper->is_sold_out || $hamper->is_backorderable),
+            'can_purchase'      => !$atLimit && !$hamper->is_sold_out,
         ]));
     }
 }

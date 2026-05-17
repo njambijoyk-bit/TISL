@@ -403,7 +403,7 @@ export default function AdminHamperCreate() {
                   <Field label="Max Per Customer" hint="Leave empty for unlimited">
                     <Input name="max_purchases_per_customer" type="number" min="1" value={form.max_purchases_per_customer} onChange={handleChange} placeholder="Unlimited" />
                   </Field>
-                  <Field label="Total Stock" hint="Backorders allowed up to +100 units after stock runs out">
+                  <Field label="Edition Size" hint="Backorders allowed up to +100 units after stock runs out">
                     <Input name="total_stock" type="number" min="1" value={form.total_stock} onChange={handleChange} placeholder="Unlimited" />
                   </Field>
                 </div>
