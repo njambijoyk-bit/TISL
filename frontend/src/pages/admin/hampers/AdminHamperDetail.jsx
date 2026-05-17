@@ -470,7 +470,11 @@ function EligibilityTab({ hamper }) {
   const [noteText, setNoteText]           = useState('');
   const searchDebounce                    = useRef(null);
 
-  // load ALL rows — no pagination
+  // eligible customers matching tier/type/all criteria
+  const [eligibleCustomers, setEligibleCustomers] = useState([]);
+  const [eligibleLoading, setEligibleLoading]     = useState(false);
+
+  // load manual eligibility rows
   const fetchRows = async () => {
     setLoading(true);
     try {
@@ -480,7 +484,19 @@ function EligibilityTab({ hamper }) {
     finally { setLoading(false); }
   };
 
+  // load customers matching the hamper's eligibility criteria
+  const fetchEligibleCustomers = async () => {
+    if (hamper.eligibility_type === 'manual') return;
+    setEligibleLoading(true);
+    try {
+      const res = await hampersAPI.listEligibleCustomers(hamper.id, { per_page: 200 });
+      setEligibleCustomers(res.data ?? res);
+    } catch { /* endpoint may not exist yet */ }
+    finally { setEligibleLoading(false); }
+  };
+
   useEffect(() => { fetchRows(); }, [statusFilter]);
+  useEffect(() => { fetchEligibleCustomers(); }, [hamper.id, hamper.eligibility_type]);
 
   const handleSearch = (q) => {
     setSearchQuery(q);
@@ -548,6 +564,54 @@ function EligibilityTab({ hamper }) {
         <Shield size={14} style={{ flexShrink: 0 }} />
         <span><strong>{hamper.eligibility_type?.toUpperCase()}</strong> — {criteriaSummary()}</span>
       </div>
+
+      {/* Eligible customers matching criteria (tier / type / all) */}
+      {hamper.eligibility_type !== 'manual' && (
+        <div style={{ ...card }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              Matching Customers ({eligibleCustomers.length})
+            </p>
+          </div>
+          {eligibleLoading ? (
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '0.82rem' }}>Loading…</div>
+          ) : eligibleCustomers.length === 0 ? (
+            <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+              <Users size={36} style={{ display: 'block', margin: '0 auto 10px', color: 'var(--color-text-tertiary)', opacity: 0.3 }} />
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>No customers match this criteria</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Customer', 'Tier', 'Type', 'Status'].map((h, i) => (
+                      <th key={i} style={thStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {eligibleCustomers.map(c => (
+                    <tr key={c.id}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      style={{ transition: 'background 120ms' }}
+                    >
+                      <td style={tdStyle}>
+                        <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem' }}>{c.full_name || c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</p>
+                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{c.email}</p>
+                      </td>
+                      <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{c.tier || '—'}</span></td>
+                      <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{c.customer_type || '—'}</span></td>
+                      <td style={tdStyle}><StatusBadge status={c.status || 'active'} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search to add */}
       <div style={{ ...card, padding: 20 }}>
