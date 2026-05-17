@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 
 const card = {
   background: 'white',
-  color: '#a855f7',
   border: '1px solid #dfbeff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
@@ -167,8 +166,8 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
           </button>
         </div>
       ) : (
-        <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed #9ca3af', borderRadius: 10, height: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', transition: 'border-color 150ms' }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#dfbeff'}
+        <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed #dfbeff', borderRadius: 10, height: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', transition: 'border-color 150ms' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#dfbeff'}
         >
           <Upload size={24} style={{ color: '#a855f7' }} />
