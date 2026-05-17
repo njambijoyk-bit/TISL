@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HamperCustomerEligibility extends Model
 {
+    protected $table = 'hamper_customer_eligibility'; 
+    
     protected $fillable = [
         'hamper_id',
         'customer_id',
