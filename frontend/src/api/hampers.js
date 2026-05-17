@@ -94,6 +94,12 @@ const hampersAPI = {
     return response.data;
   },
 
+  // List customers matching the hamper's eligibility criteria (tier/type/all)
+  listEligibleCustomers: async (id, params = {}) => {
+    const response = await api.get(`/admin/hampers/${id}/eligible-customers`, { params });
+    return response.data;
+  },
+
   // ── Admin — Orders ────────────────────────────────────────────────────────
 
   // Get all orders for a specific hamper
