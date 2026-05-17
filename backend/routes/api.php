@@ -960,6 +960,7 @@ Route::middleware('auth:sanctum')->group(function () {
             // products
             Route::post('/{id}/products',                       [HamperController::class, 'addProduct']);
             Route::delete('/{id}/products/{productId}',         [HamperController::class, 'removeProduct']);
+            Route::post('/{id}/cover-image',                    [HamperController::class, 'uploadCoverImage']);
             Route::get('/{id}/suggest-products',                [HamperController::class, 'suggestProducts']);
         
             // eligibility
