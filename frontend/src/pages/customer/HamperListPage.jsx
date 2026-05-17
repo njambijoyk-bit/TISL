@@ -21,7 +21,6 @@ function HamperCard({ hamper, onClick }) {
     <div
       onClick={unavailable ? undefined : onClick}
       style={{
-        background: 'white',
         borderRadius: 16,
         border: `1.5px solid ${accentMid}`,
         boxShadow: `0 2px 16px ${accentFade}`,
@@ -68,7 +67,7 @@ function HamperCard({ hamper, onClick }) {
       {/* Body */}
       <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', flex: 1, gap: 10 }}>
         <div>
-          <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: '#111827' }}>{hamper.name}</h3>
+          <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: accent }}>{hamper.name}</h3>
           {hamper.description && (
             <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {hamper.description}
@@ -77,7 +76,7 @@ function HamperCard({ hamper, onClick }) {
         </div>
 
         {/* Items count */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#9ca3af' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: accent }}>
           <ShoppingBag size={12} />
           {hamper.items?.length ?? 0} item{(hamper.items?.length ?? 0) !== 1 ? 's' : ''} included
         </div>
@@ -130,7 +129,7 @@ export default function HamperListPage() {
   }, [isAuthenticated]);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       <div style={{ flex: 1, maxWidth: 1200, margin: '0 auto', width: '100%', padding: '40px 24px' }}>
 
