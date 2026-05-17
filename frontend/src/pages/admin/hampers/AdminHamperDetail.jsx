@@ -189,7 +189,7 @@ function OverviewTab({ hamper }) {
     { label: 'Status',           value: <StatusBadge status={hamper.status} /> },
     { label: 'Eligibility Type', value: hamper.eligibility_type },
     { label: 'Max Per Customer', value: hamper.max_purchases_per_customer ?? 'Unlimited' },
-    { label: 'Total Stock',      value: hamper.total_stock ?? 'Unlimited' },
+    { label: 'Edition Size',      value: hamper.total_stock ?? 'Unlimited' },
     { label: 'Stock Remaining',  value: hamper.stock_remaining ?? '—' },
     { label: 'Valid From',       value: hamper.valid_from ? format(new Date(hamper.valid_from), 'dd MMM yyyy') : '—' },
     { label: 'Valid Until',      value: hamper.valid_until ? format(new Date(hamper.valid_until), 'dd MMM yyyy') : '—' },

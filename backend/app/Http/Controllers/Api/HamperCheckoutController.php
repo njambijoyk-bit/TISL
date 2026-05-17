@@ -130,12 +130,9 @@ class HamperCheckoutController extends Controller
             return response()->json(['message' => 'You have reached the purchase limit for this hamper'], 422);
         }
 
-        // re-check stock (allow backorder up to 100 units over)
-        if ($hamper->total_stock !== null) {
-            $totalOrders = $hamper->orders()->whereNotIn('status', ['cancelled', 'refunded'])->count();
-            if ($totalOrders >= ($hamper->total_stock + 100)) {
-                return response()->json(['message' => 'This hamper is no longer available'], 422);
-            }
+        // re-check stock — no backorders allowed
+        if ($hamper->is_sold_out) {
+            return response()->json(['message' => 'This hamper is sold out'], 422);
         }
 
         // shipping
