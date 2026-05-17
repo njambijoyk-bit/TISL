@@ -31,6 +31,16 @@ class HamperController extends Controller
         return response()->json($hampers);
     }
 
+    public function stats(): JsonResponse
+    {
+        return response()->json([
+            'total'    => Hamper::count(),
+            'active'   => Hamper::where('status', 'active')->count(),
+            'sold_out' => Hamper::where('is_sold_out', true)->count(),
+            'draft'    => Hamper::where('status', 'draft')->count(),
+        ]);
+    }    
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -90,9 +100,20 @@ class HamperController extends Controller
             'eligible_tiers'             => 'nullable|array',
             'eligible_customer_types'    => 'nullable|array',
             'is_visible'                 => 'boolean',
-            'valid_from'                 => 'nullable|date',
+            'valid_from'                 => 'nullable|date|after_or_equal:valid_from',
             'valid_until'                => 'nullable|date',
         ]);
+
+        // sync stock_remaining when total_stock changes
+        if (isset($data['total_stock']) && $hamper->total_stock !== null) {
+            $oldTotal = $hamper->total_stock;
+            $newTotal = $data['total_stock'];
+            $delta = $newTotal - $oldTotal;
+            $data['stock_remaining'] = max(0, ($hamper->stock_remaining ?? 0) + $delta);
+        } elseif (isset($data['total_stock']) && $hamper->total_stock === null) {
+            // switching from unlimited to limited
+            $data['stock_remaining'] = $data['total_stock'];
+        }
 
         $hamper->update($data);
 

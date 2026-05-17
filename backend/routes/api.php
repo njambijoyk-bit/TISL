@@ -950,8 +950,9 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         
         // ── Admin hamper routes ───────────────────────────────────────────────────────
-        Route::prefix('hampers')->group(function () {
+        Route::prefix('hampers')->group(function () {           
             Route::get('/',                                     [HamperController::class, 'index']);
+            Route::get('/stats',                                [HamperController::class, 'stats']); 
             Route::post('/',                                    [HamperController::class, 'store']);
             Route::get('/{id}',                                 [HamperController::class, 'show']);
             Route::put('/{id}',                                 [HamperController::class, 'update']);
