@@ -27,6 +27,7 @@ class Hamper extends Model
         'eligible_tiers',
         'eligible_customer_types',
         'is_visible',
+        'is_sold_out',
         'valid_from',
         'valid_until',
         'created_by',
@@ -39,6 +40,7 @@ class Hamper extends Model
         'allow_store_credit'         => 'boolean',
         'earn_loyalty_points'        => 'boolean',
         'is_visible'                 => 'boolean',
+        'is_sold_out'                => 'boolean',
         'eligible_tiers'             => 'array',
         'eligible_customer_types'    => 'array',
         'valid_from'                 => 'datetime',
@@ -90,6 +92,9 @@ class Hamper extends Model
 
     public function getIsSoldOutAttribute(): bool
     {
+        if (array_key_exists('is_sold_out', $this->attributes)) {
+            return (bool) $this->attributes['is_sold_out'];
+        }
         return $this->total_stock !== null && $this->stock_remaining <= 0;
     }
 
