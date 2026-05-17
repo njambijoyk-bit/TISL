@@ -957,6 +957,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}',                                 [HamperController::class, 'show']);
             Route::put('/{id}',                                 [HamperController::class, 'update']);
             Route::delete('/{id}',                              [HamperController::class, 'destroy']);
+            Route::get('{id}/eligible-customers',               [HamperController::class, 'eligibleCustomers']);
         
             // products
             Route::post('/{id}/products',                       [HamperController::class, 'addProduct']);

@@ -214,11 +214,37 @@ class HamperController extends Controller
     public function listEligibility(Request $request, $id): JsonResponse
     {
         $rows = HamperCustomerEligibility::where('hamper_id', $id)
-            ->with(['customer:id,name,email,customer_type', 'addedBy:id,name'])
+            ->with(['customer:id,first_name,last_name,email,customer_type,tier', 'addedBy:id,name'])
             ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
             ->paginate($request->get('per_page', 25));
 
         return response()->json($rows);
+    }
+
+    /**
+     * List customers who match the hamper's eligibility criteria (tier/type/all).
+     */
+    public function eligibleCustomers(Request $request, $id): JsonResponse
+    {
+        $hamper = Hamper::findOrFail($id);
+
+        $query = Customer::query();
+
+        if ($hamper->eligibility_type === 'tier') {
+            $tiers = $hamper->eligible_tiers ?? [];
+            $query->whereIn('tier', $tiers);
+        } elseif ($hamper->eligibility_type === 'customer_type') {
+            $types = $hamper->eligible_customer_types ?? [];
+            $query->whereIn('customer_type', $types);
+        }
+        // 'all' — no filter needed, returns all customers
+
+        $customers = $query
+            ->select(['id', 'first_name', 'last_name', 'email', 'customer_type', 'tier', 'status'])
+            ->orderBy('first_name')
+            ->paginate($request->get('per_page', 200));
+
+        return response()->json($customers);
     }
 
     public function addCustomer(Request $request, $id): JsonResponse
@@ -298,9 +324,10 @@ class HamperController extends Controller
         $request->validate(['q' => 'required|string|min:2']);
 
         $customers = Customer::where(function ($q) use ($request) {
-            $q->where('name', 'like', "%{$request->q}%")
-              ->orWhere('email', 'like', "%{$request->q}%");
-        })->limit(20)->get(['id', 'name', 'email', 'customer_type', 'tier']);
+            $q->where('first_name', 'like', "%{$request->q}%")
+            ->orWhere('last_name', 'like', "%{$request->q}%")
+            ->orWhere('email', 'like', "%{$request->q}%");
+        })->limit(20)->get(['id', 'first_name', 'last_name', 'email', 'customer_type', 'tier']);
 
         $results = $customers->map(function ($customer) use ($hamper) {
             $status = $this->eligibility->getCustomerStatusForAdmin($customer, $hamper);
