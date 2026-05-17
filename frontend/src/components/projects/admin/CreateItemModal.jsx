@@ -110,7 +110,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
     abortRef.current = controller;
     const timer = setTimeout(() => {
       const endpoint = isProductType(item.item_type) ? '/admin/products' : '/admin/services';
-      api.get(endpoint, { params: { search: item._search, per_page: 25 }, signal: controller.signal })
+      api.get(endpoint, { params: { search: item._search, per_page: 250 }, signal: controller.signal })
         .then((res) => { onChange(index, '_results', res.data.data || res.data || []); onChange(index, '_searching', false); })
         .catch((err) => { if (err.name !== 'CanceledError' && err.name !== 'AbortError') onChange(index, '_searching', false); });
     }, 150);

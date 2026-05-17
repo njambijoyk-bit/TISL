@@ -130,12 +130,14 @@ class ServiceController extends Controller
     public function show($id)
     {
         $service = Service::with(['category'])->findOrFail($id);
-
-        // Increment view count
         $service->increment('view_count');
 
         return response()->json([
-            'service' => $service,
+            'service' => array_merge($service->toArray(), [
+                'required_products_full' => $service->getRequiredProducts(), 
+                'optional_products_full' => $service->getOptionalProducts(), 
+                'related_services_data'  => $service->getRelatedServices(),  
+            ]),
         ], 200);
     }
 
@@ -234,6 +236,19 @@ class ServiceController extends Controller
         $services = $query->paginate($request->get('per_page', 20));
 
         return response()->json($services, 200);
+    }
+
+    public function adminShow($id)
+    {
+        $service = Service::with(['category'])->findOrFail($id);
+
+        return response()->json([
+            'service' => array_merge($service->toArray(), [
+                'required_products_full' => $service->getRequiredProducts(),
+                'optional_products_full' => $service->getOptionalProducts(),
+                'related_services_data'  => $service->getRelatedServices(),
+            ]),
+        ], 200);
     }
 
     /**

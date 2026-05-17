@@ -120,5 +120,6 @@ return [
         env('MAIL_SUPERADMIN_1', 's.admin@targetisl.co.ke'),
         env('MAIL_SUPERADMIN_2', 'web@targetisl.co.ke'),
     ],
+    'admin_address' => env('MAIL_ADMIN', env('MAIL_FROM_ADDRESS')),
 
 ];

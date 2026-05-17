@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../api';
 import toast from 'react-hot-toast';
+import ProductSelectorModalAdmin from '../../components/quotes/request-wizard/ProductSelectorModalAdmin';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import {
@@ -282,7 +283,7 @@ export default function ProductForm() {
   const [deleting,  setDeleting]  = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands,     setBrands]     = useState([]);
-  const [availableProducts, setAvailableProducts] = useState([]);
+  const [showProductSelector, setShowProductSelector] = useState(false);
   const [activeTab, setActiveTab]   = useState('basic');
 
   const [existingImageUrlsRaw, setExistingImageUrlsRaw] = useState([]);
@@ -329,18 +330,14 @@ export default function ProductForm() {
     if (p.startsWith('/')) return `${window.location.origin}${p}`;
     return p;
   };
-
   const fetchCategoriesAndBrands = async () => {
     try {
-      const [cRes, bRes, pRes] = await Promise.all([
+      const [cRes, bRes] = await Promise.all([
         categoriesAPI.getCategories(),
         brandsAPI.getBrands(),
-        productsAPI.getAdminProducts({ per_page: 1000 }),
       ]);
       setCategories(cRes.data || cRes || []);
       setBrands(bRes.data || bRes || []);
-      let list = Array.isArray(pRes) ? pRes : pRes?.data?.data ?? pRes?.data ?? [];
-      setAvailableProducts(list.filter(p => p.id !== parseInt(id)));
     } catch { toast.error('Failed to load form data'); }
   };
 
@@ -400,7 +397,21 @@ export default function ProductForm() {
       if (product.has_variants && product.variants) {
         setVariantsText(Array.isArray(product.variants) ? product.variants.join(', ') : product.variants);
       }
-      if (Array.isArray(product.related_products)) setSelectedRelated(product.related_products);
+      
+      const relatedSource = product.related_products_data     // adminShow: full objects inside product
+        ?? res.related_products_data                          // future-proofing
+        ?? product.related_products                           // raw IDs if somehow on product
+        ?? res.related_products                               // show(): category-based array at top level
+        ?? [];
+      if (relatedSource.length > 0) {
+        setSelectedRelated(
+          relatedSource.map(p =>
+            typeof p === 'object'
+              ? { id: p.id, name: p.name, sku: p.sku }
+              : { id: p, name: `Product #${p}` }
+          )
+        );
+      }
     } catch { toast.error('Failed to load product'); navigate('/admin/products'); }
     finally { setLoading(false); }
   };
@@ -466,7 +477,7 @@ export default function ProductForm() {
   const updateSpecification = (i, f, v) => {
     const updated = [...specifications]; updated[i][f] = v; setSpecifications(updated);
   };
-  const removeRelated = (pid) => setSelectedRelated(p => p.filter(x => x !== pid));
+  //const removeRelated = (pid) => setSelectedRelated(p => p.filter(x => x !== pid));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -520,7 +531,8 @@ export default function ProductForm() {
         fd.append('has_variants', '1');
       } else { fd.append('has_variants', '0'); }
 
-      if (selectedRelated.length > 0) fd.append('related_products', JSON.stringify(selectedRelated));
+      if (selectedRelated.length > 0)
+        fd.append('related_products', JSON.stringify(selectedRelated.map(p => p.id ?? p)));
 
       if (isEdit) { await productsAPI.updateProduct(id, fd); toast.success('Product updated!'); }
       else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); }
@@ -946,14 +958,53 @@ export default function ProductForm() {
               </div>
 
               {/* Related products */}
-              <Field label="Related products" hint={!isView ? 'Type to search by name or SKU' : undefined}>
-                <SearchPicker
-                  items={availableProducts}
-                  selected={selectedRelated}
-                  onToggle={pid => setSelectedRelated(p => p.includes(pid) ? p.filter(x => x !== pid) : [...p, pid])}
-                  disabled={isView}
-                  placeholder="Search products…"
-                />
+              <Field label="Related products" hint={!isView ? 'Click to browse and add related products' : undefined}>
+                {/* Selected pills */}
+                {selectedRelated.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {selectedRelated.map(p => (
+                      <span key={p.id} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
+                        background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                        border: '1px solid rgba(168,85,247,0.22)',
+                      }}>
+                        {p.name}
+                        {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
+                        {!isView && (
+                          <button type="button" onClick={() => setSelectedRelated(prev => prev.filter(x => x.id !== p.id))}
+                            style={{ width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                              background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                          >
+                            <X size={9} />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {isView && selectedRelated.length === 0 && (
+                  <p style={{ fontSize: '0.78rem', color: '#d1d5db', margin: 0 }}>No related products</p>
+                )}
+
+                {!isView && (
+                  <button type="button" onClick={() => setShowProductSelector(true)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
+                    background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                    border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+                    transition: 'background 150ms',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                  >
+                    <Plus size={13} /> Browse products{selectedRelated.length > 0 ? ` (${selectedRelated.length} selected)` : ''}
+                  </button>
+                )}
               </Field>
             </>
           )}
@@ -1005,6 +1056,20 @@ export default function ProductForm() {
           </div>
         )}
       </div>
+      {showProductSelector && (
+        <ProductSelectorModalAdmin
+          onClose={() => setShowProductSelector(false)}
+          selectedProducts={selectedRelated.map(p => ({ product_id: p.id }))}
+          onSelect={(newProducts) => {
+            setSelectedRelated(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              const merged = [...prev, ...newProducts.filter(p => !existingIds.has(p.id))];
+              return merged;
+            });
+            setShowProductSelector(false);
+          }}
+        />
+      )}
     </AdminLayout>
   );
 }

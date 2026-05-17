@@ -50,6 +50,10 @@ const HamperListPage       = lazy(() => import('./pages/customer/HamperListPage'
 const HamperDetail         = lazy(() => import('./pages/customer/HamperDetail'));
 const HamperCheckout       = lazy(() => import('./pages/customer/HamperCheckout'));
 
+const MyBookings           = lazy(() => import('./pages/customer/MyBookings'));
+const MyBookingDetail      = lazy(() => import('./pages/customer/MyBookingDetail'));
+const BookService          = lazy(() => import('./pages/customer/BookService'));
+
 const BrochureListPage     = lazy(() => import('./pages/customer/BrochureListPage'));
 const BrochureDetail       = lazy(() => import('./pages/customer/BrochureDetail'));
 const PublicationDetail    = lazy(() => import('./pages/customer/PublicationDetail'));
@@ -130,7 +134,14 @@ const LoyaltySettings      = lazy(() => import('./pages/admin/LoyaltySettings'))
 const LoyaltyLedgerDetail  = lazy(() => import('./pages/admin/LoyaltyLedgerDetail'));
 const AdminHampers         = lazy(() => import('./pages/admin/hampers/AdminHampers'));
 const AdminHamperDetail    = lazy(() => import('./pages/admin/hampers/AdminHamperDetail'));
+const AdminHamperEdit      = lazy(() => import('./pages/admin/hampers/AdminHamperEdit'));
 const AdminHamperCreate    = lazy(() => import('./pages/admin/hampers/AdminHamperCreate'));
+
+const AdminBookings        = lazy(() => import('./pages/admin/AdminBookings'));
+const AdminBookingDetail   = lazy(() => import('./pages/admin/AdminBookingDetail'));
+const AdminBookingForm     = lazy(() => import('./pages/admin/AdminBookingForm'));
+const AdminWorksheetForm   = lazy(() => import('./pages/admin/AdminWorksheetForm'));
+const BookingSettings      = lazy(() => import('./pages/admin/BookingSettings'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
 const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayout.jsx'))
@@ -320,6 +331,10 @@ function App() {
             <Route path="/hampers" element={<ProtectedRoute><HamperListPage /></ProtectedRoute>} />
             <Route path="/hampers/:slug" element={<ProtectedRoute><HamperDetail /></ProtectedRoute>} />
             <Route path="/hampers/:slug/checkout" element={<ProtectedRoute><HamperCheckout /></ProtectedRoute>} />
+
+            <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
+            <Route path="/services/:slug/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
             <Route
               path="/checkout"
               element={
@@ -511,7 +526,14 @@ function App() {
             />
             <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
             <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
-            <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />            
+            <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
+            <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
+
+            <Route path="/admin/bookings"              element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
+            <Route path="/admin/bookings/create"       element={<ProtectedRoute requireAdmin><AdminBookingForm /></ProtectedRoute>} />
+            <Route path="/admin/bookings/:id"          element={<ProtectedRoute requireAdmin><AdminBookingDetail /></ProtectedRoute>} />
+            <Route path="/admin/bookings/:id/worksheets/:wsId" element={<ProtectedRoute requireAdmin><AdminWorksheetForm /></ProtectedRoute>} />
+            <Route path="/admin/settings/bookings"     element={<ProtectedRoute requireAdmin><BookingSettings /></ProtectedRoute>} />
             <Route
               path="/admin/auctions"
               element={

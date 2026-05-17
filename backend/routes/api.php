@@ -47,6 +47,11 @@ use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\PublicationCommentController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\BookingStaffController;
+use App\Http\Controllers\Api\BookingSettingController;
+use App\Http\Controllers\Api\BookingWorksheetController;
+use App\Http\Controllers\Api\BookingDisqualificationController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -88,6 +93,10 @@ Route::get('/customer-type-discounts', [CustomerTierController::class, 'publicTy
 Route::get('/publications', [PublicationController::class, 'publicIndex']);
 Route::get('/publications/{slug}', [PublicationController::class, 'publicShow']);
 Route::post('/publications/{id}/comments', [PublicationCommentController::class, 'store']);
+
+Route::get('/booking-settings/policy', [BookingSettingController::class, 'publicPolicy']);
+Route::get('/bookings/slots',          [BookingController::class, 'availableSlots']);
+
 
 // ============================================
 // CAREERS — PUBLIC
@@ -347,6 +356,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}',        [TicketController::class, 'customerShow']);
             Route::post('/{id}/reply', [TicketController::class, 'customerReply']);
             Route::post('/{id}/close', [TicketController::class, 'customerClose']);
+        });
+        Route::prefix('bookings')->group(function () {
+            Route::get('/',               [BookingController::class, 'customerIndex']);
+            Route::post('/',              [BookingController::class, 'customerStore']);
+            Route::get('/{id}',           [BookingController::class, 'customerShow']);
+            Route::post('/{id}/cancel',   [BookingController::class, 'customerCancel']);
         });
     });
 
@@ -752,6 +767,47 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/reply',       [TicketController::class, 'adminReply']);
             Route::delete('/{id}',           [TicketController::class, 'destroy']);         // soft-delete (admin)
             Route::post('/{id}/restore',     [TicketController::class, 'restore']);
+        });
+
+        Route::prefix('bookings')->group(function () {
+            Route::get('/',                          [BookingController::class, 'adminIndex']);
+            Route::post('/',                         [BookingController::class, 'adminStore']);
+            Route::get('/{id}',                      [BookingController::class, 'adminShow']);
+            Route::put('/{id}',                      [BookingController::class, 'adminUpdate']);
+            Route::post('/{id}/cancel',              [BookingController::class, 'adminCancel']);
+            Route::post('/{id}/confirm',             [BookingController::class, 'confirm']);
+            Route::post('/{id}/status',              [BookingController::class, 'updateStatus']);
+            Route::post('/{id}/staff',               [BookingStaffController::class, 'assign']);
+            Route::put('/{id}/staff/{staffId}',      [BookingStaffController::class, 'update']);
+            Route::delete('/{id}/staff/{staffId}',   [BookingStaffController::class, 'remove']);
+            Route::post('/{id}/disqualify',          [BookingDisqualificationController::class, 'disqualify']);
+            Route::post('/{id}/reactivate',          [BookingDisqualificationController::class, 'reactivate']);
+            Route::get('/{id}/activity',             [BookingController::class, 'activityLog']);
+
+            // Worksheets
+            Route::post('/{id}/worksheets',              [BookingWorksheetController::class, 'store']);
+            Route::get('/{id}/worksheets/{wsId}',        [BookingWorksheetController::class, 'show']);
+            Route::put('/{id}/worksheets/{wsId}',        [BookingWorksheetController::class, 'update']);
+            Route::post('/{id}/worksheets/{wsId}/submit',[BookingWorksheetController::class, 'submit']);
+            Route::post('/{id}/worksheets/{wsId}/approve',[BookingWorksheetController::class, 'approve']);
+            Route::post('/{id}/worksheets/{wsId}/reject', [BookingWorksheetController::class, 'reject']);
+            Route::get('/{id}/worksheets/{wsId}/export', [BookingWorksheetController::class, 'exportCsv']);
+
+            // Worksheet items
+            Route::post('/{id}/worksheets/{wsId}/items',         [BookingWorksheetController::class, 'addItem']);
+            Route::put('/{id}/worksheets/{wsId}/items/{itemId}', [BookingWorksheetController::class, 'updateItem']);
+            Route::delete('/{id}/worksheets/{wsId}/items/{itemId}',[BookingWorksheetController::class, 'removeItem']);
+            Route::post('/{id}/worksheets/{wsId}/items/reorder', [BookingWorksheetController::class, 'reorderItems']);
+        });
+
+        Route::prefix('booking-settings')->group(function () {
+            Route::get('/',    [BookingSettingController::class, 'show']);
+            Route::put('/',    [BookingSettingController::class, 'update']);
+        });
+
+        Route::prefix('booking-disqualifications')->group(function () {
+            Route::get('/',         [BookingDisqualificationController::class, 'index']);
+            Route::get('/{id}',     [BookingDisqualificationController::class, 'show']);
         });
     });
 
