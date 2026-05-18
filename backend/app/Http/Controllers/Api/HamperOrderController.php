@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ReferralCode;
+use App\Models\ReferralCodeUsage;
 use App\Models\StoreCreditTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -184,7 +185,7 @@ class HamperOrderController extends Controller
             $customer->update(['loyalty_points' => $newPointBalance]);
         }
 
-        // 3. Reverse promo code stats
+        // 3. Reverse promo code stats + mark usage as cancelled
         if ($order->referral_code_id) {
             $code = ReferralCode::find($order->referral_code_id);
             if ($code) {
@@ -203,6 +204,15 @@ class HamperOrderController extends Controller
                         ? round($code->total_revenue / $code->total_orders, 2)
                         : 0,
                 ]);
+            }
+
+            $usage = ReferralCodeUsage::where('hamper_order_id', $order->id)
+                ->where('referral_code_id', $order->referral_code_id)
+                ->whereIn('status', ['completed', 'pending'])
+                ->first();
+
+            if ($usage) {
+                $usage->update(['status' => 'cancelled']);
             }
         }
 
@@ -267,7 +277,7 @@ class HamperOrderController extends Controller
             $customer->update(['loyalty_points' => $newPointBalance]);
         }
 
-        // 3. Re-increment promo code stats
+        // 3. Re-increment promo code stats + mark usage as completed
         if ($order->referral_code_id) {
             $code = ReferralCode::find($order->referral_code_id);
             if ($code) {
@@ -286,6 +296,15 @@ class HamperOrderController extends Controller
                         ? round($code->total_revenue / $code->total_orders, 2)
                         : 0,
                 ]);
+            }
+
+            $usage = ReferralCodeUsage::where('hamper_order_id', $order->id)
+                ->where('referral_code_id', $order->referral_code_id)
+                ->where('status', 'cancelled')
+                ->first();
+
+            if ($usage) {
+                $usage->update(['status' => 'completed', 'completed_at' => now()]);
             }
         }
 
