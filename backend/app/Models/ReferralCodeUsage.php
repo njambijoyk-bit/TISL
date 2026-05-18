@@ -18,6 +18,7 @@ class ReferralCodeUsage extends Model
         'referral_code_id',
         'customer_id',
         'order_id',
+        'hamper_order_id',
         'referrer_id',
         'status',
         'discount_amount',
@@ -88,6 +89,14 @@ class ReferralCodeUsage extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the hamper order created with this code.
+     */
+    public function hamperOrder()
+    {
+        return $this->belongsTo(HamperOrder::class);
     }
 
     /**
@@ -424,6 +433,35 @@ class ReferralCodeUsage extends Model
             'utm_medium' => request()?->input('utm_medium'),
             'utm_campaign' => request()?->input('utm_campaign'),
             'registered_at' => now(),
+        ]);
+    }
+
+    /**
+     * Create usage record for a hamper order.
+     */
+    public static function createForHamperOrder(
+        ReferralCode $code,
+        Customer $customer,
+        HamperOrder $hamperOrder,
+        float $discount,
+        float $orderValue,
+        float $finalPrice
+    ): self {
+        return self::create([
+            'referral_code_id'      => $code->id,
+            'customer_id'           => $customer->id,
+            'hamper_order_id'       => $hamperOrder->id,
+            'referrer_id'           => $code->customer_id,
+            'status'                => 'completed',
+            'discount_amount'       => $discount,
+            'discount_type'         => $code->reward_type,
+            'order_value'           => $orderValue,
+            'final_price'           => $finalPrice,
+            'referrer_reward_type'  => $code->referrer_reward_type,
+            'referrer_reward_amount' => $code->referrer_reward_value,
+            'ip_address'            => request()?->ip(),
+            'user_agent'            => request()?->userAgent(),
+            'completed_at'          => now(),
         ]);
     }
 
