@@ -46,6 +46,7 @@ class HamperItem extends Model
             'name'        => $product->name,
             'sku'         => $product->sku,
             'price'       => $product->price,
+            'brand_name'  => $product->brand?->name,
             'main_image'  => $product->main_image_url ?? $product->main_image,
             'description' => $product->short_description,
         ];

@@ -156,28 +156,46 @@ class HamperOrderController extends Controller
 
             $order->applyKesSnapshot();
 
-            // Create Order Items
+            // Distribute the bundle discount proportionally across items
+            $discountDistributed = 0;
+            $lastIndex = count($items) - 1;
+
             foreach ($items as $index => $item) {
                 $product = Product::find($item['id'] ?? null);
                 
                 $unitPrice = (float) ($item['price'] ?? 0);
                 $qty = (int) ($item['quantity'] ?? 1);
-                
+                $lineTotal = round($unitPrice * $qty, 2);
+
+                // Proportional share of the bundle discount
+                if ($originalItemsTotal > 0 && $bundleDiscount > 0) {
+                    if ($index === $lastIndex) {
+                        $itemDiscount = round($bundleDiscount - $discountDistributed, 2);
+                    } else {
+                        $itemDiscount = round(($lineTotal / $originalItemsTotal) * $bundleDiscount, 2);
+                        $discountDistributed += $itemDiscount;
+                    }
+                } else {
+                    $itemDiscount = 0;
+                }
+
+                $lineTotalAfterDiscount = round($lineTotal - $itemDiscount, 2);
+
                 OrderItem::create([
                     'order_id'                  => $order->id,
                     'item_type'                 => 'product',
                     'product_id'                => $item['id'] ?? null,
                     'product_name'              => $item['name'] ?? 'Unknown Item',
                     'product_sku'               => $item['sku'] ?? null,
+                    'brand_name'                => $product?->brand?->name,
                     'product_image'             => $item['main_image'] ?? null,
                     'quantity'                  => $qty,
                     'unit_price'                => $unitPrice,
-                    'line_total'                => $unitPrice * $qty,
-                    'line_total_after_discount' => $unitPrice * $qty,
-                    'discount_amount'           => 0,
+                    'line_total'                => $lineTotal,
+                    'discount_amount'           => $itemDiscount,
+                    'line_total_after_discount' => $lineTotalAfterDiscount,
                     'completion_status'         => 'not_started',
-                    'stock_status'              => 'in_stock',
-                    'display_order'             => $index,
+                    'stock_status'              => $product && $product->stock_quantity >= $qty ? 'in_stock' : 'out_of_stock',
                 ]);
                 
                 if ($product) {
