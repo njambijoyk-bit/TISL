@@ -252,6 +252,10 @@ class HamperCheckoutController extends Controller
 
             DB::commit();
 
+            // ── Update customer order statistics ──
+            // Recalculate to include this new hamper order in total_spent / total_orders
+            $customer->recalculateStatistics();
+
             return response()->json([
                 'message'      => 'Order placed successfully',
                 'order_number' => $order->order_number,
