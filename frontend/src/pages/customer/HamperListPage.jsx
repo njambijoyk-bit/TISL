@@ -139,7 +139,7 @@ export default function HamperListPage() {
             <Tag size={14} style={{ color: '#a855f7' }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Exclusive Deals</span>
           </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#111827', margin: '0 0 8px' }}>Hamper Deals</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#a855f7', margin: '0 0 8px' }}>Hamper Deals</h1>
           <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: 0 }}>Curated bundles selected just for you</p>
         </div>
 

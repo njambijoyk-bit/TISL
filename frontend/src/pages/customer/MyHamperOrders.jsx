@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Package, ChevronRight, Search, Clock, ExternalLink } from 'lucide-react';
 import hampersAPI from '../../api/hampers';
+import Header from '../../components/layout/Header';
+import Footer from '../../components/layout/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -47,10 +49,12 @@ export default function MyHamperOrders() {
   useEffect(() => { fetchOrders(); }, []);
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ margin: '0 0 8px', fontSize: '1.8rem', fontWeight: 900, color: '#111827' }}>My Hamper Orders</h1>
-        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem' }}>Track your exclusive bundle orders and status</p>
+    <div>
+    <Header />
+      <div style={{ marginBottom: 32, maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
+        <div></div>
+        <h1 style={{ margin: '0 0 8px', fontSize: '1.8rem', fontWeight: 900, color: '#a855f7', marginTop: 8 }}>My Hamper Orders</h1>
+        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem', marginBottom: 4 }}>Track your exclusive bundle orders and status</p>
       </div>
 
       {loading ? (
@@ -68,7 +72,7 @@ export default function MyHamperOrders() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
           {orders.map(order => (
             <div
               key={order.id}
@@ -86,7 +90,7 @@ export default function MyHamperOrders() {
                 position: 'relative'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#dcb6ff';
+                e.currentTarget.style.borderColor = '#a855f7';
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.08)';
               }}
               onMouseLeave={e => {
@@ -95,12 +99,12 @@ export default function MyHamperOrders() {
               }}
             >
               <div style={{ width: 56, height: 56, borderRadius: 12, background: 'rgba(124,58,237,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Package size={28} style={{ color: '#7c3aed' }} />
+                <Package size={28} style={{ color: '#a855f7' }} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, color: '#111827' }}>{order.order_number}</span>
+                  <span style={{ fontWeight: 800, color: '#a855f7' }}>{order.order_number}</span>
                   <StatusBadge status={order.status} />
                 </div>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>
@@ -108,7 +112,7 @@ export default function MyHamperOrders() {
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, fontSize: '0.75rem', color: '#6b7280' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {format(new Date(order.created_at), 'dd MMM yyyy')}</span>
-                  <span>{fmt(order.total)}</span>
+                  <span style={{ color: '#a855f7' }} >{fmt(order.total)}</span>
                 </div>
               </div>
 
@@ -118,7 +122,7 @@ export default function MyHamperOrders() {
                         <ExternalLink size={16} />
                     </div>
                 )}
-                <ChevronRight size={20} style={{ color: '#d1d5db' }} />
+                <ChevronRight size={20} style={{ color: '#a855f7', fontWeight: 800 }} />
               </div>
             </div>
           ))}
