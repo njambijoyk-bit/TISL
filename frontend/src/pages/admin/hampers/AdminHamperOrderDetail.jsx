@@ -5,6 +5,7 @@ import {
   Tag, Wallet, Star, Clock, FileText, CheckCircle,
   AlertTriangle, RefreshCw, ArrowRight, ExternalLink
 } from 'lucide-react';
+import HamperOrderGuide from './HamperOrderGuide';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import hampersAPI from '../../../api/hampers';
 import toast from 'react-hot-toast';
@@ -275,6 +276,7 @@ export default function AdminHamperOrderDetail() {
                 </div>
               </div>
             )}
+            <HamperOrderGuide order={order} />
           </div>
 
           {/* RIGHT: Financials & Customer */}
