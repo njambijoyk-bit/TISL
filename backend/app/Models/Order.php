@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\HamperOrder;
 
 class Order extends Model
 {
@@ -54,6 +55,8 @@ class Order extends Model
         'referral_discount',
         'promo_code_id',
         'promo_discount',
+        'store_credit_deduction',
+        'store_credit_deduction_kes',
         'customer_notes',
         'admin_notes',
         'metadata',
@@ -85,6 +88,8 @@ class Order extends Model
         'converted_at' => 'datetime',
         'referral_discount' => 'decimal:2',
         'promo_discount' => 'decimal:2',
+        'store_credit_deduction' => 'decimal:2',
+        'store_credit_deduction_kes' => 'decimal:2',
         'billing_same_as_shipping' => 'boolean',
         'metadata' => 'array',
         'project_details' => 'array', // NEW

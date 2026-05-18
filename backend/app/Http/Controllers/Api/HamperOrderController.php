@@ -7,6 +7,8 @@ use App\Models\HamperOrder;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Customer;
+use App\Models\Hamper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,17 +43,27 @@ class HamperOrderController extends Controller
      */
     public function myOrders(Request $request): JsonResponse
     {
-        $customer = $request->user()->customer;
-        if (!$customer) {
-            return response()->json(['message' => 'Customer profile not found'], 404);
+        try {
+            $user = $request->user();
+            $customer = $user ? $user->customer : null;
+
+            if (!$customer) {
+                return response()->json(['message' => 'Customer profile not found'], 404);
+            }
+
+            $orders = HamperOrder::where('customer_id', $customer->id)
+                ->with(['hamper:id,name,slug'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($request->get('per_page', 10));
+
+            return response()->json($orders);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Internal Server Error',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
-
-        $orders = HamperOrder::where('customer_id', $customer->id)
-            ->with(['hamper:id,name,slug'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 10));
-
-        return response()->json($orders);
     }
 
     /**
@@ -59,19 +71,28 @@ class HamperOrderController extends Controller
      */
     public function show(Request $request, $id): JsonResponse
     {
-        $query = HamperOrder::with(['customer', 'hamper', 'order']);
+        try {
+            $query = HamperOrder::with(['customer', 'hamper', 'order']);
 
-        $order = $query->findOrFail($id);
+            $order = $query->findOrFail($id);
 
-        // if not admin, check ownership
-        $user = $request->user();
-        if (!in_array($user->role, ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep'])) {
-            if ($order->customer_id !== $user->customer?->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+            // if not admin, check ownership
+            $user = $request->user();
+            if ($user && !in_array($user->role, ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep'])) {
+                if ($order->customer_id !== ($user->customer->id ?? null)) {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
             }
-        }
 
-        return response()->json($order);
+            return response()->json($order);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Internal Server Error',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
     }
 
     /**
@@ -120,16 +141,13 @@ class HamperOrderController extends Controller
             $snapshot = $hamperOrder->hamper_snapshot;
             $items = $snapshot['items'] ?? [];
 
-            // Calculate total of original prices to find the bundle discount
             $originalItemsTotal = 0;
             foreach ($items as $item) {
                 $originalItemsTotal += (float) ($item['price'] ?? 0) * (int) ($item['quantity'] ?? 1);
             }
 
-            // The discount to reach the hamper subtotal
             $bundleDiscount = max(0, $originalItemsTotal - (float) $hamperOrder->subtotal);
 
-            // Create Standard Order
             $order = Order::create([
                 'order_number'               => 'ORD-HMP-' . strtoupper(Str::random(8)),
                 'customer_id'                => $hamperOrder->customer_id,
@@ -156,7 +174,6 @@ class HamperOrderController extends Controller
 
             $order->applyKesSnapshot();
 
-            // Create Order Items
             foreach ($items as $index => $item) {
                 $product = Product::find($item['id'] ?? null);
 
@@ -186,7 +203,6 @@ class HamperOrderController extends Controller
                 }
             }
 
-            // Link HamperOrder to standard Order
             $hamperOrder->order_id = $order->id;
             $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . "[" . now()->format('Y-m-d H:i:s') . "] Converted to standard order #{$order->order_number}.";
             $hamperOrder->save();
