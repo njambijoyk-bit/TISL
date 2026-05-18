@@ -25,6 +25,7 @@ class HamperOrder extends Model
         'loyalty_points_earned',
         'shipping_address',
         'notes',
+        'financials_reversed_at',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class HamperOrder extends Model
         'shipping_cost'         => 'decimal:2',
         'total'                 => 'decimal:2',
         'loyalty_points_earned' => 'integer',
+        'financials_reversed_at' => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
