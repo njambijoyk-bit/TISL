@@ -16,15 +16,16 @@ import { format } from 'date-fns';
 
 const card = {
   background: 'white',
-  border: '1px solid var(--color-border-tertiary)',
+  border: '1px solid #dcb6ff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+  color: '#0b080e',
 };
 
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
   fontSize: '0.68rem', fontWeight: 700,
-  color: 'var(--color-text-tertiary)',
+  color: '#a855f7',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   borderBottom: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-secondary)',
@@ -100,7 +101,7 @@ function DangerBtn({ onClick, disabled, children }) {
 function Toggle({ value, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ width: 32, height: 18, borderRadius: 9, background: value ? '#a855f7' : 'var(--color-border-tertiary)', position: 'relative', transition: 'background 200ms' }}>
+      <div style={{ width: 32, height: 18, borderRadius: 9, background: value ? '#a855f7' : '#e3cdf8', position: 'relative', transition: 'background 200ms' }}>
         <div style={{ position: 'absolute', top: 2, left: value ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: 'white', transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
       </div>
       <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{label}</span>
@@ -131,7 +132,7 @@ function StatusBadge({ status }) {
 
 function SectionLabel({ children }) {
   return (
-    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
+    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
       {children}
     </p>
   );
@@ -149,7 +150,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
       <div style={{ ...card, width: '100%', maxWidth: 480, padding: 24, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>Set Quantities</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7' }}><X size={18} /></button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {products.map(p => (
@@ -341,7 +342,7 @@ function ProductsTab({ hamper, onRefresh }) {
         {/* Current items */}
         <div style={{ ...card, overflow: 'hidden' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)' }}>
-            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
               Current Items ({hamper.items?.length ?? 0})
             </p>
           </div>
@@ -353,7 +354,7 @@ function ProductsTab({ hamper, onRefresh }) {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
+                <tr style={{ color: '#a855f7' }}>
                   {['Product', 'SKU', 'Qty', 'Snapshot Price', ''].map((h, i) => (
                     <th key={i} style={{ ...thStyle, textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>
                   ))}
@@ -364,7 +365,7 @@ function ProductsTab({ hamper, onRefresh }) {
                   const snap = item.snapshot || {};
                   return (
                     <tr key={item.id}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                      onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       style={{ transition: 'background 120ms' }}
                     >
@@ -401,7 +402,7 @@ function ProductsTab({ hamper, onRefresh }) {
           <div style={{ ...card, overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Lightbulb size={15} style={{ color: '#f59e0b' }} />
-              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>Suggested ({suggestions.length})</p>
+              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: '#f59e0b' }}>Suggested ({suggestions.length})</p>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -410,7 +411,7 @@ function ProductsTab({ hamper, onRefresh }) {
               <tbody>
                 {suggestions.map(p => (
                   <tr key={p.id}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                    onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     style={{ transition: 'background 120ms' }}
                   >
@@ -604,7 +605,7 @@ function EligibilityTab({ hamper }) {
       {/* ── Selected customers (Eligibility Records) ── */}
       <div style={{ ...card }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
             Eligibility Records ({filteredRows.length})
           </p>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -636,7 +637,7 @@ function EligibilityTab({ hamper }) {
             <tbody>
               {filteredRows.map(row => (
                 <tr key={row.id}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ transition: 'background 120ms' }}
                 >
@@ -725,7 +726,7 @@ function EligibilityTab({ hamper }) {
       {/* ── Available / Matching Customers ── */}
       <div style={{ ...card }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
             {matchingLabel} ({eligibleCustomers.length})
           </p>
           {checkedIds.length > 0 && (
@@ -735,11 +736,11 @@ function EligibilityTab({ hamper }) {
           )}
         </div>
         {eligibleLoading ? (
-          <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '0.82rem' }}>Loading…</div>
+          <div style={{ padding: '40px 24px', textAlign: 'center', color: '#a855f7', fontSize: '0.82rem' }}>Loading…</div>
         ) : eligibleCustomers.length === 0 ? (
           <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <Users size={36} style={{ display: 'block', margin: '0 auto 10px', color: 'var(--color-text-tertiary)', opacity: 0.3 }} />
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>No customers match this criteria</p>
+            <Users size={36} style={{ display: 'block', margin: '0 auto 10px', color: '#a855f7', opacity: 0.3 }} />
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#c51d07' }}>No customers match this criteria</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -758,7 +759,7 @@ function EligibilityTab({ hamper }) {
               <tbody>
                 {eligibleCustomers.map(c => (
                   <tr key={c.id}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                    onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     style={{ transition: 'background 120ms' }}
                   >
@@ -767,7 +768,7 @@ function EligibilityTab({ hamper }) {
                         style={{ cursor: 'pointer', accentColor: '#7c3aed' }} />
                     </td>
                     <td style={tdStyle}>
-                      <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem' }}>{c.full_name || c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</p>
+                      <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: '#a855f7' }}>{c.full_name || c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</p>
                       <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{c.email}</p>
                     </td>
                     <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{c.tier || '—'}</span></td>
@@ -848,7 +849,7 @@ function OrdersTab({ hamper }) {
             <tbody>
               {orders.map(order => (
                 <tr key={order.id}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ transition: 'background 120ms' }}
                 >
