@@ -37,8 +37,9 @@ class HamperCheckoutController extends Controller
             'hamper'           => $hamper->load('items'),
             'shipping_options' => $shippingOptions,
             'store_credit'     => [
-                'allowed' => $hamper->allow_store_credit,
-                'balance' => $creditBalance,
+                'allowed'   => $hamper->allow_store_credit,
+                'balance'   => $creditBalance,
+                'max_apply' => 500,
             ],
             'promo_allowed'    => $hamper->allow_promo_codes,
             'apply_vat'        => $hamper->apply_vat,
@@ -166,7 +167,8 @@ class HamperCheckoutController extends Controller
         if ($request->filled('store_credit_amount') && $hamper->allow_store_credit) {
             $available  = (float) ($customer->store_credit ?? 0);
             $requested  = (float) $request->store_credit_amount;
-            $creditUsed = max(0, round(min($requested, $available, $preTotalBeforeCredit), 2));
+            $maxCredit  = 500;
+            $creditUsed = max(0, round(min($requested, $available, $preTotalBeforeCredit, $maxCredit), 2));
         }
 
         $total = max(0, round($preTotalBeforeCredit - $creditUsed, 2));
