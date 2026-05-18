@@ -5,7 +5,7 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import BookingCalendar from '../../components/admin/bookings/BookingCalendar';
 import BookingDaySidebar from '../../components/admin/bookings/BookingDaySidebar';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
-import { bookingsAPI } from '../../api/bookings';
+import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const STATUSES = ['', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'];

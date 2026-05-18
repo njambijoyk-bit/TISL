@@ -9,7 +9,7 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
 import StaffAssignModal from '../../components/admin/bookings/StaffAssignModal';
 import DisqualifyModal from '../../components/admin/bookings/DisqualifyModal';
-import { bookingsAPI } from '../../api/bookings';
+import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const Section = ({ title, icon: Icon, children, action }) => (

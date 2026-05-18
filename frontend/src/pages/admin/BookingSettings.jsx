@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, Loader2, Save, Clock, Calendar, AlertTriangle, Mail, FileText } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
-import { bookingsAPI } from '../../api/bookings';
+import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {

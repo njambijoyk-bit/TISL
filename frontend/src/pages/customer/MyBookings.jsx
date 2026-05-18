@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock, MapPin, Loader2, ChevronRight } from 'lucide-react';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
-import { bookingsAPI } from '../../api/bookings';
+import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const TABS = [
