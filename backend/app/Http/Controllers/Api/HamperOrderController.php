@@ -356,21 +356,23 @@ class HamperOrderController extends Controller
             // The discount to reach the hamper subtotal
             $bundleDiscount = max(0, $originalItemsTotal - (float) $hamperOrder->subtotal);
 
-            // Create Standard Order
+            // Create Standard Order — copy financials as-is from hamper order
             $order = Order::create([
                 'order_number'               => 'ORD-HMP-' . strtoupper(Str::random(8)),
+                'type'                       => 'hamper',
                 'customer_id'                => $hamperOrder->customer_id,
                 'placed_by'                  => auth()->id(),
-                'subtotal'                   => $originalItemsTotal,
+                'subtotal'                   => $hamperOrder->subtotal,
                 'tax'                        => $hamperOrder->vat_amount,
-                'discount'                   => $bundleDiscount + (float) $hamperOrder->discount_amount,
+                'discount'                   => 0,
                 'currency'                   => 'KES',
                 'exchange_rate_to_kes'       => 1,
                 'shipping_cost'              => $hamperOrder->shipping_cost,
                 'total'                      => $hamperOrder->total,
                 'payment_method'             => 'request_invoice',
                 'payment_status'             => 'unpaid',
-                'status'                     => 'pending',
+                'status'                     => 'confirmed',
+                'confirmed_at'               => now(),
                 'priority'                   => 'medium',
                 'shipping_address'           => is_array($hamperOrder->shipping_address) ? json_encode($hamperOrder->shipping_address) : $hamperOrder->shipping_address,
                 'delivery_method'            => 'standard_delivery',

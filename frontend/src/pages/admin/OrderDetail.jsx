@@ -241,7 +241,8 @@ export default function OrderDetail() {
 
   const editableStatuses = ['pending', 'confirmed', 'processing', 'failed'];
   const editablePayments = ['unpaid', 'failed'];
-  const canEdit = editableStatuses.includes(order?.status) && editablePayments.includes(order?.payment_status);
+  const isHamperOrder = order?.type === 'hamper';
+  const canEdit = !isHamperOrder && editableStatuses.includes(order?.status) && editablePayments.includes(order?.payment_status);
 
   const displayCurrency = order?.currency || 'KES';
   const showKes   = displayCurrency !== 'KES' && Number(order?.exchange_rate_to_kes) > 0;
@@ -803,7 +804,13 @@ export default function OrderDetail() {
             <StatusPill  s={order.status} />
             <PaymentPill s={order.payment_status} />
             {order.priority === 'urgent' && <Pill color="#ef4444">Urgent</Pill>}
+            {isHamperOrder && <Pill color="#d97706" bg="rgba(217,119,6,0.1)">Hamper Order</Pill>}
           </div>
+          {isHamperOrder && (
+            <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: 8, padding: '8px 14px', marginTop: 8, fontSize: '0.78rem', color: '#92400e' }}>
+              <strong>Hamper Order</strong> — Items and financials are locked. You can update payments, generate proforma invoices, and change status.
+            </div>
+          )}
           <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: 6 }}>
             Placed {format(new Date(order.created_at), 'MMMM d, yyyy · h:mm a')}
             {order.invoice_number && <span style={{ marginLeft: 8, color: purple, fontWeight: 700 }}>· {order.invoice_number}</span>}

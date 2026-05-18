@@ -15,6 +15,7 @@ class Order extends Model
      */
     protected $fillable = [
         'order_number',
+        'type',
         'customer_id',
         'placed_by',
         'subtotal',
@@ -615,19 +616,29 @@ class Order extends Model
             }
         });
 
-        // Sync status changes to linked HamperOrder notes
+        // Sync all changes on hamper-type orders to linked HamperOrder notes
         static::updated(function ($order) {
-            $hamperOrder = HamperOrder::where('order_id', $order->id)->first();
-            if ($hamperOrder) {
-                $importantStatuses = ['shipped', 'delivered', 'cancelled'];
-                $statusChanged = $order->wasChanged('status') && in_array($order->status, $importantStatuses);
-                $paymentRefunded = $order->wasChanged('payment_status') && $order->payment_status === 'refunded';
+            if ($order->type !== 'hamper') {
+                return;
+            }
 
-                if ($statusChanged || $paymentRefunded) {
-                    $note = "[" . now()->format('Y-m-d H:i:s') . "] Linked standard order status changed to '{$order->status}' (Payment: '{$order->payment_status}').";
-                    $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . $note;
-                    $hamperOrder->save();
-                }
+            $hamperOrder = HamperOrder::where('order_id', $order->id)->first();
+            if (!$hamperOrder) {
+                return;
+            }
+
+            $changes = [];
+            if ($order->wasChanged('status')) {
+                $changes[] = "status → {$order->status}";
+            }
+            if ($order->wasChanged('payment_status')) {
+                $changes[] = "payment → {$order->payment_status}";
+            }
+
+            if (!empty($changes)) {
+                $note = "[" . now()->format('Y-m-d H:i:s') . "] Standard order #{$order->order_number}: " . implode(', ', $changes) . ".";
+                $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . $note;
+                $hamperOrder->save();
             }
         });
     }
