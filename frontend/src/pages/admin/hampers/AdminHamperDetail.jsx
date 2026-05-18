@@ -815,6 +815,7 @@ function EligibilityTab({ hamper }) {
 // ── Tab: Orders ───────────────────────────────────────────────────────────────
 
 function OrdersTab({ hamper }) {
+  const navigate                    = useNavigate();
   const [orders, setOrders]         = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading]       = useState(true);
