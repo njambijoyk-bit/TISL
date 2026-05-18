@@ -252,7 +252,7 @@ export default function AdminHamperOrderDetail() {
                             </div>
                           )}
                           <div>
-                            <p style={{ margin: 0, fontWeight: 700 }}>{item.name}</p>
+                            <p style={{ margin: 0, fontWeight: 700, color: '#a855f7' }}>{item.name}</p>
                             <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{item.sku}</p>
                           </div>
                         </div>
@@ -332,17 +332,17 @@ export default function AdminHamperOrderDetail() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <User size={18} style={{ color: 'var(--color-text-secondary)' }} />
+                    <User size={18} style={{ color: '#a855f7' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>{order.customer?.first_name} {order.customer?.last_name}</p>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#a855f7' }}>{order.customer?.first_name} {order.customer?.last_name}</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer?.email}</p>
                   </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <MapPin size={18} style={{ color: 'var(--color-text-secondary)' }} />
+                    <MapPin size={18} style={{ color: '#a855f7' }} />
                   </div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
                     <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 2 }}>Shipping Address</p>
