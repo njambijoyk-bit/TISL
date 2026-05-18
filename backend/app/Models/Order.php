@@ -173,6 +173,14 @@ class Order extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    /**
+     * Get the hamper order associated with this standard order.
+     */
+    public function hamperOrder()
+    {
+        return $this->hasOne(HamperOrder::class);
+    }
+
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================
@@ -598,6 +606,22 @@ class Order extends Model
         static::creating(function ($order) {
             if (!$order->order_number) {
                 $order->order_number = self::generateOrderNumber();
+            }
+        });
+
+        // Sync status changes to linked HamperOrder notes
+        static::updated(function ($order) {
+            $hamperOrder = HamperOrder::where('order_id', $order->id)->first();
+            if ($hamperOrder) {
+                $importantStatuses = ['shipped', 'delivered', 'cancelled'];
+                $statusChanged = $order->wasChanged('status') && in_array($order->status, $importantStatuses);
+                $paymentRefunded = $order->wasChanged('payment_status') && $order->payment_status === 'refunded';
+
+                if ($statusChanged || $paymentRefunded) {
+                    $note = "[" . now()->format('Y-m-d H:i:s') . "] Linked standard order status changed to '{$order->status}' (Payment: '{$order->payment_status}').";
+                    $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . $note;
+                    $hamperOrder->save();
+                }
             }
         });
     }

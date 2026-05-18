@@ -108,6 +108,30 @@ const hampersAPI = {
     return response.data;
   },
 
+  // List all hamper orders
+  getAllHamperOrders: async (params = {}) => {
+    const response = await api.get('/admin/hamper-orders', { params });
+    return response.data;
+  },
+
+  // Get single hamper order detail
+  getAdminHamperOrder: async (id) => {
+    const response = await api.get(`/admin/hamper-orders/${id}`);
+    return response.data;
+  },
+
+  // Update hamper order status
+  updateHamperOrderStatus: async (id, data) => {
+    const response = await api.patch(`/admin/hamper-orders/${id}/status`, data);
+    return response.data;
+  },
+
+  // Convert hamper order to standard order
+  convertToStandardOrder: async (id) => {
+    const response = await api.post(`/admin/hamper-orders/${id}/convert`);
+    return response.data;
+  },
+
   // ── Customer (public, auth required) ─────────────────────────────────────
 
   // Get all hampers eligible for the logged-in customer
@@ -137,6 +161,18 @@ const hampersAPI = {
     // Place a hamper order
     placeOrder: async (slug, data) => {
       const response = await api.post(`/customer/hampers/${slug}/checkout/place-order`, data);
+      return response.data;
+    },
+
+    // Get customer's hamper orders
+    getMyHamperOrders: async (params = {}) => {
+      const response = await api.get('/customer/hampers/my-orders', { params });
+      return response.data;
+    },
+
+    // Get customer's single hamper order detail
+    getMyHamperOrder: async (id) => {
+      const response = await api.get(`/customer/hampers/orders/${id}`);
       return response.data;
     },
   };

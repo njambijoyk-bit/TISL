@@ -853,14 +853,14 @@ function OrdersTab({ hamper }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ transition: 'background 120ms' }}
                 >
-                  <td style={tdStyle}><span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed' }}>{order.order_number}</span></td>
-                  <td style={tdStyle}>
-                    <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem' }}>{order.customer?.name}</p>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed' }}>{order.order_number}</span></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem' }}>{order.customer?.name || `${order.customer?.first_name} ${order.customer?.last_name}`}</p>
                     <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{order.customer?.email}</p>
                   </td>
-                  <td style={tdStyle}><span style={{ fontWeight: 700 }}>{fmt(order.total)}</span></td>
-                  <td style={tdStyle}><StatusBadge status={order.status} /></td>
-                  <td style={tdStyle}><span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{format(new Date(order.created_at), 'dd MMM yyyy')}</span></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontWeight: 700 }}>{fmt(order.total)}</span></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><StatusBadge status={order.status} /></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{format(new Date(order.created_at), 'dd MMM yyyy')}</span></td>
                 </tr>
               ))}
             </tbody>
