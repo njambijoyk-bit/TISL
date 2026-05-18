@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
+use App\Http\Controllers\Api\HamperOrderController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\HamperCheckoutController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -262,6 +263,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Customer hamper routes (auth required) ────────────────────────────────────
         Route::prefix('hampers')->group(function () {
             Route::get('/',                              [PublicHamperController::class, 'index']);
+            Route::get('/my-orders',                    [HamperOrderController::class, 'myOrders']);
+            Route::get('/orders/{id}',                  [HamperOrderController::class, 'show']);
             Route::get('/{slug}',                       [PublicHamperController::class, 'show']);
             Route::get('/{slug}/checkout',              [HamperCheckoutController::class, 'load']);
             Route::post('/{slug}/checkout/validate-promo', [HamperCheckoutController::class, 'validatePromo']);
@@ -973,6 +976,14 @@ Route::middleware('auth:sanctum')->group(function () {
         
             // orders
             Route::get('/{id}/orders',                          [HamperController::class, 'orders']);
+        });
+        
+        // ── Admin hamper order management ─────────────────────────────────────────────
+        Route::prefix('hamper-orders')->group(function () {
+            Route::get('/',                                     [HamperOrderController::class, 'index']);
+            Route::get('/{id}',                                 [HamperOrderController::class, 'show']);
+            Route::patch('/{id}/status',                        [HamperOrderController::class, 'updateStatus']);
+            Route::post('/{id}/convert',                        [HamperOrderController::class, 'convertToOrder']);
         });
         
         // ── PROMO CODES — ADMIN ────────────────────────────────────────────────────
