@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Models\Hamper;
 use App\Models\HamperOrder;
+use App\Models\LoyaltyPointTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ReferralCode;
+use App\Models\StoreCreditTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,17 +92,116 @@ class HamperOrderController extends Controller
         ]);
 
         $oldStatus = $order->status;
-        $order->status = $request->status;
-        
-        $logNote = "[" . now()->format('Y-m-d H:i:s') . "] Status changed from {$oldStatus} to {$order->status}.";
-        if ($request->filled('notes')) {
-            $logNote .= " Note: " . $request->notes;
-        }
-        
-        $order->notes = ($order->notes ? $order->notes . "\n" : "") . $logNote;
-        $order->save();
+        $newStatus = $request->status;
 
-        return response()->json(['message' => 'Order status updated', 'data' => $order]);
+        // Prevent cancelling/refunding an already cancelled/refunded order
+        if (in_array($oldStatus, ['cancelled', 'refunded']) && in_array($newStatus, ['cancelled', 'refunded'])) {
+            return response()->json(['message' => 'This order is already ' . $oldStatus], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Reverse financials when cancelling or refunding
+            if (in_array($newStatus, ['cancelled', 'refunded']) && !in_array($oldStatus, ['cancelled', 'refunded'])) {
+                $this->reverseFinancials($order);
+            }
+
+            $order->status = $newStatus;
+
+            $logNote = "[" . now()->format('Y-m-d H:i:s') . "] Status changed from {$oldStatus} to {$order->status}.";
+            if ($request->filled('notes')) {
+                $logNote .= " Note: " . $request->notes;
+            }
+
+            $order->notes = ($order->notes ? $order->notes . "\n" : "") . $logNote;
+            $order->save();
+
+            DB::commit();
+
+            return response()->json(['message' => 'Order status updated', 'data' => $order->fresh()]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Hamper order status update failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update status', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Reverse store credit, loyalty points, and promo stats when cancelling/refunding.
+     */
+    private function reverseFinancials(HamperOrder $order): void
+    {
+        $customer = Customer::find($order->customer_id);
+        if (!$customer) return;
+
+        // 1. Refund store credit
+        if ((float) $order->store_credit_used > 0) {
+            $refundAmount = (float) $order->store_credit_used;
+            $newBalance = round((float) $customer->store_credit + $refundAmount, 2);
+
+            StoreCreditTransaction::create([
+                'customer_id'    => $customer->id,
+                'amount'         => $refundAmount,
+                'balance_after'  => $newBalance,
+                'type'           => 'order_refund',
+                'reference_type' => HamperOrder::class,
+                'reference_id'   => $order->id,
+                'note'           => "Refunded from cancelled hamper order {$order->order_number}",
+            ]);
+
+            $customer->update(['store_credit' => $newBalance]);
+        }
+
+        // 2. Reverse loyalty points
+        if ((int) $order->loyalty_points_earned > 0) {
+            $pointsToReverse = (int) $order->loyalty_points_earned;
+            $newPointBalance = max(0, (int) $customer->loyalty_points - $pointsToReverse);
+
+            LoyaltyPointTransaction::create([
+                'customer_id'    => $customer->id,
+                'points'         => -$pointsToReverse,
+                'balance_after'  => $newPointBalance,
+                'type'           => 'order_cancel',
+                'point_type'     => 'permanent',
+                'reference_type' => HamperOrder::class,
+                'reference_id'   => $order->id,
+                'note'           => "Reversed from cancelled hamper order {$order->order_number}",
+            ]);
+
+            $customer->update(['loyalty_points' => $newPointBalance]);
+        }
+
+        // 3. Reverse promo code stats
+        if ($order->referral_code_id) {
+            $code = ReferralCode::find($order->referral_code_id);
+            if ($code) {
+                if ($code->times_used > 0) $code->decrement('times_used');
+                if ($code->successful_uses > 0) $code->decrement('successful_uses');
+                if ($code->total_orders > 0) $code->decrement('total_orders');
+
+                $discountAmount = (float) $order->discount_amount;
+                if ($discountAmount > 0 && $code->total_discount_given >= $discountAmount) {
+                    $code->decrement('total_discount_given', $discountAmount);
+                }
+
+                $code->refresh();
+                $code->update([
+                    'average_order_value' => $code->total_orders > 0
+                        ? round($code->total_revenue / $code->total_orders, 2)
+                        : 0,
+                ]);
+            }
+        }
+
+        // 4. Restore hamper stock
+        $hamper = Hamper::find($order->hamper_id);
+        if ($hamper && $hamper->stock_remaining !== null) {
+            $hamper->increment('stock_remaining');
+            if ($hamper->is_sold_out) {
+                $hamper->update(['is_sold_out' => false]);
+            }
+        }
     }
 
     /**
