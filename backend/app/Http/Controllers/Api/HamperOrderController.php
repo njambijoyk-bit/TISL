@@ -95,6 +95,11 @@ class HamperOrderController extends Controller
         $oldStatus = $order->status;
         $newStatus = $request->status;
 
+        // Block status changes on converted orders — manage via the standard order instead
+        if ($order->order_id) {
+            return response()->json(['message' => 'This hamper order has been converted to a standard order. Manage status via the standard order.'], 422);
+        }
+
         // Prevent cancelling/refunding an already cancelled/refunded order
         if (in_array($oldStatus, ['cancelled', 'refunded']) && in_array($newStatus, ['cancelled', 'refunded'])) {
             return response()->json(['message' => 'This order is already ' . $oldStatus], 422);
@@ -371,9 +376,12 @@ class HamperOrderController extends Controller
                 'delivery_method'            => 'standard_delivery',
                 'referral_code_id'           => $hamperOrder->referral_code_id,
                 'promo_discount'             => $hamperOrder->discount_amount,
-                'store_credit_deduction'     => $hamperOrder->store_credit_used,
-                'store_credit_deduction_kes' => $hamperOrder->store_credit_used,
-                'admin_notes'                => "Converted from Hamper Order #{$hamperOrder->order_number}",
+                'store_credit_deduction'     => 0,
+                'store_credit_deduction_kes' => 0,
+                'admin_notes'                => "Converted from Hamper Order #{$hamperOrder->order_number}"
+                    . ($hamperOrder->promo_code ? " | Promo: {$hamperOrder->promo_code} (-" . number_format((float)$hamperOrder->discount_amount, 2) . ")" : "")
+                    . ((float)$hamperOrder->store_credit_used > 0 ? " | Store credit: " . number_format((float)$hamperOrder->store_credit_used, 2) . " (already deducted on hamper order)" : "")
+                    . ($hamperOrder->loyalty_points_earned > 0 ? " | Loyalty: {$hamperOrder->loyalty_points_earned} pts (already awarded on hamper order)" : ""),
             ]);
 
             $order->applyKesSnapshot();
