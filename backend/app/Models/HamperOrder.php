@@ -11,6 +11,7 @@ class HamperOrder extends Model
         'order_number',
         'customer_id',
         'hamper_id',
+        'order_id',
         'hamper_snapshot',
         'status',
         'subtotal',
@@ -48,6 +49,11 @@ class HamperOrder extends Model
     public function hamper(): BelongsTo
     {
         return $this->belongsTo(Hamper::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function referralCode(): BelongsTo
