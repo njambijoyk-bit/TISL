@@ -609,7 +609,7 @@ class Order extends Model
             }
         });
 
-        / Sync status changes to linked HamperOrder notes
+        // Sync status changes to linked HamperOrder notes
         static::updated(function ($order) {
             $hamperOrder = HamperOrder::where('order_id', $order->id)->first();
             if ($hamperOrder) {

@@ -75,7 +75,7 @@ export default function MyHamperOrderDetail() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 32 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: '#111827' }}>Order {order.order_number}</h1>
+            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: '#a855f7' }}>Order {order.order_number}</h1>
             <StatusBadge status={order.status} />
           </div>
           <p style={{ margin: 0, color: '#6b7280' }}>
@@ -103,7 +103,7 @@ export default function MyHamperOrderDetail() {
           {/* Bundle Content */}
           <div style={{ background: 'white', borderRadius: 20, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
             <div style={{ padding: '16px 24px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bundle Contents</h3>
+              <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bundle Contents</h3>
             </div>
             <div style={{ padding: '0 24px' }}>
               {items.map((item, idx) => (
@@ -119,11 +119,11 @@ export default function MyHamperOrderDetail() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{item.name}</p>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>Quantity: {item.quantity}</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#581c87' }}>Quantity: {item.quantity}</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ margin: 0, fontWeight: 700, color: '#111827' }}>{fmt(item.price * item.quantity)}</p>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>{fmt(item.price)} each</p>
+                    <p style={{ margin: 0, fontWeight: 700, color: '#a855f7' }}>{fmt(item.price * item.quantity)}</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#581c87' }}>{fmt(item.price)} each</p>
                   </div>
                 </div>
               ))}
@@ -134,12 +134,12 @@ export default function MyHamperOrderDetail() {
           <div style={{ background: 'white', borderRadius: 20, border: '1px solid #e5e7eb', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <MapPin size={20} style={{ color: '#7c3aed' }} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#111827' }}>Delivery Address</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#a855f7' }}>Delivery Address</h3>
             </div>
             <div style={{ color: '#4b5563', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              <p style={{ margin: 0, fontWeight: 600 }}>{order.customer?.first_name} {order.customer?.last_name}</p>
-              <p style={{ margin: 0 }}>{order.shipping_address?.line1}</p>
-              <p style={{ margin: 0 }}>{order.shipping_address?.city}, {order.shipping_address?.country}</p>
+              <p style={{ color: '#581c87', margin: 0, fontWeight: 600 }}>{order.customer?.first_name} {order.customer?.last_name}</p>
+              <p style={{ color: '#111827', margin: 0 }}>{order.shipping_address?.line1}</p>
+              <p style={{ color: '#111827', margin: 0 }}>{order.shipping_address?.city}, {order.shipping_address?.country}</p>
             </div>
           </div>
 
@@ -161,7 +161,7 @@ export default function MyHamperOrderDetail() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           
           <div style={{ background: 'white', borderRadius: 20, border: '1px solid #e5e7eb', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '0.9rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Summary</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: '0.9rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Summary</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
@@ -197,19 +197,19 @@ export default function MyHamperOrderDetail() {
 
               <div style={{ margin: '12px 0', height: 1, background: '#f3f4f6' }} />
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#111827' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#a855f7' }}>
                 <span>Total</span>
                 <span>{fmt(order.total)}</span>
               </div>
 
               {order.loyalty_points_earned > 0 && (
-                <div style={{ marginTop: 16, padding: '12px', borderRadius: 12, background: 'rgba(124,58,237,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Star size={16} fill="#7c3aed" color="#7c3aed" />
+                <div style={{ marginTop: 16, padding: '12px', borderRadius: 12, background: 'rgba(225, 237, 58, 0.23)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(237, 253, 4, 0.23)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Star size={21} fill="#ffe600" color="#ebd300" />
                   </div>
                   <div>
-                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase' }}>Points Earned</p>
-                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#7c3aed' }}>+{order.loyalty_points_earned}</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: '#36352c', textTransform: 'uppercase' }}>Points Earned</p>
+                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#c2af02' }}>+{order.loyalty_points_earned}</p>
                   </div>
                 </div>
               )}
