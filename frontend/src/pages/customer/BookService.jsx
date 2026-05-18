@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Clock, MapPin, Loader2, CheckSquare, ExternalLink, AlertTriangle } from 'lucide-react';
-import { bookingsAPI } from '../../api/bookings';
-import { servicesAPI } from '../../api/services';
+import { bookingsAPI } from '../../api';
+import { servicesAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {

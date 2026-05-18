@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Loader2, Search } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
-import { bookingsAPI } from '../../api/bookings';
-import { servicesAPI } from '../../api/services';
+import { bookingsAPI } from '../../api';
+import { servicesAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {

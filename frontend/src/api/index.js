@@ -27,6 +27,7 @@ export { default as paymentsAPI} from './payments';
 export { default as workAPI } from './work';
 export { default as reportsAPI } from './reports';
 export { default as ticketsAPI } from './tickets';
+export { default as bookingsAPI } from './bookings';
 
 export { default as contentAPI } from './content';
 

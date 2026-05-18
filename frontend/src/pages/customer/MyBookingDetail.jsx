@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Clock, FileText, Users, Loader2, XCircle, AlertCircle } from 'lucide-react';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
-import { bookingsAPI } from '../../api/bookings';
+import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const Field = ({ label, value }) => (

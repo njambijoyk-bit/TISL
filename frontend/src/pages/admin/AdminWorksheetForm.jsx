@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Send, CheckCircle, XCircle, Download, ClipboardList } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import WorksheetItemsTable from '../../components/admin/bookings/WorksheetItemsTable';
-import { bookingsAPI } from '../../api/bookings';
-import { productsAPI } from '../../api/products';
+import { bookingsAPI } from '../../api';
+import { productsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {
