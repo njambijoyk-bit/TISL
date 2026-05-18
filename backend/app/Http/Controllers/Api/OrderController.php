@@ -599,6 +599,10 @@ class OrderController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        if ($order->type === 'hamper') {
+            return response()->json(['message' => 'This order was converted from a hamper order and cannot be modified.'], 422);
+        }
+
         if ($order->status !== 'pending') {
             return response()->json(['message' => 'Only pending orders can be updated'], 400);
         }
@@ -1180,6 +1184,10 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         $order = Order::findOrFail($id);
+
+        if ($order->type === 'hamper') {
+            return response()->json(['message' => 'This order was converted from a hamper order. Items and financials cannot be modified.'], 422);
+        }
 
         $data = $request->validate([
             'subtotal'                => 'nullable|numeric|min:0',
@@ -1867,6 +1875,11 @@ class OrderController extends Controller
      */
     public function adminUpdateOrder(Request $request, $id)
     {
+        $order = Order::findOrFail($id);
+        if ($order->type === 'hamper') {
+            return response()->json(['message' => 'This order was converted from a hamper order. Items cannot be added, removed, or modified.'], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'items'                    => 'required|array|min:1',
             'items.*.product_id'       => 'nullable|exists:products,id',
