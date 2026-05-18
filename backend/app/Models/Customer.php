@@ -710,13 +710,28 @@ class Customer extends Model
     // Customer model
     public function recalculateStatistics(): void
     {
-        $realTotal = Order::where('customer_id', $this->id)
+        // ── 1. Standard Orders (Exclude hampers to avoid double counting) ──
+        $standardTotal = Order::where('customer_id', $this->id)
+            ->where('type', '!=', 'hamper')
             ->whereNotIn('status', ['cancelled', 'failed'])
             ->sum('total_kes');
 
-        $realCount = Order::where('customer_id', $this->id)
+        $standardCount = Order::where('customer_id', $this->id)
+            ->where('type', '!=', 'hamper')
             ->whereNotIn('status', ['cancelled', 'failed'])
             ->count();
+
+        // ── 2. Hamper Orders (Source of truth for all hampers) ──
+        $hamperTotal = HamperOrder::where('customer_id', $this->id)
+            ->whereNotIn('status', ['cancelled', 'refunded'])
+            ->sum('total');
+
+        $hamperCount = HamperOrder::where('customer_id', $this->id)
+            ->whereNotIn('status', ['cancelled', 'refunded'])
+            ->count();
+
+        $realTotal = (float)$standardTotal + (float)$hamperTotal;
+        $realCount = (int)$standardCount + (int)$hamperCount;
 
         $this->update([
             'total_orders'        => $realCount,
