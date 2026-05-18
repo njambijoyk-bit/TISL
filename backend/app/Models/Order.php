@@ -467,13 +467,19 @@ class Order extends Model
         ]);
 
         // ── Loyalty: earn points on payment ──────────────────────────────────────
-        try {
-            $this->load('customer');
-            if ($this->customer) {
-                app(\App\Services\LoyaltyService::class)->earnPointsForOrder($this);
+        // Skip for orders converted from hamper orders — points were already awarded
+        // during hamper checkout.
+        $isConvertedFromHamper = HamperOrder::where('order_id', $this->id)->exists();
+
+        if (!$isConvertedFromHamper) {
+            try {
+                $this->load('customer');
+                if ($this->customer) {
+                    app(\App\Services\LoyaltyService::class)->earnPointsForOrder($this);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Loyalty earn failed for order {$this->id}: " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("Loyalty earn failed for order {$this->id}: " . $e->getMessage());
         }
     }
 
