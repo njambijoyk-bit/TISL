@@ -178,8 +178,9 @@ export default function HamperCheckout() {
   const vatAmount      = apply_vat ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
   const promoDiscount  = appliedPromo?.discount ?? 0;
   const creditBalance  = store_credit.allowed ? (store_credit.balance ?? 0) : 0;
+  const maxStoreCredit = store_credit.max_apply ?? 500;
   const preCredit      = subtotal + vatAmount + shippingCost - promoDiscount;
-  const creditDeduction = applyCredit ? Math.min(Math.max(0, parseFloat(creditInput) || 0), Math.min(creditBalance, preCredit)) : 0;
+  const creditDeduction = applyCredit ? Math.min(Math.max(0, parseFloat(creditInput) || 0), Math.min(creditBalance, preCredit, maxStoreCredit)) : 0;
   const total          = Math.max(0, preCredit - creditDeduction);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -428,7 +429,7 @@ export default function HamperCheckout() {
                         const next = !applyCredit;
                         setApplyCredit(next);
                         if (next) {
-                          const max = Math.min(creditBalance, preCredit);
+                          const max = Math.min(creditBalance, preCredit, maxStoreCredit);
                           setCreditInput(String(max.toFixed(0)));
                           setCreditCalculating(true);
                           clearTimeout(creditDebounce.current);
@@ -456,14 +457,17 @@ export default function HamperCheckout() {
 
                     {applyCredit && (
                       <div style={{ marginTop: 10 }}>
-                        <label style={{ ...labelStyle, marginBottom: 5 }}>Amount to use (max {fmt(Math.min(creditBalance, preCredit))})</label>
+                        <label style={{ ...labelStyle, marginBottom: 5 }}>Amount to use (max {fmt(Math.min(creditBalance, preCredit, maxStoreCredit))})</label>
+                        {maxStoreCredit < creditBalance && (
+                          <p style={{ fontSize: '0.68rem', color: '#d97706', margin: '0 0 6px' }}>Hamper orders max store credit: {fmt(maxStoreCredit)}</p>
+                        )}
                         <div style={{ position: 'relative' }}>
                           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.78rem', color: '#9ca3af', pointerEvents: 'none' }}>KES</span>
                           <input
-                            type="number" min="1" max={Math.min(creditBalance, preCredit)}
+                            type="number" min="1" max={Math.min(creditBalance, preCredit, maxStoreCredit)}
                             value={creditInput}
                             onChange={e => { setCreditInput(e.target.value); setCreditCalculating(true); clearTimeout(creditDebounce.current); creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350); }}
-                            onBlur={e => { const max = Math.min(creditBalance, preCredit); const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max); setCreditInput(String(val.toFixed(0))); }}
+                            onBlur={e => { const max = Math.min(creditBalance, preCredit, maxStoreCredit); const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max); setCreditInput(String(val.toFixed(0))); }}
                             style={{ ...makeInputStyle(), paddingLeft: 38 }}
                             onFocus={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}18`; }}
                           />

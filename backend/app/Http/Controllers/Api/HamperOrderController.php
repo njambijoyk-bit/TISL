@@ -441,6 +441,12 @@ class HamperOrderController extends Controller
             $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . "[" . now()->format('Y-m-d H:i:s') . "] Converted to standard order #{$order->order_number}.";
             $hamperOrder->save();
 
+            // Update customer order statistics
+            $customer = Customer::find($hamperOrder->customer_id);
+            if ($customer) {
+                $customer->recalculateStatistics();
+            }
+
             DB::commit();
 
             return response()->json([
