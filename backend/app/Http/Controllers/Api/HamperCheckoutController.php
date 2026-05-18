@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hamper;
 use App\Models\HamperOrder;
 use App\Models\ReferralCode;
+use App\Models\ReferralCodeUsage;
 use App\Models\ShippingOption;
 use App\Models\StoreCreditTransaction;
 use App\Models\LoyaltyPointTransaction;
@@ -217,9 +218,18 @@ class HamperCheckoutController extends Controller
                 $customer->update(['store_credit' => $newCreditBalance]);
             }
 
-            // record referral code success
+            // record referral code success + log usage row
             if ($referralCode) {
                 $referralCode->recordSuccess($discount, $subtotal);
+
+                ReferralCodeUsage::createForHamperOrder(
+                    $referralCode,
+                    $customer,
+                    $order,
+                    $discount,
+                    $subtotal,
+                    $total
+                );
             }
 
             // award loyalty points
