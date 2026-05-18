@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ReferralCode;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\HamperOrder;
 use App\Services\PromoCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -496,7 +497,8 @@ class PromoCodeController extends Controller
 
     public function redemptions(Request $request, $id): JsonResponse
     {
-        $orders = Order::withTrashed()  // ← add this
+        // Standard orders that used this promo code
+        $standardOrders = Order::withTrashed()
             ->where('promo_code_id', $id)
             ->with('customer:id,first_name,last_name,email')
             ->select('id','order_number','customer_id','subtotal_kes','promo_discount','total_kes','status','created_at')
@@ -505,6 +507,7 @@ class PromoCodeController extends Controller
             ->map(fn($o) => [
                 'order_id'       => $o->id,
                 'order_number'   => $o->order_number,
+                'order_type'     => 'standard',
                 'customer_name'  => $o->customer ? trim($o->customer->first_name . ' ' . $o->customer->last_name) : '—',
                 'customer_email' => $o->customer?->email ?? '—',
                 'subtotal_kes'   => round((float) $o->subtotal_kes, 2),
@@ -514,6 +517,28 @@ class PromoCodeController extends Controller
                 'redeemed_at'    => $o->created_at,
             ]);
 
-        return response()->json(['redemptions' => $orders]);
+        // Hamper orders that used this promo code
+        $hamperOrders = HamperOrder::where('referral_code_id', $id)
+            ->with('customer:id,first_name,last_name,email')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($o) => [
+                'order_id'       => $o->id,
+                'order_number'   => $o->order_number,
+                'order_type'     => 'hamper',
+                'customer_name'  => $o->customer ? trim($o->customer->first_name . ' ' . $o->customer->last_name) : '—',
+                'customer_email' => $o->customer?->email ?? '—',
+                'subtotal_kes'   => round((float) $o->subtotal, 2),
+                'promo_discount' => round((float) $o->discount_amount, 2),
+                'total_kes'      => round((float) $o->total, 2),
+                'status'         => $o->status,
+                'redeemed_at'    => $o->created_at,
+            ]);
+
+        $redemptions = $standardOrders->concat($hamperOrders)
+            ->sortByDesc('redeemed_at')
+            ->values();
+
+        return response()->json(['redemptions' => $redemptions]);
     }
 }
