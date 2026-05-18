@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 
 const card = {
   background: 'white',
+  color: '#9333ea',
   border: '1px solid #dfbeff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
@@ -44,7 +45,7 @@ function Field({ label, error, hint, children }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint  && <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#a855f7' }}>{hint}</p>}
+      {hint  && <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#787779' }}>{hint}</p>}
       {error && <p style={{ margin: '3px 0 0', fontSize: '0.7rem', color: '#ef4444' }}>{error}</p>}
     </div>
   );
@@ -374,7 +375,10 @@ export default function AdminHamperEdit() {
                   <Field label="Max Per Customer" hint="Leave empty for unlimited">
                     <Input name="max_purchases_per_customer" type="number" min="1" value={form.max_purchases_per_customer} onChange={handleChange} placeholder="Unlimited" />
                   </Field>
-                  <Field label="Edition Size" hint="So if total_stock = 50, that means 50 hamper bundles can be sold. Each time a customer places an order, stock_remaining decrements by 1 (one bundle). The individual product quantities inside the hamper don't affect stock tracking — they just describe what's in the box.">
+                  <Field label="Edition Size" hint="So if total_stock = 50, that means 50 
+                  hamper bundles can be sold. Each time a customer places an order, stock_remaining 
+                  decrements by 1 (one bundle). The individual product quantities inside the hamper 
+                  don't affect stock tracking — they just describe what's in the box.">
                     <Input name="total_stock" type="number" min="1" value={form.total_stock} onChange={handleChange} placeholder="Unlimited" />
                   </Field>
                 </div>

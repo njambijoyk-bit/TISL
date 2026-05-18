@@ -14,6 +14,7 @@ const card = {
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
   padding: 24,
+  color: '#9333ea',
 };
 
 const inputStyle = {
@@ -45,7 +46,7 @@ function Field({ label, error, hint, children }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint  && <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#9ca3af' }}>{hint}</p>}
+      {hint  && <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#787779' }}>{hint}</p>}
       {error && <p style={{ margin: '3px 0 0', fontSize: '0.7rem', color: '#ef4444' }}>{error}</p>}
     </div>
   );
