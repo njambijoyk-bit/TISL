@@ -101,9 +101,18 @@ class HamperOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Reverse financials when cancelling or refunding
-            if (in_array($newStatus, ['cancelled', 'refunded']) && !in_array($oldStatus, ['cancelled', 'refunded'])) {
+            $isNewCancellation = in_array($newStatus, ['cancelled', 'refunded'])
+                && !in_array($oldStatus, ['cancelled', 'refunded']);
+
+            $isReactivation = in_array($oldStatus, ['cancelled', 'refunded'])
+                && !in_array($newStatus, ['cancelled', 'refunded']);
+
+            if ($isNewCancellation) {
                 $this->reverseFinancials($order);
+            }
+
+            if ($isReactivation) {
+                $this->restoreFinancials($order);
             }
 
             $order->status = $newStatus;
@@ -129,9 +138,12 @@ class HamperOrderController extends Controller
 
     /**
      * Reverse store credit, loyalty points, and promo stats when cancelling/refunding.
+     * Idempotent: skips if financials were already reversed.
      */
     private function reverseFinancials(HamperOrder $order): void
     {
+        if ($order->financials_reversed_at) return;
+
         $customer = Customer::find($order->customer_id);
         if (!$customer) return;
 
@@ -202,6 +214,93 @@ class HamperOrderController extends Controller
                 $hamper->update(['is_sold_out' => false]);
             }
         }
+
+        $order->financials_reversed_at = now();
+    }
+
+    /**
+     * Restore financials when reactivating a cancelled/refunded order.
+     * Re-deducts store credit, re-awards loyalty points, re-increments promo stats, re-decrements stock.
+     * Idempotent: only runs if financials were previously reversed.
+     */
+    private function restoreFinancials(HamperOrder $order): void
+    {
+        if (!$order->financials_reversed_at) return;
+
+        $customer = Customer::find($order->customer_id);
+        if (!$customer) return;
+
+        // 1. Re-deduct store credit that was refunded
+        if ((float) $order->store_credit_used > 0) {
+            $deductAmount = (float) $order->store_credit_used;
+            $newBalance = round(max(0, (float) $customer->store_credit - $deductAmount), 2);
+
+            StoreCreditTransaction::create([
+                'customer_id'    => $customer->id,
+                'amount'         => -$deductAmount,
+                'balance_after'  => $newBalance,
+                'type'           => 'order_spend',
+                'reference_type' => HamperOrder::class,
+                'reference_id'   => $order->id,
+                'note'           => "Re-deducted on reactivation of hamper order {$order->order_number}",
+            ]);
+
+            $customer->update(['store_credit' => $newBalance]);
+        }
+
+        // 2. Re-award loyalty points
+        if ((int) $order->loyalty_points_earned > 0) {
+            $pointsToRestore = (int) $order->loyalty_points_earned;
+            $newPointBalance = (int) $customer->loyalty_points + $pointsToRestore;
+
+            LoyaltyPointTransaction::create([
+                'customer_id'    => $customer->id,
+                'points'         => $pointsToRestore,
+                'balance_after'  => $newPointBalance,
+                'type'           => 'order_restore',
+                'point_type'     => 'permanent',
+                'reference_type' => HamperOrder::class,
+                'reference_id'   => $order->id,
+                'note'           => "Restored on reactivation of hamper order {$order->order_number}",
+            ]);
+
+            $customer->update(['loyalty_points' => $newPointBalance]);
+        }
+
+        // 3. Re-increment promo code stats
+        if ($order->referral_code_id) {
+            $code = ReferralCode::find($order->referral_code_id);
+            if ($code) {
+                $code->increment('times_used');
+                $code->increment('successful_uses');
+                $code->increment('total_orders');
+
+                $discountAmount = (float) $order->discount_amount;
+                if ($discountAmount > 0) {
+                    $code->increment('total_discount_given', $discountAmount);
+                }
+
+                $code->refresh();
+                $code->update([
+                    'average_order_value' => $code->total_orders > 0
+                        ? round($code->total_revenue / $code->total_orders, 2)
+                        : 0,
+                ]);
+            }
+        }
+
+        // 4. Re-decrement hamper stock
+        $hamper = Hamper::find($order->hamper_id);
+        if ($hamper && $hamper->stock_remaining !== null) {
+            if ($hamper->stock_remaining > 0) {
+                $hamper->decrement('stock_remaining');
+            }
+            if ($hamper->stock_remaining <= 0) {
+                $hamper->update(['is_sold_out' => true]);
+            }
+        }
+
+        $order->financials_reversed_at = null;
     }
 
     /**
