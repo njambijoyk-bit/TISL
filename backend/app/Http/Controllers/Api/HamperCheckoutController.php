@@ -283,7 +283,9 @@ class HamperCheckoutController extends Controller
             'price'        => $hamper->price,
             'accent_color' => $hamper->accent_color,
             'cover_image'  => $hamper->cover_image,
-            'items'        => $hamper->items->map(fn($i) => $i->snapshot)->toArray(),
+            'items'        => $hamper->items->map(fn($i) => array_merge($i->snapshot, [
+                'quantity' => $i->quantity,
+            ]))->toArray(),
         ];
     }
 }
