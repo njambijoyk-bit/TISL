@@ -1769,7 +1769,9 @@ export default function OrderDetail() {
             <div>
               <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Order Status</p>
               <select value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ ...iStyle, appearance: 'none' }} onFocus={fIn} onBlur={fOut}>
-                {['pending','confirmed','processing','ready_for_pickup','shipped','delivered','failed'].map(s => (
+                {['pending','confirmed','processing','ready_for_pickup','shipped','delivered','failed']
+                  .filter(s => !(isHamperOrder && s === 'pending'))
+                  .map(s => (
                   <option key={s} value={s}>{s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>
                 ))}
               </select>
