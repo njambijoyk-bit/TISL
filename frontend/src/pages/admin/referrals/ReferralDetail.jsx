@@ -600,16 +600,19 @@ export default function ReferralDetail() {
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.order
                                   ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>#{u.order.order_number}</span>
-                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                  : u.hamper_order
+                                    ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#d97706', fontWeight: 700 }}>#{u.hamper_order.order_number} <span style={{ fontSize: '0.65rem', background: 'rgba(217,119,6,0.1)', padding: '1px 6px', borderRadius: 4 }}>Hamper</span></span>
+                                    : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
 
                               {/* Referred Discount */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
-                                {parseFloat(u.order?.referral_discount) > 0
-                                  ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>
-                                      -{fmt(u.order.referral_discount)}
-                                    </span>
-                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                {(() => {
+                                  const discount = parseFloat(u.order?.referral_discount) || parseFloat(u.discount_amount) || 0;
+                                  return discount > 0
+                                    ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>-{fmt(discount)}</span>
+                                    : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>;
+                                })()}
                               </td>
 
                               {/* Referrer Reward */}

@@ -327,8 +327,11 @@ export default function PromoCodeDetail() {
                   </thead>
                   <tbody>
                     {redemptions.map((r, i) => (
-                      <tr key={r.order_id} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                        <td style={{ padding: '10px 10px', fontWeight: 700, color: purple }}>{r.order_number}</td>
+                      <tr key={`${r.order_type || 'std'}-${r.order_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 10px', fontWeight: 700, color: r.order_type === 'hamper' ? '#d97706' : purple }}>
+                          {r.order_number}
+                          {r.order_type === 'hamper' && <span style={{ marginLeft: 6, fontSize: '0.65rem', background: 'rgba(217,119,6,0.1)', color: '#d97706', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>Hamper</span>}
+                        </td>
                         <td style={{ padding: '10px 10px' }}>
                           <div style={{ fontWeight: 600, color: '#111827' }}>{r.customer_name}</div>
                           <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{r.customer_email}</div>

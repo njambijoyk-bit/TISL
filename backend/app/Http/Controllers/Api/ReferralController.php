@@ -121,7 +121,7 @@ class ReferralController extends Controller
         ])->findOrFail($id);
 
         // Usage breakdown
-        $usages = ReferralCodeUsage::with(['customer.user', 'referrer.user', 'order'])
+        $usages = ReferralCodeUsage::with(['customer.user', 'referrer.user', 'order', 'hamperOrder'])
             ->where('referral_code_id', $id)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -367,7 +367,8 @@ class ReferralController extends Controller
         $query = ReferralCodeUsage::with([
             'customer.user',
             'referrer.user',
-            'order' => fn($q) => $q->withTrashed(), 
+            'order' => fn($q) => $q->withTrashed(),
+            'hamperOrder',
         ])
         ->where('referral_code_id', $id);
 
@@ -463,7 +464,7 @@ class ReferralController extends Controller
             return response()->json(['message' => 'Customer profile not found.'], 404);
         }
 
-        $referrals = ReferralCodeUsage::with(['customer.user', 'order'])
+        $referrals = ReferralCodeUsage::with(['customer.user', 'order', 'hamperOrder'])
             ->where('referrer_id', $customer->id)
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 10));
