@@ -215,9 +215,11 @@ export default function AdminHamperOrderDetail() {
                   <ExternalLink size={14} /> View Standard Order
                 </Btn>
               )}
-              <Btn onClick={() => setShowStatusModal(true)}>
-                Update Status
-              </Btn>
+              {!order.order_id && (
+                <Btn onClick={() => setShowStatusModal(true)}>
+                  Update Status
+                </Btn>
+              )}
             </div>
           </div>
         </div>
