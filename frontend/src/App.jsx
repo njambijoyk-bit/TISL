@@ -339,7 +339,7 @@ function App() {
 
             <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
-            <Route path="/services/:slug/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
+            <Route path="/services/:id/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
             <Route
               path="/checkout"
               element={
