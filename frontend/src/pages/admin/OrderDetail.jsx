@@ -70,6 +70,7 @@ const paymentColors = {
   partially_paid:   '#3b82f6',
   refunded:         '#8b5cf6',
   failed:           '#ef4444',
+  overpayment:      '#ec4899',
 };
 
 const StatusPill  = ({ s }) => <Pill color={statusColors[s]  || '#9ca3af'}>{s?.replace(/_/g,' ')}</Pill>;
@@ -202,6 +203,8 @@ export default function OrderDetail() {
   const [returnModal,  setReturnModal]  = useState(false);
   const [restoreModal, setRestoreModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
+  const [sensitivityWarning, setSensitivityWarning] = useState(false);
+  const [iUnderstand, setIUnderstand] = useState(false);
 
   const [shipData, setShipData] = useState({ tracking_number: '', courier_company: '', estimated_delivery_date: '' });
   const [newStatus,        setNewStatus]        = useState('');
@@ -209,6 +212,7 @@ export default function OrderDetail() {
   const [paymentReference, setPaymentReference] = useState('');
   const [adminNotes,       setAdminNotes]       = useState('');
   const [restoreReason,    setRestoreReason]    = useState('');
+  const [showShippingSnapshot, setShowShippingSnapshot] = useState(false);
 
   const [subtotal,     setSubtotal]     = useState(0);
   const [tax,          setTax]          = useState(0);
@@ -253,7 +257,9 @@ export default function OrderDetail() {
   const exchangeDate = order?.converted_at ? format(new Date(order.converted_at), 'MMM d, yyyy') : null;
 
   const cancelledDetails = isCancelled && order ? {
-    totalRefunded: order.items?.reduce((s, i) => s + (parseFloat(i.refund_amount) || 0), 0) || 0,
+    totalRefunded: (order.payments || [])
+      .filter(p => p.status === 'confirmed' && p.method === 'refund')
+      .reduce((sum, p) => sum + (Number(p.mpesa_amount_confirmed) || Number(p.amount_received) || 0), 0),
     totalReturned: order.items?.reduce((s, i) => s + (parseInt(i.quantity_returned) || 0), 0) || 0,
   } : null;
 
@@ -382,6 +388,7 @@ export default function OrderDetail() {
       ['Email',    cust?.email        || '—'],
       ['Phone',    cust?.phone        || '—'],
       ['Address',  (o?.shipping_address || order.shipping_address || '—').substring(0, 40)],
+      ['Delivery', o?.shipping_method_name || o?.delivery_method?.replace(/_/g, ' ') || '—'],
     ];
 
     const startY = y;
@@ -592,6 +599,15 @@ export default function OrderDetail() {
     await run(() => useOrderStore.getState().updateOrderStatus(id, { status: newStatus, admin_notes: adminNotes }), 'Status updated');
     setStatusModal(false);
   };
+  const handleUpdatePaymentClick = () => {
+    if (order?.payment_status === 'paid') {
+      setSensitivityWarning(true);
+      setIUnderstand(false);
+    } else {
+      setPaymentModal(true);
+    }
+  };
+
   const handleUpdatePayment = async () => {  
     setUpdatingPayment(true);  
     setPaymentError('');  
@@ -869,7 +885,14 @@ export default function OrderDetail() {
                       <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#b91c1c', marginBottom: 8 }}>Refund Summary</p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>Total Refunded</span>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c' }}>{money(cancelledDetails.totalRefunded)}</span>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c' }}>{kesMoney(cancelledDetails.totalRefunded)}</span>
+                          {showKes && (
+                            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                              ≈ {money(cancelledDetails.totalRefunded / (Number(order.exchange_rate_to_kes) || 1))}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       {cancelledDetails.totalReturned > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
@@ -1520,9 +1543,17 @@ export default function OrderDetail() {
               <SectionLabel icon={Truck}>Shipping & Delivery</SectionLabel>
             </div>
             <div style={{ padding: '18px 22px' }}>
-              <div className="od-shipping-meta">
+              <div className="od-shipping-meta" style={{ marginBottom: 16 }}>
                 {[
-                  { label: 'Delivery Method', value: order.delivery_method?.replace(/_/g,' ') },
+                  { label: 'Delivery Method', value: order.shipping_method_name || order.delivery_method?.replace(/_/g,' ') },
+                  { label: 'Method ID', value: order.shipping_option_id ? (
+                    <span 
+                      onClick={() => navigate(`/admin/settings/shipping`)}
+                      style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      #{order.shipping_option_id}
+                    </span>
+                  ) : 'N/A' },
                   { label: 'Priority', value: <Pill color={order.priority === 'urgent' ? '#ef4444' : '#a855f7'}>{order.priority}</Pill> },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border,#f3f4f6)', background: 'var(--row-bg,rgba(249,250,251,0.5))' }}>
@@ -1530,11 +1561,45 @@ export default function OrderDetail() {
                     <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0, textTransform: 'capitalize' }}>{value}</p>
                   </div>
                 ))}
-                <div style={{ gridColumn: 'span 2', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border,#f3f4f6)', background: 'var(--row-bg,rgba(249,250,251,0.5))' }}>
+                <div style={{ gridColumn: 'span 3', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border,#f3f4f6)', background: 'var(--row-bg,rgba(249,250,251,0.5))' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={11} />Shipping Address</p>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text,#374151)', margin: 0, lineHeight: 1.5 }}>{order.shipping_address}</p>
                 </div>
               </div>
+
+              {/* Shipping Snapshot Collapsible */}
+              {order.shipping_snapshot && (
+                <div style={{ marginBottom: 20 }}>
+                  <button
+                    onClick={() => setShowShippingSnapshot(v => !v)}
+                    style={{
+                      fontSize: '0.78rem', fontWeight: 700, color: '#a855f7',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <span style={{
+                      display: 'inline-block', width: 14, height: 14, lineHeight: '14px',
+                      textAlign: 'center', borderRadius: 3,
+                      background: 'rgba(168,85,247,0.15)', fontSize: '0.7rem',
+                    }}>
+                      {showShippingSnapshot ? '−' : '+'}
+                    </span>
+                    {showShippingSnapshot ? 'Hide' : 'Show'} Shipping Snapshot
+                  </button>
+                  {showShippingSnapshot && (
+                    <pre style={{
+                      background: '#0d0d0d', color: '#00ff15',
+                      padding: 14, borderRadius: 8, marginTop: 10,
+                      fontSize: '0.73rem', overflow: 'auto', maxHeight: 320,
+                      border: '1px solid rgba(0,255,21,0.15)',
+                      fontFamily: 'monospace'
+                    }}>
+                      {JSON.stringify(order.shipping_snapshot, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
 
               <div style={{ padding: '16px', borderRadius: 12, border: `1px solid ${purpleBd}`, background: purpleLt }}>
                 <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: purple, marginBottom: 12 }}>Courier Details</p>
@@ -1617,7 +1682,7 @@ export default function OrderDetail() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                 <Btn variant="ghost"   size="sm" onClick={() => setStatusModal(true)}  disabled={isCancelled}>Update Status</Btn>
-                <Btn variant="outline" size="sm" onClick={() => setPaymentModal(true)} disabled={isCancelled}>Update Payment</Btn>
+                <Btn variant="primary" size="sm" onClick={handleUpdatePaymentClick} disabled={isCancelled}>Update Payment</Btn>
               </div>
             </div>
           </Panel>
@@ -1895,6 +1960,44 @@ export default function OrderDetail() {
         order={{ ...order, payments: orderPayments?.payments || order?.payments || [] }}
         onConfirmCancel={handleAdminCancel}
       />
+
+      {sensitivityWarning && (
+        <InlineModal title="Sensitive Action" accentColor="#ef4444" onClose={() => setSensitivityWarning(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Alert icon={AlertTriangle} color="#b91c1c" bg="rgba(239,68,68,0.06)" border="rgba(239,68,68,0.2)" title="Warning">
+              This order is already marked as <strong>Paid</strong>. Modifying its payment status is a sensitive action that could lead to financial inconsistencies in reports and accounting records. 
+              If this was a mistake <strong> Proceed with extreme caution. </strong> 
+              If this was a <strong> Genuine Payment</strong> consider cancelling the order to issue a refund.
+            </Alert>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 4px' }}>
+              <input 
+                type="checkbox" 
+                checked={iUnderstand} 
+                onChange={(e) => setIUnderstand(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: '#ef4444' }}
+              />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
+                I understand the risks and want to proceed
+              </span>
+            </label>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
+              <Btn variant="outline" onClick={() => setSensitivityWarning(false)}>Cancel</Btn>
+              <Btn 
+                variant="danger" 
+                disabled={!iUnderstand}
+                onClick={() => {
+                  setSensitivityWarning(false);
+                  setPaymentModal(true);
+                }}
+              >
+                Continue with caution
+              </Btn>
+            </div>
+          </div>
+        </InlineModal>
+      )}
 
       {editModal && (
         <CreateOrderModal

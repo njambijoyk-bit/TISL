@@ -516,16 +516,103 @@ export default function Products() {
 
               {/* Pagination */}
               {pagination.last_page > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--color-border-tertiary)', flexWrap: 'wrap', gap: 12 }}>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                    Showing {((pagination.current_page - 1) * pagination.per_page) + 1}–{Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderTop: '1px solid var(--color-border-tertiary)', flexWrap: 'wrap', gap: 16 }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                    Showing <span style={{ color: 'var(--color-text-primary)' }}>{((pagination.current_page - 1) * pagination.per_page) + 1}</span>–<span style={{ color: 'var(--color-text-primary)' }}>{Math.min(pagination.current_page * pagination.per_page, pagination.total)}</span> of <span style={{ color: 'var(--color-text-primary)' }}>{pagination.total}</span>
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Btn onClick={() => setPagination(p => ({ ...p, current_page: p.current_page - 1 }))} disabled={pagination.current_page === 1} style={{ padding: '6px 12px' }}>← Prev</Btn>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', padding: '0 4px' }}>
-                      {pagination.current_page} / {pagination.last_page}
-                    </span>
-                    <Btn onClick={() => setPagination(p => ({ ...p, current_page: p.current_page + 1 }))} disabled={pagination.current_page === pagination.last_page} style={{ padding: '6px 12px' }}>Next →</Btn>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* First Page */}
+                    <Btn 
+                      onClick={() => setPagination(p => ({ ...p, current_page: 1 }))} 
+                      disabled={pagination.current_page === 1}
+                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                      title="First Page"
+                    >
+                      «
+                    </Btn>
+
+                    {/* Prev */}
+                    <Btn 
+                      onClick={() => setPagination(p => ({ ...p, current_page: p.current_page - 1 }))} 
+                      disabled={pagination.current_page === 1}
+                      style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                    >
+                      ‹ Prev
+                    </Btn>
+
+                    {/* Page Numbers */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '0 4px' }}>
+                      {(() => {
+                        const current = pagination.current_page;
+                        const last = pagination.last_page;
+                        const delta = 2;
+                        const range = [];
+                        const rangeWithDots = [];
+                        let l;
+
+                        for (let i = 1; i <= last; i++) {
+                          if (i === 1 || i === last || (i >= current - delta && i <= current + delta)) {
+                            range.push(i);
+                          }
+                        }
+
+                        for (let i of range) {
+                          if (l) {
+                            if (i - l === 2) {
+                              rangeWithDots.push(l + 1);
+                            } else if (i - l !== 1) {
+                              rangeWithDots.push('...');
+                            }
+                          }
+                          rangeWithDots.push(i);
+                          l = i;
+                        }
+
+                        return rangeWithDots.map((n, i) => (
+                          n === '...' ? (
+                            <span key={`dots-${i}`} style={{ padding: '0 4px', color: 'var(--color-text-tertiary)', fontSize: '0.82rem' }}>...</span>
+                          ) : (
+                            <button
+                              key={n}
+                              onClick={() => setPagination(p => ({ ...p, current_page: n }))}
+                              style={{
+                                minWidth: 32, height: 32, borderRadius: 8, border: 'none',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.82rem', fontWeight: n === current ? 700 : 500,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                background: n === current ? '#7c3aed' : 'transparent',
+                                color: n === current ? 'white' : 'var(--color-text-secondary)',
+                                transition: 'all 150ms',
+                              }}
+                              onMouseEnter={e => { if (n !== current) e.currentTarget.style.background = 'var(--color-background-secondary)'; }}
+                              onMouseLeave={e => { if (n !== current) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              {n}
+                            </button>
+                          )
+                        ));
+                      })()}
+                    </div>
+
+                    {/* Next */}
+                    <Btn 
+                      onClick={() => setPagination(p => ({ ...p, current_page: p.current_page + 1 }))} 
+                      disabled={pagination.current_page === pagination.last_page}
+                      style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                    >
+                      Next ›
+                    </Btn>
+
+                    {/* Last Page */}
+                    <Btn 
+                      onClick={() => setPagination(p => ({ ...p, current_page: pagination.last_page }))} 
+                      disabled={pagination.current_page === pagination.last_page}
+                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                      title="Last Page"
+                    >
+                      »
+                    </Btn>
                   </div>
                 </div>
               )}

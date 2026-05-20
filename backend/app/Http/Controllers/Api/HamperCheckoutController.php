@@ -163,6 +163,15 @@ class HamperCheckoutController extends Controller
         $vatAmount          = $hamper->apply_vat ? round($taxableAmount * 0.16, 2) : 0;
         $preTotalBeforeCredit = round($subtotal - $discount + $vatAmount + $shippingCost, 2);
 
+        $shippingSnapshot = [
+            'id'           => $shippingOption->id,
+            'name'         => $shippingOption->name,
+            'slug'         => $shippingOption->slug,
+            'cost'         => $shippingOption->cost,
+            'free_above'   => $shippingOption->free_above,
+            'applied_cost' => $shippingCost
+        ];
+
         // store credit
         $creditUsed = 0;
         if ($request->filled('store_credit_amount') && $hamper->allow_store_credit) {
@@ -190,6 +199,9 @@ class HamperCheckoutController extends Controller
                 'discount_amount'       => $discount,
                 'store_credit_used'     => $creditUsed,
                 'shipping_cost'         => $shippingCost,
+                'shipping_option_id'    => $shippingOption->id,
+                'shipping_method_name'  => $shippingOption->name,
+                'shipping_snapshot'     => $shippingSnapshot,
                 'total'                 => $total,
                 'promo_code'            => $promoCodeStr,
                 'referral_code_id'      => $referralCodeId,

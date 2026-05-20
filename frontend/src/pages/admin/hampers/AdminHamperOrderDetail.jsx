@@ -121,6 +121,7 @@ export default function AdminHamperOrderDetail() {
   const [updating, setUpdating] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusData, setStatusData] = useState({ status: '', notes: '' });
+  const [showShippingSnapshot, setShowShippingSnapshot] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -349,11 +350,63 @@ export default function AdminHamperOrderDetail() {
                     <MapPin size={18} style={{ color: '#a855f7' }} />
                   </div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                    <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 2 }}>Shipping Address</p>
+                    <p style={{ margin: 0, fontWeight: 700, color: '#a855f7', marginBottom: 2 }}>Shipping Address</p>
                     {order.shipping_address?.line1}<br />
                     {order.shipping_address?.city}, {order.shipping_address?.country}
                   </div>
                 </div>
+
+                {/* Shipping Method Details */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--color-border-tertiary)', background: 'var(--color-background-secondary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Method</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#a855f7' }}>{order.shipping_method_name || 'N/A'}</p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Method ID</p>
+                    <p 
+                      onClick={() => order.shipping_option_id && navigate(`/admin/settings/shipping`)}
+                      style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: order.shipping_option_id ? '#3b82f6' : '#9ca3af', cursor: order.shipping_option_id ? 'pointer' : 'default', textDecoration: order.shipping_option_id ? 'underline' : 'none' }}
+                    >
+                      {order.shipping_option_id ? `#${order.shipping_option_id}` : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Shipping Snapshot Collapsible */}
+                {order.shipping_snapshot && (
+                  <div style={{ marginTop: 5 }}>
+                    <button
+                      onClick={() => setShowShippingSnapshot(v => !v)}
+                      style={{
+                        fontSize: '0.75rem', fontWeight: 700, color: '#a855f7',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      <span style={{
+                        display: 'inline-block', width: 14, height: 14, lineHeight: '14px',
+                        textAlign: 'center', borderRadius: 3,
+                        background: 'rgba(168,85,247,0.15)', fontSize: '0.7rem',
+                      }}>
+                        {showShippingSnapshot ? '−' : '+'}
+                      </span>
+                      {showShippingSnapshot ? 'Hide' : 'Show'} Shipping Snapshot
+                    </button>
+                    {showShippingSnapshot && (
+                      <pre style={{
+                        background: '#0d0d0d', color: '#00ff15',
+                        padding: 14, borderRadius: 8, marginTop: 10,
+                        fontSize: '0.73rem', overflow: 'auto', maxHeight: 300,
+                        border: '1px solid rgba(0,255,21,0.2)',
+                        fontFamily: 'monospace',
+                        lineHeight: 1.4
+                      }}>
+                        {JSON.stringify(order.shipping_snapshot, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
 
                 {order.promo_code && (
                   <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed #a855f7', background: 'rgba(168,85,247,0.03)', display: 'flex', alignItems: 'center', gap: 8 }}>

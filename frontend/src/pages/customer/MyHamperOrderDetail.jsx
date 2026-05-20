@@ -140,6 +140,10 @@ export default function MyHamperOrderDetail() {
               <p style={{ color: '#581c87', margin: 0, fontWeight: 600 }}>{order.customer?.first_name} {order.customer?.last_name}</p>
               <p style={{ color: '#111827', margin: 0 }}>{order.shipping_address?.line1}</p>
               <p style={{ color: '#111827', margin: 0 }}>{order.shipping_address?.city}, {order.shipping_address?.country}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Method ↪</p>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#a855f7' }}>{order.shipping_method_name || 'N/A'}</p>
+              </div>
             </div>
           </div>
 
