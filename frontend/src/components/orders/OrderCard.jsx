@@ -332,7 +332,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
         </div>
 
         {/* ── Delivery / tracking ───────────────────────────────────── */}
-        {(order.tracking_number || order.delivery_method) && (
+        {(order.tracking_number || order.delivery_method || order.shipping_method_name) && (
           <div className="mb-4">
             <InfoStrip icon={Truck}>
               {order.tracking_number ? (
@@ -344,7 +344,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
                   {order.estimated_delivery_date && <p className="text-xs text-gray-500 dark:text-gray-400">ETA: {new Date(order.estimated_delivery_date).toLocaleDateString()}</p>}
                 </div>
               ) : (
-                <p className="text-sm capitalize">{order.delivery_method?.replace(/_/g, ' ')}</p>
+                <p className="text-sm capitalize">{order.shipping_method_name || order.delivery_method?.replace(/_/g, ' ')}</p>
               )}
             </InfoStrip>
           </div>

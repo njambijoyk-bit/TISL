@@ -377,7 +377,30 @@ class OrderController extends Controller
                 }
             }
 
-            $shippingCost  = $this->calculateShippingCost($request->delivery_method, $subtotal);
+            // ── Shipping Calculation & Snapshot ───────────────────────────────────
+            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+                ->where('is_active', true)
+                ->first();
+
+            $shippingCost = 0;
+            $shippingOptionId = null;
+            $shippingMethodName = $request->delivery_method; // fallback
+            $shippingSnapshot = null;
+
+            if ($shippingOption) {
+                $shippingCost = $shippingOption->costForSubtotal($subtotal);
+                $shippingOptionId = $shippingOption->id;
+                $shippingMethodName = $shippingOption->name;
+                $shippingSnapshot = [
+                    'id'          => $shippingOption->id,
+                    'name'        => $shippingOption->name,
+                    'slug'        => $shippingOption->slug,
+                    'cost'        => $shippingOption->cost,
+                    'free_above'  => $shippingOption->free_above,
+                    'applied_cost' => $shippingCost
+                ];
+            }
+
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
             $total         = $subtotal - $discount - $referralDiscount - $promoDiscount + $tax + $shippingCost;
@@ -435,6 +458,9 @@ class OrderController extends Controller
                 'currency'                 => $request->currency           ?? 'KES',
                 'exchange_rate_to_kes'     => $request->exchange_rate_to_kes ?? 1,
                 'shipping_cost'            => $shippingCost,
+                'shipping_option_id'       => $shippingOptionId,
+                'shipping_method_name'     => $shippingMethodName,
+                'shipping_snapshot'        => $shippingSnapshot,
                 'total'                    => $total,
                 'payment_method'           => $request->payment_method,
                 'payment_status'           => 'unpaid',
@@ -852,7 +878,30 @@ class OrderController extends Controller
             
             $promoDiscount = min((float) ($order->promo_discount    ?? 0), $subtotal - $referralDiscount);
 
-            $shippingCost  = $this->calculateShippingCost($request->delivery_method, $subtotal);
+            // ── Shipping Calculation & Snapshot ───────────────────────────────────
+            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+                ->where('is_active', true)
+                ->first();
+
+            $shippingCost = 0;
+            $shippingOptionId = null;
+            $shippingMethodName = $request->delivery_method; // fallback
+            $shippingSnapshot = null;
+
+            if ($shippingOption) {
+                $shippingCost = $shippingOption->costForSubtotal($subtotal);
+                $shippingOptionId = $shippingOption->id;
+                $shippingMethodName = $shippingOption->name;
+                $shippingSnapshot = [
+                    'id'          => $shippingOption->id,
+                    'name'        => $shippingOption->name,
+                    'slug'        => $shippingOption->slug,
+                    'cost'        => $shippingOption->cost,
+                    'free_above'  => $shippingOption->free_above,
+                    'applied_cost' => $shippingCost
+                ];
+            }
+
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
             $total         = $subtotal - $discount - $referralDiscount - $promoDiscount + $tax + $shippingCost;
@@ -871,6 +920,9 @@ class OrderController extends Controller
                 'store_credit_deduction_kes' => $existingCreditDeductionKes,
                 'discount'         => $discount,
                 'shipping_cost'    => $shippingCost,
+                'shipping_option_id'   => $shippingOptionId,
+                'shipping_method_name' => $shippingMethodName,
+                'shipping_snapshot'    => $shippingSnapshot,
                 'total'            => $total,
                 'payment_method'   => $request->payment_method,
                 'delivery_method'  => $request->delivery_method,
@@ -1171,7 +1223,7 @@ class OrderController extends Controller
 
     public function adminShow(Request $request, $id)
     {
-        $order = Order::with(['items.product', 'customer', 'assignedTo', 'quote', 'promoCode', 'referralCode'])->findOrFail($id);
+        $order = Order::with(['items.product', 'customer', 'assignedTo', 'quote', 'promoCode', 'referralCode', 'payments'])->findOrFail($id);
         //return response()->json(['order' => $order], 200);
         return response()->json([
         'order' => array_merge($order->toArray(), [
@@ -1732,9 +1784,37 @@ class OrderController extends Controller
 
             $applyTax              = $request->apply_tax ?? true;
             $tax                   = $applyTax ? ($subtotalAfterDiscount * 0.16) : 0;
-            $shippingCost          = $request->has('shipping_cost') && $request->shipping_cost !== null
-                                        ? floatval($request->shipping_cost)
-                                        : $this->calculateShippingCost($request->delivery_method, $subtotalAfterDiscount);
+
+            // ── Shipping Calculation & Snapshot ───────────────────────────────────
+            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+                ->where('is_active', true)
+                ->first();
+
+            $shippingCost = 0;
+            $shippingOptionId = null;
+            $shippingMethodName = $request->delivery_method; // fallback
+            $shippingSnapshot = null;
+
+            if ($request->has('shipping_cost') && $request->shipping_cost !== null) {
+                $shippingCost = floatval($request->shipping_cost);
+            } elseif ($shippingOption) {
+                $shippingCost = $shippingOption->costForSubtotal($subtotalAfterDiscount);
+            }
+
+            if ($shippingOption) {
+                $shippingOptionId = $shippingOption->id;
+                $shippingMethodName = $shippingOption->name;
+                $shippingSnapshot = [
+                    'id'           => $shippingOption->id,
+                    'name'         => $shippingOption->name,
+                    'slug'         => $shippingOption->slug,
+                    'cost'         => $shippingOption->cost,
+                    'free_above'   => $shippingOption->free_above,
+                    'applied_cost' => $shippingCost,
+                    'was_overridden' => $request->has('shipping_cost') && $request->shipping_cost !== null
+                ];
+            }
+
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
 
             // ── Store credit deduction ────────────────────────────────────────────────
@@ -1794,6 +1874,9 @@ class OrderController extends Controller
                 'exchange_rate_to_kes'     => $request->exchange_rate_to_kes ?? 1,
                 'tax'                      => $tax,
                 'shipping_cost'            => $shippingCost,
+                'shipping_option_id'       => $shippingOptionId,
+                'shipping_method_name'     => $shippingMethodName,
+                'shipping_snapshot'        => $shippingSnapshot,
                 'total'                    => $total,
                 'delivery_method'          => $request->delivery_method,
                 'shipping_address'         => $request->shipping_address,
@@ -2159,9 +2242,37 @@ class OrderController extends Controller
 
             $applyTax              = $request->apply_tax ?? true;
             $tax                   = $applyTax ? ($subtotalAfterDiscount * 0.16) : 0;
-            $shippingCost          = $request->has('shipping_cost') && $request->shipping_cost !== null
-                                        ? floatval($request->shipping_cost)
-                                        : $this->calculateShippingCost($request->delivery_method, $subtotalAfterDiscount);
+
+            // ── Shipping Calculation & Snapshot ───────────────────────────────────
+            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+                ->where('is_active', true)
+                ->first();
+
+            $shippingCost = 0;
+            $shippingOptionId = null;
+            $shippingMethodName = $request->delivery_method; // fallback
+            $shippingSnapshot = null;
+
+            if ($request->has('shipping_cost') && $request->shipping_cost !== null) {
+                $shippingCost = floatval($request->shipping_cost);
+            } elseif ($shippingOption) {
+                $shippingCost = $shippingOption->costForSubtotal($subtotalAfterDiscount);
+            }
+
+            if ($shippingOption) {
+                $shippingOptionId = $shippingOption->id;
+                $shippingMethodName = $shippingOption->name;
+                $shippingSnapshot = [
+                    'id'           => $shippingOption->id,
+                    'name'         => $shippingOption->name,
+                    'slug'         => $shippingOption->slug,
+                    'cost'         => $shippingOption->cost,
+                    'free_above'   => $shippingOption->free_above,
+                    'applied_cost' => $shippingCost,
+                    'was_overridden' => $request->has('shipping_cost') && $request->shipping_cost !== null
+                ];
+            }
+
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
             // Carry forward existing store credit deduction
             $existingCreditDeduction    = (float) ($order->store_credit_deduction     ?? 0);
@@ -2183,6 +2294,9 @@ class OrderController extends Controller
                 'exchange_rate_to_kes'     => $request->exchange_rate_to_kes ?? $order->exchange_rate_to_kes,
                 'tax'                      => $tax,
                 'shipping_cost'            => $shippingCost,
+                'shipping_option_id'       => $shippingOptionId,
+                'shipping_method_name'     => $shippingMethodName,
+                'shipping_snapshot'        => $shippingSnapshot,
                 'total'                    => $total,
                 'delivery_method'          => $request->delivery_method,
                 'shipping_address'         => $request->shipping_address,
@@ -2429,15 +2543,30 @@ class OrderController extends Controller
             'refund_items.*.quantity_returned'     => 'nullable|numeric|min:0|decimal:0,5',
             'refund_items.*.return_status'         => 'required|in:requested,approved,rejected,completed',
             'returnless_refund'                    => 'nullable|boolean',
+            'manual_refund_amount'                 => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         DB::beginTransaction();
         try {
             $order           = Order::with('items')->findOrFail($id);
-            $requiresRefund  = in_array($order->payment_status, ['paid', 'partially_paid']);
+            $totalConfirmedPayments = $order->getTotalConfirmedPayments();
+            
+            // Fetch financial snapshots from the most recent confirmed payment if available
+            $lastPayment = \App\Models\Payment::where('order_id', $order->id)
+                ->where('status', 'confirmed')
+                ->latest()
+                ->first();
+            
+            // Use snapshot totals as authoritative source (crucial for Hamper Orders/Discounts)
+            $totalOrderKes = (float) ($lastPayment->snapshot_total_kes ?? $order->snapshot_total_kes ?? $order->total_kes ?? ($order->total * ($order->exchange_rate_to_kes ?? 1)));
+            $taxKes        = (float) ($lastPayment->snapshot_tax_kes ?? $order->snapshot_tax_kes ?? ($order->tax * ($order->exchange_rate_to_kes ?? 1)));
+            $shippingKes   = (float) ($lastPayment->snapshot_shipping_kes ?? $order->snapshot_shipping_kes ?? ($order->shipping_cost * ($order->exchange_rate_to_kes ?? 1)));
+            
+            $requiresRefund  = in_array($order->payment_status, ['paid', 'partially_paid', 'overpayment']) || $totalConfirmedPayments > 0;
             $requiresReturn  = in_array($order->status, ['delivered', 'shipped']);
             $returnlessRefund = $request->input('returnless_refund', false);
+            $manualRefundAmount = $request->input('manual_refund_amount');
 
             if (!$requiresRefund && !$requiresReturn) {
                 foreach ($order->items as $item) {
@@ -2449,27 +2578,26 @@ class OrderController extends Controller
                 $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason]);
 
             } elseif ($requiresRefund && !$requiresReturn) {  
-            // Calculate actual amount paid from payments table  
-            $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
-            $totalOrderKes = (float) ($order->total_kes ?? $order->total ?? 0);  
-            
-            // Cap refund to actual amount paid  
-            $maxRefundable = min($totalOrderKes, $totalConfirmedPayments);  
-            
-            // Calculate proportional refund per item  
-            foreach ($order->items as $item) {  
-                if ($item->product && $item->in_stock_quantity > 0) {  
-                    $item->product->increment('stock_quantity', $item->in_stock_quantity);  
-                    $item->product->update(['in_stock' => true]);  
+                // Max refundable is based on what was paid (handles overpayment)
+                $maxRefundable = $manualRefundAmount !== null 
+                    ? (float)$manualRefundAmount 
+                    : $totalConfirmedPayments;
+                
+                // Calculate proportional refund per item using snapshots
+                foreach ($order->items as $item) {  
+                    if ($item->product && $item->in_stock_quantity > 0) {  
+                        $item->product->increment('stock_quantity', $item->in_stock_quantity);  
+                        $item->product->update(['in_stock' => true]);  
+                    }  
+                    
+                    // Proportional share of the actual amount being refunded (using KES values for accurate math)
+                    $itemLineKes = (float) ($item->line_total_after_discount_kes ?? ($item->line_total_after_discount * ($order->exchange_rate_to_kes ?? 1)));
+                    $itemShare = $totalOrderKes > 0 ? ($itemLineKes / $totalOrderKes) : 0;  
+                    $refundAmount = round($maxRefundable * $itemShare, 2);  
+                    
+                    $item->update(['refund_amount' => $refundAmount, 'return_status' => 'completed']);  
                 }  
-                
-                // Calculate proportional refund based on item's share of total  
-                $itemShare = $totalOrderKes > 0 ? ($item->line_total_after_discount / $totalOrderKes) : 0;  
-                $refundAmount = round($maxRefundable * $itemShare, 2);  
-                
-                $item->update(['refund_amount' => $refundAmount, 'return_status' => 'completed']);  
-            }  
-            $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
+                $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
 
             } elseif ($requiresReturn) {
                 if ($request->has('refund_items')) {
@@ -2488,12 +2616,13 @@ class OrderController extends Controller
                     }
                 }
                 if ($returnlessRefund) {  
-                    $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
-                    $totalOrderKes = (float) ($order->total_kes ?? $order->total ?? 0);  
-                    $maxRefundable = min($totalOrderKes, $totalConfirmedPayments);  
+                    $maxRefundable = $manualRefundAmount !== null 
+                        ? (float)$manualRefundAmount 
+                        : $totalConfirmedPayments;
                     
                     foreach ($order->items as $item) {  
-                        $itemShare = $totalOrderKes > 0 ? ($item->line_total_after_discount / $totalOrderKes) : 0;  
+                        $itemLineKes = (float) ($item->line_total_after_discount_kes ?? ($item->line_total_after_discount * ($order->exchange_rate_to_kes ?? 1)));
+                        $itemShare = $totalOrderKes > 0 ? ($itemLineKes / $totalOrderKes) : 0;  
                         $refundAmount = round($maxRefundable * $itemShare, 2);  
                         $item->update(['refund_amount' => $refundAmount, 'quantity_returned' => 0, 'return_status' => 'completed']);  
                     }  
@@ -2504,44 +2633,44 @@ class OrderController extends Controller
             // ── Mark/record payment refunds ─────────────────────────────────  
             if ($requiresRefund) {  
                 
-                $totalRefundedAmount = $order->items->sum('refund_amount');  
-                $totalConfirmedPayments = $order->getTotalConfirmedPayments();  
+                // Prioritize manual refund amount from request, otherwise use sum of items
+                $totalRefundedAmount = $manualRefundAmount !== null 
+                    ? (float)$manualRefundAmount 
+                    : $order->items->sum('refund_amount');
+
+                // For audit integrity, we ALWAYS create a refund record if funds are returned.
+                // We also mark previous payments as refunded to clear the balance.
                 
-                $isFullRefund = $totalRefundedAmount >= $totalConfirmedPayments;  
-                
-                if ($isFullRefund) {  
-                    // Full refund — mark all confirmed payments as refunded  
-                    \App\Models\Payment::where('order_id', $order->id)  
-                        ->where('status', 'confirmed')  
-                        ->update([  
-                            'status' => 'refunded',  
-                            'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Marked as refunded — order cancelled (full refund)')"),  
-                        ]);  
-                } else {  
-                    // Partial refund — create a refund payment record for audit trail  
-                    // Keep original payments as confirmed (they were real)  
-                    $snapshot = \App\Models\Payment::buildSnapshot($order);  
-                    $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
-                    
-                    \App\Models\Payment::create([  
-                        'order_id'             => $order->id,  
-                        'customer_id'          => $order->customer_id,  
-                        'initiated_by'         => $request->user()->id,  
-                        'payment_number'       => $paymentNumber,  
-                        'method'               => 'refund',  
-                        'status'               => 'confirmed',  
-                        'currency'             => $order->currency ?? 'KES',  
-                        'exchange_rate_to_kes' => $order->exchange_rate_to_kes ?? 1,  
-                        'amount_expected'      => $totalRefundedAmount,  
-                        'amount_received'      => $totalRefundedAmount,  
-                        'mpesa_amount_confirmed' => $totalRefundedAmount,  
-                        'is_partial'           => true,  
-                        ...$snapshot,  
-                        'notes'                => "Partial refund for cancelled order. Refund amount: {$totalRefundedAmount}",  
-                        'initiated_at'         => now(),  
-                        'confirmed_at'         => now(),  
-                    ]);  
-                }  
+                \App\Models\Payment::where('order_id', $order->id)  
+                    ->where('status', 'confirmed')  
+                    ->update([  
+                        'status' => 'refunded',  
+                        'admin_notes' => \Illuminate\Support\Facades\DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Linked to refund record — order cancelled')"),  
+                    ]);
+
+                // Create a refund payment record for audit trail  
+                $snapshot = \App\Models\Payment::buildSnapshot($order);  
+                $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
+
+                \App\Models\Payment::create([  
+                    'order_id'             => $order->id,  
+                    'customer_id'          => $order->customer_id,  
+                    'initiated_by'         => $request->user()->id,  
+                    'payment_number'       => $paymentNumber,  
+                    'method'               => 'refund',  
+                    'status'               => 'confirmed',  
+                    'currency'             => $order->currency ?? 'KES',  
+                    'exchange_rate_to_kes' => $order->exchange_rate_to_kes ?? 1,  
+                    'amount_expected'      => $totalRefundedAmount,  
+                    'amount_received'      => $totalRefundedAmount,  
+                    'mpesa_amount_confirmed' => $totalRefundedAmount,  
+                    'is_partial'           => true,  
+                    ...$snapshot,  
+                    'notes'                => "Refund for cancelled order. [Audit: amount_received stores the total KES amount refunded]",  
+                    'admin_notes'          => "Refund processed via Admin Panel. Amount Received: This column tracks the total funds returned to the customer. Total confirmed payments: {$totalConfirmedPayments} KES. Amount refunded in this transaction: {$totalRefundedAmount} KES. Snapshot Total: {$totalOrderKes} KES. Snapshot Tax: {$taxKes} KES. Snapshot Shipping: {$shippingKes} KES.",
+                    'initiated_at'         => now(),  
+                    'confirmed_at'         => now(),  
+                ]);  
             }
             // ── Loyalty: reverse earned points on cancellation ─────────────  
             if ($requiresRefund) {  

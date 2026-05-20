@@ -233,7 +233,7 @@ export default function HamperCheckout() {
       };
       const res = await hampersAPI.placeOrder(slug, payload);
       toast.success('Order placed successfully!');
-      navigate('/my-orders', { state: { newOrder: res.order_number } });
+      navigate('hampers/my-orders', { state: { newOrder: res.order_number } });
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to place order');
     } finally {
@@ -250,7 +250,7 @@ export default function HamperCheckout() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f9fafb' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
       {/* Accent top bar */}

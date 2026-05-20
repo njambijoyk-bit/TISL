@@ -67,6 +67,8 @@ class OrderItem extends Model
         'quantity_returned',
         'refund_amount',
         'return_status',
+        'line_total_kes',
+        'line_total_after_discount_kes',
     ];
 
     /**
@@ -98,6 +100,8 @@ class OrderItem extends Model
         'is_negotiated_price' => 'boolean',
         'quantity_returned' => 'integer',
         'refund_amount' => 'decimal:2',
+        'line_total_kes' => 'decimal:2',
+        'line_total_after_discount_kes' => 'decimal:2',
     ];
 
     /**

@@ -49,6 +49,10 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
   const [loading, setLoading]                       = useState(false);
   const [validationError, setValidationError]       = useState('');
   const [returnlessRefund, setReturnlessRefund]     = useState(false);
+  const [manualRefundMode, setManualRefundMode]     = useState(false);
+  const [manualRefundAmount, setManualRefundAmount] = useState('');
+  const [refundType, setRefundType]                 = useState('full'); // full, no_tax, no_shipping, custom
+  const [manualOverride, setManualOverride]         = useState(false);
 
   const orderItems   = order?.items || [];
   const hasItems     = orderItems.length > 0;
@@ -66,8 +70,32 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     .filter(p => p.status === 'confirmed')  
     .reduce((sum, p) => sum + (Number(p.mpesa_amount_confirmed) || 0), 0);  
     
-  const totalOrderKes = Number(order?.total_kes || order?.total || 0);  
-  const maxRefundable = requiresRefund ? Math.min(totalOrderKes, totalConfirmedPayments) : 0;
+  // Get snapshot data from the most recent confirmed payment
+  const lastPayment = (order?.payments || [])
+    .filter(p => p.status === 'confirmed')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+  const snapshotTotal = Number(
+    lastPayment?.snapshot_total_kes ?? 
+    order?.snapshot_total_kes ?? 
+    order?.total_kes ?? 
+    (Number(order?.total || 0) * Number(order?.exchange_rate_to_kes || 1))
+  );
+  
+  const snapshotTax = Number(
+    lastPayment?.snapshot_tax_kes ?? 
+    order?.snapshot_tax_kes ?? 
+    (Number(order?.tax || 0) * Number(order?.exchange_rate_to_kes || 1))
+  );
+  
+  const snapshotShipping = Number(
+    lastPayment?.snapshot_shipping_kes ?? 
+    order?.snapshot_shipping_kes ?? 
+    (Number(order?.shipping_cost || 0) * Number(order?.exchange_rate_to_kes || 1))
+  );
+
+  const totalOrderKes = snapshotTotal;
+  const maxRefundable = requiresRefund ? totalConfirmedPayments : 0;
   const canCancel = () => {
     if (!order)                              return { valid: false, reason: 'Order data is not available. Please try again.' };
     if (order.payment_status === 'refunded') return { valid: false, reason: 'This order has already been refunded and cannot be cancelled again.' };
@@ -80,6 +108,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     const v = canCancel();
     if (!v.valid) { setValidationError(v.reason); return; }
     setValidationError(''); setReturnlessRefund(false); setCancellationReason('');
+    setRefundType('full');
     setRefundItems(
     hasItems
       ? orderItems.map(item => {
@@ -97,12 +126,32 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             max_returnable: Math.max(0, quantity - alreadyReturned),
             unit_price: unitPrice,
             line_total: lineTotal,
+            line_total_kes: parseFloat(
+              item.line_total_after_discount_kes ?? 
+              item.line_total_kes ?? 
+              (lineTotal * (Number(order.exchange_rate_to_kes) || 1))
+            ),
             refund_amount: '0.00',
             return_status: 'approved',
           };
         })
       : []);
       }, [isOpen, order]);
+  
+  useEffect(() => {
+    if (!order || refundType === 'custom') return;
+    
+    let amount = 0;
+    if (refundType === 'full') {
+      amount = snapshotTotal;
+    } else if (refundType === 'no_tax') {
+      amount = Math.max(0, snapshotTotal - snapshotTax);
+    } else if (refundType === 'no_shipping') {
+      amount = Math.max(0, snapshotTotal - snapshotShipping);
+    }
+    
+    setManualRefundAmount(amount.toFixed(2));
+  }, [refundType, order, snapshotTotal, snapshotTax, snapshotShipping, totalConfirmedPayments]);
 
   const handleQuantityChange = (index, qty) => {
     const items = [...refundItems];
@@ -115,8 +164,14 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     );
 
     item.quantity_returned = q;
+    
+    // Proportional refund calculation:
+    // (Item's share of order total) * (Actual amount paid) * (Portion of quantity returned)
+    const itemShare = totalOrderKes > 0 ? (item.line_total_kes / totalOrderKes) : 0;
+    const qtyShare = item.quantity > 0 ? (q / item.quantity) : 0;
+    
     item.refund_amount = canRefund
-      ? (parseFloat(item.unit_price || 0) * q).toFixed(2)
+      ? (itemShare * maxRefundable * qtyShare).toFixed(2)
       : '0.00';
 
     setRefundItems(items);
@@ -127,7 +182,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
     if (!canRefund) { items[index].refund_amount = '0.00'; return; }  
     // Cap to proportional share of actual confirmed payments  
     const itemMaxRefund = totalOrderKes > 0   
-      ? (items[index].line_total / totalOrderKes) * maxRefundable   
+      ? (items[index].line_total_kes / totalOrderKes) * maxRefundable   
       : items[index].line_total;  
     items[index].refund_amount = Math.min(Math.max(0, parseFloat(amount) || 0), itemMaxRefund).toFixed(2);  
     setRefundItems(items);  
@@ -148,7 +203,10 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
 
     setLoading(true); setValidationError('');
     try {
-      const payload = { cancellation_reason: cancellationReason };
+      const payload = { 
+        cancellation_reason: cancellationReason,
+        manual_refund_amount: manualRefundMode ? manualRefundAmount : null
+      };
       if (requiresReturn && refundItems.length > 0) payload.refund_items = refundItems;
       if (returnlessRefund) payload.returnless_refund = true;
       await onConfirmCancel(payload);
@@ -214,7 +272,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
   );
 
   // ── Main modal ──────────────────────────────────────────────────────────────
-  const totalRefund = refundItems.reduce((s, i) => s + Number(i.refund_amount || 0), 0);
+  const totalRefund = manualRefundMode ? Number(manualRefundAmount || 0) : refundItems.reduce((s, i) => s + Number(i.refund_amount || 0), 0);
   const subDesc = requiresReturn
     ? canRefund ? 'Process return and refund for delivered/shipped order' : 'Process return (no refund — unpaid)'
     : canRefund ? 'Process full refund for paid order' : 'Cancel order and restore stock';
@@ -326,6 +384,97 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             />
           </div>
 
+          {/* Manual Refund Override Section */}
+          <div style={{ padding: '16px 18px', borderRadius: 12, border: '1px solid #f3f4f6', background: 'rgba(168,85,247,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <DollarSign size={16} color="#a855f7" />
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', margin: 0 }}>
+                  Refund Override
+                </p>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={manualRefundMode} 
+                  onChange={e => setManualRefundMode(e.target.checked)} 
+                  style={{ accentColor: '#a855f7' }}
+                />
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>Manual Override</span>
+              </label>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Order Total (KES)</p>
+                <p style={{ fontSize: '1rem', fontWeight: 800, color: '#111827', margin: 0 }}>{money(totalOrderKes, 'KES')}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Total Paid (KES)</p>
+                <p style={{ fontSize: '1rem', fontWeight: 800, color: totalConfirmedPayments > totalOrderKes ? '#10b981' : '#111827', margin: 0 }}>
+                  {money(totalConfirmedPayments, 'KES')}
+                  {totalConfirmedPayments > totalOrderKes && (
+                    <span style={{ marginLeft: 6, fontSize: '0.65rem', padding: '2px 6px', borderRadius: 4, background: '#10b98120', color: '#10b981' }}>OVERPAYMENT</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {manualRefundMode && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                  <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', margin: 0 }}>Refund Options</p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                    {[
+                      { id: 'full', label: 'Refund Total', desc: 'Full order amount' },
+                      { id: 'no_tax', label: 'Without Tax', desc: `Excl. ${money(snapshotTax, 'KES')}` },
+                      { id: 'no_shipping', label: 'Without Shipping', desc: `Excl. ${money(snapshotShipping, 'KES')}` },
+                      { id: 'custom', label: 'Custom Amount', desc: 'Enter manually' },
+                    ].map(opt => (
+                      <div 
+                        key={opt.id}
+                        onClick={() => setRefundType(opt.id)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: `1.5px solid ${refundType === opt.id ? '#a855f7' : '#f3f4f6'}`,
+                          background: refundType === opt.id ? 'rgba(168,85,247,0.04)' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <p style={{ fontSize: '0.78rem', fontWeight: 700, color: refundType === opt.id ? '#a855f7' : '#374151', margin: '0 0 2px' }}>{opt.label}</p>
+                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>{opt.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <label style={labelStyle}>Refund Amount (KES)</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalConfirmedPayments}
+                    step="0.01"
+                    value={manualRefundAmount}
+                    onChange={e => {
+                      setManualRefundAmount(e.target.value);
+                      if (refundType !== 'custom') setRefundType('custom');
+                    }}
+                    placeholder="Enter total refund amount..."
+                    style={{ ...inputStyle, background: refundType === 'custom' ? 'white' : '#f9fafb' }}
+                    onFocus={focusIn} onBlur={focusOut}
+                  />
+                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 6 }}>
+                    Max refund: {money(totalConfirmedPayments, 'KES')} (Total amount paid by customer)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Return items section */}
           {requiresReturn && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -392,7 +541,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                         <div>
                           <label style={labelStyle}>Refund Amount ({sym(currency)})</label>
                           <input
-                            type="number" min="0" max={totalOrderKes > 0 ? (item.line_total / totalOrderKes) * maxRefundable : item.line_total} step="0.01"
+                            type="number" min="0" max={totalOrderKes > 0 ? (item.line_total_kes / totalOrderKes) * maxRefundable : item.line_total} step="0.01"
                             value={item.refund_amount}
                             disabled={!canRefund}
                             onChange={e => handleRefundAmountChange(index, e.target.value)}

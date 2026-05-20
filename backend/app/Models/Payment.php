@@ -307,12 +307,13 @@ class Payment extends Model
 
         $totalConfirmed = static::where('order_id', $order->id)
             ->where('status', 'confirmed')
-            ->sum('mpesa_amount_confirmed');
+            ->sum(\Illuminate\Support\Facades\DB::raw('CASE WHEN method = "refund" THEN -mpesa_amount_confirmed ELSE mpesa_amount_confirmed END'));
 
         $totalKes = (float) ($order->total_kes ?? $order->total ?? 0);
 
         $newPaymentStatus = match(true) {
             $totalConfirmed <= 0             => 'unpaid',
+            $totalConfirmed > $totalKes      => 'overpayment',
             $totalConfirmed >= $totalKes     => 'paid',
             default                          => 'partially_paid',
         };

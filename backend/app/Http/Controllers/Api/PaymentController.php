@@ -776,7 +776,9 @@ class PaymentController extends Controller
                 'id', 'payment_number', 'status', 'amount_expected',
                 'amount_received', 'is_partial', 'mpesa_receipt_number',
                 'mpesa_amount_confirmed', 'failure_reason', 'initiated_at', 
-                'confirmed_at', 'initiated_by'
+                'confirmed_at', 'initiated_by',
+                'snapshot_subtotal_kes', 'snapshot_tax_kes', 'snapshot_discount_kes', 
+                'snapshot_shipping_kes', 'snapshot_total_kes'
             ]);
 
         $totalConfirmed = $payments->where('status', 'confirmed')->sum('mpesa_amount_confirmed');

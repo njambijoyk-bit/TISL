@@ -41,15 +41,37 @@ const PAYMENT_CFG = {
   refunded:       { color: '#3b82f6', label: 'Refunded' },
   failed:         { color: '#ef4444', label: 'Failed' },
 };
+const ORDER_TYPE_CFG = {
+  standard: { color: '#07b2be', label: 'Standard' },
+  quotation: { color: '#8b5cf6', label: 'Quotation' },
+  bulk: { color: '#f59e0b', label: 'Bulk' },
+  b2b: { color: '#3b82f6', label: 'B2B' },
+  service: { color: '#10b981', label: 'Service' },
+  mixed: { color: '#a855f7', label: 'Mixed' },
+  project: { color: '#f13091', label: 'Project' },
+  subscription: { color: '#06b6d4', label: 'Subscription' }
+};
 const ITEM_TYPE_ICON = { product: Package, custom_product: Package, service: Wrench, custom_service: Wrench, fee: Receipt };
 
+const TypePill = ({ children, color = purple, bg }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    padding: '3px 10px', borderRadius: 9999,
+    fontSize: '0.7rem', fontWeight: 700,
+    color, background: bg || `${color}18`,
+    border: `1px solid ${color}30`,
+  }}>
+    <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
+    {children}
+  </span>
+);
 // ── Primitives ────────────────────────────────────────────────────────────────
 function StatusPill({ label, color }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
       style={{ background: `${color}15`, border: `1.5px solid ${color}40`, color, padding: '3px 10px 3px 8px' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      {label}
+      { label}
     </span>
   );
 }
@@ -227,6 +249,7 @@ export default function CustomerOrderDetail() {
   const canCancel   = order?.status === 'pending' && order?.payment_status === 'unpaid';
   const canRestore  = order?.status === 'cancelled' && order?.payment_status === 'unpaid';
   const canDelete   = order?.status === 'pending' && order?.payment_status === 'unpaid';
+  const isHamperOrder = order?.type === 'hamper';
 
   const displayCurrency = order?.currency || 'KES';
   const symbol = CURRENCY_SYMBOLS[displayCurrency] || displayCurrency;
@@ -244,13 +267,23 @@ export default function CustomerOrderDetail() {
 
   const handleSaveChanges = async () => {
     if (orderType === 'bulk' && totalQty <= 100) { toast.error('Bulk orders must have more than 100 items total'); return; }
-    if (deliveryMethod === 'courier' && !courierCompany.trim()) { toast.error('Please enter courier company name'); return; }
+    if (deliveryMethod === 'courier' && !courierCompany.trim()) { toast.error('Please enter courier details'); return; }
     if (!shippingAddress.trim()) { toast.error('Please enter shipping address'); return; }
+
+    const selectedShipping = (shippingOptions || []).find(o => o.slug === deliveryMethod);
+
     try {
       await updateMyOrder(order.id, {
-        payment_method: paymentMethod, delivery_method: deliveryMethod,
+        payment_method: paymentMethod, 
+        delivery_method: deliveryMethod,
+        shipping_method_name: selectedShipping?.name || (deliveryMethod === 'courier' ? 'Courier' : deliveryMethod),
+        shipping_cost: selectedShipping?.cost || 0,
+        shipping_option_id: selectedShipping?.id || null,
+        shipping_snapshot: selectedShipping || null,
         courier_company: deliveryMethod === 'courier' ? courierCompany : null,
-        order_type: orderType, shipping_address: shippingAddress, customer_notes: customerNotes,
+        order_type: orderType, 
+        shipping_address: shippingAddress, 
+        customer_notes: customerNotes,
         items: items.map((item, i) => ({
         product_id:     item.product_id     || null,
         service_id:     item.service_id     || null,
@@ -747,7 +780,7 @@ export default function CustomerOrderDetail() {
 
       [
         { label: 'Payment Method',  value: paymentMethod?.replace(/_/g, ' ') },
-        { label: 'Delivery Method', value: deliveryMethod?.replace(/_/g, ' ') },
+        { label: 'Delivery Method', value: order.shipping_method_name || (shippingOptions.find(o => o.slug === deliveryMethod)?.name) || deliveryMethod?.replace(/_/g, ' ') },
         deliveryMethod === 'courier' && courierCompany && { label: 'Courier Company', value: courierCompany },
         { label: 'Order Type',      value: orderType?.toUpperCase() },
         { label: 'Shipping Address',value: shippingAddress },
@@ -853,6 +886,7 @@ export default function CustomerOrderDetail() {
 
   const statusCfg  = STATUS_ORDER_CFG[order.status]      || { color: '#9ca3af', label: order.status };
   const paymentCfg = PAYMENT_CFG[order.payment_status]   || { color: '#9ca3af', label: order.payment_status };
+  const orderTypeCfg = ORDER_TYPE_CFG[order.order_type]  || { color: '#9ca3af', label: order.order_type };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -962,12 +996,9 @@ export default function CustomerOrderDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill label={statusCfg.label} color={statusCfg.color} />
                 <StatusPill label={paymentCfg.label} color={paymentCfg.color} />
-                {order.order_type && (
-                  <span className="text-xs font-semibold uppercase px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
-                    {order.order_type}
-                  </span>
-                )}
+                <StatusPill label={orderTypeCfg.label} color={orderTypeCfg.color} />
+                {isHamperOrder && <TypePill color="#d97706" bg="rgba(217,119,6,0.1)">Hamper Order</TypePill>}
+                
                 {order.invoice_number && (
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
@@ -1596,25 +1627,17 @@ export default function CustomerOrderDetail() {
 
                   <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Truck size={11} color="#c084fc" /><span></span>
+                      <Truck size={11} color="#c084fc" />
                       <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}> Delivery</p>
                     </div>
                     {canEdit ? (
                       <Select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}
-                        options={shippingOptions.length > 0
-                          ? shippingOptions.map(opt => ({
-                              value: opt.slug,
-                              label: `${opt.name}${parseFloat(opt.cost) === 0 ? '' : ` — KES ${Number(opt.cost).toLocaleString()}`}`,
-                            }))
-                          : [
-                              { value: 'pickup',            label: 'Pickup' },
-                              { value: 'standard_delivery', label: 'Standard Delivery' },
-                              { value: 'express_delivery',  label: 'Express Delivery' },
-                              { value: 'courier',           label: 'Courier' },
-                            ]
-                        } />
+                        options={shippingOptions.map(opt => ({
+                          value: opt.slug,
+                          label: `${opt.name}${parseFloat(opt.cost) === 0 ? '' : ` — KES ${Number(opt.cost).toLocaleString()}`}`,
+                        }))} />
                     ) : (
-                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{deliveryMethod.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{order.shipping_method_name || deliveryMethod.replace(/_/g, ' ')}</p>
                     )}
                   </div>
                 </div>
@@ -1624,10 +1647,10 @@ export default function CustomerOrderDetail() {
                   <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
                       <Truck size={11} color="#c084fc" />
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Courier Company</p>
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Courier Details</p>
                     </div>
                     {canEdit
-                      ? <Input value={courierCompany} onChange={e => setCourierCompany(e.target.value)} placeholder="e.g., DHL, FedEx, G4S" />
+                      ? <Input value={courierCompany} onChange={e => setCourierCompany(e.target.value)} placeholder="Enter courier details (e.g., G4S, Speedball...)" />
                       : <p className="text-sm font-bold m-0" style={{ color: '#7c3aed' }}>{courierCompany || 'Not specified'}</p>}
                   </div>
                 )}
@@ -1660,9 +1683,10 @@ export default function CustomerOrderDetail() {
                       )}
                     </>
                   ) : (
-                    <span className="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full capitalize"
-                      style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
-                      {orderType}
+                    <span>
+                      <StatusPill label={orderTypeCfg.label} color={orderTypeCfg.color} />
+                      {isHamperOrder && <TypePill color="#d97706" bg="rgba(217,119,6,0.1)">Hamper Order</TypePill>}
+                      
                     </span>
                   )}
                 </div>
@@ -1764,8 +1788,7 @@ export default function CustomerOrderDetail() {
                       <div style={{
                         width: 8, height: 8, borderRadius: '50%',
                         background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-                        boxShadow: `0 0 0 3px rgba(168,85,247,0.06)`,
-                        border: '1.5px solid rgba(255,255,255,0.8)'
+                        boxShadow: `0 0 0 3px rgba(168,85,247,0.06)`
                       }} />
                     </div>
                     

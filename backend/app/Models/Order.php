@@ -23,6 +23,9 @@ class Order extends Model
         'discount',
         'currency',
         'shipping_cost',
+        'shipping_option_id',
+        'shipping_method_name',
+        'shipping_snapshot',
         'total',
         'exchange_rate_to_kes',
         'subtotal_kes',
@@ -60,6 +63,9 @@ class Order extends Model
         'metadata',
         'invoice_number',
         'invoice_generated_at',
+        'snapshot_total_kes',
+        'snapshot_tax_kes',
+        'snapshot_shipping_kes',
         'assigned_to',
         'confirmed_at',
         'shipped_at',
@@ -79,10 +85,14 @@ class Order extends Model
         'tax' => 'decimal:2',
         'discount' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
+        'shipping_snapshot' => 'array',
         'total' => 'decimal:2',
         'exchange_rate_to_kes' => 'decimal:8',
         'subtotal_kes' => 'decimal:2',
         'total_kes' => 'decimal:2',
+        'snapshot_total_kes' => 'decimal:2',
+        'snapshot_tax_kes' => 'decimal:2',
+        'snapshot_shipping_kes' => 'decimal:2',
         'converted_at' => 'datetime',
         'referral_discount' => 'decimal:2',
         'promo_discount' => 'decimal:2',
@@ -182,6 +192,14 @@ class Order extends Model
         return $this->hasOne(HamperOrder::class);
     }
 
+    /**
+     * Get all payments for this order.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================
@@ -215,6 +233,7 @@ class Order extends Model
             'paid' => 'Paid',
             'refunded' => 'Refunded',
             'failed' => 'Failed',
+            'overpayment' => 'Overpayment',
             default => ucfirst($this->payment_status),
         };
     }
@@ -491,7 +510,7 @@ class Order extends Model
     {  
         return (float) \App\Models\Payment::where('order_id', $this->id)  
             ->where('status', 'confirmed')  
-            ->sum('mpesa_amount_confirmed');  
+            ->sum(\Illuminate\Support\Facades\DB::raw('CASE WHEN method = "refund" THEN -mpesa_amount_confirmed ELSE mpesa_amount_confirmed END'));  
     }
 
     /**
@@ -566,16 +585,36 @@ class Order extends Model
     }
 
     public function applyKesSnapshot(): void
-{
-    $rate = Currency::rateToKes($this->currency ?? 'KES');
+    {
+        $rate = Currency::rateToKes($this->currency ?? 'KES');
 
-    $this->exchange_rate_to_kes = $rate;
-    $this->subtotal_kes = $this->subtotal !== null ? round(((float)$this->subtotal) * $rate, 2) : null;
-    $this->total_kes = $this->total !== null ? round(((float)$this->total) * $rate, 2) : null;
-    $this->converted_at = now();
+        $this->exchange_rate_to_kes = $rate;
+        $this->subtotal_kes = $this->subtotal !== null ? round(((float)$this->subtotal) * $rate, 2) : null;
+        $this->total_kes = $this->total !== null ? round(((float)$this->total) * $rate, 2) : null;
+        
+        // Also snapshot the tax and shipping if not already set
+        if (!$this->snapshot_tax_kes) {
+            $this->snapshot_tax_kes = $this->tax !== null ? round(((float)$this->tax) * $rate, 2) : null;
+        }
+        if (!$this->snapshot_shipping_kes) {
+            $this->snapshot_shipping_kes = $this->shipping_cost !== null ? round(((float)$this->shipping_cost) * $rate, 2) : null;
+        }
+        if (!$this->snapshot_total_kes) {
+            $this->snapshot_total_kes = $this->total_kes;
+        }
 
-    $this->saveQuietly();
-}
+        $this->converted_at = now();
+
+        $this->saveQuietly();
+
+        // Also snapshot items
+        foreach ($this->items as $item) {
+            $item->update([
+                'line_total_kes' => $item->line_total !== null ? round(((float)$item->line_total) * $rate, 2) : null,
+                'line_total_after_discount_kes' => $item->line_total_after_discount !== null ? round(((float)$item->line_total_after_discount) * $rate, 2) : null,
+            ]);
+        }
+    }
 
     // ========================================
     // STATIC METHODS
