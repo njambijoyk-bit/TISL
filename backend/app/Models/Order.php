@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 
 class Order extends Model
 {
@@ -58,6 +59,8 @@ class Order extends Model
         'referral_discount',
         'promo_code_id',
         'promo_discount',
+        'store_credit_deduction',
+        'store_credit_deduction_kes',
         'customer_notes',
         'admin_notes',
         'metadata',
@@ -66,6 +69,7 @@ class Order extends Model
         'snapshot_total_kes',
         'snapshot_tax_kes',
         'snapshot_shipping_kes',
+        'financials_reversed_at',
         'assigned_to',
         'confirmed_at',
         'shipped_at',

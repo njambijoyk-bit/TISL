@@ -1044,6 +1044,17 @@ class OrderController extends Controller
             $order->refresh();
             $order->applyKesSnapshot();
             $this->refundOrderStoreCredit($order);
+
+            // Handle referral code usage cancellation (Case 18)
+            if ($order->referral_code_id) {
+                $usage = \App\Models\ReferralCodeUsage::where('order_id', $order->id)
+                    ->where('referral_code_id', $order->referral_code_id)
+                    ->first();
+                if ($usage) {
+                    $usage->markAsCancelled();
+                }
+            }
+
             DB::commit();
 
             try {
@@ -2463,12 +2474,23 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [  
             'payment_status'    => 'required|in:unpaid,partially_paid,paid,refunded,failed',  
             'payment_reference' => 'nullable|string',  
-            'amount_paid'       => 'nullable|numeric|min:0|required_if:payment_status,partially_paid',  
+            'amount_paid'       => 'nullable|numeric|min:0.01|required_if:payment_status,partially_paid',
             'payment_method'    => 'nullable|in:mpesa,bank_transfer,cod,credit|required_if:payment_status,paid,partially_paid',  
         ]);  
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);  
     
         $order = Order::findOrFail($id);  
+
+        // Gracefully handle duplicate mpesa reference
+        if ($request->payment_method === 'mpesa' && $request->filled('payment_reference')) {
+            $duplicate = \App\Models\Payment::where('mpesa_receipt_number', $request->payment_reference)->exists();
+            if ($duplicate) {
+                return response()->json([
+                    'errors' => ['payment_reference' => ['This M-Pesa reference has already been used.']],
+                    'message' => 'This M-Pesa reference has already been used.'
+                ], 422);
+            }
+        }
     
         // If setting to paid or partially_paid, create a payment record  
         if (in_array($request->payment_status, ['paid', 'partially_paid'])) {  
@@ -2477,9 +2499,9 @@ class OrderController extends Controller
                 $snapshot = \App\Models\Payment::buildSnapshot($order);  
                 $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
                 
-                // For paid status, amount is the full order total  
+                // For paid status, amount is ONLY what is still owed
                 $amount = $request->payment_status === 'paid'   
-                    ? $snapshot['snapshot_total_kes']   
+                    ? $snapshot['snapshot_amount_still_owed_kes']
                     : $request->amount_paid;  
                 
                 $payment = \App\Models\Payment::create([  
@@ -2549,7 +2571,7 @@ class OrderController extends Controller
 
         DB::beginTransaction();
         try {
-            $order           = Order::with('items')->findOrFail($id);
+            $order           = Order::with(['items.product', 'customer'])->findOrFail($id);
             $totalConfirmedPayments = $order->getTotalConfirmedPayments();
             
             // Fetch financial snapshots from the most recent confirmed payment if available
@@ -2675,7 +2697,6 @@ class OrderController extends Controller
             // ── Loyalty: reverse earned points on cancellation ─────────────  
             if ($requiresRefund) {  
                 try {  
-                    $order->load('customer');  
                     if ($order->customer) {  
                         app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);  
                     }  
@@ -2685,6 +2706,17 @@ class OrderController extends Controller
             }
             
             $this->refundOrderStoreCredit($order);
+
+            // Handle referral code usage cancellation (Case 18)
+            if ($order->referral_code_id) {
+                $usage = \App\Models\ReferralCodeUsage::where('order_id', $order->id)
+                    ->where('referral_code_id', $order->referral_code_id)
+                    ->first();
+                if ($usage) {
+                    $usage->markAsCancelled();
+                }
+            }
+
             DB::commit();
 
             try {
@@ -2750,13 +2782,16 @@ class OrderController extends Controller
 
                 // Re-reserve stock for non-custom product items that were in stock
                 if (!$item->is_custom_item && $item->product && $item->in_stock_quantity > 0) {
-                    if ($item->product->stock_quantity < $item->in_stock_quantity) {
+                    $available = (float) $item->product->stock_quantity;
+                    $required  = (float) $item->in_stock_quantity;
+
+                    if ($available < $required) {
                         DB::rollBack();
                         return response()->json([
-                            'message' => "Insufficient stock to restore. {$item->product_name} needs {$item->in_stock_quantity} but only {$item->product->stock_quantity} available.",
+                            'message' => "Insufficient stock to restore. {$item->product_name} needs {$required} but only {$available} available.",
                         ], 400);
                     }
-                    $item->product->decrement('stock_quantity', $item->in_stock_quantity);
+                    $item->product->decrement('stock_quantity', $required);
                     if ($item->product->stock_quantity <= 0) $item->product->update(['in_stock' => false]);
                 }
             }
@@ -3248,11 +3283,13 @@ class OrderController extends Controller
     {
         $deductionKes = (float) ($order->store_credit_deduction_kes ?? 0);
         if ($deductionKes <= 0) return;
-        if (!$order->customer) return;
+
+        $customer = $order->customer ?: \App\Models\Customer::find($order->customer_id);
+        if (!$customer) return;
 
         try {
             app(\App\Services\LoyaltyService::class)->grantRefundCredit(
-                $order->customer, $deductionKes, $order
+                $customer, $deductionKes, $order
             );
         } catch (\Exception $e) {
             Log::warning("Store credit refund failed for order {$order->id}: " . $e->getMessage());
@@ -3265,7 +3302,7 @@ class OrderController extends Controller
         $deductionCurrency = (float) ($order->store_credit_deduction     ?? 0);
         if ($deductionKes <= 0) return;
 
-        $customer = $order->customer;
+        $customer = $order->customer ?: \App\Models\Customer::find($order->customer_id);
         if (!$customer) return;
 
         if ((float) $customer->store_credit < $deductionKes) {
