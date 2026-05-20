@@ -370,6 +370,25 @@ const ServiceDetail = () => {
                     Booking required for this service
                   </p>
                 )}
+                {service.booking_required && (
+                <button
+                  onClick={() => navigate(`/services/${service.id}/book`)}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '11px 0', borderRadius: 12, fontSize: '0.88rem', fontWeight: 700,
+                    border: '1.5px solid #a855f7',
+                    background: 'rgba(168,85,247,0.06)',
+                    color: '#7c3aed', cursor: 'pointer',
+                    transition: 'background 150ms, box-shadow 150ms',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.15)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <Calendar size={15} />
+                  Book this service
+                </button>
+              )}
               </div>
 
             </div>

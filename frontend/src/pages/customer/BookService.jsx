@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Clock, MapPin, Loader2, CheckSquare, ExternalLink, AlertTriangle } from 'lucide-react';
-import { bookingsAPI } from '../../api';
-import { servicesAPI } from '../../api';
+import { bookingsAPI } from '../../api/bookings';
+import { getServiceById } from '../../api/services';
 import toast from 'react-hot-toast';
 
 const inputStyle = {
@@ -19,7 +19,7 @@ const focus = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTar
 const blur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const BookService = () => {
-  const { slug } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [service, setService]   = useState(null);
@@ -42,14 +42,14 @@ const BookService = () => {
 
   useEffect(() => {
     Promise.all([
-      servicesAPI.getServiceBySlug(slug),
+      getServiceById(id),
       bookingsAPI.getPublicPolicy(),
     ]).then(([sRes, pRes]) => {
       setService(sRes.service ?? sRes);
       setSettings(pRes);
     }).catch(() => { toast.error('Service not found'); navigate('/services'); })
     .finally(() => setLoading(false));
-  }, [slug]);
+  }, [id]);
 
   useEffect(() => {
     if (!form.scheduled_date || form.scheduled_type !== 'specific_time') { setSlots([]); return; }
