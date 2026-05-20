@@ -97,8 +97,12 @@ class LoyaltyService
         $rawPoints  = (int) floor($totalKes / 100) * $rate;
         if ($rawPoints <= 0) return;
 
-        // Apply tier multiplier (already defined on Customer model)
-        $multiplier = $customer->tier_benefits['loyalty_points_multiplier'] ?? 1;
+        // Apply tier multiplier
+        $multiplier = 1.0;
+        if (method_exists($customer, 'getTierBenefitsAttribute')) {
+            $multiplier = $customer->tier_benefits['loyalty_points_multiplier'] ?? 1.0;
+        }
+
         $points     = (int) round($rawPoints * $multiplier);
 
         // Expiry
@@ -119,16 +123,15 @@ class LoyaltyService
         );
     }
 
-     /**  
+    /**
      * Reverse earned points when a paid order is cancelled.  
-     * Idempotent: checks if already reversed for this order.  
+     * Idempotent: compares cancel vs restore counts to handle cancel-restore-cancel cycles.
      */  
     public function reversePointsForCancelledOrder(Order $order): void  
     {  
         $customer = $order->customer;  
         if (!$customer) return;  
     
-        // Idempotency: compare cancel vs restore counts to handle cancel-restore-cancel cycles  
         $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_cancel')  
@@ -138,17 +141,14 @@ class LoyaltyService
             ->where('type', 'order_restore')  
             ->count();  
         
-        // If there are more cancels than restores, the last cancel hasn't been restored yet — skip  
         if ($cancelCount > $restoreCount) return;
     
-        // Find the original earn for this order  
         $earnTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_earn')  
             ->first();  
         if (!$earnTx || $earnTx->points <= 0) return;  
     
-        // Cap to customer's current balance (they may have spent some)  
         $toDeduct = min($earnTx->points, $customer->loyalty_points);  
         if ($toDeduct <= 0) return;  
     
@@ -165,14 +165,12 @@ class LoyaltyService
     
     /**  
      * Re-award points when a cancelled order is restored.  
-     * Idempotent: checks if already re-awarded for this order.  
      */  
     public function restorePointsForRestoredOrder(Order $order): void  
     {  
         $customer = $order->customer;  
         if (!$customer) return;  
     
-        // Idempotency: compare cancel vs restore counts to handle cancel-restore-cancel cycles  
         $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_cancel')  
@@ -182,10 +180,8 @@ class LoyaltyService
             ->where('type', 'order_restore')  
             ->count();  
         
-        // If restores already match or exceed cancels, nothing to restore — skip  
         if ($restoreCount >= $cancelCount) return;  
         
-        // Find the LATEST cancel deduction for this order (not a stale one from a previous cycle)  
         $cancelTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
             ->where('reference_id', $order->id)  
             ->where('type', 'order_cancel')  
@@ -193,7 +189,6 @@ class LoyaltyService
             ->first();  
         if (!$cancelTx) return;
     
-        // Re-award the absolute value of what was deducted  
         $toRestore = abs($cancelTx->points);  
         if ($toRestore <= 0) return;  
     
@@ -325,7 +320,6 @@ class LoyaltyService
 
     /**
      * Grant referral reward credit to referrer when referred customer pays first order.
-     * Trigger: Customer::updateOrderStatistics() when referral_completed_at is being set.
      */
     public function grantReferralCredit(Customer $referrer, Order $triggerOrder): void
     {
@@ -380,10 +374,6 @@ class LoyaltyService
 
     /**
      * Apply store credit to an order at checkout.
-     * Handles multicurrency — credit is always KES, converts to order currency.
-     * Call this inside OrderController::store() BEFORE saving the order total.
-     *
-     * Returns array with deduction amounts to apply to the order.
      */
     public function applyStoreCreditToOrder(
         Customer $customer,
@@ -420,7 +410,6 @@ class LoyaltyService
 
     /**
      * Redeem points against an active rule.
-     * Works for both admin-initiated and customer self-serve.
      */
     public function redeem(Customer $customer, string $ruleId, ?User $initiatedBy = null): array
     {
@@ -460,7 +449,7 @@ class LoyaltyService
                 metadata:  ['rule_id' => $ruleId, 'rule_name' => $ruleName, 'rule_type' => $ruleType],
             );
 
-            // Grant store credit (for cashback / voucher types with a KES value)
+            // Grant store credit
             if ($valueKes > 0 && in_array($ruleType, ['cashback', 'voucher'])) {
                 $this->writeCreditTransaction(
                     customer:  $customer,
@@ -471,7 +460,6 @@ class LoyaltyService
                     metadata:  ['rule_id' => $ruleId, 'rule_name' => $ruleName],
                 );
             }
-            // Gift type: no credit issued — handled outside (e.g. physical gift dispatch)
         });
 
         return [
@@ -491,7 +479,6 @@ class LoyaltyService
 
     /**
      * Expire due loyalty points and write negative transactions.
-     * Called by: php artisan loyalty:expire-points
      */
     public function expirePoints(): int
     {
@@ -527,7 +514,7 @@ class LoyaltyService
     }
 
     // =========================================================================
-    // PRIVATE WRITERS  (single point of write for both tables)
+    // PRIVATE WRITERS
     // =========================================================================
 
     private function writePointTransaction(
@@ -546,7 +533,6 @@ class LoyaltyService
             $customer, $points, $type, $pointType, $expiresAt,
             $note, $referenceType, $referenceId, $createdBy, $metadata
         ) {
-            // Lock the customer row to prevent race conditions
             $customer = Customer::lockForUpdate()->find($customer->id);
 
             $newBalance = max(0, $customer->loyalty_points + $points);
