@@ -62,7 +62,7 @@ class BookingWorksheet extends Model
 
     public function items()
     {
-        return $this->hasMany(WorksheetItem::class)->orderBy('sort_order');
+        return $this->hasMany(WorksheetItem::class, 'worksheet_id')->orderBy('sort_order');
     }
 
     public function currency()

@@ -60,29 +60,29 @@ const BrochureListPage     = lazy(() => import('./pages/customer/BrochureListPag
 const BrochureDetail       = lazy(() => import('./pages/customer/BrochureDetail'));
 const PublicationDetail    = lazy(() => import('./pages/customer/PublicationDetail'));
 
-import CareersLayout       from './Careers/layouts/CareersLayout';
-import CareersPage         from './Careers/pages/CareersPage';
-import JobDetailPage       from './Careers/pages/JobDetailPage';
-import ApplicantAuthPage   from './Careers/pages/ApplicantAuthPage';
-import ApplicantPortalPage from './Careers/pages/ApplicantPortalPage';
-import ApplicantGate       from './Careers/components/ApplicantGate';
-import ForgotPasswordPage  from './Careers/pages/ForgotPasswordPage';
-import ResetPasswordPage   from './Careers/pages/ResetPasswordPage';
-import ApplicantProfilePage    from './Careers/pages/ApplicantProfilePage';
-import ForceChangePasswordPage from './Careers/pages/ForceChangePasswordPage';
+import CareersLayout       from './careers/layouts/CareersLayout';
+import CareersPage         from './careers/pages/CareersPage';
+import JobDetailPage       from './careers/pages/JobDetailPage';
+import ApplicantAuthPage   from './careers/pages/ApplicantAuthPage';
+import ApplicantPortalPage from './careers/pages/ApplicantPortalPage';
+import ApplicantGate       from './careers/components/ApplicantGate';
+import ForgotPasswordPage  from './careers/pages/ForgotPasswordPage';
+import ResetPasswordPage   from './careers/pages/ResetPasswordPage';
+import ApplicantProfilePage    from './careers/pages/ApplicantProfilePage';
+import ForceChangePasswordPage from './careers/pages/ForceChangePasswordPage';
 
-import AboutCareersPage      from './Careers/pages/Legal/AboutCareersPage';
-import ContactCareersPage    from './Careers/pages/Legal/ContactCareersPage';
-import PrivacyPolicyPage     from './Careers/pages/Legal/PrivacyPolicyPage';
-import TermsOfServicePage    from './Careers/pages/Legal/TermsOfServicePage';
-import CookiePolicyPage       from './Careers/pages/Legal/CookiePolicyPage';
+import AboutCareersPage      from './careers/pages/legal/AboutCareersPage';
+import ContactCareersPage    from './careers/pages/legal/ContactCareersPage';
+import PrivacyPolicyPage     from './careers/pages/legal/PrivacyPolicyPage';
+import TermsOfServicePage    from './careers/pages/legal/TermsOfServicePage';
+import CookiePolicyPage       from './careers/pages/legal/CookiePolicyPage';
 
-import AdminJobsPage          from './Careers/admin/pages/AdminJobsPage';
-import AdminJobDetailPage     from './Careers/admin/pages/AdminJobDetailPage';
-import AdminApplicationsPage  from './Careers/admin/pages/AdminApplicationsPage';
-import AdminCareersStatsPage  from './Careers/admin/pages/AdminCareersStatsPage';
-import AdminApplicantsPage    from './Careers/admin/pages/AdminApplicantsPage'
-import AdminApplicantDetailPage from './Careers/admin/pages/AdminApplicantDetailPage'
+import AdminJobsPage          from './careers/admin/pages/AdminJobsPage';
+import AdminJobDetailPage     from './careers/admin/pages/AdminJobDetailPage';
+import AdminApplicationsPage  from './careers/admin/pages/AdminApplicationsPage';
+import AdminCareersStatsPage  from './careers/admin/pages/AdminCareersStatsPage';
+import AdminApplicantsPage    from './careers/admin/pages/AdminApplicantsPage'
+import AdminApplicantDetailPage from './careers/admin/pages/AdminApplicantDetailPage'
 
 // ── Admin Pages ───────────────────────────────────────────────────────────────
 const AdminProfile       = lazy(() => import('./pages/admin/AdminProfile'));

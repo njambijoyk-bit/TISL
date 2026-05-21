@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class BookingActivityLog extends Model
 {
     public $timestamps = false;
-    public $updatable  = false;
 
     protected $fillable = [
         'booking_id',
