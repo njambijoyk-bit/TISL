@@ -121,13 +121,13 @@ class BookingController extends Controller
             'service',
             'customer',
             'creator',
-            'cancelledBy',
+            'cancelled_by',
             'staff.user',
             'worksheets.filledBy',
             'worksheets.items.product',
             'orders',
             'disqualifications.disqualifiedBy',
-            'activityLogs.performedBy',
+            'activity_logs.performedBy',
         ])->findOrFail($id);
 
         return response()->json(['booking' => $booking]);
