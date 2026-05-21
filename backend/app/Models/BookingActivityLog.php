@@ -42,7 +42,7 @@ class BookingActivityLog extends Model
         return $this->belongsTo(BookingWorksheet::class, 'worksheet_id');
     }
 
-    public function performedBy()
+    public function performed_by()
     {
         return $this->belongsTo(User::class, 'performed_by');
     }

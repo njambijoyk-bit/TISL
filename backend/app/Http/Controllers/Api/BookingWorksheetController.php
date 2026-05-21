@@ -49,7 +49,7 @@ class BookingWorksheetController extends Controller
 
         return response()->json([
             'message'   => 'Worksheet created.',
-            'worksheet' => $worksheet->load('filledBy:id,name'),
+            'worksheet' => $worksheet->load('filled_by:id,name'),
         ], 201);
     }
 
@@ -59,7 +59,7 @@ class BookingWorksheetController extends Controller
     public function show(int $id, int $wsId): JsonResponse
     {
         $worksheet = BookingWorksheet::where('booking_id', $id)
-            ->with(['filledBy:id,name', 'approvedBy:id,name', 'items.product', 'currency'])
+            ->with(['filled_by:id,name', 'approved_by:id,name', 'items.product', 'currency'])
             ->findOrFail($wsId);
 
         return response()->json(['worksheet' => $worksheet]);
@@ -141,7 +141,7 @@ class BookingWorksheetController extends Controller
 
         $this->logWorksheetApproved($id, $wsId);
 
-        return response()->json(['message' => 'Worksheet approved.', 'worksheet' => $worksheet->fresh()->load('approvedBy:id,name')]);
+        return response()->json(['message' => 'Worksheet approved.', 'worksheet' => $worksheet->fresh()->load('approved_by:id,name')]);
     }
 
     /**
@@ -174,7 +174,7 @@ class BookingWorksheetController extends Controller
     public function exportCsv(int $id, int $wsId): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $worksheet = BookingWorksheet::where('booking_id', $id)
-            ->with(['items.product', 'filledBy:id,name', 'booking.customer'])
+            ->with(['items.product', 'filled_by:id,name', 'booking.customer'])
             ->findOrFail($wsId);
 
         $filename = 'worksheet-' . $wsId . '-booking-' . $id . '.csv';
@@ -187,7 +187,7 @@ class BookingWorksheetController extends Controller
             // Header rows
             fputcsv($handle, ['Booking', $worksheet->booking?->booking_number]);
             fputcsv($handle, ['Customer', $worksheet->booking?->customer?->first_name . ' ' . $worksheet->booking?->customer?->last_name]);
-            fputcsv($handle, ['Filled By', $worksheet->filledBy?->name]);
+            fputcsv($handle, ['Filled By', $worksheet->filled_by?->name]);
             fputcsv($handle, ['Currency', $worksheet->currency_code, 'Rate to KES', $worksheet->exchange_rate_to_kes]);
             fputcsv($handle, ['Status', $worksheet->status]);
             fputcsv($handle, ['Findings', $worksheet->findings]);

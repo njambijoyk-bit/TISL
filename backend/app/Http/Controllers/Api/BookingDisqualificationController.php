@@ -22,8 +22,8 @@ class BookingDisqualificationController extends Controller
     {
         $query = BookingDisqualification::with([
             'customer:id,first_name,last_name,email',
-            'disqualifiedBy:id,name',
-            'reactivatedBy:id,name',
+            'disqualified_by:id,name',
+            'reactivated_by:id,name',
             'booking:id,booking_number',
         ]);
 
@@ -43,8 +43,8 @@ class BookingDisqualificationController extends Controller
     {
         $disq = BookingDisqualification::with([
             'customer:id,first_name,last_name,email',
-            'disqualifiedBy:id,name,role',
-            'reactivatedBy:id,name,role',
+            'disqualified_by:id,name,role',
+            'reactivated_by:id,name,role',
             'booking:id,booking_number,scheduled_at',
         ])->findOrFail($id);
 
@@ -83,7 +83,7 @@ class BookingDisqualificationController extends Controller
 
         return response()->json([
             'message'         => 'Customer disqualified from booking.',
-            'disqualification'=> $disq->load('disqualifiedBy:id,name'),
+            'disqualification'=> $disq->load('disqualified_by:id,name'),
         ], 201);
     }
 
@@ -115,7 +115,7 @@ class BookingDisqualificationController extends Controller
 
         return response()->json([
             'message'         => 'Customer reactivated.',
-            'disqualification'=> $active->fresh()->load('reactivatedBy:id,name'),
+            'disqualification'=> $active->fresh()->load('reactivated_by:id,name'),
         ]);
     }
 }
