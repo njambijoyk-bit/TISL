@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Loader2, Search, UserCheck } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import CustomerSelectorModal from '../../components/admin/CustomerSelectorModal';
 import { bookingsAPI } from '../../api';
 import { servicesAPI } from '../../api';
+import { getAdminServices } from '../../api/services';
 import toast from 'react-hot-toast';
 
 const inputStyle = {
@@ -37,9 +39,8 @@ const AdminBookingForm = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Customer search
-  const [customerSearch,  setCustomerSearch]  = useState('');
-  const [customerResults, setCustomerResults] = useState([]);
-  const [searchingCustomer, setSearchingCustomer] = useState(false);
+  const [showCustomerModal,  setShowCustomerModal]  = useState(false);
+  const [selectedCustomer,   setSelectedCustomer]   = useState(null);
 
   const [form, setForm] = useState({
     customer_id:        '',
@@ -59,9 +60,13 @@ const AdminBookingForm = () => {
   });
 
   useEffect(() => {
-    servicesAPI.getAdminServices({ per_page: 200 })
-      .then(r => setServices(r.data ?? r ?? []))
-      .catch(() => {});
+    getAdminServices({ per_page: 200, status: 'active' })
+      .then(r => {
+        // getAdminServices returns response.data — paginated list is at .data
+        const list = r.data ?? r ?? [];
+        setServices(Array.isArray(list) ? list : []);
+      })
+      .catch(() => toast.error('Failed to load services'));
   }, []);
 
   // Fetch slots when date or service changes
@@ -73,23 +78,6 @@ const AdminBookingForm = () => {
       .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false));
   }, [form.scheduled_date, form.service_id]);
-
-  // Customer search
-  useEffect(() => {
-    if (!customerSearch.trim()) { setCustomerResults([]); return; }
-    const t = setTimeout(async () => {
-      setSearchingCustomer(true);
-      try {
-        const res = await fetch(`/api/admin/customers?search=${encodeURIComponent(customerSearch)}&per_page=10`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-        const data = await res.json();
-        setCustomerResults(data.data ?? data ?? []);
-      } catch {}
-      finally { setSearchingCustomer(false); }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [customerSearch]);
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
@@ -153,41 +141,24 @@ const AdminBookingForm = () => {
 
         {/* Customer */}
         <Section title="Customer">
-          <div>
-            <label style={labelStyle}>Search customer *</label>
-            <div style={{ position: 'relative' }}>
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a855f7', pointerEvents: 'none' }} />
-              <input value={customerSearch}
-                onChange={e => { setCustomerSearch(e.target.value); set('customer_id', ''); set('customer_name', ''); }}
-                placeholder="Search by name or email…"
-                style={{ ...inputStyle, paddingLeft: 30 }}
-                onFocus={focus} onBlur={blur}
-              />
-            </div>
-            {form.customer_id && (
-              <p style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
-                ✓ {form.customer_name}
-              </p>
-            )}
-            {(customerResults.length > 0 || searchingCustomer) && !form.customer_id && (
-              <div style={{ marginTop: 4, border: '1.5px solid rgba(168,85,247,0.15)', borderRadius: 10, overflow: 'hidden' }}>
-                {searchingCustomer ? (
-                  <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#9ca3af', fontSize: '0.75rem' }}>
-                    <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Searching…
-                  </div>
-                ) : customerResults.map((c, i) => (
-                  <div key={c.id} onClick={() => { set('customer_id', c.id); set('customer_name', `${c.first_name} ${c.last_name} (${c.email})`); setCustomerSearch(`${c.first_name} ${c.last_name}`); setCustomerResults([]); }}
-                    style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: i < customerResults.length - 1 ? '1px solid rgba(168,85,247,0.07)' : 'none', transition: 'background 100ms' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                  >
-                    <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', margin: 0 }}>{c.first_name} {c.last_name}</p>
-                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{c.email} · {c.customer_type}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowCustomerModal(true)}
+            style={{
+              ...inputStyle,
+              display: 'flex', alignItems: 'center', gap: 8,
+              cursor: 'pointer', textAlign: 'left',
+              color: selectedCustomer ? '#111827' : '#9ca3af',
+              background: 'rgba(168,85,247,0.03)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'}
+          >
+            <UserCheck size={14} style={{ color: selectedCustomer ? '#a855f7' : '#9ca3af', flexShrink: 0 }} />
+            {selectedCustomer
+              ? `${selectedCustomer.first_name} ${selectedCustomer.last_name} · ${selectedCustomer.email}`
+              : 'Select a customer…'}
+          </button>
         </Section>
 
         {/* Service */}
@@ -346,6 +317,18 @@ const AdminBookingForm = () => {
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {showCustomerModal && (
+        <CustomerSelectorModal
+          onClose={() => setShowCustomerModal(false)}
+          onSelect={(customer) => {
+            setSelectedCustomer(customer);
+            set('customer_id', customer.id);
+            set('customer_name', `${customer.first_name} ${customer.last_name} (${customer.email})`);
+            setShowCustomerModal(false);
+          }}
+          currentCustomerId={form.customer_id}
+        />
+      )}
     </AdminLayout>
   );
 };
