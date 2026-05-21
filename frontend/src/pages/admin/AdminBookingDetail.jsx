@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Clock, MapPin, User, Calendar, FileText, Users,
@@ -124,6 +124,10 @@ const AdminBookingDetail = () => {
       </div>
     </AdminLayout>
   );
+  const staffAPI = useMemo(() => ({
+    searchStaff: (params) => usersAPI.getUsers(params)
+  }), []);
+
   if (!booking) return null;
 
   const time    = booking.scheduled_at ? new Date(booking.scheduled_at).toLocaleString('en-KE') : '—';
@@ -399,16 +403,7 @@ const AdminBookingDetail = () => {
           existingStaff={booking.staff ?? []}
           onClose={() => setShowStaff(false)}
           onAssigned={handleStaffAssigned}
-          staffAPI={{ searchStaff: (params) => {
-            const query = new URLSearchParams();
-            Object.entries(params).forEach(([k, v]) => { if(v !== undefined) query.append(k, v); });
-            return fetch(`/api/admin/users?${query.toString()}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Accept': 'application/json'
-              }
-            }).then(r => r.json());
-          }}}
+          staffAPI={staffAPI}
         />
       )}
 
