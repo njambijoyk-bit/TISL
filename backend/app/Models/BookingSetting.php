@@ -150,7 +150,7 @@ class BookingSetting extends Model
 
     // ── Relationships ────────────────────────────────────────────────────────
 
-    public function updatedBy()
+    public function updated_by()
     {
         return $this->belongsTo(User::class, 'updated_by');
     }

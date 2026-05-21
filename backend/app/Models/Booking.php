@@ -93,7 +93,7 @@ class Booking extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function cancelledBy()
+    public function cancelled_by()
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
@@ -111,8 +111,7 @@ class Booking extends Model
     public function orders()
     {
         return $this->belongsToMany(Order::class, 'booking_orders')
-                    ->withPivot('occurrence_date', 'notes')
-                    ->withTimestamps();
+                    ->withPivot('occurrence_date', 'notes', 'created_at');
     }
 
     public function disqualifications()
@@ -120,9 +119,9 @@ class Booking extends Model
         return $this->hasMany(BookingDisqualification::class);
     }
 
-    public function activityLogs()
+    public function activity_logs()
     {
-        return $this->hasMany(BookingActivityLog::class)->orderByDesc('created_at');
+        return $this->hasMany(BookingActivityLog::class, 'booking_id')->orderByDesc('created_at');
     }
 
     // ── Scopes ───────────────────────────────────────────────────────────────

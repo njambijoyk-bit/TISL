@@ -50,12 +50,12 @@ class BookingWorksheet extends Model
         return $this->belongsTo(Booking::class);
     }
 
-    public function filledBy()
+    public function filled_by()
     {
         return $this->belongsTo(User::class, 'filled_by');
     }
 
-    public function approvedBy()
+    public function approved_by()
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
