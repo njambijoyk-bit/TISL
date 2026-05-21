@@ -9,6 +9,7 @@ use App\Mail\BookingConfirmedCustomer;
 use App\Mail\BookingPlacedAdmin;
 use App\Mail\BookingPlacedCustomer;
 use App\Models\Booking;
+use App\Models\Order;
 use App\Models\BookingDisqualification;
 use App\Models\BookingSetting;
 use App\Models\Customer;
