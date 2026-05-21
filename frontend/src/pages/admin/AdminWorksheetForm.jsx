@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Send, CheckCircle, XCircle, Download, ClipboardList } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import WorksheetItemsTable from '../../components/admin/bookings/WorksheetItemsTable';
-import { bookingsAPI } from '../../api';
-import { productsAPI } from '../../api';
+import { bookingsAPI, productsAPI, currencyAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {
@@ -53,7 +52,7 @@ const AdminWorksheetForm = () => {
       try {
         const [bRes, cRes] = await Promise.all([
           bookingsAPI.getAdminBooking(id),
-          fetch('/api/admin/currencies', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
+          currencyAPI.getCurrencies(),
         ]);
         setBooking(bRes.booking ?? bRes);
         setCurrencies(cRes.data ?? cRes ?? []);
@@ -127,7 +126,11 @@ const AdminWorksheetForm = () => {
     finally { setRejecting(false); }
   };
 
-  const handleExport = () => window.open(`/api/admin/bookings/${id}/worksheets/${wsId}/export`, '_blank');
+  const handleExport = () => {
+    const token = localStorage.getItem('token');
+    const url = bookingsAPI.exportWorksheetCsv(id, wsId);
+    window.open(`${url}?token=${token}`, '_blank');
+  };
 
   const handleAddItem    = async (data)         => { const r = await bookingsAPI.addWorksheetItem(id, wsId, data); await refreshWorksheet(); return r; };
   const handleUpdateItem = async (itemId, data) => { const r = await bookingsAPI.updateWorksheetItem(id, wsId, itemId, data); await refreshWorksheet(); return r; };
