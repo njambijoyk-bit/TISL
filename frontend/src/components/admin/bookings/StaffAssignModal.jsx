@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Search, Loader2, UserPlus, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,7 +25,7 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
   const [role,    setRole]    = useState('support');
   const [task,    setTask]    = useState('');
 
-  const existingIds = new Set(existingStaff.map(s => s.user_id));
+  const existingIds = useMemo(() => new Set(existingStaff.map(s => s.user_id)), [existingStaff]);
 
   useEffect(() => {
     setLoading(true);
