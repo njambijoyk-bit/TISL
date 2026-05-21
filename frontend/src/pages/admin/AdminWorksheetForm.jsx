@@ -59,14 +59,15 @@ const AdminWorksheetForm = () => {
         setCurrencies(cRes.data ?? cRes ?? []);
 
         if (!isNew) {
-          const ws = await bookingsAPI.getWorksheet(id, wsId);
-          setWorksheet(ws.worksheet ?? ws);
+          const res = await bookingsAPI.getWorksheet(id, wsId);
+          const ws = res.worksheet ?? res;
+          setWorksheet(ws);
           setForm({
-            currency_code: ws.worksheet?.currency_code ?? 'KES',
-            findings:      ws.worksheet?.findings ?? '',
-            hours_worked:  ws.worksheet?.hours_worked ?? '',
-            labour_cost:   ws.worksheet?.labour_cost ?? '',
-            admin_notes:   ws.worksheet?.admin_notes ?? '',
+            currency_code: ws?.currency_code ?? 'KES',
+            findings:      ws?.findings ?? '',
+            hours_worked:  ws?.hours_worked ?? '',
+            labour_cost:   ws?.labour_cost ?? '',
+            admin_notes:   ws?.admin_notes ?? '',
           });
         }
       } catch { toast.error('Failed to load'); navigate(`/admin/bookings/${id}`); }

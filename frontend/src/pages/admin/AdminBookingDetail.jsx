@@ -9,7 +9,7 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
 import StaffAssignModal from '../../components/admin/bookings/StaffAssignModal';
 import DisqualifyModal from '../../components/admin/bookings/DisqualifyModal';
-import { bookingsAPI } from '../../api';
+import { bookingsAPI, usersAPI } from '../../api';
 import toast from 'react-hot-toast';
 
 const Section = ({ title, icon: Icon, children, action }) => (
@@ -101,15 +101,18 @@ const AdminBookingDetail = () => {
   };
 
   const handleDisqualify = async (data) => {
-    const isActive = BookingDisqualification.isCustomerDisqualified?.(booking?.customer_id);
-    if (booking?.customer?.booking_disqualified) {
-      await bookingsAPI.reactivate(id, data);
-      toast.success('Customer reactivated');
-    } else {
-      await bookingsAPI.disqualify(id, data);
-      toast.success('Customer disqualified');
+    try {
+      if (booking?.is_disqualified) {
+        await bookingsAPI.reactivate(id, data);
+        toast.success('Customer reactivated');
+      } else {
+        await bookingsAPI.disqualify(id, data);
+        toast.success('Customer disqualified');
+      }
+      await fetchBooking();
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? 'Action failed');
     }
-    await fetchBooking();
   };
 
   if (loading) return (
@@ -290,7 +293,7 @@ const AdminBookingDetail = () => {
                           Worksheet #{ws.id} · {ws.currency_code}
                         </p>
                         <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>
-                          By {ws.filled_by?.name} · {ws.status}
+                          By {ws.filled_by?.name ?? 'Unknown'} · {ws.status}
                         </p>
                       </div>
                       {ws.grand_total && (
@@ -396,7 +399,16 @@ const AdminBookingDetail = () => {
           existingStaff={booking.staff ?? []}
           onClose={() => setShowStaff(false)}
           onAssigned={handleStaffAssigned}
-          staffAPI={{ searchStaff: (p) => fetch(`/api/admin/users?${new URLSearchParams(p)}`).then(r => r.json()) }}
+          staffAPI={{ searchStaff: (params) => {
+            const query = new URLSearchParams();
+            Object.entries(params).forEach(([k, v]) => { if(v !== undefined) query.append(k, v); });
+            return fetch(`/api/admin/users?${query.toString()}`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Accept': 'application/json'
+              }
+            }).then(r => r.json());
+          }}}
         />
       )}
 
