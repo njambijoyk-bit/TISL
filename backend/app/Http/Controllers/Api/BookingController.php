@@ -123,11 +123,11 @@ class BookingController extends Controller
             'creator',
             'cancelled_by',
             'staff.user',
-            'worksheets.filledBy',
+            'worksheets.filled_by',
             'worksheets.items.product',
             'orders',
-            'disqualifications.disqualifiedBy',
-            'activity_logs.performedBy',
+            'disqualifications.disqualified_by',
+            'activity_logs.performed_by',
         ])->findOrFail($id);
 
         return response()->json(['booking' => $booking]);
@@ -243,7 +243,7 @@ class BookingController extends Controller
     public function activityLog(int $id): JsonResponse
     {
         $booking = Booking::findOrFail($id);
-        $logs    = $booking->activityLogs()->with('performedBy:id,name,role')->paginate(50);
+        $logs    = $booking->activity_logs()->with('performed_by:id,name,role')->paginate(50);
 
         return response()->json($logs);
     }
