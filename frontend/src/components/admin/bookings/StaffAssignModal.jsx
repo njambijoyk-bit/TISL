@@ -28,18 +28,22 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
   const existingIds = new Set(existingStaff.map(s => s.user_id));
 
   useEffect(() => {
-    if (!search.trim()) { setUsers([]); return; }
+    setLoading(true);
     const timer = setTimeout(async () => {
-      setLoading(true);
       try {
-        const res = await staffAPI.searchStaff({ search, per_page: 20 });
+        const res = await staffAPI.searchStaff({ search: search.trim() || undefined });
+        // The /api/admin/users endpoint returns { data: [...], total: ... }
         const list = res.data ?? res ?? [];
-        setUsers(list.filter(u => !existingIds.has(u.id)));
-      } catch { toast.error('Failed to search staff'); }
-      finally { setLoading(false); }
-    }, 300);
+        setUsers(list.filter(u => u.role !== 'customer' && !existingIds.has(u.id)));
+      } catch (err) {
+        toast.error('Failed to load staff list');
+      } finally {
+        setLoading(false);
+      }
+    }, search ? 300 : 0);
+
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, staffAPI, existingIds]);
 
   const handleAssign = async () => {
     if (!selected) return;
@@ -124,9 +128,17 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
                     onMouseLeave={e => e.currentTarget.style.background = selected?.id === u.id ? 'rgba(168,85,247,0.06)' : 'white'}
                   >
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
-                      {u.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
+                    {u.profile_picture_url ? (
+                      <img
+                        src={u.profile_picture_url}
+                        alt=""
+                        style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
+                        {u.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</p>
                       <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{u.role?.replace(/_/g, ' ')} · {u.email}</p>
