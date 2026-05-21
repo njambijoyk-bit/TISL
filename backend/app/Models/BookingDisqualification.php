@@ -38,12 +38,12 @@ class BookingDisqualification extends Model
         return $this->belongsTo(Booking::class);
     }
 
-    public function disqualifiedBy()
+    public function disqualified_by()
     {
         return $this->belongsTo(User::class, 'disqualified_by');
     }
 
-    public function reactivatedBy()
+    public function reactivated_by()
     {
         return $this->belongsTo(User::class, 'reactivated_by');
     }

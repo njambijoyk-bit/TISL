@@ -36,7 +36,7 @@ class BookingStaff extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function assignedBy()
+    public function assigned_by()
     {
         return $this->belongsTo(User::class, 'assigned_by');
     }

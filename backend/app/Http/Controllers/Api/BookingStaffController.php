@@ -64,7 +64,7 @@ class BookingStaffController extends Controller
 
         return response()->json([
             'message' => 'Staff assigned.',
-            'staff'   => $staff->load('user:id,name,role,profile_picture'),
+            'staff'   => $staff->load(['user:id,name,role,profile_picture', 'assigned_by:id,name']),
         ], 201);
     }
 
