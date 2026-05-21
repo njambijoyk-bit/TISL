@@ -17,6 +17,7 @@ use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 use App\Http\Controllers\Api\Traits\LogsBookingActivity;
@@ -94,19 +95,21 @@ class BookingController extends Controller
             }
         }
 
-        $booking = Booking::create(array_merge($validated, [
-            'created_by'      => auth()->id(),
-            'policy_accepted' => true,  // admin bypass — admin takes responsibility
-        ]));
+        return DB::transaction(function () use ($validated, $settings) {
+            $booking = Booking::create(array_merge($validated, [
+                'created_by'      => auth()->id(),
+                'policy_accepted' => true,  // admin bypass — admin takes responsibility
+            ]));
 
-        $this->logBookingCreated($booking->id, $booking->toArray());
+            $this->logBookingCreated($booking->id, $booking->toArray());
 
-        $this->sendBookingPlacedEmails($booking, $settings);
+            $this->sendBookingPlacedEmails($booking, $settings);
 
-        return response()->json([
-            'message' => 'Booking created.',
-            'booking' => $booking->load(['service', 'customer', 'staff.user']),
-        ], 201);
+            return response()->json([
+                'message' => 'Booking created.',
+                'booking' => $booking->load(['service', 'customer', 'staff.user']),
+            ], 201);
+        });
     }
 
     /**
@@ -372,23 +375,25 @@ class BookingController extends Controller
             }
         }
 
-        $booking = Booking::create(array_merge($validated, [
-            'created_by'          => auth()->id(),
-            'policy_accepted_at'  => $validated['policy_accepted'] ? now() : null,
-            'policy_version'      => $settings->cancellation_policy_version,
-        ]));
+        return DB::transaction(function () use ($validated, $settings) {
+            $booking = Booking::create(array_merge($validated, [
+                'created_by'          => auth()->id(),
+                'policy_accepted_at'  => ($validated['policy_accepted'] ?? false) ? now() : null,
+                'policy_version'      => $settings->cancellation_policy_version,
+            ]));
 
-        $this->logBookingCreated($booking->id, $booking->toArray());
-        if ($validated['policy_accepted'] ?? false) {
-            $this->logPolicyAccepted($booking->id, $settings->cancellation_policy_version ?? '');
-        }
+            $this->logBookingCreated($booking->id, $booking->toArray());
+            if ($validated['policy_accepted'] ?? false) {
+                $this->logPolicyAccepted($booking->id, $settings->cancellation_policy_version ?? '');
+            }
 
-        $this->sendBookingPlacedEmails($booking, $settings);
+            $this->sendBookingPlacedEmails($booking, $settings);
 
-        return response()->json([
-            'message' => 'Booking placed successfully.',
-            'booking' => $booking->load('service'),
-        ], 201);
+            return response()->json([
+                'message' => 'Booking placed successfully.',
+                'booking' => $booking->load('service'),
+            ], 201);
+        });
     }
 
     /**
@@ -507,7 +512,7 @@ class BookingController extends Controller
     {
         try {
             $email = $booking->customer?->email ?? $booking->customer?->user?->email;
-            if ($email) Mail::to($email)->send($mailable);
+            if ($email) Mail::to($email)->queue($mailable);
         } catch (\Throwable) { /* log silently */ }
     }
 
@@ -515,7 +520,7 @@ class BookingController extends Controller
     {
         try {
             $adminEmail = config('mail.admin_address', config('mail.from.address'));
-            if ($adminEmail) Mail::to($adminEmail)->send($mailable);
+            if ($adminEmail) Mail::to($adminEmail)->queue($mailable);
         } catch (\Throwable) { /* log silently */ }
     }
 }
