@@ -1,0 +1,16 @@
+# API Configuration
+# Backend is at http://localhost:8000
+# Routes are at /auth/login NOT /api/auth/login
+VITE_API_URL=http://localhost:8000/api
+
+# App Configuration
+VITE_APP_NAME=TISL
+VITE_APP_URL=http://localhost:3000
+
+# OAuth Configuration (Optional - Get from respective provider)
+VITE_GOOGLE_CLIENT_ID=your-google-client-id-here
+VITE_MICROSOFT_CLIENT_ID=your-microsoft-client-id-here
+
+# Feature Flags
+VITE_ENABLE_OAUTH=true
+VITE_ENABLE_DARK_MODE=true
