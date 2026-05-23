@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
 use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
+use App\Http\Controllers\Api\AlgorithmController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\PublicationCommentController;
 use App\Http\Controllers\Api\BookingController;
