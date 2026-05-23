@@ -14,6 +14,7 @@ use App\Services\PromoCodeService;
 use App\Services\DarajaService;
 use App\Services\LoyaltyService;
 use App\Services\HamperEligibilityService;
+use App\Services\AlgorithmService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(DarajaService::class);
         $this->app->singleton(LoyaltyService::class);
         $this->app->singleton(HamperEligibilityService::class);
+        $this->app->singleton(AlgorithmService::class);
     }
 
     /**
