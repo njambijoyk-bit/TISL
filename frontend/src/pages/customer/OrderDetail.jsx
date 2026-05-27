@@ -40,6 +40,7 @@ const PAYMENT_CFG = {
   partially_paid: { color: '#f59e0b', label: 'Partially Paid' },
   refunded:       { color: '#3b82f6', label: 'Refunded' },
   failed:         { color: '#ef4444', label: 'Failed' },
+  overpayment:    { color: '#db2777', label: 'Overpayment' },
 };
 const ORDER_TYPE_CFG = {
   standard: { color: '#07b2be', label: 'Standard' },
@@ -317,7 +318,11 @@ export default function CustomerOrderDetail() {
   };
 
   const handleDeleteOrder = async () => {
-    if (!window.confirm('Move this order to trash?')) return;
+    const trashMessage = Number(order?.store_credit_deduction) > 0
+      ? `⚠️ This order used ${moneyKes(order.store_credit_deduction_kes || order.store_credit_deduction)} in store credit.\n\nStore credit is NOT restored when an order is trashed — cancel the order instead to restore the credit in your wallet.\n\nMove to trash anyway?`
+      : 'Move this order to trash?';
+
+    if (!window.confirm(trashMessage)) return;
     try { await trashMyOrder(order.id); toast.success('Order moved to trash'); navigate('/orders'); }
     catch (err) { toast.error(err.response?.data?.message || 'Failed to delete order'); }
   };
@@ -704,13 +709,13 @@ export default function CustomerOrderDetail() {
           value: `-${money(order.promo_discount)}`,
           color: '#10b981',
         },
+        order.tax > 0           && { label: 'Tax (16%)',  value: money(order.tax) },
+        order.shipping_cost > 0 && { label: 'Shipping',  value: money(order.shipping_cost) },
         Number(order.store_credit_deduction) > 0 && {
           label: `Store Credit${showKes && Number(order.store_credit_deduction_kes) > 0 ? ` (${moneyKes(order.store_credit_deduction_kes)})` : ''}`,
           value: `-${money(order.store_credit_deduction)}`,
           color: '#059669',
         },
-        order.tax > 0           && { label: 'Tax (16%)',  value: money(order.tax) },
-        order.shipping_cost > 0 && { label: 'Shipping',  value: money(order.shipping_cost) },
         { label: 'Total', value: money(order.total), bold: true },
       ].filter(Boolean);
 
@@ -973,6 +978,17 @@ export default function CustomerOrderDetail() {
                   <Plus size={14} /> Add Item
                 </GhostBtn>
               )}
+              {canCancel && (
+                <DangerBtn onClick={() => setCancelModal(true)} fullWidth>
+                  <X size={14} /> Cancel Order
+                </DangerBtn>
+              )}
+
+              {/* Restore */}
+              {canRestore && (
+                <GreenBtn onClick={handleRestoreOrder} loading={loading} fullWidth><RefreshCw size={14} /> Restore Order</GreenBtn>
+              )}
+              
               {canDelete && <DangerBtn onClick={handleDeleteOrder} loading={loading}><Trash2 size={14} /> Delete Order</DangerBtn>}
 
               {/* Download Order Button */}
@@ -1463,6 +1479,8 @@ export default function CustomerOrderDetail() {
                     value: `-${money(order.promo_discount)}`, 
                     color: '#10b981' 
                   },
+                  { label: 'Tax (16%)', value: money(order.tax), kes: showKes && moneyKes(order.tax_kes || order.tax) },
+                  { label: 'Shipping', value: money(order.shipping_cost), kes: showKes && moneyKes(order.shipping_cost) },
                   Number(order.store_credit_deduction) > 0 && {
                     label: (
                       <span className="flex items-center gap-1.5">
@@ -1470,13 +1488,11 @@ export default function CustomerOrderDetail() {
                       </span>
                     ),
                     value: `-${money(order.store_credit_deduction)}`,
-                    color: '#059669',
+                    color: '#e48213',
                     kes:   showKes && Number(order.store_credit_deduction_kes) > 0
                             ? moneyKes(order.store_credit_deduction_kes)
                             : null,
                   },
-                  { label: 'Tax (16%)', value: money(order.tax), kes: showKes && moneyKes(order.tax_kes || order.tax) },
-                  { label: 'Shipping', value: money(order.shipping_cost), kes: showKes && moneyKes(order.shipping_cost) },
                 ].filter(Boolean).map(({ label, value, color, kes }, i) => (
                   <div key={i} className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>

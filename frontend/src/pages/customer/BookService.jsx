@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Clock, MapPin, Loader2, CheckSquare, ExternalLink, AlertTriangle } from 'lucide-react';
+import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
 import { bookingsAPI } from '../../api/bookings';
 import { getServiceById } from '../../api/services';
 import toast from 'react-hot-toast';
@@ -40,6 +41,9 @@ const BookService = () => {
     policy_accepted:  false,
   });
 
+  const [policyAccepted,    setPolicyAccepted]    = useState(false);
+  const [policyAcceptances, setPolicyAcceptances] = useState([]);
+
   useEffect(() => {
     Promise.all([
       getServiceById(id),
@@ -63,7 +67,7 @@ const BookService = () => {
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
   const handleBook = async () => {
-    if (!form.policy_accepted && settings?.require_policy_acceptance) {
+    if (!policyAccepted) {   // ← replace the old if block with this
       toast.error('Please accept the cancellation policy to continue'); return;
     }
     setSaving(true);
@@ -73,13 +77,13 @@ const BookService = () => {
         : null;
 
       const res = await bookingsAPI.customerCreateBooking({
-        service_id:       service.id,
-        location_type:    form.location_type,
-        location_address: form.location_address || undefined,
-        scheduled_type:   form.scheduled_type,
-        scheduled_at:     scheduledAt,
-        customer_notes:   form.customer_notes || undefined,
-        policy_accepted:  form.policy_accepted,
+        service_id:          service.id,
+        location_type:       form.location_type,
+        location_address:    form.location_address || undefined,
+        scheduled_type:      form.scheduled_type,
+        scheduled_at:        scheduledAt,
+        customer_notes:      form.customer_notes || undefined,
+        policy_acceptances:  policyAcceptances,
       });
 
       toast.success('Booking placed! We\'ll confirm shortly.');
@@ -237,44 +241,26 @@ const BookService = () => {
         </div>
 
         {/* Policy acceptance */}
-        {settings?.require_policy_acceptance && settings?.policy_text && (
-          <div style={{ background: 'rgba(168,85,247,0.02)', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.15)', padding: '16px 18px' }}>
-            <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a855f7', margin: '0 0 10px' }}>Cancellation Policy</p>
-            <p style={{ fontSize: '0.78rem', color: '#374151', margin: '0 0 14px', lineHeight: 1.7 }}>{settings.policy_text}</p>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-              <div
-                onClick={() => set('policy_accepted', !form.policy_accepted)}
-                style={{
-                  width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1,
-                  border: `2px solid ${form.policy_accepted ? '#a855f7' : 'rgba(168,85,247,0.3)'}`,
-                  background: form.policy_accepted ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 150ms', cursor: 'pointer',
-                }}
-              >
-                {form.policy_accepted && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#374151', margin: 0, lineHeight: 1.5 }}>
-                I have read and agree to the cancellation policy above. I understand a fee may apply if I cancel within the specified window.
-              </p>
-            </label>
-          </div>
-        )}
+        <PolicyConsentCheckbox
+          policyKeys={['booking_cancellation_policy']}
+          actionContext="booking_checkout"
+          onChange={(isChecked, acceptances) => {
+            setPolicyAccepted(isChecked);
+            setPolicyAcceptances(acceptances);
+          }}
+          disabled={saving}
+        />
 
         {/* Submit */}
         <button
           onClick={handleBook}
-          disabled={saving || (settings && !settings.bookings_open) || (settings?.require_policy_acceptance && !form.policy_accepted)}
+          disabled={saving || !policyAccepted || (settings && !settings.bookings_open)}
           style={{
             width: '100%', padding: '13px 0', borderRadius: 12, fontSize: '0.9rem', fontWeight: 800,
             border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
             boxShadow: '0 4px 16px rgba(168,85,247,0.3)',
-            opacity: (saving || (settings && !settings.bookings_open) || (settings?.require_policy_acceptance && !form.policy_accepted)) ? 0.6 : 1,
+            opacity: (saving || (settings && !settings.bookings_open) || !policyAccepted) ? 0.6 : 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             transition: 'opacity 150ms',
           }}

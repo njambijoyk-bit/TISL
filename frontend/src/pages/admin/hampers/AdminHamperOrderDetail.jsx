@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Package, ShoppingBag, User, MapPin,
-  Tag, Wallet, Star, Clock, FileText, CheckCircle,
+  Tag, Wallet, Star, Clock, FileText, CheckCircle, Activity,
   AlertTriangle, RefreshCw, ArrowRight, ExternalLink
 } from 'lucide-react';
 import HamperOrderGuide from './HamperOrderGuide';
@@ -123,6 +123,9 @@ export default function AdminHamperOrderDetail() {
   const [statusData, setStatusData] = useState({ status: '', notes: '' });
   const [showShippingSnapshot, setShowShippingSnapshot] = useState(false);
 
+  const [logs, setLogs]         = useState([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
   const fetchOrder = async () => {
     try {
       const data = await hampersAPI.getAdminHamperOrder(id);
@@ -137,6 +140,14 @@ export default function AdminHamperOrderDetail() {
   };
 
   useEffect(() => { fetchOrder(); }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    hampersAPI.getHamperOrderActivity(id)
+      .then(data => setLogs(Array.isArray(data) ? data : (data.data || [])))
+      .catch(() => {})
+      .finally(() => setLogsLoading(false));
+  }, [id]);
 
   const handleUpdateStatus = async () => {
     setUpdating(true);
@@ -468,6 +479,53 @@ export default function AdminHamperOrderDetail() {
             </div>
           </div>
         )}
+        {/* Activity Log */}
+        <div style={{ ...card, padding: 20 }}>
+          <SectionLabel><Activity size={13} style={{ display: 'inline', marginRight: 6 }} />Activity Log</SectionLabel>
+
+          {logsLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+              <div style={{ width: 24, height: 24, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          ) : !logs.length ? (
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '20px 0' }}>No activity recorded yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {logs.map(log => {
+                const s = {
+                  info:    { bg: 'rgba(59,130,246,0.08)',  color: '#3b82f6',  dot: '#3b82f6'  },
+                  success: { bg: 'rgba(34,197,94,0.08)',   color: '#16a34a',  dot: '#22c55e'  },
+                  warning: { bg: 'rgba(245,158,11,0.08)',  color: '#b45309',  dot: '#f59e0b'  },
+                  danger:  { bg: 'rgba(239,68,68,0.08)',   color: '#dc2626',  dot: '#ef4444'  },
+                }[log.severity] || { bg: 'rgba(107,114,128,0.08)', color: '#6b7280', dot: '#6b7280' };
+
+                return (
+                  <div key={log.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 9, border: '1px solid var(--color-border-tertiary)' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.dot, flexShrink: 0, marginTop: 5 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>{log.description}</span>
+                        <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color }}>{log.severity.toUpperCase()}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{log.performed_by}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{format(new Date(log.created_at), 'dd MMM yyyy, HH:mm')}</span>
+                        {log.metadata && (
+                          <details style={{ fontSize: '0.7rem' }}>
+                            <summary style={{ cursor: 'pointer', color: '#a855f7' }}>metadata</summary>
+                            <pre style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: 6, background: 'var(--color-background-secondary)', fontSize: '0.68rem', overflowX: 'auto' }}>
+                              {JSON.stringify(log.metadata, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </AdminLayout>
   );

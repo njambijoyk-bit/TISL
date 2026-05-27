@@ -11,7 +11,7 @@ import {
 import AdminLayout from '../../components/layout/AdminLayout';
 import reportsAPI from '../../api/reports';
 import referralsAPI from '../../api/referrals';
-import customerTiersAPI from '../../api/customerTiersAPI';
+import customerTiersAPI from '../../api/customerTiers';
 import { ordersAPI, customersAPI, projectsAPI } from '../../api';
 import toast from 'react-hot-toast';
 

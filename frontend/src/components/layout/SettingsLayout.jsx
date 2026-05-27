@@ -1,7 +1,7 @@
 import {
   Globe, DollarSign, GraduationCap,
   FileText, Phone, BookOpen, Home, Award,
-  Briefcase, Gift, UserCheck, Crown,
+  Briefcase, Gift, UserCheck, Crown, Gavel,
   Tag, Users, Settings as SettingsIcon,
   FootprintsIcon, ChevronLeft, Truck,
 } from 'lucide-react';
@@ -44,6 +44,7 @@ const GROUPS = [
       { name: 'Loyalties',       icon: Award, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/loyalty',     active: true },
       { name: 'Referral Codes',  icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/referrals',   active: true },
       { name: 'Promo Codes',     icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/promo-codes', active: true },
+      { name: 'Policies',        icon: Gavel, bg: 'linear-gradient(135deg,#c2410c,#f97316)', path: '/admin/settings/policy', active: true },
     ],
   },
 ];
@@ -52,7 +53,12 @@ const PANEL_W   = 224;
 const PANEL_W_C = 52;   // collapsed — icon squares only
 
 export default function SettingsLayout({ children }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('settings_sidebar_collapsed') === 'true');
+
+  const toggleCollapse = (val) => {
+    setCollapsed(val);
+    localStorage.setItem('settings_sidebar_collapsed', val);
+  };
   const navigate     = useNavigate();
   const { pathname } = useLocation();
 
@@ -146,7 +152,7 @@ export default function SettingsLayout({ children }) {
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ThemeSwitcher />
-                  <button onClick={() => setCollapsed(true)} style={collapseBtn} title="Collapse panel">
+                  <button onClick={() => toggleCollapse(true)} style={collapseBtn} title="Collapse panel">
                     <ChevronLeft size={14} />
                   </button>
                 </div>
@@ -227,7 +233,7 @@ export default function SettingsLayout({ children }) {
               flexShrink: 0,
             }}>
               <button
-                onClick={() => setCollapsed(false)}
+                onClick={() => toggleCollapse(false)}
                 title="Expand panel"
                 style={{ ...collapseBtn, width: '100%', height: 32, borderRadius: 8 }}
               >

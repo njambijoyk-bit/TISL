@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
 import { useThemeStore, useAuthStore } from './store';
 
 import InstallPrompt from './components/common/InstallPrompt';
+import AlgorithmBanner from './components/layout/AlgorithmBanner';
 import Mimi from './components/chat/Mimi';
+import Portal from './pages/pwa/Portal';
+import PWANavBar from './pages/pwa/PWANavBar';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./pages/auth/Login'));
@@ -41,9 +44,14 @@ const Profile              = lazy(() => import('./pages/customer/Profile'));
 const About                = lazy(() => import('./pages/customer/About'));
 const Contact              = lazy(() => import('./pages/customer/Contact'));
 const Manual               = lazy(() => import('./pages/customer/Manual'));
+const PolicyPage           = lazy(() => import('./components/legal/shared/PolicyPage'));
 const PrivacyPolicy        = lazy(() => import('./components/legal/PrivacyPolicy'));
 const TermsOfService       = lazy(() => import('./components/legal/TermsOfService'));
 const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
+const WebsitePolicy        = lazy(() => import('./components/legal/WebsitePolicy'));
+const HamperPolicy         = lazy(() => import('./components/legal/HamperPolicy'));
+const OrderPolicy          = lazy(() => import('./components/legal/OrderPolicy'));
+const BookingPolicy        = lazy(() => import('./components/legal/BookingPolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./pages/customer/MyTicketDetail'));
 const HamperListPage       = lazy(() => import('./pages/customer/HamperListPage'));
@@ -87,6 +95,7 @@ import AdminApplicantDetailPage from './Careers/admin/pages/AdminApplicantDetail
 // ── Admin Pages ───────────────────────────────────────────────────────────────
 const AdminProfile       = lazy(() => import('./pages/admin/AdminProfile'));
 const Dashboard          = lazy(() => import('./pages/admin/Dashboard'));
+const PolicySettings     = lazy(() => import('./pages/admin/settings/policies/PolicySettings'))
 const AdminProducts      = lazy(() => import('./pages/admin/Products'));
 const ProductForm        = lazy(() => import('./pages/admin/ProductForm'));
 const AdminAuctions      = lazy(() => import('./pages/admin/AdminAuctions'));
@@ -127,6 +136,7 @@ const PromoCodes         = lazy(() => import('./pages/admin/referrals/PromoCodes
 const PromoCodeDetail    = lazy(() => import('./pages/admin/referrals/PromoCodeDetail'));
 const AdminTickets       = lazy(() => import('./pages/admin/Tickets'));
 const AdminTicketDetail  = lazy(() => import('./pages/admin/TicketDetail'));
+const ActivityLogs       = lazy(() => import('./pages/admin/ActivityLogs'));
 const PaymentsDashboard  = lazy(() => import('./pages/admin/finance/PaymentsDashboard'));
 const PaymentDetail      = lazy(() => import('./pages/admin/finance/PaymentDetail'));
 const OrderPaymentsPanel = lazy(() => import('./pages/admin/finance/OrderPaymentsPanel'));
@@ -139,6 +149,8 @@ const AdminHamperDetail    = lazy(() => import('./pages/admin/hampers/AdminHampe
 const AdminHamperEdit      = lazy(() => import('./pages/admin/hampers/AdminHamperEdit'));
 const AdminHamperCreate    = lazy(() => import('./pages/admin/hampers/AdminHamperCreate'));
 const AdminHamperOrderDetail = lazy(() => import('./pages/admin/hampers/AdminHamperOrderDetail'));
+const CustomerAlgorithmPanel = lazy(() => import('./pages/admin/CustomerAlgorithmPanel'));
+const CatalogueBoostPage     = lazy(() => import('./pages/admin/algorithm/CatalogueBoostPage'));
 
 const AdminBookings        = lazy(() => import('./pages/admin/AdminBookings'));
 const AdminBookingDetail   = lazy(() => import('./pages/admin/AdminBookingDetail'));
@@ -224,6 +236,23 @@ function RoleBasedProfile() {
   return isStaff ? <AdminProfile /> : <Profile />;
 }
 
+function PWARedirect() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+
+    if (isPWA && pathname === '/') {
+      navigate('/portal', { replace: true });
+    }
+  }, []);
+
+  return null;
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   const { initTheme } = useThemeStore();
@@ -259,15 +288,24 @@ function App() {
           }}
         />
 
+        <PWARedirect />  
         <InstallPrompt />
+        <AlgorithmBanner /> 
         <Mimi />
+        <PWANavBar /> 
 
         {/* All routes are lazy — Suspense handles the loading state */}
         <Suspense fallback={<PageLoader />}>
           <Routes>
 
             {/* ── Public Routes ───────────────────────────────────────────── */}
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={
+              window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+                ? <Portal />
+                : <Home />
+            } />
+            <Route path="/home" element={<Home />} />
+            <Route path="/portal" element={<Portal />} />
             <Route path="/auctions" element={<AuctionListPage />} />
             <Route path="/auctions/:id" element={<AuctionDetailPage />} />
             <Route path="/products" element={<Products />} />
@@ -284,9 +322,14 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/manual"  element={<Manual />} />
 
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms"   element={<TermsOfService />} />
-            <Route path="/cookies" element={<CookiePolicy />} />
+            {/* ── Legal / Policy Routes ─────────────────────────────────────────── */}
+            <Route path="/privacy"          element={<PrivacyPolicy />} />
+            <Route path="/terms"            element={<TermsOfService />} />
+            <Route path="/cookies"          element={<CookiePolicy />} />
+            <Route path="/website-policy"   element={<WebsitePolicy />} />
+            <Route path="/hamper-policy"    element={<HamperPolicy />} />
+            <Route path="/order-policy"     element={<OrderPolicy />} />
+            <Route path="/booking-policy"   element={<BookingPolicy />} />
 
             <Route path="/brochures" element={<BrochureListPage />} />
             <Route path="/brochures/:slug" element={<BrochureDetail />} />
@@ -462,6 +505,14 @@ function App() {
                   <Dashboard />
                 </ProtectedRoute>
               }
+            />
+            <Route 
+              path="/admin/settings/policy" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <PolicySettings />
+                </ProtectedRoute>
+              } 
             />
             {/* Admin Career Management */}
             <Route path="/admin/careers" element={
@@ -983,6 +1034,29 @@ function App() {
                   <Reports />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/admin/logs"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ActivityLogs />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/algorithm"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CustomerAlgorithmPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/admin/algorithm/catalogue-boosts"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CatalogueBoostPage />
+                </ProtectedRoute>}
             />
 
             {/* Admin Settings */}

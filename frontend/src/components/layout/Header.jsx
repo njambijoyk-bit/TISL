@@ -6,7 +6,7 @@ import {
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
 } from 'lucide-react';
-
+import logo from '../../assets/images/logo.png';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store';
 import useWishlistStore from '../../store/wishlistStore';
@@ -172,6 +172,20 @@ export default function Header() {
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
+  const [visible, setVisible]   = useState(true);
+  const [scrolled, setScrolled] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 20);
+      setVisible(y < lastScrollY.current || y < 60);
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   // Close user menu on outside click
   useEffect(() => {
     const handler = (e) => {
@@ -251,6 +265,7 @@ export default function Header() {
 
   return (
     <>
+    <div style={{ height: 60, flexShrink: 0 }} />
       <style>{`
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-6px); }
@@ -260,20 +275,42 @@ export default function Header() {
           from { opacity: 0; max-height: 0; }
           to   { opacity: 1; max-height: 600px; }
         }
+        @keyframes headerReveal {
+          from { opacity: 0; transform: translateY(-100%); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+          .hidden-mobile { display: none !important; }
+          .show-mobile   { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          .show-mobile { display: none !important; }
+        }
       `}</style>
 
       <header style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'white', borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
-        boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
-      }} className="dark:bg-gray-900 dark:border-gray-700">
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        transform: visible ? 'translateY(0)' : 'translateY(-110%)',
+        transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1), background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease',
+        background: scrolled
+          ? 'rgba(255,255,255,0.72)'
+          : 'white',
+        backdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
+        borderBottom: scrolled
+          ? '1px solid rgba(168,85,247,0.18)'
+          : '1px solid rgba(168,85,247,0.25)',
+        boxShadow: scrolled
+          ? '0 4px 24px rgba(168,85,247,0.1), 0 1px 0 rgba(168,85,247,0.08)'
+          : '0 1px 8px rgba(0,0,0,0.06)',
+      }} className="dark:bg-gray-900/80 dark:border-gray-700">
 
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo */}
-          <Link to="/" style={{ fontWeight: 900, fontSize: '1.3rem', color: '#a855f7', textDecoration: 'none', letterSpacing: '-0.03em', flexShrink: 0 }}>
-            BLUEARC
+          <Link to="/" style={{ textDecoration: 'none', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <img src={logo} alt="TISL" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
           </Link>
 
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}

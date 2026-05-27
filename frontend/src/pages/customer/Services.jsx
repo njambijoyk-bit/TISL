@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader, LayoutGrid, List } from 'lucide-react';
+import { Loader, LayoutGrid, List, ChevronDown, ChevronUp } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import useServiceStore from '../../store/serviceStore';
 import Pagination from '../../components/common/Pagination';
@@ -60,6 +60,8 @@ const Services = () => {
   const selectedCategory = useMemo(() =>
     mainCategories?.find((c) => c.id === filters?.category_id) || null,
     [mainCategories, filters?.category_id]);
+
+  const [categoryOpen, setCategoryOpen] = useState(true);
 
   useEffect(() => {
     fetchFeaturedServices();
@@ -179,19 +181,30 @@ const Services = () => {
         {mainCategories?.length > 0 && (
           <div style={{ marginBottom: 28 }}>
             {/* Section label */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
-                Browse by Category
+            <button
+              type="button"
+              onClick={() => setCategoryOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px 0', marginBottom: categoryOpen ? 10 : 0,
+                transition: 'margin 200ms',
+              }}
+            >
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: '#9ca3af',
+              }}>
+                Browse by category
               </span>
-              {filters.category_id && (
-                <button type="button" onClick={clearSelectedCategory}
-                  style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
-                  Clear selection
-                </button>
-              )}
-            </div>
+              {categoryOpen
+                ? <ChevronUp  size={14} style={{ color: '#a855f7', transition: 'transform 200ms' }} />
+                : <ChevronDown size={14} style={{ color: '#a855f7', transition: 'transform 200ms' }} />
+              }
+            </button>
 
             {/* Cards row */}
+            {categoryOpen && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {mainCategories.map((cat, idx) => {
                 const active = filters.category_id === cat.id;
@@ -282,6 +295,7 @@ const Services = () => {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 

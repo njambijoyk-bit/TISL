@@ -14,9 +14,14 @@ use App\Services\HamperEligibilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
+
+use App\Http\Controllers\Api\Traits\LogsHamperActivities;
 
 class HamperCheckoutController extends Controller
 {
+    use LogsHamperActivities;
+    use LogsPolicyAcceptances;
     public function __construct(private HamperEligibilityService $eligibility) {}
 
     /**
@@ -123,6 +128,9 @@ class HamperCheckoutController extends Controller
             'promo_code'               => 'nullable|string',
             'store_credit_amount'      => 'nullable|numeric|min:0',
             'notes'                    => 'nullable|string',
+            'policy_acceptances'            => 'nullable|array',
+            'policy_acceptances.*.key'      => 'required_with:policy_acceptances|string',
+            'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
         ]);
 
         // re-check purchase limit
@@ -210,6 +218,21 @@ class HamperCheckoutController extends Controller
                 'notes'                 => $request->notes,
             ]);
 
+            foreach ($request->input('policy_acceptances', []) as $pa) {
+                $this->logPolicyAcceptance(
+                    policyKey:     $pa['key'],
+                    actionContext: 'hamper_checkout',
+                    response:      $pa['response'],
+                    customer:      $customer,
+                    user:          auth()->user(),
+                    wasSuccessful: true,
+                    referenceType: 'hamper_order',
+                    referenceId:   $order->id,
+                    request:       $request,
+                );
+            }
+
+
             // decrement hamper stock
             $hamper->decrementStock();
 
@@ -263,6 +286,26 @@ class HamperCheckoutController extends Controller
             }
 
             DB::commit();
+
+            $this->logHamperActivity(
+                $hamper->id,
+                'hamper_order_placed',
+                "Customer placed hamper order #{$order->order_number} for '{$hamper->name}'.",
+                'info',
+                [
+                    'hamper_order_id'    => $order->id,
+                    'subtotal'           => $subtotal,
+                    'discount'           => $discount,
+                    'vat_amount'         => $vatAmount,
+                    'shipping_cost'      => $shippingCost,
+                    'store_credit_used'  => $creditUsed,
+                    'total'              => $total,
+                    'loyalty_points'     => $loyaltyPoints,
+                    'promo_code'         => $promoCodeStr,
+                    'shipping_method'    => $shippingOption->name,
+                ],
+                $order->id
+            );
 
             return response()->json([
                 'message'      => 'Order placed successfully',

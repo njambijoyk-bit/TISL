@@ -12,9 +12,12 @@ use App\Services\HamperEligibilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Http\Controllers\Api\Traits\LogsHamperActivities;
+use App\Models\HamperActivityLog;
 
 class HamperController extends Controller
 {
+    use LogsHamperActivities;
     public function __construct(private HamperEligibilityService $eligibility) {}
 
     // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -70,6 +73,13 @@ class HamperController extends Controller
 
         $hamper = Hamper::create($data);
 
+        $this->logHamperActivity(
+            $hamper->id, 'hamper_created',
+            "Hamper '{$hamper->name}' created.",
+            'info',
+            ['eligibility_type' => $hamper->eligibility_type, 'price' => $hamper->price, 'status' => $hamper->status]
+        );
+
         return response()->json(['message' => 'Hamper created', 'data' => $hamper], 201);
     }
 
@@ -115,7 +125,44 @@ class HamperController extends Controller
             $data['stock_remaining'] = $data['total_stock'];
         }
 
+        $watchedFields = [
+            'price', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
+            'earn_loyalty_points', 'total_stock', 'max_purchases_per_customer',
+            'status', 'is_visible', 'eligibility_type', 'eligible_tiers',
+            'eligible_customer_types', 'valid_from', 'valid_until',
+        ];
+
+        $changes = [];
+        foreach ($watchedFields as $field) {
+            if (!array_key_exists($field, $data)) continue;
+
+            $oldVal = $hamper->$field;
+            $newVal = $data[$field];
+
+            // Normalize for comparison (arrays, booleans, nulls)
+            $oldNorm = is_array($oldVal) ? json_encode($oldVal) : (string) $oldVal;
+            $newNorm = is_array($newVal) ? json_encode($newVal) : (string) $newVal;
+
+            if ($oldNorm !== $newNorm) {
+                $changes[$field] = [
+                    'from' => $oldVal,
+                    'to'   => $newVal,
+                ];
+            }
+        }
+
         $hamper->update($data);
+
+        // Only log if something actually changed
+        if (!empty($changes)) {
+            $this->logHamperActivity(
+                $hamper->id,
+                'hamper_updated',
+                "Hamper '{$hamper->name}' updated — " . count($changes) . " field(s) changed.",
+                'info',
+                ['changes' => $changes]
+            );
+        }
 
         return response()->json(['message' => 'Hamper updated', 'data' => $hamper->fresh()]);
     }
@@ -123,6 +170,12 @@ class HamperController extends Controller
     public function destroy($id): JsonResponse
     {
         $hamper = Hamper::findOrFail($id);
+        $this->logHamperActivity(
+            $hamper->id, 'hamper_deleted',
+            "Hamper '{$hamper->name}' deleted.",
+            'warning',
+            ['status_at_deletion' => $hamper->status, 'stock_remaining' => $hamper->stock_remaining]
+        );
         $hamper->delete();
         return response()->json(['message' => 'Hamper deleted']);
     }
@@ -138,6 +191,11 @@ class HamperController extends Controller
         $path = $request->file('cover_image')->store('hampers/covers', 'public');
 
         $hamper->update(['cover_image' => asset('storage/' . $path)]);
+        $this->logHamperActivity(
+            $hamper->id, 'cover_image_updated',
+            "Cover image updated for hamper '{$hamper->name}'.",
+            'info'
+        );
 
         return response()->json([
             'message'     => 'Cover image uploaded',
@@ -170,16 +228,32 @@ class HamperController extends Controller
                 'snapshot' => HamperItem::buildSnapshot($product),
             ]
         );
+        $this->logHamperActivity(
+            $hamper->id, 'product_added',
+            "Product '{$product->name}' added to hamper '{$hamper->name}'.",
+            'info',
+            ['product_id' => $product->id, 'product_sku' => $product->sku, 'quantity' => $request->quantity]
+        );
 
         return response()->json(['message' => 'Product added to hamper', 'data' => $item], 201);
     }
 
     public function removeProduct($id, $productId): JsonResponse
     {
-        HamperItem::where('hamper_id', $id)
-            ->where('product_id', $productId)
-            ->firstOrFail()
-            ->delete();
+            $item = HamperItem::where('hamper_id', $id)
+                ->where('product_id', $productId)
+                ->firstOrFail();
+
+            $productName = $item->snapshot['name'] ?? $productId;
+
+            $this->logHamperActivity(
+                (int) $id, 'product_removed',
+                "Product '{$productName}' removed from hamper.",
+                'warning',
+                ['product_id' => $productId, 'quantity' => $item->quantity]
+            );
+
+            $item->delete();
 
         return response()->json(['message' => 'Product removed from hamper']);
     }
@@ -278,6 +352,12 @@ class HamperController extends Controller
                 'note'     => $request->note,
             ]
         );
+        $this->logHamperActivity(
+            $hamper->id, 'customer_eligibility_added',
+            "Customer {$customer->first_name} {$customer->last_name} added to hamper '{$hamper->name}' with status '{$request->status}'.",
+            'info',
+            ['customer_id' => $customer->id, 'status' => $request->status]
+        );
 
         return response()->json(['message' => 'Customer eligibility set', 'data' => $row], 201);
     }
@@ -292,6 +372,8 @@ class HamperController extends Controller
             'status' => 'required|in:active,suspended,blacklisted',
             'note'   => 'nullable|string',
         ]);
+
+        $previousStatus = $row->status;
 
         // reactivating a blacklisted customer requires admin role
         if ($row->status === 'blacklisted' && $request->status === 'active') {
@@ -310,6 +392,16 @@ class HamperController extends Controller
                 'note'   => $request->note,
             ]);
         }
+        $severity = $request->status === 'blacklisted' ? 'danger'
+                : ($request->status === 'suspended'  ? 'warning' : 'info');
+
+        $hamper = Hamper::find($id);
+        $this->logHamperActivity(
+            (int) $id, 'eligibility_status_changed',
+            "Customer #{$customerId} eligibility changed from '{$previousStatus}' to '{$request->status}'.",
+            $severity,
+            ['customer_id' => $customerId, 'previous_status' => $previousStatus, 'new_status' => $request->status, 'note' => $request->note]
+        );
 
         return response()->json(['message' => 'Customer status updated', 'data' => $row->fresh()]);
     }
@@ -348,5 +440,14 @@ class HamperController extends Controller
             ->paginate($request->get('per_page', 20));
 
         return response()->json($orders);
+    }
+
+    public function activityLogs($id): JsonResponse
+    {
+        $logs = \App\Models\HamperActivityLog::where('hamper_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($logs);
     }
 }

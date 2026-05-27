@@ -77,6 +77,9 @@ rateOrder: async (id, data) => {
     return data;
   },
 
+  getOrderActivity:    (id)     => api.get(`/admin/orders/${id}/activity`).then(r => r.data),
+  getAllOrderActivity:  (params) => api.get('/admin/orders/activity', { params }).then(r => r.data),
+
   getCustomerOrderStatistics: async (customerId) => {
     const { data } = await api.get(`/admin/orders/${customerId}/order-statistics`);
     return data;

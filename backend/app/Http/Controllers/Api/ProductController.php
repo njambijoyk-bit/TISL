@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -78,63 +79,64 @@ class ProductController extends Controller
      * Display a listing of products (PUBLIC - with filters)
      */
     public function index(Request $request)
-{
-    // Only filter by is_visible = 1 (no stock checking)
-    $query = Product::with(['brand', 'category', 'activeAuction'])
-        ->where('is_visible', true)
-        ->where('status', 'active');
+    {
+        $query = Product::with(['brand', 'category', 'activeAuction'])
+            ->where('is_visible', true)
+            ->where('status', 'active');
 
-    // Search
-    if ($request->filled('search')) {
-        $query->search($request->search);
+        // --- all existing filters unchanged ---
+        if ($request->filled('search'))      { $query->search($request->search); }
+        if ($request->filled('category_id')) { $query->inCategory($request->category_id); }
+        if ($request->filled('brand_id'))    { $query->byBrand($request->brand_id); }
+        if ($request->filled('min_price') && $request->filled('max_price')) {
+            $query->priceRange($request->min_price, $request->max_price);
+        }
+        if ($request->filled('featured') && filter_var($request->featured, FILTER_VALIDATE_BOOLEAN)) {
+            $query->where('is_featured', true);
+        }
+        if ($request->filled('on_sale') && filter_var($request->on_sale, FILTER_VALIDATE_BOOLEAN)) {
+            $query->where('on_sale', true);
+        }
+        if ($request->has('new') && $request->new === 'true') {
+            $query->where('is_new', true);
+        }
+        // ------------------------------------------
+
+        // Sort: honour manual sort param; otherwise personalise
+        if ($request->filled('sort')) {
+            $sortParts = explode('_', $request->sort);
+            $sortOrder = array_pop($sortParts);
+            $sortBy    = implode('_', $sortParts);
+            $query->orderBy($sortBy, $sortOrder);
+            $meta = ['personalized' => false, 'segment' => 'manual'];
+        } else {
+            $order = app(\App\Services\CatalogueRankingService::class)
+                ->getOrderExpression('product');
+            $query->orderByRaw($order['expression'], $order['bindings']);
+            $meta = ['personalized' => $order['personalized'], 'segment' => $order['segment']];
+        }
+
+        $perPage  = $request->get('per_page', 20);
+        $products = $query->paginate($perPage);
+
+        // Attach active boost content to each product on this page
+        $pageIds = $products->pluck('id');
+        $boosts  = DB::table('algorithm_bonus_content')
+            ->where('entity_type', 'product')
+            ->where('is_active', 1)
+            ->whereIn('entity_id', $pageIds)
+            ->get(['entity_id', 'message', 'badge_type'])
+            ->keyBy('entity_id');
+
+        $products->getCollection()->transform(function ($product) use ($boosts) {
+            $boost = $boosts->get($product->id);
+            $product->boost_message    = $boost?->message    ?? null;
+            $product->boost_badge_type = $boost?->badge_type ?? null;
+            return $product;
+        });
+
+        return response()->json(array_merge($products->toArray(), $meta), 200);
     }
-
-    // Filter by category
-    if ($request->filled('category_id')) {
-        $query->inCategory($request->category_id);
-    }
-
-    // Filter by brand
-    if ($request->filled('brand_id')) {
-        $query->byBrand($request->brand_id);
-    }
-
-    // Filter by price range
-    if ($request->filled('min_price') && $request->filled('max_price')) {
-        $query->priceRange($request->min_price, $request->max_price);
-    }
-
-    // Filter by featured
-    if ($request->filled('featured') && filter_var($request->featured, FILTER_VALIDATE_BOOLEAN)) {
-        $query->where('is_featured', true);
-    }
-
-    // Filter by on sale
-    if ($request->filled('on_sale') && filter_var($request->on_sale, FILTER_VALIDATE_BOOLEAN)) {
-        $query->where('on_sale', true);
-    }
-
-    // Filter by new
-    if ($request->has('new') && $request->new === 'true') {
-        $query->where('is_new', true);
-    }
-
-    // Sort handling
-    if ($request->filled('sort')) {
-        $sortParts = explode('_', $request->sort);
-        $sortOrder = array_pop($sortParts);
-        $sortBy = implode('_', $sortParts);
-        $query->orderBy($sortBy, $sortOrder);
-    } else {
-        $query->orderBy('created_at', 'desc');
-    }
-
-    // Paginate
-    $perPage = $request->get('per_page', 20);
-    $products = $query->paginate($perPage);
-
-    return response()->json($products, 200);
-}
 
     /**
      * Store a newly created product (ADMIN ONLY)

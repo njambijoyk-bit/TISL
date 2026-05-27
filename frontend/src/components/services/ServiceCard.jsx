@@ -11,6 +11,7 @@ import {
   Monitor,
   FileText,
   Heart,
+  Images,
   MessageSquare,
   ChevronRight,
   ChevronLeft
@@ -22,6 +23,15 @@ import useQuoteListStore from '../../store/quoteListStore';
  * ServiceCard Component
  * Compact card for displaying service information
  */
+
+const BOOST_BADGE = {
+  promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
+  social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
+  tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
+};
+
 const ServiceCard = ({ service, onClick }) => {
   const allImages = [
     service.main_image_url || service.main_image,
@@ -98,7 +108,10 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden w-full">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden w-full"
+    style={service.boost_badge_type ? {
+      borderLeft: `3px solid ${BOOST_BADGE[service.boost_badge_type]?.bg ?? '#10b981'}`,
+    } : {}}>
       {/* Smaller Image - Changed from h-48 to h-40 */}
       <div className="relative h-40 overflow-hidden bg-gray-200 dark:bg-gray-700">
         {/* Arrows */}
@@ -122,8 +135,8 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-            <MapPin size={64} className="text-gray-300 dark:text-gray-600" />
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700" style={{ color: '#9ca3af' }}>
+            <Images size={64} className="text-gray-300 dark:text-gray-600" />
           </div>
         )}
 
@@ -178,6 +191,33 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             <FileText size={16} style={{ color: inQL ? '#7c3aed' : '#a855f7', transition: 'color 150ms ease' }} />
           </button>
         </div>
+        {/* Boost badge strip */}
+        {service.boost_message && service.boost_badge_type && (() => {
+          const badge = BOOST_BADGE[service.boost_badge_type] ?? BOOST_BADGE.tip;
+          return (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
+              background: badge.bg,
+              padding: '4px 10px',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: badge.text,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+              }}>
+                {badge.label}
+              </span>
+              <span style={{
+                fontSize: 11, color: badge.text, fontWeight: 500,
+                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+              }}>
+                {service.boost_message}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Compact Content - Reduced padding */}
@@ -205,74 +245,66 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
         <div className="mb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center text-primary">
-              <DollarSign className="w-3.5 h-3.5 mr-0.5" />
               <span className="text-base font-bold">{getPricingDisplay()}</span>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-accent">
               {getPricingModelLabel()}
             </span>
           </div>
         </div>
 
         {/* Compact Service Details */}
-        <div className="flex flex-wrap gap-1.5 mb-2 text-xs text-gray-600 dark:text-gray-400">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, fontSize: '0.72rem', color: '#6b7280' }}>
           {service.estimated_duration && (
-            <div className="flex items-center">
-              <Clock className="w-3 h-3 mr-0.5" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={11} style={{ color: '#a855f7' }} />
               <span>{service.estimated_duration}</span>
             </div>
           )}
-
           {service.lead_time && (
-            <div className="flex items-center">
-              <Calendar className="w-3 h-3 mr-0.5" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Calendar size={11} style={{ color: '#a855f7' }} />
               <span>{service.lead_time}</span>
             </div>
           )}
-
           {service.service_area && (
-            <div className="flex items-center">
-              <MapPin className="w-3 h-3 mr-0.5" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <MapPin size={11} style={{ color: '#a855f7' }} />
               <span>{service.service_area}</span>
             </div>
           )}
         </div>
 
         {/* Compact Rating & Stats */}
-        <div className="flex items-center justify-between mb-2 text-xs">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.72rem' }}>
           {service.rating > 0 && (
-            <div className="flex items-center">
-              <Star className="w-3.5 h-3.5 text-yellow-400 fill-current mr-0.5" />
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {service.rating.toFixed(1)}
-              </span>
-              <span className="text-gray-500 dark:text-gray-400 ml-1">
-                ({service.review_count || 0})
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Star size={12} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
+              <span style={{ fontWeight: 700, color: '#111827' }}>{service.rating.toFixed(1)}</span>
+              <span style={{ color: '#9ca3af' }}>({service.review_count || 0})</span>
             </div>
           )}
-
           {service.order_count > 0 && (
-            <div className="flex items-center text-gray-600 dark:text-gray-400">
-              <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#6b7280' }}>
+              <TrendingUp size={12} style={{ color: '#a855f7' }} />
               <span>{service.order_count}</span>
             </div>
           )}
         </div>
 
-        {/* Compact Features - Show only 2 */}
+        {/* Compact Features */}
         {service.features && service.features.length > 0 && (
-          <div className="mb-2">
-            <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+          <div style={{ marginBottom: 8 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               {service.features.slice(0, 2).map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="text-primary-500 mr-1.5 text-xs">✓</span>
-                  <span className="line-clamp-1">{feature}</span>
+                <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.72rem', color: '#6b7280' }}>
+                  <span style={{ color: '#d97706', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                  <span style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{feature}</span>
                 </li>
               ))}
             </ul>
             {service.features.length > 2 && (
-              <span className="text-xs text-primary-600 dark:text-primary-400">
+              <span style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600 }}>
                 +{service.features.length - 2} more
               </span>
             )}
@@ -284,7 +316,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
           {onClick ? (
             <button
               onClick={() => onClick(service)}
-              className="flex-1 font-regular py-1.5 px-3 rounded-lg text-lg transition-all duration-200 text-center"
+              className="flex-1 font-regular py-1.5 px-3 rounded-lg text-s transition-all duration-200 text-center"
               style={{ backgroundColor: '#a855f7', color: '#ffffff', border: '1.5px solid #a855f7' }}
               onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#a855f7'; }}
               onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#a855f7'; e.currentTarget.style.color = '#ffffff'; }}

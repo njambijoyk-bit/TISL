@@ -21,10 +21,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 use App\Http\Controllers\Api\Traits\LogsBookingActivity;
+use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 
 class BookingController extends Controller
 {
     use LogsBookingActivity;
+    use LogsPolicyAcceptances; 
 
     // ════════════════════════════════════════════════════════════════════════
     // ADMIN
@@ -337,10 +339,12 @@ class BookingController extends Controller
         $validated['customer_id'] = $customer->id;
 
         // Policy acceptance
-        if ($settings->require_policy_acceptance) {
-            if (empty($validated['policy_accepted'])) {
-                return response()->json(['message' => 'You must accept the cancellation policy to proceed.'], 422);
-            }
+        $cancellationAccepted = collect($validated['policy_acceptances'] ?? [])
+            ->firstWhere('key', 'booking_cancellation_policy');
+        $policyAccepted = ($cancellationAccepted['response'] ?? '') === 'accepted';
+
+        if (!$policyAccepted) {
+            return response()->json(['message' => 'You must accept the cancellation policy to proceed.'], 422);
         }
 
         // Service checks
@@ -375,16 +379,31 @@ class BookingController extends Controller
             }
         }
 
-        return DB::transaction(function () use ($validated, $settings) {
+        return DB::transaction(function () use ($validated, $settings, $policyAccepted, $customer, $request) {
             $booking = Booking::create(array_merge($validated, [
                 'created_by'          => auth()->id(),
-                'policy_accepted_at'  => ($validated['policy_accepted'] ?? false) ? now() : null,
-                'policy_version'      => $settings->cancellation_policy_version,
             ]));
 
             $this->logBookingCreated($booking->id, $booking->toArray());
-            if ($validated['policy_accepted'] ?? false) {
-                $this->logPolicyAccepted($booking->id, $settings->cancellation_policy_version ?? '');
+            // Log to global policy_acceptances table
+            foreach ($validated['policy_acceptances'] ?? [] as $pa) {
+                $this->logPolicyAcceptance(
+                    policyKey:     $pa['key'],
+                    actionContext: 'booking_checkout',
+                    response:      $pa['response'],
+                    customer:      $customer,
+                    user:          auth()->user(),
+                    wasSuccessful: $pa['response'] === 'accepted',
+                    referenceType: 'booking',
+                    referenceId:   $booking->id,
+                    request:       $request,
+                );
+            }
+
+            // Keep booking activity log for booking-specific audit trail
+            if ($policyAccepted) {
+                $policyVersion = $cancellationAccepted['version'] ?? '';
+                $this->logPolicyAccepted($booking->id, $policyVersion);
             }
 
             $this->sendBookingPlacedEmails($booking, $settings);
@@ -486,13 +505,16 @@ class BookingController extends Controller
             'recurrence_rule'       => 'nullable|array',
             'recurring_billing_mode'=> 'nullable|in:per_occurrence,whole',
             'customer_notes'        => 'nullable|string|max:2000',
-            'policy_accepted'       => 'boolean',
             'project_id'            => 'nullable|exists:projects,id',
+            'policy_acceptances'            => 'nullable|array',
+            'policy_acceptances.*.key'      => 'required_with:policy_acceptances|string',
+            'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
         ];
 
         if ($isAdmin) {
             $rules['customer_id'] = 'required|exists:customers,id';
             $rules['admin_notes'] = 'nullable|string|max:2000';
+            $rules['policy_accepted'] = 'boolean'; 
         }
 
         return $request->validate($rules);

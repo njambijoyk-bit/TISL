@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\LogsReferralActivity;
 use App\Models\ReferralCode;
 use App\Models\ReferralCodeUsage;
 use App\Models\Customer;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class ReferralController extends Controller
 {
+    use LogsReferralActivity; 
     // ═══════════════════════════════════════════════════
     // ADMIN — LIST & STATISTICS
     // ═══════════════════════════════════════════════════
@@ -218,6 +220,7 @@ class ReferralController extends Controller
             ]);
 
             DB::commit();
+            $this->logReferralCodeCreated($code);
             return response()->json([
                 'message' => 'Referral code created successfully.',
                 'data'    => $code->load(['customer.user', 'createdBy']),
@@ -270,6 +273,8 @@ class ReferralController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $changes = [];
+
         $code->update([
             ...$request->only([
                 'name', 'code', 'description',
@@ -289,6 +294,10 @@ class ReferralController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
+        if (!empty($changes)) {
+            $this->logReferralCodeUpdated($code, $changes); 
+        }
+
         return response()->json([
             'message' => 'Referral code updated.',
             'data'    => $code->fresh(['customer.user', 'createdBy']),
@@ -304,6 +313,7 @@ class ReferralController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->activate();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logReferralCodeStatusChanged($code, 'ACTIVATED');
         return response()->json(['message' => 'Code activated.', 'data' => $code]);
     }
 
@@ -312,6 +322,7 @@ class ReferralController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->pause();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logReferralCodeStatusChanged($code, 'PAUSED');
         return response()->json(['message' => 'Code paused.', 'data' => $code]);
     }
 
@@ -320,6 +331,7 @@ class ReferralController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->archive();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logReferralCodeStatusChanged($code, 'ARCHIVED');
         return response()->json(['message' => 'Code archived.', 'data' => $code]);
     }
 
@@ -330,9 +342,12 @@ class ReferralController extends Controller
         // Don't hard-delete codes that have been used
         if ($code->times_used > 0) {
             $code->archive();
+            $this->logReferralCodeStatusChanged($code, 'ARCHIVED');
             return response()->json(['message' => 'Code has usage history — archived instead of deleted.', 'data' => $code]);
         }
 
+        
+        $this->logReferralCodeStatusChanged($code, 'DELETED');
         $code->delete();
         return response()->json(['message' => 'Code deleted.']);
     }
@@ -544,5 +559,29 @@ class ReferralController extends Controller
             'funnel'         => $funnel,
             'period_days'    => $days,
         ]);
+    }
+    // ═══════════════════════════════════════════════════
+    // ADMIN — ACTIVITY LOG
+    // ═══════════════════════════════════════════════════
+
+    public function activityLog(Request $request)
+    {
+        $query = \App\Models\ReferralActivityLog::with(['actor:id,name,email', 'order:id,order_number'])
+            ->orderBy('created_at', 'desc');
+
+        // Optional filters
+        if ($request->filled('entity_type')) {
+            $query->where('entity_type', $request->entity_type);
+        }
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+        if ($request->filled('actor_type')) {
+            $query->where('actor_type', $request->actor_type);
+        }
+
+        $perPage = (int) $request->input('per_page', 20);
+
+        return response()->json($query->paginate($perPage));
     }
 }

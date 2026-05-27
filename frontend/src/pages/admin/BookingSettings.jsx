@@ -62,7 +62,6 @@ const BookingSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [settings, setSettings] = useState(null);
-  const [policyPreview, setPolicyPreview] = useState('');
 
   useEffect(() => {
     bookingsAPI.getSettings()
@@ -74,20 +73,6 @@ const BookingSettings = () => {
       .catch(() => toast.error('Failed to load settings'))
       .finally(() => setLoading(false));
   }, []);
-
-  // Live policy preview
-  useEffect(() => {
-    if (!settings?.cancellation_policy_template) { setPolicyPreview(''); return; }
-    const fee = settings.cancellation_fee_type === 'percent'
-      ? `${settings.cancellation_fee}%`
-      : `${settings.cancellation_currency_code} ${parseFloat(settings.cancellation_fee || 0).toFixed(2)}`;
-    const preview = settings.cancellation_policy_template
-      .replace(/{cancellation_fee}/g, fee)
-      .replace(/{cancellation_window_hours}/g, settings.cancellation_window_hours ?? 24)
-      .replace(/{currency}/g, settings.cancellation_currency_code ?? 'KES')
-      .replace(/{currency_symbol}/g, settings.cancellation_currency_code ?? 'KES');
-    setPolicyPreview(preview);
-  }, [settings?.cancellation_policy_template, settings?.cancellation_fee, settings?.cancellation_fee_type, settings?.cancellation_window_hours, settings?.cancellation_currency_code]);
 
   const set = (key, val) => setSettings(p => ({ ...p, [key]: val }));
 
@@ -214,55 +199,35 @@ const BookingSettings = () => {
         </Section>
 
         {/* Cancellation */}
-        <Section title="Cancellation Policy" icon={AlertTriangle}>
-          <Toggle label="Allow customers to cancel" hint="If off, only admins can cancel" checked={!!settings.customer_can_cancel} onChange={v => set('customer_can_cancel', v)} />
+        <Section title="Cancellation" icon={AlertTriangle}>
+          <Toggle label="Allow customers to cancel" hint="If off, only admins can cancel"
+            checked={!!settings.customer_can_cancel} onChange={v => set('customer_can_cancel', v)} />
 
           {settings.customer_can_cancel && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Cancellation window (hours)</label>
-                  <input type="number" value={settings.cancellation_window_hours ?? 24} onChange={e => set('cancellation_window_hours', parseInt(e.target.value))} min={0}
-                    style={inputStyle} onFocus={focus} onBlur={blur}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Fee type</label>
-                  <select value={settings.cancellation_fee_type ?? 'flat'} onChange={e => set('cancellation_fee_type', e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                    <option value="flat">Flat amount</option>
-                    <option value="percent">Percentage</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Fee amount {settings.cancellation_fee_type === 'percent' ? '(%)' : `(${settings.cancellation_currency_code ?? 'KES'})`}</label>
-                  <input type="number" value={settings.cancellation_fee ?? 0} onChange={e => set('cancellation_fee', parseFloat(e.target.value))} min={0} step={0.01}
-                    style={inputStyle} onFocus={focus} onBlur={blur}
-                  />
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Cancellation window (hours)</label>
+                <input type="number" value={settings.cancellation_window_hours ?? 24}
+                  onChange={e => set('cancellation_window_hours', parseInt(e.target.value))}
+                  min={0} style={inputStyle} onFocus={focus} onBlur={blur} />
               </div>
-            </>
-          )}
-
-          <Toggle label="Require policy acceptance" hint="Customer must check a box to accept the policy before booking" checked={!!settings.require_policy_acceptance} onChange={v => set('require_policy_acceptance', v)} />
-
-          <div>
-            <label style={labelStyle}>
-              Cancellation policy template
-              <span style={{ color: '#d1d5db', fontWeight: 400, textTransform: 'none', marginLeft: 6 }}>
-                use {'{cancellation_fee}'}, {'{cancellation_window_hours}'}, {'{currency}'}
-              </span>
-            </label>
-            <textarea rows={4} value={settings.cancellation_policy_template ?? ''}
-              onChange={e => set('cancellation_policy_template', e.target.value)}
-              placeholder="A cancellation fee of {cancellation_fee} applies if cancelled within {cancellation_window_hours} hours of the scheduled time."
-              style={{ ...inputStyle, resize: 'vertical' }} onFocus={focus} onBlur={blur}
-            />
-          </div>
-
-          {policyPreview && (
-            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
-              <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#a855f7', margin: '0 0 5px' }}>Live preview</p>
-              <p style={{ fontSize: '0.78rem', color: '#374151', margin: 0, lineHeight: 1.6 }}>{policyPreview}</p>
+              <div>
+                <label style={labelStyle}>Fee type</label>
+                <select value={settings.cancellation_fee_type ?? 'flat'}
+                  onChange={e => set('cancellation_fee_type', e.target.value)}
+                  style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="flat">Flat amount</option>
+                  <option value="percent">Percentage</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Fee amount {settings.cancellation_fee_type === 'percent' ? '(%)' : `(${settings.cancellation_currency_code ?? 'KES'})`}
+                </label>
+                <input type="number" value={settings.cancellation_fee ?? 0}
+                  onChange={e => set('cancellation_fee', parseFloat(e.target.value))}
+                  min={0} step={0.01} style={inputStyle} onFocus={focus} onBlur={blur} />
+              </div>
             </div>
           )}
         </Section>

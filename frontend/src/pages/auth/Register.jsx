@@ -4,6 +4,7 @@ import { User, Mail, Phone, Lock, Eye, EyeOff, Building, ArrowRight } from 'luci
 import { authAPI } from '../../api';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
+import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
 
 // ── Reusable field renderer (must be OUTSIDE Register to preserve focus) ──
 function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange }) {
@@ -15,8 +16,7 @@ function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, 
       <div style={{ position: 'relative' }}>
         {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? '#a855f7' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
         <input
-          name={name} type={type}
-          value={value}
+          name={name} type={type} value={value}
           onChange={onChange || handleChange}
           onFocus={() => setFocused(name)} onBlur={() => setFocused('')}
           placeholder={placeholder}
@@ -53,10 +53,14 @@ export default function Register() {
     password: '', password_confirmation: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [focused, setFocused] = useState('');
+  const [showConfirm,  setShowConfirm]  = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [errors,       setErrors]       = useState({});
+  const [focused,      setFocused]      = useState('');
+
+  // Policy acceptance state — populated by PolicyConsentCheckbox
+  const [policyAccepted,    setPolicyAccepted]    = useState(false);
+  const [policyAcceptances, setPolicyAcceptances] = useState([]);
 
   const refCode = new URLSearchParams(window.location.search).get('ref');
 
@@ -67,7 +71,7 @@ export default function Register() {
   };
 
   const handlePhoneChange = (e) => {
-    let value = e.target.value.replace(/[^0-9+\-\s\(\)]/g, '').substring(0, 20);
+    const value = e.target.value.replace(/[^0-9+\-\s\(\)]/g, '').substring(0, 20);
     setFormData(f => ({ ...f, phone: value }));
     if (errors.phone) setErrors(e => ({ ...e, phone: '' }));
   };
@@ -84,6 +88,7 @@ export default function Register() {
     if (!formData.password) e.password = 'Password is required';
     else if (formData.password.length < 8) e.password = 'At least 8 characters';
     if (formData.password !== formData.password_confirmation) e.password_confirmation = 'Passwords do not match';
+    if (!policyAccepted) e.policies = 'You must accept the policies to continue';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -95,9 +100,10 @@ export default function Register() {
       setLoading(true);
       const response = await authAPI.register({
         ...formData,
+        policy_acceptances: policyAcceptances,
         ...(refCode ? { referral_code: refCode } : {}),
       });
-      login(response.user, response.token);
+      login(response.user, response.customer, response.token);
       toast.success('Account created successfully!');
       navigate('/');
     } catch (error) {
@@ -116,20 +122,13 @@ export default function Register() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="tisl-outer" style={{ width: '100%', maxWidth: 900, display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── MOBILE TOP BAR (hidden on desktop) ────────────────────────── */}
+      {/* ── MOBILE TOP BAR ───────────────────────────────────────────────── */}
       <div className="tisl-mobile-bar" style={{
-        display: 'none',
-        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-        padding: '20px 24px',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        display: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
           </div>
           <div>
@@ -138,25 +137,14 @@ export default function Register() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link to="/login" style={{
-            color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px',
-            fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
-            border: '1.5px solid rgba(255,255,255,0.35)',
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-          }}>Login</Link>
-          <div style={{
-            background: 'white', color: '#a855f7',
-            borderRadius: 8, padding: '7px 16px',
-            fontSize: '0.78rem', fontWeight: 800,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-          }}>Sign Up</div>
+          <Link to="/login" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</Link>
+          <div style={{ background: 'white', color: '#a855f7', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
         </div>
       </div>
 
       <div className="tisl-card" style={{
         display: 'grid', gridTemplateColumns: '1fr 1.5fr',
-        width: '100%',
-        borderRadius: 24, overflow: 'hidden',
+        width: '100%', borderRadius: 24, overflow: 'hidden',
         boxShadow: '0 32px 80px rgba(0,0,0,0.14)',
       }}>
 
@@ -165,123 +153,58 @@ export default function Register() {
           position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(145deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '40px 28px', gap: 24,
+          padding: '40px 32px', gap: 24,
         }}>
-          {/* Shapes */}
-          <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
-          <div style={{ position: 'absolute', bottom: -60, left: -40, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-          <div style={{ position: 'absolute', top: '35%', right: -25, width: 100, height: 100, borderRadius: 20, background: 'rgba(255,255,255,0.07)', transform: 'rotate(25deg)' }} />
-          <div style={{ position: 'absolute', bottom: '30%', left: -15, width: 80, height: 80, borderRadius: 14, background: 'rgba(255,255,255,0.08)', transform: 'rotate(-20deg)' }} />
+          <div style={{ position: 'absolute', top: -60, left: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ position: 'absolute', bottom: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ position: 'absolute', top: '40%', left: -30, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.07)', transform: 'rotate(20deg)' }} />
+          <div style={{ position: 'absolute', bottom: '25%', right: -20, width: 90, height: 90, borderRadius: 16, background: 'rgba(255,255,255,0.07)', transform: 'rotate(-15deg)' }} />
 
-          {/* Logo */}
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 20,
-              background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)',
-              border: '1.5px solid rgba(255,255,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-            }}>
+            <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
               <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
             </div>
             <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Target</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', margin: '6px 0 0', fontWeight: 500 }}>
-              Industrial Suppliers LTD
-            </p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>Industrial Suppliers LTD</p>
           </div>
 
-          {/* Tab pills */}
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-            <Link to="/login" style={{
-              color: 'rgba(255,255,255,0.8)', borderRadius: 12, padding: '12px 20px',
-              fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none',
-              border: '1.5px solid rgba(255,255,255,0.25)', transition: 'all 150ms',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-            }}
-              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.12)'; e.target.style.color = 'white'; }}
-              onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.8)'; }}
-            >
-              Login
-            </Link>
-            <div style={{
-              background: 'white', color: '#a855f7',
-              borderRadius: 12, padding: '12px 20px',
-              fontSize: '0.85rem', fontWeight: 800, textAlign: 'center',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-            }}>
-              Sign Up
-            </div>
+            <Link to="/login" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 600, textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase', textDecoration: 'none' }}>Login</Link>
+            <div style={{ background: 'white', color: '#a855f7', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
           </div>
 
-          {/* Perks */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Track orders & quotes', 'Manage projects', 'Exclusive deals'].map((perk, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: '0.6rem', color: 'white', fontWeight: 800 }}>✓</span>
-                </div>
-                <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>{perk}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── RIGHT PANEL ────────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-gray-800" style={{ padding: '36px 36px' }}>
-          <div style={{ marginBottom: 22 }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }} className="text-gray-900 dark:text-white">
-              Create your account
-            </h1>
-            <p style={{ fontSize: '0.82rem', margin: 0 }} className="text-gray-500 dark:text-gray-400">
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', margin: 0, lineHeight: 1.7, fontWeight: 400 }}>
               Join TISL for easy industrial shopping
             </p>
           </div>
+        </div>
+
+        {/* ── RIGHT PANEL — form ────────────────────────────────────────── */}
+        <div style={{ padding: '36px 40px', overflowY: 'auto' }} className="bg-white dark:bg-gray-800">
 
           {refCode && (
-            <div style={{
-              marginBottom: 16, padding: '10px 14px', borderRadius: 10,
-              background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
+            <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '1rem' }}>🎁</span>
               <div>
-                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>
-                  You were referred!
-                </p>
-                <p style={{ fontSize: '0.72rem', color: '#a855f7', margin: 0 }}>
-                  Code <strong>{refCode}</strong> — get 5% off your first order after signing up.
-                </p>
+                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>You were referred!</p>
+                <p style={{ fontSize: '0.72rem', color: '#a855f7', margin: 0 }}>Code <strong>{refCode}</strong> — get 5% off your first order after signing up.</p>
               </div>
             </div>
           )}
 
           {/* OAuth */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-            {/* Google — active */}
             <button type="button" onClick={() => handleOAuth('google')}
-              style={{
-                height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb',
-                background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 150ms',
-              }}
+              style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 150ms' }}
               className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700">
               <GoogleIcon /> Google
             </button>
-
-            {/* Microsoft — disabled / coming soon */}
             <button type="button" disabled title="Microsoft login coming soon"
-              style={{
-                height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb',
-                background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.8rem', fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                opacity: 0.5, position: 'relative',
-              }}
+              style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: 0.5, position: 'relative' }}
               className="text-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500">
               <MicrosoftIcon /> Microsoft
-              <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Soon
-              </span>
+              <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Soon</span>
             </button>
           </div>
 
@@ -294,19 +217,16 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Name + Email row */}
             <div className="tisl-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Field name="name" label="Full Name" placeholder="John Doe" icon={User} error={errors.name} value={formData.name} {...fieldProps} />
               <Field name="email" label="Email" type="email" placeholder="you@example.com" icon={Mail} error={errors.email} value={formData.email} {...fieldProps} />
             </div>
 
-            {/* Phone + Company row */}
             <div className="tisl-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Field name="phone" label="Phone" type="tel" placeholder="+254712345678" icon={Phone} onChange={handlePhoneChange} error={errors.phone} value={formData.phone} {...fieldProps} />
               <Field name="company_name" label="Company (Optional)" placeholder="Your Company" icon={Building} error={errors.company_name} value={formData.company_name} {...fieldProps} />
             </div>
 
-            {/* Password */}
             <Field
               name="password" label="Password" type={showPassword ? 'text' : 'password'}
               placeholder="At least 8 characters" icon={Lock} error={errors.password}
@@ -314,7 +234,6 @@ export default function Register() {
               value={formData.password} {...fieldProps}
             />
 
-            {/* Confirm */}
             <Field
               name="password_confirmation" label="Confirm Password" type={showConfirm ? 'text' : 'password'}
               placeholder="Confirm your password" icon={Lock} error={errors.password_confirmation}
@@ -322,27 +241,33 @@ export default function Register() {
               value={formData.password_confirmation} {...fieldProps}
             />
 
-            {/* Terms */}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', fontSize: '0.78rem' }} className="text-gray-600 dark:text-gray-400">
-              <input type="checkbox" required style={{ accentColor: '#a855f7', marginTop: 2, flexShrink: 0 }} />
-              <span>
-                I agree to the{' '}
-                <Link to="/terms" style={{ color: '#a855f7', textDecoration: 'none', fontWeight: 600 }}>Terms</Link>
-                {' '}and{' '}
-                <Link to="/privacy" style={{ color: '#a855f7', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</Link>
-              </span>
-            </label>
+            {/* ── Policy consent checkbox ───────────────────────────────── */}
+            <PolicyConsentCheckbox
+              policyKeys={['terms_of_use', 'privacy_policy']}
+              actionContext="register"
+              onChange={(isChecked, acceptances) => {
+                setPolicyAccepted(isChecked);
+                setPolicyAcceptances(acceptances);
+                if (errors.policies) setErrors(e => ({ ...e, policies: '' }));
+              }}
+              disabled={loading}
+            />
+            {errors.policies && (
+              <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: -8 }}>{errors.policies}</p>
+            )}
 
-            {/* Submit */}
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || !policyAccepted}
               style={{
-                height: 46, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                background: loading ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                color: loading ? '#9ca3af' : 'white', fontSize: '0.88rem', fontWeight: 700,
+                height: 46, borderRadius: 12, border: 'none',
+                cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
+                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: (loading || !policyAccepted) ? '#9ca3af' : 'white',
+                fontSize: '0.88rem', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: loading ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
                 transition: 'all 200ms', letterSpacing: '0.04em',
+                opacity: !policyAccepted ? 0.5 : 1,
               }}
             >
               {loading ? 'Creating account…' : <><span>Create Account</span><ArrowRight size={16} /></>}
@@ -359,20 +284,12 @@ export default function Register() {
       <style>{`
         @media (max-width: 640px) {
           .tisl-mobile-bar { display: flex !important; }
-          .tisl-card {
-            grid-template-columns: 1fr !important;
-            border-radius: 0 0 24px 24px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.10) !important;
-          }
+          .tisl-card { grid-template-columns: 1fr !important; border-radius: 0 0 24px 24px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.10) !important; }
           .tisl-sidebar { display: none !important; }
           .tisl-outer { padding: 0 !important; }
-          .tisl-field-row {
-            grid-template-columns: 1fr !important;
-          }
+          .tisl-field-row { grid-template-columns: 1fr !important; }
         }
-        @media (min-width: 641px) {
-          .tisl-mobile-bar { display: none !important; }
-        }
+        @media (min-width: 641px) { .tisl-mobile-bar { display: none !important; } }
       `}</style>
       </div>
     </div>

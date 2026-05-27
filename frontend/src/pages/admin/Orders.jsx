@@ -898,21 +898,27 @@ export default function Orders() {
               e.stopPropagation();
               handleViewCustomerHistory(order.customer);
             }}
-            className="
-              inline-flex items-center gap-2
-              px-3 py-1.5
-              rounded-full
-              bg-gray-100 dark:bg-gray-800
-              text-gray-800 dark:text-gray-200
-              font-medium text-sm
-              
-              transform transition-all duration-200 ease-out
-              hover:bg-blue-50 dark:hover:bg-blue-900/30
-              hover:text-blue-700 dark:hover:text-blue-300
-              hover:shadow-md hover:-translate-y-0.5
-              
-              focus:outline-none focus:ring-2 focus:ring-blue-400
-            "
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 20,
+              background: 'rgba(168,85,247,0.06)',
+              border: '1.5px solid rgba(168,85,247,0.15)',
+              color: '#ff91f2', fontSize: '0.8rem', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 150ms ease-out',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.12)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 3px 8px rgba(168,85,247,0.15)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             {order.customer?.first_name} {order.customer?.last_name}
           </button>
@@ -1042,46 +1048,86 @@ export default function Orders() {
     {
       header: 'Actions',
       render: (order) => (
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/orders/${order.id}`);
-            }}
-            icon={<Eye size={14} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+          {/* View — outline/neutral */}
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders/${order.id}`); }}
             title="View Details"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
+              fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
+              background: 'transparent', color: '#6b7280',
+              border: '1.5px solid rgba(107,114,128,0.25)',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(107,114,128,0.06)';
+              e.currentTarget.style.borderColor = 'rgba(107,114,128,0.4)';
+              e.currentTarget.style.color = '#374151';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(107,114,128,0.25)';
+              e.currentTarget.style.color = '#6b7280';
+            }}
           >
-            View
-          </Button>
-          
+            <Eye size={13} /> View
+          </button>
+
+          {/* Confirm — success/green */}
           {order.status === 'pending' && (
-            <Button
-              size="sm"
-              variant="success"
+            <button
               onClick={(e) => handleConfirm(order.id, e)}
-              icon={<CheckCircle size={14} />}
               title="Confirm Order"
-            >
-              Confirm
-            </Button>
-          )}
-          
-          {(order.status === 'confirmed' || order.status === 'processing') && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/admin/orders/${order.id}`);
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
+                fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
+                background: 'rgba(5,150,105,0.08)', color: '#065f46',
+                border: '1.5px solid rgba(5,150,105,0.2)',
+                transition: 'all 150ms',
               }}
-              icon={<Truck size={14} />}
-              title="Ship Order"
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(5,150,105,0.15)';
+                e.currentTarget.style.borderColor = 'rgba(5,150,105,0.35)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(5,150,105,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(5,150,105,0.2)';
+              }}
             >
-              Ship
-            </Button>
+              <CheckCircle size={13} /> Confirm
+            </button>
           )}
+
+          {/* Ship — primary/purple */}
+          {(order.status === 'confirmed' || order.status === 'processing') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders/${order.id}`); }}
+              title="Ship Order"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
+                fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
+                background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                border: '1.5px solid rgba(168,85,247,0.25)',
+                transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
+                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
+                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+              }}
+            >
+              <Truck size={13} /> Ship
+            </button>
+          )}
+
         </div>
       ),
     },
@@ -1792,53 +1838,60 @@ export default function Orders() {
         />
 
         {/* Modal */}
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{
+            width: '100%', maxWidth: 900,
+            background: 'white', borderRadius: 14,
+            border: '1px solid rgba(168,85,247,0.15)',
+            boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}>
+
             {/* Header */}
-            <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+              padding: '14px 20px',
+              borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+            }}>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {`Customer Order History - ${selectedCustomer?.first_name} ${selectedCustomer?.last_name}`}
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>
+                  Customer Order History — {selectedCustomer?.first_name} {selectedCustomer?.last_name}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedCustomer?.first_name} {selectedCustomer?.last_name}
-                  <a
-                    href={`mailto:${selectedCustomer.email}`}
-                    className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline hover:no-underline transition-colors"
-                  >
-                    • {selectedCustomer.email}
-                  </a>
+                <p style={{ fontSize: '0.78rem', color: '#4b5563', margin: 0 }}>
+                  {selectedCustomer?.first_name} {selectedCustomer?.last_name} • {selectedCustomer?.email}
                 </p>
               </div>
-
               <button
                 onClick={() => setCustomerHistoryModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                 title="Close"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: 8,
+                  border: 'none', background: 'none',
+                  color: '#9ca3af', cursor: 'pointer', transition: 'all 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#7c3aed'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-5 max-h-[75vh] overflow-y-auto">
+            <div style={{ padding: 20, maxHeight: '75vh', overflowY: 'auto' }}>
               {(() => {
                 const list = customerOrders;
                 const totalOrders = list.length;
-
                 const totalKes = list.reduce((sum, o) => sum + orderTotalKes(o), 0);
                 const avgKes = totalOrders > 0 ? totalKes / totalOrders : 0;
-
                 const byStatus = list.reduce((acc, o) => {
                   const s = o.status || 'unknown';
                   acc[s] = (acc[s] || 0) + 1;
                   return acc;
                 }, {});
-
                 const backorderCount = list.filter((o) =>
                   Array.isArray(o.items) && o.items.some((i) => Number(i.backorder_quantity || 0) > 0)
                 ).length;
-
                 const kesMissingCount = list.filter((o) => {
                   const isForeign = !isKes(o.currency);
                   const hasKes = Number(o.total_kes) > 0;
@@ -1846,84 +1899,73 @@ export default function Orders() {
                   return isForeign && !hasKes && !hasRate;
                 }).length;
 
-                if (customerOrdersLoading) {
-                  return <div className="text-sm text-gray-500">Loading customer orders...</div>;
-                }
+                if (customerOrdersLoading) return (
+                  <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading customer orders…</p>
+                );
 
                 return (
-                  <div className="space-y-6">
-                    {/* Customer Summary */}
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Customer ID</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          #{selectedCustomer.id}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                        <p className="font-semibold text-gray-900 dark:text-white break-all">
-                          {selectedCustomer.email}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {selectedCustomer.phone || 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Company</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {selectedCustomer.company_name || 'N/A'}
-                        </p>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                    {/* Customer summary grid */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+                      padding: 14, borderRadius: 10,
+                      background: 'rgba(168,85,247,0.04)',
+                      border: '1px solid rgba(168,85,247,0.1)',
+                    }}>
+                      {[
+                        { label: 'Customer ID', value: `#${selectedCustomer.id}` },
+                        { label: 'Email',       value: selectedCustomer.email },
+                        { label: 'Phone',       value: selectedCustomer.phone || 'N/A' },
+                        { label: 'Company',     value: selectedCustomer.company_name || 'N/A' },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                          <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0, wordBreak: 'break-all' }}>{value}</p>
+                        </div>
+                      ))}
                     </div>
-                    {/* Stats cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Orders (this page)</p>
-                        <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalOrders}</p>
+
+                    {/* Stat cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.12)' }}>
+                        <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recent Orders</p>
+                        <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1d4ed8', margin: 0, lineHeight: 1 }}>{totalOrders}</p>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Value (KES)</p>
-                        <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                          {kesMoney(totalKes)}
-                        </p>
-
+                      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.12)' }}>
+                        <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Value (KES)</p>
+                        <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#065f46', margin: 0, lineHeight: 1 }}>{kesMoney(totalKes)}</p>
                         {kesMissingCount > 0 && (
-                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            {kesMissingCount} foreign order(s) missing KES conversion
-                          </p>
+                          <p style={{ fontSize: '0.68rem', color: '#b45309', margin: '4px 0 0' }}>{kesMissingCount} foreign order(s) missing KES conversion</p>
                         )}
-
                         {backorderCount > 0 && (
-                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            {backorderCount} order(s) have backorder items
-                          </p>
+                          <p style={{ fontSize: '0.68rem', color: '#b45309', margin: '3px 0 0' }}>{backorderCount} order(s) have backorder items</p>
                         )}
                       </div>
 
-                      <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Avg Order (KES)</p>
-                        <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                          {kesMoney(avgKes)}
-                        </p>
+                      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                        <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avg Order (KES)</p>
+                        <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7c3aed', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
                       </div>
                     </div>
 
                     {/* Status breakdown */}
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-                      <p className="font-semibold text-gray-900 dark:text-white mb-3">Status Breakdown</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Status Breakdown</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                         {Object.keys(byStatus).length === 0 ? (
-                          <span className="text-sm text-gray-500">No orders yet</span>
+                          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>No orders yet</span>
                         ) : (
                           Object.entries(byStatus).map(([status, count]) => (
-                            <Badge key={status} variant="default" size="sm">
+                            <span key={status} style={{
+                              padding: '3px 10px', borderRadius: 20,
+                              fontSize: '0.72rem', fontWeight: 700,
+                              background: 'rgba(168,85,247,0.08)', color: '#6b21a8',
+                              boxShadow: '0 0 0 1px rgba(168,85,247,0.2)',
+                            }}>
                               {status}: {count}
-                            </Badge>
+                            </span>
                           ))
                         )}
                       </div>
@@ -1931,54 +1973,57 @@ export default function Orders() {
 
                     {/* Recent orders list */}
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Recent Orders</h4>
+                      <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Recent Orders</p>
 
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 380, overflowY: 'auto' }}>
                         {list.length === 0 ? (
-                          <div className="text-sm text-gray-500">No recent orders</div>
+                          <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>No recent orders</p>
                         ) : (
                           list.map((o) => {
                             const kes = orderTotalKes(o);
                             const showKes = !isKes(o.currency);
-
+                            const hasBackorder = Array.isArray(o.items) && o.items.some((i) => Number(i.backorder_quantity || 0) > 0);
                             return (
                               <div
                                 key={o.id}
-                                className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                onClick={() => {
-                                  setCustomerHistoryModal(false);
-                                  navigate(`/admin/orders/${o.id}`);
+                                onClick={() => { setCustomerHistoryModal(false); navigate(`/admin/orders/${o.id}`); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                  padding: '10px 13px', borderRadius: 10, cursor: 'pointer',
+                                  background: 'white', border: '1px solid rgba(168,85,247,0.1)',
+                                  transition: 'border-color 150ms, background 150ms',
                                 }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; }}
                               >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-primary">{o.order_number}</p>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 3 }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>{o.order_number}</span>
                                     <OrderStatusBadge status={o.status} />
                                     <PaymentStatusBadge status={o.payment_status} />
-                                    <Badge variant="default" size="sm">{o.currency || 'KES'}</Badge>
+                                    <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(107,114,128,0.08)', color: '#4b5563', boxShadow: '0 0 0 1px rgba(107,114,128,0.15)' }}>
+                                      {o.currency || 'KES'}
+                                    </span>
                                     {o.order_type && (
-                                      <Badge variant="info" size="sm">{o.order_type}</Badge>
+                                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', boxShadow: '0 0 0 1px rgba(37,99,235,0.15)' }}>
+                                        {o.order_type}
+                                      </span>
                                     )}
                                   </div>
-
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
                                     {format(new Date(o.created_at), 'MMM d, yyyy h:mm a')}
                                   </p>
-
-                                  {Array.isArray(o.items) && o.items.some((i) => Number(i.backorder_quantity || 0) > 0) && (
-                                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                      Backorder items present
-                                    </p>
+                                  {hasBackorder && (
+                                    <p style={{ fontSize: '0.68rem', color: '#b45309', margin: '2px 0 0' }}>Backorder items present</p>
                                   )}
                                 </div>
 
-                                <div className="text-right">
-                                  <p className="font-bold text-gray-900 dark:text-white">
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: 0 }}>
                                     {money(o.total, o.currency || 'KES')}
                                   </p>
-
                                   {showKes && (
-                                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0 0' }}>
                                       {kes > 0 ? `≈ ${kesMoney(kes)}` : 'KES N/A'}
                                     </p>
                                   )}
@@ -1989,57 +2034,76 @@ export default function Orders() {
                         )}
                       </div>
 
-                      {/* Pagination controls */}
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-xs text-gray-500">
+                      {/* Pagination */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                        <a
+                          href={`mailto:${selectedCustomer.email}`}
+                          className="ml-1 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline hover:no-underline transition-colors"
+                        >
+                          • {selectedCustomer.email}
+                        </a>
+                        <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
                           Page {customerOrdersPagination?.current_page || 1}
                           {customerOrdersPagination?.last_page ? ` of ${customerOrdersPagination.last_page}` : ''}
                         </p>
-
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
                             disabled={customerOrdersLoading || !(customerOrdersPagination?.current_page > 1)}
-                            onClick={() =>
-                              fetchCustomerOrders(
-                                selectedCustomer.id,
-                                (customerOrdersPagination?.current_page || 1) - 1
-                              )
-                            }
+                            onClick={() => fetchCustomerOrders(selectedCustomer.id, (customerOrdersPagination?.current_page || 1) - 1)}
+                            style={{
+                              padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
+                              fontFamily: 'inherit', cursor: (customerOrdersLoading || !(customerOrdersPagination?.current_page > 1)) ? 'not-allowed' : 'pointer',
+                              background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
+                              border: '1.5px solid rgba(168,85,247,0.18)',
+                              opacity: (customerOrdersLoading || !(customerOrdersPagination?.current_page > 1)) ? 0.4 : 1,
+                              transition: 'all 150ms',
+                            }}
                           >
                             Prev
-                          </Button>
-
-                          <Button
-                            variant="primary"
-                            disabled={
-                              customerOrdersLoading ||
-                              !customerOrdersPagination?.last_page ||
-                              (customerOrdersPagination?.current_page || 1) >= customerOrdersPagination.last_page
-                            }
-                            onClick={() =>
-                              fetchCustomerOrders(
-                                selectedCustomer.id,
-                                (customerOrdersPagination?.current_page || 1) + 1
-                              )
-                            }
+                          </button>
+                          <button
+                            disabled={customerOrdersLoading || !customerOrdersPagination?.last_page || (customerOrdersPagination?.current_page || 1) >= customerOrdersPagination.last_page}
+                            onClick={() => fetchCustomerOrders(selectedCustomer.id, (customerOrdersPagination?.current_page || 1) + 1)}
+                            style={{
+                              padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
+                              fontFamily: 'inherit', cursor: 'pointer',
+                              background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                              border: '1.5px solid rgba(168,85,247,0.25)',
+                              opacity: (customerOrdersLoading || !customerOrdersPagination?.last_page || (customerOrdersPagination?.current_page || 1) >= customerOrdersPagination.last_page) ? 0.4 : 1,
+                              transition: 'all 150ms',
+                            }}
                           >
                             Next
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
+
                   </div>
                 );
               })()}
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-              <Button variant="outline" onClick={() => setCustomerHistoryModal(false)}>
+            <div style={{
+              padding: '12px 20px', display: 'flex', justifyContent: 'flex-end',
+              borderTop: '1.5px solid rgba(168,85,247,0.1)',
+            }}>
+              <button
+                onClick={() => setCustomerHistoryModal(false)}
+                style={{
+                  padding: '7px 16px', borderRadius: 8, cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'transparent', color: '#6b7280',
+                  border: '1.5px solid rgba(107,114,128,0.25)', transition: 'all 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(107,114,128,0.06)'; e.currentTarget.style.borderColor = 'rgba(107,114,128,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(107,114,128,0.25)'; }}
+              >
                 Close
-              </Button>
+              </button>
             </div>
+
           </div>
         </div>
       </div>

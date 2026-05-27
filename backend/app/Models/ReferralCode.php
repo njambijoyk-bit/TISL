@@ -216,12 +216,12 @@ class ReferralCode extends Model
      */
     public function getIsExpiredAttribute(): bool
     {
+        if ($this->valid_from && $this->valid_from > now()) {
+            return false; // Not yet valid
+        }
+
         if (!$this->valid_until) {
             return false;
-        }
-        
-        if ($this->valid_from && $this->valid_from > now()) {
-            return true; // Not yet valid
         }
         
         return $this->valid_until < now();
@@ -276,12 +276,10 @@ class ReferralCode extends Model
      */
     public function getShareUrlAttribute(): ?string
     {
-        if ($this->type !== 'customer_referral') {
-            return null;
-        }
-        
-        $frontendUrl = env('APP_FRONTEND_URL', 'http://localhost:5173');
-return $frontendUrl . '/register?ref=' . $this->code;
+        if ($this->type !== 'customer_referral') return null;
+
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
+        return $frontendUrl . '/register?ref=' . $this->code;
     }
 
     // ========================================
@@ -418,12 +416,14 @@ return $frontendUrl . '/register?ref=' . $this->code;
         }
         
         // Check usage limit per customer
-        $customerUsageCount = $this->usages()
-            ->where('customer_id', $customer->id)
-            ->count();
-        
-        if ($customerUsageCount >= $this->max_uses_per_customer) {
-            return false;
+        if ($this->max_uses_per_customer) {
+            $customerUsageCount = $this->usages()
+                ->where('customer_id', $customer->id)
+                ->whereIn('status', ['completed', 'pending'])
+                ->count();
+
+            if ($customerUsageCount >= $this->max_uses_per_customer) 
+                return false;
         }
         
         return true;
@@ -575,7 +575,7 @@ return $frontendUrl . '/register?ref=' . $this->code;
             'reward_type' => 'percentage',
             'reward_value' => 5, // 5% for referee
             'referrer_reward_type' => 'store_credit',
-            'referrer_reward_value' => 500, // KSh 500 for referrer
+            'referrer_reward_value' => (float) \App\Models\LoyaltySetting::get('referral_credit_amount', 500),
             'status' => 'active',
             'is_public' => false,
             'max_uses_per_customer' => 1,

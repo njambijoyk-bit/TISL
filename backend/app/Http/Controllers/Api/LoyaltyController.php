@@ -9,6 +9,7 @@ use App\Models\StoreCreditTransaction;
 use App\Services\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class LoyaltyController extends Controller
 {
@@ -315,6 +316,13 @@ class LoyaltyController extends Controller
             'valid_from'      => 'nullable|date',
             'valid_until'     => 'nullable|date|after:valid_from',
         ]);
+
+        $minRedemptionPoints = (int) $this->loyalty->getSetting('min_redemption_points', 500);
+        if ((int) $data['points_required'] < $minRedemptionPoints) {
+            throw ValidationException::withMessages([
+                'points_required' => "Redemption rules must require at least {$minRedemptionPoints} points.",
+            ]);
+        }
 
         $rule = $this->loyalty->upsertRedemptionRule($data, $request->user());
         return response()->json(['rule' => $rule]);

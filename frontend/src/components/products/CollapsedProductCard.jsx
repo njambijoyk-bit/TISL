@@ -6,6 +6,14 @@ import useWishlistStore from '../../store/wishlistStore';
 import useQuoteListStore from '../../store/quoteListStore';
 import toast from 'react-hot-toast';
 
+const BOOST_BADGE = {
+  promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
+  social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
+  tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
+};
+
 export default function CollapsedProductCard({ product }) {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
@@ -83,9 +91,17 @@ export default function CollapsedProductCard({ product }) {
   };
 
   return (
-    <div className="collapsed-card" onClick={handleViewProduct}>
+    <div
+      className="collapsed-card"
+      onClick={handleViewProduct}
+      style={product.boost_badge_type ? {
+        borderLeft: `3px solid ${BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981'}`,
+      } : {}}
+    >
+      
       {/* Full-width name banner on hover */}
       <div className="collapsed-hover-name">{product?.name}</div>
+      
       {/* Thumbnail */}
       <div className="collapsed-thumb">
         {!imageError && imageUrl ? (
@@ -97,8 +113,33 @@ export default function CollapsedProductCard({ product }) {
 
       {/* Info */}
       <div className="collapsed-info">
-        <p className="collapsed-name">{product?.name}</p>
-        {description ? <p className="collapsed-desc">{description}</p> : null}
+        <p className="collapsed-name">
+          {product.boost_badge_type && (() => {
+            const badge = BOOST_BADGE[product.boost_badge_type] ?? BOOST_BADGE.tip;
+            return (
+              <span style={{
+                marginLeft: 6, fontSize: 8, fontWeight: 800,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                background: badge.bg, color: badge.text,
+                padding: '1px 5px', borderRadius: 3,
+                verticalAlign: 'middle',
+              }}>
+                {badge.label}
+              </span>
+            );
+          })()}
+        </p>
+        <p className="collapsed-name">
+          {product?.name}
+        </p>
+        {(product.boost_message || description) ? (
+          <p className="collapsed-desc" style={product.boost_message ? {
+            color: BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981',
+            fontWeight: 600,
+          } : {}}>
+            {product.boost_message || description}
+          </p>
+        ) : null}
       </div>
 
       {/* Right: price + buttons */}

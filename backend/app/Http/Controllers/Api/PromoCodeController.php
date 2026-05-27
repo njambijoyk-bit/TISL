@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\LogsReferralActivity;
 use App\Models\ReferralCode;
 use App\Models\Customer;
 use App\Models\Order;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class PromoCodeController extends Controller
 {
+    use LogsReferralActivity; 
     protected PromoCodeService $service;
 
     public function __construct(PromoCodeService $service)
@@ -202,6 +204,8 @@ class PromoCodeController extends Controller
 
             DB::commit();
 
+            $this->logPromoCreated($code);
+
             return response()->json([
                 'message' => 'Promo code created successfully.',
                 'code'    => $code->load(['targetCustomer.user', 'createdBy']),
@@ -254,6 +258,16 @@ class PromoCodeController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $changes = [];
+        $fields  = ['name','code','description','reward_type','reward_value',
+                    'max_uses','valid_from','valid_until','min_order_value','status'];
+        foreach ($fields as $field) {
+            if ($request->has($field) && $request->$field != $code->$field) {
+                $changes[] = ['field' => $field, 'old' => $code->$field, 'new' => $request->$field];
+            }
+        }
+
+
         $code->update([
             ...$request->only([
                 'name', 'code', 'description',
@@ -269,6 +283,10 @@ class PromoCodeController extends Controller
             ]),
             'updated_by' => $request->user()->id,
         ]);
+
+        if (!empty($changes)) {
+            $this->logPromoUpdated($code, $changes); 
+        }
 
         return response()->json([
             'message' => 'Promo code updated.',
@@ -289,12 +307,14 @@ class PromoCodeController extends Controller
 
         if ($code->times_used > 0) {
             $code->update(['status' => 'archived']);
+            $this->logPromoStatusChanged($code, 'ARCHIVED');
             return response()->json([
                 'message' => 'Code has been used — archived instead of deleted.',
                 'code'    => $code,
             ]);
         }
 
+        $this->logPromoStatusChanged($code, 'DELETED');
         $code->delete();
         return response()->json(['message' => 'Promo code deleted.']);
     }
@@ -311,6 +331,7 @@ class PromoCodeController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->activate();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logPromoStatusChanged($code, 'ACTIVATED'); 
         return response()->json(['message' => 'Code activated.', 'code' => $code]);
     }
 
@@ -322,6 +343,7 @@ class PromoCodeController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->pause();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logPromoStatusChanged($code, 'PAUSED'); 
         return response()->json(['message' => 'Code paused.', 'code' => $code]);
     }
 
@@ -333,6 +355,7 @@ class PromoCodeController extends Controller
         $code = ReferralCode::findOrFail($id);
         $code->archive();
         $code->update(['updated_by' => $request->user()->id]);
+        $this->logPromoStatusChanged($code, 'ARCHIVED');
         return response()->json(['message' => 'Code archived.', 'code' => $code]);
     }
 

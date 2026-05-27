@@ -73,59 +73,78 @@ export default function MyHamperOrders() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
-          {orders.map(order => (
-            <div
-              key={order.id}
-              onClick={() => navigate(`/hampers/my-orders/${order.id}`)}
-              style={{
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: 16,
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 20,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                position: 'relative'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#a855f7';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.08)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#e5e7eb';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div style={{ width: 56, height: 56, borderRadius: 12, background: 'rgba(124,58,237,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Package size={28} style={{ color: '#a855f7' }} />
-              </div>
+          {orders.map(order => {
+            const snapshot = order.hamper_snapshot || {};
+            const accent   = snapshot.accent_color || '#a855f7';
+            const image    = snapshot.cover_image  || order.hamper?.cover_image;
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, color: '#a855f7' }}>{order.order_number}</span>
-                  <StatusBadge status={order.status} />
+            return (
+              <div
+                key={order.id}
+                onClick={() => navigate(`/hampers/my-orders/${order.id}`)}
+                style={{
+                  background: 'white',
+                  border: `1px solid ${accent}40`,
+                  borderRadius: 16,
+                  padding: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 20,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = accent;
+                  e.currentTarget.style.boxShadow = `0 4px 12px ${accent}20`;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = `${accent}40`;
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {/* Image / fallback icon */}
+                <div style={{
+                  width: 56, height: 56, borderRadius: 12, flexShrink: 0,
+                  background: `${accent}12`,
+                  border: `1.5px solid ${accent}30`,
+                  overflow: 'hidden',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {image ? (
+                    <img src={image} alt={snapshot.name || order.hamper?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Package size={28} style={{ color: accent }} />
+                  )}
                 </div>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>
-                  {order.hamper?.name || 'Bundle Offer'}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, fontSize: '0.75rem', color: '#6b7280' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {format(new Date(order.created_at), 'dd MMM yyyy')}</span>
-                  <span style={{ color: '#a855f7' }} >{fmt(order.total)}</span>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {order.order_id && (
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 800, color: accent }}>{order.order_number}</span>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>
+                    {snapshot.name || order.hamper?.name || 'Bundle Offer'}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} /> {format(new Date(order.created_at), 'dd MMM yyyy')}
+                    </span>
+                    <span style={{ color: accent, fontWeight: 700 }}>{fmt(order.total)}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {order.order_id && (
                     <div title="Standard order linked" style={{ padding: '6px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
-                        <ExternalLink size={16} />
+                      <ExternalLink size={16} />
                     </div>
-                )}
-                <ChevronRight size={20} style={{ color: '#a855f7', fontWeight: 800 }} />
+                  )}
+                  <ChevronRight size={20} style={{ color: accent }} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {pagination && pagination.last_page > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
@@ -147,6 +166,7 @@ export default function MyHamperOrders() {
           )}
         </div>
       )}
+      <Footer />
     </div>
   );
 }

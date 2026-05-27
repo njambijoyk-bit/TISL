@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, X } from 'lucide-react';
 
 export default function InstallPrompt() {
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -36,13 +38,10 @@ export default function InstallPrompt() {
   const handleInstall = async () => {
     if (!prompt) return;
     prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === 'accepted') setVisible(false);
-    await prompt.userChoice; // Await user's choice on the native prompt
-    // After the native prompt has been shown (regardless of outcome), hide your custom banner.
     await prompt.userChoice;
-    setVisible(false); // Always hide the custom banner after an interaction
+    setVisible(false);
     setPrompt(null);
+    navigate('/portal');
   };
 
   // Fix 2 — also guard against dismissed

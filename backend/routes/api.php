@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PolicyController;
 use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\AuctionController;
@@ -82,6 +83,16 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
+});
+
+// Public
+Route::get('/policies', [PolicyController::class, 'index']);
+Route::get('/policies/{key}', [PolicyController::class, 'show']);
+
+// Auth required — must be registered BEFORE /{key} to avoid route conflict
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);
+    Route::post('/policies/accept', [PolicyController::class, 'recordAcceptance']);
 });
 
 // Public shipping options (for checkout)
@@ -215,11 +226,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // NOTIFICATIONS (ALL AUTHENTICATED USERS)
     // ============================================
     Route::prefix('notifications')->group(function () {
-        //removecommentRoute::get('/', [NotificationController::class, 'index']);
-        //removecommentRoute::get('/unread-count', [NotificationController::class, 'unreadCount']);
-        //removecommentRoute::post('/mark-all-read', [NotificationController::class, 'markAllRead']);
-        //removecommentRoute::post('/{id}/read', [NotificationController::class, 'markAsRead']);
-        //removecommentRoute::delete('/{id}', [NotificationController::class, 'destroy']);
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllRead']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'destroy']);
     });
 
     // ============================================
@@ -562,8 +573,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/trash', [OrderController::class, 'trashIndex']);  
             Route::post('/restore-multiple', [OrderController::class, 'restoreMultiple']);
+            Route::get('/activity', [OrderController::class, 'getAllOrderActivity']);
             Route::get('/statistics', [OrderController::class, 'statistics']);
             Route::get('/{customerId}/order-statistics', [OrderController::class, 'customerOrderStatistics']);
+            Route::get('/{id}/activity', [OrderController::class, 'getOrderActivity']);
             Route::get('/{id}', [OrderController::class, 'adminShow']);
             Route::post('/', [OrderController::class, 'adminCreateOrder']);
             Route::put('/{id}', [OrderController::class, 'update']);
@@ -705,6 +718,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/statistics',            [ReferralController::class, 'statistics']);
             Route::get('/analytics',             [ReferralController::class, 'analytics']);
             Route::get('/top-performers',        [ReferralController::class, 'topPerformers']);
+            Route::get('/activity',              [ReferralController::class, 'activityLog']);
             Route::get('/{id}',                  [ReferralController::class, 'show']);
             Route::post('/{id}/pause',           [ReferralController::class, 'pause']);
             Route::post('/{id}/archive',         [ReferralController::class, 'archive']);
@@ -946,6 +960,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('publications/{id}/comments', [PublicationCommentController::class, 'index']);
         Route::patch('comments/{id}', [PublicationCommentController::class, 'updateStatus']);
         Route::delete('comments/{id}', [PublicationCommentController::class, 'destroy']);
+
+        Route::prefix('policies')->group(function () {
+            Route::get('/',                    [PolicyController::class, 'adminIndex']);
+            Route::get('/reports',             [PolicyController::class, 'reports']);
+            Route::get('/{id}',                [PolicyController::class, 'adminShow']);
+            Route::put('/{id}',                [PolicyController::class, 'update']);
+            Route::get('/{id}/acceptances',    [PolicyController::class, 'acceptances']);
+            Route::get('/{id}/change-logs',    [PolicyController::class, 'changeLogs']);
+        });
+
         
         Route::prefix('projects')->group(function () {
             Route::delete('/{project}', [ProjectController::class, 'adminDestroy']);          // soft delete → trash
@@ -961,7 +985,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}',                                 [HamperController::class, 'show']);
             Route::put('/{id}',                                 [HamperController::class, 'update']);
             Route::delete('/{id}',                              [HamperController::class, 'destroy']);
-            Route::get('{id}/eligible-customers',               [HamperController::class, 'eligibleCustomers']);
+            Route::get('/{id}/activity',                        [HamperController::class, 'activityLogs']);
+            Route::get('/{id}/eligible-customers',               [HamperController::class, 'eligibleCustomers']);
         
             // products
             Route::post('/{id}/products',                       [HamperController::class, 'addProduct']);
@@ -972,8 +997,8 @@ Route::middleware('auth:sanctum')->group(function () {
             // eligibility
             Route::get('/{id}/eligibility',                     [HamperController::class, 'listEligibility']);
             Route::post('/{id}/eligibility',                    [HamperController::class, 'addCustomer']);
-            Route::patch('/{id}/eligibility/{customerId}',      [HamperController::class, 'updateCustomerStatus']);
             Route::get('/{id}/eligibility/search',              [HamperController::class, 'searchCustomers']);
+            Route::patch('/{id}/eligibility/{customerId}',      [HamperController::class, 'updateCustomerStatus']);
         
             // orders
             Route::get('/{id}/orders',                          [HamperController::class, 'orders']);
@@ -985,6 +1010,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}',                                 [HamperOrderController::class, 'show']);
             Route::patch('/{id}/status',                        [HamperOrderController::class, 'updateStatus']);
             Route::post('/{id}/convert',                        [HamperOrderController::class, 'convertToOrder']);
+            Route::get('/{id}/activity', [HamperOrderController::class, 'activityLogs']);
         });
         
         // ── PROMO CODES — ADMIN ────────────────────────────────────────────────────
@@ -1035,6 +1061,26 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // ── ALGORITHM — ADMIN ──────────────────────────────────────────────────────
+    Route::middleware('role:admin,super_admin')
+        ->prefix('admin/algorithm')
+        ->group(function () {
+            Route::get('/config',               [AlgorithmController::class, 'getConfig']);
+            Route::put('/config',               [AlgorithmController::class, 'saveConfig']);
+            Route::get('/scores',               [AlgorithmController::class, 'getScores']);
+            Route::get('/scores/{customerId}',  [AlgorithmController::class, 'getCustomerScore']);
+
+            // Segment rules CRUD
+            Route::post('/segment-rules',       [AlgorithmController::class, 'storeSegmentRule']);
+            Route::put('/segment-rules/{id}',   [AlgorithmController::class, 'updateSegmentRule']);
+            Route::delete('/segment-rules/{id}',[AlgorithmController::class, 'deleteSegmentRule']);
+
+            // ── Catalogue boosts ─────────────────────────────────────────────
+            Route::get('/catalogue-boosts',                              [AlgorithmController::class, 'getCatalogueBoosts']);
+            Route::put('/catalogue-boosts/{entityType}/{entityId}',      [AlgorithmController::class, 'upsertCatalogueBoost']);
+            Route::delete('/catalogue-boosts/{entityType}/{entityId}',   [AlgorithmController::class, 'deleteCatalogueBoost']);
+        });
+
     // ============================================
     // CAREERS — ADMIN
     // ============================================
@@ -1066,6 +1112,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/documents/{document}/download',   [AdminApplicationController::class, 'downloadDocument'])
                 ->name('admin.careers.documents.download');
         });
+
+        
+    // Run scoring — super_admin only (matches your existing destructive-action pattern)
+    Route::middleware('role:super_admin')
+    ->prefix('admin/algorithm')
+    ->group(function () {
+        Route::post('/run', [AlgorithmController::class, 'runScoring']);
+    });
 
     // ============================================
     // SUPER ADMIN ONLY ROUTES

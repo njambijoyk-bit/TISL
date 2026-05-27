@@ -49,11 +49,17 @@ const RULE_TYPE_COLORS = {
 
 const fmtKes = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 
+const calculatePointsEarned = (orderKes, pointsPer100Kes) => {
+  const spend = Math.max(0, Number(orderKes || 0));
+  const rate = Math.max(1, Number(pointsPer100Kes || 1));
+  return Math.floor(spend / 100) * rate;
+};
+
 // ── Rule modal ────────────────────────────────────────────────────────────────
 
 const EMPTY_RULE = { name: '', type: 'cashback', points_required: '', value_kes: '', active: true, valid_from: '', valid_until: '' };
 
-function RuleModal({ rule, onClose, onSave }) {
+function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes }) {
   const [form,    setForm]    = useState(rule ? {
     ...rule,
     valid_from:  rule.valid_from  ? rule.valid_from.slice(0, 10)  : '',
@@ -61,13 +67,25 @@ function RuleModal({ rule, onClose, onSave }) {
   } : EMPTY_RULE);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+  const [exampleOrderKes] = useState(() => Math.ceil((Math.floor(Math.random() * 9) + 1) * 100));
+
+  const minPoints = Math.max(1, Number(minRedemptionPoints ?? 1));
+  const pointsRate = Math.max(1, Number(pointsPer100Kes ?? 1));
+  const pointsRequired = Number(form.points_required || 0);
+  const valueKes = Number(form.value_kes || 0);
+  const examplePoints = calculatePointsEarned(exampleOrderKes, pointsRate);
+  const estimatedSpendToReachRule = pointsRequired > 0 ? Math.ceil(pointsRequired / pointsRate) * 100 : 0;
+  const rewardMath = estimatedSpendToReachRule > 0 && valueKes > 0
+    ? (valueKes > estimatedSpendToReachRule ? 'loss' : valueKes < estimatedSpendToReachRule ? 'profit' : 'break-even')
+    : null;
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const submit = async () => {
     if (!form.name.trim())          return setError('Name is required.');
     if (!form.points_required || isNaN(Number(form.points_required))) return setError('Points required must be a number.');
-    if (!form.value_kes      || isNaN(Number(form.value_kes)))        return setError('KES value must be a number.');
+    if (Number(form.points_required) < minPoints) return setError(`Points required must be at least ${minPoints}.`);
+    if ((form.type === 'cashback' || form.type === 'voucher') && (!form.value_kes || Number(form.value_kes) <= 0)) return setError('Cashback and voucher rules must award a KES value greater than 0.');
     setLoading(true); setError('');
     try {
       const payload = {
@@ -157,6 +175,13 @@ function RuleModal({ rule, onClose, onSave }) {
               <p style={label}>Valid until</p>
               <input type="date" value={form.valid_until} onChange={e => set('valid_until', e.target.value)} style={inputStyle} />
             </div>
+          </div>
+
+          <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(5,150,105,0.04)', border: '1.5px solid rgba(5,150,105,0.12)' }}>
+            <p style={{ fontSize: '0.76rem', fontWeight: 800, color: '#065f46', margin: '0 0 6px' }}>Simple rule math</p>
+            <p style={{ fontSize: '0.72rem', color: '#374151', lineHeight: 1.5, margin: 0 }}>
+              Example order: <strong>{fmtKes(exampleOrderKes)}</strong> spent on an order earns about <strong>{examplePoints}</strong> point{examplePoints !== 1 ? 's' : ''} at <strong>{pointsRate}</strong> point{pointsRate !== 1 ? 's' : ''} per KES 100. To reach <strong>{pointsRequired || 0}</strong> points, a customer usually needs about <strong>{estimatedSpendToReachRule ? fmtKes(estimatedSpendToReachRule) : '—'}</strong> in spending. If this rule awards <strong>{fmtKes(valueKes)}</strong>, that is usually a <strong>{rewardMath ?? '—'}</strong> compared with that spend.
+            </p>
           </div>
 
           {/* Active toggle */}
@@ -333,7 +358,7 @@ export default function LoyaltySettings() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
-            { key: 'points_per_100_kes',     label: 'Points per KES 100 spent',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
+            { key: 'points_per_100_kes',     label: 'Points per KES 100 spent (must be an integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
             { key: 'referral_credit_amount',  label: 'Referral reward (KES)',      type: 'number', min: 0,   placeholder: '500', hint: 'Store credit granted to referrer when referred customer pays first order.' },
             { key: 'min_redemption_points',   label: 'Min redemption threshold',   type: 'number', min: 1,   placeholder: '500', hint: 'Customer must have at least this many points to redeem.' },
             { key: 'points_expiry_months',    label: 'Points expiry (months)',      type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
@@ -368,6 +393,9 @@ export default function LoyaltySettings() {
           <div>
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '0.76rem', color: '#6b7280', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
+              Gift redemptions deduct the customer's points but do not add store credit. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules convert points into KES credit automatically.
+            </p>
           </div>
           <button onClick={() => setRuleModal('new')} style={btn('primary', 'sm')}>
             <Plus size={13} /> New rule
@@ -469,6 +497,8 @@ export default function LoyaltySettings() {
           rule={ruleModal === 'new' ? null : ruleModal}
           onClose={() => setRuleModal(null)}
           onSave={onRuleSaved}
+          minRedemptionPoints={settings?.min_redemption_points}
+          pointsPer100Kes={settings?.points_per_100_kes}
         />
       )}
       {deleteRule && (

@@ -63,6 +63,10 @@ class Customer extends Model
         'created_by',
         'last_login_at',
         'last_login_ip',
+        'policy_flagged',
+        'policy_flagged_at',
+        'policy_flagged_policy_key',
+        'policy_flagged_version',
     ];
 
     /**
@@ -90,6 +94,8 @@ class Customer extends Model
         'referral_registered_at' => 'datetime',
         'referral_completed_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'policy_flagged'    => 'boolean',
+        'policy_flagged_at' => 'datetime',  
     ];
 
     /**
@@ -100,6 +106,7 @@ class Customer extends Model
         'profile_image_url',
         'available_credit',
         'tier_benefits',
+        'type_discount_percentage',
     ];
 
     // ========================================
@@ -329,7 +336,7 @@ class Customer extends Model
             return [
                 'discount' => 0,
                 'priority_support' => false,
-                'free_shipping_threshold' => 50000,
+                'free_shipping_threshold' => 500000,
                 'loyalty_points_multiplier' => 1,
             ];
         }
@@ -340,6 +347,14 @@ class Customer extends Model
             'free_shipping_threshold' => $tier->free_shipping_threshold !== null ? (float) $tier->free_shipping_threshold : 0,
             'loyalty_points_multiplier' => (float) $tier->loyalty_points_multiplier,
         ];
+    }
+
+    public function getTypeDiscountPercentageAttribute(): float
+    {
+        $typeRow = CustomerTypeDiscount::where('slug', $this->customer_type)
+            ->where('is_active', true)
+            ->first();
+        return $typeRow ? (float) $typeRow->discount_percentage : 0;
     }
 
     // ========================================

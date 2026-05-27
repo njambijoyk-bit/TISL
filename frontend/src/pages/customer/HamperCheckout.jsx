@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Lock, Package, Truck, Tag, Wallet, Loader2, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
+import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
 import hampersAPI from '../../api/hampers';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
@@ -112,6 +113,9 @@ export default function HamperCheckout() {
     line1: '', line2: '', city: '', county: '', country: 'Kenya',
     notes: '',
   });
+
+  const [policyAccepted,    setPolicyAccepted]    = useState(false);
+  const [policyAcceptances, setPolicyAcceptances] = useState([]);
 
   useEffect(() => {
     if (!isAuthenticated) { navigate(`/login?redirect=/hampers/${slug}/checkout`); return; }
@@ -230,10 +234,11 @@ export default function HamperCheckout() {
         notes: form.notes || undefined,
         ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
         ...(applyCredit && creditDeduction > 0 ? { store_credit_amount: creditDeduction } : {}),
+        ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}),
       };
       const res = await hampersAPI.placeOrder(slug, payload);
       toast.success('Order placed successfully!');
-      navigate('hampers/my-orders', { state: { newOrder: res.order_number } });
+      navigate('/hampers/my-orders', { state: { newOrder: res.order_number } });
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to place order');
     } finally {
@@ -499,29 +504,39 @@ export default function HamperCheckout() {
                   </div>
                 </div>
 
+                {/* Policy consent */}
+                <PolicyConsentCheckbox
+                  policyKeys={['hamper_policy']}
+                  actionContext="hamper_checkout"
+                  onChange={(isChecked, acceptances) => {
+                    setPolicyAccepted(isChecked);
+                    setPolicyAcceptances(acceptances);
+                  }}
+                  disabled={submitting}
+                />
+
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !policyAccepted}
                   style={{
-                    width: '100%', marginTop: 20, padding: '13px',
+                    width: '100%', marginTop: 12, padding: '13px',
                     borderRadius: 10, fontSize: '0.9rem', fontWeight: 700,
-                    border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                    background: submitting ? `${accent}80` : accent,
-                    color: 'white', boxShadow: submitting ? 'none' : `0 4px 16px ${accent}40`,
+                    border: 'none',
+                    cursor: (submitting || !policyAccepted) ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    background: (submitting || !policyAccepted) ? `${accent}50` : accent,
+                    color: 'white',
+                    boxShadow: (submitting || !policyAccepted) ? 'none' : `0 4px 16px ${accent}40`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'box-shadow 150ms',
+                    transition: 'box-shadow 150ms', opacity: !policyAccepted ? 0.6 : 1,
                   }}
-                  onMouseEnter={e => { if (!submitting) e.currentTarget.style.boxShadow = `0 6px 24px ${accent}60`; }}
-                  onMouseLeave={e => { if (!submitting) e.currentTarget.style.boxShadow = `0 4px 16px ${accent}40`; }}
+                  onMouseEnter={e => { if (!submitting && policyAccepted) e.currentTarget.style.boxShadow = `0 6px 24px ${accent}60`; }}
+                  onMouseLeave={e => { if (!submitting && policyAccepted) e.currentTarget.style.boxShadow = `0 4px 16px ${accent}40`; }}
                 >
                   <Lock size={15} />
                   {submitting ? 'Placing order…' : 'Place Order'}
                 </button>
-
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center', margin: '10px 0 0' }}>
-                  By placing your order, you agree to our Terms &amp; Conditions
-                </p>
               </div>
             </div>
 

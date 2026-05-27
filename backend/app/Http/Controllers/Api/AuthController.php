@@ -19,9 +19,11 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\WelcomeEmail;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
+use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 
 class AuthController extends Controller
 {
+    use LogsPolicyAcceptances;
     /**
      * REGISTER - Create new user account
      * UPDATED: Added referral code support
@@ -35,6 +37,9 @@ class AuthController extends Controller
             'company_name' => 'nullable|string|max:255',
             'password' => 'required|string|min:8|confirmed',
             'referral_code' => 'nullable|string',
+            'policy_acceptances'            => 'required|array',
+            'policy_acceptances.*.key'      => 'required|string',
+            'policy_acceptances.*.response' => 'required|in:accepted,disagreed',
             ], [
  // NEW: Optional referral code[
         'name.required' => 'Please enter your full name',
@@ -116,6 +121,22 @@ class AuthController extends Controller
                 'customer_id' => $customer->id,
                 'code' => $personalCode->code
             ]);
+
+            
+            // Log policy acceptances
+            $policyAcceptances = $request->policy_acceptances ?? [];
+            foreach ($policyAcceptances as $pa) {
+                $this->logPolicyAcceptance(
+                    policyKey:      $pa['key'],
+                    actionContext:  'register',
+                    response:       $pa['response'],
+                    customer:       $customer,
+                    user:           $user,
+                    disagreeReason: $pa['reason'] ?? null,
+                    wasSuccessful:  true,
+                    request:        $request
+                );
+            }
 
             // Send verification email
             //Mail::to($user->email)->send(new WelcomeEmail($user));
@@ -209,6 +230,104 @@ class AuthController extends Controller
                 'message' => 'You must change your password before logging in',
                 'force_password_change' => true
             ], 403);
+        }
+
+        // ── Policy acceptance check (customers only) ──────────────────────────────
+        if ($user->isCustomer() && $user->customer) {
+            $customer = $user->customer;
+            $policyAcceptances = $request->input('policy_acceptances', []);
+
+            // If no acceptances sent, check if re-acceptance needed
+            if (empty($policyAcceptances)) {
+                $needsReaccept = [];
+                foreach (['terms_of_use', 'privacy_policy'] as $key) {
+                    if ($this->needsReacceptance($customer, $key)) {
+                        $policy = \App\Models\Policy::where('key', $key)->where('is_active', true)->first();
+                        $needsReaccept[] = [
+                            'key'                      => $key,
+                            'title'                    => $policy?->title,
+                            'content'                  => $policy?->content,
+                            'version'                  => $policy?->version,
+                            'sensitivity'              => $policy?->sensitivity,
+                            'disagree_consequence_text'=> $policy?->disagree_consequence_text,
+                        ];
+                    }
+                }
+
+                if (!empty($needsReaccept)) {
+                    return response()->json([
+                        'requires_policy_acceptance' => true,
+                        'policies'                   => $needsReaccept,
+                        'message'                    => 'Policy re-acceptance required.',
+                    ], 200);
+                }
+            }
+
+            // Process sent acceptances
+            foreach ($policyAcceptances as $pa) {
+                $policyKey = $pa['key'];
+                $response  = $pa['response'];
+                $reason    = $pa['reason'] ?? null;
+
+                $policy = \App\Models\Policy::where('key', $policyKey)
+                    ->where('is_active', true)->first();
+
+                $isCritical = $policy?->sensitivity === 'critical';
+
+                // Log the acceptance/disagreement
+                $this->logPolicyAcceptance(
+                    policyKey:      $policyKey,
+                    actionContext:  'login',
+                    response:       $response,
+                    customer:       $customer,
+                    user:           $user,
+                    disagreeReason: $reason,
+                    wasSuccessful:  $response === 'accepted',
+                    request:        $request
+                );
+
+                if ($response === 'disagreed') {
+                    if ($isCritical) {
+                        // Flag the account
+                        $this->flagCustomerForPolicy($customer, $policyKey, $policy?->version ?? 'unknown');
+
+                        // Create notification
+                        \App\Models\Notification::create([
+                            'notifiable_type' => \App\Models\Customer::class,
+                            'notifiable_id'   => $customer->id,
+                            'type'            => 'PolicyDisagreement',
+                            'title'           => "Customer disagreed with {$policy?->title}",
+                            'message'         => "{$customer->first_name} {$customer->last_name} ({$customer->customer_number}) disagreed with {$policy?->title} v{$policy?->version} at login." . ($reason ? " Reason: {$reason}" : ''),
+                            'icon'            => 'shield-alert',
+                            'color'           => '#ef4444',
+                            'data'            => json_encode([
+                                'customer_id'     => $customer->id,
+                                'customer_number' => $customer->customer_number,
+                                'policy_key'      => $policyKey,
+                                'policy_version'  => $policy?->version,
+                                'action_context'  => 'login',
+                                'reason'          => $reason,
+                                'is_critical'     => true,
+                                'flagged'         => true,
+                            ]),
+                            'priority' => 'high',
+                            'sent_at'  => now(),
+                        ]);
+                    }
+
+                    return response()->json([
+                        'message'             => $policy?->disagree_consequence_text ?? 'You must accept this policy to continue.',
+                        'policy_disagreement' => true,
+                        'policy_key'          => $policyKey,
+                        'is_critical'         => $isCritical,
+                    ], 403);
+                }
+
+                // Accepted — clear flag if this was the flagged policy
+                if ($customer->policy_flagged && $customer->policy_flagged_policy_key === $policyKey) {
+                    $this->clearPolicyFlag($customer);
+                }
+            }
         }
 
         // Login successful

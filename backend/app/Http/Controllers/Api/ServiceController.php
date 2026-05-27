@@ -24,87 +24,71 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Service::with(['category'])->where('is_available', true)->where('is_visible', true)->where('status', 'active');
+        $query = Service::with(['category'])
+            ->where('is_available', true)
+            ->where('is_visible', true)
+            ->where('status', 'active');
 
-        // Search
-        // Smart Search - searches across multiple fields
+        // --- all existing filters unchanged ---
         if ($request->has('search') && $request->search) {
-            $search = $request->search;
+            $search     = $request->search;
             $searchTerm = "%{$search}%";
-            
-            $query->where(function($q) use ($search, $searchTerm) {
+            $query->where(function ($q) use ($search, $searchTerm) {
                 $q->where('name', 'like', $searchTerm)
                 ->orWhere('description', 'like', $searchTerm)
                 ->orWhere('short_description', 'like', $searchTerm)
                 ->orWhere('service_area', 'like', $searchTerm)
-                // Search in JSON fields (features, deliverables, requirements)
                 ->orWhereRaw("JSON_SEARCH(features, 'one', ?) IS NOT NULL", [$search])
                 ->orWhereRaw("JSON_SEARCH(deliverables, 'one', ?) IS NOT NULL", [$search])
                 ->orWhereRaw("JSON_SEARCH(requirements, 'one', ?) IS NOT NULL", [$search])
-                // Search in category name
-                ->orWhereHas('category', function ($categoryQuery) use ($searchTerm) {
-                    $categoryQuery->where('name', 'like', $searchTerm);
-                });
+                ->orWhereHas('category', fn($q2) => $q2->where('name', 'like', $searchTerm));
             });
         }
+        if ($request->has('category_id'))          { $query->where('category_id', $request->category_id); }
+        if ($request->has('type') && $request->type) { $query->where('type', $request->type); }
+        if ($request->has('pricing_model'))        { $query->where('pricing_model', $request->pricing_model); }
+        if ($request->boolean('remote_only'))      { $query->where('is_remote_available', true); }
+        if ($request->has('requires_site_visit'))  { $query->where('requires_site_visit', $request->boolean('requires_site_visit')); }
+        if ($request->boolean('featured'))         { $query->where('is_featured', true); }
+        if ($request->has('min_price'))            { $query->where('base_price', '>=', $request->min_price); }
+        if ($request->has('max_price'))            { $query->where('base_price', '<=', $request->max_price); }
+        // ------------------------------------------
 
-        // Filter by category
-        if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        // Filter by type
-        if ($request->has('type') && $request->type) {
-            $query->where('type', $request->type);
-        }
-
-        // Filter by pricing model
-        if ($request->has('pricing_model')) {
-            $query->where('pricing_model', $request->pricing_model);
-        }
-
-        // Filter by remote availability
-        if ($request->boolean('remote_only')) {
-            $query->where('is_remote_available', true);
-        }
-
-        // Filter by site visit requirement
-        if ($request->has('requires_site_visit')) {
-            $query->where('requires_site_visit', $request->boolean('requires_site_visit'));
-        }
-
-        // Filter by featured
-        if ($request->boolean('featured')) {
-            $query->where('is_featured', true);
-        }
-
-        // Price range
-        if ($request->has('min_price')) {
-            $query->where('base_price', '>=', $request->min_price);
-        }
-        if ($request->has('max_price')) {
-            $query->where('base_price', '<=', $request->max_price);
-        }
-
-        // Sort
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-
-        if ($sortBy === 'popular') {
-            $query->orderBy('order_count', 'desc');
-        } elseif ($sortBy === 'rating') {
-            $query->orderBy('rating', 'desc');
-        } elseif ($sortBy === 'price_low') {
-            $query->orderBy('base_price', 'asc');
-        } elseif ($sortBy === 'price_high') {
-            $query->orderBy('base_price', 'desc');
+        // Sort: honour manual sort_by param; otherwise personalise
+        $sortBy = $request->get('sort_by');
+        if ($sortBy) {
+            $sortOrder = $request->get('sort_order', 'desc');
+            if ($sortBy === 'popular')    { $query->orderBy('order_count', 'desc'); }
+            elseif ($sortBy === 'rating') { $query->orderBy('rating', 'desc'); }
+            elseif ($sortBy === 'price_low')  { $query->orderBy('base_price', 'asc'); }
+            elseif ($sortBy === 'price_high') { $query->orderBy('base_price', 'desc'); }
+            else  { $query->orderBy($sortBy, $sortOrder); }
+            $meta = ['personalized' => false, 'segment' => 'manual'];
         } else {
-            $query->orderBy($sortBy, $sortOrder);
+            $order = app(\App\Services\CatalogueRankingService::class)
+                ->getOrderExpression('service');
+            $query->orderByRaw($order['expression'], $order['bindings']);
+            $meta = ['personalized' => $order['personalized'], 'segment' => $order['segment']];
         }
 
         $services = $query->paginate($request->get('per_page', 20));
 
-        return response()->json($services, 200);
+        $pageIds = $services->pluck('id');
+        $boosts  = DB::table('algorithm_bonus_content')
+            ->where('entity_type', 'service')
+            ->where('is_active', 1)
+            ->whereIn('entity_id', $pageIds)
+            ->get(['entity_id', 'message', 'badge_type'])
+            ->keyBy('entity_id');
+
+        $services->getCollection()->transform(function ($service) use ($boosts) {
+            $boost = $boosts->get($service->id);
+            $service->boost_message    = $boost?->message    ?? null;
+            $service->boost_badge_type = $boost?->badge_type ?? null;
+            return $service;
+        });
+
+        return response()->json(array_merge($services->toArray(), $meta), 200);
     }
 
     /**

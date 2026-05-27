@@ -20,14 +20,11 @@ class BookingSetting extends Model
         'allow_weekend_bookings',
         'allow_holiday_bookings',
         'override_booking_required',
-        'customer_can_cancel',
         'cancellation_window_hours',
         'cancellation_fee_type',
         'cancellation_fee',
         'cancellation_currency_code',
-        'cancellation_policy_template',
-        'cancellation_policy_version',
-        'require_policy_acceptance',
+        'customer_can_cancel',
         'email_customer_on_booking',
         'email_admin_on_booking',
         'email_customer_on_cancel',
@@ -44,12 +41,11 @@ class BookingSetting extends Model
         'allow_holiday_bookings'     => 'boolean',
         'override_booking_required'  => 'boolean',
         'customer_can_cancel'        => 'boolean',
-        'require_policy_acceptance'  => 'boolean',
+        'cancellation_fee'           => 'decimal:2',
         'email_customer_on_booking'  => 'boolean',
         'email_admin_on_booking'     => 'boolean',
         'email_customer_on_cancel'   => 'boolean',
         'email_admin_on_cancel'      => 'boolean',
-        'cancellation_fee'           => 'decimal:2',
         'updated_at'                 => 'datetime',
     ];
 
@@ -66,11 +62,10 @@ class BookingSetting extends Model
             'allow_holiday_bookings'    => false,
             'override_booking_required' => false,
             'customer_can_cancel'       => false,
-            'cancellation_window_hours' => 24,
-            'cancellation_fee_type'     => 'flat',
-            'cancellation_fee'          => 0,
-            'cancellation_currency_code'=> 'KES',
-            'require_policy_acceptance' => true,
+            'cancellation_window_hours'  => 24,
+            'cancellation_fee_type'      => 'flat',
+            'cancellation_fee'           => 0,
+            'cancellation_currency_code' => 'KES',
             'email_customer_on_booking' => true,
             'email_admin_on_booking'    => true,
             'email_customer_on_cancel'  => true,
@@ -79,25 +74,6 @@ class BookingSetting extends Model
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
-
-    /**
-     * Render the cancellation policy template with live values from DB.
-     */
-    public function renderPolicy(): string
-    {
-        $currency = Currency::where('code', $this->cancellation_currency_code)->first();
-        $symbol   = $currency?->symbol ?? $this->cancellation_currency_code;
-
-        $fee = $this->cancellation_fee_type === 'percent'
-            ? $this->cancellation_fee . '%'
-            : $symbol . ' ' . number_format($this->cancellation_fee, 2);
-
-        return str_replace(
-            ['{cancellation_fee}', '{cancellation_window_hours}', '{currency}', '{currency_symbol}'],
-            [$fee, $this->cancellation_window_hours, $this->cancellation_currency_code, $symbol],
-            $this->cancellation_policy_template ?? ''
-        );
-    }
 
     /**
      * Check whether a given date is available for booking.

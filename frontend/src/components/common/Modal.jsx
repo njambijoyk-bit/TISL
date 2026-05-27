@@ -1,91 +1,104 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-/**
- * Modal Component with Blur Background
- * 
- * @param {boolean} isOpen - Controls modal visibility
- * @param {function} onClose - Handler for closing modal
- * @param {string} title - Modal title
- * @param {string} size - Modal size: 'sm', 'md', 'lg', 'xl', '2xl'
- * @param {ReactNode} children - Modal content
- */
-const Modal = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  size = 'md',
-  children 
-}) => {
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+const sizeMap = {
+  sm:  460,
+  md:  540,
+  lg:  720,
+  xl:  960,
+  '2xl': 1100,
+};
 
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
-  // Close on Escape key
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
+    const handleEscape = (e) => { if (e.key === 'Escape' && isOpen) onClose(); };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-    '2xl': 'max-w-6xl',
-  };
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop with Blur */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-xl transition-opacity"
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, overflowY: 'auto' }}>
+
+      {/* Backdrop */}
+      <div
         onClick={onClose}
         aria-hidden="true"
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+        }}
       />
 
-      {/* Modal Container */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        {/* Modal Content */}
-        <div 
-          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-800 rounded-lg shadow-2xl transform transition-all`}
+      {/* Centering wrapper */}
+      <div style={{
+        display: 'flex', minHeight: '100%',
+        alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}>
+
+        {/* Modal panel */}
+        <div
           onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'relative', width: '100%',
+            maxWidth: sizeMap[size] ?? sizeMap.md,
+            background: 'white', borderRadius: 14,
+            border: '1px solid rgba(168,85,247,0.15)',
+            boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+          }}
         >
+
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 20px',
+            borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+          }}>
+            <h3 style={{
+              fontSize: '0.95rem', fontWeight: 700,
+              color: '#111827', margin: 0,
+            }}>
               {title}
             </h3>
+
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Close modal"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 30, height: 30, borderRadius: 8,
+                border: 'none', background: 'none',
+                color: '#9ca3af', cursor: 'pointer',
+                transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+                e.currentTarget.style.color = '#7c3aed';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'none';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
             >
-              <X className="w-5 h-5" />
+              <X size={16} />
             </button>
           </div>
 
           {/* Body */}
-          <div className="px-6 py-4">
+          <div style={{ padding: '16px 20px' }}>
             {children}
           </div>
+
         </div>
       </div>
     </div>

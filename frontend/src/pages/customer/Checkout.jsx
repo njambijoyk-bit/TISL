@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, AlertTriangle, Tag, ChevronRight, Package, Truck, CreditCard, X, Wallet, Loader2 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
+import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
 import PromoCodeInput from '../../components/common/PromoCodeInput';
 import { useCartStore, useAuthStore } from '../../store';
 import useOrderStore from '../../store/orderStore';
@@ -97,13 +98,19 @@ function RadioCard({ value, current, onChange, label, sub, icon }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, getTotal, clearCart }    = useCartStore();
-  const { user, customer }                = useAuthStore();
+  const { user, customer, fetchCustomer } = useAuthStore();
   const { createOrder }                   = useOrderStore();
   const { appliedPromo, clearPromo }      = usePromoCodeStore();
   const [loading, setLoading]             = useState(false);
   const [errors,  setErrors]              = useState({});
+  
+  const submittedRef = useRef(false);
 
   const [shippingOptions, setShippingOptions] = useState([]);
+
+  useEffect(() => {
+    if (user) fetchCustomer();// re-sync customer data when checkout opens
+  }, []);
 
   useEffect(() => {
     shippingAPI.getActiveOptions().then(opts => {
@@ -128,6 +135,9 @@ export default function Checkout() {
   const [applyCredit,      setApplyCredit]      = useState(false);
   const [creditInput,      setCreditInput]      = useState('');
   const [creditCalculating,setCreditCalculating]= useState(false);
+
+  const [policyAccepted,    setPolicyAccepted]    = useState(false);
+  const [policyAcceptances, setPolicyAcceptances] = useState([]);
   const creditDebounce                          = useRef(null);
 
   const handleChange = (e) => {
@@ -159,9 +169,11 @@ export default function Checkout() {
           apply_store_credit: true,
           store_credit_amount: creditDeduction,
         } : {}),
+        ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}), 
       };
       const res = await createOrder(orderData);
       toast.success('Order placed successfully!');
+      submittedRef.current = true;  // ← suppress the empty cart redirect
       clearCart(); clearPromo();
       navigate(`/orders/${res.order.id}`);
     } catch (err) {
@@ -195,7 +207,7 @@ export default function Checkout() {
 
   const fmt = (n) => Number(n).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 
-  if (items.length === 0) { navigate('/cart'); return null; }
+  if (items.length === 0 && !submittedRef.current) { navigate('/cart'); return null; }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -508,26 +520,41 @@ export default function Checkout() {
                   </div>
                 </div>
 
+                {/* Policy consent — replaces the static text */}
+                <PolicyConsentCheckbox
+                  policyKeys={['standard_order_policy']}
+                  actionContext="standard_checkout"
+                  onChange={(isChecked, acceptances) => {
+                    setPolicyAccepted(isChecked);
+                    setPolicyAcceptances(acceptances);
+                  }}
+                  disabled={loading}
+                />
+
                 {/* Submit */}
-                <button type="submit" disabled={loading} style={{
-                  width: '100%', marginTop: 20, padding: '13px',
-                  borderRadius: 10, fontSize: '0.9rem', fontWeight: 700,
-                  border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: loading ? 'rgba(168,85,247,0.5)' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
-                  color: 'white', boxShadow: loading ? 'none' : '0 4px 16px rgba(168,85,247,0.35)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  transition: 'box-shadow 150ms',
-                }}
-                  onMouseEnter={e => { if (!loading) e.currentTarget.style.boxShadow = '0 6px 24px rgba(168,85,247,0.5)'; }}
-                  onMouseLeave={e => { if (!loading) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.35)'; }}
+                <button
+                  type="submit"
+                  disabled={loading || !policyAccepted}
+                  style={{
+                    width: '100%', marginTop: 12, padding: '13px',
+                    borderRadius: 10, fontSize: '0.9rem', fontWeight: 700,
+                    border: 'none',
+                    cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    background: (loading || !policyAccepted)
+                      ? 'rgba(168,85,247,0.4)'
+                      : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                    color: 'white',
+                    boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 16px rgba(168,85,247,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'box-shadow 150ms', opacity: !policyAccepted ? 0.6 : 1,
+                  }}
+                  onMouseEnter={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 6px 24px rgba(168,85,247,0.5)'; }}
+                  onMouseLeave={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.35)'; }}
                 >
                   <Lock size={15} />
                   {loading ? 'Placing order…' : 'Place order'}
                 </button>
-
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center', margin: '10px 0 0' }}>
-                  By placing your order, you agree to our Terms &amp; Conditions
-                </p>
               </div>
             </div>
           </div>

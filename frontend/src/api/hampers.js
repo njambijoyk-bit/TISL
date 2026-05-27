@@ -132,6 +132,16 @@ const hampersAPI = {
     return response.data;
   },
 
+  getHamperOrderActivity: async (id) => {
+    const { data } = await api.get(`/admin/hamper-orders/${id}/activity`);
+    return data;
+  },
+
+  getHamperActivity: async (id) => {
+    const { data } = await api.get(`/admin/hampers/${id}/activity`);
+    return data;
+  },
+
   // ── Customer (public, auth required) ─────────────────────────────────────
 
   // Get all hampers eligible for the logged-in customer

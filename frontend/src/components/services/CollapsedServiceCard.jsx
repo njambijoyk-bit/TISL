@@ -10,6 +10,13 @@ import toast from 'react-hot-toast';
  * left: eyebrow + title + short description + CTA
  * right: circular service image
  */
+const BOOST_BADGE = {
+  promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
+  social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
+  tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
+};
 export default function CollapsedServiceCard({ service }) {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
@@ -72,16 +79,41 @@ export default function CollapsedServiceCard({ service }) {
     : 'GET STARTED';
 
   return (
-    <div className="csc-card" onClick={handleCardClick}>
+    <div className="csc-card" 
+      onClick={handleCardClick}
+      style={service.boost_badge_type ? {
+      borderLeft: `3px solid ${BOOST_BADGE[service.boost_badge_type]?.bg ?? '#10b981'}`,
+    } : {}}>
       {/* ── Left: text content ─────────────────────────────────────────── */}
       <div className="csc-content">
         <span className="csc-eyebrow">{eyebrow}</span>
 
-        <h3 className="csc-title">{service?.name}</h3>
+        <h3 className="csc-title">
+          {service?.name}
+          {service.boost_badge_type && (() => {
+            const badge = BOOST_BADGE[service.boost_badge_type] ?? BOOST_BADGE.tip;
+            return (
+              <span style={{
+                marginLeft: 6, fontSize: 8, fontWeight: 800,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                background: badge.bg, color: badge.text,
+                padding: '1px 5px', borderRadius: 3,
+                verticalAlign: 'middle',
+              }}>
+                {badge.label}
+              </span>
+            );
+          })()}
+        </h3>
 
-        {description ? (
-          <p className="csc-desc">{description}</p>
-        ) : null}
+        {(service.boost_message || description) ? (
+  <p className="csc-desc" style={service.boost_message ? {
+    color: BOOST_BADGE[service.boost_badge_type]?.bg ?? '#10b981',
+    fontWeight: 600,
+  } : {}}>
+    {service.boost_message || description}
+  </p>
+) : null}
 
         <div className="csc-footer">
           {pricingDisplay && (

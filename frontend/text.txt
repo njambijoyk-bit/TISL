@@ -1,0 +1,147 @@
+================================================================================
+BLUEARC STORE - SYSTEM ARCHITECTURE & PERMISSIONS GUIDE
+================================================================================
+
+1. ROLE-BASED ACCESS CONTROL (RBAC) & POLICIES
+--------------------------------------------------------------------------------
+The system uses a strict Authorization Policy layer to gate actions based on roles.
+
+A. SUPER_ADMIN
+   - Permitted: ALL system actions.
+   - Exclusive: Permanent "Force Delete" of orders/items, manual execution of the 
+     Customer Scoring Algorithm, managing system-wide security/backup settings.
+
+B. ADMIN / MANAGER
+   - Permitted: Full CRUD on Products, Services, Categories, and Brands.
+   - Permitted: User & Employee account management.
+   - Permitted: Full Order Lifecycle (Confirm, Ship, Deliver, Cancel, Restore).
+   - Permitted: Configuring Loyalty settings and Customer Tiers.
+
+C. FINANCE
+   - Permitted: Access to the Finance Dashboard and M-Pesa transaction logs.
+   - Permitted: Updating Payment Status (Marking as Paid/Partially Paid).
+   - Permitted: Handling Payment Disputes and Refund processing.
+   - Gated: Cannot modify product prices or catalog metadata.
+
+D. LOGISTICS
+   - Permitted: Access to the Shipping pipeline.
+   - Permitted: Printing manifests and updating tracking numbers.
+   - Permitted: Marking orders as "Shipped" or "Out for Delivery".
+   - Gated: Cannot view sensitive customer financial data or modify order totals.
+
+E. SALES_REP
+   - Permitted: Managing Quote Requests and creating formal Quotes.
+   - Permitted: Converting Quotes into Orders.
+   - Permitted: Viewing and communicating with assigned customers.
+
+F. STAFF
+   - Permitted: Access to the "Work Overview" dashboard.
+   - Permitted: Managing assigned Bookings and Projects.
+   - Permitted: Filling out technical Service Worksheets for on-site visits.
+
+G. CUSTOMER
+   - Permitted: Managing own Profile, Orders, Bookings, and Support Tickets.
+   - Permitted: Participating in Auctions and collaborative Projects.
+   - Permitted: Earning and redeeming Loyalty Points/Store Credit.
+
+--------------------------------------------------------------------------------
+2. CORE BACKEND SERVICES LOGIC
+--------------------------------------------------------------------------------
+
+A. ORDER & PRICING SERVICE
+   The checkout process follows a 11-step staged pipeline:
+   1.  Input Validation: Checks identity, address, and payment method.
+   2.  Customer Resolution: Attaches order to a real `customers.id` (guests included).
+   3.  Item Classification: Sorts items into Product, Service, or Custom types.
+   4.  Line Pricing: `line_total_after_discount = qty × unit_price`.
+   5.  Subtotaling: Sums all net line amounts.
+   6.  Sequential Deductions: Applied as: Subtotal -> Customer Disc -> Referral 
+       Disc -> Promo Disc -> Tax (16%) -> Shipping -> Store Credit.
+   7.  Reference Generation: Creates a unique, human-readable order number.
+   8.  Persistence: Writes the order header row.
+   9.  Stock Reservation: Executes the Inventory Service (see below).
+   10. Transaction Recording: Records usage of promos, store credit, and rewards.
+   11. Notification: Dispatches confirmation email to customer.
+
+B. INVENTORY & RESERVATION SERVICE
+   Operates as a "Reservation" system rather than a simple counter.
+   - Tracking: Every item row stores `in_stock_quantity` (pulled from live stock) 
+     and `backorder_quantity` (unfulfilled obligation).
+   - Buffer: Allows a +200 unit backorder cap per product before blocking checkout.
+   - Lifecycle: 
+     - Create: Immediately reserve `in_stock_quantity` from `products.stock_quantity`.
+     - Cancel/Trash: Restores only the `in_stock_quantity` back to the catalog.
+     - Restore: Re-reserves stock; fails if stock has been depleted in the interim.
+
+C. LOYALTY & STORE CREDIT SERVICE
+   Manages three append-only ledgers to ensure auditability.
+   - Loyalty Points: Earned on Subtotal (Standard) or Total (Hampers). 
+     Calculation: `(Total/100) × BaseRate × TierMultiplier`.
+   - Store Credit: Spendable balance. Hamper orders have a hard redemption 
+     cap of KES 500 to protect margins.
+   - Status Derivation: `payment_status` is never set manually; it is derived 
+     from the sum of confirmed payment rows vs the order total.
+
+D. CUSTOMER SCORING ALGORITHM
+   Computes a 0–100 score to drive the site-wide Personalization Banner.
+   - Signals: Recency (25%), Frequency (20%), Monetary (20%), Loyalty (15%), 
+     Engagement (10%), Service/Bookings (5%), and Referrals (5%).
+   - Logic: Scores are recomputed nightly or triggered by Super Admin.
+   - Segments: Champions (≥68), Loyal (48-67), At-Risk (last order > 90d), 
+     Dormant (<25), and New (0 orders).
+
+E. PROJECT & COLLABORATION SERVICE
+   Manages shared workspaces for complex service delivery.
+   - Roles: `customer_owner` (can approve/comment), `admin_owner` (can view finance), 
+     `admin_manager`.
+   - Tasks: Supports relations to other models (Orders, Quotes, Bookings).
+   - Tracking: Auto-generates Project Numbers (PRJ-YYYY-XXXX).
+
+F. CHAT ASSISTANT (MIMI)
+   Context-aware AI service powered by Gemini.
+   - Guest Mode: Restricted to public products and general store info.
+   - Customer Mode: Injects the specific customer's profile, recent orders, 
+     and active quotes into the AI context.
+   - Admin Mode: Detects intent (Order Lookup, Payment Summary, Sales Rep stats) 
+     and fetches live backend data to assist staff.
+
+--------------------------------------------------------------------------------
+3. PAGE ARCHITECTURE & CONTROLLER MAPPINGS
+--------------------------------------------------------------------------------
+
+PUBLIC PAGES:
+- Home [/]: Landing page with hero banners and features.
+- Auctions [/auctions]: List of live bidding events. [AuctionController@index]
+- Products [/products]: Searchable product catalog. [ProductController@index]
+- Services [/services]: Browse professional services. [ServiceController@index]
+- About [/about]: Company mission and team. [ContentPageController@showBySlug]
+- Contact [/contact]: Support details and FAQ. [ContentPageController@showBySlug]
+- User Manual [/manual]: Documentation for customers. [ContentPageController@showBySlug]
+
+AUTHENTICATION:
+- Login [/login]: Auth gate for all protected routes. [AuthController@login]
+- Register [/register]: Signup including referral tracking. [AuthController@register]
+
+CUSTOMER DASHBOARD (PROTECTED):
+- My Bookings [/bookings]: Manage service appointments. [BookingController@customerIndex]
+- Book Service [/services/:id/book]: Interactive scheduler.
+- My Orders [/orders]: History and tracking of all purchases. [OrderController@myOrders]
+- My Quotes [/my-quotes]: Approved formal proposals. [QuoteController@myQuotes]
+- My Tickets [/my-tickets]: Support communication history. [TicketController@myTickets]
+- My Projects [/my-projects]: Collaborative service workspaces. [ProjectController@customerIndex]
+
+ADMIN PANEL (STAFF PROTECTED):
+- Dashboard [/admin]: Global KPI overview (Revenue, Orders, Trends).
+- Admin Orders [/admin/orders]: Master fulfillment queue. [OrderController@index]
+- Finance Hub [/admin/finance/payments]: M-Pesa audit and disputes. [PaymentController@index]
+- Catalog Control [/admin/products]: Full inventory and pricing control.
+- Service Management [/admin/services]: Scope and pricing for services.
+- Booking Master [/admin/bookings]: Global scheduling and staff assignment.
+- CRM Database [/admin/customers]: 360-degree customer spend/tier view.
+- CMS Studio [/admin/settings/publications]: Blog, Brochure, and News editor.
+- Logic Config [/admin/algorithm]: RFM weight and signal configuration.
+
+SYSTEM SETTINGS:
+- General [/admin/settings/general]: Company metadata and operational flags.
+- Shipping [/admin/settings/shipping]: Delivery zones and thresholds.
+- Security [/admin/settings/security]: Backup and audit log preferences.

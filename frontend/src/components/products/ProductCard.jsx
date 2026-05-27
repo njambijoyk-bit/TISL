@@ -21,6 +21,14 @@ import useQuoteListStore from '../../store/quoteListStore';
 import toast from 'react-hot-toast';
 import Badge from '../common/Badge';
 
+const BOOST_BADGE = {
+  promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
+  social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
+  tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
+};
+
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
@@ -122,19 +130,48 @@ export default function ProductCard({ product }) {
     <div
       className="product-card group bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer w-full"
       onClick={handleViewProduct}
+      style={product.boost_badge_type ? {
+        borderLeft: `3px solid ${BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981'}`,
+      } : {}}
     >
       {/* Image Section */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
 
         {/* Badges */}
         <div className="absolute top-2 left-2 z-40 flex flex-col gap-2 pointer-events-none">
-          {hasAuction && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg gap-1.5 animate-pulse">🔴 LIVE AUCTION</Badge></div>}
-          {customBadge && <div className="pointer-events-auto"><Badge variant="info" size="sm" className="shadow-lg">{customBadge}</Badge></div>}
-          {isNew && <div className="pointer-events-auto"><Badge variant="success" size="sm" className="shadow-lg gap-1.5"><Sparkles className="w-4 h-4" />New Arrival</Badge></div>}
-          {onSale && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg gap-1.5"><Tag className="w-4 h-4" />On Sale</Badge></div>}
-          {isFeatured && <div className="pointer-events-auto"><Badge variant="primary" size="sm" className="shadow-lg gap-1.5"><Star className="w-4 h-4" />Featured</Badge></div>}
+          {hasAuction   && <div className="pointer-events-auto"><Badge variant="danger"  size="sm" className="shadow-lg gap-1.5 animate-pulse">🔴 LIVE AUCTION</Badge></div>}
+          {customBadge  && <div className="pointer-events-auto"><Badge variant="info"    size="sm" className="shadow-lg">{customBadge}</Badge></div>}
+          {isNew        && <div className="pointer-events-auto"><Badge variant="success" size="sm" className="shadow-lg gap-1.5"><Sparkles size={10} />New Arrival</Badge></div>}
+          {onSale       && <div className="pointer-events-auto"><Badge variant="danger"  size="sm" className="shadow-lg gap-1.5"><Tag size={10} />On Sale</Badge></div>}
+          {isFeatured   && <div className="pointer-events-auto"><Badge variant="primary" size="sm" className="shadow-lg gap-1.5"><Star size={10} />Featured</Badge></div>}
           {!inStock && !hasAuction && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg">Out of Stock</Badge></div>}
         </div>
+        {/* Boost strip — bottom of image */}
+        {product.boost_message && product.boost_badge_type && (() => {
+          const badge = BOOST_BADGE[product.boost_badge_type] ?? BOOST_BADGE.tip;
+          return (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30,
+              background: badge.bg, padding: '4px 10px',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: badge.text,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+              }}>
+                {badge.label}
+              </span>
+              <span style={{
+                fontSize: 11, color: badge.text, fontWeight: 500,
+                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+              }}>
+                {product.boost_message}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Main image */}
         {!imageError && images[currentImageIndex] ? (
@@ -213,6 +250,23 @@ export default function ProductCard({ product }) {
           >
             <FileText size={18} style={{ color: inQL ? '#7c3aed' : '#a855f7', transition: 'color 150ms ease' }} />
           </button>
+          
+        <p className="collapsed-name">
+          {product.boost_badge_type && (() => {
+            const badge = BOOST_BADGE[product.boost_badge_type] ?? BOOST_BADGE.tip;
+            return (
+              <span style={{
+                marginLeft: 6, fontSize: 8, fontWeight: 800,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                background: badge.bg, color: badge.text,
+                padding: '1px 5px', borderRadius: 3,
+                verticalAlign: 'middle',
+              }}>
+                {badge.label}
+              </span>
+            );
+          })()}
+        </p>
         </div>
       </div>
 
@@ -236,7 +290,7 @@ export default function ProductCard({ product }) {
         </div>
 
         {product?.sku && (
-          <span className="flex items-center text-xs gap-1" style={{ color: '#f780ef' }}>
+          <span className="flex items-center text-xs gap-1" style={{ color: '#4b5563' }}>
             <Info size={12} />
             SKU: {product?.sku}
           </span>
@@ -278,11 +332,11 @@ export default function ProductCard({ product }) {
         {/* Stock */}
         <div className="text-xs mb-3">
           {inStock ? (
-            <span className={stockQuantity == null || stockQuantity > 10 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
+            <span style={{ color: stockQuantity == null || stockQuantity > 10 ? '#16a34a' : '#d97706' }}>
               {stockQuantity == null || stockQuantity > 10 ? '✓ In Stock' : `⚠ Only ${stockQuantity} left`}
             </span>
           ) : (
-            <span className="text-red-600 dark:text-red-400">✕ Out of Stock</span>
+            <span style={{ color: '#dc2626' }}>✕ Out of Stock</span>
           )}
         </div>
 

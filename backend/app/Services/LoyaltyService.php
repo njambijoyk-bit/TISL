@@ -90,117 +90,83 @@ class LoyaltyService
         $customer = $order->customer;
         if (!$customer) return;
 
-        $totalKes   = (float) ($order->total_kes ?? 0);
+        // Already earned for this order — never earn twice
+        if ($order->loyalty_points_earned > 0) return;
+
+        $totalKes = (float) ($order->total_kes ?? 0);
         if ($totalKes <= 0) return;
 
-        $rate       = (int) LoyaltySetting::get('points_per_100_kes', 1);
-        $rawPoints  = (int) floor($totalKes / 100) * $rate;
+        $rate      = (int) LoyaltySetting::get('points_per_100_kes', 1);
+        $rawPoints = (int) floor($totalKes / 100) * $rate;
         if ($rawPoints <= 0) return;
 
-        // Apply tier multiplier
         $multiplier = 1.0;
         if (method_exists($customer, 'getTierBenefitsAttribute')) {
             $multiplier = $customer->tier_benefits['loyalty_points_multiplier'] ?? 1.0;
         }
 
-        $points     = (int) round($rawPoints * $multiplier);
+        $points = (int) round($rawPoints * $multiplier);
 
-        // Expiry
         $expiryMonths = LoyaltySetting::get('points_expiry_months', null);
         $pointType    = $expiryMonths ? 'expiring' : 'permanent';
         $expiresAt    = $expiryMonths ? now()->addMonths((int) $expiryMonths) : null;
 
-        $this->writePointTransaction(
-            customer:      $customer,
-            points:        $points,
-            type:          'order_earn',
-            pointType:     $pointType,
-            expiresAt:     $expiresAt,
-            note:          "Earned on order {$order->order_number}",
-            referenceType: Order::class,
-            referenceId:   $order->id,
-            createdBy:     null,
-        );
+        DB::transaction(function () use ($order, $customer, $points, $pointType, $expiresAt) {
+            // Re-check inside transaction against a locked order row
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            if ($lockedOrder->loyalty_points_earned > 0) return;
+
+            $this->writePointTransaction(
+                customer:      $customer,
+                points:        $points,
+                type:          'order_earn',
+                pointType:     $pointType,
+                expiresAt:     $expiresAt,
+                note:          "Earned on order {$order->order_number}",
+                referenceType: Order::class,
+                referenceId:   $order->id,
+            );
+
+            $lockedOrder->update(['loyalty_points_earned' => $points]);
+        });
     }
 
     /**
-     * Reverse earned points when a paid order is cancelled.  
+     * Reverse earned points when a paid order is cancelled.
      * Idempotent: compares cancel vs restore counts to handle cancel-restore-cancel cycles.
-     */  
-    public function reversePointsForCancelledOrder(Order $order): void  
-    {  
-        $customer = $order->customer;  
-        if (!$customer) return;  
-    
-        $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_cancel')  
-            ->count();  
-        $restoreCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_restore')  
-            ->count();  
-        
-        if ($cancelCount > $restoreCount) return;
-    
-        $earnTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_earn')  
-            ->first();  
-        if (!$earnTx || $earnTx->points <= 0) return;  
-    
-        $toDeduct = min($earnTx->points, $customer->loyalty_points);  
-        if ($toDeduct <= 0) return;  
-    
-        $this->writePointTransaction(  
-            customer:      $customer,  
-            points:        -$toDeduct,  
-            type:          'order_cancel',  
-            pointType:     'permanent',  
-            note:          "Points reversed — order {$order->order_number} cancelled",  
-            referenceType: Order::class,  
-            referenceId:   $order->id,  
-        );  
-    }  
-    
-    /**  
-     * Re-award points when a cancelled order is restored.  
-     */  
-    public function restorePointsForRestoredOrder(Order $order): void  
-    {  
-        $customer = $order->customer;  
-        if (!$customer) return;  
-    
-        $cancelCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_cancel')  
-            ->count();  
-        $restoreCount = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_restore')  
-            ->count();  
-        
-        if ($restoreCount >= $cancelCount) return;  
-        
-        $cancelTx = LoyaltyPointTransaction::where('reference_type', Order::class)  
-            ->where('reference_id', $order->id)  
-            ->where('type', 'order_cancel')  
-            ->latest()  
-            ->first();  
-        if (!$cancelTx) return;
-    
-        $toRestore = abs($cancelTx->points);  
-        if ($toRestore <= 0) return;  
-    
-        $this->writePointTransaction(  
-            customer:      $customer,  
-            points:        $toRestore,  
-            type:          'order_restore',  
-            pointType:     'permanent',  
-            note:          "Points re-awarded — order {$order->order_number} restored",  
-            referenceType: Order::class,  
-            referenceId:   $order->id,  
-        );  
+     */
+    public function reversePointsForCancelledOrder(Order $order): void
+    {
+        $customer = $order->customer;
+        if (!$customer) return;
+
+        $pointsToReverse = (int) $order->loyalty_points_earned;
+        if ($pointsToReverse <= 0) return; // nothing earned, nothing to reverse
+
+        $toDeduct = min($pointsToReverse, $customer->loyalty_points);
+        if ($toDeduct <= 0) return;
+
+        DB::transaction(function () use ($order, $customer, $toDeduct) {
+            $this->writePointTransaction(
+                customer:      $customer,
+                points:        -$toDeduct,
+                type:          'order_cancel',
+                pointType:     'permanent',
+                note:          "Points reversed — order {$order->order_number} cancelled",
+                referenceType: Order::class,
+                referenceId:   $order->id,
+            );
+
+            // Zero out so markAsPaid can re-earn if order is restored and re-paid
+            $order->update(['loyalty_points_earned' => 0]);
+        });
+    }
+
+    public function restorePointsForRestoredOrder(Order $order): void
+    {
+        // Points are no longer restored on order restore.
+        // They will be re-earned automatically when the order is marked as paid again.
+        return;
     }
 
     /**
@@ -258,6 +224,14 @@ class LoyaltyService
     {
         $points = (int) LoyaltySetting::get('referral_bonus_points', 0);
         if ($points <= 0) return;
+
+        // Idempotency: only grant once per trigger order
+        $alreadyGranted = LoyaltyPointTransaction::where('reference_type', Order::class)
+            ->where('reference_id', $triggerOrder->id)
+            ->where('type', 'referral_bonus')
+            ->exists();
+
+        if ($alreadyGranted) return;
 
         $this->writePointTransaction(
             customer:      $referrer,
@@ -593,5 +567,38 @@ class LoyaltyService
 
             return $tx;
         });
+    }
+    // LoyaltyService.php — new public method
+    public function grantReferralCreditExact(
+        Customer $referrer,
+        float    $amount,
+        Order    $order
+    ): void {
+        $this->writeCreditTransaction(
+            customer:      $referrer,
+            amount:        $amount,
+            type:          'referral_reward',
+            note:          "Referral reward — referred customer placed order {$order->order_number}",
+            referenceType: Order::class,
+            referenceId:   $order->id,
+        );
+    }
+
+    public function reverseReferralCreditExact(
+        Customer $referrer,
+        float    $amount,
+        Order    $order
+    ): void {
+        $toReverse = min($amount, (float) $referrer->store_credit);
+        if ($toReverse <= 0) return;
+
+        $this->writeCreditTransaction(
+            customer:      $referrer,
+            amount:        -$toReverse,
+            type:          'referral_reward', // or a new 'referral_reversal' type if you want it distinct
+            note:          "Referral reward reversed — order {$order->order_number} cancelled",
+            referenceType: Order::class,
+            referenceId:   $order->id,
+        );
     }
 }

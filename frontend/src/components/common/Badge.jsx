@@ -15,6 +15,13 @@ const variantTokens = {
     bg:     'linear-gradient(135deg, rgba(10,4,20,0.82) 0%, rgba(88,28,135,0.55) 100%)',
     glow:   '0 0 10px rgba(168,85,247,0.45), inset 0 0 0 1px rgba(168,85,247,0.2)',
   },
+  primaryinv: {
+    text:   '#fcc1f5',
+    border: 'rgba(255, 145, 242, 0.7)',
+    bg:     'linear-gradient(135deg,rgba(168,85,247,0.7)',
+    bg:     'linear-gradient(135deg, rgba(10,4,20,0.82) 0%, rgba(88,28,135,0.55) 100%)',
+    glow:   '0 0 10px rgba(168,85,247,0.45), inset 0 0 0 1px rgba(168,85,247,0.2)',
+  },
   success: {
     text:   '#6ee7b7',
     border: 'rgba(52,211,153,0.65)',

@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   Briefcase, Users, ShoppingBag, FileText, FolderOpen,
   MessageSquareQuote, AlertTriangle, CalendarClock, Activity,
-  ArrowRight, Loader2, RefreshCw,
+  ArrowRight, Loader2, RefreshCw, Bell,
   CheckSquare, Milestone, Ticket,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import NotificationsModal from '../../components/common/NotificationsModal';
 import SettingsLayout from '../../components/layout/SettingsLayout';
 import WorkTimetable from '../../components/timetable/WorkTimetable';
 import workAPI from '../../api/work';
@@ -279,6 +280,7 @@ export default function Work() {
   const [data, setData]           = useState(null);
   const [refreshHover, setRefreshHover] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => { fetchOverview(); }, []);
 
@@ -357,6 +359,23 @@ export default function Work() {
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowNotifications(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+              fontFamily: 'inherit', cursor: 'pointer',
+              border: '1.5px solid rgba(168,85,247,0.2)',
+              background: 'white', color: '#7c3aed',
+              transition: 'background 150ms',
+              boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+          >
+            <Bell size={13} />
+            Notifications
+          </button>
           <button
             onClick={() => setShowTimetable(true)}
             style={{
@@ -759,6 +778,10 @@ export default function Work() {
             </div>
           </>
         )}
+        <NotificationsModal
+          open={showNotifications}
+          onClose={() => setShowNotifications(false)}
+        />
         {showTimetable && (
           <WorkTimetable data={data} onClose={() => setShowTimetable(false)} />
         )}

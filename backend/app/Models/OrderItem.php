@@ -38,7 +38,6 @@ class OrderItem extends Model
         'unit_of_measure',
         // END NEW FIELDS
         'backorder_quantity',
-        'in_stock_quantity',
         'fulfillment_status',
         'unit_price',
         'line_total',
@@ -167,7 +166,7 @@ class OrderItem extends Model
      */
     public function getInStockQuantityAttribute(): int
     {
-        return max(0, $this->quantity - $this->backorder_quantity);
+        return max(0, $this->quantity - $this->backorder_quantity - ($this->quantity_returned ?? 0));
     }
 
     /**

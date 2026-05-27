@@ -38,7 +38,7 @@ const useProductStore = create(
         brand_id: '',
         min_price: '',
         max_price: '',
-        sort: 'created_at_desc',
+        sort: '',
         featured: false,
         on_sale: false,
         in_stock: false,
@@ -88,7 +88,7 @@ const useProductStore = create(
           filters: {
             search: '', category_id: '', brand_id: '',
             min_price: '', max_price: '',
-            sort: 'created_at_desc',
+            sort: '', 
             featured: false, on_sale: false, in_stock: false,
           },
         }),

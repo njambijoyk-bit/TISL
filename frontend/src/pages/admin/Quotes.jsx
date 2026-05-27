@@ -286,7 +286,7 @@ export default function Quotes() {
       header: 'Quote #',
       render: (quote) => (
         <div>
-          <p className="font-semibold text-gray-900 dark:text-white">
+          <p className="font-semibold text-primary">
             {quote.quote_number}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -304,7 +304,27 @@ export default function Quotes() {
               e.stopPropagation();
               handleViewCustomerHistory(q.customer);
             }}
-            className="font-medium text-gray-900 dark:text-white hover:text-primary transition-colors text-left"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 20,
+              background: 'rgba(168,85,247,0.06)',
+              border: '1.5px solid rgba(168,85,247,0.15)',
+              color: '#ff91f2', fontSize: '0.8rem', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 150ms ease-out',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.12)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 3px 8px rgba(168,85,247,0.15)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             {q.customer?.first_name} {q.customer?.last_name}
           </button>
@@ -413,23 +433,56 @@ export default function Quotes() {
     {
       header: 'Actions',
       render: (quote) => (
-        <div className="flex items-center space-x-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+
+          {/* View */}
           <button
-            onClick={() => window.location.href = `/admin/quotes/${quote.id}`}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            onClick={() => navigate(`/admin/quotes/${quote.id}`)}
             title="View Details"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+              background: 'rgba(168,85,247,0.06)',
+              border: '1.5px solid rgba(168,85,247,0.15)',
+              color: '#7c3aed', transition: 'all 150ms',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.14)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+            }}
           >
-            <Eye size={18} className="text-blue-500" />
+            <Eye size={15} />
           </button>
+
+          {/* Respond — green, only on pending */}
           {quote.status === 'pending' && (
             <button
-              onClick={() => window.location.href = `/admin/quotes/${quote.id}/respond`}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              onClick={() => navigate(`/admin/quotes/${quote.id}/respond`)}
               title="Respond to Quote"
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+                background: 'rgba(5,150,105,0.08)',
+                border: '1.5px solid rgba(5,150,105,0.2)',
+                color: '#065f46', transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(5,150,105,0.15)';
+                e.currentTarget.style.borderColor = 'rgba(5,150,105,0.35)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(5,150,105,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(5,150,105,0.2)';
+              }}
             >
-              <Reply size={18} className="text-green-500" />
+              <Reply size={15} />
             </button>
           )}
+
         </div>
       ),
     },
@@ -443,7 +496,7 @@ export default function Quotes() {
   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
     {[
       { label: 'Create Quote', icon: <Plus size={15} />, onClick: () => navigate('/admin/quotes/create'), color: '#7c3aed', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.3)' },
-      { label: 'Trash', icon: <RotateCcw size={15} />, onClick: openTrashModal, color: 'var(--color-text-secondary)', bg: 'var(--color-background-secondary)', border: 'var(--color-border-tertiary)' },
+      { label: 'Trash', icon: <RotateCcw size={15} />, onClick: openTrashModal, color: '#d73333', bg: 'rgba(215, 51, 51, 0.1)', border: 'rgba(215, 51, 51, 0.3)' },
     ].map(({ label, icon, onClick, color, bg, border }) => (
       <button key={label} onClick={onClick} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -553,7 +606,7 @@ export default function Quotes() {
       )}
 
       {/* Customer History Modal */}
-            <Modal
+      <Modal
         isOpen={customerHistoryModal}
         onClose={() => {
           setCustomerHistoryModal(false);
@@ -561,236 +614,272 @@ export default function Quotes() {
           setCustomerQuotes([]);
           setCustomerQuotesPagination(null);
         }}
-        title={`Customer Quote History - ${selectedCustomer?.first_name} ${selectedCustomer?.last_name}`}
+        title={`Customer Quote History — ${selectedCustomer?.first_name} ${selectedCustomer?.last_name}`}
         size="lg"
       >
         {selectedCustomer && (
-          <div className="space-y-6 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {selectedCustomer?.first_name} {selectedCustomer?.last_name}
-                    <a
-                      href={`mailto:${selectedCustomer.email}`}
-                      className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline hover:no-underline transition-colors"
-                    >
-                      • {selectedCustomer.email}
-                    </a>
-                  </p>
-                  {/* Customer Summary */}
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Customer ID</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        #{selectedCustomer.id}
-                      </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Email line */}
+            <div style={{ fontSize: '0.82rem', color: '#4b5563', margin: 0 }}>
+              {selectedCustomer.first_name} {selectedCustomer.last_name} 
+              <a
+                href={`mailto:${selectedCustomer.email}`}
+                className="ml-1 text-s text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline hover:no-underline transition-colors"
+              >
+                • {selectedCustomer.email}
+              </a>
+            </div>
+            
+            {/* Customer summary grid */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+              padding: 14, borderRadius: 10,
+              background: 'rgba(168,85,247,0.04)',
+              border: '1px solid rgba(168,85,247,0.1)',
+            }}>
+              {[
+                { label: 'Customer ID', value: `#${selectedCustomer.id}` },
+                { label: 'Email',       value: selectedCustomer.email },
+                { label: 'Phone',       value: selectedCustomer.phone || 'N/A' },
+                { label: 'Company',     value: selectedCustomer.company_name || 'N/A' },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0, wordBreak: 'break-all' }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Stats + quotes */}
+            {(() => {
+              const list = customerQuotes;
+              const totalQuotes = list.length;
+              const totalKes = list.reduce((sum, q) => sum + quoteTotalKes(q), 0);
+              const avgKes = totalQuotes > 0 ? totalKes / totalQuotes : 0;
+              const byStatus = list.reduce((acc, q) => {
+                const s = q.status || 'unknown';
+                acc[s] = (acc[s] || 0) + 1;
+                return acc;
+              }, {});
+              const kesMissingCount = list.filter((q) => {
+                const isForeign = !isKes(q.currency);
+                const hasKes = Number(q.total_kes) > 0;
+                const hasRate = Number(q.exchange_rate_to_kes) > 0;
+                return isForeign && !hasKes && !hasRate;
+              }).length;
+
+              if (customerQuotesLoading) return (
+                <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading customer quotes…</p>
+              );
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                  {/* Stat cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                    {/* Total Quotes */}
+                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.12)' }}>
+                      <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Quotes</p>
+                      <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1d4ed8', margin: 0, lineHeight: 1 }}>{totalQuotes}</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                      <p className="font-semibold text-gray-900 dark:text-white break-all">
-                        {selectedCustomer.email}
-                      </p>
+
+                    {/* Total Value */}
+                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.12)' }}>
+                      <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Value (KES)</p>
+                      <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#065f46', margin: 0, lineHeight: 1 }}>{kesMoney(totalKes)}</p>
+                      {kesMissingCount > 0 && (
+                        <p style={{ fontSize: '0.68rem', color: '#b45309', margin: '4px 0 0' }}>
+                          {kesMissingCount} foreign quote(s) missing KES conversion
+                        </p>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        {selectedCustomer.phone || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Company</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        {selectedCustomer.company_name || 'N/A'}
-                      </p>
+
+                    {/* Avg Quote */}
+                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                      <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avg Quote (KES)</p>
+                      <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7c3aed', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
                     </div>
                   </div>
-      
-                  {/* Customer Stats + Recent Quotes */}
-                  {(() => {
-                    const list = customerQuotes; // state
-                    const totalQuotes = list.length;
 
-                    const totalKes = list.reduce((sum, q) => sum + quoteTotalKes(q), 0);
-                    const avgKes = totalQuotes > 0 ? totalKes / totalQuotes : 0;
+                  {/* Status breakdown */}
+                  <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Status Breakdown</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                      {Object.keys(byStatus).length === 0 ? (
+                        <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>No quotes yet</span>
+                      ) : (
+                        Object.entries(byStatus).map(([status, count]) => (
+                          <span key={status} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 10px', borderRadius: 20,
+                            fontSize: '0.72rem', fontWeight: 700,
+                            background: 'rgba(168,85,247,0.08)', color: '#6b21a8',
+                            boxShadow: '0 0 0 1px rgba(168,85,247,0.2)',
+                          }}>
+                            {status}: {count}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
 
-                    const byStatus = list.reduce((acc, q) => {
-                      const s = q.status || 'unknown';
-                      acc[s] = (acc[s] || 0) + 1;
-                      return acc;
-                    }, {});
+                  {/* Recent quotes */}
+                  <div>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Recent Quotes</p>
 
-                    const recent = [...list]
-                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                    .slice(0, 10);
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 380, overflowY: 'auto' }}>
+                      {list.length === 0 ? (
+                        <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>No recent quotes</p>
+                      ) : (
+                        list.map((q) => {
+                          const kes = quoteTotalKes(q);
+                          const showKes = !isKes(q.currency);
+                          return (
+                            <div
+                              key={q.id}
+                              onClick={() => { setCustomerHistoryModal(false); navigate(`/admin/quotes/${q.id}`); }}
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '10px 13px', borderRadius: 10, cursor: 'pointer',
+                                background: 'white',
+                                border: '1px solid rgba(168,85,247,0.1)',
+                                transition: 'border-color 150ms, background 150ms',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; }}
+                            >
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>{q.quote_number}</span>
+                                  <QuoteStatusBadge status={q.status} />
+                                  <span style={{
+                                    padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
+                                    background: 'rgba(107,114,128,0.08)', color: '#4b5563',
+                                    boxShadow: '0 0 0 1px rgba(107,114,128,0.15)',
+                                  }}>
+                                    {q.currency || 'KES'}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
+                                  {format(new Date(q.created_at), 'MMM d, yyyy h:mm a')}
+                                  {q.converted_currency_at ? ` • Converted: ${format(new Date(q.converted_currency_at), 'MMM d, yyyy')}` : ''}
+                                </p>
+                              </div>
 
-                    const kesMissingCount = list.filter((q) => {
-                      const isForeign = !isKes(q.currency);
-                      const hasKes = Number(q.total_kes) > 0;
-                      const hasRate = Number(q.exchange_rate_to_kes) > 0;
-                      return isForeign && !hasKes && !hasRate;
-                    }).length;
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+                                  {money(q.total, q.currency || 'KES')}
+                                </p>
+                                {showKes && (
+                                  <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0 0' }}>
+                                    {kes > 0 ? `≈ ${kesMoney(kes)}` : 'KES N/A'}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
 
-                    // show "loading" nicely
-                    if (customerQuotesLoading) {
-                      return <div className="text-sm text-gray-500">Loading customer quotes...</div>;
-                    }
-
-                    return (
-                      <>
-                      <div className="space-y-6">
-                        {/* Stats cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Total Quotes</p>
-                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalQuotes}</p>
-                          </div>
-
-                          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Total Value (KES)</p>
-                            <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                              {kesMoney(totalKes)}
-                            </p>
-                            {kesMissingCount > 0 && (
-                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                {kesMissingCount} foreign quote(s) missing KES conversion
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Avg Quote (KES)</p>
-                            <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                              {kesMoney(avgKes)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Status breakdown */}
-                        <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-                          <p className="font-semibold text-gray-900 dark:text-white mb-3">Status Breakdown</p>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.keys(byStatus).length === 0 ? (
-                              <span className="text-sm text-gray-500">No quotes yet</span>
-                            ) : (
-                              Object.entries(byStatus).map(([status, count]) => (
-                                <Badge key={status} variant="default" size="sm">
-                                  {status}: {count}
-                                </Badge>
-                              ))
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Recent quotes */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                            Recent Quotes
-                          </h4>
-
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
-                            
-                            {list.length === 0 ? (
-                              <div className="text-sm text-gray-500">No recent quotes</div>
-                            ) : (
-                              list.map((q) => {
-                                const kes = quoteTotalKes(q);
-                                const showKes = !isKes(q.currency);
-
-                                return (
-                                  <div
-                                    key={q.id}
-                                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                    onClick={() => {
-                                      setCustomerHistoryModal(false);
-                                      navigate(`/admin/quotes/${q.id}`);
-                                    }}
-                                  >
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-semibold text-primary">
-                                          {q.quote_number}
-                                        </p>
-                                        <QuoteStatusBadge status={q.status} />
-                                        <Badge variant="default" size="sm">
-                                          {q.currency || 'KES'}
-                                        </Badge>
-                                      </div>
-
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {format(new Date(q.created_at), 'MMM d, yyyy h:mm a')}
-                                        {q.converted_currency_at
-                                          ? ` • Converted: ${format(new Date(q.converted_currency_at), 'MMM d, yyyy')}`
-                                          : ''}
-                                      </p>
-                                    </div>
-
-                                    <div className="text-right">
-                                      {/* Original currency total */}
-                                      <p className="font-bold text-gray-900 dark:text-white">
-                                        {money(q.total, q.currency || 'KES')}
-                                      </p>
-
-                                      {/* KES equivalent (only if foreign) */}
-                                      {showKes && (
-                                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                                          {kes > 0 ? `≈ ${kesMoney(kes)}` : 'KES N/A'}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      </>
-                    );
-                  })()}
-                  
                 </div>
-              )}
-            </Modal>
+              );
+            })()}
+
+          </div>
+        )}
+      </Modal>
             {showTrashModal && (
-            <div className="fixed inset-0 z-50">
+            <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+
               {/* Backdrop */}
               <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-xl"
                 onClick={() => setShowTrashModal(false)}
+                style={{
+                  position: 'absolute', inset: 0,
+                  background: 'rgba(0,0,0,0.45)',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
+                }}
               />
 
               {/* Modal */}
-              <div className="absolute inset-0 flex items-center justify-center p-4">
-                <div className="w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                <div style={{
+                  width: '100%', maxWidth: 1000,
+                  background: 'white', borderRadius: 14,
+                  border: '1px solid rgba(168,85,247,0.15)',
+                  boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+                  overflow: 'hidden',
+                }}>
+
+                  {/* Header */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 20px',
+                    borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+                  }}>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
                         Quote Trash
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
                         Restore items or permanently delete (super admin only).
                       </p>
                     </div>
-
                     <button
                       onClick={() => setShowTrashModal(false)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 30, height: 30, borderRadius: 8,
+                        border: 'none', background: 'none',
+                        color: '#9ca3af', cursor: 'pointer', transition: 'all 150ms',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#7c3aed'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   </div>
 
-                  {/* Filters + actions */}
-                  <div className="px-5 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex gap-2 w-full md:w-auto">
+                  {/* Filters + Actions */}
+                  <div style={{
+                    padding: '14px 20px',
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+                    justifyContent: 'space-between', gap: 10,
+                    borderBottom: '1.5px solid rgba(168,85,247,0.08)',
+                  }}>
+
+                    {/* Left: search + status + refresh */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
                         value={trashFilters.search}
                         onChange={(e) => setTrashFilters((p) => ({ ...p, search: e.target.value }))}
                         placeholder="Search trash..."
-                        className="w-full md:w-72 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                        style={{
+                          width: 240, padding: '7px 12px', borderRadius: 8,
+                          fontSize: '0.82rem', color: '#111827', fontFamily: 'inherit',
+                          background: 'rgba(168,85,247,0.03)',
+                          border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none',
+                          transition: 'border-color 150ms, box-shadow 150ms',
+                        }}
+                        onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
                       />
                       <select
                         value={trashFilters.status}
                         onChange={(e) => setTrashFilters((p) => ({ ...p, status: e.target.value }))}
-                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                        style={{
+                          padding: '7px 12px', borderRadius: 8, fontSize: '0.82rem',
+                          color: '#111827', fontFamily: 'inherit', cursor: 'pointer',
+                          background: 'rgba(168,85,247,0.03)',
+                          border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none',
+                          transition: 'border-color 150ms, box-shadow 150ms',
+                        }}
+                        onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
                       >
                         <option value="">All Statuses</option>
                         <option value="draft">Draft</option>
@@ -801,59 +890,92 @@ export default function Quotes() {
                         <option value="expired">Expired</option>
                         <option value="converted">Converted</option>
                       </select>
-
-                      <Button onClick={() => fetchTrash(1)} variant="secondary">
+                      <button
+                        onClick={() => fetchTrash(1)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '7px 13px', borderRadius: 8, cursor: 'pointer',
+                          fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                          background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
+                          border: '1.5px solid rgba(168,85,247,0.18)', transition: 'all 150ms',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; }}
+                      >
                         Refresh
-                      </Button>
+                      </button>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
+                    {/* Right: restore + superadmin delete */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
                         onClick={restoreSelected}
-                        icon={<RotateCcw size={16} />}
-                        variant="primary"
                         disabled={!selectedIds.length}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '7px 13px', borderRadius: 8, fontFamily: 'inherit',
+                          fontSize: '0.82rem', fontWeight: 600, cursor: selectedIds.length ? 'pointer' : 'not-allowed',
+                          background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                          border: '1.5px solid rgba(168,85,247,0.22)',
+                          opacity: selectedIds.length ? 1 : 0.4, transition: 'all 150ms',
+                        }}
+                        onMouseEnter={e => { if (selectedIds.length) { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; }}
                       >
-                        Restore Selected
-                      </Button>
+                        <RotateCcw size={14} /> Restore Selected
+                      </button>
 
                       {isSuperAdmin && (
                         <>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle size={16} className="text-orange-500" />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
                             <input
                               value={deleteConfirm}
                               onChange={(e) => setDeleteConfirm(e.target.value)}
                               placeholder="Type DELETE"
-                              className="w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                              style={{
+                                width: 130, padding: '7px 12px', borderRadius: 8,
+                                fontSize: '0.82rem', color: '#111827', fontFamily: 'inherit',
+                                background: 'rgba(239,68,68,0.04)',
+                                border: '1.5px solid rgba(239,68,68,0.2)', outline: 'none',
+                                transition: 'border-color 150ms, box-shadow 150ms',
+                              }}
+                              onFocus={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)'; }}
+                              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
                             />
                           </div>
-
-                          <Button
+                          <button
                             onClick={forceDeleteSelected}
-                            icon={<Trash2 size={16} />}
-                            variant="danger"
                             disabled={!selectedIds.length || deleteConfirm !== 'DELETE'}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '7px 13px', borderRadius: 8, fontFamily: 'inherit',
+                              fontSize: '0.82rem', fontWeight: 600,
+                              cursor: (!selectedIds.length || deleteConfirm !== 'DELETE') ? 'not-allowed' : 'pointer',
+                              background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                              border: '1.5px solid rgba(239,68,68,0.2)',
+                              opacity: (!selectedIds.length || deleteConfirm !== 'DELETE') ? 0.4 : 1,
+                              transition: 'all 150ms',
+                            }}
+                            onMouseEnter={e => { if (selectedIds.length && deleteConfirm === 'DELETE') { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
                           >
-                            Delete Forever
-                          </Button>
+                            <Trash2 size={14} /> Delete Forever
+                          </button>
                         </>
                       )}
                     </div>
                   </div>
 
                   {/* Trash list */}
-                  <div className="px-5 pb-5">
+                  <div style={{ padding: '0 20px 20px' }}>
                     <DataTable
                       columns={[
                         {
                           header: (
                             <input
                               type="checkbox"
-                              checked={
-                                trashedQuotes.length > 0 &&
-                                trashedQuotes.every((q) => selectedIds.includes(q.id))
-                              }
+                              checked={trashedQuotes.length > 0 && trashedQuotes.every((q) => selectedIds.includes(q.id))}
                               onChange={() => {
                                 setSelectedIds((prev) => {
                                   const ids = trashedQuotes.map((q) => q.id);
@@ -862,18 +984,15 @@ export default function Quotes() {
                                   return Array.from(new Set([...prev, ...ids]));
                                 });
                               }}
-                              className="h-4 w-4 rounded border-gray-300"
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#a855f7' }}
                             />
                           ),
                           render: (q) => (
                             <input
                               type="checkbox"
                               checked={selectedIds.includes(q.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                toggleSelect(q.id);
-                              }}
-                              className="h-4 w-4 rounded border-gray-300"
+                              onChange={(e) => { e.stopPropagation(); toggleSelect(q.id); }}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#a855f7' }}
                             />
                           ),
                         },
@@ -881,11 +1000,9 @@ export default function Quotes() {
                           header: 'Quote #',
                           render: (q) => (
                             <div>
-                              <div className="font-semibold text-gray-900 dark:text-white">
-                                {q.quote_number}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Deleted: {q.deleted_at ? format(new Date(q.deleted_at), 'MMM d, yyyy') : '-'}
+                              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>{q.quote_number}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 1 }}>
+                                Deleted: {q.deleted_at ? format(new Date(q.deleted_at), 'MMM d, yyyy') : '—'}
                               </div>
                             </div>
                           ),
@@ -893,9 +1010,9 @@ export default function Quotes() {
                         {
                           header: 'Customer',
                           render: (q) => (
-                            <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span style={{ fontSize: '0.82rem', color: '#374151' }}>
                               {q.customer?.first_name} {q.customer?.last_name}
-                            </div>
+                            </span>
                           ),
                         },
                         {
@@ -905,15 +1022,20 @@ export default function Quotes() {
                         {
                           header: 'Actions',
                           render: (q) => (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => restoreOne(q.id)}
-                                variant="secondary"
-                                size="sm"
-                              >
-                                Restore
-                              </Button>
-                            </div>
+                            <button
+                              onClick={() => restoreOne(q.id)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                padding: '5px 11px', borderRadius: 8, cursor: 'pointer',
+                                fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
+                                background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
+                                border: '1.5px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.14)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.07)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}
+                            >
+                              <RotateCcw size={12} /> Restore
+                            </button>
                           ),
                         },
                       ]}
@@ -924,6 +1046,7 @@ export default function Quotes() {
                       emptyMessage="Trash is empty"
                     />
                   </div>
+
                 </div>
               </div>
             </div>

@@ -4,8 +4,10 @@ import {
   Gift, Plus, Search, Filter, MoreHorizontal, Play, Pause,
   Archive, Trash2, Eye, ChevronLeft, ChevronRight,
   TrendingUp, Users, DollarSign, Zap, Copy, Check,
-  Info, ExternalLink,
+  Info, ExternalLink, RefreshCw, UserPlus, Pencil, XCircle, Power, PowerOff,
+  ChevronDown, ChevronUp, Tag,
 } from 'lucide-react';
+import api from '../../../api/axios'; // or wherever your API lives
 import useReferralsStore from '../../../store/referralsStore';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
 import toast from 'react-hot-toast';
@@ -36,6 +38,21 @@ const REWARD_META = {
   fixed_amount:  { label: 'Fixed Amount'  },
   free_shipping: { label: 'Free Shipping' },
   store_credit:  { label: 'Store Credit'  },
+};
+
+const REFERRAL_ACTION_META = {
+  CREATED:        { icon: <UserPlus size={12} />,  bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
+  UPDATED:        { icon: <Pencil size={12} />,    bg: 'rgba(99,102,241,0.12)',  color: '#4f46e5' },
+  ACTIVATED:      { icon: <Power size={12} />,     bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
+  PAUSED:         { icon: <PowerOff size={12} />,  bg: 'rgba(245,158,11,0.12)',  color: '#b45309' },
+  ARCHIVED:       { icon: <Archive size={12} />,   bg: 'rgba(107,114,128,0.12)', color: '#6b7280' },
+  DELETED:        { icon: <XCircle size={12} />,   bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
+  USED:           { icon: <Tag size={12} />,        bg: 'rgba(8,145,178,0.12)',   color: '#0e7490' },
+  REVERSED:       { icon: <RefreshCw size={12} />, bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
+  CANCELLED:      { icon: <XCircle size={12} />,   bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
+  RESTORED:       { icon: <RefreshCw size={12} />, bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
+  REWARD_PAID:    { icon: <Zap size={12} />,        bg: 'rgba(234,179,8,0.12)',   color: '#b45309' },
+  REWARD_REVERSED:{ icon: <RefreshCw size={12} />, bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
 };
 
 const STAT_META = [
@@ -211,6 +228,129 @@ function SkeletonRow() {
   );
 }
 
+function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
+  if (loading) return (
+    <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>
+      Loading activity...
+    </p>
+  );
+  if (!items.length) return (
+    <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>
+      No activity yet.
+    </p>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {items.map((a, i) => {
+        const meta    = REFERRAL_ACTION_META[a.action] ?? REFERRAL_ACTION_META.UPDATED;
+        const isLast  = i === items.length - 1;
+        const isPromo = a.entity_type === 'promo_code';
+
+        return (
+          <div key={a.id} style={{
+            display: 'flex', gap: 10, padding: '10px 20px',
+            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.06)',
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: 24, height: 24, borderRadius: 7, flexShrink: 0, marginTop: 1,
+              background: meta.bg, color: meta.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {meta.icon}
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: '#374151', margin: 0, lineHeight: 1.5 }}>
+                <strong>{a.actor?.name ?? 'System'}</strong>{' '}
+                <span style={{ color: meta.color, fontWeight: 600, textTransform: 'lowercase' }}>
+                  {a.action.replace(/_/g, ' ')}
+                </span>{' '}
+                <span style={{ color: '#9ca3af', fontSize: '0.72rem' }}>
+                  {isPromo ? 'promo' : 'referral'} code
+                </span>
+                {a.metadata?.code && (
+                  <span style={{
+                    marginLeft: 6, fontFamily: 'monospace', fontSize: '0.72rem',
+                    fontWeight: 700, color: '#7c3aed',
+                    background: 'rgba(168,85,247,0.08)',
+                    padding: '1px 6px', borderRadius: 5,
+                    border: '1px solid rgba(168,85,247,0.18)',
+                  }}>
+                    {a.metadata.code}
+                  </span>
+                )}
+                {a.metadata?.name && (
+                  <> — <strong style={{ color: '#111827' }}>{a.metadata.name}</strong></>
+                )}
+              </p>
+
+              {/* Field changes */}
+              {a.metadata?.changes?.length > 0 && (
+                <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
+                  {a.metadata.changes.map((c, j) => (
+                    <li key={j}>
+                      {c.field}:{' '}
+                      <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>
+                      {' → '}
+                      <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Amount if present */}
+              {a.amount > 0 && (
+                <p style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600, margin: '2px 0 0' }}>
+                  {fmt(a.amount)}
+                </p>
+              )}
+
+              {/* Order link if present */}
+              {a.order_id && a.metadata?.order_number && (
+                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                  Order: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{a.metadata.order_number}</span>
+                </p>
+              )}
+
+              {/* Timestamp + actor type */}
+              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                {new Date(a.created_at).toLocaleString('en-KE', {
+                  day: 'numeric', month: 'short', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+                {a.actor_type && (
+                  <span style={{
+                    marginLeft: 6, fontSize: '0.6rem', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                    color: a.actor_type === 'admin' ? '#7c3aed' : a.actor_type === 'customer' ? '#0e7490' : '#9ca3af',
+                  }}>
+                    · {a.actor_type}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Load more */}
+      {pag && pag.current_page < pag.last_page && (
+        <button onClick={() => onLoadMore(pag.current_page + 1)} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: '#7c3aed',
+          background: 'rgba(168,85,247,0.04)', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}>
+          <RefreshCw size={12} /> Load more
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Referrals() {
@@ -223,25 +363,49 @@ export default function Referrals() {
 
   const [showInfo,    setShowInfo]    = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [activity,    setActivity]    = useState([]);
+  const [activityPag, setActivityPag] = useState(null);
+  const [actLoading,  setActLoading]  = useState(true);
+  const [showLog,     setShowLog]     = useState(true);
 
   useEffect(() => { fetchStatistics(); }, []);
   useEffect(() => { fetchCodes(); }, [filters]);
 
+  const loadActivity = async (page = 1) => {
+    try {
+      setActLoading(page === 1);
+      const res = await api.get('/admin/referrals/activity', {
+        params: { per_page: 20, page },
+      });
+      const { data, current_page, last_page } = res.data;
+      if (page === 1) setActivity(data);
+      else setActivity(prev => [...prev, ...data]);
+      setActivityPag({ current_page, last_page });
+    } catch {
+      toast.error('Failed to load activity log');
+    } finally {
+      setActLoading(false);
+    }
+  };
+
+  // Update existing useEffects:
+  useEffect(() => { fetchStatistics(); loadActivity(); }, []);
+
   const handleActivate = async (id) => {
-    try { await activateCode(id); toast.success('Code activated.'); }
+    try { await activateCode(id); toast.success('Code activated.'); loadActivity(); }
     catch { toast.error('Failed.'); }
   };
   const handlePause = async (id) => {
-    try { await pauseCode(id); toast.success('Code paused.'); }
+    try { await pauseCode(id); toast.success('Code paused.'); loadActivity(); }
     catch { toast.error('Failed.'); }
   };
   const handleArchive = async (id) => {
-    try { await archiveCode(id); toast.success('Code archived.'); }
+    try { await archiveCode(id); toast.success('Code archived.'); loadActivity(); }
     catch { toast.error('Failed.'); }
   };
   const handleDelete = async (id) => {
     if (!confirm('Delete this code?')) return;
-    try { await deleteCode(id); toast.success('Code deleted.'); }
+    try { await deleteCode(id); toast.success('Code deleted.'); loadActivity(); }
     catch { toast.error('Failed to delete.'); }
   };
 
@@ -662,6 +826,34 @@ export default function Referrals() {
               </button>
             </div>
           </div>
+        )}
+      </div>
+      {/* ── Activity Log ── */}
+      <div style={{ ...card, overflow: 'hidden' }}>
+        <button
+          onClick={() => setShowLog(v => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', padding: '14px 20px',
+            background: 'rgba(168,85,247,0.04)', border: 'none',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+            Activity Log
+          </span>
+          {showLog
+            ? <ChevronUp size={14} color="#7c3aed" />
+            : <ChevronDown size={14} color="#7c3aed" />
+          }
+        </button>
+        {showLog && (
+          <ReferralActivityTimeline
+            items={activity}
+            pag={activityPag}
+            onLoadMore={loadActivity}
+            loading={actLoading}
+          />
         )}
       </div>
     </div>

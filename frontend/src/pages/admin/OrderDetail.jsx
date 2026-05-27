@@ -160,10 +160,11 @@ const InlineModal = ({ title, subtitle, accentColor = purple, onClose, children 
     <div style={{
       background: 'white', borderRadius: 20, maxWidth: 520, width: '100%',
       boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden',
+      maxHeight: '90vh', display: 'flex', flexDirection: 'column', 
     }}>
       <div style={{
         padding: '22px 26px 18px', borderBottom: '1px solid #f3f4f6',
-        position: 'relative',
+        position: 'relative', flexShrink: 0,
       }}>
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 3,
@@ -174,7 +175,7 @@ const InlineModal = ({ title, subtitle, accentColor = purple, onClose, children 
         <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#111827' }}>{title}</h3>
         {subtitle && <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: 4 }}>{subtitle}</p>}
       </div>
-      <div style={{ padding: '22px 26px 26px' }}>{children}</div>
+      <div style={{ padding: '22px 26px 26px', overflowY: 'auto' }}>{children}</div>
     </div>
   </div>
 );
@@ -213,6 +214,23 @@ export default function OrderDetail() {
   const [adminNotes,       setAdminNotes]       = useState('');
   const [restoreReason,    setRestoreReason]    = useState('');
   const [showShippingSnapshot, setShowShippingSnapshot] = useState(false);
+
+  // ── Activity Log State ──
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const fetchActivityLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      // Using the proposed controller route pattern
+      const res = await ordersAPI.getOrderActivity(id);
+      setActivityLogs(res || []);
+    } catch (e) {
+      console.error('Failed to load activity logs', e);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   const [subtotal,     setSubtotal]     = useState(0);
   const [tax,          setTax]          = useState(0);
@@ -284,6 +302,7 @@ export default function OrderDetail() {
     const load = async () => {
       try {
         location.pathname.startsWith('/admin') ? await fetchAdminOrder(id) : await fetchOrder(id);
+        if (location.pathname.startsWith('/admin')) fetchActivityLogs();
       } catch { toast.error('Failed to load order'); navigate(location.pathname.startsWith('/admin') ? '/admin/orders' : '/orders'); }
     };
     load();
@@ -302,23 +321,22 @@ export default function OrderDetail() {
 
   useEffect(() => { setTotal(subtotal - discount + tax + shippingCost); }, [subtotal, tax, shippingCost, discount]);
 
+  const loadPayments = async (orderId) => {
+    setPaymentsLoading(true);
+    try {
+      const data = await paymentsAPI.getAdminOrderPaymentHistory(orderId);
+      setOrderPayments(data);
+    } catch (e) {
+      console.error('Failed to load payment history:', e);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
   // Fetch payment history when order loads
   useEffect(() => {
     if (!order?.id) return;
-    
-    const loadPayments = async () => {
-      setPaymentsLoading(true);
-      try {
-        const data = await paymentsAPI.getAdminOrderPaymentHistory(order.id);
-        setOrderPayments(data);
-      } catch (e) {
-        console.error('Failed to load payment history:', e);
-      } finally {
-        setPaymentsLoading(false);
-      }
-    };
-    
-    loadPayments();
+    loadPayments(order.id);  // just calls it now
   }, [order?.id]);
 
   const run = async (fn, successMsg, extra) => {
@@ -629,6 +647,7 @@ export default function OrderDetail() {
       setPaymentModal(false);  
       setPaymentError('');  
       fetchAdminOrder(order.id);  
+      loadPayments(order.id);
     } catch (err) {  
       const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to update payment';  
       setPaymentError(msg);  
@@ -637,7 +656,7 @@ export default function OrderDetail() {
       setUpdatingPayment(false);  
     }  
   };
-  const handleSaveTotals  = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { subtotal, tax, shipping_cost: shippingCost, discount, total, order_type: orderType }), 'Totals saved');
+  
   const handleSaveCourier = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { tracking_number: trackingNumber||null, courier_company: courierCompany||null, estimated_delivery_date: estimatedDeliveryDate||null }), 'Courier saved');
   const handleClearCourier = () => run(() => useOrderStore.getState().updateAdminOrder(order.id, { tracking_number:null, courier_company:null, estimated_delivery_date:null }), 'Courier cleared', () => { setTrackingNumber(''); setCourierCompany(''); setEstimatedDeliveryDate(''); });
   const handleRestore = async () => {
@@ -645,7 +664,9 @@ export default function OrderDetail() {
     setRestoreModal(false); setRestoreReason('');
   };
   const handleDelete = async () => {
-    if (!window.confirm(`Move order ${order.order_number} to Trash?`)) return;
+    
+    if (!window.confirm(`Move order ${order.order_number} to Trash?\n\nAny store credit used will not be returned to customer wallet.\n\nDelete Anyway? Then restore the points in customer/loyalties or consider cancelling first then deleting to handle this automatically`)) 
+      return;
     try { await useOrderStore.getState().trashOrder(order.id); toast.success('Moved to trash'); navigate('/admin/orders'); }
     catch (e) { toast.error(e.response?.data?.message || 'Failed'); }
   };
@@ -1267,27 +1288,6 @@ export default function OrderDetail() {
             {/* Financial Summary */}
             <div style={{ padding: '18px 22px', borderTop: '1px solid var(--border,#f3f4f6)' }}>
               <SectionLabel icon={TrendingUp}>Financial Summary</SectionLabel>
-              <div className="od-financials-grid">
-                {[
-                  { label: 'Subtotal',  val: subtotal,     set: setSubtotal },
-                  { label: 'Tax (16%)', val: tax,          set: setTax },
-                  { label: 'Shipping',  val: shippingCost, set: setShippingCost },
-                  { label: 'Discount',  val: discount,     set: setDiscount },
-                ].map(({ label, val, set }) => (
-                  <div key={label}>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af', marginBottom: 5 }}>{label}</p>
-                    <input type="number" value={val} onChange={e => set(Number(e.target.value||0))}
-                      disabled={isCancelled} style={iStyle} onFocus={fIn} onBlur={fOut} />
-                  </div>
-                ))}
-                <div style={{ gridColumn: 'span 2' }}>
-                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af', marginBottom: 5 }}>Order Type</p>
-                  <select value={orderType} onChange={e => setOrderType(e.target.value)} disabled={isCancelled}
-                    style={{ ...iStyle, appearance: 'none' }} onFocus={fIn} onBlur={fOut}>
-                    {['standard','quotation','bulk','b2b'].map(v => <option key={v} value={v}>{v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
-                  </select>
-                </div>
-              </div>
 
               <div style={{ padding: '14px 16px', borderRadius: 12, background: purpleLt, border: `1px solid ${purpleBd}` }}>
                 {[
@@ -1342,7 +1342,6 @@ export default function OrderDetail() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-                <Btn variant="ghost" icon={<Save size={14} />} onClick={handleSaveTotals} disabled={isCancelled} size="sm">Save Totals</Btn>
                 {/* ── Request Payment Button ───────────────────────────────────── */}
                 {(() => {
                   // ✅ Matches backend PaymentController::initiate() guards
@@ -1682,7 +1681,20 @@ export default function OrderDetail() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                 <Btn variant="ghost"   size="sm" onClick={() => setStatusModal(true)}  disabled={isCancelled}>Update Status</Btn>
-                <Btn variant="primary" size="sm" onClick={handleUpdatePaymentClick} disabled={isCancelled}>Update Payment</Btn>
+                <Btn
+                  variant={order.status === 'pending' ? 'outline' : 'primary'}
+                  size="sm"
+                  onClick={order.status === 'pending' ? handleConfirm : handleUpdatePaymentClick}
+                  disabled={isCancelled}
+                  title={order.status === 'pending' ? 'Confirm the order before updating payment' : undefined}
+                >
+                  {order.status === 'pending' ? 'Confirm Order to Enable Payments' : 'Update Payment'}
+                </Btn>
+                {order.status === 'pending' && (
+                  <p style={{ fontSize: '0.68rem', color: '#f59e0b', margin: 0, textAlign: 'center', fontWeight: 600 }}>
+                    ⚠ Confirm order first to prevent payment inconsistencies
+                  </p>
+                )}
               </div>
             </div>
           </Panel>
@@ -1794,6 +1806,99 @@ export default function OrderDetail() {
               </div>
             </Panel>
           )}
+          {/* Activity Log */}
+          <Panel className="order-panel">
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <SectionLabel icon={Clock}>Activity Log · {activityLogs.length}</SectionLabel>
+              <button onClick={fetchActivityLogs} disabled={loadingLogs}
+                style={{ background: 'none', border: 'none', cursor: loadingLogs ? 'not-allowed' : 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 600 }}>
+                <RefreshCw size={13} style={{ animation: loadingLogs ? 'spin 0.8s linear infinite' : 'none' }} />
+                Refresh
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 22px' }}>
+              {loadingLogs ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: '0.82rem' }}>
+                  <div style={{ width: 14, height: 14, border: '2px solid #e5e7eb', borderTopColor: purple, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                  Loading activity…
+                </div>
+              ) : activityLogs.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: '#9ca3af', textAlign: 'center', padding: '16px 0' }}>No activity recorded yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {activityLogs.map((log, i) => {
+                    const severityConfig = {
+                      success: { color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)',  icon: CheckCircle },
+                      info:    { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.2)',  icon: Info },
+                      warning: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)',  icon: AlertTriangle },
+                      danger:  { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)',   icon: XCircle },
+                    }[log.severity] || { color: '#9ca3af', bg: 'rgba(156,163,175,0.08)', border: 'rgba(156,163,175,0.2)', icon: Info };
+
+                    const SeverityIcon = severityConfig.icon;
+                    const isLast = i === activityLogs.length - 1;
+
+                    return (
+                      <div key={log.id} style={{ display: 'flex', gap: 12, paddingBottom: isLast ? 0 : 16, position: 'relative' }}>
+                        {/* Vertical line */}
+                        {!isLast && (
+                          <div style={{ position: 'absolute', left: 15, top: 32, bottom: 0, width: 1, background: 'var(--border,#f3f4f6)' }} />
+                        )}
+
+                        {/* Icon */}
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: severityConfig.bg, border: `1px solid ${severityConfig.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 }}>
+                          <SeverityIcon size={14} color={severityConfig.color} />
+                        </div>
+
+                        {/* Content */}
+                        <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0 }}>
+                              {log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                            </p>
+                            <span style={{ fontSize: '0.68rem', color: '#9ca3af', flexShrink: 0, fontWeight: 500 }}>
+                              {format(new Date(log.created_at), 'MMM d · h:mm a')}
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '3px 0 4px', lineHeight: 1.5 }}>
+                            {log.description}
+                          </p>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <User size={10} />
+                              {log.performed_by}
+                            </span>
+
+                            {log.metadata && Object.keys(log.metadata).length > 0 && (
+                              <details style={{ fontSize: '0.68rem' }}>
+                                <summary style={{ cursor: 'pointer', color: purple, fontWeight: 700, listStyle: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  <Info size={10} /> Details
+                                </summary>
+                                <div style={{ marginTop: 6, padding: '8px 10px', borderRadius: 8, background: purpleLt, border: `1px solid ${purpleBd}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {Object.entries(log.metadata).map(([key, val]) => (
+                                    <div key={key} style={{ display: 'flex', gap: 8, fontSize: '0.72rem' }}>
+                                      <span style={{ color: '#9ca3af', fontWeight: 600, textTransform: 'capitalize', flexShrink: 0 }}>
+                                        {key.replace(/_/g, ' ')}:
+                                      </span>
+                                      <span style={{ color: 'var(--text,#374151)', fontWeight: 700, wordBreak: 'break-all' }}>
+                                        {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Panel>
         </div>
       </div>
 
@@ -1933,11 +2038,51 @@ export default function OrderDetail() {
       {restoreModal && (
         <InlineModal title={`Restore Order ${order.order_number}`} accentColor="#10b981" onClose={() => setRestoreModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {order.payment_status === 'refunded' && (
-              <Alert icon={AlertTriangle} color="#92400e" bg="rgba(245,158,11,0.06)" border="rgba(245,158,11,0.2)" title="This order was refunded">
-                Restoring will revert payment to "Paid", clear refund amounts, deduct returned stock, and move order to "Confirmed".
-              </Alert>
-            )}
+
+            {/* Derive what happened before cancellation */}
+            {(() => {
+              const wasRefunded     = order.payment_status === 'refunded';
+              const returnedItems   = order.items?.filter(i => parseInt(i.quantity_returned) > 0) || [];
+              const hadReturns      = returnedItems.length > 0;
+
+              return (
+                <>
+                  {/* What restore will do */}
+                  <Alert icon={Info} color="#0c447c" bg="rgba(59,130,246,0.06)" border="rgba(59,130,246,0.2)" title="Restoring this order will">
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <li>Move order status → <strong>Confirmed</strong></li>
+                      <li>Set payment status → <strong>Unpaid</strong></li>
+                      {hadReturns && <li>Deduct {returnedItems.reduce((s, i) => s + parseInt(i.quantity_returned), 0)} previously returned unit(s) from stock</li>}
+                    </ul>
+                  </Alert>
+
+                  {/* Refund warning */}
+                  {wasRefunded && (
+                    <Alert icon={AlertTriangle} color="#92400e" bg="rgba(245,158,11,0.06)" border="rgba(245,158,11,0.2)" title="Refund was already issued">
+                      Payment is set to <strong>Unpaid</strong> — not Paid — because the refund has already been disbursed. Loyalty points are only regained when the order is marked paid again.
+                    </Alert>
+                  )}
+
+                  {/* Stock warning */}
+                  {hadReturns && (
+                    <Alert icon={AlertTriangle} color="#b91c1c" bg="rgba(239,68,68,0.06)" border="rgba(239,68,68,0.2)" title="Items were returned to inventory">
+                      <span>The following items will be deducted from stock again on restore:</span>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {returnedItems.map(i => (
+                          <li key={i.id} style={{ fontSize: '0.78rem' }}>
+                            <strong>{i.product_name}</strong> — {parseInt(i.quantity_returned)} unit(s)
+                          </li>
+                        ))}
+                      </ul>
+                      <p style={{ marginTop: 8, fontWeight: 700, color: '#fe9901' }}>
+                        If stock cannot be fulfilled, consider creating a new order instead.
+                      </p>
+                    </Alert>
+                  )}
+                </>
+              );
+            })()}
+
             <div>
               <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 5 }}>Restore Reason (optional)</p>
               <textarea value={restoreReason} onChange={e => setRestoreReason(e.target.value)}

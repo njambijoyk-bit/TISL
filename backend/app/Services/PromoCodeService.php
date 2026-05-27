@@ -181,6 +181,9 @@ class PromoCodeService
                 'is_public'          => false,
             ]);
 
+            $rewardLabel = $template->reward_type === 'percentage'
+                ? "{$template->reward_value}% off"
+                : "KES " . number_format($template->reward_value, 0) . " off";
             $this->notifyCustomer(
                 $customer,
                 'first_time_promo',

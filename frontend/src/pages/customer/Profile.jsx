@@ -4,11 +4,13 @@ import {
   Camera, Save, X, Edit2, User, Mail, Phone, Globe,
   MessageCircle, Building2, FileText, MapPin, Package,
   Calendar, CreditCard, Star, Check, Loader2, Eye, EyeOff,
-  ShieldCheck, ShieldAlert, Shield, 
+  ShieldCheck, ShieldAlert, Shield, Bell, Gift,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
-import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI } from '../../api';
+import NotificationsModal from '../../components/common/NotificationsModal';
+import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
+import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../api';
 import { useAuthStore, usePromoCodeStore } from '../../store';
 import toast from 'react-hot-toast';
 
@@ -126,9 +128,18 @@ export default function Profile() {
   const [walletLedger, setWalletLedger] = useState('points'); // 'points' | 'credit'
   const [walletPage,   setWalletPage]   = useState(1);
   const [walletLoading,setWalletLoading]= useState(false);
-  const [redeemModal,  setRedeemModal]  = useState(false);
-  const [redeemRule,   setRedeemRule]   = useState(null);
-  const [redeemLoading,setRedeemLoading]= useState(false);
+  const [redeemModal,   setRedeemModal]   = useState(false);
+  const [redeemRule,    setRedeemRule]    = useState(null); // full rule object
+  const [redeemLoading, setRedeemLoading] = useState(false);
+  const [redeemSuccess, setRedeemSuccess] = useState(null); // { message, rule, new_points, new_credit }
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    notificationsAPI.unreadCount()
+      .then(res => setUnreadCount(res.data.count))
+      .catch(() => {});
+  }, []);
 
   const [tierOptions, setTierOptions] = useState([]);
   useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
@@ -160,7 +171,7 @@ export default function Profile() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'wallet' && wallet) loadWalletTxs();
+    if (activeTab === 'wallet') loadWalletTxs();
   }, [activeTab, walletLedger, walletPage]);
 
   const loadProfile = async () => {
@@ -217,8 +228,13 @@ export default function Profile() {
     try {
       const res = await customerLoyaltyAPI.myBalance();
       setWallet(res);
-    } catch { toast.error('Failed to load wallet'); }
-    finally { setWalletLoading(false); }
+      return res;
+    } catch {
+      toast.error('Failed to load wallet');
+      return null;
+    } finally {
+      setWalletLoading(false);
+    }
   };
 
   const loadWalletTxs = async () => {
@@ -232,15 +248,57 @@ export default function Profile() {
     if (!redeemRule) return;
     setRedeemLoading(true);
     try {
-      const res = await customerLoyaltyAPI.selfRedeem({ rule_id: redeemRule });
-      toast.success(res.message ?? 'Redeemed!');
-      setRedeemModal(false);
-      setRedeemRule(null);
+      const res = await customerLoyaltyAPI.selfRedeem({ rule_id: redeemRule.id });
+      setRedeemSuccess({
+        message:        res.message ?? 'Redeemed!',
+        rule:           redeemRule,
+        points_used:    res.points_used ?? redeemRule.points_required ?? null,
+        credit_granted: res.credit_granted ?? res.new_credit ?? res.store_credit ?? null,
+        new_points:     res.new_points ?? res.loyalty_points ?? null,
+        new_credit:     res.new_credit ?? res.store_credit   ?? null,
+        rule_type:      res.rule_type ?? redeemRule.type ?? null,
+      });
       loadWallet();
       loadWalletTxs();
     } catch (e) {
       toast.error(e.response?.data?.message ?? 'Redemption failed');
     } finally { setRedeemLoading(false); }
+  };
+
+  const closeRedeemModal = () => {
+    setRedeemModal(false);
+    setRedeemRule(null);
+    setRedeemSuccess(null);
+  };
+
+  const openRedeemModalForRule = (selectedRule = null, walletData = wallet) => {
+    const availableRules = walletData?.redemption_rules ?? [];
+    const currentPoints = Number(walletData?.loyalty_points ?? customer?.loyalty_points ?? 0);
+    const minPoints = Number(walletData?.min_redemption_points ?? 0);
+    const eligibleRules = availableRules.filter((item) => {
+      const itemPoints = Number(item.points_required ?? 0);
+      return currentPoints >= itemPoints && currentPoints >= minPoints;
+    });
+
+    const targetRule = selectedRule ?? eligibleRules[0] ?? availableRules[0] ?? null;
+
+    if (!targetRule) {
+      toast.error('No redemption rules are available yet.');
+      return;
+    }
+
+    setRedeemSuccess(null);
+    setRedeemRule(targetRule);
+    setRedeemModal(true);
+  };
+
+  const handleOpenRedeemModal = async () => {
+    setActiveTab('wallet');
+
+    const walletData = wallet ?? await loadWallet();
+    if (!walletData) return;
+
+    openRedeemModalForRule(null, walletData);
   };
 
   const set = (k) => (e) => {
@@ -396,18 +454,84 @@ export default function Profile() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .profile-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 280px;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .profile-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
       <Header />
 
       <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: '32px 20px', width: '100%' }}>
 
         {/* ── Page heading ── */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
-            My Profile
-          </h1>
-          <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
-            Manage your personal information and account settings
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+              My Profile
+            </h1>
+            <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
+              Manage your personal information and account settings
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleOpenRedeemModal}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
+                border: '1.5px solid rgba(124,58,237,0.22)',
+                background: 'white', color: '#7c3aed',
+                transition: 'background 150ms',
+                boxShadow: '0 1px 6px rgba(124,58,237,0.08)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'white'}
+            >
+              <Gift size={13} />
+              Redeem
+            </button>
+
+            <button
+              onClick={() => setShowNotifications(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
+                border: '1.5px solid rgba(168,85,247,0.2)',
+                background: 'white', color: '#7c3aed',
+                transition: 'background 150ms',
+                boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+                position: 'relative',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'white'}
+            >
+              <Bell size={13} />
+              Notifications
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -6,
+                  minWidth: 18, height: 18, borderRadius: 99,
+                  background: '#ef4444', border: '2px solid white',
+                  fontSize: '0.6rem', fontWeight: 800, color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px',
+                }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* ── Account status banner ── */}
@@ -421,7 +545,7 @@ export default function Profile() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 24, alignItems: 'start' }}>
+        <div className="profile-grid">
 
           {/* ── Left: main form ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -688,49 +812,130 @@ export default function Profile() {
                 </div>
 
                 {/* Redemption rules */}
-                {wallet?.redemption_rules?.length > 0 && (
-                  <div style={card}>
-                    <p style={{ ...sectionTitle }}>🎁 Redeem Points</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {wallet.redemption_rules.map(rule => {
-                        const canRedeem = Number(wallet.loyalty_points ?? customer.loyalty_points ?? 0) >= rule.points_required;
-                        return (
-                          <div key={rule.id} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '12px 14px', borderRadius: 10, gap: 12,
-                            border: `1.5px solid ${canRedeem ? 'rgba(168,85,247,0.2)' : '#f3f4f6'}`,
-                            background: canRedeem ? 'rgba(168,85,247,0.03)' : '#fafafa',
-                            opacity: canRedeem ? 1 : 0.6,
-                          }}>
-                            <div>
-                              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{rule.name}</p>
-                              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-                                {Number(rule.points_required).toLocaleString()} pts
-                                {rule.value_kes > 0 && ` → KES ${Number(rule.value_kes).toLocaleString()}`}
-                              </p>
+                {wallet?.redemption_rules?.length > 0 && (() => {
+                  const currentPoints = Number(wallet.loyalty_points ?? customer.loyalty_points ?? 0);
+                  const minPts = Number(wallet.min_redemption_points ?? 0);
+                  const TYPE_META = {
+                    cashback: { emoji: '💸', label: 'Cashback',  color: '#059669', bg: 'rgba(5,150,105,0.08)'  },
+                    voucher:  { emoji: '🎟️',  label: 'Voucher',   color: '#7c3aed', bg: 'rgba(168,85,247,0.08)' },
+                    gift:     { emoji: '🎁',  label: 'Gift',      color: '#d97706', bg: 'rgba(245,158,11,0.08)' },
+                  };
+                  return (
+                    <div style={card}>
+                      {/* Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid #f3f4f6', gap: 10, flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                          🎁 Redeem Points
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.68rem', color: '#9ca3af', background: '#f9fafb', padding: '3px 9px', borderRadius: 99, border: '1px solid #f3f4f6' }}>
+                            Min. {minPts.toLocaleString()} pts to redeem
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openRedeemModalForRule()}
+                            style={{
+                              padding: '7px 12px',
+                              borderRadius: 8,
+                              border: '1.5px solid #111827',
+                              background: '#7c3aed',
+                              color: 'white',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              fontFamily: 'inherit',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Open redemption modal
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {wallet.redemption_rules.map(rule => {
+                          const canRedeem = currentPoints >= rule.points_required && currentPoints >= minPts;
+                          const meta = TYPE_META[rule.type] ?? TYPE_META.cashback;
+                          const ptsShort  = currentPoints - rule.points_required;
+                          const pctFilled = Math.min(1, currentPoints / rule.points_required);
+
+                          return (
+                            <div key={rule.id} style={{
+                              borderRadius: 12, overflow: 'hidden',
+                              border: `1.5px solid ${canRedeem ? 'rgba(168,85,247,0.18)' : '#f0f0f0'}`,
+                              background: canRedeem ? 'white' : '#fafafa',
+                              transition: 'box-shadow 150ms',
+                              boxShadow: canRedeem ? '0 2px 10px rgba(168,85,247,0.07)' : 'none',
+                            }}>
+                              <div style={{ padding: '13px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+
+                                {/* Emoji icon */}
+                                <div style={{
+                                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                                  background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '1.15rem', opacity: canRedeem ? 1 : 0.5,
+                                }}>
+                                  {meta.emoji}
+                                </div>
+
+                                {/* Info */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                                    <p style={{ fontSize: '0.84rem', fontWeight: 700, color: canRedeem ? '#111827' : '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {rule.name}
+                                    </p>
+                                    <span style={{ fontSize: '0.6rem', fontWeight: 700, padding: '1px 7px', borderRadius: 99, flexShrink: 0, background: meta.bg, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      {meta.label}
+                                    </span>
+                                  </div>
+                                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 7px' }}>
+                                    <span style={{ fontWeight: 700, color: canRedeem ? '#7c3aed' : '#9ca3af' }}>{Number(rule.points_required).toLocaleString()} pts</span>
+                                    {rule.value_kes > 0 && (
+                                      <> → <span style={{ fontWeight: 700, color: canRedeem ? '#059669' : '#9ca3af' }}>KES {Number(rule.value_kes).toLocaleString()}</span></>
+                                    )}
+                                  </p>
+
+                                  {/* Progress bar */}
+                                  <div style={{ height: 4, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
+                                    <div style={{
+                                      height: '100%', borderRadius: 99,
+                                      width: `${pctFilled * 100}%`,
+                                      background: canRedeem ? 'linear-gradient(90deg,#a855f7,#7c3aed)' : '#d1d5db',
+                                      transition: 'width 600ms ease',
+                                    }} />
+                                  </div>
+                                  {!canRedeem && (
+                                    <p style={{ fontSize: '0.65rem', color: '#f59e0b', margin: '4px 0 0', fontWeight: 600 }}>
+                                      {Math.abs(ptsShort).toLocaleString()} more pts needed
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Redeem button */}
+                                <button
+                                  onClick={() => openRedeemModalForRule(rule)}
+                                  disabled={!canRedeem}
+                                  style={{
+                                    padding: '7px 16px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
+                                    border: 'none', fontFamily: 'inherit', flexShrink: 0,
+                                    background: canRedeem ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#e5e7eb',
+                                    color: canRedeem ? 'white' : '#9ca3af',
+                                    cursor: canRedeem ? 'pointer' : 'not-allowed',
+                                    boxShadow: canRedeem ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                                    transition: 'opacity 150ms',
+                                  }}
+                                  onMouseEnter={e => { if (canRedeem) e.currentTarget.style.opacity = '0.88'; }}
+                                  onMouseLeave={e => { if (canRedeem) e.currentTarget.style.opacity = '1'; }}
+                                >
+                                  Redeem
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              onClick={() => { setRedeemRule(rule.id); setRedeemModal(true); }}
-                              disabled={!canRedeem}
-                              style={{
-                                padding: '6px 14px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
-                                border: 'none', fontFamily: 'inherit', flexShrink: 0,
-                                background: canRedeem ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#e5e7eb',
-                                color: canRedeem ? 'white' : '#9ca3af',
-                                cursor: canRedeem ? 'pointer' : 'not-allowed',
-                              }}
-                            >
-                              Redeem
-                            </button>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '10px 0 0' }}>
-                      Minimum {Number(wallet.min_redemption_points ?? 0).toLocaleString()} points required to redeem.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Transaction history */}
                 <div style={card}>
@@ -803,34 +1008,17 @@ export default function Profile() {
                   )}
                 </div>
 
-                {/* Redeem confirm modal */}
-                {redeemModal && (
-                  <div style={{
-                    position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.3)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-                  }}>
-                    <div style={{ ...card, maxWidth: 360, width: '100%' }}>
-                      <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: '0 0 8px' }}>Confirm Redemption</p>
-                      <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 20px' }}>
-                        {wallet?.redemption_rules?.find(r => r.id === redeemRule)?.name} — are you sure?
-                      </p>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button onClick={() => setRedeemModal(false)} style={{
-                          padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-                          background: 'none', border: '1px solid #e5e7eb', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit',
-                        }}>Cancel</button>
-                        <button onClick={handleRedeem} disabled={redeemLoading} style={{
-                          padding: '7px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', border: 'none',
-                          color: 'white', cursor: redeemLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                          opacity: redeemLoading ? 0.7 : 1,
-                        }}>
-                          {redeemLoading ? 'Redeeming…' : 'Confirm'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <LoyaltyRedemptionModal
+                  open={redeemModal}
+                  rule={redeemRule}
+                  rules={wallet?.redemption_rules ?? []}
+                  currentPoints={Number(wallet?.loyalty_points ?? customer.loyalty_points ?? 0)}
+                  minRedemptionPoints={Number(wallet?.min_redemption_points ?? 0)}
+                  loading={redeemLoading}
+                  success={redeemSuccess}
+                  onClose={closeRedeemModal}
+                  onConfirm={handleRedeem}
+                />
 
               </div>
             )}
@@ -1337,6 +1525,15 @@ export default function Profile() {
             </div>
           </div>
         </div>
+        <NotificationsModal
+          open={showNotifications}
+          onClose={() => {
+            setShowNotifications(false);
+            notificationsAPI.unreadCount()
+              .then(res => setUnreadCount(res.data.count))
+              .catch(() => {});
+          }}
+        />
       </div>
 
       <Footer />

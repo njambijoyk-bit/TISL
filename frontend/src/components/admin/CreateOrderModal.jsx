@@ -175,7 +175,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   // ── Discounts ─────────────────────────────────────────────────────────────
   const [useDiscountPct, setUseDiscountPct] = useState(false);
   const [orderDiscount,  setOrderDiscount]  = useState(0);
-  const [discountPct,    setDiscountPct]    = useState(0);
+  const [discountPct,    setDiscountPct]    = useState('0');
 
   // ── Store credit ──────────────────────────────────────────────────────────
   const availableCredit  = parseFloat(selectedCustomer?.store_credit ?? 0);
@@ -188,6 +188,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+
+  const [overrideDiscount, setOverrideDiscount] = useState(false);
 
   // ── Load on open ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -202,6 +204,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     if (!isOpen || !editMode || !initialData) return;
 
     setCustomerId(String(initialData.customer_id || ''));
+
+    // customers may not be loaded yet, so either:
+    // (a) load them first and then find, or
+    // (b) store a minimal customer object from initialData if your API returns it
+    if (initialData.customer) {
+      setSelectedCustomer(initialData.customer);
+    }
     if (initialData.currency) setCurrency(initialData.currency);
 
     setDeliveryMethod(initialData.delivery_method || 'standard_delivery');
@@ -366,24 +375,53 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
       .toLowerCase().includes(customerSearch.toLowerCase())
   );
 
+  // ── Tier & type benefits ──────────────────────────────────────────────
+  const tierBenefits        = selectedCustomer?.tier_benefits ?? null;
+  const tierDiscountPct     = parseFloat(tierBenefits?.discount ?? 0);
+  const tierFreeThreshold   = tierBenefits?.free_shipping_threshold ?? null;
+  const tierHasFreeShipping = tierFreeThreshold !== null;
+  const typeDiscountPct     = parseFloat(selectedCustomer?.type_discount_percentage ?? 0);
+  const personalDiscountPct = parseFloat(selectedCustomer?.discount_percentage ?? 0);
+
   // ── Totals ────────────────────────────────────────────────────────────────
   const validItems      = orderItems.filter(i => i.description || i.product_id || i.service_id);
   const validItemCount  = validItems.length;
   const itemsSubtotal   = validItems.reduce((s, i) => s + (parseFloat(i.line_total_after_discount) || 0), 0);
   const totalItemDisc   = validItems.reduce((s, i) => s + (parseFloat(i.discount_amount) || 0), 0);
   const origTotal       = validItems.reduce((s, i) => s + (parseFloat(i.line_total) || 0), 0);
+  const promoDiscountAmt = appliedPromo?.discount ?? 0;
 
   useEffect(() => {
     if (overrideShipping) return;
     const opt = shippingOptions.find(o => o.slug === deliveryMethod);
     if (!opt) { setShippingCost(0); return; }
-    const cost = (opt.free_above && itemsSubtotal >= parseFloat(opt.free_above))
-      ? 0
-      : parseFloat(opt.cost);
-    setShippingCost(cost);
-  }, [deliveryMethod, shippingOptions, itemsSubtotal, overrideShipping]);
 
-  const promoDiscountAmt = appliedPromo?.discount ?? 0;
+    let cost = (opt.free_above && itemsSubtotal >= parseFloat(opt.free_above))
+      ? 0 : parseFloat(opt.cost);
+
+    // Tier free-shipping threshold
+    if (cost > 0 && tierHasFreeShipping) {
+      const netSubtotal = itemsSubtotal - (parseFloat(orderDiscount) || 0) - promoDiscountAmt;
+      if (netSubtotal >= tierFreeThreshold) cost = 0;
+    }
+
+    setShippingCost(cost);
+  }, [deliveryMethod, shippingOptions, itemsSubtotal, overrideShipping,
+      tierFreeThreshold, tierHasFreeShipping, orderDiscount, promoDiscountAmt]);
+
+  useEffect(() => {
+    if (overrideDiscount || !selectedCustomer) return;
+    const totalPct = Math.min(tierDiscountPct + typeDiscountPct + personalDiscountPct, 30);
+    if (totalPct > 0 && itemsSubtotal > 0) {
+      const amt = (totalPct / 100) * itemsSubtotal;
+      setOrderDiscount(amt);
+      setDiscountPct(String(totalPct.toFixed(3)));
+    } else {
+      setOrderDiscount(0);
+      setDiscountPct('0');
+    }
+  }, [selectedCustomer, itemsSubtotal, tierDiscountPct, typeDiscountPct, personalDiscountPct, overrideDiscount]);
+
   const afterOrderDisc   = itemsSubtotal - (parseFloat(orderDiscount) || 0) - promoDiscountAmt;
   const taxAmount        = applyTax ? afterOrderDisc * 0.16 : 0;
   const shipping         = parseFloat(shippingCost) || 0;
@@ -398,7 +436,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     : exchangeRate > 0 ? creditDeductionKes / exchangeRate : 0;
 
   const grandTotal   = preCredit - creditDeductionOrderCurrency;
-  const totalSavings = totalItemDisc + (parseFloat(orderDiscount) || 0) + promoDiscountAmt + creditDeductionKes;
+  const totalSavings = totalItemDisc + (parseFloat(orderDiscount) || 0) + promoDiscountAmt + creditDeductionOrderCurrency;
   
   // ── Discount sync ─────────────────────────────────────────────────────────
   const handleDiscountChange = (field, value) => {
@@ -411,7 +449,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
         setDiscountPct(((parseFloat(value || 0) / itemsSubtotal) * 100).toFixed(3));
     }
   };
-
+  
   // ── Item helpers ──────────────────────────────────────────────────────────
   const updateItem = (index, field, value) => {
     const items = [...orderItems];
@@ -586,7 +624,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
         subtotal:          itemsSubtotal,
         subtotal_kes:      showKes ? toKes(itemsSubtotal) : itemsSubtotal,
         tax:               taxAmount,
-        discount:          parseFloat(orderDiscount) || 0,
+        apply_tier_discount: selectedCustomer && !overrideDiscount,
+        discount:            overrideDiscount ? (parseFloat(orderDiscount) || 0) : 0,
         shipping_cost:     shipping,
         total:             grandTotal,
         total_kes:         showKes ? toKes(grandTotal) : grandTotal,
@@ -669,6 +708,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
 
   const resetForm = () => {
     setSelectedCustomer(null);
+    setCustomerId('');  
     setShowCustomerModal(false);
     setCurrency('KES'); setDeliveryMethod('standard_delivery');
     setShippingAddress(''); setBillingAddress(''); setBillingSame(true);
@@ -677,7 +717,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     setCustomerNotes(''); setAdminNotes('');
     setPaymentStatus('unpaid'); setPaymentMethod('request_invoice');
     setPaymentReference(''); setApplyTax(true); setShippingCost(0); setOverrideShipping(false);
-    setOrderDiscount(0); setDiscountPct(0); setUseDiscountPct(false);
+    setOverrideDiscount(false);
+    setOrderDiscount('0'); setDiscountPct('0'); setUseDiscountPct(false);
     setError(''); setLoading(false); setPricingErrors([]); setShowPricingModal(false);
     clearPromo();
     setApplyCredit(false);
@@ -844,6 +885,97 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   </div>
                 </div>
               </div>
+              
+              {selectedCustomer && (tierDiscountPct > 0 || typeDiscountPct > 0 || tierHasFreeShipping) && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: 12, marginBottom: 4,
+                  border: `1px solid ${purpleBd}`, background: purpleLt,
+                }}>
+                  <p style={{ fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase',
+                    letterSpacing: '0.1em', color: purple, marginBottom: 10,
+                    display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 10px' }}>
+                    <UserCheck size={11} /> Customer Benefits — {(selectedCustomer.tier || 'bronze').toUpperCase()}
+                    {selectedCustomer.customer_type && (
+                      <span style={{ marginLeft: 6, fontSize: '0.6rem', color: '#9ca3af',
+                        fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>
+                        · {selectedCustomer.customer_type}
+                      </span>
+                    )}
+                  </p>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+                    {/* Tier discount */}
+                    {tierDiscountPct > 0 && (
+                      <div style={{ flex: 1, minWidth: 90, padding: '8px 10px', borderRadius: 8,
+                        background: 'white', border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.56rem', fontWeight: 700, textTransform: 'uppercase',
+                          color: '#9ca3af', margin: '0 0 3px', letterSpacing: '0.06em' }}>Tier Disc.</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 900, color: purple, margin: 0 }}>
+                          {tierDiscountPct}%
+                        </p>
+                        <p style={{ fontSize: '0.56rem', color: '#9ca3af', margin: '2px 0 0' }}>overridable</p>
+                      </div>
+                    )}
+
+                    {/* Type discount — read-only */}
+                    {typeDiscountPct > 0 && (
+                      <div style={{ flex: 1, minWidth: 90, padding: '8px 10px', borderRadius: 8,
+                        background: 'rgba(249,250,251,0.9)', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.56rem', fontWeight: 700, textTransform: 'uppercase',
+                          color: '#9ca3af', margin: '0 0 3px', letterSpacing: '0.06em' }}>Type Disc.</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 900, color: '#6b7280', margin: 0 }}>
+                          {typeDiscountPct}%
+                        </p>
+                        <p style={{ fontSize: '0.56rem', color: '#9ca3af', margin: '2px 0 0' }}>fixed</p>
+                      </div>
+                    )}
+
+                    {/* Personal discount */}
+                    {personalDiscountPct > 0 && (
+                      <div style={{ flex: 1, minWidth: 90, padding: '8px 10px', borderRadius: 8,
+                        background: 'rgba(249,250,251,0.9)', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.56rem', fontWeight: 700, textTransform: 'uppercase',
+                          color: '#9ca3af', margin: '0 0 3px', letterSpacing: '0.06em' }}>Personal</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 900, color: '#6b7280', margin: 0 }}>
+                          {personalDiscountPct}%
+                        </p>
+                        <p style={{ fontSize: '0.56rem', color: '#9ca3af', margin: '2px 0 0' }}>fixed</p>
+                      </div>
+                    )}
+
+                    {/* Free shipping threshold */}
+                    {tierHasFreeShipping && (
+                      <div style={{ flex: 1, minWidth: 100, padding: '8px 10px', borderRadius: 8,
+                        background: 'white', border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.56rem', fontWeight: 700, textTransform: 'uppercase',
+                          color: '#9ca3af', margin: '0 0 3px', letterSpacing: '0.06em' }}>Free Ship.</p>
+                        <p style={{ fontSize: '0.78rem', fontWeight: 800, color: '#059669', margin: 0 }}>
+                          {tierFreeThreshold === 0 ? 'Always' : `≥ KSh ${Number(tierFreeThreshold).toLocaleString('en-KE')}`}
+                        </p>
+                        <p style={{ fontSize: '0.56rem', color: '#9ca3af', margin: '2px 0 0' }}>overridable</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Combined discount note */}
+                  {(tierDiscountPct + typeDiscountPct + personalDiscountPct) > 0 && (
+                    <p style={{ fontSize: '0.68rem', color: purple, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+                      Combined discount:{' '}
+                      <strong>{Math.min(tierDiscountPct + typeDiscountPct + personalDiscountPct, 30)}%</strong>
+                      {(tierDiscountPct + typeDiscountPct + personalDiscountPct) > 30 && (
+                        <span style={{ color: '#9ca3af', fontWeight: 400 }}> (capped at 30%)</span>
+                      )}
+                      {typeDiscountPct > 0 && (
+                        <span style={{ color: '#9ca3af', fontWeight: 400 }}>
+                          {' '}This discount can be manually overridden in the Order Discount section below. 
+                          When the customer places their own order, all applicable discounts are applied automatically by the system.
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* ── Order Items ──────────────────────────────────────────── */}
               <div style={sectionStyle}>
@@ -1284,34 +1416,155 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
 
               {/* Order-level discount */}
               <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid #e5e7eb', background: 'white' }}>
+
+                {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: purple, margin: 0 }}>Order Discount</p>
-                  <button type="button" onClick={() => setUseDiscountPct(!useDiscountPct)}
-                    style={{ fontSize: '0.68rem', color: purple, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    {useDiscountPct ? 'Switch to amount' : 'Switch to %'}
-                  </button>
-                </div>
-                {useDiscountPct ? (
-                  <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <input type="number" min="0" max="100" step="0.01" value={discountPct}
-                        onChange={e => handleDiscountChange('pct', e.target.value)}
-                        disabled={loading} style={iBase} onFocus={fIn} onBlur={fOut} />
-                    </div>
-                    <Percent size={14} color="#9ca3af" />
-                  </div>
-                ) : (
-                  <PrefixInput type="number" min="0" step="0.01" value={orderDiscount}
-                    onChange={e => handleDiscountChange('amt', e.target.value)} disabled={loading} prefix={cs} />
-                )}
-                {parseFloat(orderDiscount) > 0 && (
-                  <p style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700, marginTop: 5 }}>
-                    -{money(orderDiscount)} order discount
+                  <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase',
+                    letterSpacing: '0.12em', color: purple, margin: 0 }}>
+                    Order Discount
                   </p>
+
+                  {/* Override toggle — only shown when a customer with tier discount is selected */}
+                  {selectedCustomer && tierDiscountPct > 0 && (
+                    <button type="button" onClick={() => {
+                      const next = !overrideDiscount;
+                      setOverrideDiscount(next);
+                      if (!next) {
+                        // Revert back to auto tier discount
+                        const totalPct = Math.min(tierDiscountPct + typeDiscountPct + personalDiscountPct, 30);
+                        setOrderDiscount((totalPct / 100) * itemsSubtotal);
+                        setDiscountPct(String(totalPct.toFixed(3)));
+                      }
+                    }} style={{ fontSize: '0.68rem', fontWeight: 700, background: 'none',
+                      border: 'none', cursor: 'pointer', padding: 0,
+                      color: overrideDiscount ? '#ef4444' : purple }}>
+                      {overrideDiscount ? '↩ Use tier discount' : 'Override'}
+                    </button>
+                  )}
+
+                  {/* % / amount toggle — only shown in manual mode */}
+                  {(!selectedCustomer || overrideDiscount) && (
+                    <button type="button" onClick={() => setUseDiscountPct(!useDiscountPct)}
+                      style={{ fontSize: '0.68rem', color: purple, fontWeight: 700,
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {useDiscountPct ? 'Switch to amount' : 'Switch to %'}
+                    </button>
+                  )}
+                </div>
+
+                {/* ── AUTO MODE: customer selected, not overriding ── */}
+                {selectedCustomer && !overrideDiscount && (
+                  <>
+                    {(tierDiscountPct + typeDiscountPct + personalDiscountPct) > 0 ? (
+                      <div style={{ padding: '9px 11px', borderRadius: 9, background: purpleLt,
+                        border: `1px solid ${purpleBd}` }}>
+
+                        {/* Tier discount row — overridable */}
+                        {tierDiscountPct > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span style={{ fontSize: '0.72rem', color: purple }}>
+                              Tier discount ({tierDiscountPct}%)
+                            </span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: purple }}>
+                              -{money((tierDiscountPct / 100) * itemsSubtotal)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Type discount row — fixed, not overridable */}
+                        {typeDiscountPct > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                              Type discount ({typeDiscountPct}%)
+                              <span style={{ fontSize: '0.64rem', color: '#9ca3af', marginLeft: 5 }}>fixed</span>
+                            </span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280' }}>
+                              -{money((typeDiscountPct / 100) * itemsSubtotal)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Personal discount row — fixed */}
+                        {personalDiscountPct > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                              Personal discount ({personalDiscountPct}%)
+                              <span style={{ fontSize: '0.64rem', color: '#9ca3af', marginLeft: 5 }}>fixed</span>
+                            </span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280' }}>
+                              -{money((personalDiscountPct / 100) * itemsSubtotal)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Divider + total */}
+                        <div style={{ borderTop: `1px solid ${purpleBd}`, paddingTop: 7, marginTop: 2,
+                          display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: purple }}>
+                            Total ({Math.min(tierDiscountPct + typeDiscountPct + personalDiscountPct, 30)}%
+                            {(tierDiscountPct + typeDiscountPct + personalDiscountPct) > 30 &&
+                              <span style={{ fontWeight: 400, fontSize: '0.68rem', color: '#9ca3af' }}> capped</span>
+                            })
+                          </span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: purple }}>
+                            -{money(parseFloat(orderDiscount) || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
+                        No tier discount for this customer.
+                      </p>
+                    )}
+
+                    {typeDiscountPct > 0 && (
+                      <p style={{ fontSize: '0.67rem', color: '#9ca3af', marginTop: 7, lineHeight: 1.5 }}>
+                        All automatic discounts are active.
+                      </p>
+                    )}
+                  </>
                 )}
-                <p style={{ fontSize: '0.67rem', color: '#9ca3af', marginTop: 5, lineHeight: 1.5 }}>
-                  Saved in <code style={{ fontSize: '0.65rem' }}>orders.discount</code>, separate from item discounts in <code style={{ fontSize: '0.65rem' }}>order_items.discount_amount</code>
+
+                {/* ── MANUAL MODE: no customer, or override active ── */}
+                {(!selectedCustomer || overrideDiscount) && (
+                  <>
+                    {overrideDiscount && typeDiscountPct + personalDiscountPct > 0 && (
+                      <div style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(249,250,251,0.9)',
+                        border: '1px solid #e5e7eb', marginBottom: 10, fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.5 }}>
+                        This override replaces all customer discounts — tier ({tierDiscountPct}%), type ({typeDiscountPct}%), and personal ({personalDiscountPct}%) — 
+                        with the amount you enter here. The backend will use only this value.
+                      </div>
+                    )}
+
+                    {useDiscountPct ? (
+                      <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <input type="number" min="0" max="100" step="0.01" value={discountPct}
+                            onChange={e => handleDiscountChange('pct', e.target.value)}
+                            disabled={loading} style={iBase} onFocus={fIn} onBlur={fOut} />
+                        </div>
+                        <Percent size={14} color="#9ca3af" />
+                      </div>
+                    ) : (
+                      <PrefixInput type="number" min="0" step="0.01" value={orderDiscount}
+                        onChange={e => handleDiscountChange('amt', e.target.value)}
+                        disabled={loading} prefix={cs} />
+                    )}
+
+                    {parseFloat(orderDiscount) > 0 && (
+                      <p style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700, marginTop: 5 }}>
+                        -{money(orderDiscount)} order discount
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {/* Footer hint */}
+                <p style={{ fontSize: '0.67rem', color: '#9ca3af', marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+                  Saved in <code style={{ fontSize: '0.65rem' }}>orders.discount</code>
+                  {overrideDiscount && <span style={{ color: '#ef4444' }}> · manual override active</span>}
                 </p>
+
               </div>
 
               {/* Promo Code */}

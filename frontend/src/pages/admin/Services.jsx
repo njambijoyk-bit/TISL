@@ -15,6 +15,7 @@ import {
   Archive,
   CheckSquare,
   Square,
+  CalendarClock,
 } from 'lucide-react';
 import useServiceStore from '../../store/serviceStore';
 import useAuthStore from '../../store/authStore';
@@ -315,7 +316,7 @@ const Services = () => {
             />
           )}
           <div>
-            <div className="font-semibold text-gray-900 dark:text-white">{service.name}</div>
+            <div className="font-semibold text-primary">{service.name}</div>
             {service.sku && <div className="text-xs text-gray-500">SKU: {service.sku}</div>}
           </div>
         </div>
@@ -326,13 +327,13 @@ const Services = () => {
       accessor: (service) => (
         <div className="space-y-1">
           {service.service_category && (
-            <Badge variant="primary" size="sm">
+            <div className="text-s text-accent">
               {service.service_category}
-            </Badge>
+            </div>
           )}
           {service.type && (
-            <div className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-              {service.type}
+            <div className="text-xs text-gray-500">
+              TYPE: {service.type}
             </div>
           )}
         </div>
@@ -342,8 +343,10 @@ const Services = () => {
       header: 'Pricing',
       accessor: (service) => (
         <div>
-          <div className="font-semibold">{getPricingDisplay(service)}</div>
-          <div className="text-xs text-gray-500">{service.pricing_model}</div>
+          <Badge variant="primary" size="sm">
+            {getPricingDisplay(service)}
+          </Badge>
+          <div className="text-s text-gray-500">Pricing: {service.pricing_model}</div>
         </div>
       ),
     },
@@ -422,15 +425,79 @@ const Services = () => {
                 Manage your service catalog
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={openTrashModal}>
-                <Archive className="w-4 h-4 mr-2" />
-                Trash
-              </Button>
-              <Button variant="primary" onClick={() => navigate('/admin/services/new')}>
-                <Plus className="w-5 h-5 mr-2" />
-                Add Service
-              </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+
+              {/* Trash — outline/neutral */}
+              <button
+                onClick={openTrashModal}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'transparent', color: '#6b7280',
+                  border: '1.5px solid rgba(107,114,128,0.25)',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(107,114,128,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(107,114,128,0.4)';
+                  e.currentTarget.style.color = '#374151';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(107,114,128,0.25)';
+                  e.currentTarget.style.color = '#6b7280';
+                }}
+              >
+                <Archive size={15} /> Trash
+              </button>
+
+              {/* Add Service — primary/purple */}
+              <button
+                onClick={() => navigate('/admin/services/new')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
+                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                }}
+              >
+                <Plus size={16} /> Add Service
+              </button>
+
+              {/* Bookings — primary/purple */}
+              <button
+                onClick={() => navigate('/admin/bookings')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
+                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                }}
+              >
+                <CalendarClock size={16} /> Bookings
+              </button>
+
             </div>
           </div>
         </div>
@@ -469,58 +536,145 @@ const Services = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckSquare className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-900 dark:text-blue-100">
+        <div style={{
+          background: 'rgba(168,85,247,0.06)',
+          border: '1.5px solid rgba(168,85,247,0.2)',
+          borderRadius: 10, padding: '12px 16px', marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckSquare size={18} style={{ color: '#a855f7' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6b21a8' }}>
                 {selectedIds.length} service(s) selected
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+              {/* Clear Selection */}
+              <button
                 onClick={() => setSelectedIds([])}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
+                  fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'transparent', color: '#6b7280',
+                  border: '1.5px solid rgba(107,114,128,0.25)',
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(107,114,128,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(107,114,128,0.4)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(107,114,128,0.25)';
+                }}
               >
                 Clear Selection
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
+              </button>
+
+              {/* Move to Trash — danger/red */}
+              <button
                 onClick={handleBulkSoftDelete}
                 disabled={actionLoading}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '5px 12px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+                  background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                  border: '1.5px solid rgba(239,68,68,0.2)',
+                  opacity: actionLoading ? 0.5 : 1,
+                  transition: 'all 150ms',
+                }}
+                onMouseEnter={e => {
+                  if (!actionLoading) {
+                    e.currentTarget.style.background = 'rgba(239,68,68,0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)';
+                }}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Move to Trash
-              </Button>
+                <Trash2 size={14} /> Move to Trash
+              </button>
+
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-        <div className="grid grid-cols-3 gap-4">
-          <form onSubmit={handleSearch} className="relative">
-            <Input
+      {/* Search + Filter Bar */}
+      <div style={{
+        borderRadius: 12,
+        border: '1px solid rgba(168,85,247,0.12)',
+        boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+        padding: 16, marginBottom: 20,
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{
+              position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+              color: '#9ca3af', pointerEvents: 'none',
+            }} />
+            <input
               type="text"
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '8px 12px 8px 34px', /* 34px = 11px icon left + 15px icon + 8px gap */
+                borderRadius: 8, fontSize: '0.82rem', color: '#374151',
+                background: 'rgba(168,85,247,0.03)',
+                border: '1.5px solid rgba(168,85,247,0.18)',
+                outline: 'none', fontFamily: 'inherit',
+                transition: 'border-color 150ms, box-shadow 150ms',
+              }}
+              onFocus={e => {
+                e.currentTarget.style.borderColor = '#a855f7';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+              }}
+              onBlur={e => {
+                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </form>
-          <Select
+          </div>
+
+          {/* Status Filter */}
+          <select
             value={statusFilter}
             onChange={(e) => handleStatusFilter(e.target.value)}
-            options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'draft', label: 'Draft' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ]}
-          />
+            style={{
+              padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
+              background: 'rgba(168,85,247,0.03)',
+              border: '1.5px solid rgba(168,85,247,0.18)',
+              color: '#374151', outline: 'none',
+              fontFamily: 'inherit', cursor: 'pointer',
+              transition: 'border-color 150ms, box-shadow 150ms',
+            }}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = '#a855f7';
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <option value="">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
         </div>
       </div>
 
@@ -567,28 +721,67 @@ const Services = () => {
         onClose={() => setShowBulkDeleteModal(false)}
         title="Move Services to Trash"
       >
-        <div className="space-y-4">
-          <p>
-            Are you sure you want to move <strong>{selectedIds.length} service(s)</strong> to trash?
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ fontSize: '0.88rem', color: '#111827', margin: 0 }}>
+            Are you sure you want to move <strong style={{ color: '#6b21a8' }}>{selectedIds.length} service(s)</strong> to trash?
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
             You can restore them later from the trash.
           </p>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+
+            {/* Cancel */}
+            <button
               onClick={() => setShowBulkDeleteModal(false)}
               disabled={actionLoading}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
+                fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                background: 'transparent', color: '#6b7280',
+                border: '1.5px solid rgba(107,114,128,0.25)',
+                opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                if (!actionLoading) {
+                  e.currentTarget.style.background = 'rgba(107,114,128,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(107,114,128,0.4)';
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(107,114,128,0.25)';
+              }}
             >
               Cancel
-            </Button>
-            <Button
-              variant="danger"
+            </button>
+
+            {/* Move to Trash */}
+            <button
               onClick={confirmBulkSoftDelete}
               disabled={actionLoading}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
+                fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                border: '1.5px solid rgba(239,68,68,0.2)',
+                opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                if (!actionLoading) {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)';
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)';
+              }}
             >
               {actionLoading ? 'Moving...' : 'Move to Trash'}
-            </Button>
+            </button>
+
           </div>
         </div>
       </Modal>
@@ -604,27 +797,74 @@ const Services = () => {
 
           {/* Bulk Actions */}
           {selectedTrashIds.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 8 }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: 'rgba(168,85,247,0.06)',
+              border: '1.5px solid rgba(168,85,247,0.2)',
+              borderRadius: 8,
+            }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#6b21a8' }}>
                 {selectedTrashIds.length} service(s) selected
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
+
+                {/* Restore Selected */}
                 <button
                   onClick={handleBulkRestore}
                   disabled={actionLoading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(124,58,237,0.3)', background: 'white', color: '#7c3aed', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 8,
+                    fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+                    background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                    border: '1.5px solid rgba(168,85,247,0.25)',
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
+                  }}
+                  onMouseEnter={e => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.background = 'rgba(168,85,247,0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                  }}
                 >
                   <RotateCcw size={14} /> Restore Selected
                 </button>
+
+                {/* Delete Permanently — superadmin only */}
                 {isSuperAdmin && (
                   <button
                     onClick={handleBulkDelete}
                     disabled={actionLoading}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, border: 'none', background: '#ef4444', color: 'white', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 12px', borderRadius: 8,
+                      fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+                      background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                      border: '1.5px solid rgba(239,68,68,0.2)',
+                      cursor: actionLoading ? 'not-allowed' : 'pointer',
+                      opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
+                    }}
+                    onMouseEnter={e => {
+                      if (!actionLoading) {
+                        e.currentTarget.style.background = 'rgba(239,68,68,0.15)';
+                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)';
+                    }}
                   >
                     <Trash2 size={14} /> Delete Permanently
                   </button>
                 )}
+
               </div>
             </div>
           )}

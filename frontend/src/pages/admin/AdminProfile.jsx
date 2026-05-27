@@ -5,15 +5,16 @@ import {
   FolderOpen, FileText, AlertCircle, MapPin, ShoppingBag,
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
-  MessageSquareQuote, ArrowRight, CalendarClock,
+  MessageSquareQuote, ArrowRight, CalendarClock, Bell,
   ChevronDown, ChevronUp, Users, Star, Ticket, Camera,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
+import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import NotificationsModal from '../../components/common/NotificationsModal';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store';
-import { authAPI, workAPI } from '../../api';
+import { authAPI, workAPI, notificationsAPI } from '../../api';
 import employeesAPI from '../../api/employees';
-import LoadingSpinner from '../../components/layout/LoadingSpinner';
 
 // ─── Style constants (matching customer Profile) ──────────────────────────────
 
@@ -103,6 +104,14 @@ export default function AdminProfile() {
   // Profile picture
   const imgInputRef = useRef(null);
   const [imgLoading, setImgLoading] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    notificationsAPI.unreadCount()
+      .then(res => setUnreadCount(res.data.count))
+      .catch(() => {});
+  }, []);
 
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
@@ -284,6 +293,38 @@ export default function AdminProfile() {
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.8 }}>{user?.email}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowNotifications(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer',
+                  border: '1.5px solid rgba(168,85,247,0.2)',
+                  background: 'white', color: '#7c3aed',
+                  transition: 'background 150ms',
+                  boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+                  position: 'relative',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+              >
+                <Bell size={13} />
+                Notifications
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -6, right: -6,
+                    minWidth: 18, height: 18, borderRadius: 99,
+                    background: '#ef4444', border: '2px solid white',
+                    fontSize: '0.6rem', fontWeight: 800, color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 4px',
+                  }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -907,6 +948,15 @@ export default function AdminProfile() {
           </div>
         </div>
       </div>
+        <NotificationsModal
+          open={showNotifications}
+          onClose={() => {
+            setShowNotifications(false);
+            notificationsAPI.unreadCount()
+              .then(res => setUnreadCount(res.data.count))
+              .catch(() => {});
+          }}
+        />
     </div>
   );
 }

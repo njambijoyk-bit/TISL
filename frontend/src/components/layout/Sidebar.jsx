@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart, FileText, Users,
-  Star, Settings, LogOut, ChevronLeft, Menu, Tag, Award, BarChart2,
+  Star, Settings, LogOut, ChevronLeft, Menu, Tag, Award, BarChart2, IdCard,
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
   HomeIcon, Gavel, DollarSign,
+  Network,BrainCircuit,Cpu,ScanLine,GitBranch,
+  Gift,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
@@ -14,7 +16,7 @@ const MENU_GROUPS = [
     label: 'Catalogue',
     items: [
       { title: 'Products',           icon: Package,       path: '/admin/products',           color: '#a855f7' }, // purple
-      {title:  'Hampers',            icon: Award,         path: '/admin/hampers',            color: '#fc7bf5'},
+      {title:  'Hampers',            icon: Gift,         path: '/admin/hampers',            color: '#fc7bf5'},
       { title: 'Auctions',           icon: Gavel,         path: '/admin/auctions',           color: '#ef4444' },
       { title: 'Categories',         icon: Tag,           path: '/admin/categories',         color: '#3b82f6' }, // blue
       { title: 'Brands',             icon: Award,         path: '/admin/brands',             color: '#f59e0b' }, // amber
@@ -38,7 +40,7 @@ const MENU_GROUPS = [
       { title: 'Customers',  icon: Users,   path: '/admin/customers',  color: '#6366f1' }, // indigo
       {title: 'Loyalties',   icon: Award,   path: '/admin/loyalty',      color: '#fc7bf5'},
       { title: 'Users',      icon: UserCog, path: '/admin/users',      color: '#0ea5e9' }, // sky
-      { title: 'Employees',  icon: Star,    path: '/admin/employees',  color: '#eab308' }, // yellow
+      { title: 'Employees',  icon: IdCard,  path: '/admin/employees',  color: '#eab308' }, // yellow
     ],
   },
   {
@@ -52,13 +54,19 @@ const MENU_GROUPS = [
     label: 'System',
     items: [
       { title: 'Settings', icon: Settings,  path: '/admin/settings', color: '#64748b' }, // slate
+      { title: 'Algorithm', icon: BrainCircuit,  path: '/admin/algorithm', color: '#3b82f6' }, // blue
       { title: 'Reports',  icon: BarChart2, path: '/admin/reports',  color: '#22c55e' }, // green
     ],
   },
 ];
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed]   = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+
+  const toggleCollapse = (val) => {
+    setCollapsed(val);
+    localStorage.setItem('sidebar_collapsed', val);
+  };
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -226,7 +234,7 @@ export default function Sidebar() {
           {!collapsed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ThemeSwitcher />
-              <button onClick={() => setCollapsed(true)} style={collapseBtn} title="Collapse sidebar">
+              <button onClick={() => toggleCollapse(true)} style={collapseBtn} title="Collapse sidebar">
                 <ChevronLeft size={14} />
               </button>
             </div>
@@ -296,7 +304,7 @@ export default function Sidebar() {
         }}>
           {collapsed && (
             <button
-              onClick={() => setCollapsed(false)}
+              onClick={() => toggleCollapse(false)}
               title="Expand sidebar"
               style={{ ...collapseBtn, width: '100%', height: 34, borderRadius: 8, marginBottom: 4 }}
             >

@@ -61,6 +61,7 @@ class Order extends Model
         'promo_discount',
         'store_credit_deduction',
         'store_credit_deduction_kes',
+        'loyalty_points_earned',
         'customer_notes',
         'admin_notes',
         'metadata',
@@ -484,6 +485,8 @@ class Order extends Model
      */
     public function markAsPaid(?string $reference = null): void
     {
+        if ($this->payment_status === 'paid') return;
+
         $this->update([
             'payment_status'    => 'paid',
             'paid_at'           => now(),

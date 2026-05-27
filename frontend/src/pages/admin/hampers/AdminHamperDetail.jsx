@@ -4,7 +4,7 @@ import {
   ChevronLeft, Package, Users, ShoppingBag, Settings,
   Plus, Trash2, Search, CheckCircle, AlertTriangle,
   Shield, RefreshCw, Lightbulb, Edit2, X, Tag,
-  Wallet, Star, Clock,
+  Wallet, Star, Clock, Activity,
 } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import ProductSelectorModalAdmin from '../../../components/quotes/request-wizard/ProductSelectorModalAdmin';
@@ -881,6 +881,83 @@ function OrdersTab({ hamper }) {
   );
 }
 
+const SEVERITY_STYLES = {
+  info:    { bg: 'rgba(59,130,246,0.08)',  color: '#3b82f6',  dot: '#3b82f6'  },
+  success: { bg: 'rgba(34,197,94,0.08)',   color: '#16a34a',  dot: '#22c55e'  },
+  warning: { bg: 'rgba(245,158,11,0.08)',  color: '#b45309',  dot: '#f59e0b'  },
+  danger:  { bg: 'rgba(239,68,68,0.08)',   color: '#dc2626',  dot: '#ef4444'  },
+};
+
+function ActivityTab({ hamperId }) {
+  const [logs, setLogs]       = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    hampersAPI.getHamperActivity(hamperId)
+      .then(data => setLogs(Array.isArray(data) ? data : (data.data || [])))
+      .catch(() => toast.error('Failed to load activity logs'))
+      .finally(() => setLoading(false));
+  }, [hamperId]);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+      <div style={{ width: 28, height: 28, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  );
+
+  if (!logs.length) return (
+    <div style={{ ...card, padding: 40, textAlign: 'center' }}>
+      <Activity size={32} style={{ color: '#d1d5db', marginBottom: 12 }} />
+      <p style={{ margin: 0, color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>No activity recorded yet.</p>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {logs.map(log => {
+        const s = SEVERITY_STYLES[log.severity] || SEVERITY_STYLES.info;
+        return (
+          <div key={log.id} style={{ ...card, padding: '14px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            {/* dot */}
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.dot, flexShrink: 0, marginTop: 5 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  {log.description}
+                </span>
+                <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color }}>
+                  {log.severity.toUpperCase()}
+                </span>
+                {log.hamper_order_id && (
+                  <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: 'rgba(168,85,247,0.1)', color: '#ed7c3a' }}>
+                    ORDER
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
+                  {log.performed_by}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
+                  {format(new Date(log.created_at), 'dd MMM yyyy, HH:mm')}
+                </span>
+                {log.metadata && (
+                  <details style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>
+                    <summary style={{ cursor: 'pointer', color: '#a855f7' }}>metadata</summary>
+                    <pre style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: 6, background: 'var(--color-background-secondary)', fontSize: '0.68rem', overflowX: 'auto' }}>
+                      {JSON.stringify(log.metadata, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -888,6 +965,7 @@ const TABS = [
   { key: 'products',    label: 'Products',    icon: Package },
   { key: 'eligibility', label: 'Eligibility', icon: Users },
   { key: 'orders',      label: 'Orders',      icon: ShoppingBag },
+  { key: 'activity',    label: 'Activity',    icon: Activity  },
 ];
 
 export default function AdminHamperDetail() {
@@ -998,6 +1076,7 @@ export default function AdminHamperDetail() {
         {activeTab === 'products'    && <ProductsTab hamper={hamper} onRefresh={fetchHamper} />}
         {activeTab === 'eligibility' && <EligibilityTab hamper={hamper} />}
         {activeTab === 'orders'      && <OrdersTab hamper={hamper} />}
+        {activeTab === 'activity'    && <ActivityTab hamperId={id} />}
 
       </div>
     </AdminLayout>

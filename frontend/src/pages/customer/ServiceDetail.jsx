@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Info,
 } from 'lucide-react';
 import useServiceStore from '../../store/serviceStore';
 import useQuoteListStore from '../../store/quoteListStore';
@@ -166,84 +167,121 @@ const ServiceDetail = () => {
           </div>
 
           {/* ── MAIN GRID ─────────────────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '3rem', alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
 
-            {/* ── LEFT: IMAGE GALLERY ──────────────────────────────────────── */}
             <div>
-              <div style={{ position: 'sticky', top: 24 }}>
-                {/* Main image */}
-                <div style={{ position: 'relative', background: 'white', borderRadius: 16, overflow: 'hidden', aspectRatio: '1 / 1', border: '1px solid #f3f4f6' }}>
+              {/* Title + Pills row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+                  {service.name}
+                </h1>
 
-                  {/* Badges */}
-                  <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {service.is_featured && (
-                      <span style={pill('#7c3aed', '#ede9fe')}><Star size={10} /> Featured</span>
-                    )}
-                    {service.is_remote_available && !service.requires_site_visit && (
-                      <span style={pill('#059669', '#d1fae5')}><Monitor size={10} /> Remote</span>
-                    )}
-                    {service.requires_site_visit && (
-                      <span style={pill('#2563eb', '#dbeafe')}><MapPin size={10} /> On-site</span>
-                    )}
-                  </div>
-
-                  {/* Arrow nav */}
-                  {allImages.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setSelectedImageIdx(i => (i - 1 + allImages.length) % allImages.length)}
-                        style={{ ...arrowBtn, left: 12 }}
-                      ><ChevronLeft size={18} /></button>
-                      <button
-                        onClick={() => setSelectedImageIdx(i => (i + 1) % allImages.length)}
-                        style={{ ...arrowBtn, right: 12 }}
-                      ><ChevronRight size={18} /></button>
-                    </>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0, paddingTop: 6 }}>
+                  {service.category?.name && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {service.category.name}
+                    </span>
                   )}
+                  {service.badge && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#374151', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {service.badge}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+              
+            {/* ── IMAGE GALLERY ── */}
+            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 0 3px rgba(168,85,247,0.08), 0 0 20px rgba(168,85,247,0.15)' }}>
 
-                  {/* Image or placeholder */}
-                  {allImages.length === 0 || imageErrors[selectedImageIdx] ? (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 12 }}>
-                      <Package size={64} style={{ color: '#d1d5db' }} />
-                      <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>No image available</span>
-                    </div>
-                  ) : (
-                    <img
-                      src={allImages[selectedImageIdx]}
-                      alt={service.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 200ms ease' }}
-                      onError={() => handleImageError(selectedImageIdx)}
-                    />
+              {/* Main image — zoom on hover */}
+              <div
+                style={{ position: 'relative', background: 'white', aspectRatio: '16 / 9', overflow: 'hidden', cursor: 'zoom-in' }}
+                onMouseEnter={e => e.currentTarget.querySelector('img')?.style && (e.currentTarget.querySelector('img').style.transform = 'scale(1.06)')}
+                onMouseLeave={e => e.currentTarget.querySelector('img')?.style && (e.currentTarget.querySelector('img').style.transform = 'scale(1)')}
+              >
+                {/* Badges */}
+                <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {service.is_featured && (
+                    <span style={pill('#7c3aed', '#ede9fe')}><Star size={10} /> Featured</span>
+                  )}
+                  {service.is_remote_available && !service.requires_site_visit && (
+                    <span style={pill('#059669', '#d1fae5')}><Monitor size={10} /> Remote</span>
+                  )}
+                  {service.requires_site_visit && (
+                    <span style={pill('#2563eb', '#dbeafe')}><MapPin size={10} /> On-site</span>
                   )}
                 </div>
 
-                {/* Thumbnails */}
+                {/* Image counter */}
                 {allImages.length > 1 && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  <div style={{
+                    position: 'absolute', top: 14, right: 14, zIndex: 10,
+                    background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+                    color: '#fff', fontSize: '0.72rem', fontWeight: 700,
+                    padding: '4px 10px', borderRadius: 20, letterSpacing: '0.05em',
+                  }}>
+                    {selectedImageIdx + 1} / {allImages.length}
+                  </div>
+                )}
+
+                {/* Arrow nav */}
+                {allImages.length > 1 && (
+                  <>
+                    <button onClick={() => setSelectedImageIdx(i => (i - 1 + allImages.length) % allImages.length)}
+                      style={{ ...arrowBtn, left: 12 }}><ChevronLeft size={18} /></button>
+                    <button onClick={() => setSelectedImageIdx(i => (i + 1) % allImages.length)}
+                      style={{ ...arrowBtn, right: 12 }}><ChevronRight size={18} /></button>
+                  </>
+                )}
+
+                {/* Image or placeholder */}
+                {allImages.length === 0 || imageErrors[selectedImageIdx] ? (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 12 }}>
+                    <Package size={56} style={{ color: '#d1d5db' }} />
+                    <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>No image available</span>
+                  </div>
+                ) : (
+                  <img
+                    src={allImages[selectedImageIdx]}
+                    alt={service.name}
+                    style={{
+                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                      transition: 'transform 400ms ease, opacity 200ms ease',
+                    }}
+                    onError={() => handleImageError(selectedImageIdx)}
+                  />
+                )}
+
+                {/* Thumbnail strip — floats inside image at bottom */}
+                {allImages.length > 1 && (
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)',
+                    padding: '32px 14px 14px',
+                    display: 'flex', gap: 8, overflowX: 'auto',
+                  }}>
                     {allImages.map((img, idx) => {
                       const hasError = imageErrors[idx];
                       return hasError ? (
-                        <div key={idx} style={{ width: 64, height: 64, borderRadius: 10, border: '2px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Package size={22} style={{ color: '#d1d5db' }} />
+                        <div key={idx} style={{ width: 52, height: 52, borderRadius: 8, border: '2px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Package size={18} style={{ color: 'rgba(255,255,255,0.5)' }} />
                         </div>
                       ) : (
                         <button
                           key={idx}
                           onClick={() => setSelectedImageIdx(idx)}
                           style={{
-                            width: 64, height: 64, borderRadius: 10, overflow: 'hidden', padding: 0,
-                            border: selectedImageIdx === idx ? '2px solid #a855f7' : '2px solid transparent',
-                            background: 'white', cursor: 'pointer', flexShrink: 0,
-                            boxShadow: selectedImageIdx === idx ? '0 0 0 3px rgba(168,85,247,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+                            width: 52, height: 52, borderRadius: 8, overflow: 'hidden', padding: 0,
+                            border: selectedImageIdx === idx ? '2px solid #fff' : '2px solid rgba(255,255,255,0.35)',
+                            background: 'transparent', cursor: 'pointer', flexShrink: 0,
+                            opacity: selectedImageIdx === idx ? 1 : 0.65,
+                            transform: selectedImageIdx === idx ? 'scale(1.08)' : 'scale(1)',
                             transition: 'all 150ms ease',
+                            boxShadow: selectedImageIdx === idx ? '0 0 0 2px rgba(168,85,247,0.7)' : 'none',
                           }}
                         >
-                          <img
-                            src={img}
-                            alt={`View ${idx + 1}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={() => handleImageError(idx)}
-                          />
+                          <img src={img} alt={`View ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => handleImageError(idx)} />
                         </button>
                       );
                     })}
@@ -252,34 +290,18 @@ const ServiceDetail = () => {
               </div>
             </div>
 
-            {/* ── RIGHT: SERVICE INFO ───────────────────────────────────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-              {/* Category + type pills */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {service.category?.name && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {service.category.name}
-                  </span>
-                )}
-                {service.badge && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: '#374151', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {service.badge}
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <div>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.2, margin: 0, letterSpacing: '-0.02em' }} className="dark:text-white">
-                  {service.name}
-                </h1>
-                {service.short_description && (
-                  <p style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: 8, lineHeight: 1.6 }}>
-                    {service.short_description}
-                  </p>
-                )}
-              </div>
+            {/* ── SERVICE INFO ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>             
+            <div>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+                {service.name}
+              </h1>
+              {service.short_description && (
+                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: 8, lineHeight: 1.6, margin: '8px 0 0' }}>
+                  {service.short_description}
+                </p>
+              )}
+            </div>
 
               {/* Rating */}
               {service.rating > 0 && (
@@ -302,94 +324,95 @@ const ServiceDetail = () => {
                 </div>
               )}
 
-              {/* Price block */}
-              <div style={{ padding: '8px 0', borderRadius: 12 }}>
-                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
-                  {service.pricing_model_label || 'Pricing'}
-                </p>
-                <span style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em' }}>
-                  {getPricingDisplay()}
-                </span>
-                {service.minimum_charge && (
-                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 4, marginBottom: 0 }}>
-                    Minimum charge: {formatCurrency(service.minimum_charge)}
+              {/* ── Pricing + Meta card ── */}
+              <div style={{ borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', overflow: 'hidden' }}>
+
+                {/* Price row */}
+                <div style={{ padding: '20px 20px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
+                    {service.pricing_model_label || 'Pricing'}
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                      {getPricingDisplay()}
+                    </span>
+                    {service.minimum_charge && (
+                      <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 500 }}>
+                        min. {formatCurrency(service.minimum_charge)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Meta row */}
+                {(service.estimated_duration || service.lead_time || service.service_area) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', background: 'white' }}>
+                    {[
+                      service.estimated_duration && { icon: <Clock size={14} />, label: 'Duration', value: service.estimated_duration },
+                      service.lead_time        && { icon: <Calendar size={14} />, label: 'Lead Time', value: service.lead_time },
+                      service.service_area     && { icon: <MapPin size={14} />, label: 'Area', value: service.service_area },
+                    ].filter(Boolean).map((item, i, arr) => (
+                      <div key={i} style={{
+                        flex: '1 1 100px', padding: '14px 18px',
+                        borderRight: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.12)' : 'none',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, color: '#a855f7' }}>
+                          {item.icon}
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            {item.label}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Service meta details */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                {service.estimated_duration && (
-                  <div style={{ padding: '10px 14px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Clock size={13} style={{ color: '#a855f7' }} />
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Duration</span>
-                    </div>
-                    <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>{service.estimated_duration}</span>
-                  </div>
-                )}
-                {service.lead_time && (
-                  <div style={{ padding: '10px 14px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Calendar size={13} style={{ color: '#a855f7' }} />
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lead Time</span>
-                    </div>
-                    <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>{service.lead_time}</span>
-                  </div>
-                )}
-                {service.service_area && (
-                  <div style={{ padding: '10px 14px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <MapPin size={13} style={{ color: '#a855f7' }} />
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Area</span>
-                    </div>
-                    <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>{service.service_area}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* CTA */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* CTA buttons */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   onClick={handleRequestQuote}
                   type="button"
                   style={{
-                    width: '100%', height: 50, borderRadius: 12, border: 'none',
+                    flex: '1 1 160px', height: 50, borderRadius: 12, border: 'none',
                     background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                    color: 'white', fontSize: '0.9rem', fontWeight: 700,
+                    color: '#ffffff', fontSize: '0.88rem', fontWeight: 700,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     boxShadow: '0 4px 15px rgba(168,85,247,0.35)', transition: 'all 200ms ease',
                     letterSpacing: '0.04em',
                   }}
                 >
-                  <FileText size={17} />
+                  <FileText size={16} />
                   {inQL ? 'In Quote List →' : 'Request a Quote'}
                 </button>
+
                 {service.booking_required && (
-                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', margin: 0 }}>
-                    Booking required for this service
-                  </p>
+                  <button
+                    onClick={() => navigate(`/services/${service.id}/book`)}
+                    type="button"
+                    style={{
+                      flex: '1 1 160px', height: 50, borderRadius: 12,
+                      border: '1.5px solid #a855f7',
+                      background: 'rgba(168,85,247,0.06)',
+                      color: '#7c3aed', fontSize: '0.88rem', fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      transition: 'background 150ms, box-shadow 150ms', letterSpacing: '0.04em',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <Calendar size={16} />
+                    Book this service
+                  </button>
                 )}
-                {service.booking_required && (
-                <button
-                  onClick={() => navigate(`/services/${service.id}/book`)}
-                  style={{
-                    width: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    padding: '11px 0', borderRadius: 12, fontSize: '0.88rem', fontWeight: 700,
-                    border: '1.5px solid #a855f7',
-                    background: 'rgba(168,85,247,0.06)',
-                    color: '#7c3aed', cursor: 'pointer',
-                    transition: 'background 150ms, box-shadow 150ms',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.15)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  <Calendar size={15} />
-                  Book this service
-                </button>
-              )}
               </div>
+
+              {service.booking_required && (
+                <p style={{ fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center', margin: '-14px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <Info size={11} /> Booking required — choose a date after requesting
+                </p>
+              )}
 
             </div>
           </div>

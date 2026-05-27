@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authAPI } from '../../api';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
+import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,9 +16,12 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState({});
   const [focused, setFocused] = useState('');
+
+  // Policy acceptance state — populated by PolicyConsentCheckbox
+  const [policyAccepted,    setPolicyAccepted]    = useState(false);
+  const [policyAcceptances, setPolicyAcceptances] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,7 +31,7 @@ export default function Login() {
 
   const validate = () => {
     const e = {};
-    if (!formData.email) e.email = 'Email is required';
+    if (!formData.email)    e.email    = 'Email is required';
     if (!formData.password) e.password = 'Password is required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -36,35 +40,44 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+
     try {
       setLoading(true);
-      const response = await authAPI.login(formData);
-      login(response.user, response.customer, response.token); // ← add customer
+      const response = await authAPI.login({
+        ...formData,
+        // Send acceptances so the backend logs them at login time
+        ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}),
+      });
+
+      // Backend may return requires_policy_acceptance if a new major version exists
+      if (response.requires_policy_acceptance) {
+        toast.error('Please accept the updated policies to continue.');
+        return;
+      }
+
+      login(response.user, response.customer, response.token);
       toast.success('Welcome back!');
       navigate(redirect);
     } catch (error) {
-      // ── Force password change intercept ──────────────────────────
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.force_password_change
-      ) {
-        navigate('/force-change-password', {
-          state: { email: formData.email },
-        });
+      if (error.response?.status === 403 && error.response?.data?.force_password_change) {
+        navigate('/force-change-password', { state: { email: formData.email } });
         return;
       }
-      // Suspended account 
+      if (error.response?.status === 403 && error.response?.data?.policy_disagreement) {
+        // Disagreement was recorded; user stays on login
+        toast.error(error.response.data.message || 'You must accept this policy to continue.');
+        setPolicyAccepted(false);
+        setPolicyAcceptances([]);
+        return;
+      }
       if (error.response?.status === 403) {
         toast.error('Your account has been suspended. Please contact support.');
         return;
       }
-
-      // Account locked
       if (error.response?.status === 423) {
-        toast.error('Account locked due to too many failed attempts. Try again later or contact support.');
+        toast.error('Account locked due to too many failed attempts. Try again later.');
         return;
       }
-      // ─────────────────────────────────────────────────────────────
       toast.error(error.response?.data?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
@@ -77,20 +90,14 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="tisl-outer" style={{ width: '100%', maxWidth: 860, display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── MOBILE TOP BAR (hidden on desktop) ────────────────────────── */}
+      {/* ── MOBILE TOP BAR ───────────────────────────────────────────────── */}
       <div className="tisl-mobile-bar" style={{
         display: 'none',
         background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-        padding: '20px 24px',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
           </div>
           <div>
@@ -99,112 +106,61 @@ export default function Login() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{
-            background: 'white', color: '#a855f7',
-            borderRadius: 8, padding: '7px 16px',
-            fontSize: '0.78rem', fontWeight: 800,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-          }}>Login</div>
-          <Link to="/register" style={{
-            color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px',
-            fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
-            border: '1.5px solid rgba(255,255,255,0.35)',
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-          }}>Sign Up</Link>
+          <div style={{ background: 'white', color: '#a855f7', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</div>
+          <Link to="/register" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</Link>
         </div>
       </div>
 
       <div className="tisl-card" style={{
         display: 'grid', gridTemplateColumns: '1fr 1.4fr',
-        width: '100%', minHeight: 540,
-        borderRadius: 24, overflow: 'hidden',
+        width: '100%', minHeight: 540, borderRadius: 24, overflow: 'hidden',
         boxShadow: '0 32px 80px rgba(0,0,0,0.14)',
       }}>
 
-        {/* ── LEFT PANEL — decorative ────────────────────────────────────── */}
+        {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
         <div className="tisl-sidebar" style={{
           position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(145deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '40px 32px', gap: 24,
         }}>
-          {/* Geometric shapes */}
           <div style={{ position: 'absolute', top: -60, left: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ position: 'absolute', bottom: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
           <div style={{ position: 'absolute', top: '40%', left: -30, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.07)', transform: 'rotate(20deg)' }} />
           <div style={{ position: 'absolute', bottom: '25%', right: -20, width: 90, height: 90, borderRadius: 16, background: 'rgba(255,255,255,0.07)', transform: 'rotate(-15deg)' }} />
 
-          {/* Logo mark */}
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)',
-              backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-            }}>
+            <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
               <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
             </div>
             <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Target</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>
-              Industrial Suppliers LTD
-            </p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>Industrial Suppliers LTD</p>
           </div>
 
-          {/* Tab pills */}
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-            <div style={{
-              background: 'white', color: '#a855f7',
-              borderRadius: 12, padding: '12px 20px',
-              fontSize: '0.88rem', fontWeight: 800, textAlign: 'center',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-            }}>
+            <div style={{ background: 'white', color: '#a855f7', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               Login
             </div>
-            <Link to="/register" style={{
-              color: 'rgba(255,255,255,0.8)', borderRadius: 12, padding: '12px 20px',
-              fontSize: '0.88rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none',
-              border: '1.5px solid rgba(255,255,255,0.25)', transition: 'all 150ms',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-            }}
-              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.12)'; e.target.style.color = 'white'; }}
-              onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.8)'; }}
-            >
+            <Link to="/register" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 600, textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase', textDecoration: 'none' }}>
               Sign Up
             </Link>
           </div>
         </div>
 
-        {/* ── RIGHT PANEL — form ─────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-gray-800" style={{ padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {/* ── RIGHT PANEL — form ────────────────────────────────────────── */}
+        <div style={{ padding: '48px 40px' }} className="bg-white dark:bg-gray-800">
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }} className="text-gray-900 dark:text-white">
+            Welcome back
+          </h1>
+          <p style={{ fontSize: '0.83rem', margin: '0 0 28px' }} className="text-gray-500 dark:text-gray-400">
+            Sign in to your account to continue
+          </p>
 
-          {/* Heading */}
-          <div style={{ marginBottom: 28 }}>
-            {resetSuccess && (
-              <div style={{
-                marginBottom: 16, padding: '10px 14px', borderRadius: 10,
-                background: '#f0fdf4', border: '1px solid #bbf7d0',
-                fontSize: '0.82rem', color: '#15803d', fontWeight: 500,
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
-                <CheckCircle size={15} color="#15803d" />
-                Password reset successfully. Sign in with your new password.
-              </div>
-            )}
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }} className="text-gray-900 dark:text-white">
-              Welcome back
-            </h1>
-            <p style={{ fontSize: '0.85rem', margin: 0 }} className="text-gray-500 dark:text-gray-400">
-              Sign in to your account to continue
-            </p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Email */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
                 Email
               </label>
               <div style={{ position: 'relative' }}>
@@ -214,12 +170,7 @@ export default function Login() {
                   onChange={handleChange}
                   onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                   placeholder="you@example.com"
-                  style={{
-                    width: '100%', padding: '11px 14px 11px 40px', borderRadius: 10,
-                    border: `1.5px solid ${errors.email ? '#ef4444' : focused === 'email' ? '#a855f7' : '#e5e7eb'}`,
-                    fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms',
-                    boxSizing: 'border-box',
-                  }}
+                  style={{ width: '100%', padding: '11px 13px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.email ? '#ef4444' : focused === 'email' ? '#a855f7' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
                   className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
               </div>
@@ -228,7 +179,7 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
                 Password
               </label>
               <div style={{ position: 'relative' }}>
@@ -238,12 +189,7 @@ export default function Login() {
                   onChange={handleChange}
                   onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
                   placeholder="Enter your password"
-                  style={{
-                    width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10,
-                    border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? '#a855f7' : '#e5e7eb'}`,
-                    fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms',
-                    boxSizing: 'border-box',
-                  }}
+                  style={{ width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? '#a855f7' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
                   className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <button type="button" onClick={() => setShowPassword(s => !s)}
@@ -254,48 +200,40 @@ export default function Login() {
               {errors.password && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: 4 }}>{errors.password}</p>}
             </div>
 
-            {/* Remember + forgot */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.8rem', cursor: 'pointer' }} className="text-gray-600 dark:text-gray-400">
-                
-              </label>
-              
+            {/* Forgot password */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
               <Link to="/forgot-password" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', textDecoration: 'none' }}>
                 Forgot password?
               </Link>
             </div>
 
-            {/* Terms checkbox */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <input
-                id="login-accept-terms"
-                type="checkbox"
-                checked={accepted}
-                onChange={e => setAccepted(e.target.checked)}
-                style={{ marginTop: 3, accentColor: '#a855f7', cursor: 'pointer', flexShrink: 0 }}
-              />
-              <label htmlFor="login-accept-terms" style={{ fontSize: '0.78rem', lineHeight: 1.6, cursor: 'pointer', color: '#6b7280' }}>
-                I agree to the{' '}
-                <Link to="/terms" style={{ color: '#a855f7', textDecoration: 'none' }}>Terms of Service</Link>
-                {' '}and{' '}
-                <Link to="/privacy" style={{ color: '#a855f7', textDecoration: 'none' }}>Privacy Policy</Link>
-              </label>
-            </div>
+            {/* ── Policy consent checkbox ───────────────────────────────── */}
+            <PolicyConsentCheckbox
+              policyKeys={['terms_of_use', 'privacy_policy']}
+              actionContext="login"
+              onChange={(isChecked, acceptances) => {
+                setPolicyAccepted(isChecked);
+                setPolicyAcceptances(acceptances);
+              }}
+              disabled={loading}
+            />
 
             {/* Submit */}
             <button
-              type="submit" disabled={loading || !accepted}
+              type="submit" disabled={loading || !policyAccepted}
               style={{
-                height: 46, borderRadius: 12, border: 'none', cursor: (loading || !accepted) ? 'not-allowed' : 'pointer',
-                background: (loading || !accepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                color: (loading || !accepted) ? '#9ca3af' : 'white', fontSize: '0.88rem', fontWeight: 700,
+                height: 46, borderRadius: 12, border: 'none',
+                cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
+                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: (loading || !policyAccepted) ? '#9ca3af' : 'white',
+                fontSize: '0.88rem', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: (loading || !accepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
                 transition: 'all 200ms', letterSpacing: '0.04em',
-                opacity: !accepted ? 0.5 : 1,
+                opacity: !policyAccepted ? 0.5 : 1,
               }}
             >
-              {loading ? 'Signing in…' : <><span>Sign In</span> <ArrowRight size={16} /></>}
+              {loading ? 'Signing in…' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
 
             {/* Divider */}
@@ -307,42 +245,25 @@ export default function Login() {
 
             {/* OAuth */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {/* Google — active */}
               <button type="button" onClick={() => handleOAuth('google')}
-                style={{
-                  height: 42, borderRadius: 10, border: '1.5px solid #e5e7eb',
-                  background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 150ms',
-                }}
+                style={{ height: 42, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 150ms' }}
                 className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700"
               >
                 <GoogleIcon /> Google
               </button>
-
-              {/* Microsoft — disabled / coming soon */}
               <button type="button" disabled title="Microsoft login coming soon"
-                style={{
-                  height: 42, borderRadius: 10, border: '1.5px solid #e5e7eb',
-                  background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.82rem', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  opacity: 0.5, position: 'relative',
-                }}
+                style={{ height: 42, borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.5, position: 'relative' }}
                 className="text-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500"
               >
                 <MicrosoftIcon /> Microsoft
-                <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Soon
-                </span>
+                <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Soon</span>
               </button>
             </div>
           </form>
 
-          {/* Sign up link */}
           <p style={{ textAlign: 'center', fontSize: '0.82rem', marginTop: 20 }} className="text-gray-500 dark:text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: '#a855f7', fontWeight: 700, textDecoration: 'none' }}>
-              Sign up free
-            </Link>
+            <Link to="/register" style={{ color: '#a855f7', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link>
           </p>
         </div>
       </div>
@@ -350,18 +271,11 @@ export default function Login() {
       <style>{`
         @media (max-width: 640px) {
           .tisl-mobile-bar { display: flex !important; }
-          .tisl-card {
-            grid-template-columns: 1fr !important;
-            border-radius: 0 0 24px 24px !important;
-            min-height: unset !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.10) !important;
-          }
+          .tisl-card { grid-template-columns: 1fr !important; border-radius: 0 0 24px 24px !important; min-height: unset !important; box-shadow: 0 8px 32px rgba(0,0,0,0.10) !important; }
           .tisl-sidebar { display: none !important; }
           .tisl-outer { padding: 0 !important; }
         }
-        @media (min-width: 641px) {
-          .tisl-mobile-bar { display: none !important; }
-        }
+        @media (min-width: 641px) { .tisl-mobile-bar { display: none !important; } }
       `}</style>
       </div>
     </div>

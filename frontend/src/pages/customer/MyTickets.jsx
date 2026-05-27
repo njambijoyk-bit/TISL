@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 const purple   = '#a855f7';
 const purpleLt = 'rgba(168,85,247,0.08)';
 const purpleBd = 'rgba(168,85,247,0.2)';
+const openBd   = 'rgba(255, 119, 0, 0.43)';
 
 const STATUS_COLORS = {
   open:             { text: '#93c5fd', bg: 'rgba(30,58,138,0.55)', border: 'rgba(96,165,250,0.65)' },
@@ -136,9 +137,20 @@ export default function MyTickets() {
               Track your support requests
             </p>
           </div>
-          <Button onClick={() => setShowNew(true)} icon={<Plus size={15} />}>
-            New Ticket
-          </Button>
+          <button
+            onClick={() => setShowNew(true)}
+            type="button"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600,
+              background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)',
+              color: '#a855f7', cursor: 'pointer', transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+          >
+            <Plus size={15} /> New Ticket
+          </button>
         </div>
 
         {/* Status tabs */}
@@ -165,7 +177,25 @@ export default function MyTickets() {
           <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
             <Ticket size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
             <p>No tickets found</p>
-            <Button variant="outline" onClick={() => setShowNew(true)} style={{ marginTop: 12 }}>Open a Ticket</Button>
+            <button
+              onClick={() => setShowNew(true)}
+              style={{
+                marginTop: 12,
+                padding: '8px 16px',
+                borderRadius: 10,
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                background: 'rgba(168,85,247,0.1)',
+                border: '1px solid rgba(168,85,247,0.3)',
+                color: '#a855f7',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.18)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+            >
+              Open a Ticket
+            </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -174,8 +204,8 @@ export default function MyTickets() {
                 onClick={() => navigate(`/my-tickets/${t.id}`)}
                 style={{
                   padding: '16px 20px', borderRadius: 14,
-                  border: `1px solid ${t.status === 'open' ? purpleBd : '#e5e7eb'}`,
-                  background: 'white', cursor: 'pointer',
+                  border: `1px solid ${t.status === 'open' ? purpleBd : openBd}`,
+                  cursor: 'pointer',
                   transition: 'box-shadow 150ms',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                 }}

@@ -1,6 +1,7 @@
 // Export all API services
 export { default as api } from './axios';
 export { default as authAPI } from './auth';
+export { default as policyAPI } from './policy';
 export { default as auctionsAPI } from './auctions';
 export { default as productsAPI } from './products';
 export { default as hampersAPI } from './hampers';
@@ -30,5 +31,6 @@ export { default as ticketsAPI } from './tickets';
 export { default as bookingsAPI } from './bookings';
 
 export { default as contentAPI } from './content';
+export { default as notificationsAPI } from './notifications';
 
 export { publicApi, applicantAuth, portalApi, adminCareersApi } from './careersApi';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, X, Send, Minimize2, Sparkles } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -160,6 +160,59 @@ export default function Mimi({ embedded = false }) {
   const [showSuggested, setShowSuggested] = useState(true);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
+  const [pos, setPos] = useState({ x: 24, y: 24 }); // bottom-right offset
+  const dragging = useRef(false);
+  const dragStart = useRef({ mx: 0, my: 0, x: 0, y: 0 });
+
+  const didDrag = useRef(false);
+
+  const onBubbleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    didDrag.current = false;
+    dragging.current = true;
+    dragStart.current = { mx: e.clientX, my: e.clientY, x: pos.x, y: pos.y };
+
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const dx = dragStart.current.mx - e.clientX;
+      const dy = dragStart.current.my - e.clientY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
+      setPos({
+        x: Math.max(8, dragStart.current.x + dx),
+        y: Math.max(8, dragStart.current.y + dy),
+      });
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [pos]);
+
+  const onDragMouseDown = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+    dragStart.current = { mx: e.clientX, my: e.clientY, x: pos.x, y: pos.y };
+
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const dx = dragStart.current.mx - e.clientX;
+      const dy = dragStart.current.my - e.clientY;
+      setPos({
+        x: Math.max(8, dragStart.current.x + dx),
+        y: Math.max(8, dragStart.current.y + dy),
+      });
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [pos]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -241,18 +294,22 @@ export default function Mimi({ embedded = false }) {
       {/* Chat window */}
       {open && (
         <div style={{
-          position: 'fixed', bottom: 90, right: 24, zIndex: 10000,
+          position: 'fixed', bottom: pos.y + 70, right: pos.x, zIndex: 10000,
           width: 360, height: 520,
           animation: 'mimiPop 250ms cubic-bezier(0.34,1.56,0.64,1)',
           display: 'flex', flexDirection: 'column',
           borderRadius: 20, overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(168,85,247,0.15)',
         }}>
-          {/* Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-            padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
-          }}>
+          {/* Draggable header */}
+          <div
+            onMouseDown={onDragMouseDown}
+            style={{
+              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
+              cursor: 'grab', userSelect: 'none',
+            }}
+          >
             <div style={{
               width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -265,9 +322,25 @@ export default function Mimi({ embedded = false }) {
                 BlueArc Store Assistant
               </p>
             </div>
-            <button type="button" onClick={() => setOpen(false)}
-              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Minimize2 size={15} />
+            {/* Drag hint */}
+            <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginRight: 4, pointerEvents: 'none' }}>
+              drag
+            </span>
+            {/* Close/minimise X */}
+            <button
+              type="button"
+              onMouseDown={e => e.stopPropagation()} // don't trigger drag
+              onClick={() => setOpen(false)}
+              style={{
+                background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
+                width: 30, height: 30, cursor: 'pointer', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            >
+              <X size={15} />
             </button>
           </div>
 
@@ -282,21 +355,22 @@ export default function Mimi({ embedded = false }) {
       {/* Floating bubble */}
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onMouseDown={onBubbleMouseDown}
+        onClick={() => { if (!didDrag.current) setOpen(o => !o); }}
         style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
-          width: 58, height: 58, borderRadius: '50%', border: 'none', cursor: 'pointer',
+          position: 'fixed', bottom: pos.y, right: pos.x, zIndex: 10000,
+          width: 58, height: 58, borderRadius: '50%', border: 'none',
+          cursor: dragging.current ? 'grabbing' : 'grab',
           background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
           animation: 'mimiBubblePulse 2.5s ease-in-out infinite',
           transition: 'transform 150ms ease',
         }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+        onMouseEnter={e => { if (!dragging.current) e.currentTarget.style.transform = 'scale(1.08)'; }}
         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
       >
         {open ? <X size={22} /> : <MessageCircle size={22} />}
 
-        {/* Mimi label */}
         {!open && (
           <span style={{
             position: 'absolute', bottom: '110%', right: 0,

@@ -18,9 +18,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Http\Controllers\Api\Traits\LogsHamperActivities;
+use App\Models\HamperActivityLog;
 
 class HamperOrderController extends Controller
 {
+    use LogsHamperActivities;
     /**
      * Admin: List all hamper orders.
      */
@@ -132,6 +135,16 @@ class HamperOrderController extends Controller
             $order->save();
 
             DB::commit();
+            $severity = in_array($newStatus, ['cancelled', 'refunded']) ? 'warning'
+                    : ($newStatus === 'delivered' ? 'success' : 'info');
+
+            $this->logHamperActivity(
+                $order->hamper_id, 'hamper_order_status_updated',
+                "Hamper order #{$order->order_number} status changed from '{$oldStatus}' to '{$newStatus}'.",
+                $severity,
+                ['previous_status' => $oldStatus, 'new_status' => $newStatus, 'notes' => $request->notes],
+                $order->id
+            );
 
             return response()->json(['message' => 'Order status updated', 'data' => $order->fresh()]);
 
@@ -451,6 +464,18 @@ class HamperOrderController extends Controller
             }
 
             DB::commit();
+            $this->logHamperActivity(
+                $hamperOrder->hamper_id, 'hamper_order_converted',
+                "Hamper order #{$hamperOrder->order_number} converted to standard order #{$order->order_number}.",
+                'success',
+                [
+                    'hamper_order_id'  => $hamperOrder->id,
+                    'new_order_id'     => $order->id,
+                    'new_order_number' => $order->order_number,
+                    'total'            => $order->total,
+                ],
+                $hamperOrder->id
+            );
 
             return response()->json([
                 'message' => 'Successfully converted to standard order',
@@ -462,5 +487,14 @@ class HamperOrderController extends Controller
             Log::error('Hamper conversion failed: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to convert order', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function activityLogs($id): JsonResponse
+    {
+        $logs = \App\Models\HamperActivityLog::where('hamper_order_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($logs);
     }
 }

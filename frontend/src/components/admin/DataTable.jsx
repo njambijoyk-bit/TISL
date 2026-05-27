@@ -6,7 +6,7 @@ const thStyle = {
   padding: '10px 20px', textAlign: 'left',
   fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af',
   textTransform: 'uppercase', letterSpacing: '0.08em',
-  borderBottom: '1.5px solid #f3f4f6', whiteSpace: 'nowrap',
+  borderBottom: '1.5px solid rgba(168,85,247,0.12)', whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
@@ -17,8 +17,8 @@ const tdStyle = {
 const pageBtn = (disabled) => ({
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 32, height: 32, borderRadius: 8,
-  border: '1.5px solid #e5e7eb', cursor: disabled ? 'not-allowed' : 'pointer',
-  color: disabled ? '#d1d5db' : '#374151', opacity: disabled ? 0.5 : 1,
+  border: '1.5px solid rgba(168,85,247,0.18)', cursor: disabled ? 'not-allowed' : 'pointer',
+  color: disabled ? '#d1d5db' : '#a855f7', opacity: disabled ? 0.3 : 1,
   transition: 'all 150ms', background: 'transparent',
 });
 
@@ -42,11 +42,11 @@ export default function DataTable({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Table */}
-      <div style={{ borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ borderRadius: 16, border: '1px solid rgba(168,85,247,0.12)', overflow: 'hidden', boxShadow: '0 2px 16px rgba(168,85,247,0.07)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#fafafa' }}>
+              <tr style={{ background: 'rgba(168,85,247,0.03)' }}>
                 {selectable && (
                   <th style={{ ...thStyle, width: 44 }}>
                     <button onClick={onSelectAll} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -76,8 +76,8 @@ export default function DataTable({
                     }}
                     onMouseEnter={e => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(169, 85, 247, 0.28)';
-                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 rgba(168,85,247,0.35)';
+                        e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 rgba(168,85,247,0.25)';
                       }
                     }}
                     onMouseLeave={e => {
@@ -115,7 +115,7 @@ export default function DataTable({
 
       {/* Pagination */}
       {pagination && pagination.last_page > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(168,85,247,0.12)', boxShadow: '0 2px 12px rgba(168,85,247,0.06)' }}>
           <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>
             Showing {((pagination.current_page - 1) * pagination.per_page) + 1}–{Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
           </span>
@@ -138,7 +138,7 @@ export default function DataTable({
                 const isActive = page === pagination.current_page;
                 return (
                   <button key={page} onClick={() => onPageChange(page)}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? '#a855f7' : '#e5e7eb'}`, background: isActive ? '#a855f7' : 'transparent', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px rgba(168,85,247,0.15)' : 'none', transition: 'all 150ms' }}>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? '#a855f7' : 'rgba(168,85,247,0.18)'}`, background: isActive ? '#a855f7' : 'transparent', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px rgba(168,85,247,0.15)' : 'none', transition: 'all 150ms' }}>
                     {page}
                   </button>
                 );

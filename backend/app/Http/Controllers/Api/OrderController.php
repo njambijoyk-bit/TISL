@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\LogsReferralActivity;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -22,9 +23,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Services\PromoCodeService;
+use App\Http\Controllers\Api\Traits\LogsOrderActivities;
+use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
+use App\Models\OrderActivityLog;
+use Illuminate\Http\JsonResponse;
 
 class OrderController extends Controller
 {
+    use LogsReferralActivity;
+    use LogsOrderActivities;
+    use LogsPolicyAcceptances; 
     public function __construct(private OrderMailService $mailer) {}
     // ========================================
     // SHARED PRICING HELPER
@@ -130,6 +138,9 @@ class OrderController extends Controller
             'items.*.quantity'       => 'required|numeric|min:0.01',
             'apply_store_credit'     => 'nullable|boolean',      
             'store_credit_amount'    => 'nullable|numeric|min:0',
+            'policy_acceptances'            => 'nullable|array',
+            'policy_acceptances.*.key'      => 'required_with:policy_acceptances|string',
+            'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
         ]);
 
         if ($validator->fails()) {
@@ -400,6 +411,20 @@ class OrderController extends Controller
                     'applied_cost' => $shippingCost
                 ];
             }
+            // ── Tier free-shipping threshold override ─────────────────────────────
+            if ($customer && $shippingCost > 0) {
+                $threshold   = (float) ($customer->tier_benefits['free_shipping_threshold'] ?? PHP_INT_MAX);
+                $netSubtotal = $subtotal - $discount - $referralDiscount - $promoDiscount;
+
+                if ($netSubtotal >= $threshold) {
+                    $shippingCost = 0;
+                    if ($shippingSnapshot) {
+                        $shippingSnapshot['applied_cost']         = 0;
+                        $shippingSnapshot['free_shipping_reason'] = 'tier_threshold';
+                        $shippingSnapshot['tier_threshold']       = $threshold;
+                    }
+                }
+            }
 
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
@@ -479,6 +504,20 @@ class OrderController extends Controller
             ]);
 
             $order->applyKesSnapshot();
+            // Log policy acceptances (linked to this order)
+            foreach ($request->input('policy_acceptances', []) as $pa) {
+                $this->logPolicyAcceptance(
+                    policyKey:     $pa['key'],
+                    actionContext: 'standard_checkout',
+                    response:      $pa['response'],
+                    customer:      $customer,
+                    user:          Auth::user(),
+                    wasSuccessful: true,
+                    referenceType: 'order',
+                    referenceId:   $order->id,
+                    request:       $request,
+                );
+            }
 
             // ── Spend store credit ────────────────────────────────────────────────────────
             if ($creditDeductionKes > 0) {
@@ -497,12 +536,38 @@ class OrderController extends Controller
                     $order->subtotal_kes,                     // ✅ KES revenue
                     $promoDiscount * $order->exchange_rate_to_kes // ✅ KES discount
                 );
+                 $this->logPromoUsed(
+                    \App\Models\ReferralCode::find($promoCodeId),
+                    $order,
+                    $promoDiscount
+                );
+            }
+            // ── Log referral code usage if applied ───────────────────────────────────
+            if ($referralCodeId) {                                   
+                $this->logReferralUsed(
+                    \App\Models\ReferralCode::find($referralCodeId),
+                    $order,
+                    $referralDiscount
+                );
             }
 
             // ✅ STEP 5: Create order items
             $this->createOrderItems($order->id, $itemsData);
 
             DB::commit();
+
+            $this->logOrderActivity(
+                $order->id,
+                'order_placed',
+                "Order #{$order->order_number} placed by customer.",
+                'info',
+                [
+                    'total'          => $order->total,
+                    'currency'       => $order->currency,
+                    'payment_method' => $order->payment_method,
+                    'item_count'     => count($itemsData),
+                ]
+            );
 
             try {
                 //Mail::to($customer->email)->send(new OrderConfirmation($order));
@@ -599,6 +664,12 @@ class OrderController extends Controller
             ]);
 
             $order->delete();
+            $this->logOrderActivity(
+                $order->id,
+                'order_trashed',
+                "Order #{$order->order_number} moved to trash by customer.",
+                'warning'
+            );
             DB::commit();
 
             return response()->json([
@@ -901,6 +972,20 @@ class OrderController extends Controller
                     'applied_cost' => $shippingCost
                 ];
             }
+            // ── Tier free-shipping threshold override ─────────────────────────────
+            if ($customer && $shippingCost > 0) {
+                $threshold   = (float) ($customer->tier_benefits['free_shipping_threshold'] ?? PHP_INT_MAX);
+                $netSubtotal = $subtotal - $discount - $referralDiscount - $promoDiscount;
+
+                if ($netSubtotal >= $threshold) {
+                    $shippingCost = 0;
+                    if ($shippingSnapshot) {
+                        $shippingSnapshot['applied_cost']         = 0;
+                        $shippingSnapshot['free_shipping_reason'] = 'tier_threshold';
+                        $shippingSnapshot['tier_threshold']       = $threshold;
+                    }
+                }
+            }
 
             $taxableAmount = $subtotal - $discount - $referralDiscount - $promoDiscount;
             $tax           = $taxableAmount * 0.16;
@@ -946,6 +1031,18 @@ class OrderController extends Controller
 
             DB::commit();
 
+            $this->logOrderActivity(
+                $order->id,
+                'order_updated',
+                "Customer updated order #{$order->order_number}.",
+                'info',
+                [
+                    'new_total'          => $order->fresh()->total,
+                    'delivery_method'    => $request->delivery_method,
+                    'payment_method'     => $request->payment_method,
+                ]
+            );
+
             return response()->json([
                 'message' => 'Order updated successfully',
                 'order'   => $order->fresh('items.product', 'customer'),
@@ -988,6 +1085,14 @@ class OrderController extends Controller
         }
 
         $order->update(['rating' => $request->rating, 'feedback' => $request->feedback]);
+
+        $this->logOrderActivity(
+            $order->id,
+            'order_rated',
+            "Customer submitted a rating of {$request->rating}/10 for order #{$order->order_number}.",
+            'info',
+            ['rating' => $request->rating, 'has_feedback' => !empty($request->feedback)]
+        );
 
         return response()->json(['message' => 'Rating submitted successfully', 'order' => $order], 200);
     }
@@ -1045,17 +1150,18 @@ class OrderController extends Controller
             $order->applyKesSnapshot();
             $this->refundOrderStoreCredit($order);
 
-            // Handle referral code usage cancellation (Case 18)
-            if ($order->referral_code_id) {
-                $usage = \App\Models\ReferralCodeUsage::where('order_id', $order->id)
-                    ->where('referral_code_id', $order->referral_code_id)
-                    ->first();
-                if ($usage) {
-                    $usage->markAsCancelled();
-                }
-            }
+            $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
+            $this->reversePromoCodeUsage($order);  
 
             DB::commit();
+
+            $this->logOrderActivity(
+                $order->id,
+                'order_cancelled',
+                "Order #{$order->order_number} cancelled by customer.",
+                'warning',
+                ['reason' => $request->reason]
+            );
 
             try {
                 $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
@@ -1129,7 +1235,16 @@ class OrderController extends Controller
             ]);
 
             $this->rechargeOrderStoreCredit($order);
+            $this->restoreReferralCodeUsage($order);
+            $this->restorePromoCodeUsage($order); 
             DB::commit();
+
+            $this->logOrderActivity(
+                $order->id,
+                'order_restored',
+                "Order #{$order->order_number} restored by customer.",
+                'info'
+            );
 
             return response()->json([
                 'message' => 'Order restored successfully.',
@@ -1275,6 +1390,20 @@ class OrderController extends Controller
         }
 
         $order->update($data);
+        if ($financialChanged || isset($data['order_type']) || isset($data['tracking_number'])) {
+            $this->logOrderActivity(
+                $order->id,
+                'order_updated',
+                "Order #{$order->order_number} fields updated by admin.",
+                'info',
+                array_filter([
+                    'financial_changed' => $financialChanged,
+                    'order_type'        => $data['order_type']        ?? null,
+                    'tracking_number'   => $data['tracking_number']   ?? null,
+                    'courier_company'   => $data['courier_company']   ?? null,
+                ])
+            );
+        }
 
         return response()->json(['message' => 'Order updated successfully', 'order' => $order->fresh('items.product', 'customer')], 200);
     }
@@ -1332,6 +1461,16 @@ class OrderController extends Controller
             }
 
             $order->delete();
+            $this->logOrderActivity(
+                $order->id,
+                'order_trashed',
+                "Order #{$order->order_number} moved to trash by admin.",
+                'warning',
+                [
+                    'order_status'   => $order->status,
+                    'is_risky'       => in_array($order->status, ['shipped', 'delivered']),
+                ]
+            );
             DB::commit();
 
             $isRisky = in_array($order->status, ['shipped', 'delivered']);
@@ -1400,6 +1539,16 @@ class OrderController extends Controller
             }
 
             $order->restore();
+            $this->logOrderActivity(
+                $order->id,
+                'order_restored_from_trash',
+                "Order #{$order->order_number} restored from trash by admin.",
+                'info',
+                [
+                    'order_status'    => $order->status,
+                    'previous_status' => 'trashed',
+                ]
+            );
             DB::commit();
 
             return response()->json([
@@ -1461,6 +1610,17 @@ class OrderController extends Controller
                     }
 
                     $order->restore();
+                    
+                    $this->logOrderActivity(
+                        $order->id,
+                        'order_restored_from_trash',
+                        "Order #{$order->order_number} restored from trash by admin.",
+                        'info',
+                        [
+                            'order_status'    => $order->status,
+                            'previous_status' => 'trashed',
+                        ]
+                    );
                     $restored++;
                 } catch (\Exception $e) {
                     $failed[] = [
@@ -1484,6 +1644,22 @@ class OrderController extends Controller
         DB::beginTransaction();
         try {
             $order       = Order::withTrashed()->with('items')->findOrFail($id);
+            // ← log BEFORE deletion, order_id still exists
+            $this->logOrderActivity(
+                $order->id,
+                'order_force_deleted',
+                "Order #{$order->order_number} permanently deleted by admin.",
+                'danger',
+                [
+                    'order_number'   => $order->order_number,
+                    'status'         => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'total'          => $order->total,
+                    'customer_id'    => $order->customer_id,
+                    'deleted_by'     => $request->user()?->id,
+                    'item_count'     => $order->items->count(),
+                ]
+            );
             $itemCount   = $order->items()->count();
             $orderNumber = $order->order_number;
             $order->items()->delete();
@@ -1508,6 +1684,22 @@ class OrderController extends Controller
 
             foreach ($orders as $order) {
                 try {
+                    // ← log BEFORE deletion, order_id still exists
+                    $this->logOrderActivity(
+                        $order->id,
+                        'order_force_deleted',
+                        "Order #{$order->order_number} permanently deleted by admin.",
+                        'danger',
+                        [
+                            'order_number'   => $order->order_number,
+                            'status'         => $order->status,
+                            'payment_status' => $order->payment_status,
+                            'total'          => $order->total,
+                            'customer_id'    => $order->customer_id,
+                            'deleted_by'     => $request->user()?->id,
+                            'item_count'     => $order->items->count(),
+                        ]
+                    );
                     $order->items()->delete();
                     $order->forceDelete();
                     $deleted++;
@@ -1563,6 +1755,7 @@ class OrderController extends Controller
             'total_kes'              => 'nullable|numeric',
             'apply_store_credit'     => 'nullable|boolean',      
             'store_credit_amount'    => 'nullable|numeric|min:0',
+            'apply_tier_discount'    => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -1790,7 +1983,15 @@ class OrderController extends Controller
                     $promoResult['code']->recordAttempt();
                 }
             }
-            $orderDiscount         = floatval($request->discount ?? 0);
+            // ── Order-level discount: tier auto-apply or manual override ──────────
+            if ($request->boolean('apply_tier_discount', false)) {
+                $totalDiscountPct = $customer->calculateTotalDiscount();
+                $orderDiscount    = $totalDiscountPct > 0
+                    ? round(($totalDiscountPct / 100) * $subtotal, 2)
+                    : 0;
+            } else {
+                $orderDiscount = floatval($request->discount ?? 0);
+            }
             $subtotalAfterDiscount = $subtotal - $orderDiscount - $referralDiscount - $promoDiscount;
 
             $applyTax              = $request->apply_tax ?? true;
@@ -1824,6 +2025,21 @@ class OrderController extends Controller
                     'applied_cost' => $shippingCost,
                     'was_overridden' => $request->has('shipping_cost') && $request->shipping_cost !== null
                 ];
+            }
+
+            // ── Tier free-shipping threshold override (only when not manually overridden) ──
+            $wasOverridden = $request->has('shipping_cost') && $request->shipping_cost !== null;
+            if (!$wasOverridden && $shippingCost > 0) {
+                $threshold   = (float) ($customer->tier_benefits['free_shipping_threshold'] ?? PHP_INT_MAX);
+                $netSubtotal = $subtotalAfterDiscount; // already post-discount in admin methods
+                if ($netSubtotal >= $threshold) {
+                    $shippingCost = 0;
+                    if ($shippingSnapshot) {
+                        $shippingSnapshot['applied_cost']         = 0;
+                        $shippingSnapshot['free_shipping_reason'] = 'tier_threshold';
+                        $shippingSnapshot['tier_threshold']       = $threshold;
+                    }
+                }
             }
 
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
@@ -1921,16 +2137,43 @@ class OrderController extends Controller
                     $order->subtotal_kes,                     // ✅ KES revenue
                     $promoDiscount * $order->exchange_rate_to_kes // ✅ KES discount
                 );
+                $this->logPromoUsed(
+                    \App\Models\ReferralCode::find($promoCodeId),
+                    $order,
+                    $promoDiscount
+                );
+            }
+            // ── Log referral code usage if applied ───────────────────────────────────
+            if ($referralCodeId) {                                   
+                $this->logReferralUsed(
+                    \App\Models\ReferralCode::find($referralCodeId),
+                    $order,
+                    $referralDiscount
+                );
             }
 
             // ✅ STEP 4: Create order items
             $this->createOrderItems($order->id, $itemsData, true);
             Log::info('ITEM_DATA_BEFORE_SAVE', [
-    'items' => $itemsData
-]);
+                'items' => $itemsData
+            ]);
 
 
             DB::commit();
+            $this->logOrderActivity(
+                $order->id,
+                'order_created',
+                "Order #{$order->order_number} created by admin for customer #{$customer->id}.",
+                'info',
+                [
+                    'total'          => $order->total,
+                    'currency'       => $order->currency,
+                    'payment_method' => $order->payment_method,
+                    'payment_status' => $order->payment_status,
+                    'item_count'     => count($itemsData),
+                    'has_backorder'  => collect($itemsData)->sum('backorder_quantity') > 0,
+                ]
+            );
 
             $order->load(['items', 'customer']);
 
@@ -2001,6 +2244,7 @@ class OrderController extends Controller
             'service_start_date'       => 'nullable|date',
             'service_end_date'         => 'nullable|date',
             'customer_id'              => 'nullable|exists:customers,id',
+            'apply_tier_discount'      => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -2066,6 +2310,7 @@ class OrderController extends Controller
             $order->items()->delete();
 
             // ── STEP 3: Build new items data ──────────────────────────────────
+            $customer = Customer::findOrFail($request->customer_id ?? $order->customer_id);
             $subtotal  = 0;
             $itemsData = [];
 
@@ -2248,7 +2493,15 @@ class OrderController extends Controller
 
             $promoDiscount    = min((float) ($order->promo_discount    ?? 0), $subtotal - $referralDiscount);
 
-            $orderDiscount         = floatval($request->discount ?? 0);
+            // ── Order-level discount: tier auto-apply or manual override ──────────
+            if ($request->boolean('apply_tier_discount', false)) {
+                $totalDiscountPct = $customer->calculateTotalDiscount();
+                $orderDiscount    = $totalDiscountPct > 0
+                    ? round(($totalDiscountPct / 100) * $subtotal, 2)
+                    : 0;
+            } else {
+                $orderDiscount = floatval($request->discount ?? 0);
+            }
             $subtotalAfterDiscount = $subtotal - $orderDiscount - $referralDiscount - $promoDiscount;
 
             $applyTax              = $request->apply_tax ?? true;
@@ -2284,10 +2537,28 @@ class OrderController extends Controller
                 ];
             }
 
+            // ── Tier free-shipping threshold override (only when not manually overridden) ──
+            $wasOverridden = $request->has('shipping_cost') && $request->shipping_cost !== null;
+            if (!$wasOverridden && $shippingCost > 0) {
+                $threshold   = (float) ($customer->tier_benefits['free_shipping_threshold'] ?? PHP_INT_MAX);
+                $netSubtotal = $subtotalAfterDiscount; // already post-discount in admin methods
+                if ($netSubtotal >= $threshold) {
+                    $shippingCost = 0;
+                    if ($shippingSnapshot) {
+                        $shippingSnapshot['applied_cost']         = 0;
+                        $shippingSnapshot['free_shipping_reason'] = 'tier_threshold';
+                        $shippingSnapshot['tier_threshold']       = $threshold;
+                    }
+                }
+            }
+
             $total                 = $subtotalAfterDiscount + $tax + $shippingCost;
-            // Carry forward existing store credit deduction
-            $existingCreditDeduction    = (float) ($order->store_credit_deduction     ?? 0);
+            // Carry forward existing store credit — always reconvert from KES using new rate
             $existingCreditDeductionKes = (float) ($order->store_credit_deduction_kes ?? 0);
+            $newExchangeRate             = (float) ($request->exchange_rate_to_kes ?? $order->exchange_rate_to_kes ?? 1.0);
+            $existingCreditDeduction     = $newExchangeRate > 0
+                ? round($existingCreditDeductionKes / $newExchangeRate, 2)
+                : $existingCreditDeductionKes;
             $total -= $existingCreditDeduction;
 
             // ── STEP 5: Update order ───────────────────────────────────────────
@@ -2298,8 +2569,8 @@ class OrderController extends Controller
                 'referral_discount'        => $referralDiscount,
                 'promo_code_id'            => $order->promo_code_id,
                 'promo_discount'           => $promoDiscount,
-                'store_credit_deduction'     => $existingCreditDeduction,
-                'store_credit_deduction_kes' => $existingCreditDeductionKes,
+                'store_credit_deduction'     => $existingCreditDeduction,     // reconverted to new currency
+                'store_credit_deduction_kes' => $existingCreditDeductionKes,  // KES stays unchanged
                 'discount'                 => $orderDiscount,
                 'currency'                 => $request->currency             ?? $order->currency,
                 'exchange_rate_to_kes'     => $request->exchange_rate_to_kes ?? $order->exchange_rate_to_kes,
@@ -2346,6 +2617,17 @@ class OrderController extends Controller
             }
 
             DB::commit();
+            $this->logOrderActivity(
+                $order->id,
+                'order_updated',
+                "Order #{$order->order_number} updated by admin.",
+                'info',
+                [
+                    'new_total'       => $order->fresh()->total,
+                    'delivery_method' => $request->delivery_method,
+                    'item_count'      => count($itemsData),
+                ]
+            );
 
             $order->load(['items', 'customer']);
             $hasBackorder     = collect($itemsData)->sum('backorder_quantity') > 0;
@@ -2376,7 +2658,19 @@ class OrderController extends Controller
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         $order = Order::findOrFail($id);
+        $previousStatus = $order->status; 
         $order->update(['status' => $request->status, 'admin_notes' => $request->admin_notes ?? $order->admin_notes]);
+        $this->logOrderActivity(
+            $order->id,
+            'status_updated',
+            "Order #{$order->order_number} status changed from {$previousStatus} to {$request->status}.",
+            'info',
+            [
+                'previous_status' => $previousStatus,
+                'new_status'      => $request->status,
+                'admin_notes'     => $request->admin_notes,
+            ]
+        );
 
         if ($request->status === 'confirmed' && !$order->confirmed_at) $order->update(['confirmed_at' => now()]);
         if ($request->status === 'delivered' && !$order->delivered_at) $order->update(['delivered_at' => now()]);
@@ -2390,7 +2684,13 @@ class OrderController extends Controller
     public function confirm(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        if ($order->status !== 'pending') return response()->json(['message' => 'Only pending orders can be confirmed'], 400);
+
+        if ($order->status !== 'pending') {
+            return response()->json(['message' => 'Only pending orders can be confirmed'], 400);
+        }
+
+        $previousStatus = $order->status; // ← capture before mutation
+
         $order->markAsConfirmed($request->user());
 
         try {
@@ -2407,8 +2707,7 @@ class OrderController extends Controller
                 ->first();
 
             if ($usage) {
-                $usage->complete($order); // triggers processReferrerReward() → KES 500 store credit
-                // Update referral code success stats
+                $usage->complete($order);
                 $referralCode = $order->referralCode;
                 if ($referralCode) {
                     $referralCode->recordSuccess($order->referral_discount, $order->subtotal_kes);
@@ -2416,14 +2715,20 @@ class OrderController extends Controller
             }
         }
 
-        // ── Update customer order stats → triggers loyalty + tier checks ──────
+        // ── Update customer order stats ──
         $customer = $order->customer;
         if ($customer) {
             $customer->recalculateStatistics();
-            // updateOrderStatistics() calls checkTierUpgrade() → triggerVipPromoIfEligible()
-            // and triggerLoyaltyPromoIfEligible() — both wired in Customer model
         }
-        
+
+        $this->logOrderActivity(
+            $order->id,
+            'order_confirmed',
+            "Order #{$order->order_number} confirmed.",
+            'success',
+            ['previous_status' => $previousStatus]
+        );
+
         return response()->json(['message' => 'Order confirmed successfully', 'order' => $order->fresh()], 200);
     }
 
@@ -2444,6 +2749,17 @@ class OrderController extends Controller
             'courier_company'          => $request->courier_company,
             'estimated_delivery_date'  => $request->estimated_delivery_date,
         ]);
+        $this->logOrderActivity(
+            $order->id,
+            'order_shipped',
+            "Order #{$order->order_number} marked as shipped.",
+            'success',
+            [
+                'tracking_number'         => $request->tracking_number,
+                'courier_company'         => $request->courier_company,
+                'estimated_delivery_date' => $request->estimated_delivery_date,
+            ]
+        );
 
         try {
             $this->mailer->sendOrderShipped($order->fresh(['customer']));
@@ -2458,6 +2774,12 @@ class OrderController extends Controller
     {
         $order = Order::findOrFail($id);
         $order->markAsDelivered();
+        $this->logOrderActivity(
+            $order->id,
+            'order_delivered',
+            "Order #{$order->order_number} marked as delivered.",
+            'success'
+        );
         return response()->json(['message' => 'Order marked as delivered', 'order' => $order->fresh()], 200);
     }
 
@@ -2466,6 +2788,13 @@ class OrderController extends Controller
         $order = Order::with(['items.product', 'customer'])->findOrFail($id);
         if ($order->invoice_number) return response()->json(['message' => 'Invoice already generated', 'invoice_number' => $order->invoice_number], 200);
         $invoiceNumber = $order->generateInvoiceNumber();
+        $this->logOrderActivity(
+            $order->id,
+            'invoice_generated',
+            "Proforma invoice {$invoiceNumber} generated for order #{$order->order_number}.",
+            'info',
+            ['invoice_number' => $invoiceNumber]
+        );
         return response()->json(['message' => 'Invoice generated successfully', 'invoice_number' => $invoiceNumber, 'order' => $order->fresh()], 200);
     }
 
@@ -2538,6 +2867,18 @@ class OrderController extends Controller
                 $payment->syncOrderPaymentStatus();  
                 
                 DB::commit();  
+                $this->logOrderActivity(
+                    $order->id,
+                    'payment_status_updated',
+                    "Payment of KES {$amount} recorded for order #{$order->order_number} ({$request->payment_status}).",
+                    'success',
+                    [
+                        'new_payment_status' => $request->payment_status,
+                        'amount'             => $amount,
+                        'payment_method'     => $request->payment_method,
+                        'reference'          => $request->payment_reference,
+                    ]
+                );
                 return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh(), 'payment' => $payment], 200);  
             } catch (\Exception $e) {  
                 DB::rollBack();  
@@ -2546,13 +2887,40 @@ class OrderController extends Controller
             }  
         }  
     
-        // For other statuses (unpaid, refunded, failed), update directly  
-        $order->update([  
-            'payment_status'    => $request->payment_status,  
-            'payment_reference' => $request->payment_reference ?? $order->payment_reference,  
-        ]);  
-        
-        return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh()], 200);  
+        // For other statuses (unpaid, failed) — void confirmed payments and reverse points
+        DB::beginTransaction();
+        try {
+            \App\Models\Payment::where('order_id', $order->id)
+                ->where('status', 'confirmed')
+                ->update(['status' => 'voided']);
+
+            $order->update([
+                'payment_status'    => $request->payment_status,
+                'paid_at'           => null,
+                'payment_reference' => $request->payment_reference ?? $order->payment_reference,
+            ]);
+
+            if ($order->loyalty_points_earned > 0) {
+                app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);
+            }
+
+            DB::commit();
+            $this->logOrderActivity(
+                $order->id,
+                'payment_status_updated',
+                "Payment status for order #{$order->order_number} set to {$request->payment_status}. Confirmed payments voided.",
+                'warning',
+                [
+                    'new_payment_status' => $request->payment_status,
+                    'reference'          => $request->payment_reference,
+                ]
+            );
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to update payment status', 'error' => $e->getMessage()], 500);
+        }
+
+        return response()->json(['message' => 'Payment status updated', 'order' => $order->fresh()], 200); 
     }
 
     public function adminCancel(Request $request, $id)
@@ -2614,7 +2982,11 @@ class OrderController extends Controller
                     
                     // Proportional share of the actual amount being refunded (using KES values for accurate math)
                     $itemLineKes = (float) ($item->line_total_after_discount_kes ?? ($item->line_total_after_discount * ($order->exchange_rate_to_kes ?? 1)));
-                    $itemShare = $totalOrderKes > 0 ? ($itemLineKes / $totalOrderKes) : 0;  
+                    $subtotalKes = (float) ($lastPayment->snapshot_subtotal_kes
+                        ?? $order->snapshot_subtotal_kes
+                        ?? ($order->subtotal * ($order->exchange_rate_to_kes ?? 1)));
+                    $denominator = $subtotalKes > 0 ? $subtotalKes : $totalOrderKes;
+                    $itemShare   = $denominator > 0 ? ($itemLineKes / $denominator) : 0;
                     $refundAmount = round($maxRefundable * $itemShare, 2);  
                     
                     $item->update(['refund_amount' => $refundAmount, 'return_status' => 'completed']);  
@@ -2625,54 +2997,98 @@ class OrderController extends Controller
                 if ($request->has('refund_items')) {
                     foreach ($request->refund_items as $refundItem) {
                         $orderItem    = OrderItem::findOrFail($refundItem['order_item_id']);
-                        $actualReturn = $refundItem['quantity_returned'];
+                        $actualReturn = (float) $refundItem['quantity_returned'];
+            
                         if ($actualReturn > $orderItem->quantity) {
                             DB::rollBack();
                             return response()->json(['message' => "Cannot return more than ordered for {$orderItem->product_name}."], 400);
                         }
-                        $orderItem->update(['refund_amount' => $refundItem['refund_amount'], 'quantity_returned' => $actualReturn, 'return_status' => $refundItem['return_status']]);
-                        if (in_array($refundItem['return_status'], ['approved', 'completed']) && $actualReturn > 0 && $orderItem->product) {
+            
+                        $orderItem->update([
+                            'refund_amount'     => $refundItem['refund_amount'],
+                            'quantity_returned' => $actualReturn,
+                            'return_status'     => $refundItem['return_status'],
+                        ]);
+            
+                        // ── Bug 1 fix ──────────────────────────────────────────────────
+                        // Always restore stock for approved/completed returns, regardless
+                        // of payment status.  Use $actualReturn (the quantity being handed
+                        // back) — NOT $item->in_stock_quantity, which is an accessor
+                        // (quantity - backorder_quantity) and has no relation to what
+                        // was actually picked from the shelf for this order.
+                        if (in_array($refundItem['return_status'], ['approved', 'completed'])
+                            && $actualReturn > 0
+                            && $orderItem->product
+                            && !$returnlessRefund) { 
                             $orderItem->product->increment('stock_quantity', $actualReturn);
                             $orderItem->product->update(['in_stock' => true]);
                         }
                     }
                 }
-                if ($returnlessRefund) {  
-                    $maxRefundable = $manualRefundAmount !== null 
-                        ? (float)$manualRefundAmount 
-                        : $totalConfirmedPayments;
-                    
-                    foreach ($order->items as $item) {  
-                        $itemLineKes = (float) ($item->line_total_after_discount_kes ?? ($item->line_total_after_discount * ($order->exchange_rate_to_kes ?? 1)));
-                        $itemShare = $totalOrderKes > 0 ? ($itemLineKes / $totalOrderKes) : 0;  
-                        $refundAmount = round($maxRefundable * $itemShare, 2);  
-                        $item->update(['refund_amount' => $refundAmount, 'quantity_returned' => 0, 'return_status' => 'completed']);  
-                    }  
+                if ($returnlessRefund) {
+                $maxRefundable = $manualRefundAmount !== null
+                    ? (float) $manualRefundAmount
+                    : $totalConfirmedPayments;
+        
+                foreach ($order->items as $item) {
+                    $itemLineKes  = (float) ($item->line_total_after_discount_kes
+                        ?? ($item->line_total_after_discount * ($order->exchange_rate_to_kes ?? 1)));
+        
+                    // ── Bug 3b fix (controller mirror) ────────────────────────────
+                    // Use subtotal_kes as denominator so items distribute 100% of the
+                    // refund — snapshotTotal includes tax which has no item-level owner.
+                    $subtotalKes  = (float) ($lastPayment->snapshot_subtotal_kes
+                        ?? $order->snapshot_subtotal_kes
+                        ?? ($order->subtotal * ($order->exchange_rate_to_kes ?? 1)));
+                    $denominator  = $subtotalKes > 0 ? $subtotalKes : $totalOrderKes;
+                    $itemShare    = $denominator > 0 ? ($itemLineKes / $denominator) : 0;
+                    $refundAmount = round($maxRefundable * $itemShare, 2);
+        
+                    $item->update(['refund_amount' => $refundAmount, 'quantity_returned' => 0, 'return_status' => 'completed']);
                 }
-                $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'payment_status' => 'refunded']);
+            }
+                // ── Bug 1 fix ──────────────────────────────────────────────────────────
+                // Only set payment_status=refunded if there was actually money to refund.
+                // For unpaid+shipped: order stays unpaid after cancellation.
+                $newPaymentStatus = $requiresRefund ? 'refunded' : $order->payment_status;
+                $order->update([
+                    'status'              => 'cancelled',
+                    'cancelled_at'        => now(),
+                    'cancellation_reason' => $request->cancellation_reason,
+                    'payment_status'      => $newPaymentStatus,
+                ]);
             }
 
-            // ── Mark/record payment refunds ─────────────────────────────────  
-            if ($requiresRefund) {  
-                
-                // Prioritize manual refund amount from request, otherwise use sum of items
-                $totalRefundedAmount = $manualRefundAmount !== null 
-                    ? (float)$manualRefundAmount 
-                    : $order->items->sum('refund_amount');
+            // Sum of per-item refund amounts actually being processed
+            $itemsRefundTotal = ($requiresReturn && $request->has('refund_items'))
+                ? collect($request->refund_items)->sum('refund_amount')
+                : null;
+            // ── Mark/record payment refunds ─────────────────────────────────────────────
+            if ($requiresRefund) {
+            
+                // ── Bug 2 fix (backend) ──────────────────────────────────────────────
+                // Frontend now always sends manual_refund_amount when requiresRefund=true
+                // (snapshotTotal when override is off, custom value when on).
+                // So $manualRefundAmount is always set here — use it directly.
+                // Fallback to totalConfirmedPayments only if frontend somehow sends null.
+                $totalRefundedAmount = $manualRefundAmount !== null
+                    ? min((float) $manualRefundAmount, $totalConfirmedPayments)   // ← override takes priority
+                    : ($itemsRefundTotal !== null
+                        ? min((float) $itemsRefundTotal, $totalConfirmedPayments)
+                        : $totalConfirmedPayments);
 
                 // For audit integrity, we ALWAYS create a refund record if funds are returned.
                 // We also mark previous payments as refunded to clear the balance.
-                
+                // Create a refund payment record for audit trail 
+                $snapshot = \App\Models\Payment::buildSnapshot($order);
+                $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);
+
                 \App\Models\Payment::where('order_id', $order->id)  
                     ->where('status', 'confirmed')  
                     ->update([  
                         'status' => 'refunded',  
                         'admin_notes' => \Illuminate\Support\Facades\DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Linked to refund record — order cancelled')"),  
                     ]);
-
-                // Create a refund payment record for audit trail  
-                $snapshot = \App\Models\Payment::buildSnapshot($order);  
-                $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);  
 
                 \App\Models\Payment::create([  
                     'order_id'             => $order->id,  
@@ -2694,30 +3110,36 @@ class OrderController extends Controller
                     'confirmed_at'         => now(),  
                 ]);  
             }
+            
             // ── Loyalty: reverse earned points on cancellation ─────────────  
-            if ($requiresRefund) {  
-                try {  
-                    if ($order->customer) {  
-                        app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);  
-                    }  
-                } catch (\Exception $e) {  
-                    Log::warning("Loyalty point reversal failed for order {$order->id}: " . $e->getMessage());  
+            
+            try {  
+                if ($order->customer) {  
+                    app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);  
                 }  
-            }
+            } catch (\Exception $e) {  
+                Log::warning("Loyalty point reversal failed for order {$order->id}: " . $e->getMessage());  
+            }  
             
             $this->refundOrderStoreCredit($order);
 
-            // Handle referral code usage cancellation (Case 18)
-            if ($order->referral_code_id) {
-                $usage = \App\Models\ReferralCodeUsage::where('order_id', $order->id)
-                    ->where('referral_code_id', $order->referral_code_id)
-                    ->first();
-                if ($usage) {
-                    $usage->markAsCancelled();
-                }
-            }
+            $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
+            $this->reversePromoCodeUsage($order);  
 
             DB::commit();
+            $this->logOrderActivity(
+                $order->id,
+                'order_cancelled',
+                "Order #{$order->order_number} cancelled by admin.",
+                'danger',
+                [
+                    'reason'           => $request->cancellation_reason,
+                    'requires_refund'  => $requiresRefund,
+                    'requires_return'  => $requiresReturn,
+                    'returnless_refund'=> $returnlessRefund,
+                    'refund_amount'    => $requiresRefund ? ($totalRefundedAmount ?? 0) : 0,
+                ]
+            );
 
             try {
                 $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
@@ -2753,16 +3175,19 @@ class OrderController extends Controller
             $hadRefund = false;
 
             foreach ($order->items as $item) {
-                // Reset any refund data
+                $alreadyReserved = 0;
+                // Detect returnless refund: refunded but quantity_returned=0 (customer kept items)
+                $wasReturnless = $item->return_status === 'completed'
+                    && $item->quantity_returned == 0
+                    && $item->refund_amount > 0;
+
                 if ($item->refund_amount > 0 || $item->quantity_returned > 0 || $item->return_status !== 'none') {
                     $hadRefund = true;
 
-                    // If stock was physically returned (approved/completed), re-reserve it
-                    if (
-                        in_array($item->return_status, ['approved', 'completed']) &&
-                        $item->quantity_returned > 0 &&
-                        $item->product
-                    ) {
+                    if (in_array($item->return_status, ['approved', 'completed'])
+                        && $item->quantity_returned > 0
+                        && $item->product) {
+
                         if ($item->product->stock_quantity < $item->quantity_returned) {
                             DB::rollBack();
                             return response()->json([
@@ -2770,25 +3195,26 @@ class OrderController extends Controller
                             ], 400);
                         }
                         $item->product->decrement('stock_quantity', $item->quantity_returned);
+                        $alreadyReserved = $item->quantity_returned;
                         if ($item->product->stock_quantity <= 0) $item->product->update(['in_stock' => false]);
                     }
 
-                    $item->update([
-                        'refund_amount'     => 0,
-                        'quantity_returned' => 0,
-                        'return_status'     => 'none',
-                    ]);
+                    $item->update(['refund_amount' => 0, 'quantity_returned' => 0, 'return_status' => 'none']);
                 }
 
-                // Re-reserve stock for non-custom product items that were in stock
-                if (!$item->is_custom_item && $item->product && $item->in_stock_quantity > 0) {
+                // Only deduct what hasn't already been re-reserved above
+                $remainingToReserve = $item->in_stock_quantity - $alreadyReserved;
+
+                if (!$item->is_custom_item && $item->product && $remainingToReserve > 0) {
                     $available = (float) $item->product->stock_quantity;
-                    $required  = (float) $item->in_stock_quantity;
+                    $required  = (float) $remainingToReserve;
 
                     if ($available < $required) {
                         DB::rollBack();
                         return response()->json([
-                            'message' => "Insufficient stock to restore. {$item->product_name} needs {$required} but only {$available} available.",
+                            'message' => $wasReturnless
+                                ? "Cannot restore — {$item->product_name} was a returnless refund (customer kept it). Please restock {$required} unit(s) before restoring."
+                                : "Insufficient stock to restore. {$item->product_name} needs {$required} but only {$available} available.",
                         ], 400);
                     }
                     $item->product->decrement('stock_quantity', $required);
@@ -2826,18 +3252,30 @@ class OrderController extends Controller
                 'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Refund record cancelled — order restored')"),  
             ]);
 
-            // ── Loyalty: re-award points if they were reversed during cancel ─  
-            try {  
-                $order->load('customer');  
-                if ($order->customer) {  
-                    app(\App\Services\LoyaltyService::class)->restorePointsForRestoredOrder($order);  
-                }  
-            } catch (\Exception $e) {  
-                Log::warning("Loyalty point restore failed for order {$order->id}: " . $e->getMessage());  
-            }
-
             $this->rechargeOrderStoreCredit($order);
+            $this->restoreReferralCodeUsage($order);
+            $this->restorePromoCodeUsage($order);  
+
+            // ── Loyalty: re-award points on restore ───────────────────────────────
+            try {
+                if ($order->customer) {
+                    app(\App\Services\LoyaltyService::class)->restorePointsForRestoredOrder($order);
+                }
+            } catch (\Exception $e) {
+                Log::warning("Loyalty point restore failed for order {$order->id}: " . $e->getMessage());
+            }
             DB::commit();
+            $this->logOrderActivity(
+                $order->id,
+                'order_restored',
+                "Cancelled order #{$order->order_number} restored by admin.",
+                'info',
+                [
+                    'restored_status' => $newStatus,
+                    'had_refund'      => $hadRefund,
+                    'restore_reason'  => $request->restore_reason,
+                ]
+            );
             return response()->json([
                 'message'         => 'Order restored successfully. Payment has been reset — a new payment is required.',
                 'order'           => $order->fresh('items.product', 'customer'),
@@ -2918,6 +3356,16 @@ class OrderController extends Controller
                     ]);
 
                     $this->refundOrderStoreCredit($order);
+                    $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
+                    $this->reversePromoCodeUsage($order);  
+
+                    $this->logOrderActivity(
+                        $order->id,
+                        'order_cancelled',
+                        "Order #{$order->order_number} bulk cancelled by admin.",
+                        'danger',
+                        ['reason' => $request->cancellation_reason]
+                    );
                     $successCount++;
                 } catch (\Exception $e) {
                     $failedOrders[] = [
@@ -3077,6 +3525,8 @@ class OrderController extends Controller
                     }
 
                     $this->rechargeOrderStoreCredit($order);
+                    $this->restoreReferralCodeUsage($order);
+                    $this->restorePromoCodeUsage($order); 
                     $successCount++;
                 } catch (\Exception $e) {
                     $failedOrders[] = [
@@ -3163,31 +3613,57 @@ class OrderController extends Controller
     }
 
     public function customerOrderStatistics($customerId)
-{
-    $customer = Customer::findOrFail($customerId);
+    {
+        $customer = Customer::findOrFail($customerId);
 
-    // ✅ ALL ORDERS ONLY (no filtering anywhere)
-    $orders = Order::where('customer_id', $customerId)->get();
+        // ✅ ALL ORDERS ONLY (no filtering anywhere)
+        $orders = Order::where('customer_id', $customerId)->get();
 
-    $totalOrders = $orders->count();
+        $totalOrders = $orders->count();
 
-    $totalSpent = $orders->sum('total_kes');
+        $totalSpent = $orders->sum('total_kes');
 
-    $avgOrderValue = $totalOrders > 0
-        ? $totalSpent / $totalOrders
-        : 0;
+        $avgOrderValue = $totalOrders > 0
+            ? $totalSpent / $totalOrders
+            : 0;
 
-    $firstOrder = $orders->sortBy('created_at')->first();
-    $lastOrder  = $orders->sortByDesc('created_at')->first();
+        $firstOrder = $orders->sortBy('created_at')->first();
+        $lastOrder  = $orders->sortByDesc('created_at')->first();
 
-    return response()->json([
-        'total_orders' => $totalOrders,
-        'total_spent' => (float) $totalSpent,
-        'average_order_value' => round($avgOrderValue, 2),
-        'first_order_date' => $firstOrder?->created_at,
-        'last_order_date' => $lastOrder?->created_at,
-    ]);
-}
+        return response()->json([
+            'total_orders' => $totalOrders,
+            'total_spent' => (float) $totalSpent,
+            'average_order_value' => round($avgOrderValue, 2),
+            'first_order_date' => $firstOrder?->created_at,
+            'last_order_date' => $lastOrder?->created_at,
+        ]);
+    }
+
+    // GET /admin/orders/{id}/activity  — used in OrderDetail
+    public function getOrderActivity(string $id): JsonResponse
+    {
+        $logs = OrderActivityLog::where('order_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($logs);
+    }
+
+    // GET /admin/orders/activity  — used in activity logs page
+    public function getAllOrderActivity(Request $request): JsonResponse
+    {
+        $query = OrderActivityLog::with('order:id,order_number')
+            ->orderByDesc('created_at');
+
+        if ($request->filled('order_id'))  $query->where('order_id', $request->order_id);
+        if ($request->filled('severity'))  $query->where('severity', $request->severity);
+        if ($request->filled('action'))    $query->where('action', 'like', "%{$request->action}%");
+        if ($request->filled('performed_by')) $query->where('performed_by', 'like', "%{$request->performed_by}%");
+
+        return response()->json(
+            $query->paginate($request->integer('per_page', 50))
+        );
+    }
 
     // ========================================
     // SHARED ORDER ITEM CREATION

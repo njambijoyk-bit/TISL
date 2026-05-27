@@ -1,7 +1,7 @@
 /* Import Additional Style Modules */
-@import './styles/layout.css';
-@import './styles/typography.css';
-@import './styles/effects.css';
+@import "./styles/layout.css";
+@import "./styles/typography.css";
+@import "./styles/effects.css";
 
 @tailwind base;
 @tailwind components;
@@ -19,60 +19,60 @@
   --color-primary-200: #e9d5ff;
   --color-primary-300: #d8b4fe;
   --color-primary-400: #c084fc;
-  --color-primary-500: #a855f7;  /* Main Purple */
+  --color-primary-500: #a855f7; /* Main Purple */
   --color-primary-600: #9333ea;
   --color-primary-700: #7e22ce;
   --color-primary-800: #6b21a8;
   --color-primary-900: #581c87;
-  
+
   /* Secondary Brand Colors - Red */
   --color-secondary-50: #fef2f2;
   --color-secondary-100: #fee2e2;
   --color-secondary-200: #fecaca;
   --color-secondary-300: #fca5a5;
   --color-secondary-400: #ef4444;
-  --color-secondary-500: #f87171;  /* Main Red */
+  --color-secondary-500: #f87171; /* Main Red */
   --color-secondary-600: #dc2626;
   --color-secondary-700: #b91c1c;
   --color-secondary-800: #991b1b;
   --color-secondary-900: #7f1d1d;
-  
+
   /* Accent Brand Colors - Blue */
   --color-accent-50: #eff6ff;
   --color-accent-100: #dbeafe;
   --color-accent-200: #bfdbfe;
   --color-accent-300: #93c5fd;
   --color-accent-400: #60a5fa;
-  --color-accent-500: #3b82f6;  /* Main Blue */
+  --color-accent-500: #3b82f6; /* Main Blue */
   --color-accent-600: #2563eb;
   --color-accent-700: #1d4ed8;
   --color-accent-800: #1e40af;
   --color-accent-900: #1e3a8a;
 
-   /* Success Brand Colors - Green */
-  --color-success-50:  #ecfdf5;
+  /* Success Brand Colors - Green */
+  --color-success-50: #ecfdf5;
   --color-success-100: #d1fae5;
   --color-success-200: #a7f3d0;
   --color-success-300: #6ee7b7;
   --color-success-400: #34d399;
-  --color-success-500: #10b981;  /* Main Green */
+  --color-success-500: #10b981; /* Main Green */
   --color-success-600: #059669;
   --color-success-700: #047857;
   --color-success-800: #065f46;
   --color-success-900: #064e3b;
 
   /* Warning Brand Colors - Orange */
-  --color-warning-50:  #fff7ed;
+  --color-warning-50: #fff7ed;
   --color-warning-100: #ffedd5;
   --color-warning-200: #fed7aa;
   --color-warning-300: #fdba74;
   --color-warning-400: #fb923c;
-  --color-warning-500: #f97316;  /* Main Orange */
+  --color-warning-500: #f97316; /* Main Orange */
   --color-warning-600: #ea580c;
   --color-warning-700: #c2410c;
   --color-warning-800: #9a3412;
   --color-warning-900: #7c2d12;
-  
+
   /* Grey Scale */
   --color-grey-50: #f9fafb;
   --color-grey-100: #f3f4f6;
@@ -84,51 +84,53 @@
   --color-grey-700: #374151;
   --color-grey-800: #1f2937;
   --color-grey-900: #111827;
-  
+
   /* Semantic Colors */
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
-  
+
   /* Background Colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
-  
+
   /* Text Colors */
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-tertiary: #9ca3af;
   --text-inverse: #ffffff;
-  
+
   /* Border Colors */
   --border-light: #e5e7eb;
   --border-medium: #4576c0;
   --border-dark: #9ca3af;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
   /* Toast Colors */
   --toast-bg: #ffffff;
   --toast-color: #111827;
-  
+
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -136,11 +138,13 @@
   --radius-xl: 0.75rem;
   --radius-2xl: 1rem;
   --radius-full: 9999px;
-  
+
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
+  --font-sans:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
   /* Z-index layers */
   --z-dropdown: 1000;
   --z-sticky: 1020;
@@ -156,24 +160,26 @@
   --bg-primary: #111827;
   --bg-secondary: #1f2937;
   --bg-tertiary: #374151;
-  
+
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
   --text-tertiary: #9ca3af;
   --text-inverse: #111827;
-  
+
   --border-light: #374151;
   --border-medium: #4b5563;
   --border-dark: #6b7280;
-  
+
   --toast-bg: #1f2937;
   --toast-color: #f9fafb;
-  
+
   /* Adjust shadows for dark mode */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
 }
 
 /* ============================================
@@ -197,14 +203,21 @@ body {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   line-height: 1.6;
-  transition: background-color var(--transition-base), color var(--transition-base);
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
 }
 
 /* ============================================
    TYPOGRAPHY
    ============================================ */
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-primary);
@@ -255,28 +268,44 @@ a:hover {
    ============================================ */
 
 .gradient-primary {
-  background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-600) 100%
+  );
 }
 
 .gradient-secondary {
-  background: linear-gradient(135deg, var(--color-secondary-500) 0%, var(--color-secondary-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-secondary-500) 0%,
+    var(--color-secondary-600) 100%
+  );
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-accent-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-500) 0%,
+    var(--color-accent-600) 100%
+  );
 }
 
 .gradient-brand {
-  background: linear-gradient(135deg, 
-    var(--color-primary-500) 0%, 
-    var(--color-accent-500) 50%, 
-    var(--color-secondary-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-accent-500) 50%,
+    var(--color-secondary-500) 100%
+  );
 }
 
 .gradient-brand-vertical {
-  background: linear-gradient(180deg, 
-    var(--color-primary-500) 0%, 
-    var(--color-accent-500) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--color-primary-500) 0%,
+    var(--color-accent-500) 100%
+  );
 }
 
 /* ============================================
@@ -624,8 +653,12 @@ a:hover {
    ============================================ */
 @layer utilities {
   @keyframes brand-marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
   }
 
   .animate-brand-marquee {
@@ -750,13 +783,18 @@ a:hover {
   h1 {
     font-size: 2rem;
   }
-  
+
   h2 {
     font-size: 1.75rem;
   }
-  
+
   h3 {
     font-size: 1.5rem;
+  }
+}
+@media (display-mode: standalone) {
+  body {
+    padding-bottom: 56px;
   }
 }
 
@@ -769,15 +807,15 @@ a:hover {
     background: white;
     color: black;
   }
-  
+
   .no-print {
     display: none !important;
   }
-  
+
   a {
     text-decoration: underline;
   }
-  
+
   .card {
     border: 1px solid #ddd;
     box-shadow: none;

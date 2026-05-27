@@ -53,6 +53,10 @@ const AdminBookingDetail = () => {
   const [cancelReason,  setCancelReason]  = useState('');
   const [showCancelForm, setShowCancelForm] = useState(false);
 
+  const staffAPI = useMemo(() => ({
+    searchStaff: (params) => usersAPI.getUsers(params)
+  }), []);
+  
   const fetchBooking = async () => {
     try {
       setLoading(true);
@@ -124,9 +128,6 @@ const AdminBookingDetail = () => {
       </div>
     </AdminLayout>
   );
-  const staffAPI = useMemo(() => ({
-    searchStaff: (params) => usersAPI.getUsers(params)
-  }), []);
 
   if (!booking) return null;
 

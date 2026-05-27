@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Laravel\Socialite\Facades\Socialite;
+use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 
 class OAuthController extends Controller
 {
+    use LogsPolicyAcceptances;
     /**
      * Redirect to OAuth provider
      */
@@ -164,6 +166,22 @@ class OAuthController extends Controller
 
             // Generate token using Laravel Sanctum
             $token = $user->createToken('auth_token')->plainTextToken;
+            // Auto-accept policies for OAuth users — no checkbox needed
+            if ($user->customer) {
+                $customer = $user->customer;
+                foreach (['terms_of_use', 'privacy_policy', 'website_policy'] as $key) {
+                    if ($this->needsReacceptance($customer, $key)) {
+                        $this->logPolicyAcceptance(
+                            policyKey:     $key,
+                            actionContext: 'login',
+                            response:      'accepted',
+                            customer:      $customer,
+                            user:          $user,
+                            wasSuccessful: true,
+                        );
+                    }
+                }
+            }
             
             Log::info('Token generated successfully');
 

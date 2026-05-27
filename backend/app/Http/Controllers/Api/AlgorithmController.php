@@ -270,4 +270,149 @@ class AlgorithmController extends Controller
             'scored_at'      => now(),
         ]);
     }
+
+    // ── GET /admin/algorithm/catalogue-boosts ────────────────────────────────
+    // Paginated product OR service list with their boost row joined (if any)
+    public function getCatalogueBoosts(Request $request): JsonResponse
+    {
+        $type    = $request->input('entity_type', 'product'); // 'product' | 'service'
+        $search  = $request->input('search', '');
+        $perPage = min((int) $request->input('per_page', 50), 200);
+
+        if ($type === 'service') {
+            $query = DB::table('services')
+                ->leftJoin('algorithm_bonus_content as b', function ($j) {
+                    $j->on('b.entity_id', '=', 'services.id')
+                    ->where('b.entity_type', '=', 'service');
+                })
+                ->whereNull('services.deleted_at')
+                ->select([
+                    'services.id',
+                    'services.name',
+                    'services.status',
+                    DB::raw("'service' as entity_type"),
+                    'services.main_image',
+                    DB::raw('NULL as category_name'),
+                    'b.id as boost_id',
+                    'b.message as boost_message',
+                    'b.badge_type',
+                    'b.is_active as boost_active',
+                ]);
+
+            if ($search) {
+                $query->where('services.name', 'like', "%{$search}%");
+            }
+
+            if ($request->filled('category_id')) {
+                $query->where('services.category_id', $request->category_id);
+            }
+        } else {
+            $query = DB::table('products')
+                ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+                ->leftJoin('algorithm_bonus_content as b', function ($j) {
+                    $j->on('b.entity_id', '=', 'products.id')
+                    ->where('b.entity_type', '=', 'product');
+                })
+                ->whereNull('products.deleted_at')
+                ->select([
+                    'products.id',
+                    'products.name',
+                    'products.status',
+                    DB::raw("'product' as entity_type"),
+                    'products.main_image',
+                    'categories.name as category_name',
+                    'b.id as boost_id',
+                    'b.message as boost_message',
+                    'b.badge_type',
+                    'b.is_active as boost_active',
+                ]);
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('products.name', 'like', "%{$search}%")
+                    ->orWhere('products.sku', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->filled('category_id')) {
+                $query->where('products.category_id', $request->category_id);
+            }
+        }
+
+        // Rows with an active boost bubble to top
+        $query->orderByRaw('b.id IS NULL ASC')
+            ->orderBy('name', 'asc');
+
+        $paginated = $query->paginate($perPage);
+
+        // Mirror what the Product/Service model asset() accessor does
+        $paginated->getCollection()->transform(function ($item) {
+            if ($item->main_image && !str_starts_with($item->main_image, 'http')) {
+                $item->main_image = asset($item->main_image);
+            }
+            return $item;
+        });
+        return response()->json($paginated); 
+    }
+
+    // ── PUT /admin/algorithm/catalogue-boosts/{entityType}/{entityId} ─────────
+    // Upsert — creates or updates the boost row for this entity
+    public function upsertCatalogueBoost(Request $request, string $entityType, int $entityId): JsonResponse
+    {
+        if (!in_array($entityType, ['product', 'service'])) {
+            return response()->json(['message' => 'Invalid entity type.'], 422);
+        }
+
+        $data = $request->validate([
+            'message'    => 'required|string|max:500',
+            'badge_type' => 'required|in:promo,social_proof,bundle,urgency,tip',
+            'is_active'  => 'required|boolean',
+        ]);
+
+        $actorId = $request->user()->id;
+        $now     = now();
+
+        $existing = DB::table('algorithm_bonus_content')
+            ->where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->first();
+
+        if ($existing) {
+            DB::table('algorithm_bonus_content')
+                ->where('id', $existing->id)
+                ->update([
+                    'message'    => $data['message'],
+                    'badge_type' => $data['badge_type'],
+                    'is_active'  => $data['is_active'],
+                    'updated_by' => $actorId,
+                    'updated_at' => $now,
+                ]);
+            $id = $existing->id;
+        } else {
+            $id = DB::table('algorithm_bonus_content')->insertGetId([
+                'entity_type' => $entityType,
+                'entity_id'   => $entityId,
+                'message'     => $data['message'],
+                'badge_type'  => $data['badge_type'],
+                'is_active'   => $data['is_active'],
+                'created_by'  => $actorId,
+                'updated_by'  => $actorId,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ]);
+        }
+
+        return response()->json(['message' => 'Boost saved.', 'boost_id' => $id]);
+    }
+
+    // ── DELETE /admin/algorithm/catalogue-boosts/{entityType}/{entityId} ──────
+    public function deleteCatalogueBoost(string $entityType, int $entityId): JsonResponse
+    {
+        DB::table('algorithm_bonus_content')
+            ->where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->delete();
+
+        return response()->json(['message' => 'Boost removed.']);
+    }
 }
