@@ -49,6 +49,55 @@ class AlgorithmService
         Cache::forget('algorithm_segment_rules');
     }
 
+    /**
+     * Run scoring for all active customers and persist to DB.
+     */
+    public function runFullScoring(?int $adminId = null): array
+    {
+        $start = microtime(true);
+        $count = 0;
+        $failed = 0;
+
+        Customer::whereNull('deleted_at')->chunk(100, function ($customers) use (&$count, &$failed, $adminId) {
+            foreach ($customers as $customer) {
+                try {
+                    $score = $this->scoreCustomer($customer);
+                    $this->saveScore($customer, $score, $adminId);
+                    $count++;
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Algorithm: Failed to score customer {$customer->id}: " . $e->getMessage());
+                    $failed++;
+                }
+            }
+        });
+
+        return [
+            'scored' => $count,
+            'failed' => $failed,
+            'duration_s' => round(microtime(true) - $start, 2)
+        ];
+    }
+
+    protected function saveScore(Customer $customer, array $score, ?int $adminId = null): void
+    {
+        DB::table('customer_algorithm_scores')->updateOrInsert(
+            ['customer_id' => $customer->id],
+            [
+                'total_score'    => $score['total_score'],
+                'recency_raw'    => $score['raw']['recency']    ?? 0,
+                'frequency_raw'  => $score['raw']['frequency']  ?? 0,
+                'monetary_raw'   => $score['raw']['monetary']   ?? 0,
+                'loyalty_raw'    => $score['raw']['loyalty']    ?? 0,
+                'engagement_raw' => $score['raw']['engagement'] ?? 0,
+                'service_raw'    => $score['raw']['service']    ?? 0,
+                'referral_raw'   => $score['raw']['referral']   ?? 0,
+                'weighted_json'  => json_encode($score['weighted']),
+                'scored_by'      => $adminId,
+                'scored_at'      => now(),
+            ]
+        );
+    }
+
     // =========================================================
     // CONFIG LOADING
     // =========================================================

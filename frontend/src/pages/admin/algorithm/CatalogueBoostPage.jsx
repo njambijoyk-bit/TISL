@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../../store';
@@ -422,6 +423,18 @@ export default function CatalogueBoostPage() {
         {/* ── Page header ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
+            <Link
+              to="/admin/algorithm"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: '0.82rem', fontWeight: 600, color: '#a855f7',
+                textDecoration: 'none', marginBottom: 12, transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 0.8}
+              onMouseLeave={e => e.currentTarget.style.opacity = 1}
+            >
+              <ChevronLeft size={16} /> Back to Algorithm
+            </Link>
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--text-primary,#111)' }}>
               Catalogue Boosts
             </h1>

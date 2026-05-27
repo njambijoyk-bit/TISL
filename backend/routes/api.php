@@ -1079,6 +1079,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/catalogue-boosts',                              [AlgorithmController::class, 'getCatalogueBoosts']);
             Route::put('/catalogue-boosts/{entityType}/{entityId}',      [AlgorithmController::class, 'upsertCatalogueBoost']);
             Route::delete('/catalogue-boosts/{entityType}/{entityId}',   [AlgorithmController::class, 'deleteCatalogueBoost']);
+
+            // ── Customer ranked products & pins ─────────────────────────────────────
+            Route::get('/customers/{customerId}/ranked-products',                          [AlgorithmController::class, 'getCustomerRankedProducts']);
+            Route::post('/customers/{customerId}/pins',                                    [AlgorithmController::class, 'pinProduct']);
+            Route::delete('/customers/{customerId}/pins/{entityType}/{entityId}',          [AlgorithmController::class, 'unpinProduct']);
         });
 
     // ============================================

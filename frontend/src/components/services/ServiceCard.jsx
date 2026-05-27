@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Badge from '../common/Badge';
 import useQuoteListStore from '../../store/quoteListStore';
 
