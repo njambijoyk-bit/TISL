@@ -22,3 +22,10 @@ vendor/
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.env
+.env.*
+backend/env
+frontend/.env
+*.log
+.DS_Store
+Thumbs.db
