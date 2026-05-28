@@ -31,7 +31,7 @@ class CatalogueRankingService
      */
     public function getOrderExpression(string $entityType): array
     {
-        $segment = $this->resolveSegment();
+        ['segment' => $segment, 'customer_id' => $customerId] = $this->resolveSegmentAndCustomer();
         $weights = $this->catalogueWeights[$segment] ?? $this->catalogueWeights['default'];
 
         [$expr, $bindings] = $entityType === 'service'
@@ -39,10 +39,11 @@ class CatalogueRankingService
             : $this->buildProductExpression($weights);
 
         return [
-            'expression'   => $expr,
+            'expression'   => $expr,      // score expression only — no DESC, caller owns ORDER BY
             'bindings'     => $bindings,
             'segment'      => $segment,
             'personalized' => $segment !== 'default',
+            'customer_id'  => $customerId, // null for guests/admins — skip pin join when null
         ];
     }
 
@@ -59,31 +60,35 @@ class CatalogueRankingService
     // =========================================================
 
     /**
-     * Identify the authenticated customer's segment.
+     * Identify the authenticated customer's segment AND return their customer ID.
      * Falls back gracefully at every step — never throws.
+     *
+     * @return array{segment: string, customer_id: int|null}
      */
-    protected function resolveSegment(): string
+    protected function resolveSegmentAndCustomer(): array
     {
+        $nil = ['segment' => 'default', 'customer_id' => null];
+
         // Manually resolve Bearer token — works on public routes with no auth middleware
         $bearerToken = request()->bearerToken();
-        if (!$bearerToken) return 'default';
+        if (!$bearerToken) return $nil;
 
         $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
-        if (!$tokenModel) return 'default';
+        if (!$tokenModel) return $nil;
 
         $user = $tokenModel->tokenable;
-        if (!$user) return 'default';
+        if (!$user) return $nil;
 
-        // Admins / staff / vendors get default (no personalisation)
+        // Admins / staff / vendors get default (no personalisation, no pins)
         $excluded = ['admin', 'super_admin', 'staff', 'finance', 'vendor'];
-        if (in_array($user->role, $excluded)) return 'default';
+        if (in_array($user->role, $excluded)) return $nil;
 
         // Resolve customer record
         $customer = Customer::where('user_id', $user->id)
             ->select(['id', 'total_orders'])
             ->first();
 
-        if (!$customer) return 'default';
+        if (!$customer) return $nil;
 
         // Pull latest computed score
         $score = DB::table('customer_algorithm_scores')
@@ -93,18 +98,20 @@ class CatalogueRankingService
             ->first();
 
         if (!$score) {
-            return ((int) ($customer->total_orders ?? 0)) === 0 ? 'new' : 'default';
+            $segment = ((int) ($customer->total_orders ?? 0)) === 0 ? 'new' : 'default';
+            return ['segment' => $segment, 'customer_id' => $customer->id];
         }
 
         $s       = (float) $score->total_score;
         $recency = (int)   ($score->recency_raw ?? 100);
 
-        if ($s >= 68)      return 'champion';
-        if ($s >= 48)      return 'loyal';
-        if ($recency < 20) return 'at_risk';
-        if ($s < 25)       return 'dormant';
+        if ($s >= 68)      $segment = 'champion';
+        elseif ($s >= 48)  $segment = 'loyal';
+        elseif ($recency < 20) $segment = 'at_risk';
+        elseif ($s < 25)   $segment = 'dormant';
+        else               $segment = 'loyal';
 
-        return 'loyal';
+        return ['segment' => $segment, 'customer_id' => $customer->id];
     }
 
     // =========================================================
@@ -129,7 +136,7 @@ class CatalogueRankingService
                   AND entity_id   = products.id
                   AND is_active   = 1
             ) * ?
-        ) DESC";
+        )";
 
         $bindings = [
             (int) ($w['featured'] ?? 15),
@@ -159,7 +166,7 @@ class CatalogueRankingService
                   AND entity_id   = services.id
                   AND is_active   = 1
             ) * ?
-        ) DESC";
+        )";
 
         // Services pool new + sale weights into featured and rating
         $bindings = [

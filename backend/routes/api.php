@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\ProjectTaskController;
 use App\Http\Controllers\Api\ProjectMilestoneController;
 use App\Http\Controllers\Api\ProjectMessageController;
 use App\Http\Controllers\Api\ProjectActivityController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\PromoCodeController;
@@ -48,6 +49,7 @@ use App\Http\Controllers\Api\ReviewEligibilityController;
 use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
 use App\Http\Controllers\Api\AlgorithmController;
+use App\Http\Controllers\Api\CustomerPinController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\PublicationCommentController;
 use App\Http\Controllers\Api\BookingController;
@@ -951,6 +953,114 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
         });
     });
+
+    
+    // ============================================
+    // INVENTORY — ADMIN / MANAGER
+    // ============================================
+    Route::middleware('role:admin,super_admin,manager')
+        ->prefix('admin/inventory')
+        ->group(function () {
+
+            // ── Catalogue ────────────────────────────────────────────────────
+            Route::prefix('categories')->group(function () {
+                Route::get('/',        [InventoryController::class, 'categoriesIndex']);
+                Route::post('/',       [InventoryController::class, 'categoriesStore']);
+                Route::put('/{id}',    [InventoryController::class, 'categoriesUpdate']);
+                Route::delete('/{id}', [InventoryController::class, 'categoriesDestroy']);
+            });
+
+            Route::prefix('locations')->group(function () {
+                Route::get('/',        [InventoryController::class, 'locationsIndex']);
+                Route::post('/',       [InventoryController::class, 'locationsStore']);
+                Route::put('/{id}',    [InventoryController::class, 'locationsUpdate']);
+                Route::delete('/{id}', [InventoryController::class, 'locationsDestroy']);
+            });
+
+            Route::prefix('items')->group(function () {
+                Route::get('/',        [InventoryController::class, 'itemsIndex']);
+                Route::post('/',       [InventoryController::class, 'itemsStore']);
+                Route::get('/{id}',    [InventoryController::class, 'itemsShow']);
+                Route::put('/{id}',    [InventoryController::class, 'itemsUpdate']);
+                Route::delete('/{id}', [InventoryController::class, 'itemsDestroy']);
+            });
+
+            // ── Instances ────────────────────────────────────────────────────
+            Route::prefix('instances')->group(function () {
+                Route::get('/',                          [InventoryController::class, 'instancesIndex']);
+                Route::post('/',                         [InventoryController::class, 'instancesStore']);
+                Route::get('/{id}',                      [InventoryController::class, 'instancesShow']);
+                Route::put('/{id}',                      [InventoryController::class, 'instancesUpdate']);
+                Route::delete('/{id}',                   [InventoryController::class, 'instancesDestroy']);
+                Route::get('/{id}/ledger',               [InventoryController::class, 'instancesLedger']);
+                Route::get('/{id}/location-history',     [InventoryController::class, 'instancesLocationHistory']);
+                Route::post('/{id}/move',                [InventoryController::class, 'instancesMove']);
+                Route::post('/{id}/declare-obsolete',    [InventoryController::class, 'instancesDeclareObsolete']);
+                Route::post('/{id}/write-off',           [InventoryController::class, 'instancesWriteOff']);
+                Route::post('/{id}/dispose',             [InventoryController::class, 'instancesDispose']);
+            });
+
+            // ── Assignments ──────────────────────────────────────────────────
+            Route::prefix('assignments')->group(function () {
+                Route::get('/',                  [InventoryController::class, 'assignmentsIndex']);
+                Route::get('/{id}',              [InventoryController::class, 'assignmentsShow']);
+                Route::post('/issue',            [InventoryController::class, 'assignmentsIssue']);
+                Route::post('/loan',             [InventoryController::class, 'assignmentsLoan']);
+                Route::post('/department',       [InventoryController::class, 'assignmentsDepartment']);
+                Route::post('/group',            [InventoryController::class, 'assignmentsGroup']);
+                Route::post('/{id}/return',      [InventoryController::class, 'assignmentsReturn']);
+                Route::post('/mark-overdue',     [InventoryController::class, 'assignmentsMarkOverdue']);
+            });
+
+            // ── Groups ───────────────────────────────────────────────────────
+            Route::prefix('groups')->group(function () {
+                Route::get('/',                           [InventoryController::class, 'groupsIndex']);
+                Route::post('/',                          [InventoryController::class, 'groupsStore']);
+                Route::put('/{id}',                       [InventoryController::class, 'groupsUpdate']);
+                Route::delete('/{id}',                    [InventoryController::class, 'groupsDestroy']);
+                Route::post('/{id}/members',              [InventoryController::class, 'groupsAddMember']);
+                Route::delete('/{id}/members/{memberId}', [InventoryController::class, 'groupsRemoveMember']);
+            });
+
+            // ── Repairs ──────────────────────────────────────────────────────
+            Route::prefix('repairs')->group(function () {
+                Route::get('/',               [InventoryController::class, 'repairsIndex']);
+                Route::post('/',              [InventoryController::class, 'repairsReport']);
+                Route::get('/{id}',           [InventoryController::class, 'repairsShow']);
+                Route::post('/{id}/send',     [InventoryController::class, 'repairsSend']);
+                Route::post('/{id}/complete', [InventoryController::class, 'repairsComplete']);
+                Route::post('/{id}/unrepairable', [InventoryController::class, 'repairsUnrepairable']);
+            });
+
+            // ── Disputes ─────────────────────────────────────────────────────
+            Route::prefix('disputes')->group(function () {
+                Route::get('/',           [InventoryController::class, 'disputesIndex']);
+                Route::post('/',          [InventoryController::class, 'disputesOpen']);
+                Route::get('/{id}',       [InventoryController::class, 'disputesShow']);
+                Route::post('/{id}/rule', [InventoryController::class, 'disputesRule']);
+            });
+
+            // ── Return Audits ────────────────────────────────────────────────
+            Route::prefix('audits')->group(function () {
+                Route::get('/',                              [InventoryController::class, 'auditsIndex']);
+                Route::post('/',                             [InventoryController::class, 'auditsCreate']);
+                Route::get('/{id}',                          [InventoryController::class, 'auditsShow']);
+                Route::post('/{id}/finalise',                [InventoryController::class, 'auditsFinalise']);
+                Route::put('/{auditId}/items/{itemId}',      [InventoryController::class, 'auditsRecordItem']);
+            });
+
+            // ── Lifecycle Ledger ─────────────────────────────────────────────
+            Route::get('/ledger', [InventoryController::class, 'ledgerIndex']);
+
+            // ── Export ───────────────────────────────────────────────────────
+            Route::prefix('export')->group(function () {
+                Route::post('/run',          [InventoryController::class, 'exportRun']);
+                Route::get('/logs',          [InventoryController::class, 'exportLogs']);
+                Route::get('/presets',       [InventoryController::class, 'exportPresetsIndex']);
+                Route::post('/presets',      [InventoryController::class, 'exportPresetsSave']);
+                Route::delete('/presets/{id}', [InventoryController::class, 'exportPresetsDestroy']);
+            });
+        });
 
     // ============================================
     // SUPER ADMIN & ADMIN ONLY ROUTES

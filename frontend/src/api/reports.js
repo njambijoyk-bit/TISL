@@ -68,6 +68,18 @@ const reportsAPI = {
     return data;
   },
 
+  /** GET /admin/reports/system?period=30d */
+  getSystem: async (params = {}) => {
+    const { data } = await api.get('/admin/reports/system', { params });
+    return data;
+  },
+
+  /** GET /admin/reports/extras?period=30d */
+  getExtras: async (params = {}) => {
+    const { data } = await api.get('/admin/reports/extras', { params });
+    return data;
+  },
+
   /** GET /admin/reports/summary?period=30d */
   getSummary: async (params = {}) => {
     const { data } = await api.get('/admin/reports/summary', { params });

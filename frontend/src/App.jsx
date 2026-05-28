@@ -150,6 +150,7 @@ const AdminHamperEdit      = lazy(() => import('./pages/admin/hampers/AdminHampe
 const AdminHamperCreate    = lazy(() => import('./pages/admin/hampers/AdminHamperCreate'));
 const AdminHamperOrderDetail = lazy(() => import('./pages/admin/hampers/AdminHamperOrderDetail'));
 const CustomerAlgorithmPanel = lazy(() => import('./pages/admin/CustomerAlgorithmPanel'));
+const InventoryPage          = lazy(() => import('./pages/admin/InventoryPage'));
 const CatalogueBoostPage     = lazy(() => import('./pages/admin/algorithm/CatalogueBoostPage'));
 
 const AdminBookings        = lazy(() => import('./pages/admin/AdminBookings'));
@@ -1043,7 +1044,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            <Route
+              path="/admin/inventory"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <InventoryPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin/algorithm"
               element={

@@ -5,8 +5,9 @@ import {
   ArrowDownRight, Minus, ChevronRight, Clock, Target,
   DollarSign, Activity, AlertCircle, CheckCircle, XCircle,
   Layers, ArrowRight, Package, Award, Wrench, Tag,
-  Ticket, Star, BarChart, PieChart, Hash, Zap,
+  Ticket, Star, BarChart, PieChart, Hash, Zap, Settings,
   TrendingDown, UserPlus, ShieldCheck, Gift, Info,
+  SlidersHorizontal, Layout
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import reportsAPI from '../../api/reports';
@@ -1693,6 +1694,8 @@ const SECTION_TITLES = {
   customers: 'Customers Report',
   tickets:   'Support Tickets',
   promos:    'Promos & Referrals',
+  system:    'System Configuration',
+  extras:    'Extras & Add-ons',
 };
 
 // ── Blank 24-hour login dist (used as fallback) ────────────────────────────
@@ -1723,6 +1726,8 @@ export default function Reports() {
   const [customers,    setCustomers]    = useState(null);
   const [tickets,      setTickets]      = useState(null);
   const [promos,       setPromos]       = useState(null);
+  const [system,        setSystem]       = useState(null);
+  const [extras,        setExtras]       = useState(null);
 
   const buildParams = useCallback(() => {
     const p = { period };
@@ -1737,6 +1742,7 @@ export default function Reports() {
       const [
         revRes, ordRes, prodRes, brandRes, svcRes,
         funnelRes, projRes, custRes, tickRes, promoRes,
+        sysRes, extRes
       ] = await Promise.allSettled([
         reportsAPI.getRevenue(p),
         reportsAPI.getOrders(p),
@@ -1748,6 +1754,8 @@ export default function Reports() {
         reportsAPI.getCustomers(p),
         reportsAPI.getTickets(p),
         reportsAPI.getPromos(p),
+        reportsAPI.getSystem(p),
+        reportsAPI.getExtras(p),
       ]);
 
       const getVal = (res) => res.status === 'fulfilled' ? res.value : null;
@@ -1762,6 +1770,8 @@ export default function Reports() {
       let cust = getVal(custRes);
       let tick = getVal(tickRes);
       let prmo = getVal(promoRes);
+      let sys  = getVal(sysRes);
+      let ext  = getVal(extRes);
 
       // Fallbacks if new report endpoints aren't deployed yet
       if (!rev || !ord) {
@@ -1821,7 +1831,7 @@ export default function Reports() {
 
       setRevenue(rev); setOrders(ord); setProducts(prod); setBrands(brd);
       setServices(svc); setFunnel(fun); setProjects(proj); setCustomers(cust);
-      setTickets(tick); setPromos(prmo);
+      setTickets(tick); setPromos(prmo); setSystem(sys); setExtras(ext);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load some report data');
@@ -1847,8 +1857,8 @@ export default function Reports() {
     setExporting(activeTab);
     try {
       const sectionData = {
-        revenue, orders, products, brands, services,
-        funnel, projects, customers, tickets, promos,
+        revenue, orders, products, brands, services, funnel,
+        projects, customers, tickets, promos, system, extras
       }[activeTab];
       await downloadSectionPDF(activeTab, sectionData, period);
     } catch (e) {
@@ -1862,7 +1872,7 @@ export default function Reports() {
   const handleExportAll = async () => {
     setExporting('all');
     try {
-      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos }, period);
+      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos, system, extras }, period);
     } catch (e) {
       toast.error('PDF export failed');
     } finally {
@@ -1882,6 +1892,8 @@ export default function Reports() {
     { id: 'customers', label: 'Customers',  Icon: Users        },
     { id: 'tickets',   label: 'Tickets',    Icon: Ticket       },
     { id: 'promos',    label: 'Promos',     Icon: Tag          },
+    { id: 'system',    label: 'System',     Icon: Settings     },
+    { id: 'extras',    label: 'Extras',     Icon: Layout       },
   ];
 
   const Skeleton = ({ h = 180 }) => (
@@ -2872,6 +2884,94 @@ export default function Reports() {
                     </div>
                   </div>
                 </Panel>
+
+      {/* ══════════════ SYSTEM TAB ══════════════════════════════════════════ */}
+      {activeTab === 'system' && (
+        <div className="report-section">
+          <SectionLabel Icon={Settings}>System Configuration & Ledgers</SectionLabel>
+          {loading || !system ? <Skeleton h={400} /> : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Panel accent>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Loyalty Ledger Summary</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                  <div style={{ padding: 14, borderRadius: 10, background: purpleLt }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: purple }}>{fmtNum(system.ledger.active_points)}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Current Active Points</div>
+                  </div>
+                  <div style={{ padding: 14, borderRadius: 10, background: '#f0fdf4' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: '#059669' }}>{fmtNum(system.ledger.points_earned)}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Earned in Period</div>
+                  </div>
+                </div>
+                <MetricRow label="Redemption Events" value={system.ledger.redemption_count} Icon={Gift} color={purple} />
+                <MetricRow label="Points Redeemed" value={fmtNum(system.ledger.points_redeemed)} Icon={TrendingDown} color="#ef4444" />
+                <MetricRow label="Expired Points" value={fmtNum(system.ledger.expiry_count)} Icon={Clock} color="#9ca3af" />
+              </Panel>
+
+              <Panel>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Shipping Methods Usage</div>
+                {(system.shipping_options || []).map(opt => (
+                  <StatusRow key={opt.slug} label={opt.name} value={opt.is_active ? 1 : 0} color={purple} total={1} />
+                ))}
+                <div style={{ marginTop: 20, fontSize: 12, color: '#9ca3af' }}>
+                  Reports on defined tiers and shipping logic configurations.
+                </div>
+              </Panel>
+
+              <Panel style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Customer Tier Distribution</div>
+                <RankedTable
+                  rows={system.tiers}
+                  columns={[
+                    { label: 'Tier Name', key: 'name', render: r => <Pill color={r.color}>{r.name}</Pill> },
+                    { label: 'Discount', key: 'discount_percentage', render: r => fmtPct(r.discount_percentage) },
+                    { label: 'Min Spent', key: 'min_spent', render: r => fmtKES(r.min_spent) },
+                    { label: 'Multiplier', key: 'loyalty_points_multiplier', render: r => `${r.loyalty_points_multiplier}x` },
+                    { label: 'Customers', key: 'customers_count', right: true, bold: true, render: r => fmtNum(r.customers_count) }
+                  ]}
+                />
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════ EXTRAS TAB ══════════════════════════════════════════ */}
+      {activeTab === 'extras' && (
+        <div className="report-section">
+          <SectionLabel Icon={Layout}>Extras: Hampers & Bookings</SectionLabel>
+          {loading || !extras ? <Skeleton h={400} /> : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Panel accent>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Hamper Insights — {periodLabel}</div>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                   <StatCard label="Orders" value={extras.hampers.period_orders} Icon={Package} accent={purple} />
+                   <StatCard label="Revenue" value={fmtKES(extras.hampers.period_revenue)} Icon={DollarSign} accent="#059669" />
+                </div>
+                <SectionLabel Icon={TrendingUp}>Top Hampers</SectionLabel>
+                {(extras.hampers.top_hampers || []).map((h, i) => (
+                  <MetricRow key={i} label={h.name} value={fmtKES(h.revenue)} sub={`${h.count} orders`} Icon={Package} color={purple} />
+                ))}
+              </Panel>
+
+              <Panel>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Booking Volume — {periodLabel}</div>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                   <StatCard label="Service Revenue" value={fmtKES(extras.bookings.service_revenue)} Icon={Wrench} accent="#3b82f6" />
+                   <StatCard label="Placed" value={extras.bookings.period_placed} Icon={Calendar} accent={purple} />
+                </div>
+                <SectionLabel Icon={Activity}>Status Breakdown</SectionLabel>
+                {Object.entries(extras.bookings.status_dist || {}).map(([status, count]) => (
+                  <StatusRow key={status} label={status.replace('_', ' ')} value={count} total={extras.bookings.period_placed} />
+                ))}
+                <div style={{ marginTop: 20, padding: 12, borderRadius: 10, background: '#f9fafb', fontSize: 12, color: '#6b7280' }}>
+                  Tracks upcoming service appointments and hamper subscription performance.
+                </div>
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
 
                 {/* Top referral codes */}
                 {promos.top_by_revenue?.filter(r => r.type === 'customer_referral').length > 0 && (

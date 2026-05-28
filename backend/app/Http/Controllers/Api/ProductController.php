@@ -112,7 +112,19 @@ class ProductController extends Controller
         } else {
             $order = app(\App\Services\CatalogueRankingService::class)
                 ->getOrderExpression('product');
-            $query->orderByRaw($order['expression'], $order['bindings']);
+
+            if ($order['customer_id']) {
+                $query->select('products.*')
+                    ->leftJoin('customer_product_pins as cpp', function ($j) use ($order) {
+                        $j->on('cpp.entity_id', '=', 'products.id')
+                            ->where('cpp.entity_type', '=', 'product')
+                            ->where('cpp.customer_id', '=', $order['customer_id']);
+                    })
+                    ->orderByRaw('(cpp.id IS NOT NULL) DESC')
+                    ->orderByRaw($order['expression'] . ' DESC', $order['bindings']);
+            } else {
+                $query->orderByRaw($order['expression'] . ' DESC', $order['bindings']);
+            }
             $meta = ['personalized' => $order['personalized'], 'segment' => $order['segment']];
         }
 

@@ -31,6 +31,7 @@ export { default as ticketsAPI } from './tickets';
 export { default as bookingsAPI } from './bookings';
 
 export { default as contentAPI } from './content';
+export { default as inventoryAPI } from './inventory';
 export { default as notificationsAPI } from './notifications';
 
 export { publicApi, applicantAuth, portalApi, adminCareersApi } from './careersApi';

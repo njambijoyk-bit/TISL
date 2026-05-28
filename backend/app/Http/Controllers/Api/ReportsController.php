@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Booking;
+use App\Models\BookingOrder;
 use App\Models\Customer;
+use App\Models\CustomerTier;
+use App\Models\CustomerTypeDiscount;
 use App\Models\Currency;
+use App\Models\Hamper;
+use App\Models\LoyaltyPointTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -16,6 +22,7 @@ use App\Models\QuoteRequest;
 use App\Models\ReferralCode;
 use App\Models\ReferralCodeUsage;
 use App\Models\Service;
+use App\Models\ShippingOption;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -74,13 +81,15 @@ class ReportsController extends Controller
         [$start, $end] = $this->periodDates($request);
 
         // All-time total (intentionally unfiltered — headline KPI)
-        $allPaid         = Order::with('items')->where('payment_status', 'paid')->get();
-        $totalRevenueKes = $allPaid->sum(fn ($o) => $this->orderNetKes($o));
+        $totalRevenueKes = Order::where('payment_status', 'paid')
+            ->withSum('items as items_sum_refund_amount', 'refund_amount')
+            ->get(['id', 'total_kes', 'total', 'currency'])
+            ->sum(fn ($o) => $this->orderNetKes($o));
 
         // ✅ Everything below should use the PERIOD, not all-time
-        $periodPaid = Order::with('items')
-            ->where('payment_status', 'paid')
+        $periodPaid = Order::where('payment_status', 'paid')
             ->whereBetween('paid_at', [$start, $end])
+            ->withSum('items as items_sum_refund_amount', 'refund_amount')
             ->get();
 
         $periodRevenueKes = $periodPaid->sum(fn ($o) => $this->orderNetKes($o));
@@ -90,11 +99,10 @@ class ReportsController extends Controller
         $avgKes      = $periodCount > 0 ? $periodRevenueKes / $periodCount : 0;
 
         // ✅ unpaid scoped to period (created_at since unpaid orders have no paid_at)
-        $unpaidKes = Order::with('items')
-            ->where('payment_status', '!=', 'paid')
+        $unpaidKes = Order::where('payment_status', '!=', 'paid')
             ->whereBetween('created_at', [$start, $end])   // ← was missing period filter
-            ->get()
-            ->sum(fn ($o) => $this->orderNetKes($o));
+            ->withSum('items as items_sum_refund_amount', 'refund_amount')
+            ->get(['id', 'total_kes', 'total', 'currency'])->sum(fn ($o) => $this->orderNetKes($o));
 
         // ✅ by_currency scoped to period
         $byCurrency = Order::selectRaw('currency, COUNT(*) as order_count, SUM(total) as total_native, SUM(total_kes) as total_kes')
@@ -211,7 +219,7 @@ class ReportsController extends Controller
 
         // Inventory overview
         $totalProducts  = Product::count();
-        $activeProducts = Product::where('status', 'active')->count();
+        $activeProducts = Product::whereIn('status', ['active', 'published'])->count();
         $inStock        = Product::where('in_stock', true)->count();
         $outOfStock     = Product::where('in_stock', false)->count();
         $lowStock       = Product::where('in_stock', true)->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10)->count();
@@ -365,8 +373,8 @@ class ReportsController extends Controller
         [$start, $end] = $this->periodDates($request);
 
         $totalBrands    = Brand::count();
-        $activeBrands   = Brand::active()->count();
-        $featuredBrands = Brand::featured()->count();
+        $activeBrands   = Brand::where('is_active', true)->count();
+        $featuredBrands = Brand::where('is_featured', true)->count();
 
         // Top brands by revenue (from order items — product items only)
         $topByRevenue = OrderItem::select(
@@ -435,7 +443,7 @@ class ReportsController extends Controller
         [$start, $end] = $this->periodDates($request);
 
         $totalServices    = Service::count();
-        $activeServices   = Service::where('status', 'active')->count();
+        $activeServices   = Service::whereIn('status', ['active', 'published'])->count();
         $featuredServices = Service::where('is_featured', true)->count();
 
         // Top services by revenue (from order items where item_type = 'service')
@@ -1051,22 +1059,22 @@ class ReportsController extends Controller
 
         return response()->json([
             'total_customers'    => $total,
-            'active_customers'   => Customer::active()->count(),
-            'vip_customers'      => Customer::vip()->count(),
-            'with_credit'        => Customer::withCredit()->count(),
+            'active_customers'   => Customer::where('status', 'active')->count(),
+            'vip_customers'      => Customer::whereIn('tier', ['gold', 'platinum', 'diamond'])->count(),
+            'with_credit'        => Customer::where('has_credit_account', true)->count(),
             'new_customers'      => $newCustomers,
             'avg_lifetime_value' => round((float) $avgLTV, 2),
             'by_tier'            => [
-                'bronze'   => Customer::byTier('bronze')->count(),
-                'silver'   => Customer::byTier('silver')->count(),
-                'gold'     => Customer::byTier('gold')->count(),
-                'platinum' => Customer::byTier('platinum')->count(),
+                'bronze'   => Customer::where('tier', 'bronze')->count(),
+                'silver'   => Customer::where('tier', 'silver')->count(),
+                'gold'     => Customer::where('tier', 'gold')->count(),
+                'platinum' => Customer::where('tier', 'platinum')->count(),
             ],
             'by_type'            => [
-                'individual' => Customer::byType('individual')->count(),
-                'business'   => Customer::byType('business')->count(),
-                'wholesale'  => Customer::byType('wholesale')->count(),
-                'contractor' => Customer::byType('contractor')->count(),
+                'individual' => Customer::where('customer_type', 'individual')->count(),
+                'business'   => Customer::where('customer_type', 'business')->count(),
+                'wholesale'  => Customer::where('customer_type', 'wholesale')->count(),
+                'contractor' => Customer::where('customer_type', 'contractor')->count(),
             ],
             'top_by_spend'       => $topBySpend,
             'top_by_orders'      => $topByOrders,
@@ -1076,33 +1084,105 @@ class ReportsController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /admin/reports/summary
+    // GET /admin/reports/system
     // ──────────────────────────────────────────────────────────────────────────
 
-    public function summary(Request $request): JsonResponse
+    public function system(Request $request): JsonResponse
     {
         [$start, $end] = $this->periodDates($request);
 
-        $allPaid         = Order::with('items')->where('payment_status', 'paid')->get();
-        $totalRevenueKes = $allPaid->sum(fn ($o) => $this->orderNetKes($o));
+        $tiers = CustomerTier::query()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($tier) => [
+                'id'                        => $tier->id,
+                'slug'                      => $tier->slug,
+                'name'                      => $tier->name,
+                'description'               => $tier->description,
+                'color'                     => $tier->color,
+                'discount_percentage'       => (float) $tier->discount_percentage,
+                'free_shipping_threshold'   => (float) $tier->free_shipping_threshold,
+                'loyalty_points_multiplier' => (float) $tier->loyalty_points_multiplier,
+                'priority_support'          => (bool) $tier->priority_support,
+                'min_orders'                => (int) $tier->min_orders,
+                'min_spent'                 => (float) $tier->min_spent,
+                'sort_order'                => (int) $tier->sort_order,
+                'is_active'                 => (bool) $tier->is_active,
+                'customers_count'           => (int) $tier->customers()->count(),
+            ])
+            ->values();
+
+        $types = CustomerTypeDiscount::query()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($type) => [
+                'id'                  => $type->id,
+                'slug'                => $type->slug,
+                'name'                => $type->name,
+                'description'         => $type->description,
+                'discount_percentage'  => (float) $type->discount_percentage,
+                'sort_order'          => (int) $type->sort_order,
+                'is_active'           => (bool) $type->is_active,
+                'customers_count'     => (int) $type->customers()->count(),
+            ])
+            ->values();
+
+        $shippingOptions = ShippingOption::query()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($option) => [
+                'id'           => $option->id,
+                'slug'         => $option->slug,
+                'name'         => $option->name,
+                'description'  => $option->description,
+                'icon'         => $option->icon,
+                'cost'         => (float) $option->cost,
+                'free_above'   => (float) $option->free_above,
+                'sort_order'   => (int) $option->sort_order,
+                'is_active'    => (bool) $option->is_active,
+            ])
+            ->values();
+
+        $customerBreakdown = Customer::selectRaw('tier, COUNT(*) as count')
+            ->whereNotNull('tier')
+            ->groupBy('tier')
+            ->pluck('count', 'tier');
+
+        $typeBreakdown = Customer::selectRaw('customer_type, COUNT(*) as count')
+            ->whereNotNull('customer_type')
+            ->groupBy('customer_type')
+            ->pluck('count', 'customer_type');
+
+        $ledgerSummary = LoyaltyPointTransaction::selectRaw(
+            'COUNT(*) as total_transactions,
+             SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as points_earned,
+             SUM(CASE WHEN points < 0 THEN ABS(points) ELSE 0 END) as points_redeemed,
+             SUM(CASE WHEN type = "redemption" THEN 1 ELSE 0 END) as redemption_count,
+             SUM(CASE WHEN type = "expiry" THEN 1 ELSE 0 END) as expiry_count,
+             SUM(CASE WHEN type = "admin_grant" THEN 1 ELSE 0 END) as admin_grants,
+             SUM(CASE WHEN type = "admin_deduct" THEN 1 ELSE 0 END) as admin_deductions,
+             SUM(CASE WHEN expired_at IS NULL AND points > 0 THEN points ELSE 0 END) as active_points'
+        )->first();
+
+        $periodLedger = LoyaltyPointTransaction::whereBetween('created_at', [$start, $end]);
+        $recentRedemptions = (clone $periodLedger)
+            ->where('type', 'redemption')
+            ->count();
+
+        $duePoints = LoyaltyPointTransaction::due()->count();
 
         return response()->json([
-            'total_revenue_kes'   => round($totalRevenueKes, 2),
-            'total_orders'        => Order::count(),
-            'total_quote_requests'=> QuoteRequest::count(),
-            'total_projects'      => Project::count(),
-            'total_customers'     => Customer::count(),
-            'total_products'      => Product::count(),
-            'total_tickets'       => Ticket::count(),
-            'open_tickets'        => Ticket::where('status', 'open')->count(),
-            'active_promo_codes'  => ReferralCode::where('status', 'active')->count(),
-            'pending_orders'      => Order::where('status', 'pending')->count(),
-            'pending_requests'    => QuoteRequest::pending()->count(),
-            'active_projects'     => Project::where('status', 'active')->count(),
-            'overdue_projects'    => Project::whereNotNull('target_end_date')
-                                        ->where('target_end_date', '<', now())
-                                        ->whereNotIn('status', ['completed', 'cancelled'])
-                                        ->count(),
-        ]);
-    }
-}
+            'tiers' => $tiers,
+            'types' => $types,
+            'shipping_options' => $shippingOptions,
+            'customer_breakdown' => [
+                'tiers' => $customerBreakdown,
+                'types' => $typeBreakdown,
+            ],
+            'ledger' => [
+                'total_transactions' => (int) ($ledgerSummary->total_transactions ?? 0),
+                'points_earned'      => (int) ($ledgerSummary->points_earned ?? 0),
+                'points_redeemed'     => (int) ($ledgerSummary->points_redeemed ?? 0),
+                'redemption_count'    => (int) ($ledgerSummary->redemption_count ?? 0),
+                'expiry_count'        => (int) ($ledgerSummary->expiry_count ?? 0),
+                'admin_grants'
