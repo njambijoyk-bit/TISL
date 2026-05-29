@@ -171,6 +171,9 @@ export default function InventoryItemSelectorModal({ onSelect, onClose, filter =
                   </span>
                   <span style={{ fontFamily: mono, fontSize: 10, color: "#666" }}>
                     {[item.brand, item.model, item.category?.name].filter(Boolean).join(" · ")}
+                    {item.is_serialized && (
+                        <span style={{ marginLeft: 6, color: "#FFB300" }}>· serialized</span>
+                    )}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 16 }}>

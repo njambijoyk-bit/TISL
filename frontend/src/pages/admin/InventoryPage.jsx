@@ -575,14 +575,18 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
   const [assigneePicker, setAssigneePicker] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const needsInstance = mode === "loan" || mode === "department" || mode === "group";
+  const [useInstance, setUseInstance] = useState(!!instance || mode === "loan"); 
 
-    const handleSelectItem = (item) => {
-    // issue mode: picking a catalogue item is enough
+  const handleSelectItem = (item) => {
+    if (item.is_serialized) {
+      toast("This item is serialized — please select a specific instance instead", "error");
+      setItemPicker(false);
+      return;
+    }
     set("item_id", item.id);
     set("item_label", item.name);
     setItemPicker(false);
-    };
+  };
 
   const handleSelectAssignee = (person) => {
     if (form.assignee_type === "employee") {
@@ -601,6 +605,19 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
       const instanceId = form.instance_id ? parseInt(form.instance_id, 10) : undefined;
       const itemId = form.item_id ? parseInt(form.item_id, 10) : undefined;
 
+      if (mode === "loan") {
+        if (!form.instance_id) {
+          toast("Loans require a specific instance (serialized item)", "error");
+          setSaving(false);
+          return;
+        }
+        if (!form.expected_return_date) {
+          toast("Loans require an expected return date", "error");
+          setSaving(false);
+          return;
+        }
+      }
+
       if (mode === "department") {
         await inventoryAPI.assignments.department({
           subject_type: instanceId ? "instance" : "item",
@@ -616,7 +633,7 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
           quantity: instanceId ? undefined : form.quantity,
         });
       } else {
-        if (form.assignee_type === "group") {
+        if (form.assignee_type === "group" && mode !== "loan") {
           await inventoryAPI.assignments.group({
             subject_type: instanceId ? "instance" : "item",
             subject_id: instanceId ?? itemId,
@@ -628,7 +645,7 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
           onClose();
           return;
         }
-        if (form.assignee_type === "department") {
+        if (form.assignee_type === "department" && mode !== "loan") {
           await inventoryAPI.assignments.department({
             subject_type: instanceId ? "instance" : "item",
             subject_id: instanceId ?? itemId,
@@ -640,14 +657,11 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
           onClose();
           return;
         }
-
         const payload = {
-          instance_id: instanceId,
-          item_id: itemId,
+          ...(instanceId ? { instance_id: instanceId } : { item_id: itemId, quantity: form.quantity }),
           assignee_type: form.assignee_type,
           assignee_id: form.assignee_id ? parseInt(form.assignee_id, 10) : undefined,
           assignee_label: form.assignee_label,
-          quantity: !instanceId ? form.quantity : undefined,
           issue_notes: form.notes || undefined,
         };
 
@@ -674,40 +688,70 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
     <>
       <Modal title={`// ${mode} item`} onClose={onClose}>
         {!instance && (
-        <Field label={needsInstance ? "Instance (Asset)" : "Item"}>
-            {needsInstance ? (
-            <InstanceSearchDropdown
+        <>
+          {/* Toggle — only show for issue mode, loan always needs instance */}
+          {mode === "issue" && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <ActionBtn
+                small
+                color={C.cyan}
+                outline={!useInstance}
+                onClick={() => {
+                  setUseInstance(true);
+                  set("item_id", ""); set("instance_id", ""); set("item_label", "");
+                }}
+              >
+                Serialized (Instance)
+              </ActionBtn>
+              <ActionBtn
+                small
+                color={C.cyan}
+                outline={useInstance}
+                onClick={() => {
+                  setUseInstance(false);
+                  set("item_id", ""); set("instance_id", ""); set("item_label", "");
+                }}
+              >
+                Non-Serialized (Item)
+              </ActionBtn>
+            </div>
+          )}
+
+          <Field label={useInstance ? "Instance (Asset)" : "Item"}>
+            {useInstance ? (
+              <InstanceSearchDropdown
                 value={form.instance_id}
                 label={form.item_label}
                 onSelect={(inst) => {
-                set("instance_id", inst.id);
-                set("item_id", inst.item_id);
-                set("item_label", `${inst.item?.name ?? "Item"} — ${inst.asset_tag ?? `#${inst.id}`}`);
+                  set("instance_id", inst.id);
+                  set("item_id", inst.item_id);
+                  set("item_label", `${inst.item?.name ?? "Item"} — ${inst.asset_tag ?? `#${inst.id}`}`);
                 }}
                 onClear={() => { set("instance_id", ""); set("item_id", ""); set("item_label", ""); }}
-            />
+              />
             ) : (
-            <SelectorTrigger
+              <SelectorTrigger
                 label={form.item_label || "Select item…"}
                 filled={!!form.item_id}
                 onOpen={() => setItemPicker(true)}
                 onClear={() => { set("item_id", ""); set("item_label", ""); }}
-            />
+              />
             )}
-        </Field>
-        )}
-        
-        {!instance && !needsInstance && (
-        <Field label="Quantity">
-            <input
-            style={inputStyle}
-            type="number"
-            min="1"
-            value={form.quantity}
-            onChange={e => set("quantity", parseInt(e.target.value, 10))}
-            />
-        </Field>
-        )}
+          </Field>
+
+          {!useInstance && (
+            <Field label="Quantity">
+              <input
+                style={inputStyle}
+                type="number"
+                min="1"
+                value={form.quantity}
+                onChange={e => set("quantity", parseInt(e.target.value, 10))}
+              />
+            </Field>
+          )}
+        </>
+      )}
         <Field label="Assignee Type">
           <select style={selectStyle} value={form.assignee_type} onChange={e => {
             set("assignee_type", e.target.value);
@@ -786,7 +830,7 @@ function ReturnModal({ assignment, onClose, onSuccess, toast }) {
   const submit = async () => {
     setSaving(true);
     try {
-      await inventoryAPI.assignments.return(assignment.id, form);
+      await inventoryAPI.assignments.return(parseInt(assignment.id, 10), form);
       toast("Assignment returned", "success");
       onSuccess();
       onClose();
@@ -817,7 +861,7 @@ function ReturnModal({ assignment, onClose, onSuccess, toast }) {
 }
 
 function MoveModal({ instance, locations, onClose, onSuccess, toast }) {
-  const [form, setForm] = useState({ location_id: "", notes: "" });
+  const [form, setForm] = useState({ to_location_id: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -826,7 +870,7 @@ function MoveModal({ instance, locations, onClose, onSuccess, toast }) {
     try {
       await inventoryAPI.instances.move(instance.id, {
         ...form,
-        location_id: form.location_id ? parseInt(form.location_id, 10) : undefined,
+        to_location_id: form.to_location_id ? parseInt(form.to_location_id, 10) : undefined,
       });
       toast("Instance moved", "success");
       onSuccess();
@@ -839,7 +883,7 @@ function MoveModal({ instance, locations, onClose, onSuccess, toast }) {
   return (
     <Modal title="// move location" onClose={onClose}>
       <Field label="New Location">
-        <select style={selectStyle} value={form.location_id} onChange={e => set("location_id", e.target.value)}>
+        <select value={form.to_location_id} onChange={e => set("to_location_id", e.target.value)}>
           <option value="">Select location…</option>
           {(locations ?? []).map(l => <option key={l.id} value={l.id}>{l.name} ({l.code})</option>)}
         </select>
@@ -1139,7 +1183,10 @@ function RepairActionModal({ repair, action, onClose, onSuccess, toast }) {
     setSaving(true);
     try {
       const payload = { notes: form.notes };
-      if (action === "complete") { payload.cost = form.cost ? parseFloat(form.cost) : undefined; payload.completed_condition = form.completed_condition; }
+      if (action === "complete") {
+        payload.cost = form.cost ? parseFloat(form.cost) : undefined;
+        payload.condition_after = form.completed_condition;
+      }
       await inventoryAPI.repairs[action](repair.id, payload);
       toast(`Repair ${action === "send" ? "sent to vendor" : action === "complete" ? "completed" : "marked unrepairable"}`, "success");
       onSuccess();
@@ -2007,7 +2054,6 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
           <Chip label={instance.status} />
           {instance.status === "available" && <ActionBtn color={C.cyan} outline small onClick={() => setModal("issue")}>Issue</ActionBtn>}
           {instance.status === "available" && <ActionBtn color={C.blue} outline small onClick={() => setModal("loan")}>Loan</ActionBtn>}
-          {(instance.status === "issued" || instance.status === "loaned") && <ActionBtn color={C.green} outline small onClick={() => setModal("return")}>Return</ActionBtn>}
           <ActionBtn color={C.amber} outline small onClick={() => setModal("move")}>Move Location</ActionBtn>
           <ActionBtn color={C.amber} outline small onClick={() => setModal("repair")}>Report Repair</ActionBtn>
           <ActionBtn color={C.purple} outline small onClick={() => setModal("obsolete")}>Declare Obsolete</ActionBtn>
@@ -2041,7 +2087,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
             ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No location changes recorded.</div>
             : locationHistory.slice(0, 6).map((lh, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontFamily: mono, fontSize: 11 }}>
-                <span style={{ color: C.cyan }}>{lh.location?.name ?? lh.to_location}</span>
+                <span style={{ color: C.cyan }}>{lh.location?.name ?? lh.to_location?.name ?? "—"}</span>
                 <span style={{ color: "#555" }}>{lh.moved_at?.slice(0, 10)}</span>
               </div>
             ))
@@ -2065,7 +2111,6 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
 
       {modal === "issue" && <IssueModal instance={instance} mode="issue" onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
       {modal === "loan" && <IssueModal instance={instance} mode="loan" onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
-      {modal === "return" && <ReturnModal assignment={{ id: instance.active_assignment_id, instance }} onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
       {modal === "move" && <MoveModal instance={instance} locations={locations} onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
       {modal === "repair" && <RepairModal instance={instance} onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
       {modal === "write-off" && <WriteOffModal instance={instance} mode="write-off" onClose={() => setModal(null)} onSuccess={load} toast={toast} />}
@@ -2422,7 +2467,10 @@ function CatalogueTab({ onItemClick, toast }) {
                   <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {isLinked && <span style={LINKED_BADGE}>⬡ linked</span>}
-                      <span style={{ color: isLinked ? "#a78bfa" : C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ color: isLinked ? "#a78bfa" : C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
+                        {row.is_serialized && <span style={{ fontFamily: mono, fontSize: 9, color: C.amber, letterSpacing: "0.06em" }}>◉ serialized</span>}
+                      </div>
                     </div>
                     {isLinked && row.product?.sku && <div style={{ color: "#555", fontSize: 10, marginTop: 2 }}>SKU: {row.product.sku}</div>}
                   </td>
@@ -2712,7 +2760,19 @@ function RepairsTab({ toast }) {
             { key: "_actions", label: "", render: (_, row) => (
               <div style={{ display: "flex", gap: 6 }}>
                 {row.status === "reported" && <ActionBtn color={C.blue} outline small onClick={() => setModal({ type: "send", repair: row })}>Send</ActionBtn>}
-                {(row.status === "sent" || row.status === "reported") && <ActionBtn color={C.green} outline small onClick={() => setModal({ type: "complete", repair: row })}>Complete</ActionBtn>}
+                {(row.status === "sent" || row.status === "reported") && (
+                  <div title={row.status === "reported" ? "Send to vendor first before marking complete" : undefined} style={{ display: "inline-flex" }}>
+                    <ActionBtn
+                      color={C.green}
+                      outline
+                      small
+                      disabled={row.status === "reported"}
+                      onClick={() => row.status === "sent" && setModal({ type: "complete", repair: row })}
+                    >
+                      Complete
+                    </ActionBtn>
+                  </div>
+                )}
                 {row.status !== "completed" && row.status !== "unrepairable" && <ActionBtn color={C.red} outline small onClick={() => setModal({ type: "unrepairable", repair: row })}>Unrepairable</ActionBtn>}
               </div>
             )},
@@ -2947,9 +3007,21 @@ function GroupsTab({ toast }) {
                 ? <div style={{ fontFamily: mono, fontSize: 12, color: "#555" }}>No members.</div>
                 : g.members.map(m => (
                   <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
-                    <div>
-                      <span style={{ fontFamily: mono, fontSize: 12 }}>{m.member_label}</span>
-                      <span style={{ fontFamily: mono, fontSize: 10, color: "#555", marginLeft: 8 }}>{m.member_type}</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontFamily: mono, fontSize: 12 }}>
+                          {m.member_type === "customer"
+                            ? `${m.member?.first_name ?? ""} ${m.member?.last_name ?? ""}`.trim() || m.member_label
+                            : m.member_label}
+                        </span>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "#555" }}>{m.member_type}</span>
+                      </div>
+                      {m.member_type === "customer" && m.member?.email && (
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "#888" }}>{m.member.email}</span>
+                      )}
+                      {m.member_type === "employee" && m.member?.is_admin && m.member?.work_email && (
+                        <span style={{ fontFamily: mono, fontSize: 10, color: C.amber }}>⚑ {m.member.work_email}</span>
+                      )}
                     </div>
                     <ActionBtn small outline color={C.red} onClick={() => removeMember(g.id, m.id)}>Remove</ActionBtn>
                   </div>

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\URL;
@@ -80,5 +81,10 @@ class AppServiceProvider extends ServiceProvider
                 'signature'  => $params['signature'] ?? '',
             ]);
         });
+
+        Relation::morphMap([
+            'employee' => \App\Models\Employee::class,
+            'customer' => \App\Models\Customer::class,
+        ]);
     }
 }

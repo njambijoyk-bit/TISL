@@ -578,7 +578,7 @@ class InventoryController extends Controller
 
     public function groupsIndex(Request $request): JsonResponse
     {
-        $groups = InventoryGroup::with('members')
+        $groups = InventoryGroup::with('members.member')
             ->when($request->boolean('active_only', true), fn($q) => $q->active())
             ->get();
 
@@ -637,7 +637,7 @@ class InventoryController extends Controller
             'added_by'    => Auth::id(),
         ]);
 
-        return response()->json($member, 201);
+        return response()->json($member->load('member'), 201);
     }
 
     public function groupsRemoveMember(int $groupId, int $memberId): JsonResponse

@@ -29,6 +29,11 @@ class InventoryGroupMember extends Model
         return $this->belongsTo(\App\Models\User::class, 'added_by');
     }
 
+    public function member(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo('member', 'member_type', 'member_id');
+    }
+
     public function resolveMember(): mixed
     {
         return match ($this->member_type) {
