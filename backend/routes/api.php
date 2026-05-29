@@ -980,6 +980,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('items')->group(function () {
                 Route::get('/',        [InventoryController::class, 'itemsIndex']);
                 Route::post('/',       [InventoryController::class, 'itemsStore']);
+                Route::post('/sync-products',  [InventoryController::class, 'itemsSyncProducts']);
                 Route::get('/{id}',    [InventoryController::class, 'itemsShow']);
                 Route::put('/{id}',    [InventoryController::class, 'itemsUpdate']);
                 Route::delete('/{id}', [InventoryController::class, 'itemsDestroy']);

@@ -1186,3 +1186,6 @@ class ReportsController extends Controller
                 'redemption_count'    => (int) ($ledgerSummary->redemption_count ?? 0),
                 'expiry_count'        => (int) ($ledgerSummary->expiry_count ?? 0),
                 'admin_grants'
+                ]);
+    }
+}

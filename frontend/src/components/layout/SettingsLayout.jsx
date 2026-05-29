@@ -3,7 +3,7 @@ import {
   FileText, Phone, BookOpen, Home, Award,
   Briefcase, Gift, UserCheck, Crown, Gavel,
   Tag, Users, Settings as SettingsIcon,
-  FootprintsIcon, ChevronLeft, Truck,
+  FootprintsIcon, ChevronLeft, Truck, Boxes,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -34,6 +34,7 @@ const GROUPS = [
     items: [
       { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/work', active: true },
       { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', path: '/admin/careers',  active: true },
+      { name: 'Inventory', icon: Boxes,        bg: 'linear-gradient(135deg,#c2410c,#f97316)', path: '/admin/inventory',  active: true },
       { name: 'Publications', icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/settings/publications', active: true },
     ],
   },

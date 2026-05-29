@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
+use App\Services\Inventory\InventoryStockService;
 
 use App\Models\Inventory\{
     InventoryCategory,
@@ -241,6 +242,25 @@ class InventoryController extends Controller
         $item->update($data);
 
         return response()->json($item->fresh(['category', 'defaultLocation']));
+    }
+
+    public function itemsSyncProducts(Request $request): JsonResponse
+    {
+        $request->validate([
+            'offset' => 'nullable|integer|min:0',
+            'limit'  => 'nullable|integer|min:1|max:50',
+        ]);
+
+        $offset = (int) ($request->offset ?? 0);
+        $limit  = (int) ($request->limit  ?? 50);
+
+        $result = app(InventoryStockService::class)->syncFromProductsBatch(
+            offset:      $offset,
+            limit:       $limit,
+            performedBy: Auth::id(),
+        );
+
+        return response()->json($result, 200);
     }
 
     public function itemsDestroy(int $id): JsonResponse

@@ -34,6 +34,7 @@ const inventoryAPI = {
     store:   (data)   => api.post(`${BASE}/items`, data).then(unwrap),
     update:  (id, data) => api.put(`${BASE}/items/${id}`, data).then(unwrap),
     destroy: (id)     => api.delete(`${BASE}/items/${id}`).then(unwrap),
+    syncProducts: (params) => api.post(`${BASE}/items/sync-products`, params).then(unwrap),
   },
 
   // =========================================================================

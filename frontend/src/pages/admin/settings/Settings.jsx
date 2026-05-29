@@ -3,7 +3,7 @@ import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home, Crown, Gavel,
   Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap, Award,
   UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck,
-  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle,
+  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle, Boxes,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../../components/layout/Sidebar';
@@ -35,6 +35,7 @@ const GROUPS = [
     items: [
       { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/work',                  active: true },
       { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', color: '#6366f1', path: '/admin/careers/jobs',          active: true },
+      { name: 'Inventory', icon: Boxes,        bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316', path: '/admin/inventory',             active: true },  
       { name: 'Publications', icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#a855f7', path: '/admin/settings/publications', active: true },
     ],
   },

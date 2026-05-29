@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Api\Traits\LogsHamperActivities;
+use App\Services\Inventory\InventoryStockService;
 use App\Models\HamperActivityLog;
 
 class HamperOrderController extends Controller
@@ -449,6 +450,16 @@ class HamperOrderController extends Controller
                 if ($product) {
                     $product->decrement('stock_quantity', $qty);
                     if ($product->stock_quantity <= 0) $product->update(['in_stock' => false]);
+
+                    // Sync inventory — after decrement, refresh so service reads correct stock_quantity
+                    $product->refresh();
+                    app(InventoryStockService::class)->recordSale(
+                        productId:     $product->id,
+                        qtySold:       (float) $qty,
+                        orderId:       $hamperOrder->id,
+                        performedBy:   auth()->id(),
+                        referenceType: 'hamper_order',
+                    );
                 }
             }
 

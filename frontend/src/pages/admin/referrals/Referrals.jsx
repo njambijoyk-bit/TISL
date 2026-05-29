@@ -351,6 +351,210 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
   );
 }
 
+// ─── REFERRAL SYSTEM DEV NOTES ───────────────────────────────────────────────
+const REFERRAL_DEV_NOTES = {
+  pitfalls: [
+    {
+      title: "ReferralController::update() — $changes is declared but never populated",
+      severity: "critical",
+      detail: "$changes = [] is set at the top of update(), and logReferralCodeUpdated($code, $changes) fires at the end — but the field-diff loop that exists in PromoCodeController::update() was never ported here. Every referral code update logs an empty changes array.",
+      outcome: "Activity log entries for referral code edits are useless. An admin editing a code's value, expiry, or status leaves no traceable record of what changed. Copy the $fields loop from PromoCodeController::update() into ReferralController::update().",
+    },
+    {
+      title: "Both statistics() methods fire 8–11 sequential COUNT/SUM queries",
+      severity: "warning",
+      detail: "Both PromoCodeController::statistics() and ReferralController::statistics() use the (clone $base)->count(), (clone $base)->where('status','active')->count() pattern — each is a separate DB round trip. PromoCodeController fires at least 11 queries per page load.",
+      outcome: "Gets noticeably slow as the referral_codes table grows. Replace with a single conditional aggregate: SELECT COUNT(*) as total, SUM(status='active') as active, SUM(status='expired') as expired, ... This is one query regardless of table size.",
+    },
+    {
+      title: "generateBirthdayCodes(daysAhead: 0) loads all birthday customers into PHP memory",
+      severity: "warning",
+      detail: "The manual trigger path calls Customer::whereNotNull('birthday')->where('status','active')->get() with no limit, then filters in PHP with ->filter(). The scheduler path correctly uses DB-side whereMonth/whereDay. For large customer bases the manual trigger pulls every customer with a birthday into memory.",
+      outcome: "The admin-facing triggerBirthday endpoint could exhaust memory or timeout on production. Fix: apply the same DB-side date filter the scheduler uses, or chunk the manual path.",
+    },
+    {
+      title: "generateWinBackCodes() has no chunking",
+      severity: "warning",
+      detail: "Customer::where('status','active')->where('total_orders','>',0)->where('last_order_date','<',$cutoff)->get() loads every inactive customer at once. No ->chunk() like the algorithm service uses.",
+      outcome: "A platform with 5,000+ inactive customers hits a memory wall. Wrap in ->chunk(200, function($customers) { ... }) — same pattern already used in the algorithm batch scorer.",
+    },
+    {
+      title: "topPerformers() filters to active codes only",
+      severity: "warning",
+      detail: "topPerformers() applies ->where('status','active'), excluding depleted and archived codes. A code that drove significant revenue before being archived disappears from the top performers list.",
+      outcome: "Misleading performance view — the admin sees 'current' best performers, not historically best performers. Remove the status filter and sort purely by total_revenue or times_used.",
+    },
+    {
+      title: "PromoCodeController::statistics() averages an already-averaged column",
+      severity: "warning",
+      detail: "(clone $base)->avg('average_order_value') computes the average of a column that is itself a pre-computed average per code. This is the average of averages — mathematically wrong when codes have different usage volumes (a code used once with KES 10,000 skews the figure as much as one used 500 times).",
+      outcome: "The avg_order_value stat on the promo dashboard is inaccurate. Correct formula: SUM(total_revenue) / NULLIF(SUM(times_used), 0).",
+    },
+    {
+      title: "getCustomerPromoCodes() has overlapping filter buckets",
+      severity: "low",
+      detail: "used_codes returns codes where times_used > 0. expired_codes returns codes where is_expired or status='expired'. A code that was used once and then expired appears in both buckets simultaneously.",
+      outcome: "Frontend deduplication needed, or the customer-facing wallet shows the same code twice. Fix: make the buckets mutually exclusive — active (not expired, not depleted), used (used but still valid or depleted), expired (expired, used or not).",
+    },
+    {
+      title: "validateCode (public endpoint) records a view before eligibility check",
+      severity: "low",
+      detail: "ReferralController::validateCode() calls $code->recordView() immediately after finding the code — before any auth or eligibility check. An unauthenticated request to /referrals/validate with a known code string increments its view counter.",
+      outcome: "View counts are inflatable by bots or competitors probing the API. Move recordView() to after the is_valid check at minimum, ideally after confirmed customer eligibility.",
+    },
+    {
+      title: "generateVipCode deduplication uses name LIKE %tier%",
+      severity: "low",
+      detail: "The existence check uses .where('name', 'like', \"%{$newTier}%\") to detect whether a VIP code for this tier was already issued. If a customer's full_name contains 'gold' or 'platinum', or an admin manually named a different code with those words, the check fires a false positive and skips a legitimate VIP code generation.",
+      outcome: "Edge case but possible. Fix: add a vip_tier column to referral_codes and check that explicitly instead of pattern-matching on name.",
+    },
+    {
+      title: "Double fetchStatistics() call on component mount",
+      severity: "low",
+      detail: "Referrals.jsx has two useEffect hooks with empty dependency arrays that both call fetchStatistics(). The first (line ~373) was apparently left over when the second combined effect (fetchStatistics + loadActivity) was added.",
+      outcome: "Every page load fires the statistics API twice. Remove the standalone useEffect(() => { fetchStatistics(); }, []) and keep only the combined one.",
+    },
+  ],
+  strengths: [
+    {
+      title: "Unified model for referral codes and promo codes",
+      detail: "Customer referral codes and admin promo codes share the same referral_codes table and model, distinguished by type. One validation flow, one usage tracking path, consistent metrics. Extending with a new code type (e.g. 'event', 'bulk_order') requires zero schema changes.",
+    },
+    {
+      title: "5-trigger automated promo lifecycle",
+      detail: "Birthday, first-time registration, VIP tier upgrade, loyalty milestone, and win-back codes all fire from lifecycle events with no manual admin intervention. The platform runs a personalised discount program on autopilot once the commands are scheduled.",
+    },
+    {
+      title: "destroy() preserves history by archiving used codes",
+      detail: "A code with any usage history is silently archived instead of hard-deleted. Revenue and usage data are never lost, and the audit trail stays intact. Zero chance of orphaned usage rows.",
+    },
+    {
+      title: "Three-stage conversion funnel per code",
+      detail: "views → attempts → times_used tracks where drop-off happens at individual code level. Low views means the code isn't being seen. High views + low uses means eligibility barriers or confusion. This granularity is genuinely useful for diagnosing campaign problems.",
+    },
+    {
+      title: "Per-code stackable flag",
+      detail: "Whether a promo can be combined with a referral discount is controlled at the individual code level, not globally. Lets admins run non-stackable flash sales while keeping referral bonuses combinable with other promotions.",
+    },
+    {
+      title: "Manual trigger endpoints for all scheduled jobs",
+      detail: "triggerBirthday, triggerWinBack, and triggerExpire endpoints mean an admin can re-run any scheduled task from the UI without SSH or artisan access. Critical for Railway deployments where terminal access may not always be convenient.",
+    },
+    {
+      title: "Activity log trait on both controllers",
+      detail: "LogsReferralActivity covers code creation, status changes (activated/paused/archived/deleted), and updates across both the referral and promo controllers. Consistent audit trail without duplicating logging logic.",
+    },
+  ],
+  future: [
+    {
+      title: "Email/SMS delivery for birthday and win-back codes",
+      detail: "All auto-generated promo notifications currently use channels: ['database'] — in-app only. Dormant and at-risk customers by definition aren't opening the app regularly. Email delivery for birthday and win-back codes would dramatically improve redemption rates for the customers who need it most.",
+      horizon: "near",
+    },
+    {
+      title: "Referrer reward payout pipeline",
+      detail: "referrer_reward_paid and referrer_reward_amount exist on usage rows. The earnings() endpoint correctly tracks what's owed. But the actual disbursement mechanism — store credit, M-Pesa push, wallet credit — hasn't been built yet. This is the missing half of the referral program.",
+      horizon: "near",
+    },
+    {
+      title: "Statistics query consolidation",
+      detail: "Both statistics() methods should be refactored to single conditional aggregate queries. The current clone-and-count pattern is functional now but becomes a latency problem as the referral_codes table grows into tens of thousands of rows.",
+      horizon: "near",
+    },
+    {
+      title: "auto_apply code selection at checkout",
+      detail: "The auto_apply boolean exists on codes but the checkout flow has no logic to query and apply the best eligible auto-apply code automatically. The column is inert until this is implemented. Priority: define 'best' (highest discount? most restrictive eligibility? newest?).",
+      horizon: "medium",
+    },
+    {
+      title: "Campaign total spend cap",
+      detail: "max_uses limits the number of redemptions but not the total discount value given. A 50%-off code with max_uses=1000 could give away KES 500,000 if order values are high. A max_total_discount_budget column would give admins a financial safety net for high-value codes.",
+      horizon: "medium",
+    },
+    {
+      title: "Referral code performance attribution to algorithm segments",
+      detail: "Once the algorithm scoring system and the referral system are both running at scale, joining referral_code_usages.customer_id to customer_algorithm_scores would answer: do champion-segment customers generate better referrals? Do at-risk customers actually return after a win-back code? This closes the feedback loop between the two systems.",
+      horizon: "long",
+    },
+  ],
+};
+
+const RSEV = { critical: "#ef4444", warning: "#f59e0b", low: "#a855f7" };
+const RHOR = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+
+function ReferralDevNotesModal({ onClose }) {
+  const [tab, setTab] = useState("pitfalls");
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(168,85,247,0.2), 0 4px 20px rgba(0,0,0,0.15)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+            <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#a855f7" }}>
+              // dev notes — referral &amp; promo code system
+            </span>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af", lineHeight: 1 }}>✕</button>
+          </div>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
+            internal analysis · not visible to customers
+          </div>
+          <div style={{ display: "flex", gap: 0 }}>
+            {["pitfalls", "strengths", "future"].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                padding: "9px 20px", background: "none", border: "none",
+                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
+                color: tab === t ? "#a855f7" : "#6b7280",
+                fontFamily: "monospace", fontSize: 12, cursor: "pointer",
+                opacity: tab === t ? 1 : 0.6, marginBottom: -1, transition: "all 0.15s",
+              }}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "18px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          {tab === "pitfalls" && REFERRAL_DEV_NOTES.pitfalls.map((n, i) => (
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: `1px solid ${RSEV[n.severity]}2a`, background: `${RSEV[n.severity]}07` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.05em", color: RSEV[n.severity], background: `${RSEV[n.severity]}18`, padding: "2px 7px", borderRadius: 3 }}>{n.severity}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{n.title}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
+              <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af" }}>
+                <span style={{ color: "#6b7280" }}>→ outcome: </span>{n.outcome}
+              </div>
+            </div>
+          ))}
+
+          {tab === "strengths" && REFERRAL_DEV_NOTES.strengths.map((n, i) => (
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid #a855f722", background: "#a855f705" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
+            </div>
+          ))}
+
+          {tab === "future" && REFERRAL_DEV_NOTES.future.map((n, i) => (
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.05em", color: RHOR[n.horizon], background: `${RHOR[n.horizon]}18`, padding: "2px 7px", borderRadius: 3 }}>{n.horizon}-term</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{n.title}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Referrals() {
@@ -367,6 +571,7 @@ export default function Referrals() {
   const [activityPag, setActivityPag] = useState(null);
   const [actLoading,  setActLoading]  = useState(true);
   const [showLog,     setShowLog]     = useState(true);
+  const [devNotesOpen, setDevNotesOpen] = useState(false);
 
   useEffect(() => { fetchStatistics(); }, []);
   useEffect(() => { fetchCodes(); }, [filters]);
@@ -432,6 +637,18 @@ export default function Referrals() {
             Customer referral program and discount code management
           </p>
         </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setDevNotesOpen(true)}
+            style={{
+              padding: '9px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
+              border: '1.5px solid rgba(168,85,247,0.3)', cursor: 'pointer', fontFamily: 'inherit',
+              background: 'transparent', color: '#a855f7', fontFamily: 'monospace',
+            }}
+          >
+            // dev
+          </button>
 
         {/* New code button — referrals are auto-generated, so show info tooltip */}
         <div style={{ position: 'relative' }}>
@@ -451,7 +668,7 @@ export default function Referrals() {
           >
             <Plus size={15} /> New code
           </button>
-
+          
           {showInfo && (
             <div style={{
               position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
@@ -493,6 +710,7 @@ export default function Referrals() {
             </div>
           )}
         </div>
+        </div></div>
       </div>
 
       {/* ── How it works banner ── */}
@@ -856,6 +1074,7 @@ export default function Referrals() {
           />
         )}
       </div>
+      {devNotesOpen && <ReferralDevNotesModal onClose={() => setDevNotesOpen(false)} />}
     </div>
     </SettingsLayout>
   );

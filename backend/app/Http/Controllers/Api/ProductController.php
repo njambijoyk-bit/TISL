@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\InventoryStockService;
 use App\Models\Product;
 use App\Models\Brand;
 use App\Models\Category;
@@ -952,14 +953,16 @@ public function related($id)
     {
         $validator = Validator::make($request->all(), [
             'quantity' => 'required|integer',
-            'action' => 'required|in:add,subtract,set'
+            'action'   => 'required|in:add,subtract,set',
+            'notes'    => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $product = Product::findOrFail($id);
+        $product      = Product::findOrFail($id);
+        $stockBefore  = (int) $product->stock_quantity;
 
         switch ($request->action) {
             case 'add':
@@ -971,14 +974,27 @@ public function related($id)
             case 'set':
                 $product->update([
                     'stock_quantity' => $request->quantity,
-                    'in_stock' => $request->quantity > 0
+                    'in_stock'       => $request->quantity > 0,
                 ]);
                 break;
         }
 
+        // Reload so stock_quantity reflects the just-saved value
+        $product->refresh();
+
+        // Log to inventory for add or set-that-increases only
+        $stockAfter = (int) $product->stock_quantity;
+        if (in_array($request->action, ['add', 'set']) && $stockAfter > $stockBefore) {
+            app(InventoryStockService::class)->recordRestock(
+                productId:   $product->id,
+                performedBy: Auth::id(),
+                notes:       $request->notes ?? "Manual restock via admin ({$request->action}): {$stockBefore} → {$stockAfter}",
+            );
+        }
+
         return response()->json([
             'message' => 'Stock updated successfully',
-            'product' => $product
+            'product' => $product,
         ], 200);
     }
 

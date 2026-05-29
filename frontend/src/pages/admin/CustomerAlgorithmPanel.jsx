@@ -237,6 +237,226 @@ function RuleModal({ rule, onClose, onSave }) {
   );
 }
 
+// ─── ALGORITHM DEV NOTES ──────────────────────────────────────────────────────
+const ALGO_DEV_NOTES = {
+  pitfalls: [
+    {
+      title: "Segment threshold logic duplicated in two places",
+      severity: "critical",
+      detail: "The score → segment mapping (≥68 champion, ≥48 loyal, recency<20 at_risk, <25 dormant) is copy-pasted verbatim in both CatalogueRankingService::resolveSegmentAndCustomer() and AlgorithmController::getCustomerRankedProducts(). They are independent — changing thresholds in one does not update the other.",
+      outcome: "Silent segment mismatch between what the catalogue sorts by and what the admin panel previews. Extract to a static helper: CustomerSegmentResolver::fromScore(float $score, int $recency): string.",
+    },
+    {
+      title: "Default catalogue weights duplicated in the controller",
+      severity: "critical",
+      detail: "AlgorithmController::getCustomerRankedProducts() hardcodes a full defaults array that mirrors CatalogueRankingService::defaultCatalogueWeights(). Two sources of truth for the same config.",
+      outcome: "A future default weight change in the service won't be reflected in the admin preview endpoint. The controller defaults should call the service or read from the same source.",
+    },
+    {
+      title: "persistScore() in the controller uses insert() not updateOrInsert()",
+      severity: "critical",
+      detail: "AlgorithmService::saveScore() correctly uses updateOrInsert(), but AlgorithmController::persistScore() calls insert() directly. Every time Run Scoring Now is clicked, a new row is inserted — the table grows unbounded.",
+      outcome: "Leaderboard query masks this via MAX(scored_at), so scores look correct. But the table balloons silently. Fix: use updateOrInsert(['customer_id' => ...], [...]) in the controller helper, or just call $this->algorithm->runFullScoring() directly.",
+    },
+    {
+      title: "monetaryPercentRank fires 2 DB queries per customer inside the chunk loop",
+      severity: "warning",
+      detail: "For every customer scored, computeRawSignals() calls monetaryPercentRank() which runs COUNT(*) and COUNT(WHERE total_spent < X). In a batch of 500 customers that is 1,000 extra queries on top of the chunk.",
+      outcome: "Batch scoring becomes very slow at scale. Fix: precompute a ranked list of all customer total_spent values once before the chunk loop using a window function or a sorted array, then do a binary search per customer.",
+    },
+    {
+      title: "engagementScore and serviceScore each fire 2–3 queries per customer",
+      severity: "warning",
+      detail: "Inside the chunk loop, engagementScore() runs 3 queries (reviews, bids, quotes) and serviceScore() runs 2 (bookings, service order items). 500 customers = ~2,500 extra queries per run.",
+      outcome: "Same as above — scoring gets prohibitively slow as the customer base grows. Fix: eager-load these aggregates in bulk before chunking using a single GROUP BY query per signal table.",
+    },
+    {
+      title: "flushConfigCache() does not flush catalogue weights",
+      severity: "warning",
+      detail: "AlgorithmService::flushConfigCache() forgets 'algorithm_config' and 'algorithm_segment_rules'. But CatalogueRankingService uses a separate 'catalogue_weights' cache key that only its own flushCatalogueCache() clears. The two services are unaware of each other.",
+      outcome: "An admin saves new catalogue weights via the config panel — the change takes up to 5 minutes to propagate to live catalogue sorting. No visible indication this is happening. Add a single unified flush endpoint that clears all algorithm-related keys, or call both flush methods from saveConfig().",
+    },
+    {
+      title: "set_time_limit(0) on a synchronous HTTP request",
+      severity: "warning",
+      detail: "runScoring() removes the PHP timeout entirely. On Railway, the reverse proxy has its own timeout (typically 60–120s). For large customer bases the PHP process will finish correctly but the HTTP connection will have already been dropped — the admin sees a network error while the scoring actually completed.",
+      outcome: "Confusing admin experience — 'did it run or not?' The correct fix is to dispatch a queued job and poll for status, or at minimum stream progress via SSE (which you already have patterns for in the auction system).",
+    },
+    {
+      title: "Stat strip metrics are page-scoped, not global",
+      severity: "low",
+      detail: "Avg Score, High Scorers (≥75), and At Risk (<25) on the panel are computed from scores[] — the current page of 30 rows — not the full customer dataset.",
+      outcome: "Stats look like global KPIs but change as the user pages through the leaderboard. Fix: add a dedicated /admin/algorithm/stats endpoint that computes these server-side across all scored customers.",
+    },
+    {
+      title: "Segment rule matchesCondition only reads direct Customer model fields",
+      severity: "low",
+      detail: "The condition engine evaluates $customer->$field dynamically. Fields like total_score, recency_raw, or any computed value that isn't a column on the customers table will silently return null → condition always false.",
+      outcome: "Admins can create rules that appear to save correctly but never fire. No validation or feedback in the UI. Consider constraining the field dropdown to known-valid fields.",
+    },
+  ],
+  strengths: [
+    {
+      title: "7-signal RFM+ scoring with clean normalisation",
+      detail: "Every signal is independently normalised to 0–100 (log scale for frequency, percent rank for monetary, hard caps elsewhere). Signals are additive after weighting, making the final score intuitive and auditable. The raw vs weighted breakdown returned by scoreCustomer() makes debugging straightforward.",
+    },
+    {
+      title: "Segment-aware catalogue ranking",
+      detail: "Rather than a single global sort order, the catalogue ORDER BY SQL expression is generated per customer segment. At-risk customers see sale items first, dormant customers see new arrivals, champions see premium/rated content. This is a meaningful personalisation layer with no frontend changes required.",
+    },
+    {
+      title: "Fully config-driven — no deploys needed to tune the algorithm",
+      detail: "Weights, signal toggles, segment rules, and catalogue weights all live in the DB and are editable via the admin panel. A business decision about scoring can be implemented in minutes without touching code.",
+    },
+    {
+      title: "Bonus content system is cleanly decoupled",
+      detail: "algorithm_bonus_content is a separate table with entity_type polymorphism. Badge types (promo, social_proof, bundle, urgency, tip) let admins attach contextual messaging to ranked results without touching product or service records. The +bonus weight in the score expression means boosted items naturally rise in rank.",
+    },
+    {
+      title: "CatalogueRankingService degrades gracefully at every step",
+      detail: "No auth token → default segment. No customer record → default. No score yet → new or default. Admin/staff role → default (no personalisation). The system never throws and always produces a valid ORDER BY expression. Guests and new customers get a sensible global ranking by default.",
+    },
+    {
+      title: "Toggleable signals enable safe experimentation",
+      detail: "Any of the 7 signals can be switched off without code changes. Combined with the configurable weights, this is a lightweight A/B testing mechanism — you can zero out referral weight to measure its catalogue impact without removing the logic.",
+    },
+  ],
+  future: [
+    {
+      title: "Score history & trend lines per customer",
+      detail: "Because the controller currently inserts rather than upserts, every scoring run produces a historical record. A score history endpoint and a sparkline on the customer profile would turn this data liability into a genuine feature — showing whether a customer is trending up or churning.",
+      horizon: "near",
+    },
+    {
+      title: "Scheduled auto-scoring",
+      detail: "Scoring is currently triggered manually. A Laravel scheduled command running nightly would keep segments fresh automatically. Critical before the platform scales — manual runs are easy to forget and stale scores mean the catalogue personalisation degrades silently.",
+      horizon: "near",
+    },
+    {
+      title: "Configurable segment thresholds",
+      detail: "The champion/loyal/at_risk/dormant cutoffs (68, 48, 25, recency<20) are hardcoded. Moving these to algorithm_config would let the business tune segment definitions as score distributions shift over time.",
+      horizon: "medium",
+    },
+    {
+      title: "Batch signal pre-computation",
+      detail: "Before chunked scoring can handle tens of thousands of customers efficiently, the per-customer DB queries (monetary rank, engagement counts, service counts) need to be precomputed in bulk. A staging table refreshed once before each run would drop batch query count by ~80%.",
+      horizon: "medium",
+    },
+    {
+      title: "Async scoring with progress stream",
+      detail: "Replace the synchronous set_time_limit(0) run with a queued job + SSE progress stream (same pattern as the auction system). The admin gets real-time feedback and the PHP worker is freed immediately.",
+      horizon: "medium",
+    },
+    {
+      title: "Segment cohort conversion analytics",
+      detail: "Once scoring is automated and order data is linked, you can measure conversion rate per segment and validate whether the at_risk sale-heavy catalogue ranking actually recovers churned customers. Closes the feedback loop the algorithm currently lacks.",
+      horizon: "long",
+    },
+  ],
+};
+
+const SEV_COLOR = { critical: "#ff4d4d", warning: "#f59e0b", low: "#a855f7" };
+const HOR_COLOR = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+
+function AlgoDevNotesModal({ onClose }) {
+  const [tab, setTab] = useState("pitfalls");
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: 24,
+    }} onClick={onClose}>
+      <div style={{
+        background: "var(--bg-primary, #fff)", borderRadius: 12, width: "100%", maxWidth: 800,
+        maxHeight: "90vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+      }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--border,#e5e7eb)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "#a855f7" }}>
+              // dev notes — algorithm system
+            </span>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af" }}>✕</button>
+          </div>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
+            internal analysis · not visible to customers
+          </div>
+          <div style={{ display: "flex", gap: 0 }}>
+            {["pitfalls", "strengths", "future"].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                padding: "9px 18px", background: "none", border: "none",
+                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
+                color: tab === t ? "#a855f7" : "var(--text-secondary,#6b7280)",
+                fontFamily: "monospace", fontSize: 12, cursor: "pointer",
+                opacity: tab === t ? 1 : 0.6, marginBottom: -1,
+              }}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "20px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          {tab === "pitfalls" && ALGO_DEV_NOTES.pitfalls.map((n, i) => (
+            <div key={i} style={{
+              padding: "14px 16px", borderRadius: 8,
+              border: `1px solid ${SEV_COLOR[n.severity]}33`,
+              background: `${SEV_COLOR[n.severity]}08`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                  textTransform: "uppercase", letterSpacing: "0.05em",
+                  color: SEV_COLOR[n.severity],
+                  background: `${SEV_COLOR[n.severity]}18`,
+                  padding: "2px 7px", borderRadius: 3,
+                }}>{n.severity}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,#111)" }}>{n.title}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
+              <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af" }}>
+                <span style={{ color: "#6b7280" }}>→ outcome: </span>{n.outcome}
+              </div>
+            </div>
+          ))}
+
+          {tab === "strengths" && ALGO_DEV_NOTES.strengths.map((n, i) => (
+            <div key={i} style={{
+              padding: "14px 16px", borderRadius: 8,
+              border: "1px solid #a855f722", background: "#a855f706",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
+            </div>
+          ))}
+
+          {tab === "future" && ALGO_DEV_NOTES.future.map((n, i) => (
+            <div key={i} style={{
+              padding: "14px 16px", borderRadius: 8,
+              border: "1px solid var(--border,#e5e7eb)",
+              background: "var(--bg-secondary,#f9fafb)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                  textTransform: "uppercase", letterSpacing: "0.05em",
+                  color: HOR_COLOR[n.horizon],
+                  background: `${HOR_COLOR[n.horizon]}18`,
+                  padding: "2px 7px", borderRadius: 3,
+                }}>{n.horizon}-term</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,#111)" }}>{n.title}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main panel ──────────────────────────────────────────────────────────────────
 export default function CustomerAlgorithmPanel() {
   const { user, token } = useAuthStore();
@@ -279,6 +499,7 @@ export default function CustomerAlgorithmPanel() {
   const [productSearch, setProductSearch]       = useState('');
   const [pinning, setPinning]                   = useState(new Set());
   const [rescoringCustomer, setRescoringCustomer] = useState(false);
+  const [devNotesOpen, setDevNotesOpen] = useState(false);
 
   const productSearchTimer = useRef(null);
 
@@ -588,30 +809,31 @@ export default function CustomerAlgorithmPanel() {
               RFM + Loyalty + Engagement weighted scoring across {scoresMeta?.total?.toLocaleString() ?? '—'} customers
             </p>
           </div>
-          {isSuperAdmin && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="algo-btn"
-                onClick={() => navigate('/admin/algorithm/catalogue-boosts')}
-                style={s.btn('ghost')}
-              >
-                <Tag size={15} />
-                Catalogue Boosts
-              </button>
-              <button className="algo-btn" onClick={runScoring} disabled={running}
-                style={{ ...s.btn('primary'), opacity: running ? 0.7 : 1, cursor: running ? 'not-allowed' : 'pointer' }}>
-                {running ? <Spinner size={15} /> : <span>▶</span>}
-                {running ? 'Scoring all customers…' : 'Run Scoring Now'}
-              </button>
-            </div>
-              {runResult && !running && (
-                <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>
-                  ✓ {runResult.scored?.toLocaleString()} scored · {runResult.failed} failed · {runResult.duration_s}s
-                </span>
-              )}
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="algo-btn"
+              onClick={() => navigate('/admin/algorithm/catalogue-boosts')}
+              style={s.btn('ghost')}
+            >
+              <Tag size={15} />
+              Catalogue Boosts
+            </button>
+            <button className="algo-btn" onClick={runScoring} disabled={running}
+              style={{ ...s.btn('primary'), opacity: running ? 0.7 : 1, cursor: running ? 'not-allowed' : 'pointer' }}>
+              {running ? <Spinner size={15} /> : <span>▶</span>}
+              {running ? 'Scoring all customers…' : 'Run Scoring Now'}
+            </button>
+            <button className="algo-btn" onClick={() => setDevNotesOpen(true)} style={s.btn('ghost')}>
+              // dev
+            </button>
+          </div>
+            {runResult && !running && (
+              <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>
+                ✓ {runResult.scored?.toLocaleString()} scored · {runResult.failed} failed · {runResult.duration_s}s
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ── Stat strip ── */}
@@ -1176,6 +1398,7 @@ export default function CustomerAlgorithmPanel() {
             onSave={saveRule}
           />
         )}
+        {devNotesOpen && <AlgoDevNotesModal onClose={() => setDevNotesOpen(false)} />}
       </div>
     </AdminLayout>
   );

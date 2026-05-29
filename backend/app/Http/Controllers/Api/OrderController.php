@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\PromoCodeService;
 use App\Http\Controllers\Api\Traits\LogsOrderActivities;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
+use App\Services\Inventory\InventoryStockService;
 use App\Models\OrderActivityLog;
 use Illuminate\Http\JsonResponse;
 
@@ -655,6 +656,14 @@ class OrderController extends Controller
                     if ($product->stock_quantity > 0 && !$product->in_stock) {
                         $product->update(['in_stock' => true]);
                     }
+                    $product->refresh();
+                    app(InventoryStockService::class)->recordReturn(
+                        productId:     $product->id,
+                        qtyReturned:   (float) $quantityToReturn,
+                        orderId:       $order->id,
+                        performedBy:   auth()->id(),
+                        referenceType: 'order',
+                    );
                 }
             }
 
@@ -1135,6 +1144,15 @@ class OrderController extends Controller
                     if (!$item->product->in_stock && $item->product->stock_quantity > 0) {
                         $item->product->update(['in_stock' => true]);
                     }
+
+                    $item->product->refresh();
+                    app(InventoryStockService::class)->recordReturn(
+                        productId:     $item->product->id,
+                        qtyReturned:   (float) $item->in_stock_quantity,
+                        orderId:       $order->id,
+                        performedBy:   auth()->id(),
+                        referenceType: 'order',
+                    );
                 }
             }
 
@@ -1223,6 +1241,14 @@ class OrderController extends Controller
                     }
                     $item->product->decrement('stock_quantity', $item->in_stock_quantity);
                     if ($item->product->stock_quantity <= 0) $item->product->update(['in_stock' => false]);
+                    $item->product->refresh();
+                    app(InventoryStockService::class)->recordSale(
+                        productId:     $item->product->id,
+                        qtySold:       (float) $item->in_stock_quantity,
+                        orderId:       $order->id,
+                        performedBy:   auth()->id(),
+                        referenceType: 'order',
+                    );
                 }
             }
 
@@ -1456,6 +1482,14 @@ class OrderController extends Controller
                         if ($product->stock_quantity > 0 && !$product->in_stock) {
                             $product->update(['in_stock' => true]);
                         }
+                        $product->refresh();
+                        app(InventoryStockService::class)->recordReturn(
+                            productId:     $product->id,
+                            qtyReturned:   $qtyToReturn,
+                            orderId:       $order->id,
+                            performedBy:   auth()->id(),
+                            referenceType: 'order',
+                        );
                     }
                 }
             }
@@ -1534,6 +1568,14 @@ class OrderController extends Controller
                         if ($product->stock_quantity <= 0) {
                             $product->update(['in_stock' => false]);
                         }
+                        $product->refresh();
+                        app(InventoryStockService::class)->recordSale(
+                            productId:     $product->id,
+                            qtySold:       $qtyToReserve,
+                            orderId:       $order->id,
+                            performedBy:   auth()->id(),
+                            referenceType: 'order',
+                        );
                     }
                 }
             }
@@ -1605,6 +1647,14 @@ class OrderController extends Controller
                                 if ($product->stock_quantity <= 0) {
                                     $product->update(['in_stock' => false]);
                                 }
+                                $product->refresh();
+                                app(InventoryStockService::class)->recordSale(
+                                    productId:     $product->id,
+                                    qtySold:       $qtyToReserve,
+                                    orderId:       $order->id,
+                                    performedBy:   auth()->id(),
+                                    referenceType: 'order',
+                                );
                             }
                         }
                     }
@@ -2963,6 +3013,15 @@ class OrderController extends Controller
                     if ($item->product && $item->in_stock_quantity > 0) {
                         $item->product->increment('stock_quantity', $item->in_stock_quantity);
                         $item->product->update(['in_stock' => true]);
+
+                        $item->product->refresh();
+                        app(InventoryStockService::class)->recordReturn(
+                            productId:     $item->product->id,
+                            qtyReturned:   (float) $item->in_stock_quantity,
+                            orderId:       $order->id,
+                            performedBy:   auth()->id(),
+                            referenceType: 'order',
+                        );
                     }
                 }
                 $order->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason]);
@@ -2977,7 +3036,16 @@ class OrderController extends Controller
                 foreach ($order->items as $item) {  
                     if ($item->product && $item->in_stock_quantity > 0) {  
                         $item->product->increment('stock_quantity', $item->in_stock_quantity);  
-                        $item->product->update(['in_stock' => true]);  
+                        $item->product->update(['in_stock' => true]); 
+                        
+                        $item->product->refresh();
+                        app(InventoryStockService::class)->recordReturn(
+                            productId:     $item->product->id,
+                            qtyReturned:   (float) $item->in_stock_quantity,
+                            orderId:       $order->id,
+                            performedBy:   auth()->id(),
+                            referenceType: 'order',
+                        );
                     }  
                     
                     // Proportional share of the actual amount being refunded (using KES values for accurate math)
@@ -3197,6 +3265,14 @@ class OrderController extends Controller
                         $item->product->decrement('stock_quantity', $item->quantity_returned);
                         $alreadyReserved = $item->quantity_returned;
                         if ($item->product->stock_quantity <= 0) $item->product->update(['in_stock' => false]);
+                        $item->product->refresh();
+                        app(InventoryStockService::class)->recordSale(
+                            productId:     $item->product->id,
+                            qtySold:       (float) $item->quantity_returned,
+                            orderId:       $order->id,
+                            performedBy:   auth()->id(),
+                            referenceType: 'order',
+                        );
                     }
 
                     $item->update(['refund_amount' => 0, 'quantity_returned' => 0, 'return_status' => 'none']);
@@ -3219,6 +3295,15 @@ class OrderController extends Controller
                     }
                     $item->product->decrement('stock_quantity', $required);
                     if ($item->product->stock_quantity <= 0) $item->product->update(['in_stock' => false]);
+
+                    $item->product->refresh();
+                    app(InventoryStockService::class)->recordSale(
+                        productId:     $item->product->id,
+                        qtySold:       $required,
+                        orderId:       $order->id,
+                        performedBy:   auth()->id(),
+                        referenceType: 'order',
+                    );
                 }
             }
 
@@ -3342,6 +3427,14 @@ class OrderController extends Controller
                                     'stock_quantity' => $newStock,
                                     'in_stock'       => $newStock > 0,
                                 ]);
+                                $item->product->refresh();
+                                app(InventoryStockService::class)->recordReturn(
+                                    productId:     $item->product->id,
+                                    qtyReturned:   $inStockQty,
+                                    orderId:       $order->id,
+                                    performedBy:   auth()->id(),
+                                    referenceType: 'order',
+                                );
                             }
                         }
                     }
@@ -3493,6 +3586,14 @@ class OrderController extends Controller
                                     'stock_quantity' => $newStock,
                                     'in_stock'       => $newStock > 0,
                                 ]);
+                                $item->product->refresh();
+                                app(InventoryStockService::class)->recordSale(
+                                    productId:     $item->product->id,
+                                    qtySold:       $inStockQty,
+                                    orderId:       $order->id,
+                                    performedBy:   auth()->id(),
+                                    referenceType: 'order',
+                                );
                             }
                         }
 
@@ -3728,10 +3829,22 @@ class OrderController extends Controller
             ]);
 
             if (!$isCustom && $product) {
-                if (($itemData['in_stock_quantity'] ?? 0) > 0) {
-                    $product->decrement('stock_quantity', $itemData['in_stock_quantity']);
+                $inStockQty = (float) ($itemData['in_stock_quantity'] ?? 0);
+
+                if ($inStockQty > 0) {
+                    $product->decrement('stock_quantity', $inStockQty);
                     if ($product->stock_quantity <= 0) $product->update(['in_stock' => false]);
+
+                    $product->refresh();
+                    app(InventoryStockService::class)->recordSale(
+                        productId:     $product->id,
+                        qtySold:       $inStockQty,
+                        orderId:       $orderId,
+                        performedBy:   auth()->id(),
+                        referenceType: 'order',
+                    );
                 }
+
                 if ($incrementPurchaseCount) {
                     $product->increment('purchase_count', $itemData['quantity']);
                 }
