@@ -54,6 +54,7 @@ const SUBTYPE_LABELS = {
   order:        'Order',
   quoteRequest: 'Quote Req.',
   ticket:       'Ticket',
+  booking:      'Booking', 
 };
 
 // ── Flatten all data sources into event objects ───────────────────────────────
@@ -79,6 +80,33 @@ function buildEvents(data) {
 
   // Activity — placed on updated_at
   (data.activity ?? []).forEach(item => item.updated_at && events.push({ date: toYMD(item.updated_at), label: item.reference, url: item.url, source: 'activity', subtype: item.type, status: item.status, priority: null }));
+
+  // Bookings — placed on scheduled_date
+  // Deadlines bookings — placed on scheduled_at
+  (dl.bookings ?? []).forEach(b =>
+    b.deadline && events.push({
+      date:     toYMD(b.deadline),
+      label:    b.label,
+      url:      b.url,
+      source:   'deadline',
+      subtype:  'booking',
+      status:   b.status,
+      priority: null,
+    })
+  );
+
+  // Unassigned bookings — placed on scheduled_at
+  (ua.bookings ?? []).forEach(b =>
+    b.scheduled_at && events.push({
+      date:     toYMD(b.scheduled_at),
+      label:    b.booking_number,
+      url:      `/admin/bookings/${b.id}`,
+      source:   'unassigned',
+      subtype:  'booking',
+      status:   b.status,
+      priority: null,
+    })
+  );
 
   return events;
 }

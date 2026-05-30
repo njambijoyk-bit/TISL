@@ -17,6 +17,8 @@ use App\Models\ProjectTask;
 use App\Models\ProjectMilestone;
 use App\Models\User;
 use App\Models\Ticket;
+use App\Models\Booking;
+use App\Models\BookingStaff;
 
 class WorkController extends Controller
 {
@@ -186,6 +188,30 @@ class WorkController extends Controller
             ->limit(20)
             ->get();
 
+        // ── Bookings ───────────────
+        $bookings = BookingStaff::with(['booking' => function ($q) {
+                $q->with(['customer:id,first_name,last_name'])
+                ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id');
+            }])
+            ->where('user_id', $uid)
+            ->whereHas('booking', fn ($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
+            ->orderBy('assigned_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(fn ($bs) => [
+                'id'             => $bs->booking->id,
+                'booking_number' => $bs->booking->booking_number,
+                'status'         => $bs->booking->status,
+                'scheduled_at' => $bs->booking->scheduled_at,
+                'role'           => $bs->role,
+                'staff_status'   => $bs->status,
+                'assigned_at'    => $bs->assigned_at,
+                'customer'       => $bs->booking->customer
+                    ? trim("{$bs->booking->customer->first_name} {$bs->booking->customer->last_name}")
+                    : null,
+                'url'            => "/admin/bookings/{$bs->booking->id}",
+            ]);
+
         // ── Tickets ────────────────
         $tickets = Ticket::with(['customer:id,first_name,last_name'])
             ->where('assigned_to', $uid)
@@ -204,6 +230,7 @@ class WorkController extends Controller
             'projects'      => $projects,
             'tasks'         => $tasks,
             'milestones'    => $milestones,
+            'bookings'      => $bookings,  
             'tickets'       => $tickets,
             'counts' => [
                 'customers'     => $customers->count(),
@@ -214,6 +241,7 @@ class WorkController extends Controller
                 'tasks'         => $tasks->count(),
                 'milestones'    => $milestones->count(),
                 'tickets'       => $tickets->count(),
+                'bookings'      => $bookings->count(),
             ],
         ];
     }
@@ -430,6 +458,13 @@ class WorkController extends Controller
             ->groupBy('assigned_to')
             ->pluck('count', 'user_id');
 
+        // Booking staff counts per staff member
+        $bookingCounts = BookingStaff::whereIn('user_id', $staffIds)
+            ->whereHas('booking', fn ($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
+            ->selectRaw('user_id, COUNT(*) as count')
+            ->groupBy('user_id')
+            ->pluck('count', 'user_id');
+
         // ── Projects: owned + participant (two queries, not N) ───────────────
 
         $ownedProjects = Project::whereIn('owner_admin_id', $staffIds)
@@ -471,7 +506,7 @@ class WorkController extends Controller
 
         return $staff->map(function (User $u) use (
             $customerCounts, $orderCounts, $quoteCounts, $quoteRequestCounts,
-            $taskCounts, $ticketCounts, $projectIdsByUser, $milestoneCounts, $employees
+            $taskCounts, $bookingCounts, $ticketCounts, $projectIdsByUser, $milestoneCounts, $employees
         ) {
             $myProjectIds = $projectIdsByUser[$u->id] ?? [];
 
@@ -490,6 +525,7 @@ class WorkController extends Controller
                     'tasks'         => $taskCounts->get($u->id, 0),
                     'milestones'    => $milestoneCount,
                     'tickets'       => $ticketCounts->get($u->id, 0),
+                    'bookings'      => $bookingCounts->get($u->id, 0), 
                 ],
             ];
         })->toArray();
@@ -529,6 +565,14 @@ class WorkController extends Controller
             ->limit(20)
             ->get();
 
+        $bookings = Booking::doesntHave('staff')
+            ->whereNotIn('status', ['completed', 'cancelled', 'no_show'])
+            ->with(['customer:id,first_name,last_name'])
+            ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id', 'created_at')
+            ->orderBy('scheduled_at')
+            ->limit(20)
+            ->get();
+
         // Unassigned tickets (open/in_progress only)
         $tickets = Ticket::whereNull('assigned_to')
             ->whereNotIn('status', ['resolved', 'closed'])
@@ -544,12 +588,14 @@ class WorkController extends Controller
             'quotes'        => $quotes,
             'quoteRequests' => $quoteRequests,
             'tasks'         => $tasks,
+            'bookings'      => $bookings,  
             'tickets'       => $tickets,
             'counts' => [
                 'orders'        => $orders->count(),
                 'quotes'        => $quotes->count(),
                 'quoteRequests' => $quoteRequests->count(),
                 'tasks'         => $tasks->count(),
+                'bookings'      => $bookings->count(), 
                 'tickets'       => $tickets->count(),
             ],
         ];
@@ -638,11 +684,31 @@ class WorkController extends Controller
                 'assignedTo' => $t->assignedTo?->name,
                 'url'        => "/admin/projects/{$t->project_id}",
             ]);
+        
+                $bookings = Booking::with(['customer:id,first_name,last_name'])
+                    ->whereBetween('scheduled_at', [$now, $soon])
+                    ->whereNotIn('status', ['completed', 'cancelled', 'no_show'])
+                    ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id')
+                    ->orderBy('scheduled_at')
+                    ->limit(30)
+                    ->get()
+                    ->map(fn($b) => [
+                        'type'     => 'booking',
+                        'id'       => $b->id,
+                        'label'    => $b->booking_number,
+                        'deadline' => $b->scheduled_at,
+                        'status'   => $b->status,
+                        'customer' => $b->customer
+                            ? trim("{$b->customer->first_name} {$b->customer->last_name}")
+                            : null,
+                        'url'      => "/admin/bookings/{$b->id}",
+                    ]);
 
         return [
             'projects'   => $projects,
             'quotes'     => $quotes,
             'milestones' => $milestones,
+            'bookings'   => $bookings,
             'tasks'      => $tasks,
         ];
     }

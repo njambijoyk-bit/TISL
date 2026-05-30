@@ -2885,6 +2885,29 @@ export default function Reports() {
                   </div>
                 </Panel>
 
+                {/* Top referral codes */}
+                {promos.top_by_revenue?.filter(r => r.type === 'customer_referral').length > 0 && (
+                  <Panel style={{ gridColumn: '1/-1' }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>🏆 Top Referrers by Revenue Generated</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16 }}>Customers whose referral codes drove the most order revenue</div>
+                    <RankedTable
+                      rows={promos.top_by_revenue.filter(r => r.type === 'customer_referral')}
+                      columns={[
+                        { label: '#  Code', key: 'code', render: r => <Pill color="#3b82f6">{r.code}</Pill> },
+                        { label: 'Customer / Name', key: 'name', render: r => r.name || '—' },
+                        { label: 'Referrals', key: 'uses', right: true, render: r => fmtNum(r.uses) },
+                        { label: 'Discount Given', key: 'discount_given', right: true, render: r => fmtKES(r.discount_given), color: () => '#ef4444' },
+                        { label: 'Revenue', key: 'revenue', right: true, bold: true, render: r => fmtKES(r.revenue), color: () => '#059669' },
+                      ]}
+                    />
+                  </Panel>
+                )}
+              </div>   
+            )}         
+          </div>       
+        </div>        
+      )}               
+
       {/* ══════════════ SYSTEM TAB ══════════════════════════════════════════ */}
       {activeTab === 'system' && (
         <div className="report-section">
@@ -2945,8 +2968,8 @@ export default function Reports() {
               <Panel accent>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Hamper Insights — {periodLabel}</div>
                 <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                   <StatCard label="Orders" value={extras.hampers.period_orders} Icon={Package} accent={purple} />
-                   <StatCard label="Revenue" value={fmtKES(extras.hampers.period_revenue)} Icon={DollarSign} accent="#059669" />
+                  <StatCard label="Orders" value={extras.hampers.period_orders} Icon={Package} accent={purple} />
+                  <StatCard label="Revenue" value={fmtKES(extras.hampers.period_revenue)} Icon={DollarSign} accent="#059669" />
                 </div>
                 <SectionLabel Icon={TrendingUp}>Top Hampers</SectionLabel>
                 {(extras.hampers.top_hampers || []).map((h, i) => (
@@ -2957,8 +2980,8 @@ export default function Reports() {
               <Panel>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 16 }}>Booking Volume — {periodLabel}</div>
                 <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                   <StatCard label="Service Revenue" value={fmtKES(extras.bookings.service_revenue)} Icon={Wrench} accent="#3b82f6" />
-                   <StatCard label="Placed" value={extras.bookings.period_placed} Icon={Calendar} accent={purple} />
+                  <StatCard label="Service Revenue" value={fmtKES(extras.bookings.service_revenue)} Icon={Wrench} accent="#3b82f6" />
+                  <StatCard label="Placed" value={extras.bookings.period_placed} Icon={Calendar} accent={purple} />
                 </div>
                 <SectionLabel Icon={Activity}>Status Breakdown</SectionLabel>
                 {Object.entries(extras.bookings.status_dist || {}).map(([status, count]) => (
@@ -2973,28 +2996,6 @@ export default function Reports() {
         </div>
       )}
 
-                {/* Top referral codes */}
-                {promos.top_by_revenue?.filter(r => r.type === 'customer_referral').length > 0 && (
-                  <Panel style={{ gridColumn: '1/-1' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>🏆 Top Referrers by Revenue Generated</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16 }}>Customers whose referral codes drove the most order revenue</div>
-                    <RankedTable
-                      rows={promos.top_by_revenue.filter(r => r.type === 'customer_referral')}
-                      columns={[
-                        { label: '#  Code', key: 'code', render: r => <Pill color="#3b82f6">{r.code}</Pill> },
-                        { label: 'Customer / Name', key: 'name', render: r => r.name || '—' },
-                        { label: 'Referrals', key: 'uses', right: true, render: r => fmtNum(r.uses) },
-                        { label: 'Discount Given', key: 'discount_given', right: true, render: r => fmtKES(r.discount_given), color: () => '#ef4444' },
-                        { label: 'Revenue', key: 'revenue', right: true, bold: true, render: r => fmtKES(r.revenue), color: () => '#059669' },
-                      ]}
-                    />
-                  </Panel>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </AdminLayout>
   );
 }

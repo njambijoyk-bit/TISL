@@ -83,26 +83,39 @@ const AdminWorksheetForm = () => {
       if (isNew) {
         const res = await bookingsAPI.createWorksheet(id, form);
         toast.success('Worksheet created');
-        navigate(`/admin/bookings/${id}/worksheets/${res.worksheet?.id}`, { replace: true });
         setWorksheet(res.worksheet);
+        navigate(`/admin/bookings/${id}/worksheets/${res.worksheet?.id}`, { replace: true });
+        return res.worksheet; // ← return it
       } else {
         const res = await bookingsAPI.updateWorksheet(id, wsId, form);
         setWorksheet(res.worksheet ?? worksheet);
         toast.success('Saved');
+        return res.worksheet ?? worksheet; // ← return it
       }
-    } catch (e) { toast.error(e?.response?.data?.message ?? 'Save failed'); }
-    finally { setSaving(false); }
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? 'Save failed');
+      return null; // ← return null on failure
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      if (isNew || !worksheet) { await handleSave(); }
-      await bookingsAPI.submitWorksheet(id, worksheet?.id ?? wsId);
+      let ws = worksheet;
+      if (isNew || !worksheet) {
+        ws = await handleSave(); // ← use returned value directly
+        if (!ws) return;         // ← bail if save failed
+      }
+      await bookingsAPI.submitWorksheet(id, ws.id); // ← use ws.id, not worksheet?.id ?? wsId
       toast.success('Worksheet submitted for approval');
       navigate(`/admin/bookings/${id}`);
-    } catch (e) { toast.error(e?.response?.data?.message ?? 'Submit failed'); }
-    finally { setSubmitting(false); }
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? 'Submit failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -227,19 +240,23 @@ const AdminWorksheetForm = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '14px 18px' }}>
             <label style={labelStyle}>Currency</label>
-            <select value={form.currency_code} onChange={e => set('currency_code', e.target.value)}
-              disabled={isReadOnly}
-              style={{ ...inputStyle, cursor: isReadOnly ? 'not-allowed' : 'pointer', background: isReadOnly ? 'rgba(168,85,247,0.02)' : undefined }}>
-              {currencies.length
-                ? currencies.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)
-                : <option value="KES">KES — Kenyan Shilling</option>
-              }
+            <select
+              value="KES"
+              disabled
+              style={{ ...inputStyle, cursor: 'not-allowed', opacity: 0.6, background: 'rgba(168,85,247,0.02)' }}
+            >
+              <option value="KES">KES — Kenyan Shilling</option>
             </select>
-            {worksheet?.exchange_rate_to_kes && form.currency_code !== 'KES' && (
-              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '5px 0 0' }}>
-                Rate snapshot: 1 {worksheet.currency_code} = {parseFloat(worksheet.exchange_rate_to_kes).toFixed(4)} KES
-              </p>
-            )}
+            <p style={{
+              fontSize: '0.62rem', margin: '6px 0 0',
+              padding: '3px 8px', borderRadius: 6,
+              background: 'rgba(234,179,8,0.08)',
+              border: '1px solid rgba(234,179,8,0.2)',
+              color: '#92400e', fontWeight: 600,
+              display: 'inline-block',
+            }}>
+              🚧 Multi-currency coming soon
+            </p>
           </div>
 
           {worksheet && (
@@ -260,7 +277,18 @@ const AdminWorksheetForm = () => {
 
         {/* Work summary */}
         <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: 0 }}>Work Summary</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: 0 }}>Work Summary</p>
+            {!isDraft && (
+              <span style={{
+                fontSize: '0.65rem', fontWeight: 600, padding: '3px 10px', borderRadius: 6,
+                background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)',
+                color: '#92400e',
+              }}>
+                🔒 {worksheet?.status === 'approved' ? 'Approved' : 'Submitted'} — read only, changes made will not update
+              </span>
+            )}
+          </div>
           <div>
             <label style={labelStyle}>Findings / Description</label>
             <textarea rows={3} value={form.findings} onChange={e => set('findings', e.target.value)}
@@ -296,9 +324,10 @@ const AdminWorksheetForm = () => {
         </div>
 
         {/* Items */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px', overflowX: 'scroll', WebkitOverflowScrolling: 'touch' }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 14px' }}>Materials & Items Used</p>
           {worksheet ? (
+            <div style={{ minWidth: 600 }}>
             <WorksheetItemsTable
               items={worksheet.items ?? []}
               currencyCode={worksheet.currency_code}
@@ -310,6 +339,7 @@ const AdminWorksheetForm = () => {
               onReorder={handleReorder}
               productsAPI={productsAPI}
             />
+            </div>
           ) : (
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, textAlign: 'center', padding: '20px 0' }}>
               Save the worksheet first to start adding items.

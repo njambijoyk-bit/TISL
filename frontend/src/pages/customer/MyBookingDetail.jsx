@@ -59,7 +59,7 @@ const MyBookingDetail = () => {
   if (!booking) return null;
 
   const time    = booking.scheduled_at ? new Date(booking.scheduled_at).toLocaleString('en-KE') : 'To be confirmed';
-  const approvedWs = booking.worksheets?.find(ws => ws.status === 'approved');
+  const approvedWorksheets = booking.worksheets?.filter(ws => ws.status === 'approved') ?? [];
   const fmt = (n, code) => `${code ?? 'KES'} ${parseFloat(n ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
 
   return (
@@ -144,9 +144,8 @@ const MyBookingDetail = () => {
           </Card>
         )}
 
-        {/* Approved worksheet — customer view */}
-        {approvedWs && (
-          <Card title="Service Report" icon={FileText}>
+        {approvedWorksheets.map((approvedWs, wsIdx) => (
+          <Card key={approvedWs.id} title={approvedWorksheets.length > 1 ? `Service Report #${wsIdx + 1}` : 'Service Report'} icon={FileText}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {approvedWs.findings && (
                 <div>
@@ -181,7 +180,7 @@ const MyBookingDetail = () => {
               </p>
             </div>
           </Card>
-        )}
+        ))}
 
         {/* Cancel */}
         {['pending','confirmed'].includes(booking.status) && (

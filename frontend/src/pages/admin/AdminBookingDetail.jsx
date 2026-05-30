@@ -166,12 +166,6 @@ const AdminBookingDetail = () => {
               <button onClick={fetchBooking} style={{ padding: '7px 12px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 600 }}>
                 <RefreshCw size={12} /> Refresh
               </button>
-              {booking.status === 'pending' && (
-                <button onClick={handleConfirm} disabled={confirming} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 700 }}>
-                  {confirming ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle size={12} />}
-                  Confirm
-                </button>
-              )}
               {!booking.isCancelled && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                 <button onClick={() => setShowCancelForm(p => !p)} style={{ padding: '7px 14px', borderRadius: 9, border: '1.5px solid rgba(220,38,38,0.25)', background: 'none', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 700 }}>
                   <XCircle size={12} /> Cancel
@@ -202,28 +196,26 @@ const AdminBookingDetail = () => {
         </div>
 
         {/* Status stepper */}
-        {booking.status !== 'cancelled' && booking.status !== 'no_show' && (
-          <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', marginRight: 4 }}>Set status:</span>
-            {STATUSES.map(s => (
-              <button key={s} onClick={() => handleStatusChange(s)} disabled={updatingStatus || booking.status === s}
-                style={{
-                  padding: '5px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
-                  cursor: (updatingStatus || booking.status === s) ? 'not-allowed' : 'pointer',
-                  border: `1.5px solid ${booking.status === s ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-                  background: booking.status === s ? 'rgba(168,85,247,0.08)' : 'none',
-                  color: booking.status === s ? '#7c3aed' : '#9ca3af', fontFamily: 'inherit',
-                  transition: 'all 120ms', opacity: updatingStatus ? 0.6 : 1,
-                }}>
-                {s.replace(/_/g, ' ')}
-              </button>
-            ))}
-            {updatingStatus && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />}
-          </div>
-        )}
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', marginRight: 4 }}>Set status:</span>
+          {STATUSES.map(s => (
+            <button key={s} onClick={() => handleStatusChange(s)} disabled={updatingStatus || booking.status === s}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+                cursor: (updatingStatus || booking.status === s) ? 'not-allowed' : 'pointer',
+                border: `1.5px solid ${booking.status === s ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
+                background: booking.status === s ? 'rgba(168,85,247,0.08)' : 'none',
+                color: booking.status === s ? '#7c3aed' : '#9ca3af', fontFamily: 'inherit',
+                transition: 'all 120ms', opacity: updatingStatus ? 0.6 : 1,
+              }}>
+              {s.replace(/_/g, ' ')}
+            </button>
+          ))}
+          {updatingStatus && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />}
+        </div>
 
         {/* Main grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+        <div className="booking-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
           {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -355,22 +347,6 @@ const AdminBookingDetail = () => {
               </div>
             </Section>
 
-            {/* Policy acceptance */}
-            <Section title="Legal" icon={FileText}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {booking.policy_accepted
-                    ? <CheckCircle size={15} style={{ color: '#16a34a', flexShrink: 0 }} />
-                    : <XCircle    size={15} style={{ color: '#9ca3af', flexShrink: 0 }} />}
-                  <span style={{ fontSize: '0.78rem', color: booking.policy_accepted ? '#16a34a' : '#9ca3af', fontWeight: 600 }}>
-                    {booking.policy_accepted ? 'Policy accepted' : 'Policy not accepted'}
-                  </span>
-                </div>
-                {booking.policy_accepted_at && <Field label="Accepted at" value={new Date(booking.policy_accepted_at).toLocaleString('en-KE')} />}
-                {booking.policy_version     && <Field label="Policy version" value={booking.policy_version} mono />}
-              </div>
-            </Section>
-
             {/* Activity log */}
             <Section title="Activity" icon={Activity}>
               {!booking.activity_logs?.length ? (
@@ -396,7 +372,14 @@ const AdminBookingDetail = () => {
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .booking-detail-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
 
       {showStaff && (
         <StaffAssignModal

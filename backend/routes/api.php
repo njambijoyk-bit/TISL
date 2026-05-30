@@ -774,6 +774,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('tickets',      [ReportsController::class, 'tickets']);
             Route::get('promos',       [ReportsController::class, 'promos']);
             Route::get('summary',      [ReportsController::class, 'summary']);
+            Route::get('system',       [ReportsController::class, 'system']);
+            Route::get('extras',       [ReportsController::class, 'extras']);
         });
 
         Route::prefix('tickets')->group(function () {

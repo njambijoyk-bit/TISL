@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Briefcase, Users, ShoppingBag, FileText, FolderOpen,
   MessageSquareQuote, AlertTriangle, CalendarClock, Activity,
-  ArrowRight, Loader2, RefreshCw, Bell,
+  ArrowRight, Loader2, RefreshCw, Bell, Calendar,
   CheckSquare, Milestone, Ticket,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -106,6 +106,7 @@ const TYPE_ICON_META = {
   task:          { accent: '#0d9488', bg: 'rgba(13,148,136,0.1)',  Icon: CheckSquare        },
   milestone:     { accent: '#4338ca', bg: 'rgba(67,56,202,0.1)',   Icon: Milestone          },
   ticket:        { accent: '#0891b2', bg: 'rgba(8,145,178,0.1)',   Icon: Ticket             },
+  booking:       { accent: '#db2777', bg: 'rgba(219,39,119,0.1)',  Icon: Calendar           },
 };
 
 function TypeIcon({ type }) {
@@ -175,6 +176,12 @@ const STATUS_COLORS = {
   on_hold:          { bg: 'rgba(234,88,12,0.1)',   color: '#9a3412' },
   open:             { bg: 'rgba(234,179,8,0.1)',   color: '#854d0e' },
   waiting_customer: { bg: 'rgba(234,88,12,0.1)',   color: '#9a3412' },
+  confirmed:        { bg: 'rgba(16,185,129,0.1)',  color: '#065f46' },
+  assigned:         { bg: 'rgba(37,99,235,0.1)',   color: '#1e40af' },
+  accepted:         { bg: 'rgba(5,150,105,0.1)',   color: '#065f46' },
+  declined:         { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c' },
+  cancelled:        { bg: 'rgba(107,114,128,0.1)', color: '#4b5563' },
+  no_show:          { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c' },
 };
 
 function StatusPill({ status }) {
@@ -301,6 +308,7 @@ export default function Work() {
     (data?.unassigned?.counts?.quotes        || 0) +
     (data?.unassigned?.counts?.quoteRequests || 0) +
     (data?.unassigned?.counts?.tasks         || 0) +
+    (data?.unassigned?.counts?.bookings      || 0);+
     (data?.unassigned?.counts?.tickets       || 0);
 
   const STAT_CARDS = [
@@ -514,6 +522,7 @@ export default function Work() {
                                 <LoadPill icon={CheckSquare}        label="Tasks"      value={member.counts.tasks}         color="teal"   />
                                 <LoadPill icon={Milestone}          label="Milestones" value={member.counts.milestones}    color="indigo" />
                                 <LoadPill icon={Ticket}             label="Tickets"    value={member.counts.tickets}       color="cyan"   />
+                                <LoadPill icon={Calendar}           label="Bookings"   value={member.counts.bookings}      color="pink"   /> 
                               </div>
                             </div>
 
@@ -597,6 +606,28 @@ export default function Work() {
                       ) : <EmptyState icon={MessageSquareQuote} message="No unassigned quote requests" positive />}
                     </Section>
 
+                    <Section title={`Unassigned Bookings (${data?.unassigned?.counts?.bookings || 0})`} icon={Calendar} alert={data?.unassigned?.counts?.bookings > 0}>
+                      {data?.unassigned?.bookings?.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {data.unassigned.bookings.map((b, idx) => (
+                            <Row key={idx} to={`/admin/bookings/${b.id}`}>
+                              <TypeIcon type="booking" />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <RowTitle>{b.booking_number}</RowTitle>
+                                <RowSub>
+                                  {b.customer ? `${b.customer.first_name} ${b.customer.last_name}` : 'Unknown customer'}
+                                  {b.scheduled_at && ` · ${fmtDate(b.scheduled_at)}`}
+                                </RowSub>
+                              </div>
+                              <StatusPill status={b.status} />
+                              <span style={{ fontSize: '0.72rem', color: '#9ca3af', flexShrink: 0 }}>{fmtDate(b.created_at)}</span>
+                              <ArrowRight size={13} style={{ color: '#c4b5fd', flexShrink: 0 }} />
+                            </Row>
+                          ))}
+                        </div>
+                      ) : <EmptyState icon={Calendar} message="No unassigned bookings" positive />}
+                    </Section>
+
                     <Section title={`Unassigned Tasks (${data?.unassigned?.counts?.tasks || 0})`} icon={CheckSquare} alert={data?.unassigned?.counts?.tasks > 0}>
                       {data?.unassigned?.tasks?.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -670,6 +701,28 @@ export default function Work() {
                           })}
                         </div>
                       ) : <EmptyState icon={FolderOpen} message="No project deadlines in the next 30 days" positive />}
+                    </Section>
+
+                    <Section title={`Upcoming Bookings (${data?.deadlines?.bookings?.length || 0})`} icon={Calendar}>
+                      {data?.deadlines?.bookings?.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {data.deadlines.bookings.map((b, idx) => {
+                            const days = daysUntil(b.deadline);
+                            return (
+                              <Row key={idx} to={b.url}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: urgencyDotColor(days) }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <RowTitle>{b.label}</RowTitle>
+                                  <RowSub>{b.customer || 'Unknown customer'}</RowSub>
+                                </div>
+                                <StatusPill status={b.status} />
+                                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: urgencyColor(days), flexShrink: 0 }}>{days}d</span>
+                                <ArrowRight size={13} style={{ color: '#c4b5fd', flexShrink: 0 }} />
+                              </Row>
+                            );
+                          })}
+                        </div>
+                      ) : <EmptyState icon={Calendar} message="No bookings scheduled in the next 30 days" positive />}
                     </Section>
 
                     <Section title={`Milestones (${data?.deadlines?.milestones?.length || 0})`} icon={Milestone}>

@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
   MessageSquareQuote, ArrowRight, CalendarClock, Bell,
-  ChevronDown, ChevronUp, Users, Star, Ticket, Camera,
+  ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
@@ -77,7 +77,8 @@ export default function AdminProfile() {
   const [loading,   setLoading]   = useState(true);
 
   const [assignments, setAssignments] = useState({
-    customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {},
+    customers: [], orders: [], quotes: [], quoteRequests: [],
+    projects: [], tasks: [], milestones: [], tickets: [], bookings: [], counts: {},
   });
   const [deadlines, setDeadlines] = useState({ projects: [], quotes: [], milestones: [], tasks: [], tickets: [] });
   const [activity,  setActivity]  = useState([]);
@@ -90,6 +91,7 @@ export default function AdminProfile() {
     quotes:    false,
     quoteRequests: false,
     tickets:   false,
+    bookings:  false,
   });
 
   // Password
@@ -541,6 +543,42 @@ export default function AdminProfile() {
                     ),
                   },
                   {
+                    key: 'bookings',
+                    label: 'My Bookings',
+                    count: assignments.counts?.bookings || 0,
+                    icon: Calendar,
+                    color: '#db2777',
+                    colorBg: '#fdf2f8',
+                    items: assignments.bookings,
+                    emptyMsg: 'No bookings assigned to you yet',
+                    renderItem: (b, idx) => (
+                      <Link key={idx} to={b.url} style={rowStyle}>
+                        <Avatar icon={Calendar} color="#fdf2f8" textColor="#db2777" />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={rowTitle}>{b.booking_number}</p>
+                          <p style={rowSub}>{b.customer || 'Unknown customer'}</p>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <StatusBadge status={b.status} />
+                          {b.scheduled_at && (
+                            <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                              {fmtDate(b.scheduled_at)}
+                            </p>
+                          )}
+                        </div>
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: 600, flexShrink: 0,
+                          padding: '2px 7px', borderRadius: 99,
+                          background: b.role === 'lead' ? '#fdf2f8' : '#f3f4f6',
+                          color: b.role === 'lead' ? '#db2777' : '#6b7280',
+                        }}>
+                          {b.role}
+                        </span>
+                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                      </Link>
+                    ),
+                  },
+                  {
                     key: 'tickets',
                     label: 'Assigned Tickets',
                     count: assignments.counts?.tickets || 0,
@@ -893,6 +931,7 @@ export default function AdminProfile() {
                 { label: 'Orders',         value: assignments.counts?.orders        || 0 },
                 { label: 'Quotes',         value: assignments.counts?.quotes        || 0 },
                 { label: 'Quote Requests', value: assignments.counts?.quoteRequests || 0 },
+                { label: 'Bookings',       value: assignments.counts?.bookings      || 0 },
                 { label: 'Tickets',        value: assignments.counts?.tickets       || 0 },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: '0.78rem' }}>
@@ -1001,6 +1040,8 @@ function StatusBadge({ status }) {
     waiting_customer: { bg: '#ffedd5', color: '#9a3412' },
     resolved:         { bg: '#dcfce7', color: '#166534' },
     closed:           { bg: '#f3f4f6', color: '#6b7280' },
+    confirmed:        { bg: '#dcfce7', color: '#166534' },
+    no_show:          { bg: '#fee2e2', color: '#991b1b' },
   };
   const style = map[status] ?? { bg: '#f3f4f6', color: '#6b7280' };
   return (

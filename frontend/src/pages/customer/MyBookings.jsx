@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock, MapPin, Loader2, ChevronRight } from 'lucide-react';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
+import Header from '../../components/layout/Header';
 import { bookingsAPI } from '../../api';
 import toast from 'react-hot-toast';
 
@@ -22,22 +23,33 @@ const MyBookings = () => {
   const [pagination, setPagination] = useState(null);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const params = { per_page: 12, page, ...(tab ? { status: tab } : {}) };
+        const params = { per_page: 100, page, ...(tab ? { status: tab } : {}) };
         const res = await bookingsAPI.getCustomerBookings(params);
-        setBookings(res.data ?? res ?? []);
-        setPagination({ current_page: res.current_page, last_page: res.last_page, total: res.total });
+
+        // Laravel paginator: { data: [...], current_page, last_page, total }
+        const list = Array.isArray(res) ? res : (res.data ?? []);
+
+        // Client-side filter as fallback in case API ignores status param
+        const filtered = tab ? list.filter(b => b.status === tab) : list;
+
+        setBookings(filtered);
+        setPagination({
+          current_page: res.current_page ?? 1,
+          last_page:    res.last_page    ?? 1,
+          total:        res.total        ?? filtered.length,
+        });
       } catch { toast.error('Failed to load bookings'); }
       finally { setLoading(false); }
     };
-    fetch();
+    fetchData();
   }, [tab, page]);
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '32px 16px 60px', fontFamily: 'inherit' }}>
-
+    <Header />
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', margin: '0 0 4px' }}>My Bookings</h1>

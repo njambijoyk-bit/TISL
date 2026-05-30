@@ -11,6 +11,7 @@ use App\Models\CustomerTier;
 use App\Models\CustomerTypeDiscount;
 use App\Models\Currency;
 use App\Models\Hamper;
+use App\Models\HamperOrder;
 use App\Models\LoyaltyPointTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -1172,20 +1173,85 @@ class ReportsController extends Controller
         $duePoints = LoyaltyPointTransaction::due()->count();
 
         return response()->json([
-            'tiers' => $tiers,
-            'types' => $types,
-            'shipping_options' => $shippingOptions,
+            'tiers'              => $tiers,
+            'types'              => $types,
+            'shipping_options'   => $shippingOptions,
             'customer_breakdown' => [
                 'tiers' => $customerBreakdown,
                 'types' => $typeBreakdown,
             ],
             'ledger' => [
-                'total_transactions' => (int) ($ledgerSummary->total_transactions ?? 0),
-                'points_earned'      => (int) ($ledgerSummary->points_earned ?? 0),
-                'points_redeemed'     => (int) ($ledgerSummary->points_redeemed ?? 0),
-                'redemption_count'    => (int) ($ledgerSummary->redemption_count ?? 0),
-                'expiry_count'        => (int) ($ledgerSummary->expiry_count ?? 0),
-                'admin_grants'
-                ]);
+                'total_transactions'  => (int)   ($ledgerSummary->total_transactions ?? 0),
+                'points_earned'       => (int)   ($ledgerSummary->points_earned      ?? 0),
+                'points_redeemed'     => (int)   ($ledgerSummary->points_redeemed    ?? 0),
+                'redemption_count'    => (int)   ($ledgerSummary->redemption_count   ?? 0),
+                'expiry_count'        => (int)   ($ledgerSummary->expiry_count       ?? 0),
+                'admin_grants'        => (int)   ($ledgerSummary->admin_grants       ?? 0),
+                'admin_deductions'    => (int)   ($ledgerSummary->admin_deductions   ?? 0),
+                'active_points'       => (int)   ($ledgerSummary->active_points      ?? 0),
+                'recent_redemptions'  => (int)   $recentRedemptions,
+                'due_points'          => (int)   $duePoints,
+            ],
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // GET /admin/reports/extras
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function extras(Request $request): JsonResponse
+    {
+        [$start, $end] = $this->periodDates($request);
+
+        // ── Hampers ──────────────────────────────────────────────────────────
+        // HamperOrder is the transaction record — it has its own total, hamper_id, status, etc.
+        $hamperOrders = HamperOrder::whereBetween('created_at', [$start, $end])->get();
+
+        $periodRevenue = $hamperOrders->sum(fn ($ho) => (float) ($ho->total ?? 0));
+
+        $topHampers = $hamperOrders
+            ->groupBy('hamper_id')
+            ->map(function ($group) {
+                $first = $group->first();
+                $hamper = Hamper::find($first->hamper_id);
+                return [
+                    'id'      => $first->hamper_id,
+                    'name'    => $hamper?->name ?? ($first->hamper_snapshot['name'] ?? 'Unknown'),
+                    'count'   => $group->count(),
+                    'revenue' => round($group->sum(fn ($ho) => (float) ($ho->total ?? 0)), 2),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->take(5)
+            ->values();
+
+        // ── Bookings ─────────────────────────────────────────────────────────
+        $bookings = Booking::whereBetween('created_at', [$start, $end])->get();
+
+        $statusDist = $bookings
+            ->groupBy('status')
+            ->map(fn ($g) => $g->count())
+            ->toArray();
+
+        // Service revenue comes from paid orders that contain service-type items
+        $serviceRevenue = Order::where('payment_status', 'paid')
+            ->whereBetween('paid_at', [$start, $end])
+            ->whereHas('items', fn ($q) => $q->whereIn('item_type', ['service', 'custom_service']))
+            ->withSum('items as items_sum_refund_amount', 'refund_amount')
+            ->get(['id', 'total_kes', 'total', 'currency'])
+            ->sum(fn ($o) => $this->orderNetKes($o));
+
+        return response()->json([
+            'hampers' => [
+                'period_orders'  => $hamperOrders->count(),
+                'period_revenue' => round($periodRevenue, 2),
+                'top_hampers'    => $topHampers,
+            ],
+            'bookings' => [
+                'period_placed'   => $bookings->count(),
+                'service_revenue' => round((float) $serviceRevenue, 2),
+                'status_dist'     => $statusDist,
+            ],
+        ]);
     }
 }
