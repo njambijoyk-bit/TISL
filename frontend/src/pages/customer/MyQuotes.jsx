@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock,
   Eye, AlertCircle, TrendingUp, ArrowRightCircle, CalendarX,
-  Layers, Plus, Search, X
+  Layers, Plus, Search, X, LayoutGrid, List, ChevronRight
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
@@ -143,10 +143,161 @@ function QuoteCard({ quote, onView }) {
   );
 }
 
+// ── Quote Table ───────────────────────────────────────────────────────────────
+function QuoteTable({ quotes, onView }) {
+  if (!quotes.length) return null;
+
+  return (
+    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 1px 8px rgba(168,85,247,0.06)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
+        {/* Head */}
+        <thead>
+          <tr style={{ background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+            {['Quote', 'Status', 'Validity', 'Items', 'Total', 'Action', ''].map((h, i) => (
+              <th key={i} style={{
+                textAlign: 'left', padding: '12px 16px', whiteSpace: 'nowrap',
+                fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: '#a855f7',
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {quotes.map((quote, idx) => {
+            const cfg = STATUS_CONFIG[quote.status] || STATUS_CONFIG.draft;
+            const StatusIcon = cfg.Icon;
+            const actionRequired = quote.status === 'pending' || quote.status === 'revised';
+            const isEven = idx % 2 === 0;
+
+            return (
+              <tr
+                key={quote.id}
+                onClick={() => onView(quote.id)}
+                style={{
+                  background: isEven ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.015)',
+                  borderBottom: '1px solid rgba(168,85,247,0.08)',
+                  borderLeft: `3px solid ${cfg.color}`,
+                  cursor: 'pointer', transition: 'background 150ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'rgba(168,85,247,0.015)'}
+              >
+                {/* Quote number + badges */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#a855f7' }}>
+                      {quote.quote_number}
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {quote.version > 1 && (
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', border: '1px solid rgba(168,85,247,0.2)', padding: '1px 6px', borderRadius: 9999 }}>
+                          v{quote.version}
+                        </span>
+                      )}
+                      {quote.is_negotiable && (
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', padding: '1px 6px', borderRadius: 9999 }}>
+                          Negotiable
+                        </span>
+                      )}
+                    </div>
+                    {quote.customer_notes && (
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        "{quote.customer_notes}"
+                      </span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700,
+                    background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color,
+                  }}>
+                    <StatusIcon size={10} /> {cfg.label}
+                  </span>
+                </td>
+
+                {/* Validity */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
+                    <Calendar size={11} color="#c084fc" />
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      {new Date(quote.valid_from).toLocaleDateString()} — {new Date(quote.valid_until).toLocaleDateString()}
+                    </span>
+                  </div>
+                </td>
+
+                {/* Items */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
+                    <FileText size={11} color="#c084fc" />
+                    {quote.items_count || 0} item{quote.items_count !== 1 ? 's' : ''}
+                  </div>
+                </td>
+
+                {/* Total */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#a855f7' }}>
+                      {quote.currency} {formatMoney(quote.total)}
+                    </span>
+                    {shouldShowKes(quote) && (
+                      <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                        ≈ KES {formatMoney(quote.total_kes)}
+                      </p>
+                    )}
+                  </div>
+                </td>
+
+                {/* Action required */}
+                <td style={{ padding: '12px 16px' }}>
+                  {actionRequired ? (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 8px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700,
+                      background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
+                    }}>
+                      <AlertCircle size={10} /> Review
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
+                  )}
+                </td>
+
+                {/* View button */}
+                <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => onView(quote.id)}
+                    type="button"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '6px 14px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
+                      background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                      border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(168,85,247,0.25)',
+                      whiteSpace: 'nowrap', transition: 'opacity 150ms',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  >
+                    View <ChevronRight size={12} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const MyQuotes = () => {
   const navigate = useNavigate();
-  const { quotes, loading, pagination, fetchMyQuotes } = useQuoteStore();
+  const { quotes, loading, pagination, fetchMyQuotes, quotesView, setQuotesView } = useQuoteStore();
 
   const [filter, setFilter]   = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,16 +321,11 @@ const MyQuotes = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset page when filters change
+  // Reset page when tab filter changes (NOT search — search is frontend-only)
   useEffect(() => {
     setCurrentPage(1);
     loadQuotes(1);
-  }, [filter, searchQuery]); // Add searchQuery if you want it to reset page
-
-  // Initial load
-  useEffect(() => {
-    loadQuotes(1);
-  }, []);
+  }, [filter]);
 
   const counts = {
     all:       quotes.length,
@@ -235,10 +381,43 @@ const MyQuotes = () => {
                 {quotes.length} quote{quotes.length !== 1 ? 's' : ''} total
               </p>
             </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            {/* View toggle */}
+            <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+              <button
+                type="button"
+                onClick={() => setQuotesView('card')}
+                title="Card view"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 36, cursor: 'pointer', border: 'none', transition: 'all 150ms',
+                  background: quotesView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                  color: quotesView === 'card' ? '#a855f7' : '#c084fc',
+                }}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuotesView('table')}
+                title="Table view"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 36, cursor: 'pointer', border: 'none',
+                  borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
+                  background: quotesView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                  color: quotesView === 'table' ? '#a855f7' : '#c084fc',
+                }}
+              >
+                <List size={15} />
+              </button>
+            </div>
+
             <button onClick={() => navigate('/request-quote')} type="button"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', marginBottom: 4 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
               <Plus size={16} /> Request Quote
             </button>
+          </div>
           </div>
 
           {/* ── Search bar ──────────────────────────────────────────────── */}
@@ -327,11 +506,18 @@ const MyQuotes = () => {
             )}
           </div>
         ) : (
+          quotesView === 'table' ? (
+            <QuoteTable
+              quotes={filteredQuotes}
+              onView={(id) => navigate(`/my-quotes/${id}`)}
+            />
+          ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 16 }}>
             {filteredQuotes.map(q => (
               <QuoteCard key={q.id} quote={q} onView={(id) => navigate(`/my-quotes/${id}`)} />
             ))}
           </div>
+          )
         )}
       </div>
 

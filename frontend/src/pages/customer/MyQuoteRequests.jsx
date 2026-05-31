@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Search, X, Clock, CheckCircle, XCircle, Eye, RefreshCw } from 'lucide-react';
+import { FileText, Plus, Search, X, Clock, CheckCircle, XCircle, Eye, RefreshCw, LayoutGrid, List, ChevronRight, AlertCircle, Package, Wrench, Layers, Calendar, DollarSign, User } from 'lucide-react';
 import useQuoteRequestStore from '../../store/quoteRequestStore';
 import QuoteRequestCard from '../../components/quotes/QuoteRequestCard';
 import Header from '../../components/layout/Header';
@@ -26,11 +26,240 @@ const STATUS_GUIDE = [
   { color: '#9ca3af', label: 'Expired',      desc: 'Expired without a response' },
 ];
 
+const STATUS_CFG = {
+  pending:   { color: '#f59e0b', label: 'Pending' },
+  reviewing: { color: '#3b82f6', label: 'Under Review' },
+  quoted:    { color: '#10b981', label: 'Quoted' },
+  rejected:  { color: '#ef4444', label: 'Rejected' },
+  expired:   { color: '#9ca3af', label: 'Expired' },
+};
+
+const PRIORITY_CFG = {
+  low:    { color: '#9ca3af' },
+  medium: { color: '#3b82f6' },
+  high:   { color: '#f59e0b' },
+  urgent: { color: '#ef4444' },
+};
+
+const TYPE_MAP = {
+  product:  { label: 'Product',           Icon: Package },
+  service:  { label: 'Service',           Icon: Wrench },
+  mixed:    { label: 'Product & Service', Icon: Layers },
+  not_sure: { label: 'Not Sure',          Icon: AlertCircle },
+};
+
+const formatDate = (d) => {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// ── Quote Request Table ───────────────────────────────────────────────────────
+function QuoteRequestTable({ requests, showCustomer = false }) {
+  if (!requests.length) return null;
+
+  return (
+    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 1px 8px rgba(168,85,247,0.06)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
+        {/* Head */}
+        <thead>
+          <tr style={{ background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+            {['Request', 'Status', 'Type', 'Priority', 'Date', 'Budget / Timeline', 'Flags', ''].map((h, i) => (
+              <th key={i} style={{
+                textAlign: 'left', padding: '12px 16px', whiteSpace: 'nowrap',
+                fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: '#a855f7',
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {requests.map((req, idx) => {
+            const statusCfg   = STATUS_CFG[req.status]     || { color: '#9ca3af', label: req.status };
+            const priorityCfg = req.priority ? PRIORITY_CFG[req.priority] : null;
+            const typeCfg     = TYPE_MAP[req.request_type] || { label: req.request_type, Icon: FileText };
+            const TypeIcon    = typeCfg.Icon;
+            const isEven      = idx % 2 === 0;
+
+            return (
+              <tr
+                key={req.id}
+                style={{
+                  background: isEven ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.015)',
+                  borderBottom: '1px solid rgba(168,85,247,0.08)',
+                  borderLeft: `3px solid ${statusCfg.color}`,
+                  transition: 'background 150ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'rgba(168,85,247,0.015)'}
+              >
+                {/* Request number + title + customer */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#9ca3af' }}>{req.request_number}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#a855f7', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {req.request_title}
+                    </span>
+                    {showCustomer && req.customer && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#9ca3af' }}>
+                        <User size={10} /> {req.customer.first_name} {req.customer.last_name}
+                      </div>
+                    )}
+                    {req.request_description && (
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {req.request_description}
+                      </span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700,
+                    background: `${statusCfg.color}18`, border: `1px solid ${statusCfg.color}44`, color: statusCfg.color,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: statusCfg.color }} />
+                    {req.status_label || statusCfg.label}
+                  </span>
+                </td>
+
+                {/* Type */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
+                    <TypeIcon size={12} color="#c084fc" /> {typeCfg.label}
+                  </div>
+                  {req.requested_items?.length > 0 && (
+                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                      {req.requested_items.length} item{req.requested_items.length !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </td>
+
+                {/* Priority */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  {priorityCfg ? (
+                    <span style={{
+                      fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+                      background: `${priorityCfg.color}14`, border: `1px solid ${priorityCfg.color}33`, color: priorityCfg.color,
+                    }}>
+                      {req.priority_label || req.priority}
+                    </span>
+                  ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                </td>
+
+                {/* Date */}
+                <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
+                    <Calendar size={11} color="#c084fc" />
+                    {formatDate(req.created_at)}
+                  </div>
+                </td>
+
+                {/* Budget / Timeline */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {req.budget_range ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#6b7280' }}>
+                        <DollarSign size={11} color="#c084fc" /> {req.budget_range}
+                      </div>
+                    ) : null}
+                    {req.timeline_needed ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#6b7280' }}>
+                        <Clock size={11} color="#c084fc" /> {req.timeline_needed}
+                      </div>
+                    ) : null}
+                    {!req.budget_range && !req.timeline_needed && (
+                      <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Flags */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {req.requires_clarification && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '2px 8px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700,
+                        background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <AlertCircle size={9} /> Clarification
+                      </span>
+                    )}
+                    {req.quote_id && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '2px 8px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700,
+                        background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <CheckCircle size={9} /> Quote Ready
+                      </span>
+                    )}
+                    {req.status === 'rejected' && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '2px 8px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700,
+                        background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <XCircle size={9} /> Rejected
+                      </span>
+                    )}
+                    {!req.requires_clarification && !req.quote_id && req.status !== 'rejected' && (
+                      <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Actions */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <a
+                      href={`/my-quote-requests/${req.id}`}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '6px 14px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
+                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                        border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(168,85,247,0.25)',
+                        whiteSpace: 'nowrap', textDecoration: 'none',
+                      }}
+                    >
+                      View <ChevronRight size={12} />
+                    </a>
+                    {req.quote_id && (
+                      <a
+                        href={showCustomer ? `/admin/quotes/${req.quote_id}` : `/my-quotes/${req.quote_id}`}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '5px 10px', borderRadius: 9, fontSize: '0.72rem', fontWeight: 700,
+                          background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
+                          whiteSpace: 'nowrap', textDecoration: 'none',
+                        }}
+                      >
+                        Quote <ChevronRight size={11} />
+                      </a>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const MyQuoteRequests = () => {
   const navigate = useNavigate();
   const {
     quoteRequests, pagination, loading, error,
     fetchMyQuoteRequests, setSearch, setStatus, setPage,
+    quoteRequestsView, setQuoteRequestsView,
   } = useQuoteRequestStore();
 
   const [searchTerm,   setSearchTerm]   = useState('');
@@ -96,10 +325,43 @@ const MyQuoteRequests = () => {
                 {pagination?.total ?? quoteRequests.length} request{(pagination?.total ?? quoteRequests.length) !== 1 ? 's' : ''} total
               </p>
             </div>
-            <button onClick={() => navigate('/request-quote')} type="button"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', marginBottom: 4 }}>
-              <Plus size={16} /> New Request
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              {/* View toggle */}
+              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+                <button
+                  type="button"
+                  onClick={() => setQuoteRequestsView('card')}
+                  title="Card view"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 36, height: 36, cursor: 'pointer', border: 'none', transition: 'all 150ms',
+                    background: quoteRequestsView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                    color: quoteRequestsView === 'card' ? '#a855f7' : '#c084fc',
+                  }}
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuoteRequestsView('table')}
+                  title="Table view"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 36, height: 36, cursor: 'pointer', border: 'none',
+                    borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
+                    background: quoteRequestsView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                    color: quoteRequestsView === 'table' ? '#a855f7' : '#c084fc',
+                  }}
+                >
+                  <List size={15} />
+                </button>
+              </div>
+
+              <button onClick={() => navigate('/request-quote')} type="button"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
+                <Plus size={16} /> New Request
+              </button>
+            </div>
           </div>
 
           {/* ── Search bar ──────────────────────────────────────────────── */}
@@ -198,11 +460,15 @@ const MyQuoteRequests = () => {
               {pagination?.current_page > 1 ? ` · Page ${pagination.current_page} of ${pagination.last_page}` : ''}
             </p>
 
+            {quoteRequestsView === 'table' ? (
+              <QuoteRequestTable requests={filteredRequests} showCustomer={false} />
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 420px), 1fr))', gap: 16 }}>
               {filteredRequests.map(req => (
                 <QuoteRequestCard key={req.id} request={req} showCustomer={false} />
               ))}
             </div>
+            )}
 
             {/* Pagination */}
             {pagination?.last_page > 1 && (

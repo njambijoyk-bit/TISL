@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  Users, Search, Filter, ChevronDown, ChevronUp, Percent,
   ShieldCheck, CreditCard, Star, Eye, ArrowUpDown, Gift, X,
   Building2, User, Package, Briefcase, TrendingUp, Activity,
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import CustomerDiscountModal from './CustomerDiscountModal';
 import CustomerHealthModal from './CustomerHealthModal';
 import customersAPI from '../../api/customers';
 import customerTiersAPI from '../../api/customerTiers';
@@ -48,11 +49,14 @@ const TYPE_ICONS = {
 };
 
 const SORT_FIELDS = [
-  { key: 'created_at',   label: 'Date joined'  },
-  { key: 'first_name',   label: 'Name'          },
-  { key: 'total_spent',  label: 'Total spent'   },
-  { key: 'total_orders', label: 'Orders'        },
-  { key: 'last_order_date', label: 'Last order' },
+  { key: 'created_at',          label: 'Date joined'  },
+  { key: 'first_name',          label: 'Name'          },
+  { key: 'total_spent',         label: 'Total spent'   },
+  { key: 'total_orders',        label: 'Orders'        },
+  { key: 'last_order_date',     label: 'Last order'    },
+  { key: 'discount_percentage', label: 'Personal Discount'},
+  { key: 'store_credit',        label: 'Store credit'  },
+  { key: 'loyalty_points',      label: 'Points'        },
 ];
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
@@ -188,10 +192,13 @@ export default function Customers() {
   const [page,         setPage]         = useState(1);
   const [perPage,      setPerPage]      = useState(20);
   const [loading,      setLoading]      = useState(true);
+  const [loadingMore,  setLoadingMore]  = useState(false);
+  const [loadingAll,   setLoadingAll]   = useState(false);
   const [statsLoading, setStatsLoading] = useState(true);
   const [showFilters,  setShowFilters]  = useState(false);
 
   const [showHealthModal, setShowHealthModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   // Birthdays modal
   const [showBirthdaysModal, setShowBirthdaysModal] = useState(false);
@@ -212,19 +219,48 @@ export default function Customers() {
     customerTiersAPI.getActiveTypes().then(setTypeOptions).catch(() => {});
   }, []);
 
+  const buildParams = useCallback((pg) => ({
+    page: pg, per_page: perPage, sort_by: sortBy, sort_order: sortOrder,
+    ...(search && { search }), ...(status && { status }),
+    ...(type   && { type   }), ...(tier   && { tier   }),
+  }), [perPage, sortBy, sortOrder, search, status, type, tier]);
+
+  // initial / filter-change fetch — replaces list
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
-        page, per_page: perPage, sort_by: sortBy, sort_order: sortOrder,
-        ...(search && { search }), ...(status && { status }),
-        ...(type   && { type   }), ...(tier   && { tier   }),
-      };
-      const data = await customersAPI.getAllCustomers(params);
+      const data = await customersAPI.getAllCustomers(buildParams(1));
       setCustomers(data.data ?? []);
-      setMeta({ current_page: data.current_page, last_page: data.last_page, total: data.total });
+      setMeta({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
+      setPage(1);
     } catch {} finally { setLoading(false); }
-  }, [page, perPage, sortBy, sortOrder, search, status, type, tier]);
+  }, [buildParams]);
+
+  // append next page
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const data = await customersAPI.getAllCustomers(buildParams(nextPage));
+      setCustomers(prev => [...prev, ...(data.data ?? [])]);
+      setMeta({ current_page: data.current_page ?? nextPage, last_page: data.last_page ?? 1, total: data.total ?? 0 });
+      setPage(nextPage);
+    } catch {} finally { setLoadingMore(false); }
+  };
+
+  // fetch all remaining pages and append
+  const handleLoadAll = async () => {
+    setLoadingAll(true);
+    try {
+      const allPages = [];
+      for (let pg = page + 1; pg <= meta.last_page; pg++) {
+        const data = await customersAPI.getAllCustomers(buildParams(pg));
+        allPages.push(...(data.data ?? []));
+      }
+      setCustomers(prev => [...prev, ...allPages]);
+      setPage(meta.last_page);
+    } catch {} finally { setLoadingAll(false); }
+  };
 
   const fetchBirthdays = async (days = birthdayDays) => {
     setBirthdaysLoading(true);
@@ -236,7 +272,7 @@ export default function Customers() {
   };
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
-  useEffect(() => { setPage(1); }, [search, status, type, tier, sortBy, sortOrder]);
+  // reset to page 1 when filters/sort change (fetchCustomers dep already handles this)
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
@@ -262,6 +298,20 @@ export default function Customers() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => setShowDiscountModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer',
+              background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.11)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+          >
+            <Percent size={14} /> Discounts
+          </button>
           <button
             onClick={() => setShowHealthModal(true)}
             style={{
@@ -443,9 +493,19 @@ export default function Customers() {
                   <SortButton field={SORT_FIELDS[4]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                 </th>
 
-                {/* Loyalty / Credit */}
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}>
-                  <TH_LABEL>Loyalty / Credit</TH_LABEL>
+                {/* Discount — sortable */}
+                <th style={{ padding: '10px 16px', textAlign: 'right', minWidth: 90 }}>
+                  <SortButton field={SORT_FIELDS[5]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} align="right" />
+                </th>
+
+                {/* Store credit — sortable */}
+                <th style={{ padding: '10px 16px', textAlign: 'right', minWidth: 110 }}>
+                  <SortButton field={SORT_FIELDS[6]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} align="right" />
+                </th>
+
+                {/* Points — sortable */}
+                <th style={{ padding: '10px 16px', textAlign: 'right', minWidth: 90 }}>
+                  <SortButton field={SORT_FIELDS[7]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} align="right" />
                 </th>
 
                 {/* Sales rep */}
@@ -466,7 +526,7 @@ export default function Customers() {
                 : customers.length === 0
                   ? (
                     <tr>
-                      <td colSpan={9} style={{ padding: '64px 24px', textAlign: 'center' }}>
+                      <td colSpan={11} style={{ padding: '64px 24px', textAlign: 'center' }}>
                         <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No customers found</p>
                         {hasFilters && (
@@ -566,24 +626,34 @@ export default function Customers() {
                             </span>
                           </td>
 
-                          {/* ── Loyalty / Credit ── */}
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              {/* Loyalty points */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Star size={10} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#92400e' }}>
-                                  {fmtPts(c.loyalty_points)} pts
+                          {/* ── Discount ── */}
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            {Number(c.discount_percentage) > 0
+                              ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+                                  {Number(c.discount_percentage).toFixed(1)}%
                                 </span>
-                              </div>
-                              {/* Store credit */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <CreditCard size={10} style={{ color: '#7c3aed', flexShrink: 0 }} />
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#5b21b6' }}>
+                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                            }
+                          </td>
+
+                          {/* ── Store credit ── */}
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            {Number(c.store_credit) > 0
+                              ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>
                                   {fmt(c.store_credit)}
                                 </span>
-                              </div>
-                            </div>
+                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                            }
+                          </td>
+
+                          {/* ── Loyalty points ── */}
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            {Number(c.loyalty_points) > 0
+                              ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#d97706' }}>
+                                  {fmtPts(c.loyalty_points)}
+                                </span>
+                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                            }
                           </td>
 
                           {/* ── Sales rep ── */}
@@ -618,76 +688,62 @@ export default function Customers() {
           </table>
         </div>
 
-        {/* ── Pagination ── */}
-        {!loading && customers.length > 0 && (
+        {/* ── Load More / Load All ── */}
+        {!loading && customers.length > 0 && page < meta.last_page && (
           <div style={{
-            padding: '12px 20px',
+            padding: '14px 20px',
             borderTop: '1px solid rgba(168,85,247,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             background: 'rgba(168,85,247,0.02)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-              Page {meta.current_page} of {meta.last_page} — {meta.total.toLocaleString()} customers
+              Showing {customers.length.toLocaleString()} of {meta.total.toLocaleString()} customers
             </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={meta.current_page <= 1}
+                onClick={handleLoadMore}
+                disabled={loadingMore || loadingAll}
                 style={{
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 8, cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: meta.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
+                  background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)',
+                  color: '#7c3aed', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
-                onMouseEnter={e => { if (meta.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; }}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
               >
-                <ChevronLeft size={14} />
+                {loadingMore
+                  ? <><div style={{ width:12, height:12, border:'2px solid rgba(124,58,237,0.3)', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Loading…</>
+                  : `Load ${perPage} more`
+                }
               </button>
-
-              {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
-                const p = meta.current_page <= 3
-                  ? i + 1
-                  : meta.current_page >= meta.last_page - 2
-                  ? meta.last_page - 4 + i
-                  : meta.current_page - 2 + i;
-                if (p < 1 || p > meta.last_page) return null;
-                const isActive = p === meta.current_page;
-                return (
-                  <button
-                    key={p} onClick={() => setPage(p)}
-                    style={{
-                      width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                      background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                      border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
-                      color: isActive ? 'white' : '#9ca3af',
-                      boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
-                    }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-
               <button
-                onClick={() => setPage(p => Math.min(meta.last_page, p + 1))}
-                disabled={meta.current_page >= meta.last_page}
+                onClick={handleLoadAll}
+                disabled={loadingMore || loadingAll}
                 style={{
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 8, cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: meta.current_page >= meta.last_page ? 0.3 : 1, transition: 'background 120ms',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
+                  background: 'transparent', border: '1.5px solid rgba(168,85,247,0.15)',
+                  color: '#9ca3af', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
-                onMouseEnter={e => { if (meta.current_page < meta.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'rgba(168,85,247,0.05)'; e.currentTarget.style.color = '#7c3aed'; } }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
               >
-                <ChevronRight size={14} />
+                {loadingAll
+                  ? <><div style={{ width:12, height:12, border:'2px solid rgba(156,163,175,0.3)', borderTopColor:'#9ca3af', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Loading all…</>
+                  : `Load all (${(meta.total - customers.length).toLocaleString()} remaining)`
+                }
               </button>
             </div>
+          </div>
+        )}
+        {!loading && customers.length > 0 && page >= meta.last_page && (
+          <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', background: 'rgba(168,85,247,0.02)' }}>
+            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+              All {meta.total.toLocaleString()} customers loaded
+            </p>
           </div>
         )}
       </div>
@@ -816,6 +872,7 @@ export default function Customers() {
           </div>
         </div>
       )}
+      {showDiscountModal && <CustomerDiscountModal onClose={() => setShowDiscountModal(false)} />}
       {showHealthModal && <CustomerHealthModal onClose={() => setShowHealthModal(false)} />}
     </div>
     </AdminLayout>

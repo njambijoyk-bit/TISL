@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, RefreshCw, Filter, Search, X } from 'lucide-react';
+import { Package, Eye, EyeOff, RefreshCw, Filter, Search, X, LayoutGrid, List } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import OrderCard from '../../components/orders/OrderCard';
+import OrdersTable from '../../components/orders/OrdersTable';
 import AdminPagination from '../../components/common/AdminPagination';
 import Button from '../../components/common/Button';
 import useOrderStore from '../../store/orderStore';
@@ -19,14 +20,13 @@ const STATUS_TABS = [
 
 export default function MyOrders() {
   const navigate = useNavigate();
-  const { orders, loading, fetchMyOrders, cancelOrder, restoreCustomerOrder } = useOrderStore();
+  const { orders, loading, fetchMyOrders, cancelOrder, restoreCustomerOrder, ordersView, setOrdersView } = useOrderStore();
 
   const [showCancelled, setShowCancelled]   = useState(false);
   const [statusFilter, setStatusFilter]     = useState('all');
   const [cancelModal, setCancelModal]       = useState(null);
   const [cancelReason, setCancelReason]     = useState('');
   const [searchQuery, setSearchQuery]       = useState('');
-  const [searchActive, setSearchActive]     = useState(false);
 
   // Add near your other useState calls (after searchQuery, etc.)
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,7 +91,7 @@ export default function MyOrders() {
     catch (err) { toast.error(err.response?.data?.message || 'Failed to restore order'); }
   };
 
-  const clearSearch = () => { setSearchQuery(''); setSearchActive(false); };
+  const clearSearch = () => { setSearchQuery(''); };
 
   if (loading && allOrders.length === 0) return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -120,72 +120,90 @@ export default function MyOrders() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-              {/* Search toggle button */}
-              <button
-                onClick={() => { setSearchActive(v => !v); if (searchActive) clearSearch(); }}
-                type="button"
-                className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-semibold transition-all"
-                style={searchActive
-                  ? { background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.4)', color: '#a855f7' }
-                  : { border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }}
-                title="Search orders"
-              >
-                <Search size={15} />
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginTop: 4 }}>
+              {/* View toggle */}
+              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+                <button
+                  type="button"
+                  onClick={() => setOrdersView('card')}
+                  title="Card view"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 40, height: 40, cursor: 'pointer', border: 'none', transition: 'all 150ms',
+                    background: ordersView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                    color: ordersView === 'card' ? '#a855f7' : '#c084fc',
+                  }}
+                >
+                  <LayoutGrid size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrdersView('table')}
+                  title="Table view"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 40, height: 40, cursor: 'pointer', border: 'none',
+                    borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
+                    background: ordersView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
+                    color: ordersView === 'table' ? '#a855f7' : '#c084fc',
+                  }}
+                >
+                  <List size={17} />
+                </button>
+              </div>
 
+              {/* Show / Hide Cancelled */}
               {shouldShowToggle && (
                 <button
                   onClick={() => setShowCancelled(v => !v)}
                   type="button"
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all"
-                  style={showCancelled
-                    ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }
-                    : { border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '0 14px', height: 40, borderRadius: 12, cursor: 'pointer',
+                    fontSize: '0.78rem', fontWeight: 700, transition: 'all 150ms',
+                    ...(showCancelled
+                      ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }
+                      : { background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }),
+                  }}
                 >
                   {showCancelled
-                    ? <><EyeOff size={14} /><span className="hidden sm:inline">Hide Cancelled</span><span className="sm:hidden">Hide</span> ({cancelledOrders.length})</>
-                    : <><Eye size={14} /><span className="hidden sm:inline">Show Cancelled</span><span className="sm:hidden">Show</span> ({cancelledOrders.length})</>}
+                    ? <><EyeOff size={14} /> Hide Cancelled ({cancelledOrders.length})</>
+                    : <><Eye size={14} /> Show Cancelled ({cancelledOrders.length})</>}
                 </button>
               )}
             </div>
           </div>
 
-          {/* ── Search bar (expandable) ───────────────────────────────── */}
-          {searchActive && (
-            <div className="mb-4">
-              <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#c084fc', pointerEvents: 'none' }} />
-                  <input
-                    type="text"
-                    autoFocus
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search by order number, status, or product…"
-                    style={{
-                      width: '100%', padding: '10px 40px', borderRadius: 10,
-                      border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem',
-                      outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box',
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                    onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
-                  />
-                  {searchQuery && (
-                    <button type="button" onClick={clearSearch}
-                      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#c084fc', display: 'flex' }}>
-                      <X size={15} />
-                    </button>
-                  )}
-                </div>
-              </form>
+          {/* ── Search bar (always visible) ───────────────────────────── */}
+          <div className="mb-4">
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#c084fc', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search by order number, status, or product…"
+                style={{
+                  width: '100%', padding: '10px 40px', borderRadius: 10,
+                  border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem',
+                  outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
               {searchQuery && (
-                <p style={{ marginTop: 6, fontSize: '0.75rem', color: '#c084fc' }}>
-                  {displayOrders.length} result{displayOrders.length !== 1 ? 's' : ''} for "{searchQuery}"
-                </p>
+                <button type="button" onClick={clearSearch}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#c084fc', display: 'flex' }}>
+                  <X size={15} />
+                </button>
               )}
             </div>
-          )}
+            {searchQuery && (
+              <p style={{ marginTop: 6, fontSize: '0.75rem', color: '#c084fc' }}>
+                {displayOrders.length} result{displayOrders.length !== 1 ? 's' : ''} for "{searchQuery}"
+              </p>
+            )}
+          </div>
 
           {/* ── Pill tab bar ─────────────────────────────────────────────── */}
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -231,12 +249,17 @@ export default function MyOrders() {
 
         {/* Hidden cancelled notice */}
         {shouldShowToggle && !showCancelled && (
-          <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <Eye size={14} color="#3b82f6" className="flex-shrink-0" />
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 12, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>
+            <Eye size={14} color="#3b82f6" style={{ flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e40af', fontWeight: 500 }}>
               {cancelledOrders.length} cancelled order{cancelledOrders.length !== 1 ? 's are' : ' is'} hidden.{' '}
-              <button onClick={() => setShowCancelled(true)} type="button" className="underline font-semibold hover:no-underline">
+              <button
+                onClick={() => setShowCancelled(true)}
+                type="button"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1e40af', fontWeight: 700, textDecoration: 'underline', fontSize: 'inherit' }}
+                onMouseEnter={e => e.currentTarget.style.textDecoration = 'none'}
+                onMouseLeave={e => e.currentTarget.style.textDecoration = 'underline'}
+              >
                 Show them
               </button>
             </p>
@@ -277,8 +300,14 @@ export default function MyOrders() {
             </Button>
           </div>
 
-        /* Orders grid */
+        /* Orders — card or table */
         ) : (
+          ordersView === 'table' ? (
+            <OrdersTable
+              orders={displayOrders}
+              onCancel={(orderId) => setCancelModal(allOrders.find(o => o.id === orderId))}
+            />
+          ) : (
           <div className="grid gap-4 sm:gap-5"
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 480px), 1fr))' }}>
             {displayOrders.map(order => (
@@ -320,6 +349,7 @@ export default function MyOrders() {
               </div>
             ))}
           </div>
+          )
         )}
       </div>
 

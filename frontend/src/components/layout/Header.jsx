@@ -260,6 +260,8 @@ export default function Header() {
     { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects' },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
+    { label: 'My Hampers',        icon: Package,       to: '/my-hampers' },
+    { label: 'Auctions',           icon: Zap,           to: '/auctions' },
     { label: 'Wishlist',          icon: Heart,         to: '/wishlist' },
   ];
 
@@ -279,11 +281,20 @@ export default function Header() {
           from { opacity: 0; transform: translateY(-100%); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @media (max-width: 768px) {
+        @keyframes gradientShift {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .header-animated-bg {
+          background-size: 300% 300% !important;
+          animation: gradientShift 8s ease infinite;
+        }
+        @media (max-width: 899px) {
           .hidden-mobile { display: none !important; }
           .show-mobile   { display: flex !important; }
         }
-        @media (min-width: 769px) {
+        @media (min-width: 900px) {
           .show-mobile { display: none !important; }
         }
       `}</style>
@@ -293,17 +304,17 @@ export default function Header() {
         transform: visible ? 'translateY(0)' : 'translateY(-110%)',
         transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1), background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease',
         background: scrolled
-          ? 'rgba(255,255,255,0.72)'
-          : 'white',
-        backdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
+          ? 'linear-gradient(135deg, rgba(250,245,255,0.85) 0%, rgba(237,233,254,0.85) 25%, rgba(245,243,255,0.85) 50%, rgba(252,231,243,0.85) 75%, rgba(250,245,255,0.85) 100%)'
+          : 'linear-gradient(135deg, rgba(250,245,255,0.98) 0%, rgba(237,233,254,0.98) 25%, rgba(245,243,255,0.98) 50%, rgba(252,231,243,0.98) 75%, rgba(250,245,255,0.98) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: scrolled
-          ? '1px solid rgba(168,85,247,0.18)'
-          : '1px solid rgba(168,85,247,0.25)',
+          ? '1px solid rgba(168,85,247,0.22)'
+          : '1px solid rgba(168,85,247,0.15)',
         boxShadow: scrolled
-          ? '0 4px 24px rgba(168,85,247,0.1), 0 1px 0 rgba(168,85,247,0.08)'
-          : '0 1px 8px rgba(0,0,0,0.06)',
-      }} className="dark:bg-gray-900/80 dark:border-gray-700">
+          ? '0 4px 24px rgba(168,85,247,0.12), 0 1px 0 rgba(168,85,247,0.08)'
+          : '0 2px 12px rgba(168,85,247,0.07)',
+      }} className="dark:bg-gray-900/90 dark:border-gray-700 header-animated-bg">
 
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -675,11 +686,11 @@ export default function Header() {
       </header>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 899px) {
           .hidden-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
         }
-        @media (min-width: 769px) {
+        @media (min-width: 900px) {
           .show-mobile { display: none !important; }
         }
       `}</style>

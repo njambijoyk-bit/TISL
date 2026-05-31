@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import {
   getMyQuoteRequests,
   getQuoteRequestById,
@@ -22,7 +23,9 @@ import {
  * Quote Request Store
  * Manages quote request state for customer request workflow
  */
-const useQuoteRequestStore = create((set, get) => ({
+const useQuoteRequestStore = create(
+  persist(
+    (set, get) => ({
   // ========================================
   // STATE
   // ========================================
@@ -68,6 +71,10 @@ const useQuoteRequestStore = create((set, get) => ({
 
   // Error handling
   error: null,
+
+  // ── View preference (persisted) ───────────────────────────────────────────
+  quoteRequestsView: 'card',   // 'card' | 'table'
+  setQuoteRequestsView: (view) => set({ quoteRequestsView: view }),
 
   // ========================================
   // ACTIONS - CUSTOMER
@@ -620,6 +627,12 @@ const useQuoteRequestStore = create((set, get) => ({
       error: null,
     });
   },
-}));
+    }),
+    {
+      name: 'quote-request-storage',
+      partialize: (state) => ({ quoteRequestsView: state.quoteRequestsView }),
+    }
+  )
+);
 
 export default useQuoteRequestStore;

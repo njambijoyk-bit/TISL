@@ -105,7 +105,7 @@ export default function PublicationDetail() {
                 </div>
             )}
 
-            <article className="max-w-4xl mx-auto px-6 md:px-8">
+            <article className="max-w-4xl mx-auto px-6 md:px-12">
 
                 {/* ── Byline strip ── */}
                 <div
@@ -126,12 +126,9 @@ export default function PublicationDetail() {
                 </div>
 
                 {/* ── Content Blocks ── */}
-                {/*
-                    Block width is driven by block.style?.width (e.g. "100%", "50%", "33%").
-                    We group consecutive non-100% blocks into flex rows so gutters are clean.
-                    Full-width blocks always break to their own row.
-                */}
-                <BlockLayout blocks={publication.blocks || []} />
+                <div className="py-2 mb-12">
+                    <BlockLayout blocks={publication.blocks || []} />
+                </div>
 
                 {/* ── Footer ── */}
                 <footer className="mt-16 pt-10" style={{ borderTop: '1px solid #f1f5f9' }}>
@@ -186,7 +183,6 @@ export default function PublicationDetail() {
    a proper gap row instead of the -mx-4 hack.
 ───────────────────────────────────────────── */
 function BlockLayout({ blocks }) {
-    // Split blocks into rows: full-width blocks are solo, others are grouped
     const rows = [];
     let currentRow = [];
 
@@ -203,25 +199,23 @@ function BlockLayout({ blocks }) {
     if (currentRow.length) rows.push(currentRow);
 
     return (
-        <div className="mb-8">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             {rows.map((row, ri) => {
                 const isSolo = row.length === 1 && (row[0].style?.width === '100%' || !row[0].style?.width);
                 if (isSolo) {
                     return (
-                        <div key={ri} className="mb-10">
+                        <div key={ri}>
                             <BlockRenderer block={row[0]} />
                         </div>
                     );
                 }
-                // Multi-column row — use CSS grid for clean equal gaps
                 const cols = row.length;
                 return (
                     <div
                         key={ri}
-                        className="mb-10"
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: row.map(b => b.style?.width || `${100 / cols}%`).join(' '),
+                            gridTemplateColumns: `repeat(${cols}, 1fr)`,
                             gap: 24,
                             alignItems: 'start',
                         }}
@@ -255,12 +249,29 @@ function BlockRenderer({ block }) {
         case 'image':
             return (
                 <figure className="m-0">
-                    <img
-                        src={c.url}
-                        className="w-full rounded-2xl"
-                        style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
-                        alt={c.caption || ''}
-                    />
+                    <div style={{
+                        width: '100%',
+                        maxHeight: 420,
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                        background: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        <img
+                            src={c.url}
+                            alt={c.caption || ''}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                maxHeight: 420,
+                                objectFit: 'contain',
+                                display: 'block',
+                            }}
+                        />
+                    </div>
                     {c.caption && (
                         <figcaption className="mt-3 text-center text-gray-400 text-xs italic">
                             {c.caption}

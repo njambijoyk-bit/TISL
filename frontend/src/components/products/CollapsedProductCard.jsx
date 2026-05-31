@@ -79,13 +79,22 @@ export default function CollapsedProductCard({ product }) {
 
   // ---------- Price label ----------
   const PriceLabel = () => {
-    if (!inStock) return <span className="collapsed-price out-of-stock">Out of Stock</span>;
+    if (!inStock && !isPriceNegotiable) return <span className="collapsed-price out-of-stock">Out of Stock</span>;
     return (
       <div className="collapsed-price-group">
         {originalPriceNum != null && Number.isFinite(originalPriceNum) && originalPriceNum > price && (
           <span className="collapsed-original-price">KSh {originalPriceNum.toLocaleString()}</span>
         )}
-        <span className="collapsed-price">KSh {price.toLocaleString()}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span className="collapsed-price">KSh {price.toLocaleString()}</span>
+          {isPriceNegotiable && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
+              style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+              Negotiable
+            </button>
+          )}
+        </div>
+        {!inStock && <span className="collapsed-price out-of-stock">Out of Stock</span>}
       </div>
     );
   };
@@ -144,7 +153,7 @@ export default function CollapsedProductCard({ product }) {
 
       {/* Right: price + buttons */}
       <div className="collapsed-right">
-        {isPriceNegotiable ? null : <PriceLabel />}
+        <PriceLabel />
 
         {hasAuction ? (
           <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }} className="collapsed-action-btn auction" aria-label="Place bid">
@@ -156,15 +165,9 @@ export default function CollapsedProductCard({ product }) {
               <button type="button" onClick={handleToggleWishlist} className="collapsed-wand-btn" aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
                 <Heart size={13} style={{ color: '#a855f7', fill: wished ? '#a855f7' : 'none', transition: 'fill 150ms ease' }} />
               </button>
-              {isPriceNegotiable ? (
-                <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'negotiable'}`}>
-                  <FileText size={13} /> {inQL ? 'In List →' : 'Quote'}
-                </button>
-              ) : (
-                <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : 'quote'}`} title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}>
-                  <FileText size={13} />
-                </button>
-              )}
+              <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : isPriceNegotiable ? 'negotiable' : 'quote'}`} title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}>
+                <FileText size={13} /> {isPriceNegotiable ? (inQL ? 'In List →' : 'Quote') : ''}
+              </button>
             </div>
             <button type="button" onClick={handleAddToCart} disabled={!inStock} className="collapsed-action-btn primary">
               <ShoppingCart size={13} /> {inStock ? 'Add' : 'N/A'}

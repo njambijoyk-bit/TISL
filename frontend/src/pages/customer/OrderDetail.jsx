@@ -1479,8 +1479,8 @@ export default function CustomerOrderDetail() {
                     value: `-${money(order.promo_discount)}`, 
                     color: '#10b981' 
                   },
-                  { label: 'Tax (16%)', value: money(order.tax), kes: showKes && moneyKes(order.tax_kes || order.tax) },
-                  { label: 'Shipping', value: money(order.shipping_cost), kes: showKes && moneyKes(order.shipping_cost) },
+                  { label: 'Tax (16%)', value: money(order.tax) },
+                  { label: 'Shipping', value: money(order.shipping_cost) },
                   Number(order.store_credit_deduction) > 0 && {
                     label: (
                       <span className="flex items-center gap-1.5">
@@ -1489,9 +1489,6 @@ export default function CustomerOrderDetail() {
                     ),
                     value: `-${money(order.store_credit_deduction)}`,
                     color: '#e48213',
-                    kes:   showKes && Number(order.store_credit_deduction_kes) > 0
-                            ? moneyKes(order.store_credit_deduction_kes)
-                            : null,
                   },
                 ].filter(Boolean).map(({ label, value, color, kes }, i) => (
                   <div key={i} className="flex justify-between items-center">

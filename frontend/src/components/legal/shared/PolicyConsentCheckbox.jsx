@@ -239,32 +239,6 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
                 <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, flex: 1 }}>
                   Do you agree with this policy?
                 </p>
-                <button
-                  onClick={() => setShowDisagree(true)} disabled={submitting}
-                  style={{
-                    padding: '9px 18px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
-                    border: '1.5px solid rgba(239,68,68,0.3)', background: 'white', color: '#dc2626',
-                    cursor: 'pointer', fontFamily: 'inherit', opacity: submitting ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.04)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}
-                >
-                  <XCircle size={14} /> I Disagree
-                </button>
-                <button
-                  onClick={handleAccept} disabled={submitting}
-                  style={{
-                    padding: '9px 18px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
-                    border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                    cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: submitting ? 0.7 : 1,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
-                  }}
-                >
-                  {submitting ? <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <CheckCircle size={14} />}
-                  {submitting ? 'Saving…' : 'I Agree'}
-                </button>
               </div>
             )}
           </div>

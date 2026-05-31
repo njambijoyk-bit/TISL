@@ -1,11 +1,10 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { quotesAPI } from '../api';
 
-/**
- * Quote Store
- * Simple state management for quotes
- */
-const useQuoteStore = create((set, get) => ({
+const useQuoteStore = create(
+  persist(
+    (set, get) => ({
   // ========================================
   // STATE
   // ========================================
@@ -14,6 +13,10 @@ const useQuoteStore = create((set, get) => ({
   loading: false,
   error: null,
   pagination: null,
+
+  // ── View preference (persisted) ───────────────────────────────────────────
+  quotesView: 'table',   // 'card' | 'table'
+  setQuotesView: (view) => set({ quotesView: view }),
 
   // ========================================
   // ACTIONS
@@ -288,6 +291,12 @@ const useQuoteStore = create((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
-}));
+    }),
+    {
+      name: 'quote-storage',
+      partialize: (state) => ({ quotesView: state.quotesView }),
+    }
+  )
+);
 
 export default useQuoteStore;

@@ -836,13 +836,13 @@ const CustomerQuoteDetail = () => {
 };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header /><div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div><Footer />
+    <div style={{ minHeight: '100vh' }}>
+      <Header /><div style={{ display: 'flex', justifyContent: 'center', padding: '96px 24px' }}><LoadingSpinner size="lg" /></div><Footer />
     </div>
   );
   if (!quote) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header /><div className="flex justify-center py-20"><p className="text-gray-400 dark:text-gray-500">Quote not found</p></div><Footer />
+    <div style={{ minHeight: '100vh' }}>
+      <Header /><div style={{ display: 'flex', justifyContent: 'center', padding: '80px 24px' }}><p style={{ color: '#9ca3af' }}>Quote not found</p></div><Footer />
     </div>
   );
 
@@ -856,48 +856,96 @@ const CustomerQuoteDetail = () => {
   const canTrash = quote.status === 'draft' || quote.status === 'pending';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div style={{ minHeight: '100vh' }}>
       <Header />
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-7">
+      <div style={{ borderBottom: '2px solid rgba(168,85,247,0.15)', padding: '28px 24px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <button onClick={() => navigate('/my-quotes')} type="button"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-xs font-bold transition-colors hover:border-purple-400 hover:text-purple-500">
+
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/my-quotes')}
+            type="button"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', marginBottom: 24, borderRadius: 10,
+              border: '1px solid rgba(168,85,247,0.2)', background: 'transparent',
+              color: '#c084fc', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#a855f7'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#c084fc'; }}
+          >
             <ArrowLeft size={12} /> Back to My Quotes
           </button>
 
-          <div className="flex items-start justify-between gap-6 flex-wrap">
+          {/* Title row */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
+
+            {/* Left: number + badges */}
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest mb-1.5" style={{ color: '#c084fc' }}>Quote</p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">{quote.quote_number}</h1>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold"
-                  style={{ background: `${statusCfg.color}18`, border: `1px solid ${statusCfg.color}44`, color: statusCfg.color }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, boxShadow: `0 0 4px ${statusCfg.color}` }} />
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#c084fc', marginBottom: 6 }}>Quote</p>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary, #111827)' }}>
+                {quote.quote_number}
+              </h1>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                {/* Status pill */}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '4px 12px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 800,
+                  background: `${statusCfg.color}18`, border: `1px solid ${statusCfg.color}44`, color: statusCfg.color,
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, boxShadow: `0 0 5px ${statusCfg.color}` }} />
                   {statusCfg.label}
                 </span>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">v{quote.version || 1}</span>
-                {quote.quote_type && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{quote.quote_type === 'mixed' ? 'Product & Service' : quote.quote_type}</span>}
+                {/* Version */}
+                <span style={{
+                  fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999,
+                  background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7',
+                }}>
+                  v{quote.version || 1}
+                </span>
+                {/* Quote type */}
+                {quote.quote_type && (
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999,
+                    background: 'rgba(107,114,128,0.08)', border: '1px solid rgba(107,114,128,0.2)', color: '#6b7280',
+                  }}>
+                    {quote.quote_type === 'mixed' ? 'Product & Service' : quote.quote_type}
+                  </span>
+                )}
                 {quote.is_negotiable && <Chip color="#3b82f6">Negotiable</Chip>}
               </div>
             </div>
 
-            <div className="text-left">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Total</p>
-              <p className="text-2xl font-extrabold tracking-tight" style={{ color: '#a855f7' }}>{cc} {fmt(quote.total)}</p>
-              {showKes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">≈ KES {fmt(quote.total_kes)}</p>}
+            {/* Right: total */}
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 4 }}>Total</p>
+              <p style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#a855f7', margin: 0 }}>
+                {cc} {fmt(quote.total)}
+              </p>
+              {showKes && (
+                <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 4 }}>≈ KES {fmt(quote.total_kes)}</p>
+              )}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 mt-6">
-            {/* ✨ NEW PDF DOWNLOAD BUTTON */}
-            <button onClick={handleDownloadPDF} disabled={actionLoading} type="button"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-              style={{ background: 'transparent', border: '1.5px solid #a855f7', color: '#a855f7' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.15)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}>
+          {/* Actions row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={actionLoading}
+              type="button"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
+                border: '1.5px solid rgba(168,85,247,0.35)', background: 'transparent',
+                color: '#a855f7', fontSize: '0.82rem', fontWeight: 700, transition: 'all 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.15)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}
+            >
               <Download size={14} /> Download PDF
             </button>
             {canAct && (
@@ -919,21 +967,23 @@ const CustomerQuoteDetail = () => {
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1280, margin: '0 auto' }} className="px-6 py-8 pb-16">
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px 64px' }}>
         {canAct && (
-          <div className="mb-5">
+          <div style={{ marginBottom: 20 }}>
             <AlertBox type="info" title="Action Required"
               body={`Review this quote and accept or reject it before ${new Date(quote.valid_until).toLocaleDateString()}.`} />
           </div>
         )}
         {quote.status === 'rejected' && quote.rejection_reason && (
-          <div className="mb-5"><AlertBox type="danger" title="Rejection Reason" body={quote.rejection_reason} /></div>
+          <div style={{ marginBottom: 20 }}>
+            <AlertBox type="danger" title="Rejection Reason" body={quote.rejection_reason} />
+          </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 24, alignItems: 'start' }}>
 
           {/* ── LEFT ──────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-2 min-w-0">
+          <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
             {/* Team */}
             {(quote.creator || quote.assigned_to || quote.assigned_to_name) && (
               <Section title="Team" icon={UserCheck} accent="#a855f7">
@@ -1066,7 +1116,6 @@ const CustomerQuoteDetail = () => {
                               </div>
                               <div className="text-center">
                                 <p className="font-extrabold text-gray-800 dark:text-gray-200">{fmt(item.quantity)}</p>
-                                {item.unit_of_measure && <p className="text-gray-400 dark:text-gray-500 mt-0.5">{item.unit_of_measure}</p>}
                               </div>
                               <div className="text-center">
                                 {(() => {
@@ -1280,7 +1329,7 @@ const CustomerQuoteDetail = () => {
                       <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
                       <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">
-                          Discount {quote.discount_percentage > 0 && `(${quote.discount_percentage}%)`}
+                          Quote Discount {quote.discount_percentage > 0 && `(${quote.discount_percentage}%)`}
                         </span>
                         <span className="font-semibold" style={{ color: '#10b981' }}>-{cc} {fmt(quote.discount)}</span>
                       </div>

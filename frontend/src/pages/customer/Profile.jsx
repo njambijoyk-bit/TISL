@@ -4,7 +4,7 @@ import {
   Camera, Save, X, Edit2, User, Mail, Phone, Globe,
   MessageCircle, Building2, FileText, MapPin, Package,
   Calendar, CreditCard, Star, Check, Loader2, Eye, EyeOff,
-  ShieldCheck, ShieldAlert, Shield, Bell, Gift,
+  ShieldCheck, ShieldAlert, Shield, Bell, Gift, Percent,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
@@ -143,6 +143,9 @@ export default function Profile() {
 
   const [tierOptions, setTierOptions] = useState([]);
   useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
+
+  const [typeOptions, setTypeOptions] = useState([]);
+  useEffect(() => { customerTiersAPI.getActiveTypes().then(setTypeOptions).catch(() => {}); }, []);
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', alternate_phone: '',
@@ -702,6 +705,76 @@ export default function Profile() {
                     </Field>
                   </div>
                 </div>
+                {/* ── Discount overview — only shown if customer has at least one discount ── */}
+                {(() => {
+                  const personal  = Number(customer.discount_percentage ?? 0);
+                  const tierObj   = tierOptions.find(t => t.slug === customer.tier);
+                  const typeObj   = typeOptions.find(t => t.slug === customer.customer_type);
+                  const tierPct   = Number(tierObj?.discount_percentage ?? 0);
+                  const typePct   = Number(typeObj?.discount_percentage ?? 0);
+                  const stacked   = personal + tierPct + typePct;
+                  const capped    = stacked > 30;
+                  const effective = capped ? 30 : stacked;
+
+                  // 🚫 hide the whole card if no discount at all
+                  if (effective === 0) return null;
+
+                  const rows = [
+                    { label: 'Personal discount',                                        value: personal, sub: 'Set by your account manager'        },
+                    { label: `Tier · ${tierObj?.name ?? customer.tier ?? '—'}`,          value: tierPct,  sub: `${customer.tier} tier benefit`       },
+                    { label: `Type · ${typeObj?.name ?? customer.customer_type ?? '—'}`, value: typePct,  sub: `${customer.customer_type} type benefit` },
+                  ].filter(r => r.value > 0); // 🚫 only include rows where the discount is non-zero
+
+                  return (
+                    <div style={card}>
+                      <p style={sectionTitle}><Percent size={14} style={{ color: '#6366f1' }} /> Your discount</p>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+                        {rows.map(({ label, value, sub }) => (
+                          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+                            <div>
+                              <p style={{ fontSize: '0.8rem', color: '#374151', margin: 0, fontWeight: 500 }}>{label}</p>
+                              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>{sub}</p>
+                            </div>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6366f1' }}>
+                              {Number(value).toFixed(1)}%
+                            </span>
+                          </div>
+                        ))}
+
+                        {/* only show the stacked total row if there are 2+ active discount sources */}
+                        {rows.length > 1 && (
+                          <>
+                            <div style={{ height: 1, background: '#f3f4f6', margin: '2px 0' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
+                              <div>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: 0 }}>Total discount</p>
+                                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                                  {rows.map(r => `${r.value.toFixed(1)}%`).join(' + ')} stacked
+                                </p>
+                              </div>
+                              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#6366f1', letterSpacing: '-0.02em' }}>
+                                {effective.toFixed(1)}%
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* cap warning */}
+                        {capped && (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                            <ShieldAlert size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+                            <p style={{ fontSize: '0.7rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+                              Your combined discount of <strong>{stacked.toFixed(1)}%</strong> exceeds the system limit. A maximum of <strong>30%</strong> will be applied at checkout.
+                            </p>
+                          </div>
+                        )}
+
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
               

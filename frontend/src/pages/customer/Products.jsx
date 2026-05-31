@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Image } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Pagination from '../../components/common/Pagination';
 import Header from '../../components/layout/Header';
@@ -9,6 +9,7 @@ import Breadcrumb from '../../components/layout/Breadcrumb';
 import ProductFilters from '../../components/products/ProductFilters';
 import ProductGrid from '../../components/products/ProductGrid';
 import CollapsedProductCard from '../../components/products/CollapsedProductCard';
+import ProductPolaroidCard from '../../components/products/Productpolaroidcard';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../api';
 import { useProductStore } from '../../store';
 import useLayoutStore from '../../store/layoutStore';
@@ -95,6 +96,16 @@ const CollapsedProductSkeleton = () => (
       <div style={{ height: 12, width: 56, background: '#e5e7eb', borderRadius: 6 }} />
       <div style={{ height: 24, width: 52, background: '#e5e7eb', borderRadius: 20 }} />
     </div>
+  </div>
+);
+
+const PolaroidSkeleton = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+    <div style={{ width: 210, background: '#fffef9', padding: '10px 10px 46px', boxShadow: '3px 5px 0 rgba(0,0,0,0.10)', borderRadius: 2 }}>
+      <div style={{ width: '100%', aspectRatio: '1/1', background: '#e5e7eb', borderRadius: 2 }} />
+    </div>
+    <div style={{ height: 14, width: 100, background: '#e5e7eb', borderRadius: 6 }} />
+    <div style={{ height: 10, width: 70, background: '#e5e7eb', borderRadius: 6 }} />
   </div>
 );
 
@@ -211,6 +222,7 @@ export default function Products() {
           <div style={toggleStyles.wrap}>
             <button type="button" onClick={() => setViewMode('large')} style={{ ...toggleStyles.btn, ...(viewMode === 'large' ? toggleStyles.active : toggleStyles.inactive) }}><LayoutGrid size={15} /> Large</button>
             <button type="button" onClick={() => setViewMode('collapsed')} style={{ ...toggleStyles.btn, ...(viewMode === 'collapsed' ? toggleStyles.active : toggleStyles.inactive) }}><List size={15} /> Compact</button>
+            <button type="button" onClick={() => setViewMode('polaroid')} style={{ ...toggleStyles.btn, ...(viewMode === 'polaroid' ? toggleStyles.active : toggleStyles.inactive) }}><Image size={15} /> Polaroid</button>
           </div>
         </div>
 
@@ -318,6 +330,22 @@ export default function Products() {
           </div>
         ) : viewMode === 'large' ? (
           <ProductGrid products={products || []} loading={loading} error={null} />
+        ) : viewMode === 'polaroid' ? (
+          loading ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center', padding: '32px 0' }}>
+              {Array.from({ length: 8 }).map((_, i) => <PolaroidSkeleton key={i} />)}
+            </div>
+          ) : products?.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center', padding: '32px 16px' }}>
+              {products.map((p, i) => <ProductPolaroidCard key={p.id} product={p} index={i} />)}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-20 text-gray-400">
+              <Image size={40} className="mb-3 opacity-25" />
+              <p className="text-sm font-medium">No products found</p>
+              <p className="text-xs mt-1 opacity-70">Try adjusting or clearing your filters</p>
+            </div>
+          )
         ) : loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
             {Array.from({ length: 12 }).map((_, i) => <CollapsedProductSkeleton key={i} />)}

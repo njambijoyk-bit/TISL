@@ -3272,6 +3272,11 @@ export default function InventoryPage() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    return () => document.documentElement.classList.remove('dark');
+  }, []);
+
   const handleTabChange = (tabId) => { setActiveTab(tabId); setSubPage(null); };
   const handleItemClick = (id) => setSubPage({ type: "item", id });
   const handleInstanceClick = (id) => setSubPage({ type: "instance", id });

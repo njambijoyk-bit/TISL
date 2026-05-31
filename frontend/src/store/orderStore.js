@@ -1,13 +1,20 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import ordersAPI from '../api/orders';
 
-const useOrderStore = create((set, get) => ({
+  const useOrderStore = create(
+  persist(
+    (set, get) => ({
   // State
   orders: [],
   currentOrder: null,
   statistics: null,
   loading: false,
   error: null,
+ 
+  // ── View preference (persisted) ───────────────────────────────────────────
+  ordersView: 'table',   // 'card' | 'table'
+  setOrdersView: (view) => set({ ordersView: view }),
 
   // ========================================
   // CUSTOMER ACTIONS
@@ -805,6 +812,7 @@ generateInvoice: async (id) => {
   /**
    * Reset store
    */
+
   reset: () => {
     set({
       orders: [],
@@ -814,6 +822,12 @@ generateInvoice: async (id) => {
       error: null,
     });
   },
-}));
-
+    }),
+    {
+      name: 'order-storage',
+      partialize: (state) => ({ ordersView: state.ordersView }),
+    }
+  )
+);
+ 
 export default useOrderStore;
