@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
@@ -18,6 +18,25 @@ const labelStyle = {
   display: 'block', fontSize: '0.72rem', fontWeight: 700,
   color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
 };
+
+const statusConfig = {
+  active:    { color: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
+  scheduled: { color: '#2563eb', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6' },
+  ended:     { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
+  cancelled: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
+  failed:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
+};
+
+const StatusBadge = ({ status }) => {
+  const s = statusConfig[status] ?? statusConfig.ended;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, fontSize: '0.72rem', fontWeight: 800, color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, animation: status === 'active' ? 'pulse 1.2s infinite' : 'none' }} />
+      {status}
+    </span>
+  );
+};
+
 
 export default function AdminAuctionDetail() {
   const { id } = useParams();
@@ -97,23 +116,15 @@ export default function AdminAuctionDetail() {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
   }) : '—';
 
-  const statusConfig = {
-    active:    { color: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
-    scheduled: { color: '#2563eb', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6' },
-    ended:     { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
-    cancelled: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
-    failed:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
-  };
+  const bidStats = useMemo(() => {
+    if (!auction?.bids?.length) return { uniqueBidders: 0, highestBid: 0 };
+    
+    return {
+      uniqueBidders: new Set(auction.bids.map(b => b.bidder_id)).size,
+      highestBid: Math.max(...auction.bids.map(b => Number(b.amount)))
+    };
+  }, [auction?.bids]);
 
-  const StatusBadge = ({ status }) => {
-    const s = statusConfig[status] ?? statusConfig.ended;
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, fontSize: '0.72rem', fontWeight: 800, color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, animation: status === 'active' ? 'pulse 1.2s infinite' : 'none' }} />
-        {status}
-      </span>
-    );
-  };
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 12 }}>
@@ -131,9 +142,6 @@ export default function AdminAuctionDetail() {
       </button>
     </div>
   );
-
-  const uniqueBidders = [...new Set(auction.bids?.map(b => b.bidder_id))].length;
-  const highestBid = auction.bids?.length ? Math.max(...auction.bids.map(b => Number(b.amount))) : 0;
 
   return (
     <>
@@ -219,8 +227,8 @@ export default function AdminAuctionDetail() {
             { label: 'Current Price', value: formatPrice(auction.current_price), color: '#dc2626', icon: <TrendingUp size={16} /> },
             { label: 'Start Price', value: formatPrice(auction.start_price), color: '#a855f7', icon: <Gavel size={16} /> },
             { label: 'Total Bids', value: stats.total_bids ?? 0, color: '#a855f7', icon: <Gavel size={16} /> },
-            { label: 'Unique Bidders', value: stats.unique_bidders, color: '#a855f7', icon: <Users size={16} /> },
-            { label: 'Highest Bid', value: stats.highest_bid ? formatPrice(highestBid) : '—', color: '#059669', icon: <TrendingUp size={16} /> },
+            { label: 'Unique Bidders', value: bidStats.uniqueBidders, color: '#a855f7', icon: <Users size={16} /> },
+            { label: 'Highest Bid', value: bidStats.highestBid > 0 ? formatPrice(bidStats.highestBid) : '—', color: '#059669', icon: <TrendingUp size={16} /> },
             { label: 'Bid Increment', value: formatPrice(auction.bid_increment), color: '#a855f7', icon: <Gavel size={16} /> },
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', padding: '14px 16px' }}>
