@@ -3,11 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use App\Models\CustomerTier;
 use App\Models\CustomerTypeDiscount;
+use App\Models\CustomerCreditTransaction;
+use App\Models\CustomerCreditSchedule;
+use App\Models\CustomerCreditInvoice;
+use App\Models\Currency;
 
 class Customer extends Model
 {
@@ -67,6 +73,8 @@ class Customer extends Model
         'policy_flagged_at',
         'policy_flagged_policy_key',
         'policy_flagged_version',
+        'credit_interest_rate',
+        'credit_currency_id',
     ];
 
     /**
@@ -96,6 +104,7 @@ class Customer extends Model
         'last_login_at' => 'datetime',
         'policy_flagged'    => 'boolean',
         'policy_flagged_at' => 'datetime',  
+        'credit_interest_rate' => 'decimal:2',
     ];
 
     /**
@@ -246,12 +255,35 @@ class Customer extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function creditCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'credit_currency_id');
+    }
+
     /**
      * Get all referral code usage by this customer.
      */
     public function referralUsage()
     {
         return $this->hasMany(ReferralCodeUsage::class);
+    }
+
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CustomerCreditTransaction::class)
+            ->latest();
+    }
+    
+    public function creditSchedules(): HasMany
+    {
+        return $this->hasMany(CustomerCreditSchedule::class)
+            ->latest();
+    }
+    
+    public function creditInvoices(): HasMany
+    {
+        return $this->hasMany(CustomerCreditInvoice::class)
+            ->latest();
     }
 
     /**

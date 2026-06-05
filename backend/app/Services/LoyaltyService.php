@@ -90,10 +90,15 @@ class LoyaltyService
         $customer = $order->customer;
         if (!$customer) return;
 
-        // Already earned for this order — never earn twice
         if ($order->loyalty_points_earned > 0) return;
 
         $totalKes = (float) ($order->total_kes ?? 0);
+
+        if ($totalKes <= 0) {
+            $creditAccountKes = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+            $totalKes         = $creditAccountKes;
+        }
+
         if ($totalKes <= 0) return;
 
         $rate      = (int) LoyaltySetting::get('points_per_100_kes', 1);
@@ -359,9 +364,11 @@ class LoyaltyService
         if ($available <= 0) {
             return ['deduction_kes' => 0, 'deduction_order_currency' => 0];
         }
+        $maxPct     = (float) LoyaltySetting::get('store_credit_max_pct', 50); // ← was hardcoded 0.50
+        $maxAllowed = round($totalKes * ($maxPct / 100), 2);
 
         // Cap: can't use more than available or more than the order total
-        $deductionKes = min($requestedKes, $available, $totalKes);
+        $deductionKes = min($requestedKes, $available, $totalKes, $maxAllowed);
         $deductionKes = round($deductionKes, 2);
 
         if ($deductionKes <= 0) {

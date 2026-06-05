@@ -104,6 +104,11 @@ export default function PaymentReportsModal({ onClose }) {
     const res = await paymentsAPI.getPayments({ from_date, to_date: today, per_page: 1000 });
     const payments = res.data ?? [];
 
+    const credits     = payments.filter(p => p.method === 'credit');
+    const refunds     = payments.filter(p => p.method === 'refund');
+    const creditTotal = credits.reduce((s, p) => s + Number(p.mpesa_amount_confirmed ?? 0), 0);
+    const refundTotal = refunds.reduce((s, p) => s + Number(p.mpesa_amount_confirmed ?? 0), 0);
+
     const total       = payments.length;
     const confirmed   = payments.filter(p => p.status === 'confirmed');
     const failed      = payments.filter(p => p.status === 'failed');
@@ -130,6 +135,10 @@ export default function PaymentReportsModal({ onClose }) {
       disputedCount:   disputed.length,
       openDisputeCount:openDisputes.length,
       partialCount:    partials.length,
+      creditCount: credits.length,
+      creditTotal,
+      refundCount: refunds.length,
+      refundTotal,
     };
   };
 
@@ -291,6 +300,33 @@ export default function PaymentReportsModal({ onClose }) {
                 label="Partial Payments"
                 value={data.partialCount}
                 sub={pct(data.partialCount, data.confirmedCount) + ' of confirmed'}
+              />
+            </Section>
+
+            <Section title="Credit & Refunds">
+              <StatCard
+                label="Credit Payments"
+                value={data.creditCount}
+                sub={fmt(data.creditTotal) + ' charged to accounts'}
+                color="#7c3aed"
+                bg="rgba(124,58,237,0.07)"
+                border="rgba(124,58,237,0.2)"
+              />
+              <StatCard
+                label="Refunds Issued"
+                value={data.refundCount}
+                sub={fmt(data.refundTotal) + ' returned to customers'}
+                color="#3b82f6"
+                bg="rgba(59,130,246,0.07)"
+                border="rgba(59,130,246,0.2)"
+              />
+              <StatCard
+                label="Net Collected"
+                value={fmt(data.collected - data.refundTotal)}
+                sub="After refunds"
+                color={data.collected - data.refundTotal > 0 ? '#10b981' : '#ef4444'}
+                bg={data.collected - data.refundTotal > 0 ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)'}
+                border={data.collected - data.refundTotal > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}
               />
             </Section>
 

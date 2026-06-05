@@ -12,6 +12,8 @@ use App\Mail\Orders\Admin\OrderCreated as AdminOrderCreated;
 use App\Mail\Orders\Admin\OrderConfirmed as AdminOrderConfirmed;
 use App\Mail\Orders\Admin\OrderCancelled as AdminOrderCancelled;
 use App\Mail\Orders\Admin\OrderShipped as AdminOrderShipped;
+use App\Mail\Orders\Customer\OrderRestored as CustomerOrderRestored;
+use App\Mail\Orders\Admin\OrderRestored as AdminOrderRestored;
 
 class OrderMailService
 {
@@ -49,5 +51,14 @@ class OrderMailService
 
         Mail::to(config('mail.admin'))
             ->queue(new AdminOrderShipped($order));
+    }
+
+    public function sendOrderRestored(Order $order): void
+    {
+        Mail::to($order->customer->email)
+            ->queue(new CustomerOrderRestored($order));
+
+        Mail::to(config('mail.admin'))
+            ->queue(new AdminOrderRestored($order));
     }
 }

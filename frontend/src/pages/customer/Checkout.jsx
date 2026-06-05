@@ -8,6 +8,7 @@ import PromoCodeInput from '../../components/common/PromoCodeInput';
 import { useCartStore, useAuthStore } from '../../store';
 import useOrderStore from '../../store/orderStore';
 import usePromoCodeStore from '../../store/promoCodeStore';
+import api from '../../api/axios';
 import shippingAPI from '../../api/shipping';
 import toast from 'react-hot-toast';
 
@@ -64,20 +65,20 @@ function Input({ name, type = 'text', value, onChange, placeholder, error, requi
   );
 }
 
-function RadioCard({ value, current, onChange, label, sub, icon }) {
+function RadioCard({ value, current, onChange, label, sub, icon, disabled }) {
   const active = current === value;
   return (
-    <button type="button" onClick={() => onChange(value)} style={{
+    <button type="button" onClick={() => !disabled && onChange(value)} style={{
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 14px', borderRadius: 10, textAlign: 'left',
       border: `1.5px solid ${active ? '#a855f7' : '#e5e7eb'}`,
-      background: active ? 'rgba(168,85,247,0.04)' : 'white',
-      cursor: 'pointer', fontFamily: 'inherit', width: '100%',
-      transition: 'all 150ms',
+      background: disabled ? '#fbfaf9' : active ? 'rgba(168,85,247,0.04)' : 'white',
+      cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', width: '100%',
+      transition: 'all 150ms', opacity: disabled ? 0.6 : 1,
     }}>
       <div style={{
         width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-        border: `2px solid ${active ? '#a855f7' : '#d1d5db'}`,
+        border: `2px solid ${disabled ? '#e5e7eb' : active ? '#a855f7' : '#d1d5db'}`,
         background: active ? '#a855f7' : 'white',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 150ms',
@@ -85,8 +86,8 @@ function RadioCard({ value, current, onChange, label, sub, icon }) {
         {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{sub}</p>}
+        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: disabled ? '#ef4444' : '#111827', margin: '0 0 1px' }}>{label}</p>
+        {sub && <p style={{ fontSize: '0.72rem', color: disabled ? '#fca5a5' : '#9ca3af', margin: 0 }}>{sub}</p>}
       </div>
       {icon && <span style={{ color: active ? '#a855f7' : '#d1d5db', flexShrink: 0 }}>{icon}</span>}
     </button>
@@ -107,6 +108,17 @@ export default function Checkout() {
   const submittedRef = useRef(false);
 
   const [shippingOptions, setShippingOptions] = useState([]);
+
+  const [storeCreditMaxPct, setStoreCreditMaxPct] = useState(50); // default 50 until loaded
+
+  useEffect(() => {
+    if (user) {
+      fetchCustomer();
+      api.get('/customer/loyalty').then(r => {
+        setStoreCreditMaxPct(r.data.store_credit_max_pct ?? 50);
+      }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     if (user) fetchCustomer();// re-sync customer data when checkout opens
@@ -129,6 +141,8 @@ export default function Checkout() {
     delivery_method:   'standard_delivery',
     payment_method:    'mpesa',
     customer_notes:    '',
+    partialCredit:       false,
+    creditAccountAmount: '',
   });
 
   const availableCredit                         = parseFloat(customer?.store_credit ?? 0);
@@ -151,6 +165,19 @@ export default function Checkout() {
     if (!form.customer_email)   e.customer_email   = 'Email is required';
     if (!form.customer_phone)   e.customer_phone   = 'Phone is required';
     if (!form.shipping_address) e.shipping_address = 'Address is required';
+    if (form.payment_method === 'credit') {
+      if (!customer?.has_credit_account) {
+        e.payment_method = 'You do not have an approved credit account. Contact Support for assistance.';
+      } else if (form.partialCredit) {
+        const amt = parseFloat(form.creditAccountAmount);
+        const available = Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0));
+        if (!amt || amt <= 0)      e.creditAccountAmount = 'Please enter a credit amount greater than 0';
+        else if (amt > available)  e.creditAccountAmount = `Amount exceeds your available credit (${fmt(available)})`;
+        else if (amt > preCredit)  e.creditAccountAmount = 'Amount cannot exceed the order total';
+        else if (amt > postStoreCreditTotal) e.creditAccountAmount = 'Amount cannot exceed the order total';
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -161,14 +188,32 @@ export default function Checkout() {
     if (items.length === 0) { toast.error('Your cart is empty'); return; }
     try {
       setLoading(true);
+      // Strip frontend-only fields from form before sending
+      const { partialCredit, creditAccountAmount, ...formFields } = form;
+
+      const creditAccountDeduction = form.payment_method === 'credit'
+        ? partialCredit
+          ? Math.min(
+              parseFloat(creditAccountAmount) || 0,
+              Math.max(0, (customer?.credit_limit ?? 0) - (customer?.credit_used ?? 0)),
+              preCredit,
+            )
+          : preCredit
+        : 0;
       const orderData = {
-        ...form,
+        ...formFields,
         items: items.map(item => ({ product_id: item.id, item_type: 'product', quantity: item.quantity })),
         ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
         ...(applyCredit && creditDeduction > 0 ? {
           apply_store_credit: true,
           store_credit_amount: creditDeduction,
         } : {}),
+        // credit account
+        ...(form.payment_method === 'credit' && form.partialCredit && creditAccountDeduction > 0 ? {
+          apply_credit_account:  true,
+          credit_account_amount: creditAccountDeduction,
+        } : {}),
+        // policy consent
         ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}), 
       };
       const res = await createOrder(orderData);
@@ -200,12 +245,46 @@ export default function Checkout() {
                          : (selectedShipping.free_above && subtotal >= parseFloat(selectedShipping.free_above)) ? 0
                          : parseFloat(selectedShipping.cost);
   const preCredit       = subtotal - promoDiscount + tax + shipping;
+  const maxStoreCredit = Math.round(preCredit * (storeCreditMaxPct / 100));
   const creditDeduction = applyCredit
-    ? Math.min(parseFloat(creditInput) || 0, availableCredit, preCredit)
+    ? Math.min(parseFloat(creditInput) || 0, availableCredit, maxStoreCredit)
     : 0;
-  const total           = preCredit - creditDeduction;
+
+  const postStoreCreditTotal = preCredit - creditDeduction;
+
+  const creditAccountDeductionDisplay = form.payment_method === 'credit'
+    ? form.partialCredit
+      ? Math.min(
+          parseFloat(form.creditAccountAmount) || 0,
+          Math.max(0, (customer?.credit_limit ?? 0) - (customer?.credit_used ?? 0)),
+          postStoreCreditTotal,
+        )
+      : postStoreCreditTotal
+    : 0;
+
+  const total = postStoreCreditTotal - creditAccountDeductionDisplay;
 
   const fmt = (n) => Number(n).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+  
+  const paymentOptions = [
+    { value: 'mpesa',           label: 'M-Pesa',          sub: 'Pay via mobile money'              },
+    { value: 'bank_transfer',   label: 'Bank transfer',   sub: 'EFT or RTGS payment'               },
+    { value: 'pay_on_delivery', label: 'Pay on delivery', sub: 'Cash on receipt'                   },
+    { value: 'request_invoice', label: 'Request invoice', sub: 'For corporate & LPO orders'        },
+    ...(customer?.has_credit_account ? [{
+      value: 'credit',
+      label: 'Credit account',
+      sub: Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)) < 1
+        ? 'No credit balance available'
+        : `Use your approved credit facility · ${fmt(Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)))} available`,
+      disabled: Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)) < 1,
+    }] : customer ? [{
+      value: 'credit_locked',
+      label: 'Credit account',
+      sub: 'You do not have an approved credit account. Contact Support for assistance.',
+      disabled: true,
+    }] : []),
+  ];
 
   if (items.length === 0 && !submittedRef.current) { navigate('/cart'); return null; }
 
@@ -319,15 +398,15 @@ export default function Checkout() {
                 </p>
                 <p style={{ ...labelStyle, marginBottom: 10 }}>Payment method</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                  {[
-                    { value: 'mpesa',           label: 'M-Pesa',             sub: 'Pay via mobile money'              },
-                    { value: 'bank_transfer',   label: 'Bank transfer',      sub: 'EFT or RTGS payment'               },
-                    { value: 'pay_on_delivery', label: 'Pay on delivery',    sub: 'Cash on receipt'                   },
-                    { value: 'request_invoice', label: 'Request invoice',    sub: 'For corporate & LPO orders'        },
-                    { value: 'credit',          label: 'Credit account',     sub: 'Use your approved credit facility' },
-                  ].map(opt => (
+                  {paymentOptions.map(opt => (
                     <RadioCard key={opt.value} {...opt} current={form.payment_method} onChange={v => setForm(f => ({ ...f, payment_method: v }))} />
                   ))}
+                  
+                  {errors.payment_method && (
+                    <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 6 }}>
+                      {errors.payment_method}
+                    </p>
+                  )}
                 </div>
 
                 <Field label="Special instructions (optional)">
@@ -407,7 +486,7 @@ export default function Checkout() {
                         const next = !applyCredit;
                         setApplyCredit(next);
                         if (next) {
-                          const max = Math.min(availableCredit, preCredit);
+                          const max = Math.min(availableCredit, maxStoreCredit);
                           setCreditInput(String(max.toFixed(0)));
                           setCreditCalculating(true);
                           clearTimeout(creditDebounce.current);
@@ -446,7 +525,7 @@ export default function Checkout() {
                     {applyCredit && (
                       <div style={{ marginTop: 10 }}>
                         <label style={{ ...labelStyle, marginBottom: 5 }}>
-                          Amount to use (max {fmt(Math.min(availableCredit, preCredit))})
+                          Amount to use (max {storeCreditMaxPct}% · {fmt(Math.min(availableCredit, maxStoreCredit))})
                         </label>
                         <div style={{ position: 'relative' }}>
                           <span style={{
@@ -456,7 +535,7 @@ export default function Checkout() {
                           <input
                             type="number"
                             min="1"
-                            max={Math.min(availableCredit, preCredit)}
+                            max={Math.min(availableCredit, maxStoreCredit)}
                             value={creditInput}
                             onChange={e => {
                               setCreditInput(e.target.value);
@@ -465,7 +544,7 @@ export default function Checkout() {
                               creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
                             }}
                             onBlur={e => {
-                              const max = Math.min(availableCredit, preCredit);
+                              const max = Math.min(availableCredit, maxStoreCredit);
                               const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
                               setCreditInput(String(val.toFixed(0)));
                             }}
@@ -485,12 +564,90 @@ export default function Checkout() {
                   </div>
                 )}
 
+                {form.payment_method === 'credit' && customer?.has_credit_account && (() => {
+                  const available = Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0));
+                  return (
+                    <div style={{ marginTop: 16, padding: '14px', borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.18)' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 10px' }}>
+                        Credit account — {fmt(available)} available
+                      </p>
+
+                      {/* Full vs partial toggle */}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        {[
+                          { val: false, label: 'Full order on credit' },
+                          { val: true,  label: 'Partial credit'       },
+                        ].map(({ val, label }) => (
+                          <button key={String(val)} type="button"
+                            onClick={() => setForm(f => ({ ...f, partialCredit: val, creditAccountAmount: '' }))}
+                            style={{
+                              flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                              fontFamily: 'inherit', cursor: 'pointer',
+                              border: `1.5px solid ${form.partialCredit === val ? '#a855f7' : '#e5e7eb'}`,
+                              background: form.partialCredit === val ? 'rgba(168,85,247,0.08)' : 'white',
+                              color: form.partialCredit === val ? '#7c3aed' : '#9ca3af',
+                              transition: 'all 150ms',
+                            }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Partial amount input */}
+                      {form.partialCredit && (
+                        <div>
+                          <label style={labelStyle}>
+                            Amount on credit (max {fmt(Math.min(available, postStoreCreditTotal))})
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <span style={{
+                              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                              fontSize: '0.78rem', color: '#9ca3af', pointerEvents: 'none',
+                            }}>KES</span>
+                            <input
+                              type="number" min="1" max={Math.min(available, postStoreCreditTotal)}
+                              value={form.creditAccountAmount ?? ''}
+                              onChange={e => {
+                                setForm(f => ({ ...f, creditAccountAmount: e.target.value }));
+                                if (errors.creditAccountAmount) setErrors(er => ({ ...er, creditAccountAmount: '' }));
+                              }}
+                              onBlur={e => {
+                                const max = Math.min(available, postStoreCreditTotal);
+                                const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
+                                setForm(f => ({ ...f, creditAccountAmount: String(val.toFixed(0)) }));
+                              }}
+                              style={{
+                                ...inputStyle, paddingLeft: 38,
+                                borderColor: errors.creditAccountAmount ? '#ef4444' : '#e5e7eb',
+                              }}
+                              onFocus={inputFocus}
+                            />
+                          </div>
+                          {errors.creditAccountAmount && (
+                            <p style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: 3 }}>
+                              {errors.creditAccountAmount}
+                            </p>
+                          )}
+                        </div>
+)}
+
+                      {/* What remains to pay */}
+                      {form.partialCredit && form.creditAccountAmount > 0 && (
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 8, margin: '8px 0 0' }}>
+                          Remaining to pay by other means: <strong style={{ color: '#111827' }}>{fmt(Math.max(0, postStoreCreditTotal - parseFloat(form.creditAccountAmount || 0)))}</strong>
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Totals */}
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { label: 'Subtotal', value: fmt(subtotal) },
                     ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: '#a855f7' }] : []),
                     ...(creditDeduction > 0 ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
+                    ...(creditAccountDeductionDisplay > 0 ? [{ label: 'Credit account', value: `−${fmt(creditAccountDeductionDisplay)}`, color: '#7c3aed' }] : []),
                     { label: 'Tax (16%)', value: fmt(tax) },
                     { label: 'Shipping',  value: shipping === 0 ? 'Free' : fmt(shipping) },
                   ].map(({ label, value, color }) => (

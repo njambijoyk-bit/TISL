@@ -312,6 +312,14 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
                 </div>
               </div>
             )}
+            {Number(order.credit_account_deduction) > 0 && (
+              <div className="flex justify-between items-center" style={{ color: '#7c3aed' }}>
+                <span className="flex items-center gap-1">
+                  🏦 Credit account
+                </span>
+                <span className="font-semibold">-{money(order.credit_account_deduction)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2 font-bold"
               style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
               <span className="text-gray-800 dark:text-gray-200">Total</span>

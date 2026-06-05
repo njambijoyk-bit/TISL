@@ -29,6 +29,7 @@ export { default as workAPI } from './work';
 export { default as reportsAPI } from './reports';
 export { default as ticketsAPI } from './tickets';
 export { default as bookingsAPI } from './bookings';
+export { adminCreditAPI, customerCreditAPI } from './customerCredit';
 
 export { default as contentAPI } from './content';
 export { default as inventoryAPI } from './inventory';

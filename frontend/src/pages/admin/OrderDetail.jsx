@@ -291,7 +291,8 @@ export default function OrderDetail() {
     if (!order) return 0;
     
     const totalKes = order.total_kes ?? (Number(order.total || 0) * Number(order.exchange_rate_to_kes || 1));
-    const confirmedPayments = order.payments?.filter(p => p.status === 'confirmed')
+
+    const confirmedPayments = order.payments?.filter(p => p.status === 'confirmed' && p.method !== 'credit')
       .reduce((sum, p) => sum + (Number(p.mpesa_amount_confirmed) || 0), 0) || 0;
     
     return Math.max(0, totalKes - confirmedPayments);
@@ -563,6 +564,8 @@ export default function OrderDetail() {
       ? [['Promo Discount',    `-${fmt(o?.promo_discount    || order.promo_discount)}`]]    : []),
     ...(Number(o?.store_credit_deduction || order.store_credit_deduction) > 0
       ? [['Store Credit',      `-${fmt(o?.store_credit_deduction || order.store_credit_deduction)}`]] : []),
+    ...(Number(o?.credit_account_deduction || order.credit_account_deduction) > 0
+    ? [['Credit Account',   `-${fmt(o?.credit_account_deduction || order.credit_account_deduction)}`]] : []),
     ['Tax (16%)', fmt(o?.tax           || order.tax)],
     ['Shipping',  fmt(o?.shipping_cost || order.shipping_cost)],
   ];
@@ -1320,6 +1323,15 @@ export default function OrderDetail() {
                               ? kesMoney(order.store_credit_deduction_kes)
                               : null,
                   },
+                  Number(order?.credit_account_deduction) > 0 && {
+                    label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        🏦 Credit Account
+                      </span>
+                    ),
+                    value:  `-${money(order.credit_account_deduction)}`,
+                    color:  '#7c3aed',
+                  },
                   { label: 'Tax',       value: money(order.tax) },
                   { label: 'Shipping',  value: money(order.shipping_cost) },
                 ].filter(Boolean).map(({ label, value, color, kes }) => (
@@ -1440,7 +1452,19 @@ export default function OrderDetail() {
                               <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {p.payment_number}
                                 {p.is_retry && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6b7280', background: 'var(--tag-bg,#f3f4f6)', padding: '1px 6px', borderRadius: 4 }}>Retry</span>}
+                                {/* ✅ Method badge */}
+                                {p.method && (
+                                  <span style={{
+                                    fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                                    padding: '1px 7px', borderRadius: 4,
+                                    background: p.method === 'mpesa' ? 'rgba(16,185,129,0.1)' : p.method === 'credit' ? 'rgba(124,58,237,0.1)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
+                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? '#5b21b6'              : p.method === 'refund' ? '#991b1b'              : '#374151',
+                                  }}>
+                                    {p.method === 'bank_transfer' ? 'Bank' : p.method === 'cod' ? 'COD' : p.method}
+                                  </span>
+                                )}
                               </p>
+
                               <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>
                                 {p.phone_number} • {format(new Date(p.initiated_at), 'MMM d · h:mm a')}
                               </p>

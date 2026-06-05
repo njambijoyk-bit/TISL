@@ -203,6 +203,9 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                     {Number(order.store_credit_deduction) > 0 && (
                       <p className="text-xs font-semibold" style={{ color: '#e48213' }}>💳 −{money(order.store_credit_deduction)}</p>
                     )}
+                    {Number(order.credit_account_deduction) > 0 && (
+                      <p className="text-xs font-semibold" style={{ color: '#7c3aed' }}>🏦 −{money(order.credit_account_deduction)}</p>
+                    )}
                   </div>
                 </td>
 

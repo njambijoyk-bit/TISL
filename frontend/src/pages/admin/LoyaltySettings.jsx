@@ -267,6 +267,7 @@ export default function LoyaltySettings() {
         referral_credit_amount: res.settings.referral_credit_amount ?? 500,
         min_redemption_points:  res.settings.min_redemption_points  ?? 500,
         points_expiry_months:   res.settings.points_expiry_months   ?? '',
+        store_credit_max_pct:   res.settings.store_credit_max_pct   ?? 50,
       });
     }).finally(() => setLoading(false));
   }, []);
@@ -284,6 +285,7 @@ export default function LoyaltySettings() {
         referral_credit_amount: Number(form.referral_credit_amount),
         min_redemption_points:  Number(form.min_redemption_points),
         points_expiry_months:   form.points_expiry_months ? Number(form.points_expiry_months) : null,
+        store_credit_max_pct:   Number(form.store_credit_max_pct),
       };
       const res = await loyaltyAPI.updateSettings(payload);
       setSettings(res.settings);
@@ -361,7 +363,8 @@ export default function LoyaltySettings() {
             { key: 'points_per_100_kes',     label: 'Points per KES 100 spent (must be an integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
             { key: 'referral_credit_amount',  label: 'Referral reward (KES)',      type: 'number', min: 0,   placeholder: '500', hint: 'Store credit granted to referrer when referred customer pays first order.' },
             { key: 'min_redemption_points',   label: 'Min redemption threshold',   type: 'number', min: 1,   placeholder: '500', hint: 'Customer must have at least this many points to redeem.' },
-            { key: 'points_expiry_months',    label: 'Points expiry (months)',      type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
+            { key: 'points_expiry_months',    label: 'Points expiry (months)',     type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
+            { key: 'store_credit_max_pct',    label: 'Store credit cap (%)',       type: 'number', min: 0,   placeholder: '50', hint: 'Max % of order total a customer can pay with store credit. Applies at checkout and admin orders.' },
           ].map(({ key, label: lbl, type, min, placeholder, hint }) => (
             <div key={key}>
               <p style={label}>{lbl}</p>

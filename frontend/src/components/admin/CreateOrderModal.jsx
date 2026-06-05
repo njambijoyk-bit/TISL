@@ -191,6 +191,23 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
 
   const [overrideDiscount, setOverrideDiscount] = useState(false);
 
+  // ── Credit account ─────────────────────────────────────────────────────────
+  const creditAccountAvailable = selectedCustomer?.has_credit_account
+    ? Math.max(0, (selectedCustomer.credit_limit ?? 0) - (selectedCustomer.credit_used ?? 0))
+    : 0;
+  const [applyPartialCredit,    setApplyPartialCredit]    = useState(false);
+  const [creditAccountInput,    setCreditAccountInput]    = useState('');
+
+  const [storeCreditMaxPct, setStoreCreditMaxPct] = useState(50);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.get('/admin/loyalty/settings').then(r => {
+        setStoreCreditMaxPct(r.data.settings?.store_credit_max_pct ?? 50);
+      }).catch(() => {});
+    }
+  }, [isOpen]);
+
   // ── Load on open ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) { loadCustomers(); loadCurrencies(); }
@@ -428,14 +445,23 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const preCredit        = afterOrderDisc + taxAmount + shipping;
 
   // Store credit: input is always KES, convert to order currency for display/total
-  const creditDeductionKes          = applyCredit
-    ? Math.min(parseFloat(creditInput) || 0, availableCredit, toKes(preCredit) || preCredit)
+  const maxStoreCreditKes  = (toKes(preCredit) || preCredit) * (storeCreditMaxPct / 100);
+  const creditDeductionKes = applyCredit
+    ? Math.min(parseFloat(creditInput) || 0, availableCredit, maxStoreCreditKes)
     : 0;
+
   const creditDeductionOrderCurrency = isBaseCurrency
     ? creditDeductionKes
     : exchangeRate > 0 ? creditDeductionKes / exchangeRate : 0;
 
   const grandTotal   = preCredit - creditDeductionOrderCurrency;
+  const creditAccountDeduction = paymentMethod === 'credit' && selectedCustomer?.has_credit_account
+    ? applyPartialCredit
+      ? Math.min(parseFloat(creditAccountInput) || 0, creditAccountAvailable, grandTotal)
+      : grandTotal
+    : 0;
+
+  const finalTotal = grandTotal - creditAccountDeduction;
   const totalSavings = totalItemDisc + (parseFloat(orderDiscount) || 0) + promoDiscountAmt + creditDeductionOrderCurrency;
   
   // ── Discount sync ─────────────────────────────────────────────────────────
@@ -620,6 +646,10 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
           apply_store_credit: true,
           store_credit_amount: creditDeductionKes,
         } : {}),
+        ...(paymentMethod === 'credit' && applyPartialCredit && creditAccountDeduction > 0 ? {
+          apply_credit_account:  true,
+          credit_account_amount: creditAccountDeduction,
+        } : {}),
         apply_tax:         applyTax,
         subtotal:          itemsSubtotal,
         subtotal_kes:      showKes ? toKes(itemsSubtotal) : itemsSubtotal,
@@ -724,6 +754,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
     setApplyCredit(false);
     setCreditInput('');
     setCreditCalculating(false);
+    setApplyPartialCredit(false);
+    setCreditAccountInput('');
   };
 
   if (!isOpen) return null;
@@ -870,7 +902,11 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   {/* Currency */}
                   <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: 'white' }}>
                     <SectionTitle icon={DollarSign}>Currency</SectionTitle>
-                    <select value={currency} onChange={e => setCurrency(e.target.value)} disabled={loadingCurrencies || loading}
+                    <select value={currency} onChange={e => {
+                      setCurrency(e.target.value);
+                      const newIsBase = currencyOptions.find(c => c.value === e.target.value)?.is_base;
+                      if (!newIsBase && paymentMethod === 'credit') setPaymentMethod('request_invoice');
+                    }} disabled={loadingCurrencies || loading}
                       style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
                       {currencyOptions.length
                         ? currencyOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)
@@ -1328,12 +1364,24 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                       {PAY_STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                   </Field>
-                  <Field label="Payment Method">
-                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} disabled={loading}
-                      style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
-                      {PAY_METHOD_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  <Field label="Payment Method" hint={!isBaseCurrency && paymentMethod === 'credit' ? 'Credit account is only available in KES' : undefined}>
+                    <select
+                      value={paymentMethod}
+                      onChange={e => {
+                        if (e.target.value === 'credit' && !isBaseCurrency) return;
+                        setPaymentMethod(e.target.value);
+                      }}
+                      disabled={loading}
+                      style={{ ...iBase, appearance: 'auto' }}
+                      onFocus={fIn} onBlur={fOut}
+                    >
+                      {PAY_METHOD_OPTS.map(([v, l]) => (
+                        <option key={v} value={v} disabled={v === 'credit' && !isBaseCurrency}>
+                          {l}{v === 'credit' && !isBaseCurrency ? ' (KES only at order creation...for other Currencies change after creation.)' : ''}
+                        </option>
+                      ))}
                     </select>
-                  </Field>
+                </Field>
                 </div>
                 {paymentStatus !== 'unpaid' && (
                   <div style={{ marginBottom: 14 }}>
@@ -1377,7 +1425,11 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
               {/* Currency */}
               <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: 'white' }}>
                 <SectionTitle icon={DollarSign}>Currency</SectionTitle>
-                <select value={currency} onChange={e => setCurrency(e.target.value)} disabled={loadingCurrencies || loading}
+                <select value={currency} onChange={e => {
+                    setCurrency(e.target.value);
+                    const newIsBase = currencyOptions.find(c => c.value === e.target.value)?.is_base;
+                    if (!newIsBase && paymentMethod === 'credit') setPaymentMethod('request_invoice');
+                  }} disabled={loadingCurrencies || loading}
                   style={{ ...iBase, appearance: 'auto' }} onFocus={fIn} onBlur={fOut}>
                   {currencyOptions.length
                     ? currencyOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)
@@ -1400,9 +1452,68 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     {overrideShipping ? 'Use auto' : 'Override'}
                   </button>
                 </div>
+                {!isBaseCurrency && (
+                  <div style={{
+                    padding: '9px 11px', borderRadius: 9, marginBottom: 10,
+                    background: 'rgba(234,179,8,0.07)', border: '1px solid rgba(234,179,8,0.35)',
+                    fontSize: '0.7rem', color: '#92400e', lineHeight: 1.55,
+                  }}>
+                    <strong style={{ display: 'block', marginBottom: 3 }}>⚠️ Shipping is stored in KES</strong>
+                    Shipping options are fetched and stored in KES. For a <strong>{currency}</strong> order the
+                    amount is sent as-is — so if the method costs KSh 450 it will be recorded as{' '}
+                    <strong>{currency} 450</strong> unless you override it below.
+                    <br />
+                    <span style={{ color: '#b45309' }}>
+                      Tip: enable Override, use the calculator to get the {currency} equivalent, then confirm or adjust.
+                    </span>
+                  </div>
+                )}
+
                 {overrideShipping ? (
-                  <PrefixInput type="number" min="0" step="0.01" value={shippingCost}
-                    onChange={e => setShippingCost(e.target.value)} disabled={loading} prefix={cs} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* ── Calculator (only for non-KES) ── */}
+                    {!isBaseCurrency && exchangeRate > 0 && (() => {
+                      const selectedOpt = shippingOptions.find(o => o.slug === deliveryMethod);
+                      const kesAmount   = selectedOpt ? parseFloat(selectedOpt.cost) || 0 : 0;
+                      const converted   = exchangeRate > 0 ? kesAmount / exchangeRate : 0;
+                      return (
+                        <div style={{
+                          padding: '10px 12px', borderRadius: 10,
+                          background: 'rgba(168,85,247,0.05)', border: `1px solid ${purpleBd}`,
+                        }}>
+                          <p style={{ fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase',
+                            letterSpacing: '0.1em', color: purple, margin: '0 0 8px' }}>
+                            Shipping Converter
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                            fontSize: '0.76rem', color: '#374151', fontWeight: 600 }}>
+                            <span>KSh {fmt(kesAmount)}</span>
+                            <span style={{ color: '#9ca3af' }}>÷ {fmtRate(exchangeRate)}</span>
+                            <span style={{ color: '#9ca3af' }}>=</span>
+                            <span style={{ color: purpleDk, fontWeight: 800 }}>{cs} {fmt(converted)}</span>
+                            <button
+                              type="button"
+                              onClick={() => setShippingCost(parseFloat(converted.toFixed(2)))}
+                              style={{
+                                marginLeft: 'auto', padding: '4px 10px', borderRadius: 7,
+                                border: `1.5px solid ${purpleBd}`, background: purpleLt,
+                                color: purpleDk, fontSize: '0.7rem', fontWeight: 700,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                              }}
+                            >
+                              Use {cs} {fmt(converted)}
+                            </button>
+                          </div>
+                          <p style={{ fontSize: '0.64rem', color: '#9ca3af', marginTop: 6, marginBottom: 0 }}>
+                            You can edit the amount below after applying.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    <PrefixInput type="number" min="0" step="0.01" value={shippingCost}
+                      onChange={e => setShippingCost(e.target.value)} disabled={loading} prefix={cs} />
+                  </div>
                 ) : (
                   <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', margin: 0, fontFamily: 'monospace' }}>
                     {cs} {Number(shippingCost).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
@@ -1608,7 +1719,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     const next = !applyCredit;
                     setApplyCredit(next);
                     if (next) {
-                      const maxKes = Math.min(availableCredit, toKes(preCredit) || preCredit);
+                      const maxKes = Math.min(availableCredit, (toKes(preCredit) || preCredit) * (storeCreditMaxPct / 100));
                       setCreditInput(String(Math.round(maxKes)));
                       setCreditCalculating(true);
                       clearTimeout(creditDebounce.current);
@@ -1644,13 +1755,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   {applyCredit && (
                     <div style={{ marginTop: 10 }}>
                       <label style={{ ...labelStyle, marginBottom: 5 }}>
-                        Amount to use — KES (max KSh {fmt(Math.min(availableCredit, toKes(preCredit) || preCredit))})
+                        Amount to use — KES (max KSh {fmt(Math.min(availableCredit, maxStoreCreditKes))})
                       </label>
                       <div style={{ position: 'relative' }}>
                         <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#9ca3af', fontWeight: 600, pointerEvents: 'none' }}>KSh</span>
                         <input
                           type="number" min="1"
-                          max={Math.min(availableCredit, toKes(preCredit) || preCredit)}
+                          max={Math.min(availableCredit, maxStoreCreditKes)}
                           value={creditInput}
                           onChange={e => {
                             setCreditInput(e.target.value);
@@ -1659,7 +1770,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                             creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
                           }}
                           onBlur={e => {
-                            const max = Math.min(availableCredit, toKes(preCredit) || preCredit);
+                            const max = Math.min(availableCredit, maxStoreCreditKes);
                             const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
                             setCreditInput(String(Math.round(val)));
                           }}
@@ -1675,6 +1786,9 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                           }} />
                         )}
                       </div>
+                      <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 6, lineHeight: 1.5 }}>
+                        Store credit is capped at {storeCreditMaxPct}% of order value (configured in Loyalty Settings). The server enforces this limit.
+                      </p>
                       {!isBaseCurrency && creditDeductionOrderCurrency > 0 && (
                         <p style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, marginTop: 5 }}>
                           = {money(creditDeductionOrderCurrency)} deducted from order total
@@ -1691,6 +1805,75 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                 </div>
               )}
 
+              {/* Credit account */}
+              {paymentMethod === 'credit' && selectedCustomer?.has_credit_account && (
+                <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: purpleLt }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: purpleDk, marginBottom: 10 }}>
+                    Credit Account
+                  </p>
+
+                  <div style={{ padding: '8px 10px', borderRadius: 9, background: 'white', border: `1px solid ${purpleBd}`, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Available</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: purpleDk }}>{cs} {fmt(creditAccountAvailable)}</span>
+                  </div>
+
+                  {/* Full vs partial toggle */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    {[
+                      { val: false, label: 'Full order on credit' },
+                      { val: true,  label: 'Partial credit'       },
+                    ].map(({ val, label }) => (
+                      <button key={String(val)} type="button"
+                        onClick={() => { setApplyPartialCredit(val); setCreditAccountInput(''); }}
+                        style={{
+                          flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.76rem', fontWeight: 700,
+                          fontFamily: 'inherit', cursor: 'pointer',
+                          border: `1.5px solid ${applyPartialCredit === val ? purple : '#e5e7eb'}`,
+                          background: applyPartialCredit === val ? purpleLt : 'white',
+                          color: applyPartialCredit === val ? purpleDk : '#9ca3af',
+                          transition: 'all 150ms',
+                        }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Partial amount input */}
+                  {applyPartialCredit && (
+                    <Field label={`Amount on credit (max ${cs} ${fmt(Math.min(creditAccountAvailable, grandTotal))})`}>
+                      <PrefixInput
+                        type="number" min="1"
+                        max={Math.min(creditAccountAvailable, grandTotal)}
+                        value={creditAccountInput}
+                        onChange={e => setCreditAccountInput(e.target.value)}
+                        onBlur={e => {
+                          const max = Math.min(creditAccountAvailable, grandTotal);
+                          const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
+                          setCreditAccountInput(String(val.toFixed(0)));
+                        }}
+                        disabled={loading}
+                        prefix={cs}
+                      />
+                      {applyPartialCredit && parseFloat(creditAccountInput) > 0 && (
+                        <p style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: 5 }}>
+                          Remaining to pay by other means:{' '}
+                          <strong style={{ color: '#111827' }}>
+                            {money(Math.max(0, grandTotal - (parseFloat(creditAccountInput) || 0)))}
+                          </strong>
+                        </p>
+                      )}
+                    </Field>
+                  )}
+
+                  {/* Full credit summary */}
+                  {!applyPartialCredit && (
+                    <p style={{ fontSize: '0.75rem', color: purpleDk, fontWeight: 600, margin: 0 }}>
+                      Full {money(grandTotal)} will be charged to the credit account.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Financial summary */}
               {validItemCount > 0 && (
                 <div style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${purpleBd}`, background: purpleLt }}>
@@ -1703,6 +1886,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     { label: 'Order Discount',       value: `-${money(parseFloat(orderDiscount)||0)}`, show: parseFloat(orderDiscount) > 0, color: '#10b981' },
                     { label: 'Promo Discount',  value: `-${money(promoDiscountAmt)}`,              show: promoDiscountAmt > 0, color: '#a855f7' },
                     { label: 'Store Credit',    value: `-KSh ${fmt(creditDeductionKes)}`,           show: creditDeductionKes > 0, color: '#059669' },
+                    { label: 'Credit Account', value: `-${money(creditAccountDeduction)}`, show: creditAccountDeduction > 0, color: purpleDk },
                     { label: 'VAT (16%)',            value: money(taxAmount),                        show: applyTax },
                     { label: 'Shipping',             value: money(shipping),                         show: shipping > 0 },
                   ].filter(r => r.show).map(({ label, value, color, divider }) => (
@@ -1725,8 +1909,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `2px solid ${purpleBd}`, marginTop: 4 }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#111827' }}>Total</span>
                     <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '1.15rem', fontWeight: 900, color: purple, margin: 0 }}>{money(grandTotal)}</p>
-                      {showKes && <p style={{ fontSize: '0.66rem', color: '#9ca3af', fontStyle: 'italic', marginTop: 1 }}>{kesMoney(toKes(grandTotal))}</p>}
+                      <p style={{ fontSize: '1.15rem', fontWeight: 900, color: purple, margin: 0 }}>{money(finalTotal)}</p>
+                      {showKes && <p style={{ fontSize: '0.66rem', color: '#9ca3af', fontStyle: 'italic', marginTop: 1 }}>{kesMoney(toKes(finalTotal))}</p>}
                     </div>
                   </div>
                   {/* Referral discount note — shown if customer has a pending referral */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   BarChart2, TrendingUp, ShoppingCart, Users, FileText,
   FolderOpen, Download, RefreshCw, Calendar, ArrowUpRight,
@@ -87,6 +87,12 @@ const PERIOD_LABEL = {
   '7d': 'Last 7 Days', '30d': 'Last 30 Days',
   '90d': 'Last 90 Days', '12m': 'Last 12 Months', 'custom': 'Custom Range',
 };
+
+const TYPE_PALETTE = [
+  '#3b82f6', '#a855f7', '#059669', '#f59e0b',
+  '#ef4444', '#06b6d4', '#f97316', '#8b5cf6',
+  '#ec4899', '#14b8a6',
+];
 
 const PROMO_TYPE_LABELS = {
   general:           'General',
@@ -638,7 +644,7 @@ function pdfLoginHeatmap(ctx, hourDist) {
 }
 
 // ── Per-section PDF downloaders ────────────────────────────────────────────
-async function downloadSectionPDF(sectionId, data, period) {
+async function downloadSectionPDF(sectionId, data, period, tierColorMap = {} ) {
   const date = new Date().toISOString().slice(0, 10);
   const slug = `TISL-${sectionId}-${period}-${date}.pdf`;
 
@@ -1379,43 +1385,67 @@ async function downloadSectionPDF(sectionId, data, period) {
       const d = data;
       const total = d?.total_customers || 1;
 
+      const hexToRgb = (hex) => {
+        if (!hex || !hex.startsWith('#')) return [156, 163, 175];
+        return [
+          parseInt(hex.slice(1, 3), 16),
+          parseInt(hex.slice(3, 5), 16),
+          parseInt(hex.slice(5, 7), 16),
+        ];
+      };
+      const getTierRgb = (slug) =>
+        tierColorMap[slug] ? hexToRgb(tierColorMap[slug]) : [156, 163, 175];
+
       pdfSection(ctx, 'Customer Overview');
       pdfRow(ctx, 'Total Customers',    fmtNum(d?.total_customers));
       pdfRow(ctx, 'Active Customers',   fmtNum(d?.active_customers),    green);
-      pdfRow(ctx, 'New This Period',    fmtNum(d?.new_customers),        [59,130,246]);
+      pdfRow(ctx, 'New This Period',    fmtNum(d?.new_customers),        [59, 130, 246]);
       pdfRow(ctx, 'VIP (Gold+)',        fmtNum(d?.vip_customers),        amber);
-      pdfRow(ctx, 'Credit Accounts',    fmtNum(d?.with_credit),          [139,92,246]);
+      pdfRow(ctx, 'Credit Accounts',    fmtNum(d?.with_credit),          [139, 92, 246]);
       pdfRow(ctx, 'Avg Lifetime Value', fmtKES(d?.avg_lifetime_value),   green);
 
-      ctx.y += 4; pdfSection(ctx, 'Customers by Tier');
-      [
-        ...(d?.by_tier ? Object.keys(d.by_tier).map(slug => {
-          const colorMap = { platinum: [139,92,246], gold: [245,158,11], silver: [156,163,175], bronze: [249,115,22] };
-          return { key: slug, label: slug.charAt(0).toUpperCase() + slug.slice(1), color: colorMap[slug] || [156,163,175] };
-        }) : []),
-      ].forEach(({ key, label, color }) => {
-        const count = d?.by_tier?.[key] || 0;
-        pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
-      });
+      ctx.y += 4;
+      pdfSection(ctx, 'Customers by Tier');
+      if (d?.by_tier) {
+        Object.entries(d.by_tier).forEach(([slug, count]) => {
+          const label = slug.charAt(0).toUpperCase() + slug.slice(1);
+          const pct = total > 0 ? (count / total) * 100 : 0;
+          // Match case-insensitively against tierColorMap
+          const colorHex = tierColorMap[slug] || tierColorMap[slug.toLowerCase()] || '#a855f7';
+          const hexToRgb = (hex) => [
+            parseInt(hex.slice(1,3),16),
+            parseInt(hex.slice(3,5),16),
+            parseInt(hex.slice(5,7),16),
+          ];
+          pdfBarRow(ctx, label, fmtNum(count), pct, hexToRgb(colorHex));
+        });
+      }
 
-      ctx.y += 4; pdfSection(ctx, 'Customers by Type');
-      [
-        ...(d?.by_type ? Object.keys(d.by_type).map(slug => {
-          const colorMap = { individual: [59,130,246], business: [168,85,247], wholesale: [5,150,105], contractor: [245,158,11] };
-          return { key: slug, label: slug.charAt(0).toUpperCase() + slug.slice(1), color: colorMap[slug] || [156,163,175] };
-        }) : []),
-      ].forEach(({ key, label, color }) => {
-        const count = d?.by_type?.[key] || 0;
-        pdfBarRow(ctx, label, fmtNum(count), total > 0 ? (count / total) * 100 : 0, color);
-      });
+      ctx.y += 4;
+      pdfSection(ctx, 'Customers by Type');
+      if (d?.by_type) {
+        const TYPE_PALETTE_RGB = [
+          [59, 130, 246], [168, 85, 247], [5, 150, 105], [245, 158, 11],
+          [239, 68, 68],  [6, 182, 212],  [249, 115, 22], [139, 92, 246],
+          [236, 72, 153], [20, 184, 166],
+        ];
+        Object.entries(d.by_type).forEach(([slug, count], idx) => {
+          const label = slug.charAt(0).toUpperCase() + slug.slice(1);
+          const color = TYPE_PALETTE_RGB[idx % TYPE_PALETTE_RGB.length];
+          const pct = total > 0 ? (count / total) * 100 : 0;
+          pdfBarRow(ctx, label, fmtNum(count), pct, color);
+        });
+      }
 
       if (d?.trend?.length > 1) {
-        ctx.y += 4; pdfSection(ctx, 'New Customers - Monthly Trend');
+        ctx.y += 4;
+        pdfSection(ctx, 'New Customers - Monthly Trend');
         pdfSparkBars(ctx, d.trend);
       }
 
       if (d?.top_by_spend?.length) {
-        ctx.y += 4; pdfSection(ctx, 'Top Customers by Period Spend');
+        ctx.y += 4;
+        pdfSection(ctx, 'Top Customers by Period Spend');
         pdfTable(ctx,
           ['#', 'Name', 'Type', 'Tier', 'Orders', 'Last Order', 'Total Spent'],
           d.top_by_spend.slice(0, 15).map((c, i) => [
@@ -1430,7 +1460,8 @@ async function downloadSectionPDF(sectionId, data, period) {
       }
 
       if (d?.top_by_orders?.length) {
-        ctx.y += 6; pdfSection(ctx, 'Top Customers by Order Count');
+        ctx.y += 6;
+        pdfSection(ctx, 'Top Customers by Order Count');
         pdfTable(ctx,
           ['#', 'Name', 'Type', 'Tier', 'Total Orders', 'Total Spent'],
           d.top_by_orders.slice(0, 15).map((c, i) => [
@@ -1438,12 +1469,13 @@ async function downloadSectionPDF(sectionId, data, period) {
             fmtNum(c.total_orders), fmtKES(c.total_spent),
           ]),
           [0.05, 0.30, 0.12, 0.12, 0.18, 0.23],
-          { rightAlign: [0, 4, 5], highlightCols: { 4: [168,85,247], 5: green } }
+          { rightAlign: [0, 4, 5], highlightCols: { 4: [168, 85, 247], 5: green } }
         );
       }
 
       if (d?.login_hour_dist?.length) {
-        ctx.y += 6; pdfSection(ctx, 'Login Time Distribution (Hour of Day)');
+        ctx.y += 6;
+        pdfSection(ctx, 'Login Time Distribution (Hour of Day)');
         pdfLoginHeatmap(ctx, d.login_hour_dist);
       }
 
@@ -1662,6 +1694,202 @@ async function downloadSectionPDF(sectionId, data, period) {
 
       break;
     }
+    case 'system': {
+      const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. LOYALTY LEDGER ───────────────────────────────────────────────────
+      pdfSection(ctx, 'Loyalty Ledger Summary');
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const ledgerCards = [
+        { label: 'Active Points',      value: fmtNum(d?.ledger?.active_points),    rgb: [168,85,247],  accent: true  },
+        { label: 'Earned in Period',   value: fmtNum(d?.ledger?.points_earned),    rgb: [5,150,105],   accent: true  },
+        { label: 'Points Redeemed',    value: fmtNum(d?.ledger?.points_redeemed),  rgb: [220,38,38],   accent: false },
+        { label: 'Redemption Events',  value: fmtNum(d?.ledger?.redemption_count), rgb: [168,85,247],  accent: false },
+      ];
+      const cardW = (pw - 36 - 9) / 4, cardH = 26, cardGap = 3;
+      let cx = 18;
+      ledgerCards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = card.accent ? 0.92 : 0.96;
+        doc.setFillColor(Math.round(r+(255-r)*tint), Math.round(g+(255-g)*tint), Math.round(b+(255-b)*tint));
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(card.accent ? 0.6 : 0.3);
+        doc.roundedRect(cx, ctx.y, cardW, cardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), cx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, cx+3, ctx.y+14);
+        cx += cardW + cardGap;
+      });
+      ctx.y += cardH + 10;
+
+      pdfRow(ctx, 'Expired Points',    fmtNum(d?.ledger?.expiry_count),    ctx.grey);
+      ctx.y += 6;
+
+      // ── 2. SHIPPING METHODS ─────────────────────────────────────────────────
+      pdfSection(ctx, 'Shipping Methods');
+      if (d?.shipping_options?.length) {
+        pdfTable(ctx,
+          ['Method', 'Slug', 'Status'],
+          (d.shipping_options || []).map(opt => [
+            opt.name,
+            opt.slug || '—',
+            opt.is_active ? 'Active' : 'Inactive',
+          ]),
+          [0.45, 0.35, 0.20],
+          { highlightCols: { 2: ctx.green } }
+        );
+      } else {
+        pdfSubheading(ctx, 'No shipping methods configured.');
+        ctx.y += 6;
+      }
+
+      // ── 3. CUSTOMER TIER DISTRIBUTION ──────────────────────────────────────
+      ctx.y += 4;
+      pdfSection(ctx, 'Customer Tier Distribution');
+      pdfSubheading(ctx, 'Configured tiers, thresholds, discounts and current customer counts.');
+      if (d?.tiers?.length) {
+        pdfTable(ctx,
+          ['Tier', 'Discount', 'Min Spent', 'Multiplier', 'Customers'],
+          (d.tiers || []).map(t => [
+            t.name,
+            fmtPct(t.discount_percentage),
+            fmtKES(t.min_spent),
+            `${t.loyalty_points_multiplier}x`,
+            fmtNum(t.customers_count),
+          ]),
+          [0.28, 0.16, 0.22, 0.16, 0.18],
+          { rightAlign: [1,2,3,4], highlightCols: { 4: [168,85,247] } }
+        );
+      } else {
+        pdfSubheading(ctx, 'No tier data available.');
+        ctx.y += 6;
+      }
+
+      // ── 4. SUMMARY CALLOUT ──────────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(245,243,255);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'F');
+      doc.setDrawColor(168,85,247); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'S'); doc.setLineWidth(0.2);
+      doc.setTextColor(168,85,247); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('SYSTEM SUMMARY', 24, ctx.y+7);
+      doc.setTextColor(55,65,81); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const sysSummary = `${fmtNum(d?.ledger?.active_points)} active loyalty points across all customers. ${d?.tiers?.length || 0} tiers configured. ${(d?.shipping_options || []).filter(s => s.is_active).length} shipping methods active.`;
+      doc.text(sysSummary, 24, ctx.y+14, { maxWidth: pw-48 });
+      ctx.y += 28;
+
+      break;
+    }
+
+    case 'extras': {
+      const d = data;
+      const { doc, pw, ph } = ctx;
+
+      // ── 1. HAMPERS ──────────────────────────────────────────────────────────
+      pdfSection(ctx, 'Hamper Insights');
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const hamperCards = [
+        { label: 'Hamper Orders',   value: fmtNum(d?.hampers?.period_orders),          rgb: [168,85,247], accent: true  },
+        { label: 'Hamper Revenue',  value: fmtKES(d?.hampers?.period_revenue),         rgb: [5,150,105],  accent: true  },
+      ];
+      const hCardW = (pw - 36 - 6) / 2, hCardH = 26;
+      let hx = 18;
+      hamperCards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = 0.92;
+        doc.setFillColor(Math.round(r+(255-r)*tint), Math.round(g+(255-g)*tint), Math.round(b+(255-b)*tint));
+        doc.roundedRect(hx, ctx.y, hCardW, hCardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(0.6);
+        doc.roundedRect(hx, ctx.y, hCardW, hCardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), hx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, hx+3, ctx.y+14);
+        hx += hCardW + 6;
+      });
+      ctx.y += hCardH + 10;
+
+      if (d?.hampers?.top_hampers?.length) {
+        pdfSubheading(ctx, 'Top hampers by revenue in selected period.');
+        pdfTable(ctx,
+          ['#', 'Hamper Name', 'Orders', 'Revenue'],
+          (d.hampers.top_hampers || []).slice(0, 10).map((h, i) => [
+            `${i+1}`, h.name, fmtNum(h.count), fmtKES(h.revenue),
+          ]),
+          [0.06, 0.54, 0.16, 0.24],
+          { rightAlign: [2,3], highlightCols: { 3: ctx.green } }
+        );
+      } else {
+        pdfSubheading(ctx, 'No hamper data for this period.');
+        ctx.y += 6;
+      }
+
+      // ── 2. BOOKINGS ─────────────────────────────────────────────────────────
+      ctx.y += 8;
+      pdfSection(ctx, 'Booking Volume');
+      if (ctx.y > ph - 52) { doc.addPage(); ctx.y = 18; }
+
+      const bookingCards = [
+        { label: 'Bookings Placed',   value: fmtNum(d?.bookings?.period_placed),          rgb: [168,85,247], accent: true  },
+        { label: 'Service Revenue',   value: fmtKES(d?.bookings?.service_revenue),        rgb: [59,130,246], accent: true  },
+      ];
+      let bx = 18;
+      bookingCards.forEach(card => {
+        const [r,g,b] = card.rgb;
+        const tint = 0.92;
+        doc.setFillColor(Math.round(r+(255-r)*tint), Math.round(g+(255-g)*tint), Math.round(b+(255-b)*tint));
+        doc.roundedRect(bx, ctx.y, hCardW, hCardH, 2, 2, 'F');
+        doc.setDrawColor(r,g,b); doc.setLineWidth(0.6);
+        doc.roundedRect(bx, ctx.y, hCardW, hCardH, 2, 2, 'S'); doc.setLineWidth(0.2);
+        doc.setTextColor(r,g,b); doc.setFontSize(6); doc.setFont('helvetica','bold');
+        doc.text(card.label.toUpperCase(), bx+3, ctx.y+6);
+        doc.setTextColor(17,24,39); doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text(card.value, bx+3, ctx.y+14);
+        bx += hCardW + 6;
+      });
+      ctx.y += hCardH + 10;
+
+      if (d?.bookings?.status_dist && Object.keys(d.bookings.status_dist).length) {
+        pdfSubheading(ctx, 'Booking status breakdown for the selected period.');
+        const total = Object.values(d.bookings.status_dist).reduce((a, v) => a + v, 0) || 1;
+        const statusColors = [
+          [168,85,247], [5,150,105], [245,158,11],
+          [59,130,246], [220,38,38], [156,163,175],
+        ];
+        Object.entries(d.bookings.status_dist).forEach(([status, count], i) => {
+          const pct = (count / total) * 100;
+          pdfBarRow(ctx,
+            status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            fmtNum(count),
+            pct,
+            statusColors[i % statusColors.length],
+          );
+        });
+      } else {
+        pdfSubheading(ctx, 'No booking data for this period.');
+        ctx.y += 6;
+      }
+
+      // ── 3. SUMMARY CALLOUT ──────────────────────────────────────────────────
+      if (ctx.y > ph - 28) { doc.addPage(); ctx.y = 18; }
+      doc.setFillColor(240,253,244);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'F');
+      doc.setDrawColor(5,150,105); doc.setLineWidth(0.4);
+      doc.roundedRect(18, ctx.y, pw-36, 20, 3, 3, 'S'); doc.setLineWidth(0.2);
+      doc.setTextColor(5,150,105); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('EXTRAS SUMMARY', 24, ctx.y+7);
+      doc.setTextColor(55,65,81); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const topHamper = d?.hampers?.top_hampers?.[0]?.name || 'N/A';
+      const extrasSummary = `${fmtNum(d?.hampers?.period_orders)} hamper orders (${fmtKES(d?.hampers?.period_revenue)}). ${fmtNum(d?.bookings?.period_placed)} bookings placed (${fmtKES(d?.bookings?.service_revenue)} service revenue). Top hamper: ${topHamper}.`;
+      doc.text(extrasSummary, 24, ctx.y+14, { maxWidth: pw-48 });
+      ctx.y += 28;
+
+      break;
+    }
     default: break;
   }
 
@@ -1669,17 +1897,16 @@ async function downloadSectionPDF(sectionId, data, period) {
 }
 
 // ── Full report PDF (all sections) ────────────────────────────────────────
-async function downloadFullPDF(allData, period) {
-  const { revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos } = allData;
-  await downloadSectionPDF('revenue', revenue, period);
+async function downloadFullPDF(allData, period, tierColorMap = {}) {
+  await downloadSectionPDF('revenue', allData.revenue, period, tierColorMap);
   const sections = [
-    ['orders', orders], ['products', products], ['brands', brands],
-    ['services', services], ['funnel', funnel], ['projects', projects],
-    ['customers', customers], ['tickets', tickets], ['promos', promos],
+    ['orders', allData.orders], ['products', allData.products], ['brands', allData.brands],
+    ['services', allData.services], ['funnel', allData.funnel], ['projects', allData.projects],
+    ['customers', allData.customers], ['tickets', allData.tickets], ['promos', allData.promos],
   ];
   for (const [id, data] of sections) {
     await new Promise(r => setTimeout(r, 300));
-    await downloadSectionPDF(id, data, period);
+    await downloadSectionPDF(id, data, period, tierColorMap);
   }
 }
 
@@ -1728,6 +1955,21 @@ export default function Reports() {
   const [promos,       setPromos]       = useState(null);
   const [system,        setSystem]       = useState(null);
   const [extras,        setExtras]       = useState(null);
+
+  const [allTiers, setAllTiers] = useState([]);
+  const [allTypes, setAllTypes] = useState([]);
+
+  useEffect(() => {
+    customerTiersAPI.getTiers().then(res => setAllTiers(res.data || res));
+    customerTiersAPI.getTypes().then(res => setAllTypes(res.data || res));
+  }, []);
+
+  const tierColorMap = useMemo(() => {
+    if (!system?.tiers?.length) return {};
+    return Object.fromEntries(system.tiers.map(t => [t.slug ?? t.name?.toLowerCase(), t.color]));
+  }, [system]);
+
+  const getTierColor = (slug) => tierColorMap[slug] ?? '#9ca3af';
 
   const buildParams = useCallback(() => {
     const p = { period };
@@ -1860,7 +2102,7 @@ export default function Reports() {
         revenue, orders, products, brands, services, funnel,
         projects, customers, tickets, promos, system, extras
       }[activeTab];
-      await downloadSectionPDF(activeTab, sectionData, period);
+      await downloadSectionPDF(activeTab, sectionData, period, tierColorMap);
     } catch (e) {
       console.error(e);
       toast.error('PDF export failed');
@@ -1872,7 +2114,7 @@ export default function Reports() {
   const handleExportAll = async () => {
     setExporting('all');
     try {
-      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos, system, extras }, period);
+      await downloadFullPDF({ revenue, orders, products, brands, services, funnel, projects, customers, tickets, promos, system, extras }, period, tierColorMap);
     } catch (e) {
       toast.error('PDF export failed');
     } finally {
@@ -1912,7 +2154,7 @@ export default function Reports() {
       `}</style>
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16, overflowX: 'hidden', minWidth: 0  }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${purple},${purpleDk})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
@@ -2529,18 +2771,28 @@ export default function Reports() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <Panel>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>By Tier</div>
-                  {customers?.by_tier && Object.entries(customers.by_tier).map(([slug, count]) => {
-                    const colors = { platinum: '#8b5cf6', gold: '#f59e0b', silver: '#9ca3af', bronze: '#f97316' };
-                    return <StatusRow key={slug} label={slug.charAt(0).toUpperCase() + slug.slice(1)} value={count} color={colors[slug] || '#9ca3af'} total={customers?.total_customers} />;
-                  })}                 
+                  {allTiers.map(t => (
+                    <StatusRow
+                      key={t.slug}
+                      label={t.name}
+                      value={customers?.by_tier?.[t.slug] ?? 0}
+                      color={t.color || purple}
+                      total={customers?.total_customers}
+                    />
+                  ))}
                 </Panel>
 
                 <Panel>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 14 }}>By Type</div>
-                  {customers?.by_type && Object.entries(customers.by_type).map(([slug, count]) => {
-                    const colors = { individual: '#3b82f6', business: purple, wholesale: '#059669', contractor: '#f59e0b' };
-                    return <StatusRow key={slug} label={slug.charAt(0).toUpperCase() + slug.slice(1)} value={count} color={colors[slug] || '#9ca3af'} total={customers?.total_customers} />;
-                  })}
+                  {allTypes.map((t, idx) => (
+                    <StatusRow
+                      key={t.slug ?? t.type}
+                      label={t.name ?? t.type}
+                      value={customers?.by_type?.[t.slug ?? t.type] ?? 0}
+                      color={TYPE_PALETTE[idx % TYPE_PALETTE.length]}
+                      total={customers?.total_customers}
+                    />
+                  ))}
                 </Panel>
               </div>
 
@@ -2563,8 +2815,7 @@ export default function Reports() {
                     { label: '#  Name', key: 'name', render: r => r.name },
                     { label: 'Type', key: 'type', render: r => <Pill color={purple}>{r.type || '—'}</Pill> },
                     { label: 'Tier', key: 'tier', render: r => {
-                      const c = { platinum: '#8b5cf6', gold: '#f59e0b', silver: '#9ca3af', bronze: '#f97316' }[r.tier] || '#9ca3af';
-                      return <Pill color={c}>{r.tier || '—'}</Pill>;
+                      return <Pill color={getTierColor(r.tier)}>{r.tier || '—'}</Pill>;
                     }},
                     { label: 'Orders', key: 'total_orders', right: true, render: r => fmtNum(r.total_orders) },
                     { label: 'Last Order', key: 'last_order', right: true, render: r => r.last_order ? fmtDate(r.last_order) : '—' },
@@ -2582,8 +2833,7 @@ export default function Reports() {
                     { label: '#  Name', key: 'name', render: r => r.name },
                     { label: 'Type', key: 'type', render: r => <Pill color={purple}>{r.type || '—'}</Pill> },
                     { label: 'Tier', key: 'tier', render: r => {
-                      const c = { platinum: '#8b5cf6', gold: '#f59e0b', silver: '#9ca3af', bronze: '#f97316' }[r.tier] || '#9ca3af';
-                      return <Pill color={c}>{r.tier || '—'}</Pill>;
+                      return <Pill color={getTierColor(r.tier)}>{r.tier || '—'}</Pill>;
                     }},
                     { label: 'Total Orders', key: 'total_orders', right: true, bold: true, render: r => fmtNum(r.total_orders), color: () => purple },
                     { label: 'Total Spent', key: 'total_spent', right: true, render: r => fmtKES(r.total_spent) },

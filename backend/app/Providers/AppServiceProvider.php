@@ -17,6 +17,8 @@ use App\Services\LoyaltyService;
 use App\Services\HamperEligibilityService;
 use App\Services\AlgorithmService;
 use App\Services\CatalogueRankingService;
+use App\Services\CustomerCreditService;
+use App\Services\AuctionOrderService;
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
 
@@ -37,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(HamperEligibilityService::class);
         $this->app->singleton(AlgorithmService::class);
         $this->app->singleton(CatalogueRankingService::class);
+        $this->app->singleton(CustomerCreditService::class);
+        $this->app->singleton(AuctionOrderService::class);
 
         $this->app->singleton(InventoryTransactionService::class);
         $this->app->singleton(InventoryOperationsService::class, function ($app) {

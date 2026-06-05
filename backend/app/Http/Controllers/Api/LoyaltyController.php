@@ -289,6 +289,7 @@ class LoyaltyController extends Controller
             'referral_credit_amount' => 'sometimes|numeric|min:0',
             'min_redemption_points'  => 'sometimes|integer|min:1',
             'points_expiry_months'   => 'sometimes|nullable|integer|min:1',
+            'store_credit_max_pct'   => 'sometimes|numeric|min:0|max:100',
         ]);
 
         foreach ($data as $key => $value) {
@@ -359,6 +360,7 @@ class LoyaltyController extends Controller
             'tier_benefits'      => $customer->tier_benefits,
             'redemption_rules'   => $this->loyalty->getRedemptionRules(activeOnly: true),
             'min_redemption_points' => $this->loyalty->getSetting('min_redemption_points', 500),
+            'store_credit_max_pct'  => (float) $this->loyalty->getSetting('store_credit_max_pct', 50), 
         ]);
     }
 

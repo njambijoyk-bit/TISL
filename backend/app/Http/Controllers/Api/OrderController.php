@@ -26,6 +26,8 @@ use App\Services\PromoCodeService;
 use App\Http\Controllers\Api\Traits\LogsOrderActivities;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 use App\Services\Inventory\InventoryStockService;
+use App\Services\CustomerCreditService;
+use App\Services\LoyaltyService;
 use App\Models\OrderActivityLog;
 use Illuminate\Http\JsonResponse;
 
@@ -116,7 +118,16 @@ class OrderController extends Controller
 
         $orders = $query->paginate($request->get('per_page', 20));
 
-        return response()->json($orders, 200);
+        $mapped = $orders->getCollection()->map(function ($order) {
+            $arr = $order->toArray();
+            $arr['credit_account_deduction'] = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+            return $arr;
+        });
+
+        return response()->json(
+            $orders->setCollection($mapped),
+            200
+        );
     }
 
     /**
@@ -139,6 +150,8 @@ class OrderController extends Controller
             'items.*.quantity'       => 'required|numeric|min:0.01',
             'apply_store_credit'     => 'nullable|boolean',      
             'store_credit_amount'    => 'nullable|numeric|min:0',
+            'apply_credit_account'   => 'nullable|boolean',
+            'credit_account_amount'  => 'nullable|numeric|min:0',
             'policy_acceptances'            => 'nullable|array',
             'policy_acceptances.*.key'      => 'required_with:policy_acceptances|string',
             'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
@@ -449,6 +462,39 @@ class OrderController extends Controller
                 $creditDeductionCurrency = $deduction['deduction_order_currency'];
                 $total                  -= $creditDeductionCurrency;
             }
+
+            // ── Credit account deduction ──────────────────────────────────────────────────
+            $creditAccountDeduction    = 0;
+            $creditAccountPaymentStatus = null;
+
+            if ($customer && $request->payment_method === 'credit') {
+                // Guard: customer must have an active credit account
+                if (!$customer->has_credit_account) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'You do not have an approved credit account.'], 403);
+                }
+
+                $creditLimit     = (float) $customer->credit_limit;
+                $creditUsed      = (float) $customer->credit_used;
+                $creditAvailable = max(0, $creditLimit - $creditUsed);
+
+                // How much to put on credit — customer can choose partial or full
+                $requested = $request->boolean('apply_credit_account')
+                    ? (float) ($request->input('credit_account_amount') ?? $total)
+                    : $total; // full order on credit when payment_method = 'credit' and no partial flag
+
+                $creditAccountDeduction = min($requested, $creditAvailable, $total);
+
+                if ($creditAccountDeduction <= 0) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Insufficient credit available for this order.'], 422);
+                }
+
+                $total -= $creditAccountDeduction;
+
+                // Determine payment status
+                $creditAccountPaymentStatus = $total <= 0 ? 'paid' : 'partially_paid';
+            }
             
             $totalORDQty    = (int) round(collect($request->items)->sum('quantity'));
             $year        = date('Y');
@@ -489,7 +535,7 @@ class OrderController extends Controller
                 'shipping_snapshot'        => $shippingSnapshot,
                 'total'                    => $total,
                 'payment_method'           => $request->payment_method,
-                'payment_status'           => 'unpaid',
+                'payment_status'           => $creditAccountPaymentStatus ?? 'unpaid',
                 'status'                   => 'pending',
                 'priority'                 => 'medium',
                 'shipping_address'         => $request->shipping_address,
@@ -502,6 +548,9 @@ class OrderController extends Controller
                 'project_name'             => $request->project_name       ?? null,
                 'service_start_date'       => $request->service_start_date ?? null,
                 'service_end_date'         => $request->service_end_date   ?? null,
+                'metadata'                 => $creditAccountDeduction > 0
+                    ? ['credit_account_deduction' => $creditAccountDeduction]
+                    : null,
             ]);
 
             $order->applyKesSnapshot();
@@ -526,6 +575,64 @@ class OrderController extends Controller
                     app(\App\Services\LoyaltyService::class)->spendCredit($customer, $creditDeductionKes, $order);
                 } catch (\Exception $e) {
                     Log::warning("Store credit spend failed for order {$order->id}: " . $e->getMessage());
+                }
+                // ✅ Log store credit applied
+                $storeCreditPct = $preliminaryTotalKes > 0
+                    ? round(($creditDeductionKes / $preliminaryTotalKes) * 100, 2)
+                    : 0;
+
+                $this->logOrderActivity(
+                    $order->id,
+                    'store_credit_applied',
+                    "Store credit of KES {$creditDeductionKes} ({$storeCreditPct}%) applied to order #{$order->order_number}.",
+                    'info',
+                    [
+                        'credit_deduction_kes'      => $creditDeductionKes,
+                        'credit_deduction_currency' => $creditDeductionCurrency,
+                        'currency'                  => $request->currency ?? 'KES',
+                        'percentage_of_order'       => $storeCreditPct,
+                        'order_total_kes_before'    => $preliminaryTotalKes,
+                    ]
+                );
+            }
+
+            // ── Debit credit account if used ─────────────────────────────────────────────
+            if ($creditAccountDeduction > 0 && $customer) {
+                try {
+                    app(CustomerCreditService::class)->recordPurchase(
+                        customer:      $customer,
+                        amount:        $creditAccountDeduction,
+                        note:          "Order {$order->order_number}",
+                        referenceType: 'order',
+                        referenceId:   $order->id,
+                        createdBy:     Auth::id(),
+                    );
+
+                    // Create payment record so it shows on payments tab
+                    $snapshot      = \App\Models\Payment::buildSnapshot($order);
+                    $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);
+
+                    \App\Models\Payment::create([
+                        'order_id'               => $order->id,
+                        'customer_id'            => $order->customer_id,
+                        'initiated_by'           => Auth::id(),
+                        'payment_number'         => $paymentNumber,
+                        'method'                 => 'credit',
+                        'status'                 => 'confirmed',
+                        'currency'               => $order->currency ?? 'KES',
+                        'exchange_rate_to_kes'   => $order->exchange_rate_to_kes ?? 1,
+                        'amount_expected'        => $creditAccountDeduction,
+                        'amount_received'        => $creditAccountDeduction,
+                        'mpesa_amount_confirmed' => $creditAccountDeduction,
+                        'is_partial'             => $creditAccountPaymentStatus === 'partially_paid',
+                        ...$snapshot,
+                        'notes'                  => "Credit account payment for order {$order->order_number}",
+                        'initiated_at'           => now(),
+                        'confirmed_at'           => now(),
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::warning("Credit account debit failed for order {$order->id}: " . $e->getMessage());
                 }
             }
 
@@ -556,6 +663,15 @@ class OrderController extends Controller
             $this->createOrderItems($order->id, $itemsData);
 
             DB::commit();
+
+            // ✅ Award loyalty points when credit account covers full order at checkout
+            if ($creditAccountPaymentStatus === 'paid') {
+                try {
+                    app(\App\Services\LoyaltyService::class)->earnPointsForOrder($order->fresh());
+                } catch (\Exception $e) {
+                    Log::warning("Loyalty point award failed for credit order {$order->id}: " . $e->getMessage());
+                }
+            }
 
             $this->logOrderActivity(
                 $order->id,
@@ -606,9 +722,10 @@ class OrderController extends Controller
         //return response()->json(['order' => $order], 200);
         return response()->json([
         'order' => array_merge($order->toArray(), [
-            'promo_code'    => $order->promoCode?->code,
-            'referral_code' => $order->referralCode?->code,
-        ]),
+        'promo_code'               => $order->promoCode?->code,
+        'referral_code'            => $order->referralCode?->code,
+        'credit_account_deduction' => (float) ($order->metadata['credit_account_deduction'] ?? 0),
+    ]),
     ], 200);
     }
 
@@ -1167,6 +1284,7 @@ class OrderController extends Controller
             $order->refresh();
             $order->applyKesSnapshot();
             $this->refundOrderStoreCredit($order);
+            $this->refundCreditAccountDeduction($order);
 
             $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
             $this->reversePromoCodeUsage($order);  
@@ -1313,7 +1431,11 @@ class OrderController extends Controller
         $orders = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json([
-            'data' => $orders->items(),
+            'data' => collect($orders->items())->map(function ($order) {
+                $arr = $order->toArray();
+                $arr['credit_account_deduction'] = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+                return $arr;
+            }),
             'meta' => [
                 'current_page' => $orders->currentPage(),
                 'last_page'    => $orders->lastPage(),    // ✅ ADD THIS
@@ -1340,7 +1462,13 @@ class OrderController extends Controller
         $orders = $query->orderBy($request->get('sort_by', 'created_at'), $request->get('sort_order', 'desc'))
                         ->paginate($request->get('per_page', 10));
 
-        return response()->json($orders, 200);
+        $mapped = $orders->getCollection()->map(function ($order) {
+            $arr = $order->toArray();
+            $arr['credit_account_deduction'] = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+            return $arr;
+        });
+
+        return response()->json($orders->setCollection($mapped), 200);
     }
 
     public function trashIndex(Request $request)
@@ -1381,6 +1509,7 @@ class OrderController extends Controller
         'order' => array_merge($order->toArray(), [
             'promo_code'    => $order->promoCode?->code,
             'referral_code' => $order->referralCode?->code,
+            'credit_account_deduction' => (float) ($order->metadata['credit_account_deduction'] ?? 0),
         ]),
     ], 200);
     }
@@ -1805,6 +1934,8 @@ class OrderController extends Controller
             'total_kes'              => 'nullable|numeric',
             'apply_store_credit'     => 'nullable|boolean',      
             'store_credit_amount'    => 'nullable|numeric|min:0',
+            'apply_credit_account'   => 'nullable|boolean',
+            'credit_account_amount'  => 'nullable|numeric|min:0',
             'apply_tier_discount'    => 'nullable|boolean',
         ]);
 
@@ -2113,6 +2244,32 @@ class OrderController extends Controller
                 $total                  -= $creditDeductionCurrency;
             }
 
+            // ── Credit account deduction ──────────────────────────────────────────────────
+            $creditAccountDeduction     = 0;
+            $creditAccountPaymentStatus = null;
+
+            if ($request->payment_method === 'credit') {
+                if (!$customer->has_credit_account) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Customer does not have an approved credit account.'], 403);
+                }
+
+                $creditAvailable = max(0, (float) $customer->credit_limit - (float) $customer->credit_used);
+                $requested = $request->boolean('apply_credit_account')
+                    ? (float) ($request->input('credit_account_amount') ?? $total)
+                    : $total;
+
+                $creditAccountDeduction = min($requested, $creditAvailable, $total);
+
+                if ($creditAccountDeduction <= 0) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Insufficient credit available for this order.'], 422);
+                }
+
+                $total -= $creditAccountDeduction;
+                $creditAccountPaymentStatus = $total <= 0 ? 'paid' : 'partially_paid';
+            }
+
             $totalORDQty   = (int) round(collect($request->items)->sum('quantity'));
             $year       = date('Y');
             $placedBy   = $request->user()->id ?? 'ADM';
@@ -2134,7 +2291,10 @@ class OrderController extends Controller
                 'order_number'             => $orderNumber,
                 'customer_id'              => $customer->id,
                 'status'                   => 'pending',
-                'payment_status'           => $request->payment_status    ?? 'unpaid',
+                'payment_status'           => $creditAccountPaymentStatus ?? $request->payment_status ?? 'unpaid',
+                'metadata'                 => $creditAccountDeduction > 0
+                    ? ['credit_account_deduction' => $creditAccountDeduction]
+                    : null,
                 'payment_reference'        => $request->payment_reference ?? null,
                 'payment_method'           => $request->payment_method    ?? 'request_invoice',
                 'subtotal'                 => $subtotal,
@@ -2177,6 +2337,64 @@ class OrderController extends Controller
                 } catch (\Exception $e) {
                     Log::warning("Store credit spend failed for order {$order->id}: " . $e->getMessage());
                 }
+                // ✅ Log store credit applied
+                $storeCreditPct = $preliminaryTotalKes > 0
+                    ? round(($creditDeductionKes / $preliminaryTotalKes) * 100, 2)
+                    : 0;
+
+                $this->logOrderActivity(
+                    $order->id,
+                    'store_credit_applied',
+                    "Store credit of KES {$creditDeductionKes} ({$storeCreditPct}%) applied to order #{$order->order_number}.",
+                    'info',
+                    [
+                        'credit_deduction_kes'      => $creditDeductionKes,
+                        'credit_deduction_currency' => $creditDeductionCurrency,
+                        'currency'                  => $request->currency ?? 'KES',
+                        'percentage_of_order'       => $storeCreditPct,
+                        'order_total_kes_before'    => $preliminaryTotalKes,
+                    ]
+                );
+            }
+
+            // ── Debit credit account if used ─────────────────────────────────────────────
+            if ($creditAccountDeduction > 0) {
+                try {
+                    app(CustomerCreditService::class)->recordPurchase(
+                        customer:      $customer,
+                        amount:        $creditAccountDeduction,
+                        note:          "Order {$order->order_number}",
+                        referenceType: 'order',
+                        referenceId:   $order->id,
+                        createdBy:     Auth::id(),
+                    );
+
+                    // Create payment record so it shows on payments tab
+                    $snapshot      = \App\Models\Payment::buildSnapshot($order);
+                    $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);
+
+                    \App\Models\Payment::create([
+                        'order_id'               => $order->id,
+                        'customer_id'            => $order->customer_id,
+                        'initiated_by'           => Auth::id(),
+                        'payment_number'         => $paymentNumber,
+                        'method'                 => 'credit',
+                        'status'                 => 'confirmed',
+                        'currency'               => $order->currency ?? 'KES',
+                        'exchange_rate_to_kes'   => $order->exchange_rate_to_kes ?? 1,
+                        'amount_expected'        => $creditAccountDeduction,
+                        'amount_received'        => $creditAccountDeduction,
+                        'mpesa_amount_confirmed' => $creditAccountDeduction,
+                        'is_partial'             => $creditAccountPaymentStatus === 'partially_paid',
+                        ...$snapshot,
+                        'notes'                  => "Credit account payment for order {$order->order_number}",
+                        'initiated_at'           => now(),
+                        'confirmed_at'           => now(),
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::warning("Credit account debit failed for order {$order->id}: " . $e->getMessage());
+                }
             }
 
             // ── Record promo code usage if applied ────────────────────────────────────
@@ -2210,6 +2428,16 @@ class OrderController extends Controller
 
 
             DB::commit();
+
+            // ✅ Award loyalty points when credit account covers full order
+            if ($creditAccountPaymentStatus === 'paid') {
+                try {
+                    app(\App\Services\LoyaltyService::class)->earnPointsForOrder($order->fresh());
+                } catch (\Exception $e) {
+                    Log::warning("Loyalty point award failed for credit order {$order->id}: " . $e->getMessage());
+                }
+            }
+            
             $this->logOrderActivity(
                 $order->id,
                 'order_created',
@@ -2906,15 +3134,60 @@ class OrderController extends Controller
                     'confirmed_at'                => now(),  
                 ]);  
     
-                // Update order payment_reference and payment_method  
-                $order->update([  
-                    'payment_reference' => $request->payment_reference,  
-                    'payment_method' => $request->payment_method === 'credit' ? 'credit' :   
-                                    ($request->payment_method === 'cod' ? 'pay_on_delivery' : $request->payment_method),  
-                ]);  
+                // Update order payment_reference and payment_method   
+                $order->update([
+                    'payment_reference' => $request->payment_reference,
+                    // ✅ Never overwrite payment_method if credit was already applied —
+                    // the metadata is the source of truth for credit, not payment_method
+                    'payment_method' => (float) ($order->metadata['credit_account_deduction'] ?? 0) > 0
+                        ? $order->payment_method  // preserve original — mixed payment in progress
+                        : ($request->payment_method === 'cod' ? 'pay_on_delivery' : $request->payment_method),
+                ]);
     
                 // Sync order payment status based on all confirmed payments  
                 $payment->syncOrderPaymentStatus();  
+                
+                // ✅ if paying via credit account, rewrite metadata with fresh deduction amount
+                if ($request->payment_method === 'credit') {
+                    $existing = $order->metadata ?? [];
+                    $exchangeRate = (float) ($order->exchange_rate_to_kes ?? 1.0);
+                    // ✅ Subtract credit amount from order total so the balance is accurate.
+                    // Without this, total stays inflated and a subsequent cancel would
+                    // refundCreditAccountDeduction() an amount that was never actually deducted.
+                    $amountInOrderCurrency = $exchangeRate > 0
+                        ? round($amount / $exchangeRate, 2)
+                        : $amount;
+                    
+                    $order->update([
+                        'total'    => round((float) $order->total - $amountInOrderCurrency, 2),
+                        'metadata' => array_merge($existing, [
+                            'credit_account_deduction' => ($existing['credit_account_deduction'] ?? 0) + $amountInOrderCurrency,
+                        ]),
+                    ]);
+                    $order->applyKesSnapshot();
+
+                    // ✅ debit the credit account ledger
+                    try {
+                        app(CustomerCreditService::class)->recordPurchase(
+                            customer:      $order->customer,
+                            amount:        $amount,
+                            note:          "Payment for order {$order->order_number}",
+                            referenceType: 'order',
+                            referenceId:   $order->id,
+                            createdBy:     $request->user()->id,
+                        );
+                    } catch (\Exception $e) {
+                        Log::warning("Credit account debit failed on payment update for order {$order->id}: " . $e->getMessage());
+                    }
+
+                    $this->logOrderActivity(
+                        $order->id,
+                        'credit_account_applied',
+                        "Credit account deduction of {$amount} recorded for order #{$order->order_number}.",
+                        'info',
+                        ['credit_amount' => $amount]
+                    );
+                }
                 
                 DB::commit();  
                 $this->logOrderActivity(
@@ -2953,6 +3226,8 @@ class OrderController extends Controller
             if ($order->loyalty_points_earned > 0) {
                 app(\App\Services\LoyaltyService::class)->reversePointsForCancelledOrder($order);
             }
+            // ✅ Reverse credit account deduction if one was applied
+            $this->refundCreditAccountDeduction($order);
 
             DB::commit();
             $this->logOrderActivity(
@@ -2991,6 +3266,10 @@ class OrderController extends Controller
         try {
             $order           = Order::with(['items.product', 'customer'])->findOrFail($id);
             $totalConfirmedPayments = $order->getTotalConfirmedPayments();
+            $cashConfirmedPayments = \App\Models\Payment::where('order_id', $order->id)
+                ->where('status', 'confirmed')
+                ->where('method', '!=', 'credit')
+                ->sum('amount_received');
             
             // Fetch financial snapshots from the most recent confirmed payment if available
             $lastPayment = \App\Models\Payment::where('order_id', $order->id)
@@ -3139,11 +3418,12 @@ class OrderController extends Controller
                 // (snapshotTotal when override is off, custom value when on).
                 // So $manualRefundAmount is always set here — use it directly.
                 // Fallback to totalConfirmedPayments only if frontend somehow sends null.
+                // ✅ Cash only — credit is reversed separately by refundCreditAccountDeduction
                 $totalRefundedAmount = $manualRefundAmount !== null
-                    ? min((float) $manualRefundAmount, $totalConfirmedPayments)   // ← override takes priority
+                    ? min((float) $manualRefundAmount, $cashConfirmedPayments)
                     : ($itemsRefundTotal !== null
-                        ? min((float) $itemsRefundTotal, $totalConfirmedPayments)
-                        : $totalConfirmedPayments);
+                        ? min((float) $itemsRefundTotal, $cashConfirmedPayments)
+                        : $cashConfirmedPayments);
 
                 // For audit integrity, we ALWAYS create a refund record if funds are returned.
                 // We also mark previous payments as refunded to clear the balance.
@@ -3151,11 +3431,22 @@ class OrderController extends Controller
                 $snapshot = \App\Models\Payment::buildSnapshot($order);
                 $paymentNumber = \App\Models\Payment::generatePaymentNumber($order->id);
 
-                \App\Models\Payment::where('order_id', $order->id)  
-                    ->where('status', 'confirmed')  
+                // ✅ Only mark non-credit payments as refunded
+                \App\Models\Payment::where('order_id', $order->id)
+                    ->where('status', 'confirmed')
+                    ->where('method', '!=', 'credit')
                     ->update([  
                         'status' => 'refunded',  
                         'admin_notes' => \Illuminate\Support\Facades\DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Linked to refund record — order cancelled')"),  
+                    ]);
+
+                // ✅ Void the credit payment separately
+                \App\Models\Payment::where('order_id', $order->id)
+                    ->where('status', 'confirmed')
+                    ->where('method', 'credit')
+                    ->update([
+                        'status' => 'voided',
+                        'admin_notes' => DB::raw("CONCAT(IFNULL(admin_notes, ''), '\n[" . now()->format('Y-m-d H:i:s') . "] Voided — credit account reversed on cancellation')"),
                     ]);
 
                 \App\Models\Payment::create([  
@@ -3190,6 +3481,7 @@ class OrderController extends Controller
             }  
             
             $this->refundOrderStoreCredit($order);
+            $this->refundCreditAccountDeduction($order);
 
             $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
             $this->reversePromoCodeUsage($order);  
@@ -3350,6 +3642,11 @@ class OrderController extends Controller
                 Log::warning("Loyalty point restore failed for order {$order->id}: " . $e->getMessage());
             }
             DB::commit();
+            try {
+                $this->mailer->sendOrderRestored($order->fresh(['items.product', 'customer']));
+            } catch (\Exception $e) {
+                Log::error('Admin restore email failed: ' . $e->getMessage());
+            }
             $this->logOrderActivity(
                 $order->id,
                 'order_restored',
@@ -3449,6 +3746,7 @@ class OrderController extends Controller
                     ]);
 
                     $this->refundOrderStoreCredit($order);
+                    $this->refundCreditAccountDeduction($order);
                     $this->reverseReferralCodeUsage($order); // handles markAsCancelled + logs
                     $this->reversePromoCodeUsage($order);  
 
@@ -3620,9 +3918,9 @@ class OrderController extends Controller
                     ]);
 
                     try {
-                        $this->mailer->sendOrderCancelled($order->fresh(['items.product', 'customer']));
+                        $this->mailer->sendOrderRestored($order->fresh(['items.product', 'customer']));
                     } catch (\Exception $e) {
-                        Log::error("Bulk cancel email failed for {$order->order_number}: " . $e->getMessage());
+                        Log::error("Bulk restore email failed for {$order->order_number}: " . $e->getMessage());
                     }
 
                     $this->rechargeOrderStoreCredit($order);
@@ -3911,6 +4209,54 @@ class OrderController extends Controller
             app(\App\Services\LoyaltyService::class)->spendCredit($customer, $deductionKes, $order);
         } catch (\Exception $e) {
             Log::warning("Store credit re-spend failed for order {$order->id}: " . $e->getMessage());
+        }
+    }
+    private function refundCreditAccountDeduction(Order $order): void
+    {
+        // ✅ Source of truth is metadata, not payment_method
+        // payment_method can be overwritten by a later mpesa/bank payment
+        $creditDeduction = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+        if ($creditDeduction <= 0) return;
+
+        $customer = $order->customer ?: \App\Models\Customer::find($order->customer_id);
+        if (!$customer || !$customer->has_credit_account) return;
+
+        try {
+            // ✅ metadata stores the deduction in ORDER currency — convert to KES for the ledger
+            $exchangeRate       = (float) ($order->exchange_rate_to_kes ?? 1.0);
+            $creditDeductionKes = $exchangeRate > 0
+                ? round($creditDeduction * $exchangeRate, 2)
+                : $creditDeduction;
+
+            app(CustomerCreditService::class)->recordPayment(
+                customer:      $customer,
+                amount:        $creditDeductionKes,  // ← KES always
+                note:          "Reversal for cancelled order {$order->order_number}",
+                referenceType: 'order',
+                referenceId:   $order->id,
+                createdBy:     auth()->id(),
+            );
+
+            // ✅ Restore credit amount to order total BEFORE wiping metadata.
+            // The deduction was subtracted from total at order creation, so clearing
+            // it without adding it back leaves an understated total that can never
+            // be fully settled by another payment method.
+            $order->update([
+                'total'    => round((float) $order->total + $creditDeduction, 2),
+                'metadata' => collect($order->metadata)->except('credit_account_deduction')->all() ?: null,
+            ]);
+            $order->applyKesSnapshot();
+
+            $this->logOrderActivity(
+                $order->id,
+                'credit_account_reversed',
+                "Credit account deduction of {$creditDeduction} reversed for cancelled order #{$order->order_number}.",
+                'info',
+                ['reversed_amount' => $creditDeduction]
+            );
+
+        } catch (\Exception $e) {
+            Log::warning("Credit account reversal failed for order {$order->id}: " . $e->getMessage());
         }
     }
 }

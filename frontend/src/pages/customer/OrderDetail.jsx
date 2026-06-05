@@ -244,7 +244,8 @@ export default function CustomerOrderDetail() {
   }, []);
 
   const totalQty    = items.reduce((s, i) => s + Number(i.quantity || 0), 0);
-  const canEdit     = order?.status === 'pending';
+  const isCreditOrder = order?.payment_method === 'credit';
+  const canEdit       = order?.status === 'pending' && !isCreditOrder;
   const canRate     = order?.status === 'delivered' && !order?.rating;
   const isQuotedOrder = !!order?.quote_id;
   const canCancel   = order?.status === 'pending' && order?.payment_status === 'unpaid';
@@ -716,6 +717,11 @@ export default function CustomerOrderDetail() {
           value: `-${money(order.store_credit_deduction)}`,
           color: '#059669',
         },
+        Number(order.credit_account_deduction) > 0 && {
+          label: 'Credit Account',
+          value: `-${money(order.credit_account_deduction)}`,
+          color: '#7c3aed',
+        },
         { label: 'Total', value: money(order.total), bold: true },
       ].filter(Boolean);
 
@@ -1060,6 +1066,18 @@ export default function CustomerOrderDetail() {
             <div>
               <p className="text-sm font-semibold m-0" style={{ color: '#7c3aed' }}>Order Can Be Modified</p>
               <p className="text-xs mt-0.5 m-0" style={{ color: '#a855f7', opacity: 0.8 }}>This order is pending. Make your changes and click "Save Changes" when done.</p>
+            </div>
+          </div>
+        )}
+        {isCreditOrder && (
+          <div className="flex items-start gap-3 p-4 rounded-xl mb-5"
+            style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.25)', borderLeft: '4px solid #7c3aed' }}>
+            <CreditCard size={15} color="#7c3aed" className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold m-0" style={{ color: '#7c3aed' }}>Credit Account Order</p>
+              <p className="text-xs mt-0.5 m-0" style={{ color: '#7c3aed', opacity: 0.8 }}>
+                This order is being charged to your credit account and cannot be modified. Contact support if changes are needed.
+              </p>
             </div>
           </div>
         )}
@@ -1490,6 +1508,15 @@ export default function CustomerOrderDetail() {
                     value: `-${money(order.store_credit_deduction)}`,
                     color: '#e48213',
                   },
+                  Number(order?.credit_account_deduction) > 0 && {
+                    label: (
+                      <span className="flex items-center gap-1.5">
+                        🏦 Credit Account
+                      </span>
+                    ),
+                    value: `-${money(order.credit_account_deduction)}`,
+                    color: '#7c3aed',
+                  },
                 ].filter(Boolean).map(({ label, value, color, kes }, i) => (
                   <div key={i} className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
@@ -1558,7 +1585,20 @@ export default function CustomerOrderDetail() {
                               <CreditCard size={14} color={statusCfg.color} />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-gray-900 dark:text-white">{p.payment_number}</p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                {p.payment_number}
+                                {/* ✅ Method badge */}
+                                {p.method && (
+                                  <span style={{
+                                    fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                                    padding: '1px 7px', borderRadius: 4,
+                                    background: p.method === 'mpesa' ? 'rgba(16, 185, 129, 0.1)' : p.method === 'credit' ? 'rgba(124,58,237,0.1)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
+                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? '#5b21b6'              : p.method === 'refund' ? '#991b1b'              : '#374151',
+                                  }}>
+                                    {p.method === 'bank_transfer' ? 'Bank' : p.method === 'cod' ? 'COD' : p.method}
+                                  </span>
+                                )}
+                              </p>
                               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                                 {safeFormat(p.initiated_at, 'MMM d, yyyy · h:mm a')}
                               </p>

@@ -10,6 +10,7 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import NotificationsModal from '../../components/common/NotificationsModal';
 import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
+import CustomerCreditTab from './CustomerCreditTab';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../api';
 import { useAuthStore, usePromoCodeStore } from '../../store';
 import toast from 'react-hot-toast';
@@ -451,6 +452,7 @@ export default function Profile() {
     { key: 'business',  label: 'Business' },
     { key: 'addresses', label: 'Addresses' },
     { key: 'wallet',    label: '💳 Wallet' },
+    { key: 'credit',    label: '🏦 Credit'   }, 
     { key: 'rewards',   label: '🎁 My Rewards' },
     { key: 'password',  label: 'Password'  },
   ];
@@ -1094,6 +1096,10 @@ export default function Profile() {
                 />
 
               </div>
+            )}
+
+            {activeTab === 'credit' && (
+              <CustomerCreditTab customer={customer} />
             )}
 
             {/* ── TAB: Rewards ── */}

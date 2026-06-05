@@ -65,6 +65,8 @@ use App\Http\Controllers\Api\Careers\AdminAIScreeningController;
 use App\Http\Controllers\Api\Careers\AdminApplicationController;
 use App\Http\Controllers\Api\Careers\AdminJobController;
 use App\Http\Controllers\Api\Careers\AdminApplicantController;
+use App\Http\Controllers\Api\CustomerCreditController;
+use App\Http\Controllers\Api\CustomerCreditCustomerController;
 
 //use App\Http\Controllers\Jobs\ScreenApplicationJob;
 /*
@@ -380,6 +382,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}',           [BookingController::class, 'customerShow']);
             Route::post('/{id}/cancel',   [BookingController::class, 'customerCancel']);
         });
+        // ── Credit Account (Customer — read only) ───────────────
+        Route::prefix('credit')->group(function () {
+            Route::get('/summary',          [CustomerCreditCustomerController::class, 'summary']);
+            Route::get('/statement',        [CustomerCreditCustomerController::class, 'statement']);
+            Route::get('/invoices',         [CustomerCreditCustomerController::class, 'invoices']);
+            Route::get('/invoices/{inv}',   [CustomerCreditCustomerController::class, 'showInvoice']);
+            Route::get('/schedules',        [CustomerCreditCustomerController::class, 'schedules']);
+        });
     });
 
     // ============================================
@@ -422,6 +432,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{auction}', [AuctionController::class, 'destroy']);
             Route::post('/{id}/restore', [AuctionController::class, 'restore']);  // ← new
             Route::delete('/{id}/force', [AuctionController::class, 'forceDestroy']); 
+            // Approve bids & create orders
+            Route::post('/{auction}/approve-bids', [AuctionController::class, 'approveBids']);
+
+            // Auction activity log
+            Route::get('/{auction}/activity', [AuctionController::class, 'auctionActivityLog']);
+        });
+
+        // Auction order management
+        Route::prefix('auction-orders')->group(function () {
+            Route::get('/',                          [AuctionController::class, 'adminOrderIndex']);
+            Route::get('/trashed',                   [AuctionController::class, 'orderTrashedIndex']);
+            Route::get('/{id}',                      [AuctionController::class, 'adminOrderShow']);
+            Route::put('/{id}/status',               [AuctionController::class, 'updateOrderStatus']);
+            Route::put('/{id}/payment',              [AuctionController::class, 'updatePaymentStatus']);
+            Route::put('/{id}/ship',                 [AuctionController::class, 'shipOrder']);
+            Route::post('/{id}/cancel',              [AuctionController::class, 'cancelOrder']);
+            Route::post('/{id}/restore',             [AuctionController::class, 'restoreOrder']);
+            Route::delete('/{id}',                   [AuctionController::class, 'orderTrash']);
+            Route::post('/{id}/restore-trash',       [AuctionController::class, 'orderRestoreTrash']);
         });
 
         // Categories Management
@@ -466,6 +495,30 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/{addressId}',                     [CustomerAddressController::class, 'adminDestroy']);
                 Route::post('/{addressId}/set-default-shipping',  [CustomerAddressController::class, 'adminSetDefaultShipping']);
                 Route::post('/{addressId}/set-default-billing',   [CustomerAddressController::class, 'adminSetDefaultBilling']);
+            });
+
+            // ── Credit Account (Admin) ──────────────────────────────
+            Route::prefix('/{id}/credit')->group(function () {
+                Route::get('/summary',                              [CustomerCreditController::class, 'summary']);
+                Route::get('/statement',                            [CustomerCreditController::class, 'statement']);
+                Route::post('/payment',                             [CustomerCreditController::class, 'recordPayment']);
+                Route::post('/adjustment',                          [CustomerCreditController::class, 'adjustment']);
+                Route::post('/interest',                            [CustomerCreditController::class, 'applyInterest']);
+
+                // Schedules
+                Route::get('/schedules',                            [CustomerCreditController::class, 'schedules']);
+                Route::post('/schedules',                           [CustomerCreditController::class, 'createSchedule']);
+                Route::get('/schedules/{sid}',                      [CustomerCreditController::class, 'showSchedule']);
+                Route::patch('/schedules/{sid}/cancel',             [CustomerCreditController::class, 'cancelSchedule']);
+                Route::patch('/schedules/{sid}/items/{iid}/pay',    [CustomerCreditController::class, 'payInstallment']);
+                Route::patch('/schedules/{sid}/items/{iid}/waive',  [CustomerCreditController::class, 'waiveInstallment']);
+
+                // Invoices
+                Route::get('/invoices',                             [CustomerCreditController::class, 'invoices']);
+                Route::post('/invoices',                            [CustomerCreditController::class, 'createInvoice']);
+                Route::get('/invoices/{inv}',                       [CustomerCreditController::class, 'showInvoice']);
+                Route::patch('/invoices/{inv}/status',              [CustomerCreditController::class, 'updateInvoiceStatus']);
+                Route::post('/invoices/{inv}/send',                 [CustomerCreditController::class, 'sendInvoice']);
             });
         });
 
@@ -1254,6 +1307,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('orders')->group(function () {
             Route::delete('/{id}/force', [OrderController::class, 'forceDelete']);             // ✅ permanent delete single
             Route::post('/force-delete-multiple', [OrderController::class, 'forceDeleteMultiple']); 
+        });
+
+        // Auction order management
+        Route::prefix('auction-orders')->group(function () {
+            Route::delete('/{id}/force', [AuctionController::class, 'orderForceDelete']);
         });
 
         Route::prefix('quotes')->group(function () {

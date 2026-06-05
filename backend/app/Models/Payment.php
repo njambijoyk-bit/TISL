@@ -279,9 +279,14 @@ class Payment extends Model
             ->sum('mpesa_amount_confirmed');
         
         $totalKes  = (float) ($order->total_kes ?? $order->total ?? 0);
-        $stillOwed = max(0, $totalKes - (float) $previouslyPaid);
         
-        // Get exchange rate - fallback to 1 if not set
+        // ✅ Add back any credit deduction that was already subtracted from order->total
+        // so we don't double-count it when calculating what's still owed
+        $creditDeduction = (float) ($order->metadata['credit_account_deduction'] ?? 0);
+        $effectiveTotalKes = $totalKes + $creditDeduction;
+        
+        $stillOwed = max(0, $effectiveTotalKes - (float) $previouslyPaid);
+        
         $rate = $order->exchange_rate_to_kes ?? 1;
         
         return [
@@ -289,7 +294,7 @@ class Payment extends Model
             'snapshot_tax_kes'                    => (float) round(((float)($order->tax ?? 0)) * $rate, 2),
             'snapshot_discount_kes'               => (float) round(((float)($order->discount ?? 0)) * $rate, 2),
             'snapshot_shipping_kes'               => (float) round(((float)($order->shipping_cost ?? 0)) * $rate, 2),
-            'snapshot_total_kes'                  => $totalKes,
+            'snapshot_total_kes'                  => $effectiveTotalKes,  // ✅ use the gross total
             'snapshot_amount_previously_paid_kes' => (float) $previouslyPaid,
             'snapshot_amount_still_owed_kes'      => $stillOwed,
         ];

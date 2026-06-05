@@ -708,7 +708,7 @@ class PaymentController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $totalConfirmed = $payments->where('status', 'confirmed')->sum('mpesa_amount_confirmed');
+        $totalConfirmed = $payments->where('status', 'confirmed')->where('method', '!=', 'credit')->sum('mpesa_amount_confirmed');
         $totalKes       = (float) ($order->total_kes ?? $order->total ?? 0);
 
         return response()->json([
@@ -729,9 +729,14 @@ class PaymentController extends Controller
     // =========================================================================
     public function customerOrderPayments(Request $request, int $orderId)
     {
+        $user = $request->user(); // always a User model
+    
+        // Get the customer record linked to this user
+        $customer = \App\Models\Customer::where('user_id', $user->id)->firstOrFail();
+
         // 🔒 Security: Verify order belongs to authenticated customer
         $order = Order::where('id', $orderId)
-            ->where('customer_id', $request->user()->id)
+            ->where('customer_id', $customer->id) // ✅ correct customer ID
             ->firstOrFail();
 
         // Fetch only customer-safe fields (no admin/internal data)
@@ -739,11 +744,11 @@ class PaymentController extends Controller
             ->orderBy('created_at', 'asc')
             ->get([
                 'id', 'payment_number', 'status', 'amount_expected', 
-                'amount_received', 'is_partial', 'mpesa_receipt_number', 
+                'amount_received', 'is_partial', 'mpesa_receipt_number', 'method',
                 'mpesa_amount_confirmed', 'failure_reason', 'initiated_at', 'confirmed_at'
             ]);
 
-        $totalConfirmed = $payments->where('status', 'confirmed')->sum('mpesa_amount_confirmed');
+        $totalConfirmed = $payments->where('status', 'confirmed')->where('method', '!=', 'credit')->sum('mpesa_amount_confirmed');
         $totalKes = (float) ($order->total_kes ?? $order->total ?? 0);
 
         return response()->json([
@@ -776,12 +781,12 @@ class PaymentController extends Controller
                 'id', 'payment_number', 'status', 'amount_expected',
                 'amount_received', 'is_partial', 'mpesa_receipt_number',
                 'mpesa_amount_confirmed', 'failure_reason', 'initiated_at', 
-                'confirmed_at', 'initiated_by',
+                'confirmed_at', 'initiated_by', 'method',
                 'snapshot_subtotal_kes', 'snapshot_tax_kes', 'snapshot_discount_kes', 
                 'snapshot_shipping_kes', 'snapshot_total_kes'
             ]);
 
-        $totalConfirmed = $payments->where('status', 'confirmed')->sum('mpesa_amount_confirmed');
+        $totalConfirmed = $payments->where('status', 'confirmed')->where('method', '!=', 'credit')->sum('mpesa_amount_confirmed');
         $totalKes = (float) ($order->total_kes ?? $order->total ?? 0);
 
         return response()->json([

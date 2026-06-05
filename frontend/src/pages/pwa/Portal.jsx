@@ -23,13 +23,13 @@ import ThemeSwitcher from '../../components/common/ThemeSwitcher';
 import toast from 'react-hot-toast';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const BG       = '#0d0a14';
-const SURFACE  = 'rgba(255,255,255,0.05)';
-const SURFACE2 = 'rgba(255,255,255,0.08)';
-const BORDER   = 'rgba(255,255,255,0.09)';
-const BORDER_P = 'rgba(168,85,247,0.25)';
-const TEXT     = 'rgba(255,255,255,0.92)';
-const MUTED    = 'rgba(255,255,255,0.4)';
+const BG       = 'transparent';
+const SURFACE  = 'rgba(128,128,128,0.07)';
+const SURFACE2 = 'rgba(128,128,128,0.11)';
+const BORDER   = 'rgba(128,128,128,0.18)';
+const BORDER_P = 'rgba(168,85,247,0.3)';
+const TEXT     = 'inherit';
+const MUTED    = 'rgba(128,128,128,0.75)';
 const PURPLE   = '#a855f7';
 const PURPLE_D = '#7c3aed';
 
@@ -64,7 +64,7 @@ const CUSTOMER_ROUTES = [
   { key: 'specials',       label: 'Specials',       icon: Tag,           path: '/specials',          color: '#f59e0b' },
   { key: 'brochures',      label: 'Brochures',      icon: BookOpen,      path: '/brochures',         color: '#64748b' },
   { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: '#7c3aed' },
-  { key: 'about',          label: 'About Us',       icon: Info,          path: '/about',             color: '#0ea5e9' },
+  { key: 'profile',        label: 'My Profile',     icon: Info,          path: '/profile',           color: '#0ea5e9' },
 ];
 
 const ADMIN_ROUTES = [
@@ -85,7 +85,7 @@ const ADMIN_ROUTES = [
   { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: '#7c3aed' },
 ];
 
-const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'bookings', 'tickets', 'products', 'services'];
+const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'bookings', 'profile', 'products', 'services'];
 const DEFAULT_ADMIN_SHORTCUTS    = ['dashboard', 'orders', 'products', 'customers', 'bookings', 'reports'];
 
 const ROLE_LABELS = {
@@ -172,18 +172,16 @@ function PWAHeader({ name, onLogout }) {
 
   const iconBtn = {
     width: 36, height: 36, borderRadius: '50%',
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: SURFACE, border: `1px solid ${BORDER}`,
     cursor: 'pointer', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', color: 'white',
-    transition: 'background 150ms',
+    justifyContent: 'center', color: 'inherit', transition: 'background 150ms',
   };
 
   return (
     <>
       <div style={{
         padding: 'calc(16px + env(safe-area-inset-top, 0px)) 18px 14px',
-        background: 'linear-gradient(160deg, #1a0a2e 0%, #0d0a14 100%)',
+        background: 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
         borderBottom: `1px solid ${BORDER_P}`,
@@ -202,7 +200,7 @@ function PWAHeader({ name, onLogout }) {
               <span style={{
                 position: 'absolute', top: 3, right: 3,
                 width: 14, height: 14, borderRadius: '50%',
-                background: '#ef4444', border: '2px solid #0d0a14',
+                background: '#ef4444', border: '2px solid transparent',
                 fontSize: '0.5rem', fontWeight: 800, color: 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
@@ -222,7 +220,7 @@ function PWAHeader({ name, onLogout }) {
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end' }}>
           <div style={{
             width: '100%', borderRadius: '20px 20px 0 0',
-            background: '#130d20', border: `1px solid ${BORDER_P}`,
+            background: 'var(--color-background, #ffffff)', border: `1px solid ${BORDER_P}`,
             maxHeight: '82vh', display: 'flex', flexDirection: 'column',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             animation: 'portalFadeUp 200ms ease',
@@ -266,15 +264,15 @@ function PWAHeader({ name, onLogout }) {
                     background: n.is_read ? 'transparent' : 'rgba(168,85,247,0.05)',
                     borderBottom: `1px solid ${BORDER}`,
                   }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.is_read ? 'rgba(255,255,255,0.12)' : accent }} />
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.is_read ? BORDER : accent }} />
                     <div style={{ flex: 1, minWidth: 0 }} onClick={() => !n.is_read && handleMarkAsRead(n.id)}>
-                      <p style={{ margin: '0 0 2px', fontSize: '0.8rem', fontWeight: n.is_read ? 500 : 700, color: n.is_read ? MUTED : TEXT, lineHeight: 1.3 }}>{n.title}</p>
-                      <p style={{ margin: '0 0 4px', fontSize: '0.72rem', color: n.is_read ? MUTED : 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{n.message}</p>
-                      <p style={{ margin: 0, fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>{n.time_ago}</p>
+                      <p style={{ margin: '0 0 2px', fontSize: '0.8rem', fontWeight: n.is_read ? 500 : 700, color: n.is_read ? MUTED : 'inherit', lineHeight: 1.3 }}>{n.title}</p>
+                      <p style={{ margin: '0 0 4px', fontSize: '0.72rem', color: MUTED, lineHeight: 1.4 }}>{n.message}</p>
+                      <p style={{ margin: 0, fontSize: '0.65rem', color: MUTED, opacity: 0.7, fontWeight: 600 }}>{n.time_ago}</p>
                     </div>
-                    <button onClick={() => handleDelete(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.15)', padding: 4, display: 'flex', flexShrink: 0, transition: 'color 150ms' }}
+                    <button onClick={() => handleDelete(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED, padding: 4, display: 'flex', flexShrink: 0, transition: 'color 150ms' }}
                       onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.15)'}
+                      onMouseLeave={e => e.currentTarget.style.color = MUTED}
                     ><X size={13} /></button>
                   </div>
                 );
@@ -292,7 +290,7 @@ function TabBar({ tabs, active, onChange }) {
   return (
     <div style={{
       display: 'flex', flexShrink: 0,
-      background: 'rgba(255,255,255,0.04)',
+      background: SURFACE,
       backdropFilter: 'blur(12px)',
       borderBottom: `1px solid ${BORDER}`,
     }}>
@@ -307,7 +305,7 @@ function TabBar({ tabs, active, onChange }) {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
             transition: 'all 150ms ease',
           }}>
-            <tab.icon size={16} color={isActive ? PURPLE : 'rgba(255,255,255,0.3)'} strokeWidth={2.2} />
+            <tab.icon size={16} color={isActive ? PURPLE : MUTED} strokeWidth={2.2} />
             <span style={{ fontSize: '0.58rem', fontWeight: 700, color: isActive ? PURPLE : MUTED, whiteSpace: 'nowrap' }}>
               {tab.label}
             </span>
@@ -360,7 +358,7 @@ function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
               padding: '12px 6px', borderRadius: 13,
               ...glowBtn(route.color),
-              cursor: 'pointer', fontFamily: 'inherit',
+              cursor: 'pointer', fontFamily: 'inherit', color: 'inherit',
             }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -383,7 +381,7 @@ function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(false); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end' }}>
           <div style={{
-            width: '100%', background: '#130d20', borderRadius: '20px 20px 0 0',
+            width: '100%', background: 'var(--color-background, #ffffff)', borderRadius: '20px 20px 0 0',
             border: `1px solid ${BORDER_P}`,
             padding: '18px 14px',
             paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
@@ -405,7 +403,7 @@ function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
                 return (
                   <button key={route.key} onClick={() => !isDisabled && toggleDraft(route.key)} className="portal-press" style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                    padding: '10px 6px', borderRadius: 12, fontFamily: 'inherit',
+                    padding: '10px 6px', borderRadius: 12, fontFamily: 'inherit', color: '#000000',
                     background: isSelected ? `${route.color}15` : SURFACE,
                     border: isSelected ? `1.5px solid ${route.color}50` : `1px solid ${BORDER}`,
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -447,7 +445,7 @@ function PWAFooterBar({ children }) {
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-      background: 'rgba(13,10,20,0.9)',
+      background: 'var(--color-background, rgba(255,255,255,0.92))',
       backdropFilter: 'blur(16px)',
       borderTop: `1px solid ${BORDER_P}`,
       display: 'flex', gap: 8, padding: '8px 14px',
@@ -478,6 +476,36 @@ const InfoRow = ({ label, value, last = false, statusMeta }) => (
   </div>
 );
 
+// ── Password field – module-level so React never remounts on parent re-render ─
+const pwdInputBase = {
+  width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: '0.82rem',
+  background: SURFACE, border: `1.5px solid ${BORDER}`,
+  color: 'inherit', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  transition: 'border-color 150ms',
+};
+
+function PwdField({ label, field, showKey, pwd, show, errors, setPwd, setErrors, setShow }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: MUTED, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={show[showKey] ? 'text' : 'password'}
+          value={pwd[field]}
+          onChange={e => { setPwd(p => ({ ...p, [field]: e.target.value })); setErrors(er => ({ ...er, [field]: null })); }}
+          style={{ ...pwdInputBase, paddingRight: 36, borderColor: errors[field] ? '#ef4444' : BORDER }}
+          onFocus={e => e.target.style.borderColor = PURPLE}
+          onBlur={e  => e.target.style.borderColor = errors[field] ? '#ef4444' : BORDER}
+        />
+        <button type="button" onClick={() => setShow(s => ({ ...s, [showKey]: !s[showKey] }))} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: MUTED, display: 'flex' }}>
+          {show[showKey] ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+      {errors[field] && <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: '#ef4444' }}>{errors[field][0]}</p>}
+    </div>
+  );
+}
+
 // ── Password tab ──────────────────────────────────────────────────────────────
 function PasswordTab({ customer, onVerifyEmail, onLogout }) {
   const [pwd,  setPwd]  = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
@@ -487,13 +515,6 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
   const [otpSent,   setOtpSent]   = useState(false);
   const [otp,       setOtp]       = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-
-  const inputBase = {
-    width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: '0.82rem',
-    background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${BORDER}`,
-    color: TEXT, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-    transition: 'border-color 150ms',
-  };
 
   const sendOtp = async () => {
     setOtpLoading(true);
@@ -525,25 +546,7 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
     } finally { setSaving(false); }
   };
 
-  const PwdField = ({ label, field, showKey }) => (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: MUTED, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        <input
-          type={show[showKey] ? 'text' : 'password'}
-          value={pwd[field]}
-          onChange={e => { setPwd(p => ({ ...p, [field]: e.target.value })); setErrors(er => ({ ...er, [field]: null })); }}
-          style={{ ...inputBase, paddingRight: 36, borderColor: errors[field] ? '#ef4444' : BORDER }}
-          onFocus={e => e.target.style.borderColor = PURPLE}
-          onBlur={e  => e.target.style.borderColor = errors[field] ? '#ef4444' : BORDER}
-        />
-        <button type="button" onClick={() => setShow(s => ({ ...s, [showKey]: !s[showKey] }))} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: MUTED, display: 'flex' }}>
-          {show[showKey] ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
-      {errors[field] && <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: '#ef4444' }}>{errors[field][0]}</p>}
-    </div>
-  );
+  const fieldProps = { pwd, show, errors, setPwd, setErrors, setShow };
 
   return (
     <div style={{ padding: '14px 14px 8px' }}>
@@ -560,7 +563,7 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={otp} onChange={e => setOtp(e.target.value)} placeholder="Enter OTP"
-                style={{ ...inputBase, flex: 1 }}
+                style={{ ...pwdInputBase, flex: 1 }}
                 onFocus={e => e.target.style.borderColor = PURPLE}
                 onBlur={e  => e.target.style.borderColor = BORDER}
               />
@@ -580,9 +583,9 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
       )}
 
       <GlassCard>
-        <PwdField label="Current Password"    field="current_password"          showKey="cur" />
-        <PwdField label="New Password"        field="new_password"              showKey="nw"  />
-        <PwdField label="Confirm New Password" field="new_password_confirmation" showKey="cf"  />
+        <PwdField label="Current Password"    field="current_password"          showKey="cur" {...fieldProps} />
+        <PwdField label="New Password"        field="new_password"              showKey="nw"  {...fieldProps} />
+        <PwdField label="Confirm New Password" field="new_password_confirmation" showKey="cf"  {...fieldProps} />
         <button onClick={handleSave}
           disabled={saving || !pwd.current_password || !pwd.new_password || !pwd.new_password_confirmation}
           className="portal-press"
@@ -655,7 +658,7 @@ function CustomerPWAHome({ user, onLogout }) {
   const firstName = customer?.first_name ?? user?.name?.split(' ')[0] ?? 'there';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: `radial-gradient(ellipse at 60% -10%, rgba(124,58,237,0.2) 0%, transparent 55%), radial-gradient(ellipse at 10% 80%, rgba(168,85,247,0.1) 0%, transparent 45%), ${BG}` }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       <style>{GLOBAL_CSS}</style>
       <PWAHeader name={firstName} onLogout={onLogout} />
       <TabBar tabs={CUSTOMER_TABS} active={activeTab} onChange={setActiveTab} />
@@ -719,20 +722,24 @@ function CustomerPWAHome({ user, onLogout }) {
 // ── Customer: Personal tab ────────────────────────────────────────────────────
 function CustomerPersonalTab({ customer, user, navigate }) {
   if (!customer) return null;
-  const rows = [
+  const [showAll, setShowAll] = useState(false);
+  const primaryRows = [
     { label: 'Full Name', value: customer.full_name ?? `${customer.first_name} ${customer.last_name}` },
-    { label: 'Email',     value: user?.email ?? customer.email },
     { label: 'Phone',     value: customer.phone || '—' },
-    { label: 'WhatsApp',  value: customer.whatsapp || '—' },
-    { label: 'Birthday',  value: customer.birthday ? new Date(customer.birthday).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : '—' },
     { label: 'Company',   value: customer.company_name || '—' },
   ];
+  const extraRows = [
+    { label: 'Email',     value: user?.email ?? customer.email },
+    { label: 'WhatsApp',  value: customer.whatsapp || '—' },
+    { label: 'Birthday',  value: customer.birthday ? new Date(customer.birthday).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : '—' },
+  ];
+  const visibleRows = showAll ? [...primaryRows, ...extraRows] : primaryRows;
   return (
     <div style={{ padding: '14px 14px 8px' }}>
       {/* Profile strip */}
       <div style={{ ...glass(), padding: '14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
         <img src={customer.profile_image_url} alt={customer.full_name}
-          style={{ width: 50, height: 50, borderRadius: 12, objectFit: 'cover', background: 'rgba(255,255,255,0.06)', flexShrink: 0, border: `1px solid ${BORDER}` }} />
+          style={{ width: 50, height: 50, borderRadius: 12, objectFit: 'cover', background: SURFACE, flexShrink: 0, border: `1px solid ${BORDER}` }} />
         <div>
           <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: TEXT }}>{customer.first_name} {customer.last_name}</p>
           <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: MUTED }}>{user?.email}</p>
@@ -740,7 +747,10 @@ function CustomerPersonalTab({ customer, user, navigate }) {
       </div>
 
       <div style={{ ...glass(), overflow: 'hidden', marginBottom: 10 }}>
-        {rows.map((row, i) => <InfoRow key={row.label} {...row} last={i === rows.length - 1} />)}
+        {visibleRows.map((row) => <InfoRow key={row.label} {...row} last={false} />)}
+        <button onClick={() => setShowAll(s => !s)} style={{ width: '100%', padding: '8px 14px', background: 'none', border: 'none', borderTop: `1px solid ${BORDER}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 700, color: PURPLE, fontFamily: 'inherit' }}>
+          {showAll ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show more details</>}
+        </button>
       </div>
 
       <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
@@ -897,7 +907,7 @@ function AdminPWAHome({ user, onLogout }) {
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: `radial-gradient(ellipse at 70% -10%, rgba(99,102,241,0.2) 0%, transparent 55%), radial-gradient(ellipse at 10% 80%, rgba(168,85,247,0.1) 0%, transparent 45%), ${BG}` }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       <style>{GLOBAL_CSS}</style>
       <PWAHeader name={firstName} onLogout={onLogout} />
       <TabBar tabs={ADMIN_TABS} active={activeTab} onChange={setActiveTab} />
@@ -949,15 +959,15 @@ function AdminOverviewTab({ user, navigate }) {
         {links.map((link, i) => {
           const Icon = link.icon;
           return (
-            <button key={link.label} onClick={() => navigate(link.path)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'none', border: 'none', borderBottom: i < links.length - 1 ? `1px solid ${BORDER}` : 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+            <button key={link.label} onClick={() => navigate(link.path)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'none', border: 'none', borderBottom: i < links.length - 1 ? `1px solid ${BORDER}` : 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: 'inherit' }}>
               <div style={{ width: 30, height: 30, borderRadius: 8, background: `${link.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon size={15} color={link.color} strokeWidth={2} />
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{link.label}</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: link.color }}>{link.label}</p>
                 <p style={{ margin: '1px 0 0', fontSize: '0.65rem', color: MUTED }}>{link.desc}</p>
               </div>
-              <ChevronRight size={13} color={MUTED} />
+              <ChevronRight size={13} color={link.color} />
             </button>
           );
         })}
@@ -967,11 +977,59 @@ function AdminOverviewTab({ user, navigate }) {
 }
 
 function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, navigate }) {
+  // ── Status & Priority badges ──────────────────────────────────────────────────
+  function StatusBadge({ status }) {
+    const map = {
+      active:           { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
+      delivered:        { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
+      approved:         { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
+      resolved:         { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
+      confirmed:        { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
+      pending:          { bg: 'rgba(245,158,11,0.18)',  color: '#fbbf24' },
+      open:             { bg: 'rgba(245,158,11,0.18)',  color: '#fbbf24' },
+      planning:         { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
+      converted:        { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
+      in_progress:      { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
+      waiting_customer: { bg: 'rgba(249,115,22,0.18)',  color: '#fb923c' },
+      draft:            { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' },
+      closed:           { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' },
+      no_show:          { bg: 'rgba(239,68,68,0.18)',   color: '#f87171' },
+    };
+    const style = map[status] ?? { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' };
+    return (
+      <span style={{
+        padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
+        background: style.bg, color: style.color, flexShrink: 0,
+      }}>
+        {status?.replace(/_/g, ' ')}
+      </span>
+    );
+  }
+
+  function PriorityBadge({ priority }) {
+    const map = {
+      urgent: { bg: 'rgba(239,68,68,0.18)',  color: '#f87171' },
+      high:   { bg: 'rgba(249,115,22,0.18)', color: '#fb923c' },
+      medium: { bg: 'rgba(59,130,246,0.18)', color: '#60a5fa' },
+      low:    { bg: 'rgba(128,128,128,0.15)',color: '#9ca3af' },
+    };
+    const style = map[priority] ?? { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' };
+    return (
+      <span style={{
+        padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
+        background: style.bg, color: style.color,
+      }}>
+        {priority}
+      </span>
+    );
+  }
+
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   const sections = [
     {
       key: 'customers', label: 'Assigned Customers', count: assignments.counts?.customers || 0, color: '#3b82f6', items: assignments.customers, emptyMsg: 'No customers assigned',
       renderItem: (c, i) => (
-        <button key={i} onClick={() => navigate(`/admin/customers/${c.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left' }}>
+        <button key={i} onClick={() => navigate(`/admin/customers/${c.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(59,130,246,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 800, color: '#3b82f6', flexShrink: 0 }}>
             {`${c.first_name?.[0]||''}${c.last_name?.[0]||''}`}
           </div>
@@ -986,7 +1044,7 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
     {
       key: 'projects', label: 'My Projects', count: assignments.counts?.projects || 0, color: '#10b981', items: assignments.projects, emptyMsg: 'No projects assigned',
       renderItem: (p, i) => (
-        <button key={i} onClick={() => navigate(`/admin/projects/${p.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left' }}>
+        <button key={i} onClick={() => navigate(`/admin/projects/${p.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{p.title}</p>
             <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{p.customer?.full_name || 'No customer'}</p>
@@ -999,7 +1057,7 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
     {
       key: 'orders', label: 'Assigned Orders', count: assignments.counts?.orders || 0, color: '#f59e0b', items: assignments.orders, emptyMsg: 'No orders assigned',
       renderItem: (o, i) => (
-        <button key={i} onClick={() => navigate(`/admin/orders/${o.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left' }}>
+        <button key={i} onClick={() => navigate(`/admin/orders/${o.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{o.order_number}</p>
             <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{o.customer?.full_name}</p>
@@ -1012,7 +1070,7 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
     {
       key: 'quotes', label: 'Assigned Quotes', count: assignments.counts?.quotes || 0, color: '#8b5cf6', items: assignments.quotes, emptyMsg: 'No quotes assigned',
       renderItem: (q, i) => (
-        <button key={i} onClick={() => navigate(`/admin/quotes/${q.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left' }}>
+        <button key={i} onClick={() => navigate(`/admin/quotes/${q.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{q.quote_number}</p>
             <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{q.customer?.full_name}</p>
@@ -1022,9 +1080,54 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
       ),
     },
     {
+      key: 'bookings',
+      label: 'My Bookings',
+      count: assignments.counts?.bookings || 0,
+      color: '#db2777',
+      items: assignments.bookings,
+      emptyMsg: 'No bookings assigned to you yet',
+      renderItem: (b, idx) => (
+        <Link
+          key={idx}
+          to={b.url}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 12px', borderRadius: 9,
+            background: 'none', textDecoration: 'none',
+            borderBottom: '1px solid rgba(128,128,128,0.10)',
+            transition: 'background 140ms',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(219,39,119,0.06)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{b.booking_number}</p>
+            <p style={{ margin: 0, fontSize: '0.7rem', color: '#9ca3af' }}>{b.customer || 'Unknown customer'}</p>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <StatusBadge status={b.status} />
+            {b.scheduled_at && (
+              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{fmtDate(b.scheduled_at)}</p>
+            )}
+          </div>
+          {b.role && (
+            <span style={{
+              fontSize: '0.65rem', fontWeight: 700, flexShrink: 0,
+              padding: '2px 7px', borderRadius: 99,
+              background: b.role === 'lead' ? 'rgba(219,39,119,0.12)' : 'rgba(128,128,128,0.10)',
+              color: b.role === 'lead' ? '#db2777' : '#6b7280',
+            }}>
+              {b.role}
+            </span>
+          )}
+          <ChevronRight size={13} style={{ color: '#9ca3af', flexShrink: 0 }} />
+        </Link>
+      ),
+    },
+    {
       key: 'tickets', label: 'Assigned Tickets', count: assignments.counts?.tickets || 0, color: '#ef4444', items: assignments.tickets, emptyMsg: 'No tickets assigned',
       renderItem: (t, i) => (
-        <button key={i} onClick={() => navigate(`/admin/tickets/${t.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left' }}>
+        <button key={i} onClick={() => navigate(`/admin/tickets/${t.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{t.subject || t.ticket_number}</p>
             <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{t.customer?.full_name}</p>
@@ -1039,10 +1142,10 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
     <div style={{ padding: '14px 14px 8px' }}>
       {sections.map(section => (
         <div key={section.key} style={{ marginBottom: 8, borderRadius: 12, overflow: 'hidden', border: `1px solid ${BORDER}`, background: SURFACE }}>
-          <button onClick={() => toggleSection(section.key)} className="portal-press" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => toggleSection(section.key)} className="portal-press" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: section.color, flexShrink: 0, boxShadow: `0 0 6px ${section.color}` }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: TEXT }}>{section.label}</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: section.color }}>{section.label}</span>
               <span style={{ fontSize: '0.62rem', fontWeight: 700, color: section.color, background: `${section.color}18`, padding: '1px 7px', borderRadius: 99 }}>{section.count}</span>
             </div>
             {openSections[section.key] ? <ChevronUp size={13} color={MUTED} /> : <ChevronDown size={13} color={MUTED} />}
@@ -1137,14 +1240,17 @@ function UnauthPWAHome() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: `radial-gradient(ellipse at 50% -15%, rgba(124,58,237,0.25) 0%, transparent 60%), ${BG}` }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       <style>{GLOBAL_CSS}</style>
       <div style={{ padding: 'calc(20px + env(safe-area-inset-top, 0px)) 18px 14px', borderBottom: `1px solid ${BORDER_P}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <p style={{ margin: 0, fontSize: '0.65rem', color: MUTED }}>Welcome to</p>
           <p style={{ margin: '1px 0 0', fontSize: '1.4rem', fontWeight: 900, color: TEXT, letterSpacing: '-0.03em' }}>TISL</p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <ThemeSwitcher />
         <Bell size={20} color={MUTED} />
+        </div>
       </div>
 
       <TabBar tabs={UNAUTH_TABS} active={activeTab} onChange={setActiveTab} />
@@ -1159,7 +1265,7 @@ function UnauthPWAHome() {
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: `${link.color}30`, boxShadow: `0 0 14px ${link.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={18} color={link.color} strokeWidth={2} />
                   </div>
-                  <span style={{ fontSize: '0.64rem', fontWeight: 700, color: TEXT }}>{link.label}</span>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 700, color: 'inherit' }}>{link.label}</span>
                 </button>
               );
             })}

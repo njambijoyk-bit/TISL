@@ -8,6 +8,7 @@ import {
   User, Briefcase, FileText, Clock, Hash, ChevronDown, ChevronRight,
   Home, Warehouse, MoreHorizontal, Settings, Loader2,
 } from 'lucide-react';
+import CreditTab from './CreditTab';
 import customersAPI from '../../api/customers';
 import customerTiersAPI from '../../api/customerTiers';
 import ordersAPI from '../../api/orders';
@@ -543,7 +544,7 @@ export default function CustomerDetail() {
     try {
       const data = await customersAPI.assignSalesRep(id, adminId);
       setCustomer(data.customer);
-      setForm(buildForm(data.customer));
+      setForm(f => ({ ...f, assigned_sales_rep: data.customer.assigned_sales_rep }));
       setShowAssignModal(false);
       notify('Sales rep assigned');
     } catch (e) {
@@ -835,7 +836,7 @@ export default function CustomerDetail() {
 
         {/* ── Tab bar ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, borderBottom: '2px solid rgba(168,85,247,0.1)' }}>
-          {['overview', 'addresses', 'orders'].map(t => (
+          {['overview', 'addresses', 'orders', 'credit'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '10px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
               color: tab === t ? '#a855f7' : '#9ca3af',
@@ -1042,6 +1043,86 @@ export default function CustomerDetail() {
                     onFocus={editing ? inputFocus : undefined}
                     onBlur={editing  ? inputBlur  : undefined}
                   />
+                </div>
+
+                {/* Store credit Account */}
+                <div style={card}>
+
+                  {/* Store credit balance */}
+                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
+                    {fmt(customer.credit_limit)}
+                  </p>
+
+                  {/* Credit account section */}
+                  {customer.has_credit_account ? (() => {
+                    const limit     = Number(customer.credit_limit   ?? 0);
+                    const used      = Number(customer.credit_used    ?? 0);
+                    const available = Math.max(0, limit - used);
+                    const pct       = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+                    const isOver    = used > limit && limit > 0;
+                    const isHigh    = pct >= 80 && !isOver;
+                    const barColor  = isOver ? '#ef4444' : isHigh ? '#f59e0b' : '#10b981';
+
+                    return (
+                      <div style={{
+                        padding: '12px 14px', borderRadius: 10,
+                        background: isOver ? 'rgba(239,68,68,0.04)' : 'rgba(168,85,247,0.03)',
+                        border: `1px solid ${isOver ? 'rgba(239,68,68,0.2)' : isHigh ? 'rgba(245,158,11,0.2)' : 'rgba(168,85,247,0.1)'}`,
+                      }}>
+                        {/* Header row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            Credit account
+                          </span>
+                          {isOver && (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.2)' }}>
+                              Over limit
+                            </span>
+                          )}
+                          {isHigh && !isOver && (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.2)' }}>
+                              Near limit
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Progress bar */}
+                        {limit > 0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ height: 6, borderRadius: 3, background: 'rgba(168,85,247,0.08)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{pct.toFixed(0)}% used</span>
+                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>Limit: {fmt(limit)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Three stat rows */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {[
+                            { label: 'Credit limit', value: fmt(limit),     color: '#6b7280' },
+                            { label: 'Used',         value: fmt(used),      color: isOver ? '#ef4444' : '#6b7280' },
+                            { label: 'Available',    value: fmt(available), color: available === 0 ? '#ef4444' : '#059669' },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                              <span style={{ color: '#9ca3af' }}>{label}</span>
+                              <span style={{ color, fontWeight: 700 }}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div style={{
+                      padding: '10px 12px', borderRadius: 9,
+                      background: 'rgba(107,114,128,0.04)', border: '1px dashed rgba(107,114,128,0.2)',
+                      fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center',
+                    }}>
+                      No credit account · enable in account settings
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1706,6 +1787,11 @@ export default function CustomerDetail() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ══ TAB: CREDIT ════════════════════════════════════════════════════════ */}
+        {tab === 'credit' && (
+          <CreditTab customer={customer} notify={notify} />
         )}
 
       </div>

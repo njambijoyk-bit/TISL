@@ -134,6 +134,7 @@ export default function EmployeeList() {
 
   // Birthdays modal
   const [showBirthdaysModal, setShowBirthdaysModal]   = useState(false);
+  const [birthdayDays, setBirthdayDays]               = useState(30);
   const [birthdays, setBirthdays]                     = useState([]);
   const [birthdaysLoading, setBirthdaysLoading]       = useState(false);
 
@@ -186,10 +187,10 @@ export default function EmployeeList() {
     finally { setLeaveLogsLoading(false); }
   };
 
-  const fetchBirthdays = async () => {
+  const fetchBirthdays = async (days = 30) => {
     setBirthdaysLoading(true);
     try {
-      const data = await employeesApi.getUpcomingBirthdays(30);
+      const data = await employeesApi.getUpcomingBirthdays(days);
       setBirthdays(data.data || []);
     } catch { toast.error('Failed to load upcoming birthdays'); setBirthdays([]); }
     finally { setBirthdaysLoading(false); }
@@ -286,7 +287,7 @@ export default function EmployeeList() {
                 <History size={14} /> Leave Logs
               </button>
               <button
-                onClick={() => { setShowBirthdaysModal(true); fetchBirthdays(); }}
+                onClick={() => { setShowBirthdaysModal(true); fetchBirthdays(30); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
@@ -792,10 +793,32 @@ export default function EmployeeList() {
         <Modal
           onClose={() => setShowBirthdaysModal(false)}
           title="Upcoming Birthdays"
-          subtitle="Employees with birthdays in the next 30 days"
+          subtitle={`Employees with birthdays in the next ${birthdayDays} days`} 
           icon={<Gift size={18} style={{ color: '#d97706' }} />}
           iconBg="rgba(217,119,6,0.1)"
         >
+          {/* ── Day range toggles ── */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {[
+              { label: 'This week', days: 7  },
+              { label: '30 days',   days: 30 },
+              { label: '60 days',   days: 60 },
+              { label: '90 days',   days: 90 },
+            ].map(({ label, days }) => (
+              <button
+                key={days}
+                onClick={() => { setBirthdayDays(days); fetchBirthdays(days); }}
+                style={{
+                  padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
+                  background: birthdayDays === days ? '#d97706' : 'rgba(217,119,6,0.08)',
+                  color: birthdayDays === days ? 'white' : '#b45309',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {birthdaysLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
@@ -804,7 +827,9 @@ export default function EmployeeList() {
           ) : birthdays.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <Gift size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No upcoming birthdays in the next 30 days</p>
+              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
+                No upcoming birthdays in the next {birthdayDays} days  {/* ← was hardcoded 30 */}
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

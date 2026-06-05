@@ -66,6 +66,64 @@ const auctionsAPI = {
     const response = await api.post('/admin/auctions', data);
     return response.data;
   },
+
+  // Admin: Approve bids for an ended auction
+  approveBids: async (auctionId, data) => {
+    const response = await api.post(`/admin/auctions/${auctionId}/approve-bids`, data);
+    return response.data;
+  },
+
+  // Admin: Auction activity log
+  getAuctionActivity: async (auctionId, params = {}) => {
+    const response = await api.get(`/admin/auctions/${auctionId}/activity`, { params });
+    return response.data;
+  },
+
+  // Admin: Auction Orders
+  listAuctionOrders: async (params = {}) => {
+    const response = await api.get('/admin/auction-orders', { params });
+    return response.data;
+  },
+  getAuctionOrder: async (id) => {
+    const response = await api.get(`/admin/auction-orders/${id}`);
+    return response.data;
+  },
+  updateAuctionOrderStatus: async (id, data) => {
+    const response = await api.put(`/admin/auction-orders/${id}/status`, data);
+    return response.data;
+  },
+  updateAuctionOrderPayment: async (id, data) => {
+    const response = await api.put(`/admin/auction-orders/${id}/payment`, data);
+    return response.data;
+  },
+  shipAuctionOrder: async (id, data) => {
+    const response = await api.put(`/admin/auction-orders/${id}/ship`, data);
+    return response.data;
+  },
+  cancelAuctionOrder: async (id, reason) => {
+    const response = await api.post(`/admin/auction-orders/${id}/cancel`, { reason });
+    return response.data;
+  },
+  restoreAuctionOrder: async (id, reason = null) => {
+    const response = await api.post(`/admin/auction-orders/${id}/restore`, { reason });
+    return response.data;
+  },
+  trashAuctionOrder: async (id) => {
+    const response = await api.delete(`/admin/auction-orders/${id}`);
+    return response.data;
+  },
+  listTrashedAuctionOrders: async (params = {}) => {
+    const response = await api.get('/admin/auction-orders/trashed', { params });
+    return response.data;
+  },
+  restoreAuctionOrderFromTrash: async (id) => {
+    const response = await api.post(`/admin/auction-orders/${id}/restore-trash`);
+    return response.data;
+  },
+  forceDeleteAuctionOrder: async (id) => {
+    const response = await api.delete(`/admin/auction-orders/${id}/force`);
+    return response.data;
+  },
 };
 
 export default auctionsAPI;

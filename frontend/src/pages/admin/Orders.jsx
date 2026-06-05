@@ -1018,6 +1018,12 @@ export default function Orders() {
               </p>
             )}
 
+            {Number(order.credit_account_deduction) > 0 && (
+              <p className="text-xs font-bold" style={{ color: '#7c3aed' }}>
+                🏦 −{money(order.credit_account_deduction, ccy)}
+              </p>
+            )}
+
             {/* Exchange rate line (ONLY if non-KES order) */}
             {showKes && (
               <div className="text-xs text-gray-500 dark:text-gray-400">

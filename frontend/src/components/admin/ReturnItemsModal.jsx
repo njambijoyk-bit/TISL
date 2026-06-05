@@ -325,7 +325,15 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
   );
 
   // ── Main modal ──────────────────────────────────────────────────────────────
-  const totalRefund = manualRefundMode ? Number(manualRefundAmount || 0) : refundItems.reduce((s, i) => s + Number(i.refund_amount || 0), 0);
+  const totalRefundKes = manualRefundMode 
+    ? Number(manualRefundAmount || 0) 
+    : refundItems.reduce((s, i) => s + Number(i.refund_amount || 0), 0);
+
+  const exchangeRate = Number(order?.exchange_rate_to_kes || 1);
+  const totalRefund = (currency !== 'KES' && exchangeRate > 0)
+    ? totalRefundKes / exchangeRate
+    : totalRefundKes;
+
   const subDesc = requiresReturn
     ? canRefund ? 'Process return and refund for delivered/shipped order' : 'Process return (no refund — unpaid)'
     : canRefund ? 'Process full refund for paid order' : 'Cancel order and restore stock';
@@ -662,7 +670,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                   </p>
                   {showKes && (
                     <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#9ca3af' }}>
-                      <p style={{ margin: '0 0 2px' }}>≈ {money(totalRefund * Number(order.exchange_rate_to_kes), 'KES')}</p>
+                      <p style={{ margin: '0 0 2px' }}>≈ {money(totalRefundKes, 'KES')}</p>
                       <p style={{ margin: 0, fontStyle: 'italic' }}>
                         1 {currency} = {fmt(order.exchange_rate_to_kes, 6)} KES{exchangeDate ? ` · ${exchangeDate}` : ''}
                       </p>

@@ -1065,18 +1065,19 @@ class ReportsController extends Controller
             'with_credit'        => Customer::where('has_credit_account', true)->count(),
             'new_customers'      => $newCustomers,
             'avg_lifetime_value' => round((float) $avgLTV, 2),
-            'by_tier'            => [
-                'bronze'   => Customer::where('tier', 'bronze')->count(),
-                'silver'   => Customer::where('tier', 'silver')->count(),
-                'gold'     => Customer::where('tier', 'gold')->count(),
-                'platinum' => Customer::where('tier', 'platinum')->count(),
-            ],
-            'by_type'            => [
-                'individual' => Customer::where('customer_type', 'individual')->count(),
-                'business'   => Customer::where('customer_type', 'business')->count(),
-                'wholesale'  => Customer::where('customer_type', 'wholesale')->count(),
-                'contractor' => Customer::where('customer_type', 'contractor')->count(),
-            ],
+            // by_tier — dynamic from customer_tiers table
+            'by_tier' => CustomerTier::orderBy('sort_order')
+                ->get(['slug'])
+                ->mapWithKeys(fn ($t) => [
+                    $t->slug => Customer::where('tier', $t->slug)->count(),
+                ]),
+
+            // by_type — dynamic from customer_type_discounts table  
+            'by_type' => CustomerTypeDiscount::orderBy('sort_order')
+                ->get(['slug'])
+                ->mapWithKeys(fn ($t) => [
+                    $t->slug => Customer::where('customer_type', $t->slug)->count(),
+                ]),
             'top_by_spend'       => $topBySpend,
             'top_by_orders'      => $topByOrders,
             'login_hour_dist'    => $loginHourDist,
