@@ -199,6 +199,9 @@ export default function AdminAuctions() {
             <Btn onClick={() => setShowTrash(true)} style={{ color: '#dc2626', borderColor: 'rgba(220,38,38,0.3)' }}>
               <Trash2 size={15} /> Trash
             </Btn>
+            <Btn onClick={() => navigate('/admin/auction-orders')}>
+              <Package size={15} /> Auction Orders
+            </Btn>
             <PrimaryBtn onClick={() => navigate('/admin/auctions/create')}>
               <Plus size={15} /> Create Auction
             </PrimaryBtn>

@@ -155,7 +155,7 @@ function RaiseForm({ payment, onUpdate }) {
     if (!reason.trim()) { toast.error('Reason is required.'); return; }
     setLoading(true);
     try {
-      const res = await paymentsAPI.raiseDispute(payment.id, { reason, evidence });
+      const res = await paymentsAPI.raiseDispute(payment.id, reason, evidence); 
       toast.success('Dispute raised.');
       onUpdate(res.payment);
     } catch (err) {
@@ -242,10 +242,7 @@ function RaisedView({ payment, user, onUpdate }) {
     if (!notes.trim()) { toast.error('Resolution notes are required.'); return; }
     setLoading(true);
     try {
-      const res = await paymentsAPI.resolveDispute(payment.id, {
-        resolution,
-        resolution_notes: notes,
-      });
+      const res = await paymentsAPI.resolveDispute(payment.id, resolution, notes);
       toast.success(`Dispute ${resolution}.`);
       onUpdate(res.payment);
     } catch (err) {

@@ -19,6 +19,7 @@ use App\Services\AlgorithmService;
 use App\Services\CatalogueRankingService;
 use App\Services\CustomerCreditService;
 use App\Services\AuctionOrderService;
+use App\Services\ReconciliationPopulateService;
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
 
@@ -41,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CatalogueRankingService::class);
         $this->app->singleton(CustomerCreditService::class);
         $this->app->singleton(AuctionOrderService::class);
-
+        $this->app->singleton(ReconciliationPopulateService::class);
         $this->app->singleton(InventoryTransactionService::class);
         $this->app->singleton(InventoryOperationsService::class, function ($app) {
             return new InventoryOperationsService(

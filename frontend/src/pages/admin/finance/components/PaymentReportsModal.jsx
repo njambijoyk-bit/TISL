@@ -101,7 +101,7 @@ export default function PaymentReportsModal({ onClose }) {
     }
 
     // Pull all payments for the period (large per_page to get totals)
-    const res = await paymentsAPI.getPayments({ from_date, to_date: today, per_page: 1000 });
+    const res = await paymentsAPI.listPayments({ from_date, to_date: today, per_page: 1000 });
     const payments = res.data ?? [];
 
     const credits     = payments.filter(p => p.method === 'credit');

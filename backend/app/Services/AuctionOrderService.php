@@ -7,6 +7,7 @@ use App\Models\AuctionBid;
 use App\Models\AuctionOrder;
 use App\Models\AuctionOrderActivityLog;
 use App\Models\Product;
+use App\Models\Payment;
 use App\Models\ShippingOption;
 use App\Services\Inventory\InventoryStockService;
 use Illuminate\Support\Facades\Auth;
@@ -268,13 +269,23 @@ class AuctionOrderService
 
         $updates = ['status' => $newStatus];
 
+        // Stamp forward
         if ($newStatus === 'confirmed' && !$order->confirmed_at) {
             $updates['confirmed_at'] = now();
         }
         if ($newStatus === 'delivered' && !$order->delivered_at) {
             $updates['delivered_at'] = now();
-            // Award loyalty points on delivery if needed in future
         }
+
+        // Clear timestamps on regression
+        if ($newStatus === 'processing' || $newStatus === 'pending' || $newStatus === 'failed') {
+            $updates['delivered_at'] = null;
+        }
+        if ($newStatus === 'pending' || $newStatus === 'failed') {
+            $updates['confirmed_at'] = null;
+            $updates['shipped_at']   = null;
+        }
+
         if ($adminNotes) {
             $updates['admin_notes'] = ($order->admin_notes ? $order->admin_notes . "\n\n" : '')
                 . '[' . now()->format('Y-m-d H:i:s') . '] ' . $adminNotes;
@@ -293,39 +304,148 @@ class AuctionOrderService
     }
 
     // =========================================================================
-    // PAYMENT STATUS
+    // PAYMENT STATUS — manual admin actions only
     // =========================================================================
 
-    public function updatePaymentStatus(AuctionOrder $order, string $status, array $extra = []): void
+    /**
+     * Mark order as fully paid.
+     * Creates a payment record covering the remaining balance (order_total - total_confirmed).
+     * If already overpaid, creates a zero-balance record and marks paid anyway.
+     */
+    public function markAsPaid(AuctionOrder $order, array $extra = []): void
     {
         $previous = $order->payment_status;
 
-        $updates = ['payment_status' => $status];
+        $totalConfirmed = $this->getTotalConfirmed($order);
+        $totalKes       = (float) ($order->total_kes ?? $order->total ?? 0);
+        $remaining      = max(0, $totalKes - $totalConfirmed);
 
-        if ($status === 'paid') {
-            $updates['paid_at'] = now();
+        if ($remaining > 0) {
+            $this->createManualPaymentRecord($order, $remaining, $extra);
         }
-        if (isset($extra['payment_method']))   $updates['payment_method']   = $extra['payment_method'];
-        if (isset($extra['payment_reference'])) $updates['payment_reference'] = $extra['payment_reference'];
+
+        $order->update([
+            'payment_status'    => 'paid',
+            'paid_at'           => now(),
+            'payment_method'    => $extra['payment_method']    ?? $order->payment_method,
+            'payment_reference' => $extra['payment_reference'] ?? $order->payment_reference,
+        ]);
+
+        $this->log(
+            action:         'payment_marked_paid',
+            description:    "Order #{$order->order_number} marked as paid. KES " . number_format($remaining, 2) . " covered by manual record.",
+            severity:       'success',
+            auctionOrderId: $order->id,
+            auctionId:      $order->auction_id,
+            metadata:       ['previous' => $previous, 'remaining_covered' => $remaining, 'total_confirmed' => $totalConfirmed],
+        );
+    }
+
+    /**
+     * Record a partial payment manually.
+     * After recording, recalculates position and sets payment_status automatically.
+     */
+    public function recordPartialPayment(AuctionOrder $order, float $amount, array $extra = []): void
+    {
+        $previous = $order->payment_status;
+
+        $this->createManualPaymentRecord($order, $amount, $extra);
+
+        // Recalculate after adding this payment
+        $totalConfirmed = $this->getTotalConfirmed($order);
+        $totalKes       = (float) ($order->total_kes ?? $order->total ?? 0);
+
+        if ($totalConfirmed >= $totalKes) {
+            $newPaymentStatus = $totalConfirmed > $totalKes ? 'overpayment' : 'paid';
+            $paidAt           = $newPaymentStatus === 'paid' ? now() : null;
+        } else {
+            $newPaymentStatus = 'partially_paid';
+            $paidAt           = null;
+        }
+
+        $updates = ['payment_status' => $newPaymentStatus];
+        if ($paidAt) $updates['paid_at'] = $paidAt;
+        if ($extra['payment_method'] ?? null)    $updates['payment_method']    = $extra['payment_method'];
+        if ($extra['payment_reference'] ?? null) $updates['payment_reference'] = $extra['payment_reference'];
 
         $order->update($updates);
 
         $this->log(
-            action:         'payment_status_updated',
-            description:    "Payment status for auction order #{$order->order_number} changed from {$previous} to {$status}.",
+            action:         'partial_payment_recorded',
+            description:    "KES " . number_format($amount, 2) . " partial payment recorded for order #{$order->order_number}. Status → {$newPaymentStatus}.",
             severity:       'success',
             auctionOrderId: $order->id,
             auctionId:      $order->auction_id,
-            metadata:       array_merge(['previous' => $previous, 'new' => $status], $extra),
+            metadata:       [
+                'previous'        => $previous,
+                'amount'          => $amount,
+                'total_confirmed' => $totalConfirmed,
+                'order_total'     => $totalKes,
+                'new_status'      => $newPaymentStatus,
+            ],
         );
     }
 
+    public function getTotalConfirmed(AuctionOrder $order): float
+    {
+        return (float) Payment::where('auction_order_id', $order->id)
+            ->where('status', 'confirmed')
+            ->where('method', '!=', 'refund')
+            ->sum('mpesa_amount_confirmed');
+    }
+
+    private function createManualPaymentRecord(AuctionOrder $order, float $amount, array $extra = []): void
+    {
+        $totalKes       = (float) ($order->total_kes ?? $order->total ?? 0);
+        $alreadyConfirmed = $this->getTotalConfirmed($order);
+
+        $allowedMethods = ['mpesa', 'bank_transfer', 'cod', 'credit', 'cash'];
+        $method = in_array($extra['payment_method'] ?? null, $allowedMethods)
+            ? $extra['payment_method']
+            : (in_array($order->payment_method, $allowedMethods) ? $order->payment_method : 'mpesa');
+
+        $ref = $extra['payment_reference'] ?? null;
+
+        Payment::create([
+            'auction_order_id'                    => $order->id,
+            'customer_id'                         => $order->customer_id,
+            'initiated_by'                        => auth()->id(),
+            'payment_number'                      => Payment::generatePaymentNumber($order->id, 'auction'),
+            'method'                              => $method,
+            'status'                              => 'confirmed',
+            'currency'                            => $order->currency ?? 'KES',
+            'exchange_rate_to_kes'                => $order->exchange_rate_to_kes ?? 1,
+            'amount_expected'                     => $amount,
+            'amount_received'                     => $amount,
+            'is_partial'                          => true,
+            'phone_number'                        => $order->customer?->phone,
+            'phone_overridden'                    => false,
+            'mpesa_amount_confirmed'              => $amount,
+            'notes'                               => 'Manual payment record'
+                . ($ref ? ' (ref: ' . $ref . ')' : ''),
+            'is_retry'                            => false,
+            'retry_count'                         => 0,
+            'dispute_status'                      => 'none',
+            'initiated_at'                        => now(),
+            'confirmed_at'                        => now(),
+            'snapshot_total_kes'                  => $totalKes,
+            'snapshot_amount_previously_paid_kes' => $alreadyConfirmed,
+            'snapshot_amount_still_owed_kes'      => max(0, $totalKes - $alreadyConfirmed - $amount),
+            'snapshot_subtotal_kes'               => 0,
+            'snapshot_tax_kes'                    => 0,
+            'snapshot_discount_kes'               => 0,
+            'snapshot_shipping_kes'               => 0,
+        ]);
+    }
+
     // =========================================================================
-    // CANCEL
+    // CANCEL — with refund logic
     // =========================================================================
 
     public function cancelOrder(AuctionOrder $order, string $reason): void
     {
+        $this->processRefundsOnCancel($order, $reason);
+
         $order->update([
             'status'              => 'cancelled',
             'cancelled_at'        => now(),
@@ -334,7 +454,6 @@ class AuctionOrderService
                 . '[CANCELLED on ' . now()->format('Y-m-d H:i:s') . '] ' . $reason,
         ]);
 
-        // Restore stock
         $product = Product::find($order->product_id);
         if ($product) {
             $this->restoreStock($product, $order->quantity, $order->id);
@@ -348,6 +467,77 @@ class AuctionOrderService
             auctionId:      $order->auction_id,
             metadata:       ['reason' => $reason],
         );
+    }
+
+    private function processRefundsOnCancel(AuctionOrder $order, string $reason): void
+    {
+        $refundableStatuses = ['paid', 'partially_paid', 'overpayment'];
+
+        if (!in_array($order->payment_status, $refundableStatuses)) {
+            return;
+        }
+
+        $confirmedPayments = Payment::where('auction_order_id', $order->id)
+            ->where('status', 'confirmed')
+            ->where('method', '!=', 'refund')
+            ->get();
+
+        if ($confirmedPayments->isEmpty()) {
+            return;
+        }
+
+        // Refund based on total_confirmed, not order_total
+        // This correctly handles overpayments
+        $totalToRefund = $confirmedPayments->sum('mpesa_amount_confirmed');
+
+        foreach ($confirmedPayments as $payment) {
+            Payment::create([
+                'auction_order_id'                    => $order->id,
+                'customer_id'                         => $order->customer_id,
+                'initiated_by'                        => auth()->id(),
+                'previous_payment_id'                 => $payment->id,
+                'payment_number'                      => Payment::generatePaymentNumber($order->id, 'auction'),
+                'method'                              => 'refund',
+                'status'                              => 'confirmed',
+                'currency'                            => $order->currency ?? 'KES',
+                'exchange_rate_to_kes'                => $order->exchange_rate_to_kes ?? 1,
+                'amount_expected'                     => $payment->mpesa_amount_confirmed,
+                'amount_received'                     => $payment->mpesa_amount_confirmed,
+                'is_partial'                          => false,
+                'phone_number'                        => $order->customer?->phone,
+                'phone_overridden'                    => false,
+                'mpesa_amount_confirmed'              => $payment->mpesa_amount_confirmed,
+                'notes'                               => "Refund for cancelled order #{$order->order_number}. Reason: {$reason}",
+                'is_retry'                            => false,
+                'retry_count'                         => 0,
+                'dispute_status'                      => 'none',
+                'initiated_at'                        => now(),
+                'confirmed_at'                        => now(),
+                'snapshot_total_kes'                  => (float) ($order->total_kes ?? $order->total),
+                'snapshot_amount_previously_paid_kes' => $payment->mpesa_amount_confirmed,
+                'snapshot_amount_still_owed_kes'      => 0,
+                'snapshot_subtotal_kes'               => 0,
+                'snapshot_tax_kes'                    => 0,
+                'snapshot_discount_kes'               => 0,
+                'snapshot_shipping_kes'               => 0,
+            ]);
+            $payment->update(['status' => 'refunded']);
+
+            $this->log(
+                action:         'payment_refunded',
+                description:    "KES " . number_format($payment->mpesa_amount_confirmed, 2) . " refunded (payment #{$payment->payment_number}) for cancelled order #{$order->order_number}.",
+                severity:       'warning',
+                auctionOrderId: $order->id,
+                auctionId:      $order->auction_id,
+                metadata:       [
+                    'original_payment_id' => $payment->id,
+                    'amount'              => $payment->mpesa_amount_confirmed,
+                    'total_refunded'      => $totalToRefund,
+                ],
+            );
+        }
+
+        $order->update(['payment_status' => 'refunded']);
     }
 
     // =========================================================================
@@ -367,7 +557,7 @@ class AuctionOrderService
 
         $order->update([
             'status'              => 'pending',
-            'payment_status'      => 'pending',
+            'payment_status'      => 'unpaid', 
             'payment_reference'   => null,
             'paid_at'             => null,
             'cancelled_at'        => null,

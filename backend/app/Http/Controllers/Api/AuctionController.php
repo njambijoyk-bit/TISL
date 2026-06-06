@@ -213,13 +213,56 @@ class AuctionController extends Controller
     {
         $auction = Auction::with(['product.brand', 'product.category', 'winner'])->findOrFail($id);
         $topBids = $auction->bids()->with('bidder:id,name')->limit(10)->get();
-
+ 
+        // Resolve the calling customer (if any) from the bearer token.
+        // Tokens belong to User (HasApiTokens); Customer is linked via User->customer (hasOne).
+        // Route is public so no guard runs — we resolve manually and never throw on failure.
+        $customerOrder = null;
+ 
+        if ($auction->status === 'ended') {
+            $token = request()->bearerToken();
+            $pat   = $token ? \Laravel\Sanctum\PersonalAccessToken::findToken($token) : null;
+ 
+            // tokenable is User; walk User → customer to get the customer row
+            $customer = $pat?->tokenable instanceof \App\Models\User
+                ? $pat->tokenable->customer   // uses User::customer() hasOne
+                : null;
+ 
+            if ($customer) {
+                $order = AuctionOrder::where('auction_id', $auction->id)
+                    ->where('customer_id', $customer->id)
+                    ->first();
+ 
+                if ($order) {
+                    $payments = \App\Models\Payment::where('auction_order_id', $order->id)
+                        ->orderBy('created_at')
+                        ->get([
+                            'id', 'payment_number', 'method', 'status',
+                            'amount_received', 'mpesa_amount_confirmed', 'mpesa_receipt_number',
+                            'is_partial', 'created_at', 'confirmed_at', 'failed_at',
+                        ]);
+ 
+                    // Exclude refund-method records — same logic as admin payment panel.
+                    // A confirmed refund record should not count toward amount paid.
+                    $paidAmount = $payments
+                        ->where('status', 'confirmed')
+                        ->where('method', '!=', 'refund')
+                        ->sum(fn ($p) => (float) ($p->mpesa_amount_confirmed ?? $p->amount_received ?? 0));
+ 
+                    $customerOrder                = $order->toArray();
+                    $customerOrder['payments']    = $payments->toArray();
+                    $customerOrder['paid_amount'] = $paidAmount;
+                }
+            }
+        }
+ 
         return response()->json([
-            'auction'      => $auction,
-            'product'      => $auction->product,
-            'top_bids'     => $topBids,
-            'bid_count'    => $auction->bids()->count(),
-            'min_next_bid' => $auction->current_price + $auction->bid_increment,
+            'auction'        => $auction,
+            'product'        => $auction->product,
+            'top_bids'       => $topBids,
+            'bid_count'      => $auction->bids()->count(),
+            'min_next_bid'   => $auction->current_price + $auction->bid_increment,
+            'customer_order' => $customerOrder,
         ]);
     }
 
@@ -309,6 +352,59 @@ class AuctionController extends Controller
             flush();
             sleep(2);
         }
+    }
+
+    // =========================================================================
+    // CUSTOMER — MY AUCTION ORDERS
+    // =========================================================================
+
+    /**
+     * GET /customer/auction-orders
+     * Returns all auction orders (+ payments) for the authenticated customer,
+     * along with the parent auction and product so the frontend can render
+     * everything without a second request.
+     */
+    public function myAuctionOrders(Request $request)
+    {
+        $customer = auth()->user()->customer;
+
+        if (!$customer) {
+            return response()->json(['data' => []]);
+        }
+
+        $orders = AuctionOrder::with([
+                'auction.product.brand',
+                'auction.product.category',
+            ])
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        // Bulk-fetch payments for all orders in one query.
+        $payments = \App\Models\Payment::whereIn('auction_order_id', $orders->pluck('id'))
+            ->orderBy('created_at')
+            ->get([
+                'id', 'auction_order_id', 'payment_number', 'method', 'status',
+                'amount_received', 'mpesa_amount_confirmed', 'mpesa_receipt_number',
+                'is_partial', 'created_at', 'confirmed_at', 'failed_at',
+            ])
+            ->groupBy('auction_order_id');
+
+        $result = $orders->map(function ($order) use ($payments) {
+            $orderPayments = $payments->get($order->id, collect());
+            $paidAmount    = $orderPayments
+                ->where('status', 'confirmed')
+                ->where('method', '!=', 'refund')
+                ->sum(fn ($p) => (float) ($p->mpesa_amount_confirmed ?? $p->amount_received ?? 0));
+
+            $data                 = $order->toArray();
+            $data['payments']     = $orderPayments->toArray();
+            $data['paid_amount']  = $paidAmount;
+
+            return $data;
+        });
+
+        return response()->json(['data' => $result]);
     }
 
     // =========================================================================
@@ -498,7 +594,17 @@ class AuctionController extends Controller
             'activityLogs' => fn($q) => $q->orderByDesc('created_at'),
         ])->findOrFail($id);
 
-        return response()->json(['order' => $order]);
+        $totalPaidKes = $this->orderService->getTotalConfirmed($order);
+        $orderTotalKes = (float) ($order->total_kes ?? $order->total ?? 0);
+
+        return response()->json([
+            'order' => $order,
+            'financials' => [
+                'order_total_kes' => $orderTotalKes,
+                'total_paid_kes'  => $totalPaidKes,
+                'balance_kes'     => max(0, $orderTotalKes - $totalPaidKes),
+            ],
+        ]);
     }
 
     // =========================================================================
@@ -514,7 +620,7 @@ class AuctionController extends Controller
         $order = AuctionOrder::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status'      => 'required|in:confirmed,processing,delivered,failed',
+            'status' => 'required|in:pending,confirmed,processing,delivered,failed',
             'admin_notes' => 'nullable|string',
         ]);
 
@@ -529,10 +635,10 @@ class AuctionController extends Controller
 
         $allowedTransitions = [
             'pending'    => ['confirmed', 'failed'],
-            'confirmed'  => ['processing', 'failed'],
-            'processing' => ['delivered', 'failed'],
-            'delivered'  => [],
-            'failed'     => [],
+            'confirmed'  => ['processing', 'failed', 'pending'],
+            'processing' => ['delivered', 'failed', 'pending'],
+            'delivered'  => ['processing', 'failed', 'pending'],
+            'failed'     => ['confirmed', 'pending'],
         ];
 
         if (!in_array($request->status, $allowedTransitions[$order->status] ?? [])) {
@@ -561,12 +667,13 @@ class AuctionController extends Controller
      *   "payment_reference": "..."
      * }
      */
-    public function updatePaymentStatus(Request $request, $id)
+
+    // PUT /admin/auction-orders/{id}/payment/paid
+    public function markOrderPaid(Request $request, $id)
     {
         $order = AuctionOrder::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'payment_status'    => 'required|in:confirmed,partially_paid,paid,overpayment,refunded',
             'payment_method'    => 'nullable|in:mpesa,bank_transfer,cod,cash',
             'payment_reference' => 'nullable|string|max:255',
         ]);
@@ -575,17 +682,59 @@ class AuctionController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if ($order->status === 'cancelled') {
-            return response()->json(['message' => 'Cannot update payment on a cancelled order.'], 422);
+        if (in_array($order->status, ['cancelled', 'failed'])) {
+            return response()->json(['message' => 'Cannot update payment on a cancelled or failed order.'], 422);
         }
 
-        $this->orderService->updatePaymentStatus($order, $request->payment_status, [
+        if ($order->payment_status === 'paid') {
+            return response()->json(['message' => 'Order is already fully paid.'], 422);
+        }
+
+        if ($order->payment_status === 'refunded') {
+            return response()->json(['message' => 'Cannot mark a refunded order as paid.'], 422);
+        }
+
+        $this->orderService->markAsPaid($order, [
             'payment_method'    => $request->payment_method,
             'payment_reference' => $request->payment_reference,
         ]);
 
         return response()->json([
-            'message' => 'Payment status updated.',
+            'message' => 'Order marked as paid.',
+            'order'   => $order->fresh(),
+        ]);
+    }
+
+    // POST /admin/auction-orders/{id}/payment/partial
+    public function recordPartialPayment(Request $request, $id)
+    {
+        $order = AuctionOrder::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'amount'            => 'required|numeric|min:1',
+            'payment_method'    => 'nullable|in:mpesa,bank_transfer,cod,cash',
+            'payment_reference' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if (in_array($order->status, ['cancelled', 'failed'])) {
+            return response()->json(['message' => 'Cannot record payment on a cancelled or failed order.'], 422);
+        }
+
+        if (in_array($order->payment_status, ['paid', 'refunded'])) {
+            return response()->json(['message' => 'Order is already ' . $order->payment_status . '.'], 422);
+        }
+
+        $this->orderService->recordPartialPayment($order, (float) $request->amount, [
+            'payment_method'    => $request->payment_method,
+            'payment_reference' => $request->payment_reference,
+        ]);
+
+        return response()->json([
+            'message' => 'Partial payment recorded.',
             'order'   => $order->fresh(),
         ]);
     }

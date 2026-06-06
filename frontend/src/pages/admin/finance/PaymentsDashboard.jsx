@@ -15,15 +15,15 @@ export default function PaymentsDashboard() {
   const [loading, setLoading] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [page, setPage] = useState(1);
 
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      // Remove empty strings so axios doesn't send ?status=&
       const cleanFilters = Object.fromEntries(
         Object.entries(filters).filter(([, v]) => v !== '')
       );
-      const res = await paymentsAPI.getPayments(cleanFilters);
+      const res = await paymentsAPI.listPayments({ ...cleanFilters, page });
       setPayments(res.data || []);
       setMeta(res.meta || {});
     } catch (e) {
@@ -33,7 +33,8 @@ export default function PaymentsDashboard() {
     }
   };
 
-  useEffect(() => { fetchPayments(); }, [filters]);
+  useEffect(() => { fetchPayments(); }, [filters, page]);
+
   useEffect(() => {
     paymentsAPI.getSummary().then(setSummary).catch(() => {});
   }, []);
@@ -205,7 +206,17 @@ export default function PaymentsDashboard() {
                         <p style={{ margin:0, fontSize:'0.7rem', color:'#9ca3af' }}>{p.customer.email}</p>
                     )}
                   </td>
-                  <td style={{ padding:'12px 16px', color:'#9ca3af' }}>#{p.order?.order_number || p.order_id}</td>
+                  <td style={{ padding:'12px 16px', color:'#9ca3af' }}>
+                    {p.order
+                      ? `#${p.order.order_number}`
+                      : p.auction_order
+                      ? `#${p.auction_order.order_number} (Auction)`
+                      : p.order_id
+                      ? `#${p.order_id}`
+                      : p.auction_order_id
+                      ? `#${p.auction_order_id} (Auction)`
+                      : '—'}
+                  </td>
                   <td style={{ padding:'12px 16px', fontWeight:600,color:'#3b82f6' }}>KES {Number(p.amount_expected).toLocaleString()}</td>
                   <td style={{ padding:'12px 16px' }}>
                     <Pill color={p.status==='confirmed'?'#10b981':p.status==='pending'?'#f59e0b':'#ef4444'}>{p.status}</Pill>
@@ -222,8 +233,11 @@ export default function PaymentsDashboard() {
           </div>
           {meta.last_page > 1 && (
             <div style={{ padding:'12px 16px', display:'flex', justifyContent:'center', gap:8, borderTop:'1px solid #f3f4f6' }}>
+              
               {Array.from({length: meta.last_page}, (_,i)=>i+1).map(pg => (
-                <button key={pg} onClick={()=>setFilters({...filters, page:pg})} style={{ padding:'6px 10px', borderRadius:6, border:`1px solid ${pg===meta.current_page?purple:'#e5e7eb'}`, background:pg===meta.current_page?purpleLt:'transparent', cursor:'pointer', fontWeight:700, color:purple }}>{pg}</button>
+                <button key={pg} onClick={() => setPage(pg)} style={{ padding:'6px 10px', borderRadius:6, border:`1px solid ${pg===meta.current_page?purple:'#e5e7eb'}`, background:pg===meta.current_page?purpleLt:'transparent', cursor:'pointer', fontWeight:700, color:purple }}>
+                  {pg}
+                </button>
               ))}
             </div>
           )}

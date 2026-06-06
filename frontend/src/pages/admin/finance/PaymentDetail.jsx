@@ -23,7 +23,7 @@ export default function PaymentDetail() {
     setLoading(true);
     try {
       const data = await paymentsAPI.getPayment(id);
-      setPayment(data);
+        setPayment(data.payment ?? data); 
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to load payment');
     } finally {
@@ -42,7 +42,7 @@ export default function PaymentDetail() {
       } else if (type === 'retry') {
         res = await paymentsAPI.retryPayment(id, payload || {});
       } else if (type === 'query-daraja') {
-        res = await paymentsAPI.queryDarajaStatus(id);
+        res = await paymentsAPI.queryDaraja(id);
       }
 
       toast.success(res.message || 'Action completed successfully');
@@ -79,12 +79,21 @@ export default function PaymentDetail() {
                     <Pill color="#f59e0b">Partial</Pill>
                     )}
                 </h1>
+                
                 <p style={{ margin: '6px 0 0', fontSize: '0.85rem', color: '#9ca3af' }}>
                 <span
-                    onClick={() => navigate(`/admin/orders/${payment.order_id}`)}
+                    onClick={() => {
+                    if (payment.auction_order_id) {
+                        navigate(`/admin/auction-orders/${payment.auction_order_id}`);
+                    } else {
+                        navigate(`/admin/orders/${payment.order_id}`);
+                    }
+                    }}
                     style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
                 >
-                    Order #{payment.order?.order_number}
+                    {payment.auction_order
+                    ? `Auction Order #${payment.auction_order.order_number}`
+                    : `Order #${payment.order?.order_number ?? payment.order_id}`}
                 </span>
                 {' '}• Initiated {new Date(payment.initiated_at).toLocaleString()}
                 </p>

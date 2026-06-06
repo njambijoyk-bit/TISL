@@ -325,7 +325,7 @@ export default function OrderDetail() {
   const loadPayments = async (orderId) => {
     setPaymentsLoading(true);
     try {
-      const data = await paymentsAPI.getAdminOrderPaymentHistory(orderId);
+      const data = await paymentsAPI.getOrderPayments(orderId, 'regular'); 
       setOrderPayments(data);
     } catch (e) {
       console.error('Failed to load payment history:', e);

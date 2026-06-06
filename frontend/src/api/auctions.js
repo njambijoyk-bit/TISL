@@ -61,6 +61,12 @@ const auctionsAPI = {
     return response.data;
   },
 
+  // Customer: my auction orders
+ myAuctionOrders: async () => {
+    const response = await api.get('/customer/auction-orders');
+    return response.data;
+ },
+
   // Admin: Create auction
   createAuction: async (data) => {
     const response = await api.post('/admin/auctions', data);
@@ -92,10 +98,15 @@ const auctionsAPI = {
     const response = await api.put(`/admin/auction-orders/${id}/status`, data);
     return response.data;
   },
-  updateAuctionOrderPayment: async (id, data) => {
-    const response = await api.put(`/admin/auction-orders/${id}/payment`, data);
+  markOrderPaid: async (id, data) => {
+    const response = await api.put(`/admin/auction-orders/${id}/payment/paid`, data);
     return response.data;
   },
+  recordPartialPayment: async (id, data) => {
+    const response = await api.post(`/admin/auction-orders/${id}/payment/partial`, data);
+    return response.data;
+  },
+
   shipAuctionOrder: async (id, data) => {
     const response = await api.put(`/admin/auction-orders/${id}/ship`, data);
     return response.data;

@@ -7,6 +7,7 @@ import { useThemeStore, useAuthStore } from './store';
 import InstallPrompt from './components/common/InstallPrompt';
 import AlgorithmBanner from './components/layout/AlgorithmBanner';
 import Mimi from './components/chat/Mimi';
+import FloatingJournalModal from './components/finance/FloatingJournalModal';
 import Portal from './pages/pwa/Portal';
 import PWANavBar from './pages/pwa/PWANavBar';
 
@@ -101,6 +102,9 @@ const ProductForm        = lazy(() => import('./pages/admin/ProductForm'));
 const AdminAuctions      = lazy(() => import('./pages/admin/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./pages/admin/AdminAuctionDetail'));
 const AdminAuctionCreator = lazy(() => import('./pages/admin/AdminAuctionCreator'));
+const AdminAuctionOrders   = lazy(() => import('./pages/admin/AdminAuctionOrders'));
+const AdminAuctionOrderPayments = lazy(() => import('./pages/admin/AdminAuctionOrderPayments'));
+const AdminAuctionOrderDetail = lazy(() => import('./pages/admin/AdminAuctionOrderDetail'));
 const Categories         = lazy(() => import('./pages/admin/Categories'));
 const CategoryForm       = lazy(() => import('./pages/admin/CategoryForm'));
 const Brands             = lazy(() => import('./pages/admin/Brands'));
@@ -152,6 +156,9 @@ const AdminHamperOrderDetail = lazy(() => import('./pages/admin/hampers/AdminHam
 const CustomerAlgorithmPanel = lazy(() => import('./pages/admin/CustomerAlgorithmPanel'));
 const InventoryPage          = lazy(() => import('./pages/admin/InventoryPage'));
 const CatalogueBoostPage     = lazy(() => import('./pages/admin/algorithm/CatalogueBoostPage'));
+const FinancialNotes         = lazy(() => import('./pages/admin/finance/FinancialNotes'));
+const ReconciliationPage     = lazy(() => import('./pages/admin/finance/ReconciliationPage'));
+const ReconciliationDetail   = lazy(() => import('./pages/admin/finance/ReconciliationDetail'));
 
 const AdminBookings        = lazy(() => import('./pages/admin/AdminBookings'));
 const AdminBookingDetail   = lazy(() => import('./pages/admin/AdminBookingDetail'));
@@ -293,6 +300,7 @@ function App() {
         <InstallPrompt />
         <AlgorithmBanner /> 
         <Mimi />
+        <FloatingJournalModal /> 
         <PWANavBar /> 
 
         {/* All routes are lazy — Suspense handles the loading state */}
@@ -607,6 +615,30 @@ function App() {
                   <AdminAuctionCreator />
                 </ProtectedRoute>
               } 
+            />
+            <Route 
+              path="/admin/auction-orders" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctionOrders />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/auction-orders/:id" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctionOrderDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/auction-orders/:id/payments" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAuctionOrderPayments />
+                </ProtectedRoute>
+              }
             />
             {/* Admin Auction Detail/Edit */}
             <Route
@@ -1065,6 +1097,34 @@ function App() {
                 <ProtectedRoute requireAdmin>
                   <CatalogueBoostPage />
                 </ProtectedRoute>}
+            />
+
+            {/* ── Financial Notes ─────────────────────────────────────────── */}
+            <Route
+              path="/admin/financial-notes"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <FinancialNotes />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Reconciliation ──────────────────────────────────────────── */}
+            <Route
+              path="/admin/reconciliation"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ReconciliationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reconciliation/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ReconciliationDetail />
+                </ProtectedRoute>
+              }
             />
 
             {/* Admin Settings */}

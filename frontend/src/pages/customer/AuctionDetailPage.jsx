@@ -2,26 +2,225 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import auctionsAPI from '../../api/auctions';
 import useAuctionSSE from '../../hooks/useAuctionSSE';
-import { Gavel, Clock, Shield, History, Package, ChevronLeft, Users } from 'lucide-react';
+import { Gavel, Clock, Shield, History, Package, ChevronLeft, Users, Receipt, CreditCard, CheckCircle, AlertCircle, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Helmet } from 'react-helmet-async';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Breadcrumb from '../../components/layout/Breadcrumb';
 
+// ── responsive hook ──────────────────────────────────────────────────────────
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+}
+
+// ── order status helpers ─────────────────────────────────────────────────────
+const ORDER_STATUS_COLORS = {
+  pending:    { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
+  confirmed:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
+  processing: { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  shipped:    { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
+  delivered:  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.4)', text: '#047857' },
+  cancelled:  { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
+  failed:     { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
+};
+
+const PAYMENT_STATUS_COLORS = {
+  unpaid:          { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
+  partially_paid:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
+  paid:            { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
+  refunded:        { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  failed:          { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
+};
+
+function StatusBadge({ status, map, label }) {
+  const c = map[status] ?? { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.3)', text: '#6b7280' };
+  return (
+    <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+      background: c.bg, border: `1px solid ${c.border}`, color: c.text, textTransform: 'capitalize' }}>
+      {label ?? status?.replace(/_/g, ' ')}
+    </span>
+  );
+}
+
+// ── CustomerOrderPanel ────────────────────────────────────────────────────────
+function CustomerOrderPanel({ order }) {
+  if (!order) return null;
+
+  // AuctionOrder model uses `total` / `total_kes`; `paid_amount` is injected by the controller
+  const total   = Number(order.total_kes ?? order.total ?? 0);
+  const paid    = Number(order.paid_amount ?? 0);
+  const balance = Math.max(0, total - paid);
+
+  const hasTacking = order.tracking_number;
+
+  return (
+    <div style={{ background: 'white', borderRadius: 16, border: '1.5px solid rgba(168,85,247,0.25)', overflow: 'hidden', marginTop: 8 }}>
+      {/* header */}
+      <div style={{ padding: '14px 18px', background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Receipt size={16} style={{ color: '#a855f7' }} />
+        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#374151', flex: 1 }}>Your Order</span>
+        <StatusBadge status={order.status} map={ORDER_STATUS_COLORS} />
+      </div>
+
+      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* order number + date */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>Order Number</p>
+            <p style={{ fontSize: '0.92rem', fontWeight: 700, color: '#111827', margin: 0 }}>{order.order_number}</p>
+          </div>
+          {order.created_at && (
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
+              {new Date(order.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          )}
+        </div>
+
+        {/* amounts */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {[
+            { label: 'Order Total', value: `KSh ${total.toLocaleString()}`, color: '#374151' },
+            { label: 'Paid',        value: `KSh ${paid.toLocaleString()}`,  color: '#059669' },
+            { label: 'Balance',     value: `KSh ${balance.toLocaleString()}`, color: balance > 0 ? '#dc2626' : '#059669' },
+          ].map((item, i) => (
+            <div key={i} style={{ textAlign: 'center', padding: '10px 6px', background: '#f9fafb', borderRadius: 10 }}>
+              <p style={{ fontSize: '0.62rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 3px' }}>{item.label}</p>
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: item.color, margin: 0 }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* payment status row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CreditCard size={13} style={{ color: '#6b7280' }} />
+          <span style={{ fontSize: '0.78rem', color: '#6b7280', fontWeight: 500 }}>Payment:</span>
+          <StatusBadge status={order.payment_status} map={PAYMENT_STATUS_COLORS} />
+          {order.payment_method && (
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 4 }}>
+              via {order.payment_method.replace(/_/g, ' ')}
+            </span>
+          )}
+        </div>
+
+        {/* shipping row */}
+        {order.status === 'shipped' || order.status === 'delivered' ? (
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Truck size={13} style={{ color: '#059669' }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669' }}>
+                {order.status === 'delivered' ? 'Delivered' : 'Shipped'}
+              </span>
+              {order.courier_company && (
+                <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>· {order.courier_company}</span>
+              )}
+            </div>
+            {hasTacking && (
+              <p style={{ fontSize: '0.75rem', color: '#374151', margin: 0 }}>
+                Tracking: <strong>{order.tracking_number}</strong>
+              </p>
+            )}
+            {order.estimated_delivery_date && order.status !== 'delivered' && (
+              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                Est. delivery: {new Date(order.estimated_delivery_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {/* shipping address */}
+        {order.shipping_address && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <Package size={13} style={{ color: '#9ca3af', marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{order.shipping_address}</p>
+          </div>
+        )}
+
+        {/* payment history */}
+        {order.payments?.length > 0 && (
+          <div>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Payment History</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {order.payments.map((pmt, i) => {
+                const isRefund = pmt.method === 'refund';
+                const pmtAmount = Number(pmt.mpesa_amount_confirmed ?? pmt.amount_received ?? 0);
+                const ref = pmt.mpesa_receipt_number ?? pmt.payment_number;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', borderRadius: 8,
+                    background: isRefund ? 'rgba(6,182,212,0.05)' : '#f9fafb',
+                    border: isRefund ? '1px solid rgba(6,182,212,0.15)' : '1px solid transparent',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{ fontSize: '0.78rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151', margin: 0 }}>
+                          {isRefund ? '−' : ''}KSh {pmtAmount.toLocaleString()}
+                        </p>
+                        {isRefund && (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 6px', borderRadius: 99 }}>
+                            REFUND
+                          </span>
+                        )}
+                      </div>
+                      {ref && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '1px 0 0' }}>{ref}</p>}
+                      {pmt.method && !isRefund && (
+                        <p style={{ fontSize: '0.65rem', color: '#a855f7', margin: '1px 0 0', textTransform: 'capitalize' }}>
+                          {pmt.method.replace(/_/g, ' ')}
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <StatusBadge status={pmt.status} map={PAYMENT_STATUS_COLORS} />
+                      <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                        {new Date(pmt.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* customer notes */}
+        {order.customer_notes && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>Note</p>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{order.customer_notes}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function AuctionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 768;
+
   const [auction, setAuction] = useState(null);
+  const [customerOrder, setCustomerOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [imageError, setImageError] = useState(false);
 
   const fetchAuction = () =>
-    auctionsAPI.getAuction(id).then(res =>
-      setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 })
-    );
+    auctionsAPI.getAuction(id).then(res => {
+      setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 });
+      if (res.customer_order) setCustomerOrder(res.customer_order);
+    });
 
   useEffect(() => {
     fetchAuction().catch(() => { toast.error('Auction not found'); navigate('/auctions'); })
@@ -32,8 +231,14 @@ export default function AuctionDetailPage() {
   const currentPrice = Number(liveData?.current_price ?? auction?.current_price ?? 0);
   const timeLeft = liveData?.time_left ?? Math.max(0, (new Date(auction?.end_time) - new Date()) / 1000);
   const minBid = currentPrice + Number(auction?.bid_increment || 50);
-  const isEnded = countdown <= 0 && auction != null;
-  const isUrgent = countdown > 0 && countdown < 600;
+  // Status is the source of truth — an admin can end an auction abruptly before the
+  // countdown reaches zero. Countdown is a secondary/visual signal only.
+  const isEnded = auction != null && (
+    auction.status === 'ended' ||
+    auction.status === 'cancelled' ||
+    countdown <= 0
+  );
+  const isUrgent = !isEnded && countdown > 0 && countdown < 600;
 
   useEffect(() => { setCountdown(Math.floor(timeLeft)); }, [Math.floor(timeLeft / 5)]);
   useEffect(() => {
@@ -70,6 +275,12 @@ export default function AuctionDetailPage() {
   const totalBids = liveData?.bid_count ?? auction.bid_count ?? 0;
   const reserveMet = auction.reserve_price ? currentPrice >= Number(auction.reserve_price) : null;
 
+  // breadcrumb items with navigate
+  const breadcrumbItems = [
+    { label: 'Auctions', href: '/auctions', onClick: (e) => { e.preventDefault(); navigate('/auctions'); } },
+    { label: product?.name ?? 'Auction Detail' },
+  ];
+
   return (
     <>
       <Helmet><title>{product?.name ?? 'Auction'} | Live Auction — TISL</title></Helmet>
@@ -78,16 +289,32 @@ export default function AuctionDetailPage() {
         <Header />
 
         <div className="w-full px-4 py-6" style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <Breadcrumb items={[
-            { label: 'Auctions', href: '/auctions' },
-            { label: product?.name ?? 'Auction Detail' },
-          ]} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+            <button
+              onClick={() => navigate('/auctions')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7', fontSize: '0.82rem', fontWeight: 600, padding: 0 }}
+              onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            >
+              <ChevronLeft size={15} /> Auctions
+            </button>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>›</span>
+            <span style={{ fontSize: '0.82rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+              {product?.name ?? 'Auction Detail'}
+            </span>
+          </div>
 
-          {/* ── MAIN GRID ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem', alignItems: 'start' }}>
+          {/* ── MAIN GRID — stacks on mobile ── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: isMobile ? '1.5rem' : '2rem',
+            marginBottom: '2rem',
+            alignItems: 'start',
+          }}>
 
             {/* LEFT: Image */}
-            <div style={{ position: 'sticky', top: 24 }}>
+            <div style={{ position: isMobile ? 'static' : 'sticky', top: 24 }}>
               <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', aspectRatio: '1/1', background: '#f3f4f6' }}>
                 {/* Live badge */}
                 {!isEnded && (
@@ -134,7 +361,7 @@ export default function AuctionDetailPage() {
 
               {/* Name + description */}
               <div>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.2, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                <h1 style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.2, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
                   {product?.name}
                 </h1>
                 {product?.short_description && (
@@ -148,7 +375,7 @@ export default function AuctionDetailPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ padding: '16px 20px', borderRadius: 14, background: 'rgba(220,38,38,0.06)', border: '1.5px solid rgba(220,38,38,0.2)' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Current Bid</p>
-                  <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#dc2626', margin: 0, letterSpacing: '-0.02em' }}>
+                  <p style={{ fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 800, color: '#dc2626', margin: 0, letterSpacing: '-0.02em' }}>
                     KSh {currentPrice.toLocaleString()}
                   </p>
                 </div>
@@ -196,7 +423,7 @@ export default function AuctionDetailPage() {
               {/* Place bid button */}
               <button
                 onClick={() => setShowModal(true)}
-                disabled={isEnded || auction.status !== 'active'}
+                disabled={isEnded}
                 style={{
                   width: '100%', height: 52, borderRadius: 14, border: 'none',
                   background: isEnded ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
@@ -215,6 +442,9 @@ export default function AuctionDetailPage() {
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', margin: '-12px 0 0' }}>
                 {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>KSh {minBid.toLocaleString()}</strong></>}
               </p>
+
+              {/* ── Customer Order Panel (ended auctions only) ── */}
+              {isEnded && <CustomerOrderPanel order={customerOrder} />}
 
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
@@ -293,7 +523,10 @@ export default function AuctionDetailPage() {
                     await auctionsAPI.placeBid(id, val);
                     toast.success('Bid placed! 🎉');
                     setShowModal(false);
-                    auctionsAPI.getAuction(id).then(res => setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 }));
+                    auctionsAPI.getAuction(id).then(res => {
+                      setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 });
+                      if (res.customer_order) setCustomerOrder(res.customer_order);
+                    });
                   } catch (err) { toast.error(err.response?.data?.message || 'Bid failed'); }
                 }}
                 style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}

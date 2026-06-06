@@ -1,131 +1,96 @@
+
 import api from './axios';
 
 const paymentsAPI = {
-  // =========================================================================
-  // FINANCE / ADMIN ENDPOINTS
-  // =========================================================================
-
-  /**
-   * Get all payments (finance/admin) with filters
-   * GET /admin/payments
-   */
-  getPayments: async (params = {}) => {
-    const { data } = await api.get('/admin/payments', { params });
-    return data; // { data: [], meta: {} }
+  // Admin: List all payments (regular + auction)
+  listPayments: async (params = {}) => {
+    const response = await api.get('/admin/payments', { params });
+    return response.data;
   },
 
-  /**
-   * Get single payment detail
-   * GET /admin/payments/:id
-   */
+  // Admin: Get single payment detail
   getPayment: async (id) => {
-    const { data } = await api.get(`/admin/payments/${id}`);
-    return data.payment;
+    const response = await api.get(`/admin/payments/${id}`);
+    return response.data;
   },
 
-  /**
-   * Initiate STK Push for an order
-   * POST /admin/payments/initiate
-   */
+  // Admin: Initiate STK Push for regular order
   initiatePayment: async (data) => {
     const response = await api.post('/admin/payments/initiate', data);
     return response.data;
   },
 
-  /**
-   * Poll payment status (frontend polling every 3s)
-   * GET /admin/payments/:id/status
-   */
-  getPaymentStatus: async (id) => {
-    const { data } = await api.get(`/admin/payments/${id}/status`);
-    return data;
+  // Admin: Initiate STK Push for auction order
+  initiateAuctionPayment: async (auctionOrderId, data = {}) => {
+    const response = await api.post('/admin/payments/initiate', {
+      auction_order_id: auctionOrderId,
+      ...data,
+    });
+    return response.data;
   },
 
-  /**
-   * Cancel a pending payment request
-   * POST /admin/payments/:id/cancel
-   */
+  // Admin: Poll payment status
+  pollPaymentStatus: async (id) => {
+    const response = await api.get(`/admin/payments/${id}/status`);
+    return response.data;
+  },
+
+  // Admin: Manual Daraja query
+  queryDaraja: async (id) => {
+    const response = await api.post(`/admin/payments/${id}/query-daraja`);
+    return response.data;
+  },
+
+  // Admin: Cancel pending payment
   cancelPayment: async (id, reason) => {
-    const { data } = await api.post(`/admin/payments/${id}/cancel`, { reason });
-    return data;
+    const response = await api.post(`/admin/payments/${id}/cancel`, { reason });
+    return response.data;
   },
 
-  /**
-   * Retry a failed/cancelled payment (creates new payment record)
-   * POST /admin/payments/:id/retry
-   */
+  // Admin: Retry failed/cancelled payment
   retryPayment: async (id, data = {}) => {
     const response = await api.post(`/admin/payments/${id}/retry`, data);
     return response.data;
   },
 
-  /**
-   * Manually query Daraja for payment status
-   * POST /admin/payments/:id/query-daraja
-   */
-  queryDarajaStatus: async (id) => {
-    const { data } = await api.post(`/admin/payments/${id}/query-daraja`);
-    return data;
+  // Admin: Raise dispute
+  raiseDispute: async (id, reason, evidence = []) => {
+    const response = await api.post(`/admin/payments/${id}/dispute`, { reason, evidence });
+    return response.data;
   },
 
-  /**
-   * Raise a dispute on a payment
-   * POST /admin/payments/:id/dispute
-   */
-  raiseDispute: async (id, data) => {
-    const { data: response } = await api.post(`/admin/payments/${id}/dispute`, data);
-    return response;
+  // Admin: Resolve dispute
+  resolveDispute: async (id, resolution, resolutionNotes) => {
+    const response = await api.post(`/admin/payments/${id}/dispute/resolve`, {
+      resolution,
+      resolution_notes: resolutionNotes,
+    });
+    return response.data;
   },
 
-  /**
-   * Resolve a dispute (admin/super_admin only)
-   * POST /admin/payments/:id/dispute/resolve
-   */
-  resolveDispute: async (id, data) => {
-    const { data: response } = await api.post(`/admin/payments/${id}/dispute/resolve`, data);
-    return response;
+  // Admin: Add admin notes
+  addNotes: async (id, notes) => {
+    const response = await api.post(`/admin/payments/${id}/notes`, { notes });
+    return response.data;
   },
 
-  /**
-   * Add admin notes to a payment (appended, not replaced)
-   * POST /admin/payments/:id/notes
-   */
-  addPaymentNotes: async (id, notes) => {
-    const { data } = await api.post(`/admin/payments/${id}/notes`, { notes });
-    return data;
-  },
-
-  /**
-   * Get all payment attempts for a specific order
-   * GET /admin/payments/order/:orderId   ← FIXED
-   */
-  getOrderPayments: async (orderId) => {
-    const { data } = await api.get(`/admin/payments/order/${orderId}`);
-    return data;
-  },
-
-  /**
-   * Get payment history for an order (ADMIN VIEW-ONLY)
-   * GET /admin/orders/:orderId/payments
-   * Accessible to: admin, super_admin, manager, sales_rep, logistics
-   */
-  getAdminOrderPaymentHistory: async (orderId) => {
-    const { data } = await api.get(`/admin/orders/${orderId}/payments`);
-    return data;
-  },
-
+  // Admin: Get payment summary stats
   getSummary: async () => {
-    const { data } = await api.get('/admin/payments/summary');
-    return data;
+    const response = await api.get('/admin/payments/summary');
+    return response.data;
   },
 
-  /**
-   * Get payment attempts for customer's OWN order
-   * GET /customer/payments/order/:orderId
-   */
-  getCustomerOrderPayments: async (orderId) => {
-    const { data } = await api.get(`/customer/payments/order/${orderId}`);
-    return data;
+  // Admin: Get payment history for an order (regular or auction)
+  getOrderPayments: async (orderId, type = 'regular') => {
+    const params = type === 'auction' ? { auction_order_id: orderId } : { order_id: orderId };
+    const response = await api.get('/admin/payments/order-payments', { params });
+    return response.data;
+  },
+
+  // Customer: Get own payment history for an order
+  getCustomerOrderPayments: async (orderId, type = 'regular') => {
+    const response = await api.get(`/customer/payments/order/${orderId}`);
+    return response.data;
   },
 };
 

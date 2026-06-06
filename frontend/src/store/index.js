@@ -16,6 +16,7 @@ export { default as useTicketStore } from './ticketStore';
 
 export { default as useContentStore } from './contentStore';
 export { default as useStudioStore } from './studioStore';
+export { default as useFinancialJournalStore } from './useFinancialJournalStore';
 
 export { default as useCareersStore } from './useCareersStore';
 export { default as useAdminCareersStore } from './useAdminCareersStore';

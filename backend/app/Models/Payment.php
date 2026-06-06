@@ -5,13 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-use App\Models\Order;
-
 class Payment extends Model
 {
     protected $fillable = [
-        // Core references
+        // Core references — order_id OR auction_order_id (mutually exclusive)
         'order_id',
+        'auction_order_id',
         'customer_id',
         'initiated_by',
         'previous_payment_id',
@@ -87,7 +86,6 @@ class Payment extends Model
     protected $casts = [
         'amount_expected'                    => 'decimal:2',
         'amount_received'                    => 'decimal:2',
-        'balance_remaining'                  => 'decimal:2',
         'exchange_rate_to_kes'               => 'decimal:6',
         'snapshot_subtotal_kes'              => 'decimal:2',
         'snapshot_tax_kes'                   => 'decimal:2',
@@ -112,10 +110,6 @@ class Payment extends Model
         'cancelled_at'                       => 'datetime',
     ];
 
-    // =========================================================================
-    // IMMUTABLE FIELDS — never allow writes to these after callback sets them
-    // Enforced in PaymentController, referenced here for documentation clarity
-    // =========================================================================
     public const IMMUTABLE_AFTER_CONFIRM = [
         'callback_raw',
         'mpesa_receipt_number',
@@ -139,6 +133,11 @@ class Payment extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function auctionOrder(): BelongsTo
+    {
+        return $this->belongsTo(AuctionOrder::class);
     }
 
     public function customer(): BelongsTo
@@ -190,6 +189,11 @@ class Payment extends Model
         return $query->where('order_id', $orderId);
     }
 
+    public function scopeForAuctionOrder($query, int $auctionOrderId)
+    {
+        return $query->where('auction_order_id', $auctionOrderId);
+    }
+
     public function scopeHasOpenDispute($query)
     {
         return $query->whereIn('dispute_status', ['raised', 'investigating']);
@@ -230,13 +234,35 @@ class Payment extends Model
     }
 
     // =========================================================================
-    // HELPERS — amount resolution
+    // HELPERS — polymorphic order resolution
     // =========================================================================
 
     /**
+     * Get the parent order (regular or auction) for this payment.
+     */
+    public function parentOrder(): Order|AuctionOrder|null
+    {
+        return $this->order ?? $this->auctionOrder;
+    }
+
+    /**
+     * Get the order type for display purposes.
+     */
+    public function orderType(): string
+    {
+        return $this->auction_order_id ? 'auction' : 'regular';
+    }
+
+    /**
+     * Get the order number for display.
+     */
+    public function orderNumber(): ?string
+    {
+        return $this->order?->order_number ?? $this->auctionOrder?->order_number;
+    }
+
+    /**
      * The authoritative amount received for this payment.
-     * Always prefer mpesa_amount_confirmed (Daraja's figure) over amount_received.
-     * Used in dispute resolution and reconciliation.
      */
     public function authoritativeAmountReceived(): float
     {
@@ -253,64 +279,68 @@ class Payment extends Model
 
     // =========================================================================
     // PAYMENT NUMBER GENERATOR
-    // Static — call before creating the record.
-    // Format: PAY-{YEAR}-{ORDER_ID}-{SEQUENCE}
-    // e.g. PAY-2025-42-003
     // =========================================================================
 
-    public static function generatePaymentNumber(int $orderId): string
+    public static function generatePaymentNumber(int $orderId, string $type = 'regular'): string
     {
         $year     = date('Y');
-        $sequence = static::where('order_id', $orderId)->count() + 1;
-        $seq      = str_pad($sequence, 3, '0', STR_PAD_LEFT);
+        $prefix   = $type === 'auction' ? 'AUC' : 'PAY';
+        $sequence = static::where(function ($q) use ($orderId, $type) {
+            if ($type === 'auction') {
+                $q->where('auction_order_id', $orderId);
+            } else {
+                $q->where('order_id', $orderId);
+            }
+        })->count() + 1;
+        $seq = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
-        return "PAY-{$year}-{$orderId}-{$seq}";
+        return "{$prefix}-{$year}-{$orderId}-{$seq}";
     }
 
     // =========================================================================
-    // SNAPSHOT BUILDER
-    // Call this at initiation time to freeze order financials.
+    // SNAPSHOT BUILDER — polymorphic for both order types
     // =========================================================================
 
-    public static function buildSnapshot(Order $order): array
+    public static function buildSnapshot(Order|AuctionOrder $order): array
     {
-        $previouslyPaid = static::where('order_id', $order->id)
+        $isAuction = $order instanceof AuctionOrder;
+        $orderId   = $order->id;
+
+        $previouslyPaid = static::query()
+            ->where($isAuction ? 'auction_order_id' : 'order_id', $orderId)
             ->where('status', 'confirmed')
             ->sum('mpesa_amount_confirmed');
-        
-        $totalKes  = (float) ($order->total_kes ?? $order->total ?? 0);
-        
-        // ✅ Add back any credit deduction that was already subtracted from order->total
-        // so we don't double-count it when calculating what's still owed
+
+        $totalKes = (float) ($order->total_kes ?? $order->total ?? 0);
         $creditDeduction = (float) ($order->metadata['credit_account_deduction'] ?? 0);
         $effectiveTotalKes = $totalKes + $creditDeduction;
-        
         $stillOwed = max(0, $effectiveTotalKes - (float) $previouslyPaid);
-        
         $rate = $order->exchange_rate_to_kes ?? 1;
-        
+
         return [
             'snapshot_subtotal_kes'               => (float) ($order->subtotal_kes ?? round(((float)($order->subtotal ?? 0)) * $rate, 2)),
             'snapshot_tax_kes'                    => (float) round(((float)($order->tax ?? 0)) * $rate, 2),
             'snapshot_discount_kes'               => (float) round(((float)($order->discount ?? 0)) * $rate, 2),
             'snapshot_shipping_kes'               => (float) round(((float)($order->shipping_cost ?? 0)) * $rate, 2),
-            'snapshot_total_kes'                  => $effectiveTotalKes,  // ✅ use the gross total
+            'snapshot_total_kes'                  => $effectiveTotalKes,
             'snapshot_amount_previously_paid_kes' => (float) $previouslyPaid,
             'snapshot_amount_still_owed_kes'      => $stillOwed,
         ];
     }
 
     // =========================================================================
-    // ORDER PAYMENT STATUS SYNC
-    // Call after any payment is confirmed to update the parent order.
+    // ORDER PAYMENT STATUS SYNC — polymorphic
     // =========================================================================
 
     public function syncOrderPaymentStatus(): void
     {
-        $order = $this->order;
+        $order = $this->parentOrder();
         if (!$order) return;
 
-        $totalConfirmed = static::where('order_id', $order->id)
+        $isAuction = $this->auction_order_id !== null;
+
+        $totalConfirmed = static::query()
+            ->where($isAuction ? 'auction_order_id' : 'order_id', $order->id)
             ->where('status', 'confirmed')
             ->sum(\Illuminate\Support\Facades\DB::raw('CASE WHEN method = "refund" THEN -mpesa_amount_confirmed ELSE mpesa_amount_confirmed END'));
 
@@ -323,12 +353,10 @@ class Payment extends Model
             default                          => 'partially_paid',
         };
 
-        if ($newPaymentStatus === 'paid' && !$order->paid_at) {  
-            // Use markAsPaid to trigger loyalty points  
-            $order->markAsPaid($this->mpesa_receipt_number);  
-        } else {  
-            // For other statuses, update directly  
-            $order->update(['payment_status' => $newPaymentStatus]);  
-        } 
+        if ($newPaymentStatus === 'paid' && !$order->paid_at && method_exists($order, 'markAsPaid')) {
+            $order->markAsPaid($this->mpesa_receipt_number);
+        } else {
+            $order->update(['payment_status' => $newPaymentStatus]);
+        }
     }
 }

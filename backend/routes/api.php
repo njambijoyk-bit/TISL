@@ -57,6 +57,8 @@ use App\Http\Controllers\Api\BookingStaffController;
 use App\Http\Controllers\Api\BookingSettingController;
 use App\Http\Controllers\Api\BookingWorksheetController;
 use App\Http\Controllers\Api\BookingDisqualificationController;
+use App\Http\Controllers\Api\FinancialNoteController;
+use App\Http\Controllers\Api\ReconciliationController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -287,6 +289,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{slug}/checkout/place-order', [HamperCheckoutController::class, 'placeOrder']);
         });
 
+        Route::get('/auction-orders', [AuctionController::class, 'myAuctionOrders']);
+
         // Quotes
         Route::prefix('quotes')->group(function () {
             Route::get('/', [QuoteController::class, 'myQuotes']);
@@ -445,12 +449,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/trashed',                   [AuctionController::class, 'orderTrashedIndex']);
             Route::get('/{id}',                      [AuctionController::class, 'adminOrderShow']);
             Route::put('/{id}/status',               [AuctionController::class, 'updateOrderStatus']);
-            Route::put('/{id}/payment',              [AuctionController::class, 'updatePaymentStatus']);
+            Route::put('/{id}/payment/paid',         [AuctionController::class, 'markOrderPaid']);
+            Route::post('/{id}/payment/partial',     [AuctionController::class, 'recordPartialPayment']);
             Route::put('/{id}/ship',                 [AuctionController::class, 'shipOrder']);
             Route::post('/{id}/cancel',              [AuctionController::class, 'cancelOrder']);
             Route::post('/{id}/restore',             [AuctionController::class, 'restoreOrder']);
-            Route::delete('/{id}',                   [AuctionController::class, 'orderTrash']);
             Route::post('/{id}/restore-trash',       [AuctionController::class, 'orderRestoreTrash']);
+            Route::delete('/{id}',                   [AuctionController::class, 'orderTrash']);
         });
 
         // Categories Management
@@ -884,6 +889,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',         [BookingDisqualificationController::class, 'index']);
             Route::get('/{id}',     [BookingDisqualificationController::class, 'show']);
         });
+
+        Route::prefix('financial-notes')->group(function () {
+            Route::get('/',                     [FinancialNoteController::class, 'index']);
+            Route::post('/',                    [FinancialNoteController::class, 'store']);
+            Route::get('/for-subject',          [FinancialNoteController::class, 'forSubject']);
+            Route::get('/{financialNote}',      [FinancialNoteController::class, 'show']);
+            Route::put('/{financialNote}',      [FinancialNoteController::class, 'update']);
+            Route::delete('/{financialNote}',   [FinancialNoteController::class, 'destroy']);
+        });
     });
 
     // ============================================
@@ -896,6 +910,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                          [PaymentController::class, 'index']);
             Route::post('/initiate',                 [PaymentController::class, 'initiate']);
             Route::get('/summary',                    [PaymentController::class, 'summary']);
+            Route::get('/order-payments', [PaymentController::class, 'orderPayments']);
             Route::get('/order/{orderId}',           [PaymentController::class, 'orderPayments']);
             
             Route::get('/{payment}',                 [PaymentController::class, 'show']);
@@ -972,6 +987,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Own employee record
         Route::prefix('employees')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
+        });
+
+        // Reconciliation
+        Route::prefix('reconciliation')->group(function () {
+            Route::get('/sessions',                             [ReconciliationController::class, 'indexSessions']);
+            Route::post('/sessions',                            [ReconciliationController::class, 'createSession']);
+            Route::get('/sessions/{session}',                   [ReconciliationController::class, 'showSession']);
+            Route::post('/sessions/{session}/populate',         [ReconciliationController::class, 'populate']);
+            Route::post('/sessions/{session}/close',            [ReconciliationController::class, 'closeSession']);
+            Route::post('/sessions/{session}/reopen',           [ReconciliationController::class, 'reopenSession']);
+            Route::patch('/sessions/{session}/notes',           [ReconciliationController::class, 'updateNotes']);
+            Route::get('/sessions/{session}/lines',             [ReconciliationController::class, 'indexLines']);
+            Route::put('/lines/{line}',                         [ReconciliationController::class, 'updateLine']);
+            Route::put('/lines/{line}/attach-note',             [ReconciliationController::class, 'attachNote']);
         });
     });
 
