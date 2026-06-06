@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinancialNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-    
+
 class FinancialNoteController extends Controller
 {
     // GET /admin/financial-notes

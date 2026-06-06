@@ -506,28 +506,30 @@ function LineMeta({ ledger, meta }) {
 // ── Action Modal ──────────────────────────────────────────────────────────────
 
 function ActionModal({ line, action, ledger, onClose, onDone }) {
-  const [actualAmount, setActualAmount] = useState(line.expected_amount ?? '');
-  const [note, setNote]                 = useState('');
-  const [saving, setSaving]             = useState(false);
+  const [actualAmount,   setActualAmount]   = useState(line.expected_amount ?? '');
+  const [disputedAmount, setDisputedAmount] = useState(line.disputed_amount ?? '');
+  const [note, setNote]                     = useState('');
+  const [saving, setSaving]                 = useState(false);
 
-  const isPoints   = ledger === 'loyalty_points';
   const isPayments = ledger === 'payments';
+  const isPoints   = ledger === 'loyalty_points';
+  const isCash     = ['payments', 'credit_account', 'vat'].includes(ledger);
 
   const handleSubmit = async () => {
     setSaving(true);
     try {
       const payload = { action };
-      if (action === 'confirm' && isPayments) payload.actual_amount   = actualAmount;
-      if (action === 'dispute')               payload.dispute_note    = note;
-      if (action === 'write_off')             payload.resolution_note = note;
-      if (action === 'void')                  payload.resolution_note = note;
+      if (action === 'confirm' && isPayments)      payload.actual_amount    = actualAmount;
+      if (action === 'dispute' && isCash)          payload.disputed_amount  = disputedAmount || undefined;
+      if (action === 'dispute')                    payload.dispute_note     = note;
+      if (action === 'write_off')                  payload.resolution_note  = note;
+      if (action === 'void')                       payload.resolution_note  = note;
 
       await api.put(`/admin/reconciliation/lines/${line.id}`, payload);
       toast.success(`Line ${
-        action === 'confirm' ? 'confirmed'
-        : action === 'dispute' ? 'disputed'
-        : action === 'void' ? 'voided'
-        : 'written off'
+        action === 'confirm'   ? 'confirmed'  :
+        action === 'dispute'   ? 'disputed'   :
+        action === 'void'      ? 'voided'     : 'written off'
       }`);
       onDone();
       onClose();
@@ -569,9 +571,10 @@ function ActionModal({ line, action, ledger, onClose, onDone }) {
           )}
         </div>
 
+        {/* Confirm — payments only gets actual amount input */}
         {action === 'confirm' && isPayments && (
           <>
-            <label style={S.modalLabel}>Actual Amount ({isPoints ? 'Points' : 'KES'})</label>
+            <label style={S.modalLabel}>Actual Amount (KES)</label>
             <input
               style={S.modalInput}
               type="number"
@@ -588,24 +591,51 @@ function ActionModal({ line, action, ledger, onClose, onDone }) {
           </>
         )}
 
+        {/* Dispute — cash ledgers get disputed amount field */}
+        {action === 'dispute' && isCash && (
+          <>
+            <label style={S.modalLabel}>Disputed Amount (KES) — optional</label>
+            <input
+              style={S.modalInput}
+              type="number"
+              step="0.01"
+              value={disputedAmount}
+              onChange={e => setDisputedAmount(e.target.value)}
+              placeholder={`Expected on record: ${line.expected_amount}`}
+            />
+            {line.expected_amount && disputedAmount && Number(disputedAmount) !== Number(line.expected_amount) && (
+              <div style={{ color: '#ef4444', fontSize: '11px', marginBottom: '12px' }}>
+                ⚠ Differs from expected by: {(Number(disputedAmount) - Number(line.expected_amount)).toFixed(2)}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Note field for dispute, write_off, void */}
         {(action === 'dispute' || action === 'write_off' || action === 'void') && (
           <>
             <label style={S.modalLabel}>
-              {action === 'dispute' ? 'Dispute Reason'
-               : action === 'void' ? 'Void Reason'
-               : 'Resolution Note'} *
+              {action === 'dispute'   ? 'Dispute Reason'  :
+               action === 'void'     ? 'Void Reason'     : 'Resolution Note'} *
             </label>
             <textarea
               style={S.modalTextarea}
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder={
-                action === 'dispute' ? 'What is wrong with this record?'
-                : action === 'void' ? 'Why is this line being voided? e.g. order cancelled'
-                : 'Why is this being written off?'
+                action === 'dispute'   ? 'What is wrong with this record?' :
+                action === 'void'      ? 'Why is this line being voided?' :
+                                         'Why is this being written off?'
               }
             />
           </>
+        )}
+
+        {/* Show existing disputed amount when confirming a disputed line */}
+        {action === 'confirm' && line.disputed_amount && (
+          <div style={{ ...S.noteBox, marginBottom: '12px' }}>
+            🚩 Previously disputed amount: {Number(line.disputed_amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })} — will be cleared on confirm.
+          </div>
         )}
 
         <div style={S.modalFooter}>
@@ -964,12 +994,21 @@ export default function ReconciliationDetail() {
   const ledger     = LEDGER_META[session.ledger];
   const isOpen     = session.status === 'open';
   const isFinance  = ['super_admin', 'finance', 'admin'].includes(user?.role);
-  const total      = session.lines_count      || 0;
-  const confirmed  = session.confirmed_count  || 0;
-  const disputed   = session.disputed_count   || 0;
-  const pending    = session.pending_count    || 0;
-  const writtenOff = session.written_off_count|| 0;
-  const pct        = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
+
+const total      = session.lines_count       || 0;
+const confirmed  = session.confirmed_count   || 0;
+const disputed   = session.disputed_count    || 0;
+const pending    = session.pending_count     || 0;
+const writtenOff = session.written_off_count || 0;
+const voided     = session.voided_count      || 0;   // ← add this
+
+const pendingAmt    = session.pending_amount    || 0;  // ← and these
+const confirmedAmt  = session.confirmed_amount  || 0;
+const disputedAmt   = session.disputed_amount   || 0;
+const writtenOffAmt = session.written_off_amount|| 0;
+const voidedAmt     = session.voided_amount     || 0;
+
+const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
 
   const progressPct = bulkProgress.total
     ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
@@ -1061,22 +1100,43 @@ export default function ReconciliationDetail() {
         )}
       </div>
 
-      {/* Stats */}
-      <div style={S.statsRow}>
+      {/* Count stats */}
+        <div style={S.statsRow}>
         {[
-          { val: total,      label: 'Total Lines', color: '#94a3b8' },
-          { val: pending,    label: 'Pending',      color: '#f59e0b' },
-          { val: confirmed,  label: 'Confirmed',    color: '#10b981' },
-          { val: disputed,   label: 'Disputed',     color: '#ef4444' },
-          { val: writtenOff, label: 'Written Off',  color: '#64748b' },
-          { val: `${pct}%`,  label: 'Complete',     color: ledger?.color },
+            { val: total,      label: 'Total Lines',  color: '#94a3b8' },
+            { val: pending,    label: 'Pending',       color: '#f59e0b' },
+            { val: confirmed,  label: 'Confirmed',     color: '#10b981' },
+            { val: disputed,   label: 'Disputed',      color: '#ef4444' },
+            { val: writtenOff, label: 'Written Off',   color: '#64748b' },
+            { val: voided,     label: 'Voided',        color: '#dc2626' },
+            { val: `${pct}%`,  label: 'Complete',      color: ledger?.color },
         ].map(({ val, label, color }) => (
-          <div key={label} style={S.statCard(color)}>
+            <div key={label} style={S.statCard(color)}>
             <div style={S.statVal(color)}>{val}</div>
             <div style={S.statLabel}>{label}</div>
-          </div>
+            </div>
         ))}
-      </div>
+        </div>
+
+        {/* Amount stats — only for cash ledgers */}
+        {['payments', 'credit_account', 'vat'].includes(session.ledger) && (
+        <div style={{ ...S.statsRow, marginBottom: '24px' }}>
+            {[
+            { val: pendingAmt,    label: 'Pending KES',     color: '#f59e0b' },
+            { val: confirmedAmt,  label: 'Confirmed KES',   color: '#10b981' },
+            { val: disputedAmt,   label: 'Disputed KES',    color: '#ef4444' },
+            { val: writtenOffAmt, label: 'Written Off KES', color: '#64748b' },
+            { val: voidedAmt,     label: 'Voided KES',      color: '#dc2626' },
+            ].map(({ val, label, color }) => (
+            <div key={label} style={S.statCard(color)}>
+                <div style={{ ...S.statVal(color), fontSize: '16px' }}>
+                {Number(val).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                </div>
+                <div style={S.statLabel}>{label}</div>
+            </div>
+            ))}
+        </div>
+        )}
 
       {/* Filters */}
       <div style={S.filters}>
@@ -1254,6 +1314,11 @@ export default function ReconciliationDetail() {
                     </span>
                     {line.reviewed_by && (
                       <div style={S.meta}>by {line.reviewed_by?.name ?? `#${line.reviewed_by}`}</div>
+                    )}
+                    {line.status === 'disputed' && line.disputed_amount && (
+                    <div style={{ color: '#ef4444', fontSize: '10px', marginTop: '4px', fontFamily: 'monospace' }}>
+                        🚩 {Number(line.disputed_amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                    </div>
                     )}
                     {/* Blocker hint inline */}
                     {isBlocker && (

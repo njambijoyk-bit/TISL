@@ -18,6 +18,11 @@ class ReconciliationSession extends Model
         'opened_at',
         'closed_at',
         'meta',
+        'confirmed_amount',
+        'disputed_amount',
+        'voided_amount',
+        'pending_amount',
+        'written_off_amount',
     ];
 
     protected $casts = [
@@ -26,6 +31,11 @@ class ReconciliationSession extends Model
         'opened_at'    => 'datetime',
         'closed_at'    => 'datetime',
         'meta'         => 'array',
+        'confirmed_amount'   => 'decimal:2',
+        'disputed_amount'    => 'decimal:2',
+        'voided_amount'      => 'decimal:2',
+        'pending_amount'     => 'decimal:2',
+        'written_off_amount' => 'decimal:2',
     ];
 
     // ── Relationships ────────────────────────────────────────────
@@ -114,6 +124,19 @@ class ReconciliationSession extends Model
     public function isOpen(): bool
     {
         return $this->status === 'open';
+    }
+
+    public function recalculateSummary(): void
+    {
+        $lines = $this->lines();
+
+        $this->update([
+            'confirmed_amount'   => $lines->clone()->where('status', 'confirmed')->sum('actual_amount'),
+            'disputed_amount'    => $lines->clone()->where('status', 'disputed')->sum('disputed_amount'),
+            'voided_amount'      => $lines->clone()->where('status', 'voided')->sum('expected_amount'),
+            'pending_amount'     => $lines->clone()->where('status', 'pending')->sum('expected_amount'),
+            'written_off_amount' => $lines->clone()->where('status', 'written_off')->sum('expected_amount'),
+        ]);
     }
 
     /**

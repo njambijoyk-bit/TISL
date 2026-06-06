@@ -14,6 +14,7 @@ class ReconciliationLine extends Model
         'meta',                // JSON — ledger-specific context (payment_number, etc.)
         'expected_amount',
         'actual_amount',
+        'disputed_amount',
         'status',
         'reviewed_by',
         'reviewed_at',
@@ -25,6 +26,7 @@ class ReconciliationLine extends Model
         'meta'            => 'array',
         'expected_amount' => 'decimal:2',
         'actual_amount'   => 'decimal:2',
+        'disputed_amount' => 'decimal:2',
         'variance'        => 'decimal:2',
         'reviewed_at'     => 'datetime',
     ];
@@ -60,18 +62,20 @@ class ReconciliationLine extends Model
         $this->update([
             'status'        => 'confirmed',
             'actual_amount' => $actualAmount ?? $this->expected_amount,
+            'disputed_amount' => null, 
             'reviewed_by'   => $userId,
             'reviewed_at'   => now(),
         ]);
     }
 
-    public function dispute(int $userId, string $note): void
+    public function dispute(int $userId, string $note, ?float $disputedAmount = null): void
     {
         $this->update([
-            'status'       => 'disputed',
-            'dispute_note' => $note,
-            'reviewed_by'  => $userId,
-            'reviewed_at'  => now(),
+            'status'          => 'disputed',
+            'dispute_note'    => $note,
+            'disputed_amount' => $disputedAmount,
+            'reviewed_by'     => $userId,
+            'reviewed_at'     => now(),
         ]);
     }
 

@@ -115,6 +115,7 @@ class ReconciliationController extends Controller
             'lines as disputed_count'    => fn($q) => $q->where('status', 'disputed'),
             'lines as confirmed_count'   => fn($q) => $q->where('status', 'confirmed'),
             'lines as written_off_count' => fn($q) => $q->where('status', 'written_off'),
+            'lines as voided_count'      => fn($q) => $q->where('status', 'voided'),
         ]);
 
         return response()->json($session);
@@ -129,6 +130,7 @@ class ReconciliationController extends Controller
 
         try {
             $count = $this->populateService->populate($session);
+            $session->recalculateSummary();
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -163,7 +165,7 @@ class ReconciliationController extends Controller
 
         $user = Auth::user();
         $session->close($user->id, $this->userName($user));
-
+        $session->recalculateSummary();
         return response()->json(['message' => 'Session closed.', 'session' => $session]);
     }
 
@@ -207,11 +209,13 @@ class ReconciliationController extends Controller
     {
         $session    = $line->session;
         $isPayments = $session->ledger === 'payments';
+        $isCash     = in_array($session->ledger, ['payments', 'credit_account', 'vat']);
         $prevStatus = $line->status;
 
         $validated = $request->validate([
             'action'          => 'required|in:confirm,dispute,write_off,void',
             'actual_amount'   => $isPayments ? 'nullable|numeric' : 'prohibited',
+            'disputed_amount' => $isCash ? 'nullable|numeric' : 'prohibited',
             'dispute_note'    => 'required_if:action,dispute|nullable|string',
             'resolution_note' => 'required_if:action,write_off|required_if:action,void|nullable|string',
         ]);
@@ -225,13 +229,23 @@ class ReconciliationController extends Controller
         };
 
         match($validated['action']) {
-            'confirm'   => $line->confirm($user->id, $isPayments ? ($validated['actual_amount'] ?? null) : null),
-            'dispute'   => $line->dispute($user->id, $validated['dispute_note']),
+            'confirm'   => $line->confirm(
+                            $user->id,
+                            $isPayments ? ($validated['actual_amount'] ?? null) : null
+                        ),
+            'dispute'   => $line->dispute(
+                            $user->id,
+                            $validated['dispute_note'],
+                            $isCash ? ($validated['disputed_amount'] ?? null) : null
+                        ),
             'write_off' => $line->writeOff($user->id, $validated['resolution_note']),
             'void'      => $line->void($user->id, $validated['resolution_note'] ?? 'Voided'),
         };
 
-        // Log every status transition — keeps a full audit trail in the session meta.
+        // Recalculate session summary amounts
+        $session->recalculateSummary();
+
+        // Log event
         $session->logEvent([
             'type'            => 'line_status_change',
             'line_id'         => $line->id,
@@ -244,7 +258,7 @@ class ReconciliationController extends Controller
             'at'              => now()->toISOString(),
             'dispute_note'    => $validated['dispute_note']    ?? null,
             'resolution_note' => $validated['resolution_note'] ?? null,
-            // snapshot of key identifiers for display in the listing modal
+            'disputed_amount' => $validated['disputed_amount'] ?? null,
             'line_meta'       => array_filter([
                 'order_number'   => $line->meta['order_number']   ?? null,
                 'customer_name'  => $line->meta['customer_name']  ?? null,
