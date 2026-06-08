@@ -11,8 +11,17 @@ const useAuthStore = create(
       isAuthenticated: false,
 
       login: (user, customer, token) => {
-        localStorage.setItem('token', token);
+        localStorage.setItem('token', token); // set FIRST so interceptor can read it
         set({ user, customer, token, isAuthenticated: true });
+
+        if (user.role === 'customer') {
+          setTimeout(() => {
+            import('../store/cartStore').then(m => m.default.getState().loadFromServer());
+            import('../store/wishlistStore').then(m => m.default.getState().loadFromServer());
+            import('../store/quoteListStore').then(m => m.default.getState().loadFromServer());
+            import('../store/noteStore').then(m => m.default.getState().loadFromServer());
+          }, 0);
+        }
       },
 
       logout: () => {

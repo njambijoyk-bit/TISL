@@ -1,6 +1,7 @@
 // Export all stores
 export { default as useAuthStore } from './authStore';
 export { default as useCartStore } from './cartStore';
+export { default as useNoteStore } from './noteStore';
 export { default as useThemeStore } from './themeStore';
 export { default as useProductStore } from './productStore';
 export { default as useOrderStore } from './orderStore';
@@ -13,6 +14,7 @@ export { default as useReferralsStore } from './referralsStore';
 export { default as usePromoCodeStore } from './promoCodeStore';
 export { default as useQuoteListStore } from './quoteListStore';
 export { default as useTicketStore } from './ticketStore';
+export { default as useAiPanelStore } from './useAiPanelStore';
 
 export { default as useContentStore } from './contentStore';
 export { default as useStudioStore } from './studioStore';

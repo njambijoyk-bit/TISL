@@ -239,31 +239,50 @@ const formatDate = (dateStr) => {
     + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
 
-function describeActivity(item) {
-  const optionName = item.shipping_option?.name || `Option #${item.shipping_option_id}`;
+function describeActivity(item, options = []) {
+  const resolvedName = options.find(o => o.id === item.shipping_option_id)?.name
+    ?? item.shipping_option?.name          // from eager-loaded relation
+    ?? item.metadata?.name                 // fallback for deleted options
+    ?? `Option #${item.shipping_option_id}`;
 
   switch (item.action) {
     case 'CREATED':
-      return `Created shipping option "${optionName}"`;
+      return (
+        <>created shipping option <strong>"{resolvedName}"</strong></>
+      );
     case 'UPDATED': {
       const changes = item.metadata?.changes;
-      if (changes && changes.length > 0) {
-        return changes.map(c => `Changed ${c.field} from "${c.old ?? '—'}" to "${c.new}"`).join('; ');
+      if (changes?.length > 0) {
+        return (
+          <>
+            updated <strong>"{resolvedName}"</strong>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
+              {changes.map((c, j) => (
+                <li key={j}>
+                  {c.field}:{' '}
+                  <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>
+                  {' → '}
+                  <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        );
       }
-      return `Updated "${optionName}"`;
+      return <>updated <strong>"{resolvedName}"</strong></>;
     }
     case 'ACTIVATED':
-      return `Activated "${optionName}"`;
+      return <>activated <strong>"{resolvedName}"</strong></>;
     case 'DEACTIVATED':
-      return `Deactivated "${optionName}"`;
+      return <>deactivated <strong>"{resolvedName}"</strong></>;
     case 'DELETED':
-      return `Deleted "${item.metadata?.name || optionName}"`;
+      return <>deleted <strong>"{resolvedName}"</strong></>;
     default:
-      return `${item.action} on "${optionName}"`;
+      return <>{item.action.toLowerCase()} on <strong>"{resolvedName}"</strong></>;
   }
 }
 
-function ShippingActivityFeed({ activity, pagination, loading, onLoadMore }) {
+function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, options = [] }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -313,7 +332,7 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore }) {
             <div style={{ flex: 1, paddingBottom: isLast ? 0 : 16, minWidth: 0 }}>
               <p style={{ fontSize: '0.78rem', color: '#374151', margin: '0 0 2px', lineHeight: 1.5 }}>
                 <strong style={{ color: '#111827' }}>{actorName}</strong>{' '}
-                {describeActivity(item)}
+                {describeActivity(item, options)}
               </p>
               <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{formatDate(item.created_at)}</p>
             </div>
@@ -470,6 +489,7 @@ export default function ShippingSettings() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
                   {[
+                    { label: 'ID',         w: 60  },
                     { label: 'Name',       w: 180 },
                     { label: 'Slug',       w: 140 },
                     { label: 'Cost (KES)', w: 110 },
@@ -492,6 +512,11 @@ export default function ShippingSettings() {
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#9ca3af', fontFamily: 'monospace' }}>
+                        #{opt.id}
+                      </span>
+                    </td>
                     {/* Name */}
                     <td style={{ padding: '12px 16px' }}>
                       <div>
@@ -600,6 +625,7 @@ export default function ShippingSettings() {
                 pagination={activityPag}
                 loading={actLoading}
                 onLoadMore={() => loadActivity((activityPag?.current_page || 1) + 1)}
+                options={options}
               />
             </div>
           )}

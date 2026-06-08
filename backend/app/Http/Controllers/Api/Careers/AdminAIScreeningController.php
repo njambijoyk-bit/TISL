@@ -14,6 +14,7 @@ class AdminAIScreeningController extends Controller
      * Dispatch screening for a single application.
      * Returns immediately — result is written back by the queued job.
      */
+    
     public function screenOne(int $id)
     {
         $application = Application::with(['applicant', 'jobPosting', 'documents'])
@@ -21,49 +22,25 @@ class AdminAIScreeningController extends Controller
 
         if ($application->hasBeenScreened()) {
             return response()->json([
-                'message'    => 'Application has already been screened.',
-                'screened_at'=> $application->ai_screened_at,
-                'ai_score'   => $application->ai_score,
+                'message'     => 'Already screened.',
+                'screened_at' => $application->ai_screened_at,
+                'ai_score'    => $application->ai_score,
             ], 422);
         }
 
-        ScreenApplicationJob::dispatch($application->id);
-
-        return response()->json([
-            'message' => 'Screening queued. Results will be available shortly.',
-        ], 202);
-    }
-
-    /**
-     * Dispatch screening for all unscreened applications on a job.
-     * Hard cap at 50 per batch to avoid runaway queue floods.
-     */
-    public function screenBatch(Request $request, int $jobId)
-    {
-        $job = JobPosting::findOrFail($jobId);
-
-        $ids = Application::forJob($jobId)
-            ->unscreened()
-            ->active()
-            ->limit(50)
-            ->pluck('id');
-
-        if ($ids->isEmpty()) {
-            return response()->json([
-                'message' => 'No unscreened active applications found for this job.',
-            ], 422);
-        }
-
-        foreach ($ids as $applicationId) {
-            ScreenApplicationJob::dispatch($applicationId)->onQueue('screening');
+        try {
+            set_time_limit(120);
+            (new ScreenApplicationJob($application->id))->handle();
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Screening failed: ' . $e->getMessage()], 500);
         }
 
         return response()->json([
-            'message'   => "{$ids->count()} applications queued for screening.",
-            'queued_ids'=> $ids,
-        ], 202);
+            'message' => 'Screening complete.',
+            'data'    => $application->fresh(),
+        ]);
     }
-
+    
     /**
      * Re-screen a specific application (overwrite existing result).
      */
@@ -81,10 +58,53 @@ class AdminAIScreeningController extends Controller
             'ai_screened_at'    => null,
         ]);
 
-        ScreenApplicationJob::dispatch($application->id);
+        try {
+            set_time_limit(120);
+            (new ScreenApplicationJob($application->id))->handle();
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Re-screening failed: ' . $e->getMessage()], 500);
+        }
 
         return response()->json([
-            'message' => 'Re-screening queued.',
-        ], 202);
+            'message' => 'Re-screening complete.',
+            'data'    => $application->fresh(['applicant', 'jobPosting', 'documents', 'statusHistory']),
+        ]);
     }
+
+    /**
+     * Dispatch screening for all unscreened applications on a job.
+     * Hard cap at 50 per batch to avoid runaway queue floods.
+     */
+    public function screenBatch(Request $request, int $jobId)
+    {
+        $job = JobPosting::findOrFail($jobId);
+
+        $applications = Application::forJob($jobId)
+            ->unscreened()
+            ->active()
+            ->limit(50)
+            ->with(['applicant', 'jobPosting', 'documents'])
+            ->get();
+
+        if ($applications->isEmpty()) {
+            return response()->json([
+                'message' => 'No unscreened active applications found for this job.',
+            ], 422);
+        }
+
+        $failed = [];
+        foreach ($applications as $application) {
+            try {
+                (new ScreenApplicationJob($application->id))->handle();
+            } catch (\Exception $e) {
+                $failed[] = ['id' => $application->id, 'error' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'message' => "{$applications->count()} applications screened.",
+            'count'   => $applications->count(),
+        ]);
+    }
+
 }

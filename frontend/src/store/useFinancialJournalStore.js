@@ -85,40 +85,54 @@ const useFinancialJournalStore = create(
 
       // ── Submit (final save — closes modal, resets draft) ───────
       submitNote: async () => {
-        const { draft, savedNoteId } = get();
+        const { draft } = get();
 
         if (!draft.body?.trim()) return { success: false, message: 'Note body is required.' };
+
+        // ── wait out any in-progress sync before proceeding ──
+        if (get().isSyncing) {
+            await new Promise(resolve => {
+                const interval = setInterval(() => {
+                    if (!get().isSyncing) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 50);
+            });
+        }
+
+        // re-read savedNoteId after waiting — sync may have just set it
+        const { savedNoteId } = get();
 
         set({ isSyncing: true, syncError: null });
 
         try {
-          let response;
+            let response;
 
-          if (savedNoteId) {
-            // already synced — just confirm it's up to date
-            response = await api.put(`/admin/financial-notes/${savedNoteId}`, draft);
-          } else {
-            response = await api.post('/admin/financial-notes', draft);
-          }
+            if (savedNoteId) {
+                response = await api.put(`/admin/financial-notes/${savedNoteId}`, draft);
+            } else {
+                response = await api.post('/admin/financial-notes', draft);
+            }
 
-          set({
-            isSyncing: false,
-            isOpen: false,
-            isMinimised: false,
-            draft: { ...EMPTY_DRAFT },
-            savedNoteId: null,
-            lastSyncedAt: null,
-          });
+            set({
+                isSyncing: false,
+                isOpen: false,
+                isMinimised: false,
+                draft: { ...EMPTY_DRAFT },
+                savedNoteId: null,
+                lastSyncedAt: null,
+            });
 
-          return { success: true, note: response.data };
+            return { success: true, note: response.data };
         } catch (err) {
-          set({
-            isSyncing: false,
-            syncError: err?.response?.data?.message || 'Submit failed',
-          });
-          return { success: false, message: err?.response?.data?.message || 'Submit failed' };
+            set({
+                isSyncing: false,
+                syncError: err?.response?.data?.message || 'Submit failed',
+            });
+            return { success: false, message: err?.response?.data?.message || 'Submit failed' };
         }
-      },
+    },
 
       // ── Subject lookup helper ──────────────────────────────────
       // called when admin picks a subject_table + subject_id

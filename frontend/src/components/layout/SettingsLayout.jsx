@@ -1,5 +1,5 @@
 import {
-  Globe, DollarSign, GraduationCap,
+  Globe, DollarSign, GraduationCap, Gauge,
   FileText, Phone, BookOpen, Home, Award,
   Briefcase, Gift, UserCheck, Crown, Gavel,
   Tag, Users, Settings as SettingsIcon, Scale,
@@ -14,6 +14,7 @@ const GROUPS = [
     label: 'System',
     items: [
       { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general',          active: true },
+      { name: 'Analytics', icon: Gauge,     bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/settings/analytics',        active: true },
       { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/currency',         active: true },
       { name: 'Customer Tiers',icon: Crown, bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/customer-tiers',   active: true },
       { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', path: '/admin/settings/shipping',         active: true },

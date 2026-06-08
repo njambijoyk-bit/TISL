@@ -113,11 +113,13 @@ const useAdminCareersStore = create((set, get) => ({
 
     screenOne: async (id) => {
         const res = await adminCareersApi.screenOne(id);
+        if (res?.data) set({ currentApp: res.data });
         return res;
     },
 
     rescreen: async (id) => {
         const res = await adminCareersApi.rescreen(id);
+        if (res?.data) set({ currentApp: res.data });
         return res;
     },
 

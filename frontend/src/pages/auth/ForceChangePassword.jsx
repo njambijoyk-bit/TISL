@@ -75,7 +75,7 @@ export default function ForceChangePassword() {
               <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
             </div>
             <div>
-              <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem' }}>BlueArc</div>
+              <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem' }}>TISL</div>
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Solutions</div>
             </div>
           </div>
@@ -109,7 +109,7 @@ export default function ForceChangePassword() {
               }}>
                 <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
               </div>
-              <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>BlueArc</h2>
+              <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>TISL</h2>
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>Industrial Solutions</p>
             </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Lock, Package, Truck, Tag, Wallet, Loader2, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, Package, Truck, Tag, Wallet, Loader2, ChevronLeft, CheckCircle } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import PolicyConsentCheckbox from '../../components/legal/shared/PolicyConsentCheckbox';
@@ -11,8 +11,6 @@ import toast from 'react-hot-toast';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-
-// ── Accent-aware style factories ──────────────────────────────────────────────
 
 const makeInputStyle = () => ({
   width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem',
@@ -42,11 +40,11 @@ function Field({ label, error, children }) {
   );
 }
 
-function Input({ name, type = 'text', value, onChange, placeholder, error, required }) {
+function Input({ name, type = 'text', value, onChange, placeholder, error }) {
   return (
     <input
       type={type} name={name} value={value} onChange={onChange}
-      placeholder={placeholder} required={required}
+      placeholder={placeholder}
       style={{ ...makeInputStyle(), borderColor: error ? '#ef4444' : '#e5e7eb' }}
       onFocus={e => { e.currentTarget.style.borderColor = window.__hamperAccent || '#a855f7'; e.currentTarget.style.boxShadow = `0 0 0 3px ${window.__hamperAccent || '#a855f7'}18`; }}
       onBlur={e  => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -95,19 +93,16 @@ export default function HamperCheckout() {
   const [errors,       setErrors]       = useState({});
   const [blocked,      setBlocked]      = useState(null);
 
-  // promo
-  const [promoInput,    setPromoInput]   = useState('');
-  const [promoLoading,  setPromoLoading] = useState(false);
-  const [appliedPromo,  setAppliedPromo] = useState(null); // { code, discount, referral_code_id }
-  const [promoError,    setPromoError]   = useState('');
+  const [promoInput,   setPromoInput]   = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError,   setPromoError]   = useState('');
 
-  // store credit
-  const [applyCredit,        setApplyCredit]       = useState(false);
-  const [creditInput,        setCreditInput]        = useState('');
-  const [creditCalculating,  setCreditCalculating]  = useState(false);
+  const [applyCredit,       setApplyCredit]       = useState(false);
+  const [creditInput,       setCreditInput]        = useState('');
+  const [creditCalculating, setCreditCalculating]  = useState(false);
   const creditDebounce = useRef(null);
 
-  // form
   const [form, setForm] = useState({
     shipping_option_id: '',
     line1: '', line2: '', city: '', county: '', country: 'Kenya',
@@ -122,11 +117,9 @@ export default function HamperCheckout() {
     hampersAPI.loadCheckout(slug)
       .then(data => {
         setCheckoutData(data);
-        // default shipping
         if (data.shipping_options?.length > 0) {
           setForm(f => ({ ...f, shipping_option_id: String(data.shipping_options[0].id) }));
         }
-        // set accent as a global so Input focus can read it (simple approach)
         window.__hamperAccent = data.accent_color || '#a855f7';
       })
       .catch(err => {
@@ -166,7 +159,7 @@ export default function HamperCheckout() {
 
   if (!checkoutData) return null;
 
-  const { hamper, shipping_options, store_credit, promo_allowed, apply_vat, accent_color, customer } = checkoutData;
+  const { hamper, shipping_options, store_credit, promo_allowed, apply_vat, accent_color } = checkoutData;
   const accent     = accent_color || '#a855f7';
   const accentFade = `${accent}10`;
   const accentMid  = `${accent}28`;
@@ -175,17 +168,17 @@ export default function HamperCheckout() {
 
   const selectedShipping = shipping_options.find(o => String(o.id) === String(form.shipping_option_id));
   const shippingCost     = selectedShipping
-    ? (selectedShipping.free_above && (hamper.price) >= selectedShipping.free_above ? 0 : Number(selectedShipping.cost))
+    ? (selectedShipping.free_above && hamper.price >= selectedShipping.free_above ? 0 : Number(selectedShipping.cost))
     : 0;
 
-  const subtotal       = Number(hamper.price);
-  const vatAmount      = apply_vat ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
-  const promoDiscount  = appliedPromo?.discount ?? 0;
-  const creditBalance  = store_credit.allowed ? (store_credit.balance ?? 0) : 0;
-  const maxStoreCredit = store_credit.max_apply ?? 500;
-  const preCredit      = subtotal + vatAmount + shippingCost - promoDiscount;
+  const subtotal        = Number(hamper.price);
+  const vatAmount       = apply_vat ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
+  const promoDiscount   = appliedPromo?.discount ?? 0;
+  const creditBalance   = store_credit.allowed ? (store_credit.balance ?? 0) : 0;
+  const maxStoreCredit  = store_credit.max_apply ?? 500;
+  const preCredit       = subtotal + vatAmount + shippingCost - promoDiscount;
   const creditDeduction = applyCredit ? Math.min(Math.max(0, parseFloat(creditInput) || 0), Math.min(creditBalance, preCredit, maxStoreCredit)) : 0;
-  const total          = Math.max(0, preCredit - creditDeduction);
+  const total           = Math.max(0, preCredit - creditDeduction);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -197,8 +190,8 @@ export default function HamperCheckout() {
 
   const validate = () => {
     const e = {};
-    if (!form.line1)              e.line1   = 'Address is required';
-    if (!form.city)               e.city    = 'City is required';
+    if (!form.line1)              e.line1    = 'Address is required';
+    if (!form.city)               e.city     = 'City is required';
     if (!form.shipping_option_id) e.shipping = 'Select a shipping method';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -258,21 +251,48 @@ export default function HamperCheckout() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
-      {/* Accent top bar */}
       <div style={{ height: 3, background: `linear-gradient(90deg, ${accent}, ${accent}80)` }} />
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        .hamper-checkout-grid {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 28px;
+          align-items: start;
+        }
+        .hamper-checkout-sticky {
+          position: sticky;
+          top: 96px;
+        }
+        @media (max-width: 768px) {
+          .hamper-checkout-grid {
+            grid-template-columns: 1fr;
+          }
+          .hamper-checkout-sticky {
+            position: static;
+          }
+        }
+      `}</style>
 
       <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%', padding: '32px 24px' }}>
 
-        {/* Back */}
-        <button
-          onClick={() => navigate(`/hampers/${slug}`)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 24, fontFamily: 'inherit' }}
-        >
-          <ChevronLeft size={16} /> Back to Deal
-        </button>
+        {/* Breadcrumb */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, marginBottom: 24 }}>
+          <button
+            onClick={() => navigate(`/hampers/${slug}`)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onMouseEnter={e => e.currentTarget.style.color = accent}
+            onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+          >
+            <ChevronLeft size={14} /> {hamper.name}
+          </button>
+          <span style={{ color: '#d1d5db' }}>/</span>
+          <span style={{ color: accent }}>Checkout</span>
+        </nav>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'start' }}>
+          <div className="hamper-checkout-grid">
 
             {/* ── Left col ────────────────────────────────────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -294,7 +314,6 @@ export default function HamperCheckout() {
                   </div>
                   <span style={{ marginLeft: 'auto', fontSize: '1.1rem', fontWeight: 900, color: accent }}>{fmt(hamper.price)}</span>
                 </div>
-                {/* Item list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(hamper.items ?? []).map((item, i) => {
                     const snap = item.snapshot || {};
@@ -373,7 +392,7 @@ export default function HamperCheckout() {
             </div>
 
             {/* ── Right col (order summary) ────────────────────────────────── */}
-            <div style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="hamper-checkout-sticky" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ ...cardStyle, border: `1.5px solid ${accentMid}` }}>
                 <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827', margin: '0 0 16px', paddingBottom: 12, borderBottom: `1px solid ${accentFade}` }}>
                   Order Summary
@@ -486,11 +505,11 @@ export default function HamperCheckout() {
                 {/* Totals */}
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { label: 'Subtotal',       value: fmt(subtotal) },
-                    ...(apply_vat              ? [{ label: 'VAT (16%)',       value: fmt(vatAmount) }] : []),
-                    { label: 'Shipping',        value: shippingCost === 0 ? 'Free' : fmt(shippingCost) },
-                    ...(promoDiscount > 0      ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,   color: accent }] : []),
-                    ...(creditDeduction > 0    ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
+                    { label: 'Subtotal',      value: fmt(subtotal) },
+                    ...(apply_vat             ? [{ label: 'VAT (16%)',      value: fmt(vatAmount) }] : []),
+                    { label: 'Shipping',       value: shippingCost === 0 ? 'Free' : fmt(shippingCost) },
+                    ...(promoDiscount > 0     ? [{ label: 'Promo discount', value: `−${fmt(promoDiscount)}`,   color: accent }] : []),
+                    ...(creditDeduction > 0   ? [{ label: 'Store credit',   value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                       <span style={{ color: '#6b7280' }}>{label}</span>
@@ -529,7 +548,8 @@ export default function HamperCheckout() {
                     color: 'white',
                     boxShadow: (submitting || !policyAccepted) ? 'none' : `0 4px 16px ${accent}40`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'box-shadow 150ms', opacity: !policyAccepted ? 0.6 : 1,
+                    transition: 'box-shadow 150ms',
+                    opacity: !policyAccepted ? 0.6 : 1,
                   }}
                   onMouseEnter={e => { if (!submitting && policyAccepted) e.currentTarget.style.boxShadow = `0 6px 24px ${accent}60`; }}
                   onMouseLeave={e => { if (!submitting && policyAccepted) e.currentTarget.style.boxShadow = `0 4px 16px ${accent}40`; }}
@@ -545,7 +565,6 @@ export default function HamperCheckout() {
       </div>
 
       <Footer />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

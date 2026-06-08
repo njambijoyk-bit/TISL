@@ -54,7 +54,7 @@ class ChatController extends Controller
         $contents = array_merge(
             [
                 ['role' => 'user',  'parts' => [['text' => $systemPrompt]]],
-                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, BlueArc Store's assistant. Ready to help with products, orders, quotes, payments, and more."]]],
+                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, TISL Store's assistant. Ready to help with products, orders, quotes, payments, and more."]]],
             ],
             $history,
             [['role' => 'user', 'parts' => [['text' => $request->message]]]]
@@ -396,7 +396,7 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
             return ['type' => 'payment_lookup', 'identifier' => strtoupper($m[1])];
         }
 
-        // Order number: TISL-2025-00001 or BLUEARC-2025-00001
+        // Order number: TISL-2025-00001 or TISL-2025-00001
         if (preg_match('/([A-Z]+-\d{4}-\d+)/i', $message, $m)) {
             return ['type' => 'order_lookup', 'identifier' => strtoupper($m[1])];
         }
@@ -666,7 +666,7 @@ Provide general store information only.
 Encourage login for personalized features like order tracking, quotes, and promo codes.");
 
         return "
-You are Mimi, BlueArc Store's friendly and knowledgeable assistant based in Nairobi, Kenya.
+You are Mimi, TISL Store's friendly and knowledgeable assistant based in Nairobi, Kenya.
 You are warm, concise, and professional. Respond in the same language the user uses.
 Never make up prices, order details, or payment information not found in the data below.
 Format monetary values as 'KSh X,XXX.XX'.
@@ -674,7 +674,7 @@ Format monetary values as 'KSh X,XXX.XX'.
 ════════════════════════════════════════
 STORE INFORMATION
 ════════════════════════════════════════
-Name: BlueArc Store | Location: Nairobi, Kenya
+Name: TISL Store | Location: Nairobi, Kenya
 Delivery: Free on orders over KSh 5,000 | Returns: 30-day policy
 Payment: M-Pesa STK Push (finance initiates on customer's behalf)
 
@@ -716,7 +716,7 @@ LIVE DATA CONTEXT
         ];
 
         $systemPrompt = "
-You are Mimi, BlueArc Store's assistant based in Nairobi, Kenya.
+You are Mimi, TISL Store's assistant based in Nairobi, Kenya.
 You are warm, concise, and professional.
 You ONLY have access to PUBLIC store information below.
 If asked about orders, payments, or account details — politely explain they need to log in.
@@ -725,7 +725,7 @@ Never ask for passwords or payment details.
 ════════════════════════════════════════
 STORE INFORMATION
 ════════════════════════════════════════
-Name: BlueArc Store | Location: Nairobi, Kenya
+Name: TISL Store | Location: Nairobi, Kenya
 Delivery: Free on orders over KSh 5,000 | Returns: 30-day policy
 
 ════════════════════════════════════════
@@ -751,7 +751,7 @@ LIVE PUBLIC DATA
         $contents = array_merge(
             [
                 ['role' => 'user',  'parts' => [['text' => $systemPrompt]]],
-                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, BlueArc Store's assistant. I can help you browse products, learn about our services, and guide you through registration."]]],
+                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, TISL Store's assistant. I can help you browse products, learn about our services, and guide you through registration."]]],
             ],
             $history,
             [['role' => 'user', 'parts' => [['text' => $request->message]]]]
@@ -796,7 +796,7 @@ LIVE PUBLIC DATA
                 
                 // 💡 Friendly fallback response
                 return response()->json([
-                    'reply' => "🙏 I'm temporarily at capacity due to high demand. Please try again in a few minutes, or contact support@bluearc.store for urgent assistance."
+                    'reply' => "🙏 I'm temporarily at capacity due to high demand. Please try again in a few minutes, or contact web@targetisl.co.ke for urgent assistance."
                 ]);
             }
 

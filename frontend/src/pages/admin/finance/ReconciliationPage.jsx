@@ -181,6 +181,12 @@ export default function ReconciliationPage() {
             {isFinance && (
             <button style={S.newBtn} onClick={() => setShowCreate(true)}>+ NEW SESSION</button>
             )}
+            <button
+                style={{ ...S.newBtn, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}
+                onClick={() => navigate('/admin/financial-notes')}
+            >
+                📓 NOTES
+            </button>
             <ThemeSwitcher />
         </div>
         </div>

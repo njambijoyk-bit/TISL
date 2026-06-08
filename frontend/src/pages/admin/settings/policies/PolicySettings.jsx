@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import SettingsLayout from '../../../../components/layout/SettingsLayout';
 import policyAPI from '../../../../api/policy';
 import { useAuthStore } from '../../../../store';
+import PolicyVersionHistory from './PolicyVersionHistory';
 import {
   Shield, Edit2, X, ChevronDown, ChevronUp,
   FileText, Users, BarChart2, History, AlertTriangle,
@@ -525,6 +526,7 @@ function PolicyRow({ policy, onEdit, index }) {
 
 const TABS = [
   { key: 'policies', label: 'Policies',  icon: <FileText size={13} /> },
+  { key: 'history',  label: 'Version History', icon: <History  size={13} /> },
   { key: 'reports',  label: 'Reports',   icon: <BarChart2 size={13} /> },
 ];
 
@@ -568,7 +570,7 @@ export default function PolicySettings() {
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Shield size={18} style={{ color: '#a855f7' }} /> Policy Management
           </h2>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -633,6 +635,7 @@ export default function PolicySettings() {
 
       {/* ── Reports tab ── */}
       {tab === 'reports' && <ReportsTab />}
+      {tab === 'history' && <PolicyVersionHistory policies={policies} />}
 
       {/* ── Edit modal ── */}
       {editingPolicy && (

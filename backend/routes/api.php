@@ -2,17 +2,21 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
 use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\AuctionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceCategoryController;
+use App\Http\Controllers\Api\SearchEventController;
 use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
@@ -59,6 +63,8 @@ use App\Http\Controllers\Api\BookingWorksheetController;
 use App\Http\Controllers\Api\BookingDisqualificationController;
 use App\Http\Controllers\Api\FinancialNoteController;
 use App\Http\Controllers\Api\ReconciliationController;
+use App\Http\Controllers\Api\SearchAnalyticsController;
+use App\Http\Controllers\Api\AdminSavedNoteController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -91,6 +97,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
 });
 
+Route::post('/search-events', [SearchEventController::class, 'store']);
+
 // Public
 Route::get('/policies', [PolicyController::class, 'index']);
 Route::get('/policies/{key}', [PolicyController::class, 'show']);
@@ -116,6 +124,23 @@ Route::post('/publications/{id}/comments', [PublicationCommentController::class,
 Route::get('/booking-settings/policy', [BookingSettingController::class, 'publicPolicy']);
 Route::get('/bookings/slots',          [BookingController::class, 'availableSlots']);
 
+
+Route::post('/bug-reports', [BugReportController::class, 'store'])
+    ->middleware('throttle:5,1');  // 5 per minute per IP — spam guard
+ 
+Route::get('/bug-reports/track/{token}', [BugReportController::class, 'track']);
+
+// ============================================================
+// DEV GATED UX (no Laravel auth — uses one-time key + cache token)
+// ============================================================
+Route::prefix('dev')->group(function () {
+    Route::post('/auth',         [BugReportController::class, 'devAuth']);
+ 
+    // These require X-Dev-Token header (checked inside controller)
+    Route::get('/notes',         [BugReportController::class, 'devNoteIndex']);
+    Route::post('/notes',        [BugReportController::class, 'devNoteStoreByDev']);
+    Route::put('/notes/{id}',    [BugReportController::class, 'devNoteUpdateByDev']);
+});
 
 // ============================================
 // CAREERS — PUBLIC
@@ -247,6 +272,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [CustomerController::class, 'profile']);
         Route::put('/profile', [CustomerController::class, 'updateProfile']);
         Route::post('/profile/upload-image', [CustomerController::class, 'uploadCustomerImage']);
+
+        Route::prefix('bug-reports')->group(function () {
+            Route::get('/',      [BugReportController::class, 'customerIndex']);
+            Route::get('/{id}',  [BugReportController::class, 'customerShow']);
+        });
+
+        // Customer sync
+        Route::get('cart',            [CustomerSyncController::class, 'getCart']);
+        Route::post('cart/sync',      [CustomerSyncController::class, 'syncCart']);
+
+        Route::get('wishlist',        [CustomerSyncController::class, 'getWishlist']);
+        Route::post('wishlist/sync',  [CustomerSyncController::class, 'syncWishlist']);
+
+        Route::get('quote-list',      [CustomerSyncController::class, 'getQuoteList']);
+        Route::post('quote-list/sync',[CustomerSyncController::class, 'syncQuoteList']);
+
+        Route::get('note', [CustomerSyncController::class, 'getNote']);
+        Route::post('note/sync', [CustomerSyncController::class, 'syncNote']);
+        Route::delete('note', [CustomerSyncController::class, 'clearNote']);
         
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);
@@ -416,6 +460,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/force-delete-multiple', [ProductController::class, 'forceDeleteMultiple']); // bulk permanent delete
 
             Route::post('/bulk-update-flags', [ProductController::class, 'bulkUpdateFlags']);
+            Route::post('/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
 
             Route::get('/{id}', [ProductController::class, 'show']); 
             Route::put('/{id}', [ProductController::class, 'update']);
@@ -447,6 +492,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('auction-orders')->group(function () {
             Route::get('/',                          [AuctionController::class, 'adminOrderIndex']);
             Route::get('/trashed',                   [AuctionController::class, 'orderTrashedIndex']);
+            Route::get('/activity',                  [AuctionController::class, 'globalActivityLog']);
             Route::get('/{id}',                      [AuctionController::class, 'adminOrderShow']);
             Route::put('/{id}/status',               [AuctionController::class, 'updateOrderStatus']);
             Route::put('/{id}/payment/paid',         [AuctionController::class, 'markOrderPaid']);
@@ -852,6 +898,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('bookings')->group(function () {
             Route::get('/',                          [BookingController::class, 'adminIndex']);
             Route::post('/',                         [BookingController::class, 'adminStore']);
+            Route::get('/activity',                  [BookingController::class, 'globalActivityLog']);
             Route::get('/{id}',                      [BookingController::class, 'adminShow']);
             Route::put('/{id}',                      [BookingController::class, 'adminUpdate']);
             Route::post('/{id}/cancel',              [BookingController::class, 'adminCancel']);
@@ -894,16 +941,77 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                     [FinancialNoteController::class, 'index']);
             Route::post('/',                    [FinancialNoteController::class, 'store']);
             Route::get('/for-subject',          [FinancialNoteController::class, 'forSubject']);
+            Route::get('/resolve-subject',      [FinancialNoteController::class, 'resolveSubject']);
             Route::get('/{financialNote}',      [FinancialNoteController::class, 'show']);
             Route::put('/{financialNote}',      [FinancialNoteController::class, 'update']);
             Route::delete('/{financialNote}',   [FinancialNoteController::class, 'destroy']);
         });
+
+        Route::prefix('credit')->group(function () {
+            Route::get('/global-summary', [CustomerCreditController::class, 'globalSummary']);
+            Route::get('/global-customers', [CustomerCreditController::class, 'globalCustomers']);
+        });
+
+        // Bug Reports
+        Route::prefix('bug-reports')->group(function () {
+            Route::get('/',                     [BugReportController::class, 'adminIndex']);
+            Route::get('/{id}',                 [BugReportController::class, 'adminShow']);
+            Route::patch('/{id}/status',        [BugReportController::class, 'updateStatus']);
+            Route::patch('/{id}/priority',      [BugReportController::class, 'updatePriority']);
+            Route::delete('/{id}',              [BugReportController::class, 'adminDestroy']);
+        });
+
+        // Dev Notes (admin entering on behalf of dev)
+        Route::prefix('dev-notes')->group(function () {
+            Route::get('/',              [BugReportController::class, 'devNoteIndex']);
+            Route::post('/',             [BugReportController::class, 'devNoteStore']);
+            Route::put('/{id}',          [BugReportController::class, 'devNoteUpdate']);
+            Route::patch('/{id}/status', [BugReportController::class, 'devNoteStatus']);
+            Route::delete('/{id}',       [BugReportController::class, 'devNoteDestroy']);
+        });
+
+        // Dev Access Keys (admin board)
+        Route::prefix('dev-keys')->group(function () {
+            Route::get('/active',        [BugReportController::class, 'activeKey']);
+            Route::post('/regenerate',   [BugReportController::class, 'regenerateKey']);
+            Route::get('/logs',          [BugReportController::class, 'keyLogs']);
+        });
+
+        // ── AI Analytics ─────────────────────────────────────────────────────────────
+        Route::prefix('ai-analytics')->group(function () {
+
+            // Keys (super_admin only — policy handles it)
+            Route::get   ('keys',              [AiAnalyticsController::class, 'indexKeys']);
+            Route::post  ('keys',              [AiAnalyticsController::class, 'storeKey']);
+            Route::post  ('keys/{key}/activate',[AiAnalyticsController::class, 'activateKey']);
+            Route::delete('keys/{key}',        [AiAnalyticsController::class, 'destroyKey']);
+
+            // Modules
+            Route::get   ('modules',                    [AiAnalyticsController::class, 'indexModules']);
+            Route::patch ('modules/{module}/toggle',    [AiAnalyticsController::class, 'toggleModule']);
+
+            // Sessions & stats
+            Route::get('sessions',      [AiAnalyticsController::class, 'indexSessions']);
+            Route::get('sessions/stats',[AiAnalyticsController::class, 'sessionStats']);
+
+            // Analyse
+            Route::post('analyse', [AiAnalyticsController::class, 'analyse']);
+
+            // Outputs
+            Route::get  ('outputs/{moduleKey}',        [AiAnalyticsController::class, 'moduleOutputs']);
+            Route::patch('outputs/{output}/dismiss',   [AiAnalyticsController::class, 'dismissOutput']);
+        });
+
+        Route::get('customers/{customerId}/note', [AdminSavedNoteController::class, 'show']);
+        Route::post('customers/{customerId}/note/save', [AdminSavedNoteController::class, 'save']);
+        Route::get('customers/{customerId}/note/saved', [AdminSavedNoteController::class, 'index']);
+        Route::delete('customers/{customerId}/note/saved/{snapshotId}', [AdminSavedNoteController::class, 'destroy']);
     });
 
     // ============================================
     // FINANCE ROUTES
     // ============================================
-    Route::middleware('role:finance,admin,super_admin')->prefix('admin')->group(function () {
+    Route::middleware('role:finance,manager,admin,super_admin')->prefix('admin')->group(function () {
 
         // PAYMENTS
         Route::prefix('payments')->group(function () {
@@ -1001,6 +1109,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/sessions/{session}/lines',             [ReconciliationController::class, 'indexLines']);
             Route::put('/lines/{line}',                         [ReconciliationController::class, 'updateLine']);
             Route::put('/lines/{line}/attach-note',             [ReconciliationController::class, 'attachNote']);
+        });
+
+        Route::prefix('analytics')->group(function () {
+            Route::get('dashboard',                [SearchAnalyticsController::class, 'dashboard']);
+            Route::get('sessions',                 [SearchAnalyticsController::class, 'sessions']);
+            Route::get('sessions/{sessionId}',     [SearchAnalyticsController::class, 'sessionDetail']);
+            Route::get('customers',                [SearchAnalyticsController::class, 'customers']);
+            Route::get('customers/{customerId}',   [SearchAnalyticsController::class, 'customerDetail']);
         });
     });
 
@@ -1177,6 +1293,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                                     [HamperController::class, 'index']);
             Route::get('/stats',                                [HamperController::class, 'stats']); 
             Route::post('/',                                    [HamperController::class, 'store']);
+            Route::get('/activity',                             [HamperController::class, 'globalActivityLog']);
             Route::get('/{id}',                                 [HamperController::class, 'show']);
             Route::put('/{id}',                                 [HamperController::class, 'update']);
             Route::delete('/{id}',                              [HamperController::class, 'destroy']);
@@ -1309,6 +1426,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/applications/{id}/screen',       [AdminAIScreeningController::class, 'screenOne']);
             Route::post('/jobs/{jobId}/screen-all',        [AdminAIScreeningController::class, 'screenBatch']);
+            Route::post('/applications/{id}/rescreen',     [AdminAIScreeningController::class, 'rescreen']);
             Route::get('/documents/{document}/download',   [AdminApplicationController::class, 'downloadDocument'])
                 ->name('admin.careers.documents.download');
         });

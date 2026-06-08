@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TISL Transaction Flowchart — System Overview</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #07090f;
+        --surface: #0d1117;
+        --surface2: #161b27;
+        --border: #1e2d40;
+        --text: #cdd6e0;
+        --muted: #566375;
+        --blue: #0ea5e9;
+        --purple: #8b5cf6;
+        --green: #10b981;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --cyan: #06b6d4;
+        --pink: #ec4899;
+        --orange: #f97316;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .hero {
+        padding: 48px 24px 36px;
+        text-align: center;
+        background: linear-gradient(160deg, #0d1529 0%, #0a0e1a 60%);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 0%,
+          rgba(14, 165, 233, 0.08) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.6rem);
+        font-weight: 800;
+        background: linear-gradient(
+          90deg,
+          #38bdf8 0%,
+          #a78bfa 50%,
+          #f59e0b 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        color: #7a8fa3;
+        font-size: 0.95rem;
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 14px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.78rem;
+        color: #8a9ab0;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 14px 16px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .nav-tab {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 200ms ease;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .nav-tab:hover {
+        background: #1e2d40;
+        color: var(--text);
+      }
+      .nav-tab.active {
+        background: linear-gradient(135deg, #1d3a7a, #3b1d7a);
+        color: #fff;
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+      }
+      .diagram-container {
+        display: none;
+        padding: 28px 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .diagram-container.active {
+        display: block;
+      }
+      .diagram-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #e2e8f0;
+        letter-spacing: -0.01em;
+      }
+      .diagram-subtitle {
+        color: var(--muted);
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+      .mermaid-wrap {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 24px 16px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+        margin-bottom: 20px;
+      }
+      .mermaid-wrap svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+      .note {
+        background: var(--surface2);
+        border-left: 3px solid var(--blue);
+        padding: 14px 18px;
+        margin-top: 18px;
+        border-radius: 0 10px 10px 0;
+        font-size: 0.83rem;
+        color: #9bb0c8;
+        line-height: 1.6;
+      }
+      .note-title {
+        font-weight: 700;
+        color: #38bdf8;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+      }
+
+      /* Cross-module link cards */
+      .links-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .link-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        position: relative;
+        overflow: hidden;
+      }
+      .link-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+      }
+      .link-card.triggers::before {
+        background: #10b981;
+      }
+      .link-card.depends-on::before {
+        background: #0ea5e9;
+      }
+      .link-card.updates::before {
+        background: #f59e0b;
+      }
+      .link-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .link-badge.triggers {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+      }
+      .link-badge.depends-on {
+        background: rgba(14, 165, 233, 0.15);
+        color: #38bdf8;
+      }
+      .link-badge.updates {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+      }
+      .link-route {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+      .link-module {
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+      .link-arrow {
+        color: var(--muted);
+        font-size: 1rem;
+      }
+      .link-desc {
+        font-size: 0.8rem;
+        color: #8a9ab0;
+        line-height: 1.5;
+      }
+
+      /* module color chips */
+      .mod-payment {
+        background: rgba(14, 165, 233, 0.2);
+        color: #38bdf8;
+      }
+      .mod-loyalty {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+      }
+      .mod-credit {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+      }
+      .mod-promo {
+        background: rgba(139, 92, 246, 0.2);
+        color: #a78bfa;
+      }
+      .mod-reconciliation {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+      }
+
+      .section-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin: 24px 0 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <h1>TISL Transaction Flowchart</h1>
+      <p>
+        Full visual reference of all transaction-layer workflows — payments,
+        loyalty, credit accounts, promo codes, referrals, reconciliation, and
+        cross-module triggers.
+      </p>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #0ea5e9"></div>
+        Payment / M-Pesa
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #10b981"></div>
+        Loyalty / Store Credit
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f59e0b"></div>
+        Credit Account
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #8b5cf6"></div>
+        Promo & Referrals
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #ef4444"></div>
+        Reconciliation
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #64748b"></div>
+        System / DB
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f97316"></div>
+        External (Daraja)
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showTab('cross', this)">
+        🔗 Cross-Module
+      </div>
+      <div class="nav-tab" onclick="showTab('payment', this)">💳 Payment</div>
+      <div class="nav-tab" onclick="showTab('loyalty', this)">⭐ Loyalty</div>
+      <div class="nav-tab" onclick="showTab('credit', this)">
+        🏦 Credit Account
+      </div>
+      <div class="nav-tab" onclick="showTab('promo', this)">
+        🏷️ Promo & Referrals
+      </div>
+      <div class="nav-tab" onclick="showTab('reconciliation', this)">
+        ⚖️ Reconciliation
+      </div>
+    </div>
+
+    <!-- CROSS MODULE -->
+    <div id="cross" class="diagram-container active">
+      <div class="diagram-title">🔗 Cross-Module Dependency Map</div>
+      <div class="diagram-subtitle">
+        How payment, loyalty, credit, promo, and reconciliation modules trigger
+        and depend on each other.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart LR
+  PAY_CB["💳 Payment Callback\nconfirmed"] --> LOY_EARN["⭐ Loyalty\nearnPointsForOrder"]
+  PAY_CB --> PAY_SYNC["💳 syncOrderPaymentStatus\nupdates order.payment_status"]
+  PAY_INIT["💳 Payment Initiate\nbuildSnapshot"] --> PAY_SYNC
+
+  PROMO_VAL["🏷️ Promo Validate\ndiscount applied"] --> PAY_INIT
+  SC_SPEND["⭐ Store Credit\napplyStoreCreditToOrder"] --> PAY_INIT
+  CREDIT_PAY["🏦 Credit Payment\nreduces order total"] --> PAY_INIT
+
+  REF_COMPLETE["🏷️ Referral Complete\nprocessReferrerReward"] --> LOY_GRANT["⭐ Loyalty\ngrantReferralCredit"]
+  LOY_SETTINGS["⭐ LoyaltySetting\nreferral_credit_amount"] --> REF_COMPLETE
+
+  PROMO_BDAY["🏷️ Birthday Codes\ndaily command"] --> PROMO_VAL
+  PROMO_WINBACK["🏷️ Win-Back Codes\ndaily command"] --> PROMO_VAL
+
+  REC_POP["⚖️ Reconciliation\npopulate"] --> PAY_LIST["💳 payments table"]
+  REC_POP --> LOY_TX["⭐ loyalty + credit tx tables"]
+  REC_POP --> CREDIT_TX["🏦 customer_credit_transactions"]
+
+  style PAY_CB fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style PAY_INIT fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style PAY_SYNC fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style PAY_LIST fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style LOY_EARN fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style LOY_GRANT fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style LOY_TX fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style LOY_SETTINGS fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style PROMO_VAL fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style REF_COMPLETE fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style PROMO_BDAY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style PROMO_WINBACK fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style SC_SPEND fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style CREDIT_PAY fill:#2e1f00,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style CREDIT_TX fill:#2e1f00,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style REC_POP fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="section-label">All Cross-Module Links</div>
+      <div class="links-grid">
+        <div class="link-card triggers">
+          <div class="link-badge triggers">⚡ triggers</div>
+          <div class="link-route">
+            <span class="link-module mod-payment">payment-callback</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-loyalty">loyalty-earn-order</span>
+          </div>
+          <div class="link-desc">
+            When Payment callback confirms order as paid, Order::markAsPaid()
+            triggers LoyaltyService::earnPointsForOrder()
+          </div>
+        </div>
+
+        <div class="link-card updates">
+          <div class="link-badge updates">↺ updates</div>
+          <div class="link-route">
+            <span class="link-module mod-payment">payment-callback</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-payment">payment-initiate</span>
+          </div>
+          <div class="link-desc">
+            Callback syncs order.payment_status via syncOrderPaymentStatus(),
+            which affects future initiate guards
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-promo">promo-validate</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-payment">payment-initiate</span>
+          </div>
+          <div class="link-desc">
+            Promo discount reduces order.total_kes, which affects the payment
+            snapshot amount_still_owed
+          </div>
+        </div>
+
+        <div class="link-card triggers">
+          <div class="link-badge triggers">⚡ triggers</div>
+          <div class="link-route">
+            <span class="link-module mod-promo">referral-complete</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-loyalty">loyalty-grant-points</span>
+          </div>
+          <div class="link-desc">
+            ReferralCodeUsage::complete() calls
+            LoyaltyService::grantReferralCredit() / grantReferralPointBonus()
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-credit">credit-payment</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-payment">payment-initiate</span>
+          </div>
+          <div class="link-desc">
+            Credit account deductions reduce order total, affecting payment
+            snapshot and balance calculations
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-loyalty">loyalty-spend-credit</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-payment">payment-initiate</span>
+          </div>
+          <div class="link-desc">
+            Store credit spent at checkout reduces total_kes, flowing into
+            Payment::buildSnapshot()
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-reconciliation">rec-populate</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-payment">payment-index</span>
+          </div>
+          <div class="link-desc">
+            ReconciliationPopulateService reads payments table to build
+            reconciliation lines
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-reconciliation">rec-populate</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-loyalty">loyalty-index</span>
+          </div>
+          <div class="link-desc">
+            ReconciliationPopulateService reads store_credit_transactions and
+            loyalty_point_transactions
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-reconciliation">rec-populate</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-credit">credit-statement</span>
+          </div>
+          <div class="link-desc">
+            ReconciliationPopulateService reads customer_credit_transactions
+          </div>
+        </div>
+
+        <div class="link-card depends-on">
+          <div class="link-badge depends-on">⬡ depends-on</div>
+          <div class="link-route">
+            <span class="link-module mod-loyalty">loyalty-grant-points</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-promo">referral-complete</span>
+          </div>
+          <div class="link-desc">
+            Referral reward amount (referral_credit_amount) is read live from
+            LoyaltySetting at reward time
+          </div>
+        </div>
+
+        <div class="link-card triggers">
+          <div class="link-badge triggers">⚡ triggers</div>
+          <div class="link-route">
+            <span class="link-module mod-promo">promo-birthday</span>
+            <span class="link-arrow">→</span>
+            <span class="link-module mod-promo">promo-validate</span>
+          </div>
+          <div class="link-desc">
+            Generated birthday codes flow into the validation system at checkout
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Cross-Module</div>
+        Payment callback is the central trigger — it confirms orders, fires
+        loyalty earn, and updates payment status. Store credit, promo discounts,
+        and credit account deductions all feed into the payment snapshot before
+        STK push. Reconciliation is a pure reader — it never writes to source
+        ledgers, only pulls from them.
+      </div>
+    </div>
+
+    <!-- PAYMENT -->
+    <div id="payment" class="diagram-container">
+      <div class="diagram-title">💳 Payment (M-Pesa / Daraja) Workflows</div>
+      <div class="diagram-subtitle">
+        STK push initiation, callback handling, retries, disputes, and
+        cancellation. Polymorphic for regular and auction orders.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  INIT["POST /admin/payments/initiate"] --> AUTH["Authorize\nfinance / admin / super_admin"]
+  AUTH --> A403["403"]
+  AUTH --> VAL["Validate input\norder_id | auction_order_id\nphone_override / is_partial / partial_amount / force_override"]
+  VAL --> V422["422"]
+  VAL --> TX["BEGIN DB TX"]
+  TX --> RESOLVE["Resolve order type\nauction_order_id filled?"]
+  RESOLVE --> LOAD_AUC["Load AuctionOrder\n+ customer"]
+  RESOLVE --> LOAD_REG["Load Order\n+ customer"]
+  LOAD_AUC --> FORCE["force_override = true?"]
+  LOAD_REG --> FORCE
+  FORCE --> GSTATUS["Guard: order status only\nCancelled/failed always block"]
+  FORCE --> GALL["Run ALL guards\n1. Not cancelled/failed\n2. Not paid/refunded\n3. Balance > 0\n4. No pending payment"]
+  GSTATUS --> G400["400: Order cancelled/failed"]
+  GALL --> G400B["400: Guard failure\n(specific message)"]
+  GSTATUS --> SNAP["buildSnapshot()\nsubtotal/tax/discount/shipping\ncredit deductions/still_owed"]
+  GALL --> SNAP
+  SNAP --> AMT["is_partial + partial_amount?"]
+  AMT --> PARTIAL["amount = min(partial_amount, still_owed)"]
+  AMT --> FULL["amount = still_owed"]
+  PARTIAL --> VAMT["Daraja::validateAmount()\nMin KSh 10 / Max KSh 150,000"]
+  FULL --> VAMT
+  VAMT --> A422["422: Invalid amount"]
+  VAMT --> PHONE["phone_override different\nfrom customer phone?"]
+  PHONE --> REASON["phone_override_reason\nprovided?"]
+  REASON --> R422["422: Reason required"]
+  REASON --> NORM["Daraja::normalizePhone()\n254 prefix / Kenyan number"]
+  PHONE --> NORM
+  NORM --> P422["422: Invalid phone"]
+  NORM --> GENNUM["Generate payment number\nPAY-{year}-{orderId}-{seq}\nAUC-{year}-{orderId}-{seq}"]
+  GENNUM --> STK["Daraja::stkPush()\nPOST /mpesa/stkpush/v1/processrequest\nReturns MerchantRequestID + CheckoutRequestID"]
+  STK --> S502["502: STK Push failed\nROLLBACK"]
+  STK --> CREATE["Create Payment record\nsnapshot / phone / Daraja IDs\nnotes / is_partial / dispute_status=none"]
+  CREATE --> COMMIT["COMMIT + Log"]
+  COMMIT --> R201["201: payment_id / payment_number\nstatus=pending / order_type"]
+
+  style INIT fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style AUTH fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style A403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style V422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style G400 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style G400B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style A422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style P422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style S502 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style STK fill:#1a2e1a,stroke:#f97316,stroke-width:2px,color:#fff
+  style SNAP fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style R201 fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style COMMIT fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CB["POST /daraja/callback\nRaw body from Safaricom"] --> LOG["Log raw body"]
+  LOG --> PARSE["Daraja::parseCallback()\nResultCode / receipt / amount / phone / date"]
+  PARSE --> PFAIL["Return Accepted\n(always 204 to Daraja)"]
+  PARSE --> CBTX["BEGIN DB TX"]
+  CBTX --> FIND["Find Payment by CheckoutRequestID"]
+  FIND --> NOTFOUND["Log warning + ROLLBACK\n→ Accepted"]
+  FIND --> CONFIRMED["Already confirmed?\n(duplicate guard)"]
+  CONFIRMED --> DUP["Log dup + ROLLBACK\n→ Accepted"]
+  CONFIRMED --> SUCCESS["ResultCode === 0?"]
+  SUCCESS --> UPD_OK["Update: status=confirmed\nreceipt / amount / phone / confirmed_at"]
+  SUCCESS --> UPD_FAIL["Update: status=failed\nfailure_reason / failed_at"]
+  UPD_OK --> SYNC["syncOrderPaymentStatus()\nRecalculate confirmed total\nUpdate order.payment_status\nMay mark order paid → earnPointsForOrder"]
+  SYNC --> COMMIT_OK["COMMIT → Accepted"]
+  UPD_FAIL --> COMMIT_FAIL["COMMIT → Accepted"]
+
+  style CB fill:#0c2233,stroke:#f97316,stroke-width:2px,color:#fff
+  style PARSE fill:#1a2e0a,stroke:#f97316,stroke-width:1px,color:#fff
+  style STK fill:#1a2e0a,stroke:#f97316,stroke-width:1px,color:#fff
+  style PFAIL fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style NOTFOUND fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style DUP fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style UPD_OK fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style UPD_FAIL fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SYNC fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style COMMIT_OK fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style COMMIT_FAIL fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  RETRY["POST /admin/payments/id/retry"] --> RAUTH["Authorize retry\nfinance/admin/super_admin\nPayment must be failed/cancelled"]
+  RAUTH --> R403["403"]
+  RAUTH --> RVAL["Validate"]
+  RVAL --> R422["422"]
+  RVAL --> RORDER["Get parentOrder()"]
+  RORDER --> R404["404: Parent order not found"]
+  RORDER --> RPEND["Another pending exists?"]
+  RPEND --> R400P["400: Another pending exists"]
+  RPEND --> RBTX["BEGIN TX"]
+  RBTX --> RSNAP["Build snapshot"]
+  RSNAP --> RPAID["Already fully paid?"]
+  RPAID --> R400PAID["400: Already fully paid"]
+  RSNAP --> RAMT["Resolve partial/full amount\nexceeds balance?"]
+  RAMT --> R400E["400: Partial exceeds balance"]
+  RAMT --> RSTK["New STK Push"]
+  RSTK --> R502["ROLLBACK + 502"]
+  RSTK --> RCREATE["Create new Payment record\nprevious_payment_id / is_retry=true\nretry_count+1"]
+  RCREATE --> RCOMMIT["COMMIT + 201"]
+
+  DISP["Dispute Flow"] --> DRAISE["raiseDispute\nPayment must be confirmed\nNo open dispute\nfinance/admin/super_admin"]
+  DRAISE --> D403["403"]
+  DRAISE --> DUPD["dispute_status=raised\nreason / evidence / raised_by / raised_at"]
+  DUPD --> DRET["Return raised payment"]
+  DISP --> DRESOLVE["resolveDispute\nDispute must be raised/investigating\nFinance CANNOT resolve own\nAdmin/super_admin only"]
+  DRESOLVE --> D403B["403"]
+  DRESOLVE --> DRES["resolution=resolved|rejected\nnotes / resolved_by / resolved_at"]
+  DRES --> DRET2["Return resolved payment"]
+
+  CANCEL["POST /admin/payments/id/cancel"] --> CAUTH["Authorize cancel\nPending only\nFinance: own / Admin: any"]
+  CAUTH --> C403["403"]
+  CAUTH --> CVAL["Validate reason"]
+  CVAL --> C422["422"]
+  CVAL --> CUPD["status=cancelled\nAppend audit trail to admin_notes\nuser name / timestamp / reason"]
+  CUPD --> CRET["Return cancelled payment"]
+
+  style RETRY fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style DISP fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style CANCEL fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+  style R403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R404 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R400P fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R400PAID fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R400E fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R502 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style D403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style D403B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCOMMIT fill:#0c2233,stroke:#0ea5e9,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Payment</div>
+        Daraja callback always returns Accepted to Safaricom — even on parse
+        failures or duplicates. force_override bypasses balance/status guards
+        but never bypasses cancelled/failed orders. Finance users can only
+        see/cancel their own initiated payments. Retry links to
+        previous_payment_id for full audit chain. Disputes: finance can raise
+        but CANNOT resolve their own — admin only.
+      </div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div id="loyalty" class="diagram-container">
+      <div class="diagram-title">⭐ Loyalty & Store Credit Workflows</div>
+      <div class="diagram-subtitle">
+        Points earning, deduction, redemption, store credit application, expiry
+        command. Admin + customer self-serve.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  EARN["Order::markAsPaid() fires\nearnPointsForOrder"] --> E1["Pre-checks\nHas customer?\nloyalty_points_earned == 0?\ntotal_kes > 0?"]
+  E1 --> ENO["No-op / return"]
+  E1 --> ECALC["Calculate points\nfloor(total_kes/100) * rate * tier_multiplier"]
+  ECALC --> ETX["DB TX lockForUpdate\nwritePointTransaction type=order_earn\nUpdate order.loyalty_points_earned"]
+  ETX --> EDONE["Points earned ✓"]
+
+  GRANT["POST /admin/loyalty/id/grant-points"] --> GAUTH["Authorize\nsuper_admin/admin/manager/finance/sales_rep"]
+  GAUTH --> G403["403"]
+  GAUTH --> GVAL["Validate\npoints min:1\npoint_type permanent|expiring\nexpires_at after:today"]
+  GVAL --> G422["422"]
+  GVAL --> GWRITE["DB TX\nwritePointTransaction type=admin_grant\nUpdate customer.loyalty_points"]
+  GWRITE --> GRET["Return tx + new_balance"]
+
+  DEDUCT["POST /admin/loyalty/id/deduct-points"] --> DAUTH["Authorize\nsuper_admin/admin/manager/finance\n(NOT sales_rep)"]
+  DAUTH --> D403["403"]
+  DAUTH --> DVAL["Validate"]
+  DVAL --> D422["422"]
+  DVAL --> DBAL["Sufficient balance?\ncustomer.loyalty_points >= points"]
+  DBAL --> D422B["422: Insufficient points"]
+  DBAL --> DWRITE["DB TX\nwritePointTransaction type=admin_deduct negative"]
+  DWRITE --> DRET["Return tx + new_balance"]
+
+  REDEEM["POST /customer/loyalty/redeem"] --> RAUTH["Authorize\ncustomer self only"]
+  RAUTH --> R403["403"]
+  RAUTH --> RVAL["Validate rule_id"]
+  RVAL --> R422["422"]
+  RVAL --> RLOGIC["LoyaltyService::redeem()\nFind active rule\nCheck min_redemption_points 500\nCheck customer balance\nDB TX: deduct points + grant store credit or gift"]
+  RLOGIC --> R400["400: Rule not found\nor insufficient points"]
+  RLOGIC --> RRET["Return result"]
+
+  EXPIRE["artisan loyalty:expire"] --> EX1["Fetch due transactions\npoint_type=expiring\nexpired_at=null / points>0 / expires_at<=now"]
+  EX1 --> EXNONE["Nothing to expire"]
+  EX1 --> EXLOOP["For each due tx"]
+  EXLOOP --> EXBAL["Customer has points?"]
+  EXBAL --> EXSKIP["Skip (already spent)"]
+  EXBAL --> EXREM["Remove min(tx.points, balance)\nMark expired_at\nWrite negative offset tx"]
+  EXREM --> EXLOOP
+
+  style EARN fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style GRANT fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style DEDUCT fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style REDEEM fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style EXPIRE fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style G403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style D403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R403 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style G422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style D422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style D422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R400 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style ENO fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style EDONE fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  SC["Checkout requests store credit\napplyStoreCreditToOrder"] --> SCCHK["credit > 0?"]
+  SCCHK --> SCZERO["Return 0 deduction"]
+  SCCHK --> SCCAP["Apply max_pct cap\nmaxAllowed = totalKes * (store_credit_max_pct/100)\ndeduction = min(requested, available, total, maxAllowed)"]
+  SCCAP --> SCCONV["Convert to order currency\norder_currency = deduction_kes / exchange_rate"]
+  SCCONV --> SCRET["Return deduction_kes\n+ deduction_order_currency"]
+
+  style SC fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style SCCAP fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style SCRET fill:#0d2e1f,stroke:#10b981,stroke-width:2px,color:#fff
+  style SCZERO fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Loyalty</div>
+        earnPointsForOrder is idempotent — checks loyalty_points_earned before
+        writing, re-checks inside the transaction for race safety. Store credit
+        capped at store_credit_max_pct (default 50%) of order total. Redemption
+        minimum is 500 points. Expiry only removes expiring-type points —
+        permanent points never expire. Sales reps can grant but NOT deduct
+        points.
+      </div>
+    </div>
+
+    <!-- CREDIT -->
+    <div id="credit" class="diagram-container">
+      <div class="diagram-title">🏦 Customer Credit Account Workflows</div>
+      <div class="diagram-subtitle">
+        Credit lifecycle, transactions, installment schedules, invoices, and
+        global metrics. Admin-managed with customer self-serve views.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CSUMM["GET /admin/customers/id/credit/summary"] --> CFL["Find customer"]
+  CFL --> C404["404 Not found"]
+  CFL --> CACCT["has_credit_account?"]
+  CACCT --> C404B["404: No credit account"]
+  CACCT --> CCOMP["Compute summary\nlimit / used / available\nutilization% / interest_rate / currency\nCheck overdue invoices\nCheck overdue schedule items"]
+  CCOMP --> CRET["Return summary JSON"]
+
+  CPAY["POST /admin/customers/id/credit/payment"] --> CP1["has_credit_account?"]
+  CP1 --> CP422["422: No credit account"]
+  CP1 --> CPVAL["Validate amount min:0.01"]
+  CPVAL --> CP422B["422"]
+  CPVAL --> CPTX["DB TX\nrecordPayment\nread balance_before\ndecrement credit_used\ncredit transaction direction=credit type=payment"]
+  CPTX --> CPRET["201: tx + fresh summary"]
+
+  CADJ["POST /admin/customers/id/credit/adjustment"] --> CA1["has_credit_account?"]
+  CA1 --> CA422["422"]
+  CA1 --> CAVAL["Validate amount / direction debit|credit"]
+  CAVAL --> CA422B["422"]
+  CAVAL --> CATX["adjustment()\ndebit → increases credit_used\ncredit → decreases credit_used floor 0"]
+  CATX --> CARET["201: tx + fresh summary"]
+
+  CINT["POST /admin/customers/id/credit/interest"] --> CI1["has_credit_account?"]
+  CI1 --> CI422["422"]
+  CI1 --> CI2["credit_interest_rate > 0?"]
+  CI2 --> CI422B["422: No interest rate"]
+  CI2 --> CI3["credit_used > 0?"]
+  CI3 --> CI422C["422: No balance"]
+  CI3 --> CITX["applyInterest()\ninterest = round(credit_used * rate/100, 2)\nPost debit transaction"]
+  CITX --> CIRET["201: interest_charged + tx + summary"]
+
+  GSUM["GET /api/admin/credit/global-summary"] --> GAGG["Aggregate all credit accounts\nSUM(credit_limit) / SUM(credit_used)\nCount overdue via invoices + schedule items"]
+  GAGG --> GRET["Return metrics JSON"]
+
+  style CSUMM fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CPAY fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CADJ fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CINT fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style GSUM fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style C404 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C404B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CP422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CP422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CA422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CA422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CI422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CI422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CI422C fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CRET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CPRET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CARET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CIRET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  SCHED["POST /admin/customers/id/credit/schedules"] --> SC1["has_credit_account?"]
+  SC1 --> SC422["422"]
+  SC1 --> SCVAL["Validate\ntotal_amount / installments 1-60\nfrequency weekly|biweekly|monthly\nstarted_at date"]
+  SCVAL --> SC422B["422"]
+  SCVAL --> SCCREATE["createSchedule()\nDB TX: base=floor(total/installments,2)\nlast=remainder\nCreate schedule + N items with due dates"]
+  SCCREATE --> SCRET["201: schedule with items"]
+
+  IPAY["PATCH /schedules/sid/items/iid/pay"] --> IL1["Load item via schedule→customer"]
+  IL1 --> I404["404"]
+  IL1 --> IPAID["status === paid?"]
+  IPAID --> I422P["422: Already paid"]
+  IPAID --> IMARK["markInstallmentPaid()\nDB TX: recordPayment\nitem→paid\nAdvance next_due_date\nAll settled? → complete schedule"]
+  IMARK --> IRET["Return item + summary"]
+
+  IWAIVE["PATCH /schedules/sid/items/iid/waive"] --> IW1["Load item"]
+  IW1 --> IW404["404"]
+  IW1 --> IWCHECK["Already paid or waived?"]
+  IWCHECK --> IW422["422: Already settled"]
+  IWCHECK --> IWUPD["status=waived"]
+  IWUPD --> IWALL["All items done?\npaid or waived"]
+  IWALL --> IWCOMP["Auto-complete schedule"]
+  IWALL --> IWRET["Return item"]
+  IWCOMP --> IWRET
+
+  INV["POST /admin/customers/id/credit/invoices"] --> INV1["has_credit_account?"]
+  INV1 --> INV422["422"]
+  INV1 --> INVVAL["Validate\ntransaction_ids[] / line_items[]\nAt least one required"]
+  INVVAL --> INV422B["422"]
+  INVVAL --> INVCHK["Both empty?"]
+  INVCHK --> INV422C["422: Provide tx_id or line_item"]
+  INVCHK --> INVCREATE["createInvoice()\nDB TX: build lines from txs + manual items\ncalc subtotal/interest/total\ncreate invoice + items"]
+  INVCREATE --> INVRET["201: invoice with items"]
+
+  INVSTATUS["PATCH /invoices/inv/status"] --> ISVAL["Validate status\ndraft|sent|paid|overdue|void"]
+  ISVAL --> IS422["422"]
+  ISVAL --> ISPAID["status=paid && !paid_at?"]
+  ISPAID --> ISSTAMP["Set paid_at = now()"]
+  ISPAID --> ISUPD["Update invoice status"]
+  ISSTAMP --> ISUPD
+  ISUPD --> ISRET["Return updated invoice"]
+
+  style SCHED fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style IPAY fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style IWAIVE fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style INV fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style INVSTATUS fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style SC422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SC422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style I404 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style I422P fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style IW404 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style IW422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style INV422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style INV422B fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style INV422C fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style IS422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SCRET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style INVRET fill:#2e1f00,stroke:#f59e0b,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Credit Account</div>
+        credit_used never goes below 0 on payment or credit adjustment.
+        Installment last item absorbs rounding remainder to avoid float drift.
+        Invoices start as draft — admin must explicitly send. Invoice
+        status=paid auto-stamps paid_at if not already set. Overdue detection is
+        dual-path: invoice due_date OR schedule item due_date, either triggers
+        is_overdue.
+      </div>
+    </div>
+
+    <!-- PROMO -->
+    <div id="promo" class="diagram-container">
+      <div class="diagram-title">🏷️ Promo Codes & Referral Workflows</div>
+      <div class="diagram-subtitle">
+        Unified ReferralCode model for both promo and referral codes.
+        Validation, auto-generation, and referrer rewards.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  PVAL["POST /customer/promo-codes/validate"] --> PFIND["Find by code uppercase\nExclude customer_referral type"]
+  PFIND --> PNF["422: Invalid code"]
+  PFIND --> PVALID["is_valid?\nactive && !expired && !depleted"]
+  PVALID --> PINV["422: expired/depleted/inactive"]
+  PVALID --> PTARGET["target_customer_id\nmatch or null?"]
+  PTARGET --> PT422["422: Not valid for account"]
+  PTARGET --> PSTACK["!stackable &&\nreferralDiscount > 0?"]
+  PSTACK --> PS422["422: Cannot combine"]
+  PSTACK --> PELIG["canBeUsedBy()\nmin_order_value / min_items\ncustomer_type / tier\nper-customer usage limit"]
+  PELIG --> PE422["422: Not eligible"]
+  PELIG --> PCALC["calculateDiscount()\npercentage: (value/100)*orderValue\nfixed: value/exchangeRate"]
+  PCALC --> PRET["200: valid + discount"]
+
+  PCREATE["POST /admin/promo-codes"] --> PCVAL["Validate\nname / type 9 types\nreward_type / reward_value\ndates / arrays"]
+  PCVAL --> PC422["422"]
+  PCVAL --> PCTX["BEGIN TX\nReferralCode::create()\nAuto-generate code if not provided\nauto_generated=false / referrer_reward=none\nCOMMIT + Log activity"]
+  PCTX --> PC201["201: Code created"]
+
+  style PVAL fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style PCREATE fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style PNF fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PINV fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PT422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PS422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PE422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PC422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PRET fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style PC201 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  MYCODE["GET /customer/referral/my-code"] --> MYFIND["Find existing code\ntype=customer_referral / customer_id"]
+  MYFIND --> MYSTATS["Load usage stats\nReferralCodeUsage::getStatsFor()"]
+  MYFIND --> MYCREATE["ReferralCode::createForCustomer()\nUnique 8-char code\n5% referee discount\nstore_credit referrer reward from settings"]
+  MYCREATE --> MYSTATS
+  MYSTATS --> MYRET["Return code + share_url + stats"]
+
+  REFCOMP["Order completed\nReferralCodeUsage::complete()"] --> RCGUARD["Already completed?"]
+  RCGUARD --> RCWARN["Log warning + return"]
+  RCGUARD --> RCUPD["Update usage\nstatus=completed / order_id\norder_value / discount / completed_at"]
+  RCUPD --> RCRWD["processReferrerReward()\nGuard !referrer_reward_paid\nRead live referral_credit_amount from LoyaltySetting\nGrant credit/points/percentage"]
+  RCRWD --> RCNOTIFY["Send notification"]
+  RCNOTIFY --> RCDONE["Referral complete ✓"]
+
+  BDAY["Daily command\nGenerateBirthdayCodes"] --> BDRANGE["Manual trigger: 0–7 days\nScheduled: exact 7-day match"]
+  BDRANGE --> BDLOOP["For each customer"]
+  BDLOOP --> BDEXIST["Already generated this year?"]
+  BDEXIST --> BDSKIP["Skip"]
+  BDEXIST --> BDCREATE["Create 10% birthday promo\n14-day validity\ntarget_customer_id set"]
+  BDCREATE --> BDNOTIFY["Notify customer"]
+  BDNOTIFY --> BDLOOP
+
+  WINBACK["Daily command\nGenerateWinBackCodes"] --> WBFIND["Find inactive customers\nstatus=active / total_orders>0\nlast_order_date < 180 days ago"]
+  WBFIND --> WBNONE["No inactive customers"]
+  WBFIND --> WBLOOP["For each customer"]
+  WBLOOP --> WBCHECK["Has active win-back code?"]
+  WBCHECK --> WBSKIP["Skip"]
+  WBCHECK --> WBCREATE["Create 15% win-back code\n30-day validity\ntarget_customer_id"]
+  WBCREATE --> WBNOTIFY["Notify customer"]
+  WBNOTIFY --> WBLOOP
+
+  style MYCODE fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style REFCOMP fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style BDAY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style WINBACK fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style RCWARN fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style RCDONE fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style MYRET fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style WBNONE fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Promo & Referrals</div>
+        One unified ReferralCode model handles both promos and referrals —
+        distinguished by type field. customer_referral codes are excluded from
+        promo validation. Stackability check gates against existing referral
+        discounts — non-stackable codes reject if referral discount already
+        applied. Referrer reward amount reads live from LoyaltySetting at reward
+        time, not at code creation. Birthday/win-back codes are idempotent —
+        skip if already generated.
+      </div>
+    </div>
+
+    <!-- RECONCILIATION -->
+    <div id="reconciliation" class="diagram-container">
+      <div class="diagram-title">⚖️ Reconciliation Workflows</div>
+      <div class="diagram-subtitle">
+        Session lifecycle, ledger population across 5 ledger types, line status
+        actions, and summary recalculation.
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  RCREATE["POST /admin/reconciliation/sessions"] --> RCV["Validate\nperiod_start date\nperiod_end after_or_equal\nledger in 5 values"]
+  RCV --> RCV422["422"]
+  RCV --> RCOVERLAP["Check overlap\nAll sessions for this ledger in date range\nReturns conflicts + available slot suggestion"]
+  RCOVERLAP --> RCCONFLICT["422: Overlapping sessions\n+ suggestion"]
+  RCOVERLAP --> RCCREATE["Create session\nAuto-generate session_number\nLog creation event in meta"]
+  RCCREATE --> RC201["201: Session created"]
+
+  RCCLOSE["POST /sessions/id/close"] --> RCOPEN["Session is open?"]
+  RCOPEN --> RCC422["422: Already closed"]
+  RCOPEN --> RCPEND["Any pending or disputed lines?"]
+  RCPEND --> RCP422["422: Lines still pending/disputed"]
+  RCPEND --> RCCLOSEACT["status=closed\nclosed_by / closed_at\nLog event\nrecalculateSummary()"]
+  RCCLOSEACT --> RCCLRET["Return closed session"]
+
+  RCREOPEN["POST /sessions/id/reopen"] --> RCOCHECK["Already open?"]
+  RCOCHECK --> RCO422["422: Already open"]
+  RCOCHECK --> RCOACT["status=open\nLog event"]
+  RCOACT --> RCORET["Return reopened session"]
+
+  style RCREATE fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RCCLOSE fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RCREOPEN fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RCV422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCCONFLICT fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCC422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCP422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCO422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RC201 fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  RCPOP["POST /sessions/id/populate"] --> RCPOPEN["Session open?"]
+  RCPOPEN --> RCP422["422: Session closed"]
+  RCPOPEN --> RCPDISPATCH["Dispatch by ledger\nReconciliationPopulateService::populate()"]
+  RCPDISPATCH --> ROPPAY["payments\nBatch-resolve customers+orders\nSkip voided/failed\nexpected=amount_expected\nactual=amount_received"]
+  RCPDISPATCH --> ROPSC["store_credit\nstore_credit_transactions in period\nexpected=amount / actual=null"]
+  RCPDISPATCH --> ROPPTS["loyalty_points\nloyalty_point_transactions in period"]
+  RCPDISPATCH --> ROPACCT["credit_account\ncustomer_credit_transactions in period"]
+  RCPDISPATCH --> ROPVAT["vat\nRegular + auction orders\nCompute tax_amount\nFlag exempt orders"]
+  ROPPAY --> RCPCALC["recalculateSummary()"]
+  ROPSC --> RCPCALC
+  ROPPTS --> RCPCALC
+  ROPACCT --> RCPCALC
+  ROPVAT --> RCPCALC
+  RCPCALC --> RCPRET["Return lines added count"]
+
+  RCLINE["PUT /admin/reconciliation/lines/id"] --> RCLVAL["Validate\naction in: confirm/dispute/write_off/void\nConditional fields by ledger+action"]
+  RCLVAL --> RCL422["422"]
+  RCLVAL --> RCLSWITCH["Switch on action"]
+  RCLSWITCH --> RCLCONF["confirm()\nstatus=confirmed\nactual_amount (payments only)\nreviewed_by/at"]
+  RCLSWITCH --> RCLDISP["dispute()\nstatus=disputed\ndispute_note\ndisputed_amount (cash ledgers)\nreviewed_by/at"]
+  RCLSWITCH --> RCLWO["writeOff()\nstatus=written_off\nresolution_note\nreviewed_by/at"]
+  RCLSWITCH --> RCLVOID["void()\nstatus=voided\nresolution_note\nreviewed_by/at"]
+  RCLCONF --> RCLRECALC["recalculateSummary()\n+ logEvent"]
+  RCLDISP --> RCLRECALC
+  RCLWO --> RCLRECALC
+  RCLVOID --> RCLRECALC
+  RCLRECALC --> RCLRET["Return updated line"]
+
+  style RCPOP fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RCLINE fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RCP422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCL422 fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style ROPPAY fill:#0c2233,stroke:#0ea5e9,stroke-width:1px,color:#fff
+  style ROPSC fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style ROPPTS fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style ROPACCT fill:#2e1f00,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style ROPVAT fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style RCLCONF fill:#0d2e1f,stroke:#10b981,stroke-width:1px,color:#fff
+  style RCLDISP fill:#2e1f00,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style RCLWO fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style RCLVOID fill:#2e0d0d,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RCLRET fill:#2e0d0d,stroke:#ef4444,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+
+      <div class="note">
+        <div class="note-title">Key Insight — Reconciliation</div>
+        Sessions block overlapping periods per ledger — conflict response
+        includes both the conflicting sessions and a suggested available slot.
+        Session can only close when zero pending or disputed lines remain.
+        Populate is ledger-specific — each type has its own query logic.
+        actual_amount is only settable on confirm for cash ledgers (payments).
+        disputed_amount only applies to cash ledgers on dispute.
+        recalculateSummary() fires after every line status change.
+      </div>
+    </div>
+
+    <script>
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        themeVariables: {
+          primaryColor: "#1e293b",
+          primaryTextColor: "#e2e8f0",
+          primaryBorderColor: "#475569",
+          lineColor: "#64748b",
+          secondaryColor: "#334155",
+          tertiaryColor: "#0f172a",
+          fontFamily: "Segoe UI, system-ui, sans-serif",
+          fontSize: "13px",
+        },
+        flowchart: {
+          useMaxWidth: true,
+          htmlLabels: false,
+          curve: "basis",
+          padding: 15,
+          nodeSpacing: 50,
+          rankSpacing: 60,
+        },
+      });
+
+      document.querySelectorAll(".mermaid").forEach((node) => {
+        node.setAttribute("data-original", node.textContent);
+      });
+
+      mermaid.run({ nodes: document.querySelectorAll("#cross .mermaid") });
+
+      const rendered = new Set(["cross"]);
+
+      function showTab(tabId, el) {
+        document
+          .querySelectorAll(".diagram-container")
+          .forEach((c) => c.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        el.classList.add("active");
+
+        if (!rendered.has(tabId)) {
+          rendered.add(tabId);
+          const nodes = Array.from(
+            document.querySelectorAll("#" + tabId + " .mermaid"),
+          );
+          nodes.forEach((node) => {
+            node.innerHTML = node.getAttribute("data-original") || "";
+            node.removeAttribute("data-processed");
+          });
+          mermaid.run({ nodes });
+        }
+      }
+    </script>
+  </body>
+</html>

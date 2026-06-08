@@ -393,7 +393,7 @@ export default function LoyaltyLedger() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#111827', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#a855f7', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
             Loyalty Ledger
           </h1>
           <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>

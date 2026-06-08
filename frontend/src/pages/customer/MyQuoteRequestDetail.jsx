@@ -1013,7 +1013,9 @@ const MyQuoteRequestDetail = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
                         <FileText size={15} color="#c084fc" style={{ flexShrink: 0 }} />
                         <div style={{ overflow: 'hidden' }}>
-                          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</p>
+                          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', margin: 0, wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                            {file.name}
+                          </p>
                           <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>{formatFileSize(file.size)}</p>
                         </div>
                       </div>

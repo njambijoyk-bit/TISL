@@ -15,14 +15,14 @@ export default defineConfig({
       },
 
       manifest: {
-        name: 'BlueArc Store',
-        short_name: 'BlueArc',
+        name: 'Target Store',
+        short_name: 'TISL',
         description: 'Your one-stop shop for products and services',
         start_url: '/',
         id: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#a855f7',
+        theme_color: '#5b4b6a',
         icons: [
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },

@@ -102,15 +102,36 @@ export default function CareersPage() {
 
     return (
         <div style={s.page}>
+            <style>{`
+                @media (max-width: 768px) {
+                .careers-body { grid-template-columns: 1fr !important; padding: 24px 16px 60px !important; }
+                .careers-sidebar { position: static !important; }
+                .careers-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+                .careers-filters button { width: auto !important; }
+                }
+            `}</style>
+            {/* Breadcrumb */}
+            <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 20px 0' }}>
+            <p style={{ fontSize: 12, color: '#555', margin: 0 }}>
+                <Link to="/" style={{ color: '#555', textDecoration: 'none', transition: 'color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                onMouseLeave={e => e.currentTarget.style.color = '#555'}
+                >
+                Home
+                </Link>
+                {' '}<span style={{ color: '#333' }}>›</span>{' '}
+                <span style={{ color: '#888' }}>Careers</span>
+            </p>
+            </div>
             <div style={s.hero}>
                 <p style={s.eyebrow}>TISL Careers</p>
                 <h1 style={s.title}>Build the future<br />of industrial supply.</h1>
                 <p style={s.subtitle}>Open roles across engineering, operations, sales, and more.</p>
             </div>
 
-            <div style={s.body}>
+            <div style={s.body} className="careers-body">
                 {/* Sidebar */}
-                <aside style={s.sidebar}>
+                <aside style={s.sidebar} className="careers-sidebar">
                     <form onSubmit={handleSearch}>
                         <input
                             style={s.searchBar}
@@ -123,22 +144,26 @@ export default function CareersPage() {
                     {(jobFilters.departments?.length > 0) && (
                         <div style={s.filterGroup}>
                             <p style={s.sideLabel}>Department</p>
-                            {jobFilters.departments.map((d) => (
-                                <button key={d} style={s.filterBtn(dept === d)} onClick={() => setFilter('department', d)}>
-                                    {d}
-                                </button>
-                            ))}
+                            <div className="careers-filters">
+                                {jobFilters.departments.map((d) => (
+                                    <button key={d} style={s.filterBtn(dept === d)} onClick={() => setFilter('department', d)}>
+                                        {d}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
 
                     {(jobFilters.types?.length > 0) && (
                         <div style={s.filterGroup}>
                             <p style={s.sideLabel}>Type</p>
-                            {jobFilters.types.map((t) => (
-                                <button key={t} style={s.filterBtn(type === t)} onClick={() => setFilter('type', t)}>
-                                    {TYPE_LABELS[t] ?? t}
-                                </button>
-                            ))}
+                            <div className="careers-filters">
+                                {jobFilters.types.map((t) => (
+                                    <button key={t} style={s.filterBtn(type === t)} onClick={() => setFilter('type', t)}>
+                                        {TYPE_LABELS[t] ?? t}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </aside>

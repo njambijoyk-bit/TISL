@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Package, ShoppingBag, Clock, Lock, ChevronLeft, AlertCircle, Tag, CheckCircle } from 'lucide-react';
+import { Package, ShoppingBag, Clock, Lock, ChevronLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import hampersAPI from '../../api/hampers';
@@ -15,7 +15,7 @@ export default function HamperDetail() {
   const { isAuthenticated }   = useAuthStore();
   const [hamper, setHamper]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [blocked, setBlocked] = useState(null); // { message, status }
+  const [blocked, setBlocked] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) { navigate(`/login?redirect=/hampers/${slug}`); return; }
@@ -39,7 +39,6 @@ export default function HamperDetail() {
     </div>
   );
 
-  // Eligibility blocked state
   if (blocked) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
       <Header />
@@ -77,17 +76,44 @@ export default function HamperDetail() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
+      <style>{`
+        .hamper-grid {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 32px;
+          align-items: start;
+        }
+        .hamper-sticky {
+          position: sticky;
+          top: 96px;
+        }
+        @media (max-width: 768px) {
+          .hamper-grid {
+            grid-template-columns: 1fr;
+          }
+          .hamper-sticky {
+            position: static;
+          }
+        }
+      `}</style>
+
       <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%', padding: '32px 24px' }}>
 
-        {/* Back */}
-        <button
-          onClick={() => navigate('/hampers')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 24, fontFamily: 'inherit' }}
-        >
-          <ChevronLeft size={16} /> Back to Deals
-        </button>
+        {/* Breadcrumb */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, marginBottom: 24 }}>
+          <button
+            onClick={() => navigate('/hampers')}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onMouseEnter={e => e.currentTarget.style.color = accent}
+            onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+          >
+            <ChevronLeft size={14} /> Deals
+          </button>
+          <span style={{ color: '#d1d5db' }}>/</span>
+          <span style={{ color: accent }}>{hamper.name}</span>
+        </nav>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
+        <div className="hamper-grid">
 
           {/* ── Left col ──────────────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -141,8 +167,8 @@ export default function HamperDetail() {
             </div>
           </div>
 
-          {/* ── Right col (sticky) ────────────────────────────────────────── */}
-          <div style={{ position: 'sticky', top: 96 }}>
+          {/* ── Right col (sticky on desktop) ─────────────────────────────── */}
+          <div className="hamper-sticky">
             <div style={{ background: 'white', borderRadius: 20, border: `1.5px solid ${accentMid}`, boxShadow: `0 4px 24px ${accentFade}`, padding: 28 }}>
 
               {/* Accent bar */}

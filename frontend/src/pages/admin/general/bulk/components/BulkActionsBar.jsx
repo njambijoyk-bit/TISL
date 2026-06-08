@@ -12,6 +12,13 @@ const FLAG_DEFS = [
   { field: 'on_sale',     label: 'On Sale',  onColor: '#be185d', offColor: '#6b7280' },
 ];
 
+const STATUS_DEFS = [
+  { value: 'active',       label: 'Active',       color: '#16a34a' },
+  { value: 'out_of_stock', label: 'Out of Stock',  color: '#d97706' },
+  { value: 'inactive',     label: 'Inactive',      color: '#6b7280' },
+  { value: 'draft',        label: 'Draft',         color: '#0369a1' },
+];
+
 /**
  * BulkActionsBar
  * Shows at bottom when rows are selected.
@@ -29,6 +36,7 @@ export default function BulkActionsBar({
   onSetPrice,
   onMarkNegotiable,
   onSetFlags,
+  onSetStatus, 
   onClear,
 }) {
   const [bulkPrice, setBulkPrice] = useState('');
@@ -157,6 +165,35 @@ export default function BulkActionsBar({
             onEnable={() => onSetFlags({ [field]: true })}
             onDisable={() => onSetFlags({ [field]: false })}
           />
+        ))}
+      </div>
+
+      <Divider />
+
+      {/* ── Status ─────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em' }}>
+          STATUS:
+        </span>
+        {STATUS_DEFS.map(({ value, label, color }) => (
+          <button
+            key={value}
+            className="flag-btn"
+            onClick={() => onSetStatus(value)}
+            title={`Set status = ${value} for selected`}
+            style={{
+              padding: '4px 10px',
+              background: color,
+              border: 'none',
+              borderRadius: 6,
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {label}
+          </button>
         ))}
       </div>
 

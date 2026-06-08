@@ -508,4 +508,147 @@ class CustomerCreditService
             default    => $date->addMonths($n),
         };
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GLOBAL REPORTING & DASHBOARD HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GLOBAL REPORTING & DASHBOARD HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Get unified credit metrics across all platform credit accounts.
+     */
+    public function getGlobalSummary(): array
+    {
+        // 1. Aggregate total limit and used credit across active accounts
+        $metrics = \App\Models\Customer::where('has_credit_account', true)
+            ->selectRaw('
+                SUM(credit_limit) as total_limit,
+                SUM(credit_used) as total_used
+            ')
+            ->first();
+
+        $totalLimit = (float) ($metrics->total_limit ?? 0);
+        $totalUsed = (float) ($metrics->total_used ?? 0);
+        $totalAvailable = max(0, $totalLimit - $totalUsed);
+
+        // 2. Fetch unique customer IDs who have overdue sent invoices
+        $overdueInvoiceCustomerIds = CustomerCreditInvoice::where('status', 'sent')
+            ->whereDate('due_date', '<', now())
+            ->pluck('customer_id')
+            ->unique()
+            ->toArray();
+
+        // 3. Fetch unique customer IDs who have overdue pending schedule installments
+        // Optimized to use a single flat join with the correct 'schedule_id' column
+        $overdueInstallmentCustomerIds = CustomerCreditScheduleItem::where('customer_credit_schedule_items.status', 'pending')
+            ->whereDate('customer_credit_schedule_items.due_date', '<', now())
+            ->join('customer_credit_schedules', 'customer_credit_schedule_items.schedule_id', '=', 'customer_credit_schedules.id')
+            ->where('customer_credit_schedules.status', 'active')
+            ->pluck('customer_credit_schedules.customer_id')
+            ->unique()
+            ->toArray();
+
+        // Combine both sets of IDs to get a total distinct count of accounts in arrears
+        $allOverdueCustomerIds = array_unique(array_merge($overdueInvoiceCustomerIds, $overdueInstallmentCustomerIds));
+        $overdueAccountsCount = count($allOverdueCustomerIds);
+
+        return [
+            'total_issued_credit'    => $totalLimit,
+            'total_used_credit'      => $totalUsed,
+            'total_available_credit' => $totalAvailable,
+            'utilization_pct'        => $totalLimit > 0 ? round(($totalUsed / $totalLimit) * 100, 1) : 0,
+            'overdue_accounts_count' => $overdueAccountsCount,
+        ];
+    }
+
+    /**
+     * Get a robust listing of customers with pagination, status tags, and sorting.
+     */
+    public function getGlobalCustomers(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        // 1. Explicitly select customers.* so addSelect() doesn't wipe them out
+        $query = \App\Models\Customer::select('customers.*')->with(['creditCurrency']);
+
+        // Filter: By credit account existence status (?has_credit_account=true|false)
+        if (isset($filters['has_credit_account']) && $filters['has_credit_account'] !== '') {
+            $hasCredit = filter_var($filters['has_credit_account'], FILTER_VALIDATE_BOOLEAN);
+            $query->where('has_credit_account', $hasCredit);
+        }
+
+        // Filter: Quick Search (First Name, Last Name, Email, Phone)
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Optimization: High-performance subqueries mapping boolean flags without full subquery wrappers
+        $query->addSelect([
+            'has_overdue_invoice' => CustomerCreditInvoice::selectRaw('1')
+                ->whereColumn('customer_id', 'customers.id')
+                ->where('status', 'sent')
+                ->whereDate('due_date', '<', now())
+                ->limit(1),
+            
+            'has_overdue_installment' => CustomerCreditScheduleItem::selectRaw('1')
+                ->join('customer_credit_schedules', 'customer_credit_schedule_items.schedule_id', '=', 'customer_credit_schedules.id')
+                ->whereColumn('customer_credit_schedules.customer_id', 'customers.id')
+                ->where('customer_credit_schedule_items.status', 'pending')
+                ->whereDate('customer_credit_schedule_items.due_date', '<', now())
+                ->where('customer_credit_schedules.status', 'active')
+                ->limit(1)
+        ]);
+
+        // Filter: Only Overdue Accounts
+        if (!empty($filters['is_overdue']) && filter_var($filters['is_overdue'], FILTER_VALIDATE_BOOLEAN)) {
+            $query->where(function($q) {
+                $q->whereRaw('exists(select 1 from customer_credit_invoices where customer_id = customers.id and status = "sent" and due_date < ?)', [now()])
+                  ->orWhereRaw('exists(
+                      select 1 from customer_credit_schedule_items 
+                      join customer_credit_schedules on customer_credit_schedule_items.schedule_id = customer_credit_schedules.id 
+                      where customer_credit_schedules.customer_id = customers.id 
+                      and customer_credit_schedule_items.status = "pending" 
+                      and customer_credit_schedule_items.due_date < ? 
+                      and customer_credit_schedules.status = "active"
+                  )', [now()]);
+            });
+        }
+
+        // Sorting Logic
+        $sortBy = $filters['sort_by'] ?? 'first_name';
+        $sortDir = $filters['sort_dir'] ?? 'asc';
+        $allowedSortFields = ['first_name', 'last_name', 'credit_limit', 'credit_used', 'has_credit_account', 'created_at'];
+
+        if (in_array($sortBy, $allowedSortFields)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('first_name', 'asc');
+        }
+
+        $paginator = $query->paginate($perPage);
+
+        // 2. In-memory transformation mapping values without any extra query footprints
+        $paginator->getCollection()->transform(function ($customer) {
+            if (!$customer->has_credit_account) {
+                $customer->is_overdue = false;
+                $customer->credit_available = 0;
+                return $customer;
+            }
+
+            // Directly evaluate presence of subquery outputs as clean booleans
+            $customer->is_overdue = (bool)$customer->has_overdue_invoice || (bool)$customer->has_overdue_installment;
+            $customer->credit_available = max(0, (float)$customer->credit_limit - (float)$customer->credit_used);
+
+            return $customer;
+        });
+
+        return $paginator;
+    }
 }

@@ -947,4 +947,41 @@ class AuctionController extends Controller
 
         return response()->json($logs);
     }
+
+    /**
+     * GET /admin/auction-orders/activity
+     * Returns all auction order activity logs across all auctions, paginated.
+     * Filters: search (action/description), action, severity, per_page
+     */
+    public function globalActivityLog(Request $request)
+    {
+        $query = AuctionOrderActivityLog::with([
+            'auctionOrder:id,order_number,auction_id',
+            'auctionOrder.auction.product:id,name',
+        ])->orderByDesc('created_at');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('action', 'like', "%{$s}%")
+                ->orWhere('description', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+
+        if ($request->filled('severity')) {
+            $query->where('severity', $request->severity);
+        }
+
+        if ($request->filled('auction_id')) {
+            $query->where('auction_id', $request->auction_id);
+        }
+
+        return response()->json(
+            $query->paginate($request->per_page ?? 30)
+        );
+    }
 }

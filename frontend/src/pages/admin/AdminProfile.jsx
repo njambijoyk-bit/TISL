@@ -229,6 +229,20 @@ export default function AdminProfile() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
+      <style>{`
+        @media (max-width: 600px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 400px) {
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 600px) {
+          .info-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 900px) {
+          .admin-profile-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
       {/* ── Header Banner ────────────────────────────────────────────────── */}
       <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: 'white' }}>
@@ -334,12 +348,16 @@ export default function AdminProfile() {
 
       {/* ── Main Layout ──────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px', width: '100%', boxSizing: 'border-box', flex: 1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 24, alignItems: 'start' }}>
+        <div className="admin-profile-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 24, alignItems: 'start' }}>
 
           {/* ── Left: main panel ──────────────────────────────────────────── */}
           <div>
             {/* Tab bar */}
-            <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid #f3f4f6' }}>
+            <div style={{ 
+              display: 'flex', gap: 2, marginBottom: 16, 
+              borderBottom: '2px solid #f3f4f6', 
+              flexWrap: 'wrap'  
+            }}>
               {TABS.map(t => (
                 <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -360,7 +378,7 @@ export default function AdminProfile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={card}>
                   <p style={sectionTitle}><User size={14} style={{ color: '#7c3aed' }} /> Personal information</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     {[
                       { label: 'Full Name', value: user?.name },
                       { label: 'Email',     value: user?.email },
@@ -383,7 +401,7 @@ export default function AdminProfile() {
                 {/* Quick stats */}
                 <div style={card}>
                   <p style={sectionTitle}><TrendingUp size={14} style={{ color: '#7c3aed' }} /> Quick stats</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
                     {[
                       { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff' },
                       { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4' },

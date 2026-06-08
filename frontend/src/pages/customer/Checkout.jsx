@@ -152,6 +152,14 @@ export default function Checkout() {
 
   const [policyAccepted,    setPolicyAccepted]    = useState(false);
   const [policyAcceptances, setPolicyAcceptances] = useState([]);
+
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   const creditDebounce                          = useRef(null);
 
   const handleChange = (e) => {
@@ -336,17 +344,26 @@ export default function Checkout() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 24, alignItems: 'start' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 340px',
+            gap: 24,
+            alignItems: 'start',
+          }}>
 
             {/* ── Left: form ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, order: isMobile ? 2 : 1 }}>
 
               {/* Contact */}
               <div style={card}>
                 <p style={sectionTitle}>
                   <CreditCard size={14} style={{ color: '#a855f7' }} /> Contact information
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: 16,
+                }}>
                   <Field label="Email *" error={errors.customer_email}>
                     <Input name="customer_email" type="email" value={form.customer_email} onChange={handleChange} error={errors.customer_email} required />
                   </Field>
@@ -422,7 +439,7 @@ export default function Checkout() {
             </div>
 
             {/* ── Right: order summary ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, order: isMobile ? 1 : 2 }}>
               <div style={card}>
                 <p style={sectionTitle}><Package size={14} style={{ color: '#a855f7' }} /> Order summary</p>
 

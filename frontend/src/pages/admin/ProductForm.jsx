@@ -344,12 +344,14 @@ export default function ProductForm() {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const res     = isEdit ? await productsAPI.getAdminProduct(id) : await productsAPI.getProduct(id);
-      const product = res.product || res.data || res;
+    const res = isEdit ? await productsAPI.getAdminProduct(id) : await productsAPI.getProduct(id);
+    const product = res.product || res.data || res;
+    console.log('type:', product.type);
 
       setFormData({
         name: product.name || '', sku: product.sku || '', type: product.type || '',
-        category_id: product.category_id || '', brand_id: product.brand_id || '',
+        category_id: product.category_id ?? product.category?.id ?? '',
+        brand_id:    product.brand_id    ?? product.brand?.id    ?? '',
         price: product.price || '', original_price: product.original_price || '',
         price_is_negotiable: product.price_is_negotiable || false,
         stock_quantity: product.stock_quantity || '',

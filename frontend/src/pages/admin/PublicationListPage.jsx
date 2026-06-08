@@ -66,7 +66,7 @@ export default function PublicationListPage() {
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
                         <div>
-                            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Content Studio</h1>
+                            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>Content Studio</h1>
                             <p style={{ color: '#64748b', marginTop: 4 }}>Manage your brochures, news, and blog posts.</p>
                         </div>
                         <button 

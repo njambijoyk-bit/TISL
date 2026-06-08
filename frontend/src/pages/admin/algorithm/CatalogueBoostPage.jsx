@@ -435,7 +435,7 @@ export default function CatalogueBoostPage() {
             >
               <ChevronLeft size={16} /> Back to Algorithm
             </Link>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--text-primary,#111)' }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#a855f7' }}>
               Catalogue Boosts
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary,#6b7280)' }}>

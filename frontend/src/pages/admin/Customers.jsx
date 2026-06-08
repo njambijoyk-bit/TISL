@@ -299,6 +299,21 @@ export default function Customers() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
+            onClick={() => navigate('/admin/credit')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer',
+              background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(124,58,237,0.15))',
+              border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+          >
+            <CreditCard size={14} /> Credit Dashboard
+          </button>
+          <button
             onClick={() => setShowDiscountModal(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: 7,

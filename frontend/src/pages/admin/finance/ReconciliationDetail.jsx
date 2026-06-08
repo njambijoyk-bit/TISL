@@ -776,6 +776,256 @@ function MetaModal({ line, onClose }) {
   );
 }
 
+const NOTE_TYPE_COLORS = {
+  refund:             '#ef4444',
+  overpayment:        '#f59e0b',
+  credit_adjustment:  '#3b82f6',
+  loyalty_adjustment: '#a855f7',
+  manual_payment:     '#10b981',
+  reversal:           '#f97316',
+  other:              '#64748b',
+};
+
+function SessionNotesModal({ session, onClose }) {
+  const navigate = useNavigate();
+  const [tab, setTab]         = useState('session'); // 'session' | 'all'
+  const [notes, setNotes]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage]       = useState(1);
+  const [meta, setMeta]       = useState(null);
+
+  const fetchNotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { per_page: 20, page };
+      if (tab === 'session') {
+        params.from = session.period_start;
+        params.to   = session.period_end;
+      }
+      const res = await api.get('/admin/financial-notes', { params });
+      setNotes(res.data.data);
+      setMeta(res.data);
+    } catch {
+      toast.error('Failed to load notes');
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, page, session]);
+
+  useEffect(() => {
+    setPage(1);
+    setNotes([]);
+  }, [tab]);
+
+  useEffect(() => { fetchNotes(); }, [fetchNotes]);
+
+  const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('en-KE', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  }) : '—';
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '24px',
+      right: '24px',
+      zIndex: 8500,
+      width: '480px',
+      maxHeight: 'calc(100vh - 48px)',
+      background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)',
+      border: '1px solid rgba(168,85,247,0.4)',
+      borderRadius: '16px',
+      boxShadow: '0 0 40px rgba(168,85,247,0.12), 0 20px 60px rgba(0,0,0,0.5)',
+      fontFamily: 'monospace',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 18px',
+        borderBottom: '1px solid rgba(168,85,247,0.2)',
+        background: 'rgba(168,85,247,0.05)',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '16px' }}>📓</span>
+          <div>
+            <div style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em' }}>
+              FINANCIAL NOTES
+            </div>
+            <div style={{ color: '#475569', fontSize: '10px', letterSpacing: '0.06em', marginTop: '1px' }}>
+              {session.session_number} · {fmt(session.period_start)} → {fmt(session.period_end)}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'transparent', border: 'none', color: '#475569',
+            cursor: 'pointer', fontSize: '16px', padding: '4px 6px',
+            borderRadius: '6px', lineHeight: 1,
+          }}
+        >✕</button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{
+        display: 'flex', gap: '0',
+        borderBottom: '1px solid rgba(168,85,247,0.15)',
+        flexShrink: 0,
+      }}>
+        {[
+          { key: 'session', label: '📅 THIS SESSION' },
+          { key: 'all',     label: '🗂 ALL NOTES' },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              flex: 1,
+              padding: '10px',
+              background: tab === t.key ? 'rgba(168,85,247,0.1)' : 'transparent',
+              border: 'none',
+              borderBottom: tab === t.key ? '2px solid #a855f7' : '2px solid transparent',
+              color: tab === t.key ? '#a855f7' : '#475569',
+              fontSize: '10px',
+              fontWeight: 700,
+              fontFamily: 'monospace',
+              letterSpacing: '0.06em',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >{t.label}</button>
+        ))}
+      </div>
+
+      {/* Notes list */}
+      <div style={{ overflowY: 'auto', flex: 1, padding: '12px' }}>
+        {loading ? (
+          <div style={{ color: '#475569', fontSize: '12px', textAlign: 'center', padding: '40px 0' }}>
+            Loading...
+          </div>
+        ) : notes.length === 0 ? (
+          <div style={{ color: '#334155', fontSize: '12px', textAlign: 'center', padding: '40px 0' }}>
+            {tab === 'session' ? 'No notes found for this session period.' : 'No notes yet.'}
+          </div>
+        ) : notes.map(note => {
+          const typeColor = NOTE_TYPE_COLORS[note.note_type] ?? '#64748b';
+          return (
+            <div key={note.id} style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(168,85,247,0.12)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '8px',
+            }}>
+              {/* top row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ color: '#a855f7', fontSize: '11px', fontWeight: 700 }}>
+                    {note.note_number}
+                  </span>
+                  <span style={{
+                    display: 'inline-block', padding: '2px 7px', borderRadius: '5px',
+                    fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em',
+                    background: `${typeColor}18`, border: `1px solid ${typeColor}40`, color: typeColor,
+                    textTransform: 'uppercase',
+                  }}>
+                    {note.note_type.replace(/_/g, ' ')}
+                  </span>
+                  {note.direction && (
+                    <span style={{ color: note.direction === 'in' ? '#10b981' : '#ef4444', fontSize: '10px', fontWeight: 700 }}>
+                      {note.direction === 'in' ? '▲ IN' : '▼ OUT'}
+                    </span>
+                  )}
+                </div>
+                <span style={{ color: '#334155', fontSize: '10px', flexShrink: 0 }}>
+                  {fmt(note.created_at)}
+                </span>
+              </div>
+
+              {/* amount */}
+              {note.amount && (
+                <div style={{
+                  color: note.direction === 'in' ? '#10b981' : note.direction === 'out' ? '#ef4444' : '#94a3b8',
+                  fontSize: '14px', fontWeight: 700, marginBottom: '6px',
+                }}>
+                  {Number(note.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })} {note.currency}
+                </div>
+              )}
+
+              {/* body */}
+              <div style={{ color: '#cbd5e1', fontSize: '11px', lineHeight: 1.6, marginBottom: '4px' }}>
+                {note.body}
+              </div>
+
+              {/* ref label + subject */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                {note.reference_label && (
+                  <span style={S.metaTag('#475569')}>🔗 {note.reference_label}</span>
+                )}
+                {note.subject_table && (
+                  <span style={S.metaTag('#334155')}>{note.subject_table} #{note.subject_id}</span>
+                )}
+                {note.author && (
+                  <span style={S.metaTag('#334155')}>👤 {note.author.name}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      {meta && meta.last_page > 1 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderTop: '1px solid rgba(168,85,247,0.1)',
+          flexShrink: 0,
+        }}>
+          <span style={{ color: '#475569', fontSize: '10px' }}>
+            {meta.from}–{meta.to} of {meta.total}
+          </span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+              style={{ ...S.lineBtn(page === 1 ? '#334155' : '#a855f7'), cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+            >← PREV</button>
+            <button
+              disabled={page === meta.last_page}
+              onClick={() => setPage(p => p + 1)}
+              style={{ ...S.lineBtn(page === meta.last_page ? '#334155' : '#a855f7'), cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
+            >NEXT →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{
+        padding: '12px 14px',
+        borderTop: '1px solid rgba(168,85,247,0.15)',
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={() => navigate('/admin/financial-notes')}
+          style={{
+            width: '100%', padding: '9px',
+            background: 'rgba(168,85,247,0.08)',
+            border: '1px solid rgba(168,85,247,0.3)',
+            borderRadius: '8px',
+            color: '#a855f7', fontSize: '11px', fontWeight: 700,
+            fontFamily: 'monospace', cursor: 'pointer', letterSpacing: '0.05em',
+          }}
+        >→ OPEN NOTES PAGE</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReconciliationDetail() {
@@ -801,6 +1051,7 @@ export default function ReconciliationDetail() {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue]     = useState('');
   const [savingNotes, setSavingNotes]   = useState(false);
+  const [notesModal, setNotesModal]     = useState(false);
 
   // ── Bulk confirm state ────────────────────────────────────────
   const [selectedIds, setSelectedIds]   = useState(new Set()); // line IDs checked
@@ -1035,6 +1286,10 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
                 META
                 </button>
             )}
+            <button style={{ ...S.lineBtn('#10b981'), marginLeft: '6px', verticalAlign: 'middle' }}
+                onClick={() => setNotesModal(v => !v)}>
+                📓 NOTES
+            </button>
           </div>
           <div style={S.subtitle}>
             {ledger?.label} · {new Date(session.period_start).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -1425,6 +1680,12 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
         <MetaModal
             line={metaModal}
             onClose={() => setMetaModal(null)}
+        />
+        )}
+        {notesModal && (
+        <SessionNotesModal
+            session={session}
+            onClose={() => setNotesModal(false)}
         />
         )}
     </div>

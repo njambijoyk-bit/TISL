@@ -64,12 +64,23 @@ export default function AdminCareersStatsPage() {
 
     return (
         <div style={s.page}>
+            <style>{`
+                @media (max-width: 768px) {
+                    .stats-grid4 { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+                    .stats-grid2 { grid-template-columns: 1fr !important; }
+                    .stats-conv  { flex-direction: column !important; gap: 16px !important; }
+                    .stats-conv-right { border-left: none !important; border-top: 1px solid #1a4a2a !important; padding-left: 0 !important; padding-top: 16px !important; }
+                }
+                @media (max-width: 480px) {
+                    .stats-grid4 { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
             <AdminCareersHeader />
             <p style={s.pageTitle}>Careers Overview</p>
             <p style={s.pageSub}>Aggregate application statistics</p>
 
             {/* Top stats */}
-            <div style={s.grid4}>
+            <div style={s.grid4} className="stats-grid4">
                 <div style={s.statCard}>
                     <p style={s.statVal}>{stats.total ?? 0}</p>
                     <p style={s.statLabel}>Total Applications</p>
@@ -90,12 +101,12 @@ export default function AdminCareersStatsPage() {
 
             {/* Conversion rate */}
             {stats.conversion_rate != null && (
-                <div style={{ ...s.conversionBox, marginBottom: 32 }}>
+                <div style={{ ...s.conversionBox, marginBottom: 32 }} className="stats-conv">
                     <div>
                         <p style={s.convPct}>{stats.conversion_rate}%</p>
                         <p style={s.convLabel}>Hire conversion rate</p>
                     </div>
-                    <div style={{ flex: 1, paddingLeft: 24, borderLeft: '1px solid #1a4a2a' }}>
+                    <div style={{ flex: 1, paddingLeft: 24, borderLeft: '1px solid #1a4a2a' }} className="stats-conv-right">
                         <p style={{ fontSize: 13, color: '#4ade80', marginBottom: 4 }}>
                             {stats.by_status?.hired ?? 0} hired out of {stats.total ?? 0} total applications
                         </p>
@@ -104,7 +115,7 @@ export default function AdminCareersStatsPage() {
                 </div>
             )}
 
-            <div style={s.grid2}>
+            <div style={s.grid2} className="stats-grid2">
                 {/* By status */}
                 <div style={s.card}>
                     <p style={s.cardTitle}>Applications by Status</p>

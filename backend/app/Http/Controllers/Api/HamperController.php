@@ -442,6 +442,16 @@ class HamperController extends Controller
         return response()->json($orders);
     }
 
+    // GET /admin/hampers/activity
+    public function globalActivityLog(Request $request): JsonResponse
+    {
+        $query = \App\Models\HamperActivityLog::with([
+            'hamper:id,name',
+        ])->orderByDesc('created_at');
+
+        return response()->json($query->paginate($request->get('per_page', 30)));
+    }
+
     public function activityLogs($id): JsonResponse
     {
         $logs = \App\Models\HamperActivityLog::where('hamper_id', $id)

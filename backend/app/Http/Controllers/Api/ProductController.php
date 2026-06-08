@@ -814,6 +814,24 @@ class ProductController extends Controller
         ]);
     }
 
+    public function bulkUpdateStatus(Request $request)
+    {
+        $request->validate([
+            'ids'    => 'required|array',
+            'ids.*'  => 'integer',
+            'status' => 'required|in:active,inactive,draft,out_of_stock,discontinued',
+        ]);
+
+        $updated = Product::whereIn('id', $request->ids)->update([
+            'status' => $request->status,
+        ]);
+
+        return response()->json([
+            'message'       => 'Status updated successfully',
+            'updated_count' => $updated,
+        ]);
+    }
+
     /**
      * Remove the specified product (ADMIN ONLY - Soft Delete)
      */

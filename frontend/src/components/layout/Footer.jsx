@@ -102,7 +102,7 @@ export default function Footer() {
   const socials     = brandSection?.items       ?? [];
 
   const copyright = copyrightSection?.content
-    ?? `© ${new Date().getFullYear()} Target Industrial Suppliers 11 Limited. All rights reserved.`;
+    ?? `© ${new Date().getFullYear()} Target Industrial Suppliers Limited. All rights reserved.`;
 
   const isLoading = loading.footer && sections.length === 0;
 

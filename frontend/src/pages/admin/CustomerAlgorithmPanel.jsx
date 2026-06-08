@@ -462,6 +462,7 @@ export default function CustomerAlgorithmPanel() {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'super_admin';
+  console.log('user role:', user?.role, '| isSuperAdmin:', isSuperAdmin);
   const headers = { Authorization: `Bearer ${token}` };
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
@@ -802,7 +803,7 @@ export default function CustomerAlgorithmPanel() {
         {/* ── Page header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary,#111827)' }}>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#a855f7' }}>
               Customer Scoring Algorithm
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-secondary,#6b7280)' }}>

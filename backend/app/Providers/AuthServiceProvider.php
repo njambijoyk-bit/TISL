@@ -23,6 +23,11 @@ use App\Policies\LoyaltyPolicy;
 use App\Models\Booking;
 use App\Policies\BookingPolicy;
 
+use App\Models\AiProviderKey;
+use App\Policies\AiProviderKeyPolicy;
+
+
+
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -35,6 +40,7 @@ class AuthServiceProvider extends ServiceProvider
         Payment::class => PaymentPolicy::class,
         Customer::class => LoyaltyPolicy::class,
         Booking::class => BookingPolicy::class,
+        AiProviderKey::class => AiProviderKeyPolicy::class,
 
     ];
 

@@ -603,13 +603,13 @@ export default function Profile() {
                   <Star size={10} /> {tier}
                 </span>
                 <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '3px 10px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700,
-    background: 'rgba(99,102,241,0.08)', color: '#4338ca',
-    boxShadow: '0 0 0 1px rgba(99,102,241,0.2)', textTransform: 'capitalize',
-  }}>
-    {customer.customer_type ?? 'individual'}
-  </span>
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 10px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700,
+                  background: 'rgba(99,102,241,0.08)', color: '#4338ca',
+                  boxShadow: '0 0 0 1px rgba(99,102,241,0.2)', textTransform: 'capitalize',
+                }}>
+                  {customer.customer_type ?? 'individual'}
+                </span>
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -653,7 +653,7 @@ export default function Profile() {
             </div>
 
             {/* Tab bar */}
-            <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid #f3f4f6', flexWrap: 'wrap' }}>
               {TABS.map(t => (
                 <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
                   padding: '9px 16px', fontSize: '0.82rem', fontWeight: activeTab === t.key ? 700 : 500,

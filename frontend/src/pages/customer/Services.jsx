@@ -12,6 +12,8 @@ import ServiceFilters from '../../components/services/ServiceFilters';
 import CollapsedServiceCard from '../../components/services/CollapsedServiceCard';
 import Button from '../../components/common/Button';
 import useLayoutStore from '../../store/layoutStore';
+import SmartSearchBox from '../../components/common/SmartSearchBox';
+import { searchEvents } from '../../services/searchEventService';
 
 // ── Collapsed skeleton ────────────────────────────────────────────────────────
 const CollapsedServiceSkeleton = () => (
@@ -86,8 +88,17 @@ const Services = () => {
     filters.sort_by, filters.sort_order, filters.per_page, filters.page,
   ]);
 
+  // ── Analytics: fire search result count after services load ───────────────
+  useEffect(() => {
+    if (!loading && filters.search?.trim()) {
+      searchEvents.searchResult(filters.search, 'service', pagination?.total ?? services?.length ?? 0);
+    }
+  }, [loading, filters.search]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleCategoryClick = (categoryId) => {
+    const cat = mainCategories?.find(c => c.id === categoryId);
+    if (cat) searchEvents.filter('category', cat.name, 'service', totalCount); // ← add totalCount
     setFilters({ category_id: categoryId, page: 1 });
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set('category', String(categoryId)); return next; });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -113,6 +124,7 @@ const Services = () => {
   };
 
   const handleSearch = (term) => {
+    if (term?.trim()) searchEvents._trackTyping(term.trim(), 'service');
     setFilters({ search: term, page: 1 });
   };
 
@@ -165,6 +177,16 @@ const Services = () => {
               <List size={15} /> Compact
             </button>
           </div>
+        </div>
+
+        {/* ── Search ───────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 12 }}>
+          <SmartSearchBox
+            context="service"
+            mode="inline"
+            value={filters.search ?? ''}
+            onSearch={handleSearch}
+          />
         </div>
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
@@ -312,7 +334,10 @@ const Services = () => {
             services={services || []} loading={loading}
             emptyMessage="No services found"
             emptyDescription="Try adjusting your search or filters"
-            onServiceClick={(s) => navigate(`/services/${s.id}`)}
+            onServiceClick={(s, idx) => {
+              searchEvents.serviceView(s, idx);
+              navigate(`/services/${s.id}`);
+            }}
             columns={4}
           />
         ) : loading ? (

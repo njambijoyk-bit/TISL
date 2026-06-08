@@ -159,6 +159,22 @@ export default function ProductBulkPage() {
     }
   };
 
+  const handleBulkStatus = async (status) => {
+    const ids = [...selectedIds];           // spread Set → array
+    if (!ids.length) return;
+    setBulkActionLoading(true);
+    try {
+      await productsAPI.bulkUpdateStatus(ids, status);
+      toast.success(`Status set to "${status}" for ${ids.length} product(s)`);
+      setProducts(prev => prev.map(p => ids.includes(p.id) ? { ...p, status } : p));
+      setSelectedIds(new Set());
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const handleBulkNegotiable = async () => {
     const ids = [...selectedIds];
 
@@ -227,7 +243,7 @@ export default function ProductBulkPage() {
       {/* ── Page Header ──────────────────────────────────── */}
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #7c3aed)', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#a855f7', margin: 0 }}>
             Bulk Product Manager
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted, #6b7280)', marginTop: 4 }}>
@@ -395,6 +411,7 @@ export default function ProductBulkPage() {
         onSetPrice={handleBulkPrice}
         onMarkNegotiable={handleBulkNegotiable}
         onSetFlags={(flags) => bulkUpdateFlags([...selectedIds], flags)} // ✅ Spread Set to array
+        onSetStatus={handleBulkStatus}  
         onClear={() => setSelectedIds(new Set())}
         disabled={bulkActionLoading}
       />

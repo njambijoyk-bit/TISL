@@ -71,9 +71,18 @@ export default function AdminJobsPage() {
     const listings = jobs?.data ?? [];
 
     return (
-        <div style={s.page}>
+        <div style={s.page} className="jobs-page">
+            <style>{`
+                @media (max-width: 768px) {
+                .jobs-page { padding: 20px 16px !important; }
+                .jobs-header { flex-direction: column !important; gap: 16px !important; align-items: flex-start !important; }
+                .jobs-table { display: none !important; }
+                .jobs-cards { display: flex !important; }
+                .jobs-search { width: 100% !important; box-sizing: border-box !important; }
+                }
+            `}</style>
             <AdminCareersHeader />
-            <div style={s.header}>
+            <div style={s.header} className="jobs-header">
                 <div>
                     <p style={s.pageTitle}>Job Postings</p>
                     <p style={s.pageSub}>{jobs?.total ?? 0} total postings</p>
@@ -91,7 +100,7 @@ export default function AdminJobsPage() {
                     </button>
                 ))}
                 <input
-                    style={s.search}
+                    style={s.search} className="jobs-search"
                     placeholder="Search jobs…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -99,7 +108,7 @@ export default function AdminJobsPage() {
                 />
             </div>
 
-            <table style={s.table}>
+            <table style={s.table} className="jobs-table">
                 <thead>
                     <tr>
                         <th style={s.th}>Role</th>
@@ -148,6 +157,32 @@ export default function AdminJobsPage() {
                     ))}
                 </tbody>
             </table>
+            {/* Mobile cards — hidden on desktop via CSS */}
+            <div className="jobs-cards" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+            {listings.map((job) => (
+                <div key={job.id} style={{ background: '#161616', border: '1px solid #1e1e1e', borderRadius: 12, padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ ...s.jobTitle, marginBottom: 4 }}>{job.title}</p>
+                    <p style={s.jobMeta}>{[job.department, job.location].filter(Boolean).join(' · ')}</p>
+                    </div>
+                    <span style={{ ...s.statusPill(job.status), flexShrink: 0, marginLeft: 10 }}>{job.status}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#666', marginBottom: 14, flexWrap: 'wrap' }}>
+                    <span>{job.type?.replace('_', ' ')}</span>
+                    <span>📋 {job.application_count ?? 0} applications</span>
+                    {job.deadline && <span>Closes {new Date(job.deadline).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                </div>
+
+                <div style={s.actionRow}>
+                    <button style={s.actionBtn('#a855f7')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
+                    {job.status === 'draft'     && <button style={s.actionBtn('#4ade80')} onClick={() => handlePublish(job.id)}>Publish</button>}
+                    {job.status === 'published' && <button style={s.actionBtn('#f87171')} onClick={() => handleClose(job.id)}>Close</button>}
+                </div>
+                </div>
+            ))}
+            </div>
             <Pagination
                 currentPage={jobs?.current_page ?? 1}
                 lastPage={jobs?.last_page ?? 1}

@@ -145,7 +145,7 @@ export default function AdminHampers() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>Hampers</h1>
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: '#a855f7' }}>Hampers</h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage curated bundle deals for eligible customers</p>
           </div>
           <button onClick={() => navigate('/admin/hampers/create')} style={{

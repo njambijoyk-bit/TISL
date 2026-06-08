@@ -425,6 +425,7 @@ const Services = () => {
                 Manage your service catalog
               </p>
             </div>
+          </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
               {/* Trash — outline/neutral */}
@@ -499,7 +500,6 @@ const Services = () => {
               </button>
 
             </div>
-          </div>
         </div>
 
       {statistics && (

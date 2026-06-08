@@ -258,6 +258,8 @@ export default function OrderDetail() {
   const [updatingPayment, setUpdatingPayment] = useState(false);  
   const [paymentError, setPaymentError] = useState('');
 
+  const [showInventoryInfo, setShowInventoryInfo] = useState(false);
+
   const isCancelled   = order?.status === 'cancelled';
   const isPaidPending = order?.status === 'pending' && order?.payment_status === 'paid';
 
@@ -948,31 +950,71 @@ export default function OrderDetail() {
           </Alert>
         )}
         <Panel className="order-panel">
-          <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border,#f3f4f6)' }}>
+          <button
+            onClick={() => setShowInventoryInfo(v => !v)}
+            style={{
+              width: '100%',
+              padding: '18px 22px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              textAlign: 'left',
+              fontFamily: 'inherit',
+            }}
+          >
             <SectionLabel icon={Info}>Inventory Handling</SectionLabel>
-          </div>
-
-          <div style={{ padding: '16px 22px' }}>
-            <p style={{
-              fontSize: '0.84rem',
-              color: 'var(--text,#374151)',
-              lineHeight: 1.75,
-              margin: 0,
-              whiteSpace: 'pre-wrap',
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: showInventoryInfo ? purpleLt : 'var(--tag-bg,#f3f4f6)',
+              border: `1px solid ${showInventoryInfo ? purpleBd : 'var(--border,#e5e7eb)'}`,
+              color: purple,
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              transition: 'all 0.15s',
+              flexShrink: 0,
             }}>
-              Inventory is updated directly when an order is created. If enough stock is available, the ordered quantity is deducted from the product inventory immediately. If the ordered quantity is greater than the available stock, the system allocates the available quantity and records the remaining quantity as backorder. For example, if stock is 40 and the order quantity is 140, the system fulfills 40 units and places 100 units on backorder.
+              {showInventoryInfo ? '−' : '+'}
+            </span>
+          </button>
 
-              Where decimal quantities are used, backorder values are rounded upward before being recorded when the backorder field is stored as a whole number. This means a shortage of 3.1, 3.2, or 3.8 units is recorded as 4 units on backorder. This ensures that fractional shortages are treated as full units for backorder planning and stock follow-up.
+          {showInventoryInfo && (
+            <div style={{ padding: '0 22px 16px' }}>
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 10,
+                background: purpleLt,
+                border: `1px solid ${purpleBd}`,
+              }}>
+                <p style={{
+                  fontSize: '0.84rem',
+                  color: 'var(--text,#374151)',
+                  lineHeight: 1.75,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  Inventory is updated directly when an order is created. If enough stock is available, the ordered quantity is deducted from the product inventory immediately. If the ordered quantity is greater than the available stock, the system allocates the available quantity and records the remaining quantity as backorder. For example, if stock is 40 and the order quantity is 140, the system fulfills 40 units and places 100 units on backorder.
 
-              If the order is cancelled before shipment, the allocated stock is returned to inventory, while the backordered quantity remains unfulfilled because it was never deducted from stock. If the order had already been shipped, inventory is adjusted through the return process, where only the quantity entered as returned is restored back into stock.
+                  Where decimal quantities are used, backorder values are rounded upward before being recorded when the backorder field is stored as a whole number. This means a shortage of 3.1, 3.2, or 3.8 units is recorded as 4 units on backorder. This ensures that fractional shortages are treated as full units for backorder planning and stock follow-up.
 
-              If an order has already had some items returned previously, only the remaining items still with the customer can be returned in a future cancellation. For example, if 9 out of 11 items were already returned earlier, only the remaining 2 items can be returned when the order is cancelled again.
+                  If the order is cancelled before shipment, the allocated stock is returned to inventory, while the backordered quantity remains unfulfilled because it was never deducted from stock. If the order had already been shipped, inventory is adjusted through the return process, where only the quantity entered as returned is restored back into stock.
 
-              If a cancelled order is restored, the system reapplies the inventory logic based on available stock. Previously returned stock is deducted again, and any quantity that cannot be fulfilled remains on backorder.
+                  If an order has already had some items returned previously, only the remaining items still with the customer can be returned in a future cancellation. For example, if 9 out of 11 items were already returned earlier, only the remaining 2 items can be returned when the order is cancelled again.
 
-              If an order is permanently deleted, the system removes its inventory effect completely and restores the full ordered quantity to stock, including quantities that were previously recorded as backorder. For this reason, deleting an order should only be done when it is truly necessary.
-            </p>
-          </div>
+                  If a cancelled order is restored, the system reapplies the inventory logic based on available stock. Previously returned stock is deducted again, and any quantity that cannot be fulfilled remains on backorder.
+
+                  If an order is permanently deleted, the system removes its inventory effect completely and restores the full ordered quantity to stock, including quantities that were previously recorded as backorder. For this reason, deleting an order should only be done when it is truly necessary.
+                </p>
+              </div>
+            </div>
+          )}
         </Panel>
       </div>
 

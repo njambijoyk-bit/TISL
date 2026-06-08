@@ -264,7 +264,7 @@ const ACTION_META = {
   DELETED:     { icon: <XCircle size={12} />,   bg: 'rgba(239,68,68,0.12)',  color: '#dc2626' },
 };
 
-function ActivityTimeline({ items, pag, onLoadMore, loading }) {
+function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types = [] }) {
   if (loading) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>Loading activity...</p>;
   if (!items.length) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>No activity yet</p>;
 
@@ -273,7 +273,16 @@ function ActivityTimeline({ items, pag, onLoadMore, loading }) {
       {items.map((a, i) => {
         const meta = ACTION_META[a.action] ?? ACTION_META.UPDATED;
         const isLast = i === items.length - 1;
-        const entityLabel = a.entity_type === 'tier' ? 'tier' : 'type';
+        const entityLabel = a.entity_type === 'tier' ? 'Tier' : 'Type';
+
+        const resolvedName = a.entity_type === 'tier'
+          ? tiers.find(t => t.id === a.entity_id)?.name
+          : types.find(t => t.id === a.entity_id)?.name;
+
+        const displayName = resolvedName
+          ?? a.metadata?.name   // fallback for deleted items
+          ?? `#${a.entity_id}`; // last resort
+
         return (
           <div key={a.id} style={{ display: 'flex', gap: 10, padding: '10px 20px', borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.06)' }}>
             <div style={{ width: 24, height: 24, borderRadius: 7, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, flexShrink: 0, marginTop: 1 }}>
@@ -283,14 +292,28 @@ function ActivityTimeline({ items, pag, onLoadMore, loading }) {
               <p style={{ fontSize: '0.78rem', color: '#374151', margin: 0 }}>
                 <strong>{a.actor?.name ?? 'System'}</strong>{' '}
                 <span style={{ color: meta.color, fontWeight: 600, textTransform: 'lowercase' }}>{a.action}</span>{' '}
-                {entityLabel}
-                {a.metadata?.name && <> <strong>{a.metadata.name}</strong></>}
-                {a.metadata?.slug && <> <span style={{ color: '#9ca3af' }}>({a.metadata.slug})</span></>}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: '0.65rem', fontWeight: 700,
+                  padding: '1px 6px', borderRadius: 99,
+                  background: a.entity_type === 'tier' ? 'rgba(168,85,247,0.1)' : 'rgba(99,102,241,0.1)',
+                  color: a.entity_type === 'tier' ? '#7c3aed' : '#4f46e5',
+                  marginRight: 4,
+                }}>
+                  {entityLabel}
+                </span>
+                <strong>{displayName}</strong>
+                {a.metadata?.slug && <span style={{ color: '#9ca3af' }}> ({a.metadata.slug})</span>}
               </p>
               {a.metadata?.changes && (
                 <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
                   {a.metadata.changes.map((c, j) => (
-                    <li key={j}>{c.field}: <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span> → <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span></li>
+                    <li key={j}>
+                      {c.field}:{' '}
+                      <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>
+                      {' → '}
+                      <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
+                    </li>
                   ))}
                 </ul>
               )}
@@ -652,7 +675,7 @@ export default function CustomerTierSettings() {
             <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>Activity Log</span>
             {showLog ? <ChevronUp size={14} color="#7c3aed" /> : <ChevronDown size={14} color="#7c3aed" />}
           </button>
-          {showLog && <ActivityTimeline items={activity} pag={activityPag} onLoadMore={loadActivity} loading={actLoading} />}
+          {showLog && <ActivityTimeline items={activity} pag={activityPag} onLoadMore={loadActivity} loading={actLoading} tiers={tiers} types={types} />}
         </div>
       </div>
 

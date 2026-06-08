@@ -5,7 +5,7 @@ import {
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
   HomeIcon, Gavel, DollarSign,
   Network,BrainCircuit,Cpu,ScanLine,GitBranch,
-  Gift,
+  Gift, IdCardLanyardIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
@@ -40,7 +40,7 @@ const MENU_GROUPS = [
       { title: 'Customers',  icon: Users,   path: '/admin/customers',  color: '#6366f1' }, // indigo
       {title: 'Loyalties',   icon: Award,   path: '/admin/loyalty',      color: '#fc7bf5'},
       { title: 'Users',      icon: UserCog, path: '/admin/users',      color: '#0ea5e9' }, // sky
-      { title: 'Employees',  icon: IdCard,  path: '/admin/employees',  color: '#eab308' }, // yellow
+      { title: 'Employees',  icon: IdCardLanyardIcon,  path: '/admin/employees',  color: '#eab308' }, // yellow
     ],
   },
   {
@@ -216,7 +216,7 @@ export default function Sidebar() {
                   margin: 0, fontSize: '0.875rem', fontWeight: 800, letterSpacing: '-0.01em',
                   color: 'var(--color-text, currentColor)',
                 }}>
-                  BLUEARC
+                  TISL
                 </p>
                 <p style={{
                   margin: 0, fontSize: '0.62rem', letterSpacing: '0.06em', textTransform: 'uppercase',

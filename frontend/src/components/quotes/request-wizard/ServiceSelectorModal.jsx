@@ -288,23 +288,25 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
             })}
           </div>
 
-          {/* Footer */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
-              {pagination.total} service{pagination.total !== 1 ? 's' : ''} available
-            </p>
-            
-            <AdminPagination
-              pagination={pagination}
-              onPageChange={(newPage) => setPage(newPage)}
-            />
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="outline" onClick={onClose}>Cancel</Btn>
               <Btn variant="primary" onClick={() => onSelect(localSelected)} disabled={localSelected.length === 0}>
                 Add{localSelected.length > 0 ? ` (${localSelected.length})` : ''} Service{localSelected.length !== 1 ? 's' : ''}
               </Btn>
             </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            
+            <AdminPagination
+              pagination={pagination}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+            
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
+            
           </div>
         </div>
       </div>

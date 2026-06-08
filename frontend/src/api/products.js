@@ -160,6 +160,11 @@ const productsAPI = {
     return response.data;
   },
 
+  bulkUpdateStatus: async (ids = [], status) => {
+    const response = await api.post('/admin/products/bulk-update-status', { ids, status });
+    return response.data;
+  },
+
   // ADMIN: Delete product (soft delete)
   deleteProduct: async (id) => {
     const response = await api.delete(`/admin/products/${id}`);

@@ -972,42 +972,66 @@ export default function CustomerOrderDetail() {
 
           {/* Top row: back button + actions */}
           <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
-            <button onClick={() => navigate('/orders')} type="button"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors flex-shrink-0">
-              <ArrowLeft size={12} /> Back to Orders
-            </button>
-
-            <div className="flex flex-wrap gap-2">
-              {canEdit && <PurpleBtn onClick={handleSaveChanges} loading={loading}><Save size={14} /> Save Changes</PurpleBtn>}
-              {canEdit && (
-                <GhostBtn onClick={() => setAddItemModal(true)} disabled={isQuotedOrder}>
-                  <Plus size={14} /> Add Item
-                </GhostBtn>
-              )}
-              {canCancel && (
-                <DangerBtn onClick={() => setCancelModal(true)} fullWidth>
-                  <X size={14} /> Cancel Order
-                </DangerBtn>
-              )}
-
-              {/* Restore */}
-              {canRestore && (
-                <GreenBtn onClick={handleRestoreOrder} loading={loading} fullWidth><RefreshCw size={14} /> Restore Order</GreenBtn>
-              )}
-              
-              {canDelete && <DangerBtn onClick={handleDeleteOrder} loading={loading}><Trash2 size={14} /> Delete Order</DangerBtn>}
-
-              {/* Download Order Button */}
-              <button
-                onClick={handleDownloadOrder}
-                type="button"
-                disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-purple-300 hover:text-purple-500 disabled:opacity-40"
-              >
-                {loading ? <LoadingSpinner size="sm" /> : <FileText size={14} />} 
-                Download PDF
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, marginBottom: 20 }}>
+              <button onClick={() => navigate('/orders')} type="button"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
+                Orders
               </button>
-            </div>
+              <span style={{ color: '#d1d5db' }}>/</span>
+              <span style={{ color: '#a855f7' }}>{order.order_number}</span>
+            </nav>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+
+  {/* Save Changes */}
+  {canEdit && (
+    <button onClick={handleSaveChanges} disabled={loading} type="button"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.5 : 1, boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+      <Save size={14} /> Save Changes
+    </button>
+  )}
+
+  {/* Add Item */}
+  {canEdit && (
+    <button onClick={() => setAddItemModal(true)} disabled={isQuotedOrder} type="button"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '0.875rem', fontWeight: 600, cursor: isQuotedOrder ? 'not-allowed' : 'pointer', opacity: isQuotedOrder ? 0.4 : 1 }}
+      onMouseEnter={e => { if (!isQuotedOrder) { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}>
+      <Plus size={14} /> Add Item
+    </button>
+  )}
+
+  {/* Download PDF */}
+  <button onClick={handleDownloadOrder} disabled={loading} type="button"
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.4 : 1 }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}>
+    <FileText size={14} /> Download PDF
+  </button>
+
+  {/* Cancel Order */}
+  {canCancel && (
+    <button onClick={() => setCancelModal(true)} type="button"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.35)', background: 'transparent', color: '#ef4444', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.06)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+      <X size={14} /> Cancel Order
+    </button>
+  )}
+
+  {/* Delete Order */}
+  {canDelete && (
+    <button onClick={handleDeleteOrder} disabled={loading} type="button"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)', background: 'transparent', color: '#ef4444', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.4 : 1 }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.06)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+      <Trash2 size={14} /> Delete Order
+    </button>
+  )}
+
+</div>
           </div>
 
           {/* Bottom row: order info + total */}

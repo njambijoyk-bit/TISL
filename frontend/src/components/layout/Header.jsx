@@ -5,9 +5,11 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, 
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
+  Bug,
 } from 'lucide-react';
 import logo from '../../assets/images/logo.png';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store';
 import useWishlistStore from '../../store/wishlistStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api';
@@ -128,6 +130,65 @@ function CategoryNode({ cat, onNavigate, depth = 0 }) {
   );
 }
 
+function FloatingShapes() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes float1 { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-18px) rotate(8deg); } }
+        @keyframes float2 { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-12px) rotate(-12deg); } }
+        @keyframes float3 { 0%,100% { transform: translateY(0px) rotate(12deg); } 50% { transform: translateY(-20px) rotate(28deg); } }
+        @keyframes float4 { 0%,100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-14px) scale(1.06); } }
+        @keyframes bubble { 0%,100% { transform: translateY(0px) scale(1); opacity:0.5; } 50% { transform: translateY(-16px) scale(1.1); opacity:0.9; } }
+        @keyframes drift  { 0%,100% { transform: translate(0,0) rotate(0deg); } 33% { transform: translate(8px,-12px) rotate(8deg); } 66% { transform: translate(-6px,-8px) rotate(-5deg); } }
+
+        /* ── Light mode shapes ── */
+        .hs { background: rgba(168,85,247,0.07); border: 1.5px solid rgba(168,85,247,0.15); }
+        .hs-soft { background: rgba(192,132,252,0.07); border: 1.5px solid rgba(192,132,252,0.14); }
+        .hs-dark { background: rgba(124,58,237,0.08); border: 1.5px solid rgba(124,58,237,0.18); }
+        .hs-dot  { background: rgba(168,85,247,0.25); }
+        .hs-dot2 { background: rgba(192,132,252,0.18); }
+
+        /* ── Dark mode overrides ── */
+        .dark .hs      { background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.25); }
+        .dark .hs-soft { background: rgba(192,132,252,0.1);  border-color: rgba(192,132,252,0.22); }
+        .dark .hs-dark { background: rgba(124,58,237,0.14); border-color: rgba(124,58,237,0.3); }
+        .dark .hs-dot  { background: rgba(168,85,247,0.4); }
+        .dark .hs-dot2 { background: rgba(192,132,252,0.3); }
+      `}</style>
+
+      {/* ── LEFT ZONE ── */}
+
+      {/* Giant bleed circle top-left */}
+      <div className="hs" style={{ position:'absolute', top:-70, left:-50, width:180, height:180, borderRadius:'50%', animation:'float1 7s ease-in-out infinite' }} />
+
+      {/* Dot cluster far left */}
+      <div className="hs-dot"  style={{ position:'absolute', top:20, left:90,  width:14, height:14, borderRadius:'50%', animation:'bubble 5s ease-in-out infinite', animationDelay:'1.5s' }} />
+      <div className="hs-dot"  style={{ position:'absolute', top:8,  left:110, width:10, height:10, borderRadius:'50%', animation:'bubble 4s ease-in-out infinite', animationDelay:'0.9s' }} />
+      <div className="hs-dot"  style={{ position:'absolute', top:36, left:100, width:7,  height:7,  borderRadius:'50%', animation:'bubble 6s ease-in-out infinite', animationDelay:'2.3s' }} />
+
+      {/* Chunky rotated square left */}
+      <div className="hs-dark" style={{ position:'absolute', top:10, left:280, width:48, height:48, borderRadius:14, transform:'rotate(18deg)', animation:'float3 6s ease-in-out infinite', animationDelay:'2s' }} />
+
+      {/* ── RIGHT ZONE ── */}
+
+      {/* Giant bleed circle top-right */}
+      <div className="hs" style={{ position:'absolute', top:-70, right:-70, width:200, height:200, borderRadius:'50%', animation:'float1 8s ease-in-out infinite', animationDelay:'0.5s' }} />
+
+      {/* Diamond right */}
+      <div className="hs-dark" style={{ position:'absolute', top:10, right:480, width:38, height:38, borderRadius:9, transform:'rotate(45deg)', animation:'drift 7s ease-in-out infinite', animationDelay:'1.8s' }} />
+
+      {/* Bubble cluster right */}
+      <div className="hs-dot2" style={{ position:'absolute', top:6,  right:200, width:36, height:36, borderRadius:'50%', animation:'bubble 4s ease-in-out infinite', animationDelay:'0.5s' }} />
+      <div className="hs-dot2" style={{ position:'absolute', top:26, right:178, width:22, height:22, borderRadius:'50%', animation:'bubble 5s ease-in-out infinite', animationDelay:'1.2s' }} />
+      <div className="hs-dot"  style={{ position:'absolute', top:4,  right:238, width:14, height:14, borderRadius:'50%', animation:'bubble 3.5s ease-in-out infinite', animationDelay:'0.8s' }} />
+
+      {/* ── BOTTOM BLEEDS ── */}
+      <div className="hs"      style={{ position:'absolute', bottom:-50, left:60,   width:120, height:120, borderRadius:'50%', animation:'float4 10s ease-in-out infinite', animationDelay:'1s' }} />
+      <div className="hs-soft" style={{ position:'absolute', bottom:-40, right:220, width:100, height:100, borderRadius:'50%', animation:'float1 8s ease-in-out infinite',  animationDelay:'3s' }} />
+    </div>
+  );
+}
+
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,6 +204,9 @@ export default function Header() {
   const [serviceCategories, setServiceCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+
   const userMenuRef = useRef(null);
 
   const products = useFlyout();
@@ -152,6 +216,8 @@ export default function Header() {
   const isAdmin = user?.role === 'admin' || 
                   user?.role === 'super_admin' || 
                   user?.role === 'manager' || 
+                  user?.role === 'finance' || 
+                  user?.role === 'logistics' ||
                   user?.role === 'sales_rep';
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
   const wishlistCount = wishlistItems?.length ?? 0;
@@ -194,6 +260,18 @@ export default function Header() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Then define your text colors
+  const navColor = isDark ? '#aaabac' : '#374151';
+  const navActiveBg = isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.08)';
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -243,9 +321,9 @@ export default function Header() {
     {
       label: 'Support', items: [
         { label: 'Reviews',            icon: Star,            to: '/admin/reviews' },
-        { label: 'Tickets',            icon: LifeBuoy,       to: '/admin/tickets' },
+        { label: 'Tickets',            icon: LifeBuoy,        to: '/admin/tickets' },
         { label: 'Reports',            icon: BarChart2,       to: '/admin/reports' },
-        { label: 'Settings',  icon: Settings,     to: '/admin/settings' },
+        { label: 'Settings',           icon: Settings,        to: '/admin/settings' },
       ],
     },
   ];
@@ -260,9 +338,10 @@ export default function Header() {
     { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects' },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
-    { label: 'My Hampers',        icon: Package,       to: '/my-hampers' },
-    { label: 'Auctions',           icon: Zap,           to: '/auctions' },
+    { label: 'My Hampers',        icon: Package,       to: '/hampers' },
+    { label: 'Auctions',          icon: Zap,           to: '/auctions' },
     { label: 'Wishlist',          icon: Heart,         to: '/wishlist' },
+    { label: 'Report bug',        icon: Bug,           to: '/report-bug'},
   ];
 
   return (
@@ -297,24 +376,47 @@ export default function Header() {
         @media (min-width: 900px) {
           .show-mobile { display: none !important; }
         }
+        .site-header {
+          background: linear-gradient(135deg,
+            rgba(250,245,255,0.98) 0%, rgba(237,233,254,0.98) 25%,
+            rgba(245,243,255,0.98) 50%, rgba(252,231,243,0.98) 75%,
+            rgba(250,245,255,0.98) 100%);
+        }
+        .site-header.scrolled {
+          background: linear-gradient(135deg,
+            rgba(250,245,255,0.85) 0%, rgba(237,233,254,0.85) 25%,
+            rgba(245,243,255,0.85) 50%, rgba(252,231,243,0.85) 75%,
+            rgba(250,245,255,0.85) 100%);
+        }
+        .dark .site-header {
+          background: linear-gradient(135deg,
+            rgba(31,41,55,0.97) 0%, rgba(33,43,57,0.97) 25%,
+            rgba(31,41,55,0.97) 50%, rgba(35,45,60,0.97) 75%,
+            rgba(31,41,55,0.97) 100%);
+        }
+        .dark .site-header.scrolled {
+          background: linear-gradient(135deg,
+            rgba(31,41,55,0.90) 0%, rgba(33,43,57,0.90) 25%,
+            rgba(31,41,55,0.90) 50%, rgba(35,45,60,0.90) 75%,
+            rgba(31,41,55,0.90) 100%);
+        }
       `}</style>
 
-      <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        transform: visible ? 'translateY(0)' : 'translateY(-110%)',
-        transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1), background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease',
-        background: scrolled
-          ? 'linear-gradient(135deg, rgba(250,245,255,0.85) 0%, rgba(237,233,254,0.85) 25%, rgba(245,243,255,0.85) 50%, rgba(252,231,243,0.85) 75%, rgba(250,245,255,0.85) 100%)'
-          : 'linear-gradient(135deg, rgba(250,245,255,0.98) 0%, rgba(237,233,254,0.98) 25%, rgba(245,243,255,0.98) 50%, rgba(252,231,243,0.98) 75%, rgba(250,245,255,0.98) 100%)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: scrolled
-          ? '1px solid rgba(168,85,247,0.22)'
-          : '1px solid rgba(168,85,247,0.15)',
-        boxShadow: scrolled
-          ? '0 4px 24px rgba(168,85,247,0.12), 0 1px 0 rgba(168,85,247,0.08)'
-          : '0 2px 12px rgba(168,85,247,0.07)',
-      }} className="dark:bg-gray-900/90 dark:border-gray-700 header-animated-bg">
+      <header
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+          transform: visible ? 'translateY(0)' : 'translateY(-110%)',
+          transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1), background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease',
+          // ← background REMOVED from here
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: scrolled ? '1px solid rgba(168,85,247,0.22)' : '1px solid rgba(168,85,247,0.15)',
+          boxShadow: scrolled ? '0 4px 24px rgba(168,85,247,0.12), 0 1px 0 rgba(168,85,247,0.08)' : '0 2px 12px rgba(168,85,247,0.07)',
+        }}
+        className={`site-header header-animated-bg dark:border-gray-700 ${scrolled ? 'scrolled' : ''}`}
+      >
+
+        <FloatingShapes /> 
 
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -327,7 +429,7 @@ export default function Header() {
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1 }} className="hidden-mobile">
 
-            <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? '#a855f7' : '#374151', textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
+            <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? '#a855f7' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
               Home
             </Link>
 
@@ -336,7 +438,7 @@ export default function Header() {
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                color: isActive('/products') ? '#a855f7' : '#374151',
+                color: isActive('/products') ? '#a855f7' : navColor,
                 background: isActive('/products') ? 'rgba(168,85,247,0.08)' : 'transparent',
                 border: 'none', cursor: 'pointer',
               }} className="dark:text-gray-200">
@@ -400,7 +502,7 @@ export default function Header() {
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                color: isActive('/services') ? '#a855f7' : '#374151',
+                color: isActive('/services') ? '#a855f7' : navColor,
                 background: isActive('/services') ? 'rgba(168,85,247,0.08)' : 'transparent',
                 border: 'none', cursor: 'pointer',
               }} className="dark:text-gray-200">
@@ -438,10 +540,20 @@ export default function Header() {
               🔥 Specials
             </Link>
 
-            <Link to="/about" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: '#374151', textDecoration: 'none' }} className="dark:text-gray-200">
+            <Link to="/about" style={{ 
+              padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
+              textDecoration: 'none', transition: 'all 150ms',
+              color: isActive('/about') ? '#a855f7' : navColor,
+              background: isActive('/about') ? navActiveBg : 'transparent',
+            }}>
               About
             </Link>
-            <Link to="/contact" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: '#374151', textDecoration: 'none' }} className="dark:text-gray-200">
+            <Link to="/contact" style={{ 
+              padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
+              textDecoration: 'none', transition: 'all 150ms',
+              color: isActive('/contact') ? '#a855f7' : navColor,
+              background: isActive('/contact') ? navActiveBg : 'transparent',
+            }}>
               Contact
             </Link>
           </nav>
@@ -451,7 +563,7 @@ export default function Header() {
 
             {/* Search */}
             <button type="button" onClick={() => setSearchOpen(s => !s)}
-              style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
+              style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: navColor }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Search size={17} />
             </button>
@@ -459,14 +571,14 @@ export default function Header() {
             <ThemeSwitcher />
 
             {/* Wishlist */}
-            <Link to="/wishlist" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
+            <Link to="/wishlist" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Heart size={17} />
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
 
             {/* Quote list */}
-            <Link to="/quote-list" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
+            <Link to="/quote-list" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Quote List">
               <ClipboardList size={17} />
@@ -474,7 +586,7 @@ export default function Header() {
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', textDecoration: 'none' }}
+            <Link to="/cart" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <ShoppingCart size={17} />
               {cartCount > 0 && <Badge count={cartCount} />}
@@ -600,22 +712,13 @@ export default function Header() {
         {/* ── Search bar ───────────────────────────────────────────────────── */}
         {searchOpen && (
           <div style={{ borderTop: '1px solid #f3f4f6', padding: '10px 16px', background: 'white' }} className="dark:bg-gray-900 dark:border-gray-700">
-            <form onSubmit={handleSearch} style={{ maxWidth: 600, margin: '0 auto', display: 'flex', gap: 8 }}>
-              <input
-                autoFocus
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search products…"
-                style={{ flex: 1, padding: '8px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none' }}
-                className="dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-              />
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
-                Search
-              </button>
-              <button type="button" onClick={() => setSearchOpen(false)} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+            <div style={{ maxWidth: 600, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <SmartSearchBox context="product" mode="header" style={{ flex: 1 }} />
+              <button type="button" onClick={() => setSearchOpen(false)}
+                style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'none', cursor: 'pointer', color: '#9ca3af', flexShrink: 0 }}>
                 <X size={16} />
               </button>
-            </form>
+            </div>
           </div>
         )}
 

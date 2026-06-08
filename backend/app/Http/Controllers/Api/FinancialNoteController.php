@@ -122,4 +122,46 @@ class FinancialNoteController extends Controller
 
         return response()->json($notes);
     }
+
+    // GET /admin/financial-notes/resolve-subject?table=orders&q=ORD-2026-001
+    public function resolveSubject(Request $request)
+    {
+        $request->validate([
+            'table' => 'required|in:orders,payments,auction_orders,hamper_orders,quotes,store_credit_transactions,loyalty_point_transactions,customer_credit_transactions',
+            'q'     => 'required|string|max:100',
+        ]);
+
+        $table = $request->table;
+        $q     = $request->q;
+
+        $numberColumn = match($table) {
+            'orders'         => 'order_number',
+            'payments'       => 'payment_number',
+            'auction_orders' => 'order_number',
+            'hamper_orders'  => 'order_number',
+            'quotes'         => 'quote_number',
+            default          => null,
+        };
+
+        if ($numberColumn) {
+            $rows = \DB::table($table)
+                ->where($numberColumn, 'like', "%{$q}%")
+                ->whereNull('deleted_at')  // soft delete guard where applicable
+                ->select('id', $numberColumn . ' as label')
+                ->limit(8)
+                ->get();
+        } else {
+            // ID-only tables — match by numeric ID
+            if (!is_numeric($q)) {
+                return response()->json([]);
+            }
+            $rows = \DB::table($table)
+                ->where('id', $q)
+                ->select('id', \DB::raw("CONCAT('#', id) as label"))
+                ->limit(1)
+                ->get();
+        }
+
+        return response()->json($rows);
+    }
 }

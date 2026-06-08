@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home, Crown, Gavel,
   Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap, Award,
-  UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck,
+  UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck, Gauge,
   ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle, Boxes,
   Scale,
 } from 'lucide-react';
@@ -25,6 +25,7 @@ const GROUPS = [
     label: 'System',
     items: [
       { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#0e7490,#06b6d4)', color: '#06b6d4', path: '/admin/settings/general',  active: true },
+      { name: 'Analytics', icon: Gauge,     bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa', path: '/admin/settings/analytics', active: true },
       { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981', path: '/admin/settings/currency', active: true },
       { name: 'Customer Tiers',icon: Crown, bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/admin/settings/customer-tiers',   active: true },
       { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fb923c', path: '/admin/settings/shipping', active: true },

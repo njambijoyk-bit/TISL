@@ -345,7 +345,7 @@ export default function AdminHamperCreate() {
                 <ChevronLeft size={15} />
               </button>
               <div>
-                <h1 style={{ margin: '0 0 2px', fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>New Hamper</h1>
+                <h1 style={{ margin: '0 0 2px', fontSize: '1.3rem', fontWeight: 800, color: '#a855f7' }}>New Hamper</h1>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>Products and manual eligibility are managed after creation</p>
               </div>
             </div>

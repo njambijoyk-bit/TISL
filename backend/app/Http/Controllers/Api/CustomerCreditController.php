@@ -478,4 +478,26 @@ class CustomerCreditController extends Controller
             'invoice' => $invoice->fresh(),
         ]);
     }
+
+    /**
+     * GET /api/admin/credit/global-summary
+     * Unified credit metrics across the entire application.
+     */
+    public function globalSummary()
+    {
+        // Add appropriate authorize checks here if needed (e.g., $this->authorize('viewAny', ...))
+        return response()->json($this->credit->getGlobalSummary());
+    }
+
+    /**
+     * GET /api/admin/credit/global-customers
+     * Listing of all customers filterable and sortable by credit standing.
+     */
+    public function globalCustomers(Request $request)
+    {
+        $filters = $request->only(['has_credit_account', 'search', 'is_overdue', 'sort_by', 'sort_dir']);
+        $perPage = min((int) $request->get('per_page', 15), 100);
+
+        return response()->json($this->credit->getGlobalCustomers($filters, $perPage));
+    }
 }

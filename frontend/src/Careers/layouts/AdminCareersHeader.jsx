@@ -15,6 +15,7 @@ export default function AdminCareersHeader() {
             <style>{`
                 .ach-tab:hover  { color: #e0e0e0 !important; border-bottom-color: #444 !important; }
                 .ach-home:hover { background: #1e1e1e !important; color: #ccc !important; }
+                .ach-nav::-webkit-scrollbar { display: none; }
             `}</style>
 
             <header style={{
@@ -58,7 +59,7 @@ export default function AdminCareersHeader() {
                 </span>
 
                 {/* ── Tab nav ──────────────────────────────────── */}
-                <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, height: '100%', flex: 1 }}>
+                <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, height: '100%', overflowX: 'auto', scrollbarWidth: 'none' }}>
                     {NAV.map(({ to, label, icon: Icon, end }) => (
                         <NavLink
                             key={to}

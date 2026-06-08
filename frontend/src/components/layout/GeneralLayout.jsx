@@ -1,6 +1,11 @@
 import {
-  Package, Tags, Folder, ChevronLeft,
-  LayoutGrid, Users, Briefcase,
+  Package, Tags, Folder, ChevronLeft, LucideBinary,
+  LayoutGrid, Users, Briefcase, FolderGit2Icon,
+  LucideBadgeDollarSign,
+  BugIcon,
+  FolderCodeIcon,
+  FolderCog,
+  BrainCircuit,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -48,6 +53,91 @@ const GROUPS = [
         icon: Briefcase,
         bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
         path: '/admin/settings/general/bulk/employees',
+        active: true,
+      },
+    ],
+  },
+  {
+    label: 'AI',
+    items: [
+      {
+        name: 'AI Analytics',
+        icon: BrainCircuit,
+        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
+        path: '/admin/ai-analytics',
+        active: true,
+      },
+      {
+        name: 'AI Keys',
+        icon: Briefcase,
+        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+        path: '/admin/ai-analytics/keys',
+        active: true,
+      },
+      {
+        name: 'AI Sessions',
+        icon: Briefcase,
+        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+        path: '/admin/ai-analytics/sessions',
+        active: true,
+      },
+      {
+        name: 'AI Modules',
+        icon: Briefcase,
+        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+        path: '/admin/ai-analytics/modules',
+        active: true,
+      },
+    ],
+  },
+  {
+    label: 'FlowCharts',
+    items: [
+      {
+        name: 'Orders',
+        icon: FolderGit2Icon,
+        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
+        path: '/admin/flowchart/orders',
+        active: true,
+      },
+      {
+        name: 'Customers',
+        icon: LucideBinary,
+        bg: 'linear-gradient(135deg,#ec4899,#f472b6)',
+        path: '/admin/flowchart/customers',
+        active: true,
+      },
+      {
+        name: 'Transactions',
+        icon: LucideBadgeDollarSign,
+        bg: 'linear-gradient(135deg,#10b981,#34d399)',
+        path: '/admin/flowchart/transactions',
+        active: true,
+      },
+    ],
+  },
+  {
+    label: 'Bugs',
+    items: [
+      {
+        name: 'Bug Reports',
+        icon: BugIcon,
+        bg: 'linear-gradient(135deg,#c2410c,#ea580c)',
+        path: '/admin/bug-reports',
+        active: true,
+      },
+      {
+        name: 'Dev Notes',
+        icon: FolderCodeIcon,
+        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
+        path: '/admin/dev-notes',
+        active: true,
+      },
+      {
+        name: 'Dev Keys',
+        icon: FolderCog,
+        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+        path: '/admin/dev-keys',
         active: true,
       },
     ],

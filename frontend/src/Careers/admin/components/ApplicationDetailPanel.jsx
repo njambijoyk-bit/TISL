@@ -126,29 +126,29 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
 
     // ── AI screening ──────────────────────────────────────────────────────────
     const handleScreen = async () => {
-        setScreening(true); setPollingMsg('Queuing AI analysis…');
+        setScreening(true);
+        setPollingMsg('Running AI analysis…');
         try {
             await screenOne(app.id);
-            setPollingMsg('Processing… checking for results');
-            const result = await pollForResult(app.id);
-            if (!result) setPollingMsg('Processing is taking longer than expected. Refresh in a moment.');
-            else setPollingMsg(null);
+            setPollingMsg(null);
         } catch (err) {
-            setPollingMsg(err.message ?? 'Screening failed.');
-        } finally { setScreening(false); }
+            setPollingMsg(err?.message ?? 'Screening failed.');
+        } finally {
+            setScreening(false);
+        }
     };
 
     const handleRescreen = async () => {
-        setScreening(true); setPollingMsg('Re-queuing AI analysis…');
+        setScreening(true);
+        setPollingMsg('Re-running AI analysis…');
         try {
             await rescreen(app.id);
-            setPollingMsg('Processing…');
-            const result = await pollForResult(app.id);
-            if (!result) setPollingMsg('Refresh in a moment to see updated results.');
-            else setPollingMsg(null);
+            setPollingMsg(null);
         } catch (err) {
-            setPollingMsg(err.message ?? 'Re-screen failed.');
-        } finally { setScreening(false); }
+            setPollingMsg(err?.message ?? 'Re-screen failed.');
+        } finally {
+            setScreening(false);
+        }
     };
 
     if (appLoading || !app) {

@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TISL Customer Flowchart — System Overview</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #07090f;
+        --surface: #0d1117;
+        --surface2: #161b27;
+        --border: #1e2d40;
+        --text: #cdd6e0;
+        --muted: #566375;
+        --blue: #3b82f6;
+        --purple: #8b5cf6;
+        --green: #10b981;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --cyan: #06b6d4;
+        --pink: #ec4899;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .hero {
+        padding: 48px 24px 36px;
+        text-align: center;
+        background: linear-gradient(160deg, #0d1529 0%, #0a0e1a 60%);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 0%,
+          rgba(16, 185, 129, 0.08) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.6rem);
+        font-weight: 800;
+        background: linear-gradient(
+          90deg,
+          #34d399 0%,
+          #a78bfa 50%,
+          #f472b6 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        color: #7a8fa3;
+        font-size: 0.95rem;
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 14px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.78rem;
+        color: #8a9ab0;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 14px 16px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .nav-tab {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 200ms ease;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .nav-tab:hover {
+        background: #1e2d40;
+        color: var(--text);
+      }
+      .nav-tab.active {
+        background: linear-gradient(135deg, #1d3a7a, #3b1d7a);
+        color: #fff;
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+      }
+
+      .diagram-container {
+        display: none;
+        padding: 28px 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .diagram-container.active {
+        display: block;
+      }
+      .diagram-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #e2e8f0;
+        letter-spacing: -0.01em;
+      }
+      .diagram-subtitle {
+        color: var(--muted);
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .mermaid-wrap {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 24px 16px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+      }
+      .mermaid-wrap svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .note {
+        background: var(--surface2);
+        border-left: 3px solid var(--green);
+        padding: 14px 18px;
+        margin-top: 18px;
+        border-radius: 0 10px 10px 0;
+        font-size: 0.83rem;
+        color: #9bb0c8;
+        line-height: 1.6;
+      }
+      .note-title {
+        font-weight: 700;
+        color: #34d399;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+      }
+
+      .breadcrumb {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(13, 17, 23, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 10px;
+        padding: 6px 14px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #8a9ab0;
+        white-space: nowrap;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+      }
+      .breadcrumb-link {
+        color: #8b5cf6;
+        font-weight: 700;
+      }
+      .breadcrumb-sep {
+        color: #566375;
+        font-size: 0.7rem;
+      }
+      .breadcrumb-current {
+        color: #cdd6e0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="breadcrumb">
+      <span class="breadcrumb-link">Settings</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">Customer Flowchart</span>
+    </div>
+
+    <div class="hero">
+      <h1>TISL Customer Flowchart</h1>
+      <p>
+        Complete visual reference of all customer touchpoints — authentication,
+        policies, credit, loyalty, bookings, projects, search, and algorithmic
+        personalization.
+      </p>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #10b981"></div>
+        Auth / Session
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #8b5cf6"></div>
+        Policy
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #06b6d4"></div>
+        Credit
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f59e0b"></div>
+        Loyalty
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #3b82f6"></div>
+        Bookings
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #ec4899"></div>
+        Projects
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #ef4444"></div>
+        Error / Block
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #64748b"></div>
+        System / DB
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showTab('auth', this)">🔐 Auth</div>
+      <div class="nav-tab" onclick="showTab('policies', this)">📋 Policies</div>
+      <div class="nav-tab" onclick="showTab('profile', this)">
+        👤 Profile & Tier
+      </div>
+      <div class="nav-tab" onclick="showTab('credit', this)">💳 Credit</div>
+      <div class="nav-tab" onclick="showTab('loyalty', this)">⭐ Loyalty</div>
+      <div class="nav-tab" onclick="showTab('search', this)">
+        🔍 Search & Cart
+      </div>
+      <div class="nav-tab" onclick="showTab('bookings', this)">📅 Bookings</div>
+      <div class="nav-tab" onclick="showTab('projects', this)">🗂 Projects</div>
+      <div class="nav-tab" onclick="showTab('algorithm', this)">
+        🧠 Algorithm
+      </div>
+    </div>
+
+    <!-- AUTH -->
+    <div id="auth" class="diagram-container active">
+      <div class="diagram-title">🔐 Authentication & Identity Workflows</div>
+      <div class="diagram-subtitle">
+        Registration (email + OAuth), login, password flows, and session
+        termination.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  VIS["Visitor"] --> REG["POST /api/register"]
+  VIS --> LOGIN["POST /api/login"]
+  VIS --> OAUTH["GET /api/oauth/provider\ngoogle or microsoft"]
+
+  REG --> RV1["Validate: name / email / phone\npassword / referral_code / policy_acceptances"]
+  RV1 --> RV2["DB Transaction begins"]
+  RV2 --> RV3["Create User\nrole=customer status=pending_verification"]
+  RV3 --> RV4["Create Customer\nCUST-YYYY-0000+"]
+  RV4 --> RV5["Referral code provided?"]
+  RV5 --> RV6["Lookup ReferralCode\nstatus=active"]
+  RV6 --> RV7["canBeUsedBy check"]
+  RV7 --> RV8["Link: referred_by_code_id\nCreate ReferralCodeUsage pending\nrecordAttempt"]
+  RV7 --> RV9["Silently ignored"]
+  RV5 --> RV10["Skip referral logic"]
+  RV4 --> RV11["Generate personal ReferralCode\nReferralCode createForCustomer"]
+  RV11 --> RV12["Log PolicyAcceptances"]
+  RV12 --> RV13["Auto-login + Sanctum Token"]
+  RV13 --> RV14["201: user / customer / token / referral_code / share_url"]
+
+  LOGIN --> LV1["Validate: email / password / remember"]
+  LV1 --> LV2["Find User withTrashed by email"]
+  LV2 --> LV3["NOT FOUND: 401 Invalid credentials"]
+  LV2 --> LV4["isLocked? 423 Account locked"]
+  LV4 --> LV5["canLogin? 403 Account suspended"]
+  LV5 --> LV6["trashed? Restore user + customer"]
+  LV6 --> LV7["Password verification"]
+  LV7 --> LV8["INVALID: recordFailedLogin 401"]
+  LV7 --> LV9["force_password_change? 403 Must change"]
+  LV9 --> LV10["Policy re-acceptance check"]
+  LV10 --> LV11["needsReacceptance any policy?"]
+  LV11 --> LV12["200 + requires_policy_acceptance + policies array"]
+  LV11 --> LV13["Auth::login + recordLogin\nSanctum Token\n200: user / customer / token"]
+
+  OAUTH --> OA1["Provider valid? IF NOT 400"]
+  OA1 --> OA2["Redirect to OAuth provider"]
+  OA2 --> OA3["Callback: get socialUser"]
+  OA3 --> OA4["Find User by email OR oauth_id"]
+  OA4 --> OA5["NO USER: Create User + Customer\nReferralCode createForCustomer"]
+  OA4 --> OA6["FOUND + trashed: Restore user + customer"]
+  OA4 --> OA7["FOUND + suspended: Redirect error"]
+  OA4 --> OA8["FOUND: Update oauth_id if empty"]
+  OA5 --> OA9["Auto-accept policies silently\nterms / privacy / website"]
+  OA6 --> OA9
+  OA8 --> OA9
+  OA9 --> OA10["Generate Sanctum Token\nRedirect /auth/callback?token="]
+
+  LV13 --> LOGOUT["POST /api/logout"]
+  LOGOUT --> LO1["currentAccessToken delete\nAuth::logout\n200 Logout successful"]
+  LO1 --> LO2["Cart / wishlist / credit / loyalty persist\nSearch events already recorded"]
+
+  style VIS fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style REG fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style LOGIN fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style OAUTH fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RV14 fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style LV13 fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style OA10 fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style LV3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LV4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LV5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LV8 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LV9 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LV12 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style OA7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RV9 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style LOGOUT fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style LO1 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style LO2 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Auth</div>
+        OAuth auto-accepts all policies silently — no user interaction. Email
+        login triggers a policy re-acceptance check on every login before
+        issuing the token. Trashed accounts are auto-restored on successful
+        password verification. Referral code failures are always silent — never
+        block registration.
+      </div>
+    </div>
+
+    <!-- POLICIES -->
+    <div id="policies" class="diagram-container">
+      <div class="diagram-title">📋 Post-Login Policy Compliance</div>
+      <div class="diagram-subtitle">
+        Policy re-acceptance determination, recording, sensitivity matrix, and
+        login branch logic.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  P_CHECK["needsReacceptance check\ncustomer + policy_key"] --> P1["Find latest PolicyAcceptance\nresponse=accepted for customer+key"]
+  P1 --> P2["NO ACCEPTANCE found"]
+  P2 --> P3["RETURN true: needs acceptance"]
+  P1 --> P4["Parse accepted major version\nexplode on policy_version"]
+  P4 --> P5["Get current policy major_version"]
+  P5 --> P6["RETURN accepted_major < current_major"]
+
+  P_RECORD["recordAcceptance request"] --> PR1["Validate: policy_key / action_context\nresponse / disagree_reason"]
+  PR1 --> PR2["Find active policy by key"]
+  PR2 --> PR3["Create PolicyAcceptance\npolicy_id / version / snapshot\ncustomer_id / ip / user_agent / accepted_at"]
+  PR3 --> PR4["response = disagreed?"]
+  PR4 --> PR5["sensitivity = critical?"]
+  PR5 --> PR6["customer.policy_flagged = true\ncustomer.policy_flagged_at = now\nCreate Notification high priority shield-alert"]
+  PR5 --> PR7["403 with disagree_consequence_text"]
+  PR4 --> PR8["response = accepted AND customer was flagged?"]
+  PR8 --> PR9["Clear all policy flags\nset false / null"]
+
+  LOGIN_POLICY["Customer Login\npolicy branch"] --> LP1["acceptances array EMPTY in request?"]
+  LP1 --> LP2["Check terms_of_use needsReacceptance"]
+  LP2 --> LP3["Check privacy_policy needsReacceptance"]
+  LP3 --> LP4["Any needed?"]
+  LP4 --> LP5["200 + requires_policy_acceptance: true\n+ policies array"]
+  LP4 --> LP6["Continue normal login"]
+  LP1 --> LP7["acceptances PROVIDED in request"]
+  LP7 --> LP8["Iterate each policy acceptance"]
+  LP8 --> LP9["response = disagreed"]
+  LP9 --> LP10["sensitivity = critical"]
+  LP10 --> LP11["Flag customer account\nCreate admin notification\n403 with consequence text"]
+  LP10 --> LP12["Non-critical: 403 disagree_consequence_text"]
+  LP9 --> LP13["response = accepted"]
+  LP13 --> LP14["Customer was flagged for this policy?"]
+  LP14 --> LP15["Clear flags"]
+  LP14 --> LP16["Continue normal login"]
+
+  style P_CHECK fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style P_RECORD fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style LOGIN_POLICY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style P3 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style P6 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style PR6 fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style PR7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PR9 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style LP5 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style LP6 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style LP11 fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style LP12 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style LP15 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style LP16 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Policies</div>
+        Policy re-acceptance triggers on major version bump only (e.g. v1.x →
+        v2.0). Critical policy disagreement flags the customer account AND
+        notifies admin. Accepting a previously-disagreed critical policy clears
+        all flags. Booking cancellation policy is checked per-booking, not at
+        login.
+      </div>
+    </div>
+
+    <!-- PROFILE & TIER -->
+    <div id="profile" class="diagram-container">
+      <div class="diagram-title">👤 Customer Profile & Tier Context</div>
+      <div class="diagram-subtitle">
+        Customer data structure post-login, tier benefits resolution, and public
+        tier/type endpoints.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  AUTH_CUST["Authenticated Customer"] --> CD1["id / customer_number / user_id"]
+  CD1 --> CD2["first_name / last_name / email / phone / company_name"]
+  CD2 --> CD3["tier: bronze / silver / gold / platinum\naffects loyalty multiplier"]
+  CD3 --> CD4["customer_type: individual / corporate\naffects discount percent"]
+  CD4 --> CD5["status: active / suspended / inactive"]
+  CD5 --> CD6["loyalty_points / store_credit"]
+  CD6 --> CD7["total_orders / total_spent / last_order_date"]
+  CD7 --> CD8["has_credit_account boolean\ncredit_limit / credit_used / credit_interest_rate"]
+  CD8 --> CD9["policy_flagged boolean\nblocks: credit / loyalty / bookings"]
+  CD9 --> CD10["referred_by_code_id / referred_by_customer_id\nmyReferralCode personal sharing code"]
+
+  CD3 --> TIER["tier_benefits accessor"]
+  TIER --> TB1["Find CustomerTier by slug = customer.tier"]
+  TB1 --> TB2["Tier NOT found OR inactive"]
+  TB2 --> TB3["Return default benefits"]
+  TB1 --> TB4["Return:\ndiscount_percentage\nfree_shipping_threshold\nloyalty_points_multiplier\npriority_support boolean"]
+
+  PUBLIC["No Auth Required"] --> PUB1["GET /api/public-tiers\nCustomerTier active sorted by sort_order"]
+  PUBLIC --> PUB2["GET /api/public-types\nCustomerTypeDiscount active sorted by sort_order"]
+
+  BLOCK["policy_flagged = true BLOCKS"] --> BL1["View credit summary"]
+  BLOCK --> BL2["Record credit purchase"]
+  BLOCK --> BL3["Make booking"]
+  BLOCK --> BL4["Redeem loyalty points"]
+
+  DISQ["BookingDisqualification BLOCKS"] --> DQ1["Place booking 403"]
+
+  style AUTH_CUST fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style CD3 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style CD8 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CD9 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style TIER fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style TB3 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style TB4 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style PUBLIC fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style PUB1 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style PUB2 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style BLOCK fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style BL1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style BL2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style BL3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style BL4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style DISQ fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style DQ1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Profile & Tier</div>
+        Tier drives two things: discount_percentage on orders and
+        loyalty_points_multiplier on earn. policy_flagged is the master block —
+        it gates credit, loyalty redemption, and bookings simultaneously.
+        CustomerTypeDiscount (individual vs corporate) applies an additional
+        discount layer on top of tier discounts.
+      </div>
+    </div>
+
+    <!-- CREDIT -->
+    <div id="credit" class="diagram-container">
+      <div class="diagram-title">💳 Credit Account Workflows</div>
+      <div class="diagram-subtitle">
+        Account lifecycle, summary calculation, installment schedules, invoices,
+        and customer self-service views.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CADMIN["Admin activates credit account"] --> CA1["has_credit_account = true\ncredit_limit assigned\ncredit_interest_rate assigned\ncredit_currency_id assigned"]
+
+  CA1 --> CU1["recordPurchase\ndebit: increases credit_used"]
+  CA1 --> CU2["recordPayment\ncredit: decreases credit_used floor 0"]
+  CA1 --> CU3["applyInterest\ndebit: credit_used x rate / 100"]
+  CA1 --> CU4["adjustment\nmanual admin debit or credit"]
+
+  CA1 --> CSUM["getSummary"]
+  CSUM --> CS1["limit = customer.credit_limit\nused = customer.credit_used\navailable = max(0, limit - used)\nutilization_pct = round(used/limit*100, 1)"]
+  CS1 --> CS2["hasOverdueInvoice\nstatus=sent AND due_date < now"]
+  CS2 --> CS3["hasOverdueInstallment\nschedule active + item pending + due_date < now"]
+  CS3 --> CS4["is_overdue = hasOverdueInvoice OR hasOverdueInstallment"]
+
+  SCHED["Admin creates installment schedule\nPOST /admin/customers/id/credit/schedules"] --> SC1["Validate: total_amount / installments 1-60\nfrequency weekly/biweekly/monthly / started_at"]
+  SC1 --> SC2["has_credit_account? IF NOT 422"]
+  SC2 --> SC3["baseAmount = floor(total/installments*100)/100\nlastAmount = round(total - base*(count-1), 2)"]
+  SC3 --> SC4["Create CustomerCreditSchedule status=active\nCreate N CustomerCreditScheduleItem records"]
+
+  SC4 --> SCI1["Item: pending\nAdmin pays: paid + paid_at"]
+  SC4 --> SCI2["Item: pending\nAdmin waives: waived"]
+  SC4 --> SCI3["Item: pending past due_date\nScheduled command: overdue"]
+  SCI3 --> SCI4["overdue + payment: paid late"]
+
+  INV["Admin creates invoice\nPOST /admin/customers/id/credit/invoices"] --> IV1["Validate: due_date / note\ntransaction_ids / line_items"]
+  IV1 --> IV2["empty transaction_ids AND empty line_items? 422"]
+  IV2 --> IV3["Build lines from transactions\nBuild lines from manual items\nCalculate subtotal / interest / total\nGenerate INV-Ymd-0000+"]
+  IV3 --> IV4["Create CustomerCreditInvoice status=draft\nCreate InvoiceItem records"]
+  IV4 --> IV5["Admin: status draft/sent/paid/overdue/void"]
+  IV4 --> IV6["Admin: send — status=sent + sent_at\nFire CreditInvoiceMail TODO"]
+  IV5 --> IV7["status=void? Cannot send 422"]
+
+  SELF["Customer self-service"] --> SE1["GET /customer/credit/summary\nfull credit snapshot"]
+  SELF --> SE2["GET /customer/credit/statement\npaginated ledger with from/to filters"]
+  SELF --> SE3["GET /customer/credit/invoices\nexcludes draft and void\nfilter: sent/paid/overdue"]
+  SELF --> SE4["GET /customer/credit/schedules\nactive and completed only"]
+
+  style CADMIN fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style CA1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CU1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CU2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CU3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CU4 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CSUM fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style CS1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CS2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CS3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style CS4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SCHED fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style SC2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SCI3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style INV fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style IV2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style IV7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SELF fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style SE1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style SE2 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style SE3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style SE4 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Credit</div>
+        credit_used never goes below 0 on payment. Installment last item gets
+        rounding remainder to avoid floating-point drift. Invoices are always
+        draft first — admin must explicitly send them. Customer self-service
+        excludes draft and void invoices. Overdue detection is dual-path:
+        invoice due_date OR installment due_date, either triggers is_overdue
+        flag.
+      </div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div id="loyalty" class="diagram-container">
+      <div class="diagram-title">⭐ Loyalty & Rewards Workflows</div>
+      <div class="diagram-subtitle">
+        Points earning, reversal on cancel, store credit at checkout, redemption
+        flow, and expiry command.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  EARN["Order marked paid\nearnPointsForOrder"] --> E1["loyalty_points_earned > 0? RETURN idempotent"]
+  E1 --> E2["totalKes = order.total_kes"]
+  E2 --> E3["totalKes <= 0? RETURN"]
+  E3 --> E4["rate = LoyaltySetting points_per_100_kes default 1"]
+  E4 --> E5["rawPoints = floor(totalKes/100) x rate"]
+  E5 --> E6["rawPoints <= 0? RETURN"]
+  E6 --> E7["multiplier = tier_benefits loyalty_points_multiplier default 1.0"]
+  E7 --> E8["points = round(rawPoints x multiplier)"]
+  E8 --> E9["expiryMonths = LoyaltySetting points_expiry_months"]
+  E9 --> E10["DB transaction lockForUpdate on order"]
+  E10 --> E11["Re-check loyalty_points_earned race condition guard"]
+  E11 --> E12["writePointTransaction type=order_earn\nLock customer row\nnewBalance = loyalty_points + points\nUpdate customer.loyalty_points"]
+  E12 --> E13["order.update loyalty_points_earned = points"]
+
+  REVERSE["Order cancelled\nreversePointsForCancelledOrder"] --> R1["pointsToReverse = order.loyalty_points_earned"]
+  R1 --> R2["<= 0? RETURN"]
+  R2 --> R3["toDeduct = min(pointsToReverse, customer.loyalty_points)"]
+  R3 --> R4["DB transaction\nwritePointTransaction type=order_cancel points=-toDeduct\norder.loyalty_points_earned = 0"]
+  R4 --> R5["Allows re-earning if order restored and re-paid"]
+
+  CHECKOUT_SC["applyStoreCreditToOrder\ncheckout"] --> SC1["available = customer.store_credit"]
+  SC1 --> SC2["available <= 0? RETURN 0 0"]
+  SC2 --> SC3["maxPct = LoyaltySetting store_credit_max_pct default 50"]
+  SC3 --> SC4["maxAllowed = round(totalKes x maxPct/100, 2)"]
+  SC4 --> SC5["deductionKes = min(requestedKes / available / totalKes / maxAllowed)"]
+  SC5 --> SC6["deductionOrderCurrency = round(deductionKes / exchangeRate, 2)"]
+  SC6 --> SC7["RETURN deductionKes / deductionOrderCurrency"]
+
+  REDEEM["Customer or Admin redeem\nrule_id"] --> RD1["getRedemptionRules active only"]
+  RD1 --> RD2["Rule NOT found: Exception"]
+  RD1 --> RD3["required = rule.points_required"]
+  RD3 --> RD4["required < minThreshold 500? Exception"]
+  RD4 --> RD5["customer.loyalty_points < required? Exception"]
+  RD5 --> RD6["DB transaction\nwritePointTransaction type=redemption points=-required"]
+  RD6 --> RD7["valueKes > 0 AND type in cashback/voucher?"]
+  RD7 --> RD8["writeCreditTransaction type=points_redemption amount=valueKes"]
+  RD7 --> RD9["Gift type: no store credit granted"]
+  RD8 --> RD10["RETURN: rule / points_used / credit_granted / message"]
+
+  EXPIRY["ExpireLoyaltyPoints scheduled command"] --> EX1["LoyaltyPointTransaction due scope\npoint_type=expiring expires_at < now expired_at is null"]
+  EX1 --> EX2["FOREACH tx"]
+  EX2 --> EX3["customer missing? continue"]
+  EX2 --> EX4["DB transaction\ntx.update expired_at=now\ntoRemove = min(tx.points, customer.loyalty_points)\nwritePointTransaction type=expiry points=-toRemove"]
+
+  style EARN fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style E12 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style E13 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style REVERSE fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style R4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R5 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style CHECKOUT_SC fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style SC7 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style REDEEM fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style RD2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RD4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RD5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RD8 fill:#2a2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style RD10 fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style EXPIRY fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style EX4 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Loyalty</div>
+        earnPointsForOrder is idempotent — checks loyalty_points_earned before
+        writing, and re-checks inside the transaction for race safety. Store
+        credit is capped at 50% of order total by default (configurable).
+        Redemption minimum is 500 points by default. Expiry only affects
+        point_type=expiring transactions — permanent points never expire.
+      </div>
+    </div>
+
+    <!-- SEARCH & CART -->
+    <div id="search" class="diagram-container">
+      <div class="diagram-title">
+        🔍 Search & Discovery + Cart / Wishlist / Quote
+      </div>
+      <div class="diagram-subtitle">
+        Search event tracking, cart sync, wishlist sync, and quote list sync —
+        all with silent failure patterns.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  SE["POST /api/search-events\nFire and forget — always 204"] --> SE1["Validate: session_id / event_type required\nquery / filter_type / results_count\nentity_type / entity_id / result_position"]
+  SE1 --> SE2["Attempt token auth optional\nbearerToken from request"]
+  SE2 --> SE3["Token valid: extract user_id + customer_id"]
+  SE2 --> SE4["Invalid or missing: anonymous nulls"]
+  SE3 --> SE5["SearchEvent::create\nuser_id / customer_id / ip / user_agent\noccurred_at + all event data"]
+  SE4 --> SE5
+  SE5 --> SE6["Any exception: silently caught\nValidation fail: silently swallowed\nAlways returns 204"]
+
+  CART["Cart Sync"] --> CA1["GET /api/cart\nResolve customer_id from auth"]
+  CA1 --> CA2["No customer: RETURN items empty array"]
+  CA1 --> CA3["Query customer_carts table\nRETURN items json_decode or empty"]
+  CART --> CA4["POST /api/cart\nNo customer: RETURN success false"]
+  CA4 --> CA5["Validate: items required array"]
+  CA5 --> CA6["DB upsert customer_carts\nuniqueBy customer_id\nupdate items + updated_at\nRETURN success true"]
+
+  WISH["Wishlist Sync"] --> WI1["GET /api/wishlist\nRETURN ids array of product/service IDs"]
+  WISH --> WI2["POST /api/wishlist\nValidate: ids required array of integers\nUpsert customer_wishlists\nRETURN success true"]
+
+  QUOTE["Quote List Sync"] --> QU1["GET /api/quote-list\nRETURN items empty array"]
+  QUOTE --> QU2["POST /api/quote-list\nValidate: items required array\nUpsert customer_quote_lists\nRETURN success true"]
+
+  SE6 --> ERR["Error Handling Pattern\nall three sync endpoints"]
+  CA6 --> ERR
+  WI2 --> ERR
+  QU2 --> ERR
+  ERR --> ERR1["Try/catch around entire method\nAny exception: return empty or success false\nNEVER returns 500\nSilent failure prevents frontend disruption"]
+
+  style SE fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style SE6 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style SE3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style SE4 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style CART fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style CA2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style WISH fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style QUOTE fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style ERR fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style ERR1 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Search & Cart</div>
+        Search events are pure telemetry — validation failures and exceptions
+        are swallowed, always 204. Cart/wishlist/quote all use upsert by
+        customer_id so there's always exactly one row per customer. All three
+        sync endpoints follow the same silent-failure contract — never 500,
+        always graceful degradation.
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div id="bookings" class="diagram-container">
+      <div class="diagram-title">📅 Booking Workflows</div>
+      <div class="diagram-subtitle">
+        Customer booking flow, cancellation with fee calculation, admin
+        management, and booking state machine.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CBOOK["Customer POST /customer/bookings"] --> CB1["settings.bookings_open? IF NOT 422 Bookings closed"]
+  CB1 --> CB2["customer exists? IF NOT 404"]
+  CB2 --> CB3["BookingDisqualification isCustomerDisqualified? IF TRUE 403"]
+  CB3 --> CB4["Validate: service_id / location_type\nscheduled_type / scheduled_at"]
+  CB4 --> CB5["Extract cancellation policy from policy_acceptances\nresponse != accepted: 422 Must accept"]
+  CB5 --> CB6["service.booking_required? IF NOT 422"]
+  CB6 --> CB7["max_concurrent_bookings set?"]
+  CB7 --> CB8["Count existing bookings for date excl cancelled/no_show\ncount >= max? 422 Fully booked"]
+  CB7 --> CB9["isDateAvailable check? IF NOT 422"]
+  CB9 --> CB10["lead_time_hours check? IF too close 422"]
+  CB10 --> CB11["DB transaction\nBooking::create\nlogBookingCreated\nLog policy acceptances"]
+  CB11 --> CB12["email_customer_on_booking? Queue BookingPlacedCustomer"]
+  CB11 --> CB13["email_admin_on_booking? Queue BookingPlacedAdmin"]
+  CB13 --> CB14["201 + booking"]
+
+  CCANCEL["Customer POST /customer/bookings/id/cancel"] --> CC1["settings.customer_can_cancel? IF NOT 403"]
+  CC1 --> CC2["Booking forCustomer findOrFail"]
+  CC2 --> CC3["canBeCancelledByCustomer? IF NOT 422 Need X hours advance"]
+  CC3 --> CC4["Validate: reason required max 500"]
+  CC4 --> CC5["Calculate fee\ncancellation_fee > 0?"]
+  CC5 --> CC6["percent: round(fee/100 x service.base_price, 2)\nfixed: float cancellation_fee"]
+  CC5 --> CC7["fee = 0"]
+  CC6 --> CC8["booking.update status=cancelled\ncancelled_by / cancelled_at / reason / fee"]
+  CC7 --> CC8
+  CC8 --> CC9["logBookingCancelled\nQueue emails if configured\n200 + fee + booking"]
+
+  ABOOK["Admin booking management"] --> AB1["POST /admin/bookings\ndisqualified? 422\nservice.booking_required? 422\nmax_concurrent? 422\npolicy_accepted=true admin bypass"]
+  ABOOK --> AB2["POST confirm\nisPending? IF NOT 422\nstatus=confirmed\nlogBookingConfirmed\nQueue BookingConfirmedCustomer"]
+  ABOOK --> AB3["POST status\nValidate: pending/confirmed/in_progress/completed/no_show\nUpdate + logStatusChanged"]
+  ABOOK --> AB4["POST cancel\nalready cancelled? 422\nfee=0 admin waives\nlogBookingCancelled + emails"]
+
+  STATE["Booking State Machine"] --> ST1["pending"]
+  ST1 --> ST2["confirmed — Admin confirms"]
+  ST2 --> ST3["in_progress — Admin updates"]
+  ST3 --> ST4["completed — Admin updates"]
+  ST1 --> ST5["cancelled — Admin or customer within window"]
+  ST2 --> ST5
+  ST3 --> ST6["cancelled — Admin only fee waived"]
+  ST1 --> ST7["no_show — Admin only"]
+
+  style CBOOK fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style CB1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CB2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CB3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CB5 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CB8 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CB14 fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style CCANCEL fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style CC1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CC3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CC9 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style ABOOK fill:#2e1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style AB1 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AB2 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AB3 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AB4 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style STATE fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style ST1 fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style ST2 fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style ST4 fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style ST5 fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style ST7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Bookings</div>
+        Cancellation policy acceptance is per-booking — not global login policy.
+        Admin bypass uses policy_accepted=true hardcoded. Cancellation fee is
+        calculated at cancel time against current service.base_price. Admin
+        cancels always waive the fee. no_show is admin-only and does not trigger
+        cancellation emails.
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div id="projects" class="diagram-container">
+      <div class="diagram-title">🗂 Project Collaboration Workflows</div>
+      <div class="diagram-subtitle">
+        Participant management, permission matrix, and project messaging flows.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  PART["Project Participants"] --> PA1["Admin adds admin\nPOST /admin/projects/id/participants/add-admin"]
+  PA1 --> PA2["Validate: admin_user_id / role\nadmin_owner/manager/finance/support/viewer\ncan_view_finance / can_comment / can_upload / can_approve"]
+  PA2 --> PA3["duplicate active/invited? 422"]
+  PA2 --> PA4["role=admin_owner? Demote existing owner to manager"]
+  PA4 --> PA5["Create ProjectParticipant status=active accepted_at=now\nlogActivity PARTICIPANT_ADDED"]
+
+  PART --> PB1["Admin adds customer\nPOST /admin/projects/id/participants/add-customer"]
+  PB1 --> PB2["Validate: customer_id / role\ncustomer_owner/editor/viewer"]
+  PB2 --> PB3["duplicate? 422"]
+  PB2 --> PB4["role=customer_owner? Demote existing owner to editor"]
+  PB4 --> PB5["Create status=invited invited_at=now\nlogActivity PARTICIPANT_INVITED"]
+
+  PART --> PC1["Customer invites customer\nPOST /customer/projects/id/participants/customer-invite"]
+  PC1 --> PC2["Validate: customer_id / role\ncustomer_editor or viewer ONLY"]
+  PC2 --> PC3["duplicate? 422"]
+  PC2 --> PC4["Create status=invited limited permissions\nlogActivity PARTICIPANT_INVITED"]
+
+  PERM["Permission Matrix"] --> PM1["admin_owner: view_finance inherited / comment / upload / approve"]
+  PERM --> PM2["admin_manager: same as owner"]
+  PERM --> PM3["admin_finance: view_finance YES / comment / upload / no approve"]
+  PERM --> PM4["admin_support: no finance / comment / upload / no approve"]
+  PERM --> PM5["admin_viewer: NO permissions"]
+  PERM --> PM6["customer_owner: no finance / comment / upload / approve"]
+  PERM --> PM7["customer_editor: no finance / comment / upload / no approve"]
+  PERM --> PM8["customer_viewer: no finance / comment only / no upload"]
+
+  MSG["Project Messaging"] --> MG1["GET messages\nBase query: project_id ordered ASC\nnot staff: visibility=customer only\nstaff: filter by visibility param"]
+  MSG --> MG2["Admin POST message\nValidate: message / visibility customer/admin/internal\nfiles / url\nProcess attachments store to projects disk\nCreate message sender_user_id=auth id\nlogActivity MESSAGE_POSTED"]
+  MSG --> MG3["Customer POST message\nSame validation\nvisibility forced to customer\nCreate message"]
+  MSG --> MG4["PUT message update\nAuthorize view project\nproject_id mismatch? 404\nsuper_admin OR message owner\nno permission? 403\nUpdate message + edited_at\nlogActivity MESSAGE_EDITED"]
+  MSG --> MG5["DELETE message\nsuper_admin OR message owner\nno permission? 403\nlogActivity MESSAGE_DELETED"]
+  MSG --> MG6["Bulk DELETE admin\nValidate: ids min 1\nCheck permission per message\nany denied? 403 with denied list\nDelete all permitted\nlogActivity MESSAGES_BULK_DELETED"]
+  MSG --> MG7["Clear chat super_admin only\nrole != super_admin? 403\nDelete all for project\nlogActivity CHAT_CLEARED"]
+
+  style PART fill:#2e1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style PA3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PB3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PC3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style PERM fill:#2e1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style PM5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style MSG fill:#2e1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style MG2 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style MG4 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style MG6 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+  style MG7 fill:#2e1a2e,stroke:#ec4899,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Projects</div>
+        Only one admin_owner and one customer_owner allowed per project — adding
+        a new one demotes the existing. Customers can only invite at
+        editor/viewer level — cannot grant ownership through self-service
+        invite. Chat clear is super_admin only and deletes all messages with no
+        recovery. Bulk delete checks permissions per-message — partial denials
+        return 403 with the specific denied list.
+      </div>
+    </div>
+
+    <!-- ALGORITHM -->
+    <div id="algorithm" class="diagram-container">
+      <div class="diagram-title">🧠 Algorithmic Scoring & Personalization</div>
+      <div class="diagram-subtitle">
+        RFM + extended scoring, segment determination, catalogue ranking
+        weights, and admin scoring operations.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  SCORE["scoreCustomer"] --> S1["computeRawSignals"]
+  S1 --> S2["recency: max(0, round(100 - days_since_last/3.65))"]
+  S1 --> S3["frequency: min(100, round(log(orders+1)/log(50)*100))"]
+  S1 --> S4["monetary: percent_rank(total_spent vs all customers)"]
+  S1 --> S5["loyalty: min(100, round(loyalty_points/100))"]
+  S1 --> S6["engagement: reviews*20 + bids*10 + quotes*15 capped 100"]
+  S1 --> S7["service: bookings*25 + service_items*15 capped 100"]
+  S1 --> S8["referral: min(100, completed_referrals*20)"]
+
+  S2 --> W1["applyWeights\nrecency=25 / frequency=20 / monetary=20\nloyalty=15 / engagement=10 / service=5 / referral=5"]
+  S3 --> W1
+  S4 --> W1
+  S5 --> W1
+  S6 --> W1
+  S7 --> W1
+  S8 --> W1
+
+  W1 --> SR1["applySegmentRules\nFor each active segment rule\nmatchesCondition: field / operator / value\nIF match: boost signal by boost_percent"]
+  SR1 --> SR2["RETURN: customer_id / raw scores / weighted scores / total_score"]
+
+  SR2 --> SEG["Segment determination"]
+  SEG --> SG1["score >= 68: champion"]
+  SEG --> SG2["score >= 48: loyal"]
+  SEG --> SG3["recency < 20: at_risk"]
+  SEG --> SG4["score < 25: dormant"]
+  SEG --> SG5["else: loyal"]
+
+  SEG --> CW["Catalogue weights by segment"]
+  CW --> CW1["champion: featured=20 / new=10 / sale=5 / rating=30 / popular=25 / bonus=10"]
+  CW --> CW2["loyal: featured=25 / new=10 / sale=5 / rating=30 / popular=20 / bonus=10"]
+  CW --> CW3["at_risk: featured=10 / new=15 / sale=35 / rating=15 / popular=15 / bonus=10"]
+  CW --> CW4["dormant: featured=10 / new=30 / sale=25 / rating=15 / popular=10 / bonus=10"]
+
+  CW --> RQ["getCustomerRankedProducts\ncustomerId / entity_type=product"]
+  RQ --> RQ1["Determine segment"]
+  RQ1 --> RQ2["Load catalogue weights from cache or defaults"]
+  RQ2 --> RQ3["Build score expression\nProduct: is_featured*W + is_new*W + on_sale*W + rating/5*W + purchases/100*W + has_boost*W\nService: is_featured*W + rating/5*W + orders/100*W + has_boost*W"]
+  RQ3 --> RQ4["Join: customer_product_pins is_pinned\nalgorithm_bonus_content boost_message / badge_type"]
+  RQ4 --> RQ5["WHERE deleted_at IS NULL\nOPTIONAL: search name/sku / category_id\nORDER BY: is_pinned DESC / catalogue_score DESC\nPaginate per_page capped 100"]
+
+  ADMIN_SCORE["POST /admin/algorithm/run"] --> AS1["customer_id provided?"]
+  AS1 --> AS2["Single customer: scoreCustomer + persistScore"]
+  AS1 --> AS3["Full batch: chunkById 200 all non-deleted customers\nFor each: scoreCustomer + persistScore\nCatch exceptions: log warning + increment failed\nReturn: scored / failed / duration"]
+
+  AS2 --> PS["persistScore\nINSERT customer_algorithm_scores\ncustomer_id / total_score / all raw signals\nweighted_json / scored_by / scored_at\nNO updateOrInsert — each run creates new historical record"]
+  AS3 --> PS
+
+  style SCORE fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style S2 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S3 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S4 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S5 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S6 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S7 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S8 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style W1 fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style SR1 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SR2 fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style SEG fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style SG1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style SG2 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SG3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style SG4 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style CW fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CW1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style CW3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CW4 fill:#1a1a2e,stroke:#64748b,stroke-width:1px,color:#fff
+  style RQ fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style RQ5 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style ADMIN_SCORE fill:#2e1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style PS fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Algorithm</div>
+        Scoring is NOT upsert — every run creates a new historical row, giving
+        full score history over time. Segment rules are admin-configurable
+        field/operator/value conditions that boost individual signals before
+        final weighting. at_risk weights heavily toward sale items (35%) —
+        dormant gets new products (30%). Pinned products always sort first
+        regardless of score.
+      </div>
+    </div>
+
+    <script>
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        themeVariables: {
+          primaryColor: "#1e293b",
+          primaryTextColor: "#e2e8f0",
+          primaryBorderColor: "#475569",
+          lineColor: "#64748b",
+          secondaryColor: "#334155",
+          tertiaryColor: "#0f172a",
+          fontFamily: "Segoe UI, system-ui, sans-serif",
+          fontSize: "13px",
+        },
+        flowchart: {
+          useMaxWidth: true,
+          htmlLabels: false,
+          curve: "basis",
+          padding: 15,
+          nodeSpacing: 50,
+          rankSpacing: 60,
+        },
+      });
+
+      document.querySelectorAll(".mermaid").forEach((node) => {
+        node.setAttribute("data-original", node.textContent);
+      });
+
+      mermaid.run({ nodes: document.querySelectorAll("#auth .mermaid") });
+
+      const rendered = new Set(["auth"]);
+
+      function showTab(tabId, el) {
+        document
+          .querySelectorAll(".diagram-container")
+          .forEach((c) => c.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        el.classList.add("active");
+
+        if (!rendered.has(tabId)) {
+          rendered.add(tabId);
+          const nodes = Array.from(
+            document.querySelectorAll("#" + tabId + " .mermaid"),
+          );
+          nodes.forEach((node) => {
+            node.innerHTML = node.getAttribute("data-original") || "";
+            node.removeAttribute("data-processed");
+          });
+          mermaid.run({ nodes });
+        }
+      }
+    </script>
+  </body>
+</html>

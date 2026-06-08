@@ -7,6 +7,23 @@ import api from './axios';
 
 const adminCreditAPI = {
 
+  /**
+   * Fetch global overview metrics (Total allocations, outstanding exposure, arrears)
+   */
+  getGlobalSummary: async () => {
+    const response = await api.get('/admin/credit/global-summary');
+    return response.data;
+  },
+
+  /**
+   * Fetch all system portfolios with sorting, pagination, and multi-state filtering
+   * @param {Object} params - { page, search, has_credit_account, is_overdue, sort_by, sort_dir }
+   */
+  getGlobalCustomers: async (params = {}) => {
+    const response = await api.get('/admin/credit/global-customers', { params });
+    return response.data;
+  },
+
   // ── Summary ────────────────────────────────────────────────────────────────
 
   getSummary: async (customerId) => {

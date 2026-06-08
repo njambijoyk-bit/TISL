@@ -365,6 +365,7 @@ export default function Work() {
               </p>
             </div>
           </div>
+        </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -423,7 +424,6 @@ export default function Work() {
             />
             Refresh
           </button>
-        </div>
         </div>
 
         {/* ── Loading ── */}

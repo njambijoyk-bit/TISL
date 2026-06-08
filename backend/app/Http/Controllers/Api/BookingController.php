@@ -296,6 +296,24 @@ class BookingController extends Controller
         ]);
     }
 
+    // GET /admin/bookings/activity
+    public function globalActivityLog(Request $request): JsonResponse
+    {
+        $query = \App\Models\BookingActivityLog::with([
+            'performed_by:id,name',
+            'booking:id,booking_number',
+        ])->orderByDesc('created_at');
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('action', 'like', "%{$request->search}%")
+                ->orWhere('description', 'like', "%{$request->search}%");
+            });
+        }
+
+        return response()->json($query->paginate($request->get('per_page', 30)));
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // CUSTOMER
     // ════════════════════════════════════════════════════════════════════════

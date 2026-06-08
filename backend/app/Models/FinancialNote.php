@@ -60,7 +60,8 @@ class FinancialNote extends Model
         static::creating(function ($model) {
             if (empty($model->note_number)) {
                 $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
+                $last  = static::whereYear('created_at', $year)->max('note_number');
+                $count = $last ? ((int) substr($last, -4)) + 1 : 1;
                 $model->note_number = 'FN-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             }
         });

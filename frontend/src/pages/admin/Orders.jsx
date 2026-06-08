@@ -33,6 +33,8 @@ import Badge from '../../components/common/Badge';
 import Textarea from '../../components/common/TextArea';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
+import entryPointsImg from './settings/diagrams/entrypoints.png';
+import adminActionsImg from './settings/diagrams/adminactions.png';
 import CreateOrderModal from '../../components/admin/CreateOrderModal';
 import OrderStatusBadge from '../../components/admin/OrderStatusBadge';
 import PaymentStatusBadge from '../../components/admin/PaymentStatusBadge';
@@ -126,6 +128,9 @@ export default function Orders() {
   const [bulkRestoreReason, setBulkRestoreReason] = useState('');
 
   const [createOrderModal, setCreateOrderModal] = useState(false);
+
+  const [devModal, setDevModal] = useState(false);
+  const [devFullscreen, setDevFullscreen] = useState(false);
 
   const orderTotalKes = (o) => {
     if (Number(o?.total_kes) > 0) return Number(o.total_kes);
@@ -1266,6 +1271,16 @@ export default function Orders() {
               Trash
             </Button>
 
+            <button
+              type="button"
+              onClick={() => setDevModal(true)}
+              style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, 
+              color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '3px 8px', 
+              borderRadius: 6, border: '1px solid #a855f7' }}
+              title="Developer flow diagram">
+              // dev
+            </button>
+
             {selectedOrders.length > 0 && (
               <>
                 {allSelectedCancelled ? (
@@ -2111,6 +2126,146 @@ export default function Orders() {
             </div>
 
           </div>
+        </div>
+      </div>
+    )}
+
+    {devModal && (
+      <div
+        onClick={() => { setDevModal(false); setDevFullscreen(false); }}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }}>
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: 'white', borderRadius: 18, width: '100%', maxWidth: 720,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.2)', overflow: 'hidden',
+          }}
+          className="dark:bg-gray-800">
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '3px 8px', borderRadius: 6 }}>
+                // dev
+              </span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">
+                Orders Code Flow
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setDevModal(false); setDevFullscreen(false); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem', lineHeight: 1, padding: 4 }}>
+              ×
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '20px', overflowY: 'hidden' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 10px', lineHeight: 1.7 }}>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum consequat magna.
+            </p>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 10px', lineHeight: 1.7 }}>
+              Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo. Quisque sit amet est et sapien ullamcorper pharetra. Vestibulum erat wisi, condimentum sed, commodo vitae, ornare sit amet, wisi.
+            </p>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 14px', lineHeight: 1.7 }}>
+              Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis molestie dictum semper, enim libero accumsan ante, ac fringilla tellus purus sit amet velit. Integer vulputate sem a nibh rutrum consequat. Nullam dapibus fermentum ipsum. Etiam quis quam. Integer lacinia sollicitudin massa. Cras metus. Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue.
+            </p>
+
+            {/* Cropped image — click goes fullscreen */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[entryPointsImg, adminActionsImg].map((src, i) => (
+                <div
+                  key={i}
+                  onClick={() => setDevFullscreen(i + 1)}
+                  style={{
+                    cursor: 'zoom-in', borderRadius: 12, overflow: 'hidden',
+                    border: '1px solid #f3f4f6', position: 'relative', maxHeight: 130,
+                  }}
+                  className="dark:border-gray-700">
+                  <img src={src} alt={i === 0 ? 'Entry points' : 'Admin actions'} style={{ width: '100%', display: 'block' }} />
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 50,
+                    background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.92))',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: 8, left: 10,
+                    background: 'rgba(168,85,247,0.85)', color: 'white',
+                    fontSize: '0.6rem', fontWeight: 700, padding: '2px 8px',
+                    borderRadius: 6, backdropFilter: 'blur(4px)',
+                  }}>
+                    {i === 0 ? 'Entry Points' : 'Admin Actions'}
+                  </div>
+                  <div style={{
+                    position: 'absolute', bottom: 8, right: 10,
+                    background: 'rgba(0,0,0,0.45)', color: 'white',
+                    fontSize: '0.6rem', fontWeight: 700, padding: '2px 8px',
+                    borderRadius: 6, backdropFilter: 'blur(4px)',
+                  }}>
+                    click to expand
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {devFullscreen && (
+      <div
+        onClick={() => setDevFullscreen(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 60,
+          background: 'rgba(0,0,0,0.92)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'zoom-out', padding: 24,
+        }}>
+        <img
+          src={devFullscreen === 1 ? entryPointsImg : adminActionsImg}
+          alt={devFullscreen === 1 ? 'Entry points' : 'Admin actions'}
+          style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, objectFit: 'contain' }}
+        />
+        <div style={{
+          position: 'fixed', top: 16, right: 24,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {/* Prev / Next */}
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); setDevFullscreen(devFullscreen === 1 ? 2 : 1); }}
+            style={{
+              background: 'rgba(168,85,247,0.7)', border: 'none', color: 'white',
+              fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+              borderRadius: 8, padding: '6px 12px',
+            }}>
+            {devFullscreen === 1 ? 'Admin Actions →' : '← Entry Points'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDevFullscreen(false)}
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: 'none',
+              color: 'white', fontSize: '1.4rem', cursor: 'pointer',
+              borderRadius: 8, width: 36, height: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            ×
+          </button>
+        </div>
+        <div style={{
+          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(168,85,247,0.8)', color: 'white',
+          fontSize: '0.72rem', fontWeight: 700, padding: '4px 14px',
+          borderRadius: 20, backdropFilter: 'blur(4px)',
+        }}>
+          {devFullscreen === 1 ? 'Entry Points' : 'Admin Actions'} · {devFullscreen}/2
         </div>
       </div>
     )}

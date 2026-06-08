@@ -153,7 +153,7 @@ function Message({ msg }) {
 export default function Mimi({ embedded = false }) {
   const [open, setOpen]       = useState(embedded);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hi! I'm Mimi 👋 BlueArc Store's assistant. How can I help you today?" }
+    { role: 'assistant', content: "Hi! I'm Mimi 👋 TISL Store's assistant. How can I help you today?" }
   ]);
   const [input, setInput]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -319,7 +319,7 @@ export default function Mimi({ embedded = false }) {
               <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'white' }}>Mimi</p>
               <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)' }}>
                 <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#4ade80', marginRight: 4 }} />
-                BlueArc Store Assistant
+                TISL Store Assistant
               </p>
             </div>
             {/* Drag hint */}

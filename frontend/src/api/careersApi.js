@@ -92,6 +92,25 @@ export const adminCareersApi = {
                                              adm('POST', `/admin/careers/applicants/${id}/reset-password`, { temporary_password }),
 };
 
+export const pollScreeningResult = async (appId, { onResult, onTimeout, intervalMs = 3000, maxWaitMs = 90000 } = {}) => {
+    const start = Date.now();
+
+    const check = async () => {
+        const app = await adminCareersApi.getApplication(appId);
+        if (app?.data?.ai_screened_at) {
+            onResult?.(app.data);
+            return;
+        }
+        if (Date.now() - start >= maxWaitMs) {
+            onTimeout?.();
+            return;
+        }
+        setTimeout(check, intervalMs);
+    };
+
+    await check();
+};
+
 // Named alias used by admin career pages
 export const adminApi = adminCareersApi;
  

@@ -6,10 +6,12 @@ import Pagination from '../../components/common/Pagination';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Breadcrumb from '../../components/layout/Breadcrumb';
+import SmartSearchBox from '../../components/common/SmartSearchBox';
 import ProductFilters from '../../components/products/ProductFilters';
 import ProductGrid from '../../components/products/ProductGrid';
 import CollapsedProductCard from '../../components/products/CollapsedProductCard';
 import ProductPolaroidCard from '../../components/products/Productpolaroidcard';
+import { searchEvents } from '../../services/searchEventService';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../api';
 import { useProductStore } from '../../store';
 import useLayoutStore from '../../store/layoutStore';
@@ -173,6 +175,9 @@ export default function Products() {
     } : null;
 
     setProducts(items, paginationData);
+    if (filters.search?.trim()) {
+      searchEvents.searchResult(filters.search, 'product', paginationSource?.total ?? 0);
+    }
   } catch (err) {
     setError(err.message || 'Failed to load products');
   } finally {
@@ -194,14 +199,16 @@ export default function Products() {
   const activeCategory = categories.find(c => String(c.id) === String(filters.category_id));
   const activeBrand    = brands.find(b => String(b.id) === String(filters.brand_id));
   
-  const handleCategoryClick = (cat) => {
-    const same = String(filters.category_id) === String(cat.id);
-    handleFilterChange('category_id', same ? '' : cat.id);
-  };
-
   const handleBrandClick = (brand) => {
     const same = String(filters.brand_id) === String(brand.id);
+    if (!same) searchEvents.filter('brand', brand.name, 'product', totalCount);
     handleFilterChange('brand_id', same ? '' : brand.id);
+  };
+
+  const handleCategoryClick = (cat) => {
+    const same = String(filters.category_id) === String(cat.id);
+    if (!same) searchEvents.filter('category', cat.name, 'product', totalCount);
+    handleFilterChange('category_id', same ? '' : cat.id);
   };
 
   return (
@@ -225,6 +232,13 @@ export default function Products() {
             <button type="button" onClick={() => setViewMode('polaroid')} style={{ ...toggleStyles.btn, ...(viewMode === 'polaroid' ? toggleStyles.active : toggleStyles.inactive) }}><Image size={15} /> Polaroid</button>
           </div>
         </div>
+
+        <SmartSearchBox
+          context="product"
+          mode="inline"
+          value={filters.search ?? ''}
+          onSearch={q => handleFilterChange('search', q)}
+        />
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
         <ProductFilters filters={filters} onFilterChange={handleFilterChange} onReset={handleResetFilters} />

@@ -6,6 +6,8 @@ import { useThemeStore, useAuthStore } from './store';
 
 import InstallPrompt from './components/common/InstallPrompt';
 import AlgorithmBanner from './components/layout/AlgorithmBanner';
+import BookmarkNote from './components/BookmarkNote';
+import AiPanelRoot from './components/ai/AiPanelRoot';
 import Mimi from './components/chat/Mimi';
 import FloatingJournalModal from './components/finance/FloatingJournalModal';
 import Portal from './pages/pwa/Portal';
@@ -60,6 +62,9 @@ const HamperDetail         = lazy(() => import('./pages/customer/HamperDetail'))
 const HamperCheckout       = lazy(() => import('./pages/customer/HamperCheckout'));
 const MyHamperOrders       = lazy(() => import('./pages/customer/MyHamperOrders'));
 const MyHamperOrderDetail  = lazy(() => import('./pages/customer/MyHamperOrderDetail'));
+const BugReportPage        = lazy(() => import('./pages/customer/BugReportPage'));
+const BugTrackerPage       = lazy(() => import('./pages/customer/BugTrackerPage'));
+const MyBugReports         = lazy(() => import('./pages/customer/MyBugReports'));
 
 const MyBookings           = lazy(() => import('./pages/customer/MyBookings'));
 const MyBookingDetail      = lazy(() => import('./pages/customer/MyBookingDetail'));
@@ -95,6 +100,10 @@ import AdminApplicantDetailPage from './Careers/admin/pages/AdminApplicantDetail
 
 // ── Admin Pages ───────────────────────────────────────────────────────────────
 const AdminProfile       = lazy(() => import('./pages/admin/AdminProfile'));
+const AiAnalyticsSettings = lazy(() => import('./pages/admin/ai-analytics/AiAnalyticsSettings'));
+const AiKeysPage         = lazy(() => import('./pages/admin/ai-analytics/AiKeysPage'));  
+const AiModulesPage      = lazy(() => import('./pages/admin/ai-analytics/AiModulesPage'));
+const AiSessionsPage     = lazy(() => import('./pages/admin/ai-analytics/AiSessionsPage'));
 const Dashboard          = lazy(() => import('./pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./pages/admin/settings/policies/PolicySettings'))
 const AdminProducts      = lazy(() => import('./pages/admin/Products'));
@@ -123,6 +132,8 @@ const QuoteDetail        = lazy(() => import('./components/quotes/QuoteDetail'))
 const QuoteEdit          = lazy(() => import('./components/quotes/QuoteEdit'));
 const AdminCustomers     = lazy(() => import('./pages/admin/Customers'));
 const CustomerDetail     = lazy(() => import('./pages/admin/CustomerDetail'));
+const CreditDashboard    = lazy(() => import('./pages/admin/CreditDashboard'));
+const CreditDetail       = lazy(() => import('./pages/admin/CustomerCreditDetail'));
 const AdminReviews       = lazy(() => import('./pages/admin/Reviews'));
 const Reports            = lazy(() => import('./pages/admin/Reports'));
 const ProjectDashboard   = lazy(() => import('./pages/admin/ProjectDashboard'));
@@ -160,6 +171,12 @@ const FinancialNotes         = lazy(() => import('./pages/admin/finance/Financia
 const ReconciliationPage     = lazy(() => import('./pages/admin/finance/ReconciliationPage'));
 const ReconciliationDetail   = lazy(() => import('./pages/admin/finance/ReconciliationDetail'));
 
+const AdminBugReportsPage = lazy(() => import('./pages/admin/AdminBugReportsPage'));
+const AdminDevNotesPage   = lazy(() => import('./pages/admin/AdminDevNotesPage'));
+const AdminDevKeysPage    = lazy(() => import('./pages/admin/AdminDevKeysPage'));
+const DevAuthPage         = lazy(() => import('./pages/admin/DevAuthPage'));
+const DevPortalPage       = lazy(() => import('./pages/admin/DevPortalPage'));
+
 const AdminBookings        = lazy(() => import('./pages/admin/AdminBookings'));
 const AdminBookingDetail   = lazy(() => import('./pages/admin/AdminBookingDetail'));
 const AdminBookingForm     = lazy(() => import('./pages/admin/AdminBookingForm'));
@@ -176,6 +193,11 @@ const StudioEditor         = lazy(() => import('./components/studio/StudioEditor
 const PublicationListPage  = lazy(() => import('./pages/admin/PublicationListPage'));
 
 const Settings             = lazy(() => import('./pages/admin/settings/Settings'));
+const FlowchartPage        = lazy(() => import('./pages/admin/settings/diagrams/FlowchartPage'));  
+const CustFlowchartPage    = lazy(() => import('./pages/admin/settings/diagrams/CustFlowchartPage'));
+const TxFlowchartPage      = lazy(() => import('./pages/admin/settings/diagrams/TxFlowchartPage'));
+const AnalyticDashboard    = lazy(() => import('./pages/admin/settings/analytics/AdminAnalyticsDashboard'));
+const AnalyticsDetail      = lazy(() => import('./pages/admin/settings/analytics/AdminAnalyticsDetail'));
 const CurrencySettings     = lazy(() => import('./pages/admin/settings/CurrencySettings'));
 const ShippingSettings     = lazy(() => import('./pages/admin/settings/ShippingSettings'));
 const CustomerTierSettings = lazy(() => import('./pages/admin/settings/CustomerTierSettings'));
@@ -299,7 +321,9 @@ function App() {
         <PWARedirect />  
         <InstallPrompt />
         <AlgorithmBanner /> 
+        <BookmarkNote />
         <Mimi />
+        <AiPanelRoot />
         <FloatingJournalModal /> 
         <PWANavBar /> 
 
@@ -344,6 +368,13 @@ function App() {
             <Route path="/brochures/:slug" element={<BrochureDetail />} />
             <Route path="/news/:slug" element={<PublicationDetail />} />
             <Route path="/blog/:slug" element={<PublicationDetail />} />
+
+            <Route path="/report-bug"        element={<BugReportPage />} />
+            <Route path="/track-bug"         element={<BugTrackerPage />} />
+            <Route path="/track-bug/:token"  element={<BugTrackerPage />} />
+
+            <Route path="/dev/auth"   element={<DevAuthPage />} />
+            <Route path="/dev/portal" element={<DevPortalPage />} />
 
             {/* ── Auth Routes ─────────────────────────────────────────────── */}
             <Route path="/login" element={<Login />} />
@@ -392,6 +423,7 @@ function App() {
             <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
             <Route path="/services/:id/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
+            <Route path="/account/bug-reports" element={<ProtectedRoute><MyBugReports /></ProtectedRoute>} />
             <Route
               path="/checkout"
               element={
@@ -544,7 +576,6 @@ function App() {
                     <AdminApplicationsPage />
                 </ProtectedRoute>
             } />
-            // Admin
             <Route path="/admin/careers/applicants"    element={
               <ProtectedRoute requireAdmin>
                 <AdminApplicantsPage />
@@ -600,6 +631,42 @@ function App() {
             <Route path="/admin/bookings/:id"          element={<ProtectedRoute requireAdmin><AdminBookingDetail /></ProtectedRoute>} />
             <Route path="/admin/bookings/:id/worksheets/:wsId" element={<ProtectedRoute requireAdmin><AdminWorksheetForm /></ProtectedRoute>} />
             <Route path="/admin/settings/bookings"     element={<ProtectedRoute requireAdmin><BookingSettings /></ProtectedRoute>} />
+
+            <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin><AdminBugReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin><AdminDevNotesPage /></ProtectedRoute>} />
+            <Route path="/admin/dev-keys"    element={<ProtectedRoute requireAdmin><AdminDevKeysPage /></ProtectedRoute>} />
+            <Route
+              path="/admin/ai-analytics"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AiAnalyticsSettings /> 
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/keys"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AiKeysPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/modules"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AiModulesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/sessions"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AiSessionsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin/auctions"
               element={
@@ -924,6 +991,22 @@ function App() {
               }
             />
             <Route
+              path="/admin/credit"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CreditDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/credit/customers/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CreditDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/users"
               element={
                 <ProtectedRoute requireAdmin>
@@ -1133,6 +1216,46 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/flowchart/orders"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <FlowchartPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/flowchart/customers"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CustFlowchartPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/flowchart/transactions"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <TxFlowchartPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/admin/settings/analytics"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AnalyticDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/analytics/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AnalyticsDetail />
                 </ProtectedRoute>
               }
             />

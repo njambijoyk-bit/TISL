@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Loader2, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Loader2, ChevronRight, ArrowLeft } from 'lucide-react';
 import BookingStatusBadge from '../../components/admin/bookings/BookingStatusBadge';
 import Header from '../../components/layout/Header';
 import { bookingsAPI } from '../../api';
@@ -51,6 +51,11 @@ const MyBookings = () => {
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '32px 16px 60px', fontFamily: 'inherit' }}>
     <Header />
       {/* Header */}
+      {/* Back */}
+      <button onClick={() => navigate('/home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px', fontFamily: 'inherit' }}
+        onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+        onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+      ><ArrowLeft size={14} /> Home</button>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', margin: '0 0 4px' }}>My Bookings</h1>
         <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Track and manage your service bookings</p>

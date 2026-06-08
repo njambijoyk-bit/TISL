@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store';
 import useFinancialJournalStore from '../../../store/useFinancialJournalStore';
+import ThemeSwitcher from '../../../components/common/ThemeSwitcher';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -222,6 +224,7 @@ const S = {
 };
 
 export default function FinancialNotes() {
+  const navigate = useNavigate();
   const { open: openModal } = useFinancialJournalStore();
 
   const [notes, setNotes]       = useState([]);
@@ -275,14 +278,25 @@ export default function FinancialNotes() {
   return (
     <div style={S.page}>
 
-      {/* Header */}
-      <div style={S.header}>
-        <div>
-          <div style={S.title}>📓 FINANCIAL NOTES</div>
-          <div style={S.subtitle}>SCRATCH PAD — ADMIN JOURNAL FOR FINANCIAL EVENTS</div>
-        </div>
-        <button style={S.newBtn} onClick={openModal}>+ NEW NOTE</button>
-      </div>
+     {/* Breadcrumb */}
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+  <div
+    onClick={() => navigate('/admin/reconciliation')}
+    style={{ color: '#475569', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace' }}
+  >
+    ← RECONCILIATION
+  </div>
+  <ThemeSwitcher />
+</div>
+
+{/* Header */}
+<div style={S.header}>
+  <div>
+    <div style={S.title}>📓 FINANCIAL NOTES</div>
+    <div style={S.subtitle}>SCRATCH PAD — ADMIN JOURNAL FOR FINANCIAL EVENTS</div>
+  </div>
+  <button style={S.newBtn} onClick={openModal}>+ NEW NOTE</button>
+</div>
 
       {/* Filters */}
       <div style={S.filters}>

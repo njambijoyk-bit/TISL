@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TISL Order Flowchart — Complete System Overview</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #07090f;
+        --surface: #0d1117;
+        --surface2: #161b27;
+        --border: #1e2d40;
+        --text: #cdd6e0;
+        --muted: #566375;
+        --blue: #3b82f6;
+        --purple: #8b5cf6;
+        --green: #10b981;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --cyan: #06b6d4;
+        --pink: #ec4899;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .hero {
+        padding: 48px 24px 36px;
+        text-align: center;
+        background: linear-gradient(160deg, #0d1529 0%, #0a0e1a 60%);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 0%,
+          rgba(59, 130, 246, 0.08) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.6rem);
+        font-weight: 800;
+        background: linear-gradient(
+          90deg,
+          #60a5fa 0%,
+          #a78bfa 50%,
+          #f472b6 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        color: #7a8fa3;
+        font-size: 0.95rem;
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 14px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.78rem;
+        color: #8a9ab0;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 14px 16px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .nav-tab {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 200ms ease;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .nav-tab:hover {
+        background: #1e2d40;
+        color: var(--text);
+      }
+      .nav-tab.active {
+        background: linear-gradient(135deg, #1d3a7a, #3b1d7a);
+        color: #fff;
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+      }
+
+      .diagram-container {
+        display: none;
+        padding: 28px 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .diagram-container.active {
+        display: block;
+      }
+      .diagram-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #e2e8f0;
+        letter-spacing: -0.01em;
+      }
+      .diagram-subtitle {
+        color: var(--muted);
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .mermaid-wrap {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 24px 16px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+      }
+      .mermaid-wrap svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .note {
+        background: var(--surface2);
+        border-left: 3px solid var(--blue);
+        padding: 14px 18px;
+        margin-top: 18px;
+        border-radius: 0 10px 10px 0;
+        font-size: 0.83rem;
+        color: #9bb0c8;
+        line-height: 1.6;
+      }
+      .note-title {
+        font-weight: 700;
+        color: #60a5fa;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <h1>TISL Order Flowchart</h1>
+      <p>
+        Complete visual reference of Standard Orders, Hamper Orders, and Auction
+        Orders — including payment flows, inventory sync, cancellation logic,
+        and inter-service communication.
+      </p>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #3b82f6"></div>
+        Standard Order
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #10b981"></div>
+        Hamper Order
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f59e0b"></div>
+        Auction Order
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #8b5cf6"></div>
+        Payment
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #ef4444"></div>
+        Cancel / Refund
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #06b6d4"></div>
+        Inventory
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #64748b"></div>
+        Customer Action
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #ec4899"></div>
+        Admin Action
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showTab('overview', this)">
+        🏗 Overview
+      </div>
+      <div class="nav-tab" onclick="showTab('standard', this)">
+        📦 Standard Order
+      </div>
+      <div class="nav-tab" onclick="showTab('hamper', this)">
+        🎁 Hamper Order
+      </div>
+      <div class="nav-tab" onclick="showTab('auction', this)">
+        🔨 Auction Order
+      </div>
+      <div class="nav-tab" onclick="showTab('payment', this)">
+        💳 Payment Flow
+      </div>
+      <div class="nav-tab" onclick="showTab('cancel', this)">
+        ❌ Cancel & Refund
+      </div>
+      <div class="nav-tab" onclick="showTab('inventory', this)">
+        📊 Inventory Sync
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="overview" class="diagram-container active">
+      <div class="diagram-title">System Architecture Overview</div>
+      <div class="diagram-subtitle">
+        High-level view of all three order pipelines and their shared services
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CUST["Customer Portal"] --> STD_CART["Cart / Checkout"]
+  CUST --> HAMP_BROWSE["Browse Hampers"]
+  CUST --> AUC_BROWSE["Browse Auctions"]
+  ADMIN["Admin Panel"] --> ADMIN_STD["Create Std Order"]
+  ADMIN --> ADMIN_HAMP["Manage Hampers"]
+  ADMIN --> ADMIN_AUC["Manage Auctions"]
+
+  STD_CART --> STD_CREATE["Create Order\nstatus: pending"]
+  ADMIN_STD --> STD_CREATE
+  STD_CREATE --> STD_CONFIRM["Admin Confirms\nstatus: confirmed"]
+  STD_CONFIRM --> STD_PROCESS["Processing\nPick and Pack"]
+  STD_PROCESS --> STD_SHIP["Shipped + tracking"]
+  STD_SHIP --> STD_DELIVER["Delivered"]
+  STD_CREATE -.-> STD_CANCEL["Cancelled"]
+  STD_PROCESS -.-> STD_CANCEL
+  STD_SHIP -.-> STD_CANCEL
+
+  HAMP_BROWSE --> HAMP_CREATE["Create Hamper Order\nstatus: pending"]
+  HAMP_CREATE --> HAMP_CONFIRM["Admin Confirms"]
+  HAMP_CONFIRM --> HAMP_CONV["Convert to Std Order\ntype: hamper"]
+  HAMP_CONV --> HAMP_PROCESS["Processing"]
+  HAMP_PROCESS --> HAMP_SHIP["Shipped"]
+  HAMP_SHIP --> HAMP_DELIVER["Delivered"]
+  HAMP_CREATE -.-> HAMP_CANCEL["Cancelled"]
+  HAMP_CONFIRM -.-> HAMP_CANCEL
+
+  AUC_BROWSE --> AUC_BID["Place Bid"]
+  AUC_BID --> AUC_CREATE["Auction Ends\nAdmin Approves Bids"]
+  AUC_CREATE --> AUC_ORDER["Create Auction Order\nstatus: pending"]
+  AUC_ORDER --> AUC_CONFIRM["Confirmed"]
+  AUC_CONFIRM --> AUC_PROCESS["Processing"]
+  AUC_PROCESS --> AUC_SHIP["Shipped"]
+  AUC_SHIP --> AUC_DELIVER["Delivered"]
+  AUC_ORDER -.-> AUC_CANCEL["Cancelled\nrefund + stock"]
+
+  STD_CREATE --> PAY["Payment Service\nMpesa / Bank / COD / Credit"]
+  HAMP_CREATE --> PAY
+  AUC_ORDER --> PAY
+  STD_CREATE --> INV["InventoryStockService\nrecordSale / recordReturn"]
+  HAMP_CONV --> INV
+  AUC_ORDER --> INV
+  STD_CREATE --> LOYAL["LoyaltyService\nearnPoints / spendCredit"]
+  STD_CREATE --> CRED["CustomerCreditService\nrecordPurchase"]
+  STD_CREATE --> MAIL["OrderMailService\nconfirmation / shipped"]
+  HAMP_CREATE --> MAIL
+  AUC_ORDER --> MAIL
+
+  style STD_CREATE fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style STD_CONFIRM fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style STD_PROCESS fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style STD_SHIP fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style STD_DELIVER fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style STD_CANCEL fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style HAMP_CREATE fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_CONFIRM fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_CONV fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_PROCESS fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_SHIP fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_DELIVER fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style HAMP_CANCEL fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style AUC_ORDER fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AUC_CONFIRM fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AUC_PROCESS fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AUC_SHIP fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AUC_DELIVER fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AUC_CANCEL fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style PAY fill:#2a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style INV fill:#1a1a3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style LOYAL fill:#2a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style CRED fill:#2a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style MAIL fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+        </pre>
+      </div>
+    </div>
+
+    <!-- STANDARD ORDER -->
+    <div id="standard" class="diagram-container">
+      <div class="diagram-title">📦 Standard Order — Complete Lifecycle</div>
+      <div class="diagram-subtitle">
+        From cart checkout through delivery, cancellation, trash, and restore.
+        Includes all customer and admin actions.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  SC1["Validate Stock\ncurrent + 200 buffer"] --> SC2["Build Items\nproduct / service / custom"]
+  SC2 --> SC3["Calculate Pricing\nbulk pricing + discounts"]
+  SC3 --> SC4["Apply Discounts\ntier + referral + promo"]
+  SC4 --> SC5["Calculate Shipping\nShippingOption costForSubtotal"]
+  SC5 --> SC6["Apply Store Credit\nLoyaltyService applyStoreCreditToOrder"]
+  SC6 --> SC7["Credit Account\nCustomerCreditService recordPurchase"]
+  SC7 --> SC8["Generate Order Number\nORD-Y-CID-QTY-DATE-RND"]
+  SC8 --> SC9["Create Order + Items\nDB transaction"]
+  SC9 --> SC10["Spend Store Credit\nrecordSale on inventory"]
+  SC10 --> SC11["Send Confirmation Email"]
+
+  SC11 --> PEND["pending"]
+  PEND --> CONF["confirmed"]
+  CONF --> PROC["processing"]
+  PROC --> READY["ready_for_pickup"]
+  READY --> SHIP["shipped + tracking_number"]
+  SHIP --> DELIV["delivered + delivered_at"]
+  DELIV --> RATED["rated + rating / feedback"]
+
+  PEND --> UNPAID["unpaid"]
+  UNPAID --> PARTIAL["partially_paid"]
+  PARTIAL --> PAID["paid + paid_at"]
+  UNPAID --> PAID
+  PAID --> REFUNDED["refunded"]
+  UNPAID --> FAILED_PAY["failed"]
+
+  CA1["Customer: My Orders list"] --> PEND
+  CA2["Customer: Update Order\npending + unpaid only"] --> PEND
+  CA3["Customer: Cancel Order\npending + unpaid"] --> CANCEL_FLOW
+  CA4["Customer: Trash Order\npending + unpaid"] --> PEND
+  CA5["Customer: Restore Order\ncancelled + unpaid"] --> PEND
+  CA6["Customer: Rate Order\ndelivered only"] --> DELIV
+
+  AA1["Admin: Create for Customer"] --> SC1
+  AA2["Admin: Edit Order\npending / confirmed / processing"] --> PEND
+  AA3["Admin: Update Status"] --> CONF
+  AA4["Admin: Update Payment Status"] --> UNPAID
+  AA5["Admin: Cancel Order\nany status with refund logic"] --> CANCEL_FLOW
+  AA6["Admin: Restore Cancelled"] --> RESTORE
+  AA7["Admin: Bulk Cancel"] --> CANCEL_FLOW
+  AA8["Admin: Bulk Restore"] --> RESTORE
+  AA9["Admin: Trash Order"] --> PEND
+  AA10["Admin: Restore from Trash"] --> PEND
+  AA11["Admin: Force Delete"] --> PEND
+  AA12["Admin: Generate Invoice"] --> DELIV
+
+  CANCEL_FLOW["Requires Refund?\npaid / partially_paid"] --> C2["Return stock only"]
+  CANCEL_FLOW --> C3["Return stock\n+ proportional refund per item"]
+  CANCEL_FLOW --> C4["Process returns\nquantity_returned"]
+  C2 --> C5["Reverse loyalty points"]
+  C3 --> C5
+  C4 --> C5
+  C5 --> C6["Refund store credit"]
+  C6 --> C7["Reverse referral code"]
+  C7 --> C8["Reverse promo code"]
+  C8 --> C9["Refund credit account"]
+  C9 --> C10["Create refund payment record"]
+
+  RESTORE["Restore Order\nre-deduct stock\nrecharge store credit\nrestore referral/promo"]
+
+  style SC1 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC2 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC3 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC4 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC5 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC6 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC7 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC8 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC9 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC10 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style SC11 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style PEND fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style CONF fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style PROC fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style SHIP fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style DELIV fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style RATED fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style CANCEL_FLOW fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style RESTORE fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style C2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C6 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C8 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C9 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C10 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CA3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style AA5 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA7 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Standard Order</div>
+        Supports 8 order types: standard, bulk, b2b, quotation, service, mixed,
+        project, subscription. Customer can only cancel/trash pending+unpaid
+        orders. Admin can cancel any status with full refund logic including
+        returnless refunds and proportional per-item refund distribution.
+      </div>
+    </div>
+
+    <!-- HAMPER ORDER -->
+    <div id="hamper" class="diagram-container">
+      <div class="diagram-title">🎁 Hamper Order — Lifecycle & Conversion</div>
+      <div class="diagram-subtitle">
+        Hamper-specific flow with conversion to standard order. Includes
+        financial reversal on cancel and stock management.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  H1["Customer Browses Hamper Catalog"] --> H2["Select Hamper + shipping option"]
+  H2 --> H3["Apply Promo Code\nreferral_code_id"]
+  H3 --> H4["Create HamperOrder\nstatus: pending"]
+
+  H4 --> HP["pending"]
+  HP --> HC["confirmed"]
+  HC --> HPR["processing"]
+  HPR --> HS["shipped"]
+  HS --> HD["delivered"]
+  HP -.-> HCAN["cancelled"]
+  HC -.-> HCAN
+  HPR -.-> HCAN
+  HS -.-> HCAN
+  HD -.-> HCAN
+
+  HCAN --> HC1["Already reversed?\nfinancials_reversed_at check"]
+  HC1 --> HC2["Refund store_credit_used\nStoreCreditTransaction"]
+  HC2 --> HC3["Reverse loyalty points\nLoyaltyPointTransaction"]
+  HC3 --> HC4["Reverse promo stats\ntimes_used and successful_uses"]
+  HC4 --> HC5["Mark usage cancelled"]
+  HC5 --> HC6["Restore hamper stock\nstock_remaining++"]
+  HC6 --> HC7["Set financials_reversed_at"]
+
+  HC --> CONV1["order_id already set?\nAlready converted check"]
+  CONV1 --> CONV2["Status confirmed or processing"]
+  CONV2 --> CONV3["Get hamper_snapshot items"]
+  CONV3 --> CONV4["Calculate bundle_discount\noriginal_total minus subtotal"]
+  CONV4 --> CONV5["Create Order\ntype=hamper\norder_number=ORD-HMP-..."]
+  CONV5 --> CONV6["Apply KES snapshot"]
+  CONV6 --> CONV7["Create OrderItems\ndistribute discount proportionally"]
+  CONV7 --> CONV8["Decrement product stock"]
+  CONV8 --> CONV9["InventoryStockService recordSale\nreferenceType: hamper_order"]
+  CONV9 --> CONV10["Link hamperOrder.order_id = order.id"]
+  CONV10 --> CONV11["Recalculate customer stats"]
+
+  HR1["Restore: Was reversed?"] --> HR2["Re-deduct store_credit_used"]
+  HR2 --> HR3["Re-award loyalty points"]
+  HR3 --> HR4["Re-increment promo stats"]
+  HR4 --> HR5["Mark usage completed"]
+  HR5 --> HR6["Re-decrement hamper stock"]
+  HR6 --> HR7["Clear financials_reversed_at"]
+
+  HC7 -.-> HR1
+
+  style H1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style H2 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style H3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style H4 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style HP fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style HC fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style HPR fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style HS fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style HD fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style HCAN fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style HC1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC6 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style HC7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style CONV1 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV2 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV3 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV4 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV5 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV6 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV7 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV8 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV9 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV10 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CONV11 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style HR1 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR2 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR3 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR4 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR5 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR6 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style HR7 fill:#2e2a1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Hamper Orders</div>
+        Hamper orders are <strong>financially self-contained</strong>. The
+        conversion to a standard order copies all financials as-is. After
+        conversion, hamper order status changes are blocked — manage via the
+        standard order instead. Bundle discount is distributed proportionally
+        across items during conversion.
+      </div>
+    </div>
+
+    <!-- AUCTION ORDER -->
+    <div id="auction" class="diagram-container">
+      <div class="diagram-title">🔨 Auction Order — Bidding to Fulfillment</div>
+      <div class="diagram-subtitle">
+        Complete auction lifecycle: creation → bidding → approval → order
+        creation → fulfillment. Includes bid auto-approval and anti-sniping.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  A1["scheduled"] --> A2["active\nstart_time reached"]
+  A2 --> A3["ended\nend_time reached"]
+  A2 -.-> ACAN["cancelled"]
+  A1 -.-> ACAN
+
+  A2 --> B1["Customer places bid\nmax_bid + amount"]
+  B1 --> B2["Auction active check\nend_time not passed"]
+  B2 --> B3["LockForUpdate Auction"]
+  B3 --> B4["Calculate actual bid\nmin of max_bid vs highest + increment"]
+  B4 --> B5["Update current_price"]
+  B5 --> B6["Less than 2 min left?"]
+  B6 --> B7["Extend 2 min anti-sniping"]
+  B6 --> B8["Save bid + log activity"]
+  B7 --> B8
+
+  A3 --> AP1["POST approve-bids\nauction must be ended"]
+  AP1 --> AP2["Validate bids\nall belong to auction"]
+  AP2 --> AP3["Unique customers check\nmax_winners limit"]
+  AP3 --> AP4["No existing orders\nfor these bids check"]
+  AP4 --> AP5["Per-bid charged_amount\nglobal fallback"]
+  AP5 --> AP6["AuctionOrderService createOrder\nfor each approved bid"]
+
+  AP6 --> OC1["Resolve customer from bidder"]
+  OC1 --> OC2["Calculate subtotal\ncharged_amount x qty"]
+  OC2 --> OC3["Lookup shipping by delivery_method"]
+  OC3 --> OC4["Apply 16% VAT if apply_tax"]
+  OC4 --> OC5["total = subtotal + tax + shipping"]
+  OC5 --> OC6["Create AuctionOrder + product snapshot"]
+  OC6 --> OC7["Apply KES snapshot"]
+  OC7 --> OC8["Deduct stock product decrement"]
+  OC8 --> OC9["InventoryStockService recordSale\nreferenceType: auction_order"]
+
+  OC9 --> AOP["pending"]
+  AOP --> AOC["confirmed + confirmed_at"]
+  AOC --> AOPR["processing"]
+  AOPR --> AOS["shipped + tracking"]
+  AOS --> AOD["delivered + delivered_at"]
+  AOP -.-> AO_FAIL["failed"]
+  AOC -.-> AO_CAN["cancelled + refund logic"]
+  AOPR -.-> AO_CAN
+  AOS -.-> AO_CAN
+
+  AOC --> AA1["updateStatus with transition guards"]
+  AOC --> AA2["markAsPaid covers remaining balance"]
+  AOC --> AA3["recordPartialPayment recalculates status"]
+  AOC --> AA4["shipOrder + tracking + courier"]
+  AOC --> AA5["cancelOrder + processRefundsOnCancel"]
+  AOC --> AA6["restoreOrder check stock first"]
+  AOC --> AA7["soft-delete cancelled/failed only"]
+
+  style A1 fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style A2 fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style A3 fill:#3a2f1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style ACAN fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style B1 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B2 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B3 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B4 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B5 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B6 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B7 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style B8 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP1 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP2 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP3 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP4 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP5 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AP6 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC1 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC2 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC3 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC4 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC5 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC6 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC7 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC8 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style OC9 fill:#3a2f1a,stroke:#f59e0b,stroke-width:1px,color:#fff
+  style AOP fill:#2a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style AOC fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style AOPR fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style AOS fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style AOD fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style AO_FAIL fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style AO_CAN fill:#3a1a1a,stroke:#ef4444,stroke-width:2px,color:#fff
+  style AA1 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA2 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA3 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA4 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA5 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA6 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style AA7 fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Auction Orders</div>
+        Auctions use <strong>proxy bidding</strong> — the system auto-bids up to
+        the user's max. Last 2-minute bids trigger anti-sniping extensions.
+        Admin approves bids with optional per-bid charged_amount overrides.
+        Orders support full refund-on-cancel with stock restoration and payment
+        reversal.
+      </div>
+    </div>
+
+    <!-- PAYMENT -->
+    <div id="payment" class="diagram-container">
+      <div class="diagram-title">💳 Payment Processing Flow</div>
+      <div class="diagram-subtitle">
+        How payments flow across all order types — M-Pesa, bank transfer, COD,
+        credit account, and store credit.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  MP["M-Pesa"] --> P_INIT["Payment create\nstatus: initiated"]
+  BT["Bank Transfer"] --> P_INIT
+  COD["Cash on Delivery"] --> P_INIT
+  CC["Credit Card"] --> P_INIT
+  CRED_PAY["Credit Account"] --> P_INIT2["Payment create\nmethod: credit\nstatus: confirmed"]
+  SC_PAY["Store Credit"] --> P_SC["LoyaltyService spendCredit\nStoreCreditTransaction"]
+
+  P_INIT --> M1["STK Push / Callback"]
+  M1 --> M2["Payment found check"]
+  M2 --> M3["Validate amount\nCheck duplicate receipt"]
+  M3 --> M4["Update mpesa_amount_confirmed\nmpesa_receipt_number"]
+  M4 --> M5["status: confirmed\nconfirmed_at: now"]
+  M5 --> M6["syncOrderPaymentStatus\nRecalculate order payment_status"]
+
+  P_INIT2 --> S1["Sum all confirmed payments\nexcl refund"]
+  M6 --> S1
+  S1 --> S2["Total >= order.total_kes?"]
+  S2 --> S3["status: paid + paid_at"]
+  S2 --> S4["status: partially_paid"]
+  S2 --> S5["status: unpaid"]
+  S3 --> S6["Overpaid check"]
+  S6 --> S7["status: overpayment"]
+
+  S3 --> R1["Order Cancelled"]
+  R1 --> R2["Requires refund\npaid / partially_paid / overpayment"]
+  R2 --> R3["Find confirmed payments excl credit"]
+  R3 --> R4["Create refund payment records\nmethod: refund"]
+  R4 --> R5["Mark original payments refunded"]
+  R5 --> R6["Void credit payments\nstatus: voided"]
+  R6 --> R7["Reverse CustomerCreditService\nrefund credit account"]
+
+  CRED_PAY --> C1["checkout payment_method=credit"]
+  C1 --> C2["has_credit_account check"]
+  C2 --> C3["creditAvailable = limit minus used"]
+  C3 --> C4["deduct = min of requested / available / total"]
+  C4 --> C5["CustomerCreditService recordPurchase\ndebit ledger"]
+  C5 --> C6["Create Payment record\nmethod: credit, confirmed"]
+  C6 --> C7["order.payment_status = paid or partially_paid"]
+
+  style MP fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style BT fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style COD fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CC fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style CRED_PAY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style SC_PAY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:1px,color:#fff
+  style P_INIT fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style P_INIT2 fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style P_SC fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style M1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style M2 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style M3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style M4 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style M5 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style M6 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style S1 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S2 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S3 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S4 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S5 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S6 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style S7 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style R1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R6 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style R7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style C1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C4 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C5 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C6 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style C7 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Payments</div>
+        The Payment model uses
+        <strong>snapshot columns</strong> (snapshot_total_kes,
+        snapshot_amount_still_owed_kes) for audit integrity. M-Pesa callbacks
+        validate against duplicate receipt numbers. Credit account payments are
+        created as already-confirmed. Store credit flows through LoyaltyService,
+        not Payment records.
+      </div>
+    </div>
+
+    <!-- CANCEL -->
+    <div id="cancel" class="diagram-container">
+      <div class="diagram-title">❌ Cancellation & Refund Logic</div>
+      <div class="diagram-subtitle">
+        The most complex flow — handles stock returns, proportional refunds,
+        returnless refunds, credit reversals, and loyalty point management.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  CC_["Customer Cancel\npending + unpaid"] --> L1
+  AC_["Admin Cancel\nany status"] --> L1
+  BC_["Bulk Cancel\npending / confirmed / processing"] --> L1
+
+  L1["Get order + items + payments"] --> L2["requiresRefund check\npaid / partially_paid\nconfirmed payments > 0"]
+  L2 --> L3["requiresReturn check\ndelivered / shipped"]
+  L2 --> L4["requiresReturn with refund?"]
+  L3 --> L5["Simple: return stock\nstatus = cancelled"]
+  L3 --> L6["Process returns\nrefund_items list"]
+  L4 --> L7["Refund no return\nproportional per-item refund"]
+  L4 --> L8["Refund + return\nprocess refund_items\nquantity_returned"]
+  L5 --> L9["Reverse loyalty points"]
+  L6 --> L9
+  L7 --> L9
+  L8 --> L9
+  L9 --> L10["Refund store credit"]
+  L10 --> L11["Reverse referral code usage"]
+  L11 --> L12["Reverse promo code usage"]
+  L12 --> L13["Refund credit account deduction"]
+
+  L13 --> RC1["Get last confirmed payment\nsnapshots as authority"]
+  RC1 --> RC2["totalOrderKes = snapshot_total_kes"]
+  RC2 --> RC3["subtotalKes = snapshot_subtotal_kes"]
+  RC3 --> RC4["itemLineKes = line_total_after_discount_kes"]
+  RC4 --> RC5["itemShare = itemLineKes / subtotalKes"]
+  RC5 --> RC6["refundAmount = maxRefundable x itemShare"]
+  RC6 --> RC7["Update item refund_amount and return_status"]
+
+  RC7 --> CPAY["Create refund Payment record\nMark originals refunded"]
+
+  CPAY --> RS1["Only cancelled? Check"]
+  RS1 --> RS2["For each item check return_status"]
+  RS2 --> RS3["Had refund or return"]
+  RS3 --> RS4["Re-deduct returned qty from stock"]
+  RS2 --> RS5["No refund: re-deduct in_stock_quantity"]
+  RS4 --> RS6["Clear refund_amount\nquantity_returned=0\nreturn_status=none"]
+  RS5 --> RS6
+  RS6 --> RS7["New status: confirmed_at? confirmed : pending"]
+  RS7 --> RS8["payment_status = unpaid\nClear paid_at"]
+  RS8 --> RS9["Cancel refund payment records"]
+  RS9 --> RS10["Recharge store credit"]
+  RS10 --> RS11["Restore referral and promo"]
+
+  style CC_ fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style AC_ fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style BC_ fill:#2e1a1a,stroke:#ec4899,stroke-width:1px,color:#fff
+  style L1 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L2 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L3 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L4 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L5 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L6 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L7 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L8 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L9 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L10 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L11 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L12 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style L13 fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style RC1 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC2 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC3 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC4 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC5 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC6 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style RC7 fill:#2e1a1a,stroke:#f97316,stroke-width:1px,color:#fff
+  style CPAY fill:#1a1a3a,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style RS1 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS2 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS3 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS4 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS5 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS6 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS7 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS8 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS9 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS10 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+  style RS11 fill:#1a2e1a,stroke:#10b981,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Cancellation Complexity</div>
+        Four scenarios: <strong>no-refund-no-return</strong> (return stock
+        only), <strong>refund-no-return</strong> (proportional refund),
+        <strong>refund+return</strong> (delivered items), and
+        <strong>returnless-refund</strong> (customer keeps items). Refund
+        calculations use snapshot values from the last confirmed payment as the
+        authoritative source. Credit account payments are voided, not refunded.
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="inventory" class="diagram-container">
+      <div class="diagram-title">📊 Inventory Synchronization</div>
+      <div class="diagram-subtitle">
+        How InventoryStockService bridges the orders world with the inventory
+        system. NEVER writes to products.stock_quantity directly.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  IR1["NEVER writes to products.stock_quantity"] --> IR2["Syncs inventory_items qty\nAFTER product table updated"]
+  IR2 --> IR3["Logs inventory_lifecycle_movement\nfor EVERY stock event"]
+  IR3 --> IR4["Lazy-creates inventory_item\nfor products without one"]
+
+  IR4 --> Q1["available_qty\n= products.stock_quantity\nmirrors exactly"]
+  IR4 --> Q2["issued_qty\n= cumulative sold minus returned\nnet issued ever"]
+  IR4 --> Q3["total_qty\n= available + issued"]
+
+  Q1 --> M1["recordSale\nCall AFTER stock decremented"]
+  M1 --> M1A["available = product.stock_quantity\nissued += qtySold\ntotal = available + issued"]
+
+  Q1 --> M2["recordReturn\nCall AFTER stock restored"]
+  M2 --> M2A["available = product.stock_quantity\nissued -= qtyReturned min 0\ntotal = available + issued"]
+
+  Q1 --> M3["recordRestock\nCall AFTER manual restock"]
+  M3 --> M3A["available = product.stock_quantity\ntotal = available + issued"]
+
+  Q1 --> M4["syncFromProductsBatch\nBatch sync products to inventory"]
+  M4 --> M4A["Create or update items\nPreserve issued_qty"]
+
+  M1A --> MV1["Every call creates InventoryLifecycleMovement"]
+  M2A --> MV1
+  M3A --> MV1
+  M4A --> MV1
+  MV1 --> MV2["Fields: item_id / quantity / movement_type\nscore_before / score_after\nreference_type / reference_id / performed_by"]
+  MV2 --> MV3["Movement types: issued / returned / received"]
+
+  MV3 --> F1["Order created: product decrement stock"]
+  F1 --> F2["product refresh"]
+  F2 --> F3["InventoryStockService recordSale\nreferenceType: order / hamper_order / auction_order"]
+  F3 --> F4["InventoryItem updated\navailable_qty / issued_qty / total_qty"]
+  F4 --> F5["LifecycleMovement logged"]
+
+  style IR1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style IR2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style IR3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style IR4 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style Q1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style Q2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style Q3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M1A fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M2A fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M3A fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M4 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style M4A fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style MV1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+  style MV2 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style MV3 fill:#1a1a2e,stroke:#06b6d4,stroke-width:1px,color:#fff
+  style F1 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style F2 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style F3 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style F4 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+  style F5 fill:#1a2744,stroke:#3b82f6,stroke-width:1px,color:#fff
+        </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Insight — Inventory Architecture</div>
+        The <strong>products table owns stock_quantity</strong>. The inventory
+        system mirrors this via available_qty. The issued_qty is a running
+        counter of net lifetime sales — increases on sale, decreases on return.
+        This design maintains a full audit trail through
+        InventoryLifecycleMovement while keeping the products table as the
+        single source of truth.
+      </div>
+    </div>
+
+    <script>
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        themeVariables: {
+          primaryColor: "#1e293b",
+          primaryTextColor: "#e2e8f0",
+          primaryBorderColor: "#475569",
+          lineColor: "#64748b",
+          secondaryColor: "#334155",
+          tertiaryColor: "#0f172a",
+          fontFamily: "Segoe UI, system-ui, sans-serif",
+          fontSize: "13px",
+        },
+        flowchart: {
+          useMaxWidth: true,
+          htmlLabels: false,
+          curve: "basis",
+          padding: 15,
+          nodeSpacing: 50,
+          rankSpacing: 60,
+        },
+      });
+
+      // store original diagram source on every node before any rendering
+      document.querySelectorAll(".mermaid").forEach((node) => {
+        node.setAttribute("data-original", node.textContent);
+      });
+
+      // manually render only the active tab on load
+      mermaid.run({ nodes: document.querySelectorAll("#overview .mermaid") });
+
+      const rendered = new Set(["overview"]);
+
+      function showTab(tabId, el) {
+        document
+          .querySelectorAll(".diagram-container")
+          .forEach((c) => c.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        el.classList.add("active");
+
+        if (!rendered.has(tabId)) {
+          rendered.add(tabId);
+          const nodes = Array.from(
+            document.querySelectorAll("#" + tabId + " .mermaid"),
+          );
+          nodes.forEach((node) => {
+            // restore original source text so mermaid gets a clean pass
+            node.innerHTML = node.getAttribute("data-original") || "";
+            node.removeAttribute("data-processed");
+          });
+          mermaid.run({ nodes });
+        }
+      }
+    </script>
+  </body>
+</html>

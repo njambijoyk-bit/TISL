@@ -618,7 +618,7 @@ const RequestQuote = () => {
 
         {/* Help Text */}
         <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Need help? Contact us at <a href="mailto:quotes@ropeengineering.co.ke" className="text-primary-600 hover:underline">quotes@ropeengineering.co.ke</a>
+          Need help? Contact us at <a href="mailto:web@targetisl.co.ke" className="text-primary-600 hover:underline">web@targetisl.co.ke</a>
         </div>
       </div>
     </div>

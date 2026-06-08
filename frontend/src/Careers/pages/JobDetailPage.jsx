@@ -218,13 +218,20 @@ export default function JobDetailPage() {
 
     return (
         <div style={s.page}>
-            <Link to="/careers" style={s.back}
+            <style>{`
+                @media (max-width: 768px) {
+                .job-layout { grid-template-columns: 1fr !important; padding: 0 16px 60px !important; gap: 24px !important; }
+                .job-sidebar { position: static !important; }
+                .job-back { padding: 16px !important; }
+                }
+            `}</style>
+            <Link to="/careers" style={s.back} className="job-back"
                 onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#555'}>
                 ← All Roles
             </Link>
 
-            <div style={s.layout}>
+            <div style={s.layout} className="job-layout">
                 {/* ── Main content ───────────────────────────────────────── */}
                 <div style={s.main}>
                     {job.department && <p style={s.eyebrow}>{job.department}</p>}
@@ -281,7 +288,7 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* ── Sidebar ────────────────────────────────────────────── */}
-                <aside style={s.sidebar}>
+                <aside style={s.sidebar} className="job-sidebar">
                     <div style={s.card}>
                         {job.salary_range && (
                             <>
