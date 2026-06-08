@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../../components/layout/Sidebar';
+import routeMapHtml from './route-map.html?url';
 import toast from 'react-hot-toast';
 
 const GROUPS = [
@@ -1424,6 +1425,7 @@ function NavigationLinksSection() {
             <RouteMapAppendix />
           </div>
         )}
+        
       </div>
     </div>
   );
@@ -1486,6 +1488,19 @@ export default function Settings() {
             <AppendixSection />
 
           </div>
+          
+          <div style={{ padding: '0', height: '70vh', minHeight: 500 }}>
+            <iframe
+              src={routeMapHtml}
+              style={{
+                width: '100%', height: '100%', border: 'none', display: 'block',
+                borderRadius: '0 0 12px 12px',
+              }}
+              title="TISL System Route Map"
+            />
+          </div>
+          <div></div>
+
         </div>
       </div>
     </div>

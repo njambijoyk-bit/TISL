@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLayoutAudio } from './useLayoutAudio';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Heart, User, Sun, Moon, Menu, X, ChevronDown, ChevronRight,
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, 
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug,
+  Bug, Volume2, VolumeX,
 } from 'lucide-react';
 import logo from '../../assets/images/logo.png';
 import ThemeSwitcher from '../common/ThemeSwitcher';
@@ -196,6 +197,8 @@ export default function Header() {
   const { items: cartItems } = useCartStore();
   const { items: wishlistItems } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
+
+  const audio = useLayoutAudio();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -434,7 +437,7 @@ export default function Header() {
             </Link>
 
             {/* Products mega menu */}
-            <div style={{ position: 'relative' }} onMouseEnter={products.enter} onMouseLeave={products.leave}>
+            <div style={{ position: 'relative' }} onMouseEnter={() => { products.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { products.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
@@ -498,7 +501,7 @@ export default function Header() {
             </div>
 
             {/* Services mega menu */}
-            <div style={{ position: 'relative' }} onMouseEnter={services.enter} onMouseLeave={services.leave}>
+            <div style={{ position: 'relative' }} onMouseEnter={() => { services.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { services.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
@@ -562,7 +565,7 @@ export default function Header() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
 
             {/* Search */}
-            <button type="button" onClick={() => setSearchOpen(s => !s)}
+            <button type="button" onClick={() => { setSearchOpen(s => !s); audio.playIconAction(); }} onMouseEnter={audio.playHover}
               style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: navColor }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Search size={17} />
@@ -571,14 +574,14 @@ export default function Header() {
             <ThemeSwitcher />
 
             {/* Wishlist */}
-            <Link to="/wishlist" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
+            <Link to="/wishlist" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Heart size={17} />
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
 
             {/* Quote list */}
-            <Link to="/quote-list" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
+            <Link to="/quote-list" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Quote List">
               <ClipboardList size={17} />
@@ -586,7 +589,7 @@ export default function Header() {
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
+            <Link to="/cart" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <ShoppingCart size={17} />
               {cartCount > 0 && <Badge count={cartCount} />}
@@ -597,7 +600,8 @@ export default function Header() {
               <div style={{ position: 'relative' }} ref={userMenuRef}>
                 <button
                   type="button"
-                  onClick={() => setUserMenuOpen(o => !o)}
+                  onClick={() => { setUserMenuOpen(o => !o); audio.playFlyoutOpen(); }}
+                  onMouseEnter={audio.playHover}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7,
                     padding: '5px 10px 5px 5px', borderRadius: 24,
@@ -628,13 +632,35 @@ export default function Header() {
 
                     {/* User info */}
                     <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
-                      <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }} className="dark:text-white">{user?.name}</p>
-                      <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0' }}>{user?.email}</p>
-                      {isAdmin && (
-                        <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                          {user?.role}
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                        <div>
+                          <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }} className="dark:text-white">{user?.name}</p>
+                          <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0' }}>{user?.email}</p>
+                          {isAdmin && (
+                            <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                              {user?.role}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={audio.toggleMute}
+                          title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
+                          style={{
+                            flexShrink: 0, marginTop: 2,
+                            width: 28, height: 28, borderRadius: 7,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: audio.muted ? 'rgba(168,85,247,0.08)' : 'rgba(0,0,0,0.04)',
+                            border: `1px solid ${audio.muted ? 'rgba(168,85,247,0.2)' : 'rgba(0,0,0,0.08)'}`,
+                            cursor: 'pointer',
+                            color: audio.muted ? '#a855f7' : '#9ca3af',
+                            transition: 'all 150ms',
+                          }}
+                          className="dark:bg-gray-700 dark:border-gray-600"
+                        >
+                          {audio.muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Customer links */}
@@ -701,7 +727,7 @@ export default function Header() {
             )}
 
             {/* Mobile menu toggle */}
-            <button type="button" onClick={() => setMobileOpen(o => !o)}
+            <button type="button" onClick={() => { setMobileOpen(o => !o); audio.playMenuToggle(); }}
               style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
               className="show-mobile dark:text-gray-200">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}

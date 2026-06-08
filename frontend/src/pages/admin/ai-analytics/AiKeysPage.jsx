@@ -10,9 +10,9 @@ import aiAnalyticsAPI from '../../../api/aiAnalytics';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-  bg:       '#0a0a0f',
-  bgCard:   '#0d0d1a',
-  bgInput:  '#080810',
+  bg:       'var(--color-background-tertiary)',
+  bgCard:   'var(--color-background-secondary)',
+  bgInput:  'var(--color-background-secondary)',
   blue:     '#3b82f6',
   cyan:     '#06b6d4',
   purple:   '#a855f7',
@@ -20,9 +20,9 @@ const C = {
   red:      '#ef4444',
   border:   'rgba(59,130,246,0.2)',
   borderHi: 'rgba(59,130,246,0.5)',
-  text:     '#e2e8f0',
-  textMid:  '#94a3b8',
-  textDim:  '#475569',
+  text:     'var(--color-text-primary)',
+  textMid:  'var(--color-text-secondary)',
+  textDim:  'var(--color-text-tertiary)',
   glow:     '0 0 20px rgba(59,130,246,0.3)',
   glowCyan: '0 0 20px rgba(6,182,212,0.3)',
 };

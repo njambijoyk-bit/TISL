@@ -1,8 +1,8 @@
 import {
   Package, Tags, Folder, ChevronLeft, LucideBinary,
   LayoutGrid, Users, Briefcase, FolderGit2Icon,
-  LucideBadgeDollarSign,
-  BugIcon,
+  LucideBadgeDollarSign, Volume2,
+  BugIcon, VolumeX, 
   FolderCodeIcon,
   FolderCog,
   BrainCircuit,
@@ -10,136 +10,47 @@ import {
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import { useLayoutAudio } from './useLayoutAudio';
 
 const GROUPS = [
   {
     label: 'Catalog',
     items: [
-      {
-        name: 'Products',
-        icon: Package,
-        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-        path: '/admin/settings/general/bulk/products',
-        active: true,
-      },
-      {
-        name: 'Brands',
-        icon: Tags,
-        bg: 'linear-gradient(135deg,#ec4899,#f472b6)',
-        path: '/admin/settings/general/bulk/brands',
-        active: false,
-      },
-      {
-        name: 'Categories',
-        icon: Folder,
-        bg: 'linear-gradient(135deg,#10b981,#34d399)',
-        path: '/admin/settings/general/bulk/categories',
-        active: false,
-      },
+      { name: 'Products',   icon: Package,              bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/settings/general/bulk/products',   active: true },
+      { name: 'Brands',     icon: Tags,                 bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/general/bulk/brands',     active: false },
+      { name: 'Categories', icon: Folder,               bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/general/bulk/categories', active: false },
     ],
   },
   {
     label: 'People',
     items: [
-      {
-        name: 'Customers',
-        icon: Users,
-        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
-        path: '/admin/settings/general/bulk/customers',
-        active: true,
-      },
-      {
-        name: 'Employees',
-        icon: Briefcase,
-        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
-        path: '/admin/settings/general/bulk/employees',
-        active: true,
-      },
+      { name: 'Customers', icon: Users,    bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general/bulk/customers', active: true },
+      { name: 'Employees', icon: Briefcase,bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/settings/general/bulk/employees', active: true },
     ],
   },
   {
     label: 'AI',
     items: [
-      {
-        name: 'AI Analytics',
-        icon: BrainCircuit,
-        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
-        path: '/admin/ai-analytics',
-        active: true,
-      },
-      {
-        name: 'AI Keys',
-        icon: Briefcase,
-        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-        path: '/admin/ai-analytics/keys',
-        active: true,
-      },
-      {
-        name: 'AI Sessions',
-        icon: Briefcase,
-        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
-        path: '/admin/ai-analytics/sessions',
-        active: true,
-      },
-      {
-        name: 'AI Modules',
-        icon: Briefcase,
-        bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
-        path: '/admin/ai-analytics/modules',
-        active: true,
-      },
+      { name: 'AI Analytics', icon: BrainCircuit, bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/ai-analytics',         active: true },
+      { name: 'AI Keys',      icon: Briefcase,    bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/ai-analytics/keys',    active: true },
+      { name: 'AI Sessions',  icon: Briefcase,    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/ai-analytics/sessions',active: true },
+      { name: 'AI Modules',   icon: Briefcase,    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/ai-analytics/modules', active: true },
     ],
   },
   {
     label: 'FlowCharts',
     items: [
-      {
-        name: 'Orders',
-        icon: FolderGit2Icon,
-        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
-        path: '/admin/flowchart/orders',
-        active: true,
-      },
-      {
-        name: 'Customers',
-        icon: LucideBinary,
-        bg: 'linear-gradient(135deg,#ec4899,#f472b6)',
-        path: '/admin/flowchart/customers',
-        active: true,
-      },
-      {
-        name: 'Transactions',
-        icon: LucideBadgeDollarSign,
-        bg: 'linear-gradient(135deg,#10b981,#34d399)',
-        path: '/admin/flowchart/transactions',
-        active: true,
-      },
+      { name: 'Orders',       icon: FolderGit2Icon,        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/flowchart/orders',       active: true },
+      { name: 'Customers',    icon: LucideBinary,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/flowchart/customers',    active: true },
+      { name: 'Transactions', icon: LucideBadgeDollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/flowchart/transactions', active: true },
     ],
   },
   {
     label: 'Bugs',
     items: [
-      {
-        name: 'Bug Reports',
-        icon: BugIcon,
-        bg: 'linear-gradient(135deg,#c2410c,#ea580c)',
-        path: '/admin/bug-reports',
-        active: true,
-      },
-      {
-        name: 'Dev Notes',
-        icon: FolderCodeIcon,
-        bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
-        path: '/admin/dev-notes',
-        active: true,
-      },
-      {
-        name: 'Dev Keys',
-        icon: FolderCog,
-        bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-        path: '/admin/dev-keys',
-        active: true,
-      },
+      { name: 'Bug Reports', icon: BugIcon,      bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/admin/bug-reports', active: true },
+      { name: 'Dev Notes',   icon: FolderCodeIcon,bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/dev-notes',   active: true },
+      { name: 'Dev Keys',    icon: FolderCog,    bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/dev-keys',    active: true },
     ],
   },
 ];
@@ -149,8 +60,14 @@ const PANEL_W_C = 52;
 
 export default function GeneralLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
+  const audio        = useLayoutAudio();
   const navigate     = useNavigate();
   const { pathname } = useLocation();
+
+  const doCollapse = (val) => {
+    setCollapsed(val);
+    val ? audio.playCollapse() : audio.playExpand();
+  };
 
   // ─── shared tokens ────────────────────────────────────────────────────────
   const collapseBtn = {
@@ -230,7 +147,8 @@ export default function GeneralLayout({ children }) {
             {!collapsed && (
               <>
                 <button
-                  onClick={() => navigate('/admin/settings/general')}
+                  onClick={() => { navigate('/admin/settings/general'); audio.playNav(); }}
+                  onMouseEnter={audio.playHover}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     color: 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))',
@@ -238,7 +156,6 @@ export default function GeneralLayout({ children }) {
                     cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'color 150ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))'}
                   title="Go Back"
                 >
@@ -249,7 +166,15 @@ export default function GeneralLayout({ children }) {
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ThemeSwitcher />
-                  <button onClick={() => setCollapsed(true)} style={collapseBtn} title="Collapse panel">
+                  <button
+                    onClick={audio.toggleMute}
+                    onMouseEnter={audio.playHover}
+                    title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
+                    style={{ ...collapseBtn, color: audio.muted ? '#a855f7' : undefined }}
+                  >
+                    {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  </button>
+                  <button onClick={() => doCollapse(true)} onMouseEnter={audio.playHover} style={collapseBtn} title="Collapse panel">
                     <ChevronLeft size={14} />
                   </button>
                 </div>
@@ -277,13 +202,8 @@ export default function GeneralLayout({ children }) {
           }}>
             {GROUPS.map((group, groupIndex) => (
               <div key={group.label}>
-                {/* Divider between groups (skip first) */}
                 {groupIndex > 0 && !collapsed && (
-                  <div style={{
-                    height: 1,
-                    background: 'rgba(255,255,255,0.06)',
-                    margin: '4px 0',
-                  }} />
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
                 )}
 
                 <p style={groupLabelStyle}>
@@ -297,19 +217,11 @@ export default function GeneralLayout({ children }) {
                   return (
                     <button
                       key={item.name}
-                      onClick={() => item.active && navigate(item.path)}
-                      title={collapsed ? item.name : ''}
-                      disabled={!item.active}
-                      style={{
-                        ...btnBase,
-                        background: isActive ? 'rgba(168,85,247,0.15)' : 'transparent',
-                        color: isActive
-                          ? '#5a4c69'
-                          : 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))',
-                        opacity: item.active ? 1 : 0.4,
-                        cursor: item.active ? 'pointer' : 'default',
+                      onClick={() => {
+                        if (item.active) { navigate(item.path); audio.playNav(); }
                       }}
                       onMouseEnter={e => {
+                        audio.playHover();
                         if (!isActive && item.active) {
                           e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
                           e.currentTarget.style.color = '#d8b4fe';
@@ -320,6 +232,17 @@ export default function GeneralLayout({ children }) {
                           e.currentTarget.style.background = 'transparent';
                           e.currentTarget.style.color = 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))';
                         }
+                      }}
+                      title={collapsed ? item.name : ''}
+                      disabled={!item.active}
+                      style={{
+                        ...btnBase,
+                        background: isActive ? 'rgba(168,85,247,0.15)' : 'transparent',
+                        color: isActive
+                          ? '#5a4c69'
+                          : 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))',
+                        opacity: item.active ? 1 : 0.4,
+                        cursor: item.active ? 'pointer' : 'default',
                       }}
                     >
                       <div style={iconSquare(item.bg)}>
@@ -345,7 +268,8 @@ export default function GeneralLayout({ children }) {
               flexShrink: 0,
             }}>
               <button
-                onClick={() => setCollapsed(false)}
+                onClick={() => doCollapse(false)}
+                onMouseEnter={audio.playHover}
                 title="Expand panel"
                 style={{ ...collapseBtn, width: '100%', height: 32, borderRadius: 8 }}
               >
@@ -356,11 +280,7 @@ export default function GeneralLayout({ children }) {
         </aside>
 
         {/* ── Main content ───────────────────────────────── */}
-        <main style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '24px 28px',
-        }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
           {children}
         </main>
 

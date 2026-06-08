@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TISL System Route Map — Complete Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #07090f;
+        --surface: #0d1117;
+        --surface2: #161b27;
+        --border: #1e2d40;
+        --text: #cdd6e0;
+        --muted: #566375;
+        --super: #a855f7;
+        --admin: #3b82f6;
+        --finance: #10b981;
+        --logistics: #f97316;
+        --sales: #ec4899;
+        --staff: #06b6d4;
+        --customer: #f59e0b;
+        --public: #64748b;
+        --career: #8b5cf6;
+        --auth: #ef4444;
+        --api: #22c55e;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .hero {
+        padding: 40px 24px 32px;
+        text-align: center;
+        background: linear-gradient(160deg, #0d1529 0%, #0a0e1a 60%);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 0%,
+          rgba(168, 85, 247, 0.08) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 800;
+        background: linear-gradient(
+          90deg,
+          #60a5fa 0%,
+          #a78bfa 50%,
+          #f472b6 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        color: #7a8fa3;
+        font-size: 0.95rem;
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 12px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        color: #8a9ab0;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 12px 16px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .nav-tab {
+        padding: 7px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 200ms ease;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .nav-tab:hover {
+        background: #1e2d40;
+        color: var(--text);
+      }
+      .nav-tab.active {
+        background: linear-gradient(135deg, #1d3a7a, #3b1d7a);
+        color: #fff;
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+      }
+
+      .diagram-container {
+        display: none;
+        padding: 24px 20px;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+      .diagram-container.active {
+        display: block;
+      }
+      .diagram-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #e2e8f0;
+        letter-spacing: -0.01em;
+      }
+      .diagram-subtitle {
+        color: var(--muted);
+        margin-bottom: 18px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+      .mermaid-wrap {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 20px 14px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+      }
+      .mermaid-wrap svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .note {
+        background: var(--surface2);
+        border-left: 3px solid var(--super);
+        padding: 12px 16px;
+        margin-top: 16px;
+        border-radius: 0 10px 10px 0;
+        font-size: 0.83rem;
+        color: #9bb0c8;
+        line-height: 1.6;
+      }
+      .note-title {
+        font-weight: 700;
+        color: #c4b5fd;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+      }
+
+      .route-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.76rem;
+        margin-top: 12px;
+      }
+      .route-table th {
+        padding: 8px 10px;
+        text-align: left;
+        font-weight: 700;
+        color: #9ca3af;
+        text-transform: uppercase;
+        font-size: 0.6rem;
+        letter-spacing: 0.07em;
+        border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+      }
+      .route-table td {
+        padding: 7px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        color: #d1d5db;
+        font-family: monospace;
+        font-size: 0.72rem;
+      }
+      .route-table tr:nth-child(even) {
+        background: rgba(255, 255, 255, 0.01);
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 99;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+    </style>
+    <base target="_blank" />
+  </head>
+  <body>
+    <div class="hero">
+      <h1>TISL System Route Map</h1>
+      <p>
+        Complete visual reference of all frontend routes, API endpoints,
+        role-based access control, and policy gates across the entire system.
+      </p>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--super)"></div>
+        Super Admin
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--admin)"></div>
+        Admin
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--finance)"></div>
+        Finance
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--logistics)"></div>
+        Logistics
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--sales)"></div>
+        Sales Rep
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--staff)"></div>
+        Manager
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--customer)"></div>
+        Customer
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--public)"></div>
+        Public
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--career)"></div>
+        Career
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--api)"></div>
+        API
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showTab('overview', this)">
+        🏗 Overview
+      </div>
+      <div class="nav-tab" onclick="showTab('roles', this)">
+        🔐 Role Hierarchy
+      </div>
+      <div class="nav-tab" onclick="showTab('frontend', this)">
+        🌐 Frontend Routes
+      </div>
+      <div class="nav-tab" onclick="showTab('api', this)">⚡ API Routes</div>
+      <div class="nav-tab" onclick="showTab('policies', this)">🛡 Policies</div>
+      <div class="nav-tab" onclick="showTab('access-matrix', this)">
+        📊 Access Matrix
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="overview" class="diagram-container active">
+      <div class="diagram-title">System Architecture Overview</div>
+      <div class="diagram-subtitle">
+        High-level view of the application layers, authentication flows, and
+        service boundaries
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  subgraph PUBLIC["🌐 Public Layer"]
+    P1["Home / Products / Services"]
+    P2["Auctions / Hampers / Brochures"]
+    P3["About / Contact / Manual / Policies"]
+    P4["Careers Portal (Public Jobs)"]
+    P5["Bug Report / Track"]
+  end
+
+  subgraph AUTH["🔐 Authentication Layer"]
+    A1["Login / Register"]
+    A2["OAuth (Google)"]
+    A3["Password Reset / Force Change"]
+    A4["Email / Phone Verification"]
+    A5["Applicant Auth (Careers)"]
+  end
+
+  subgraph CUSTOMER["👤 Customer Portal"]
+    C1["Cart → Checkout → Orders"]
+    C2["Quotes / Quote Requests"]
+    C3["Bookings / Tickets / Projects"]
+    C4["Profile / Loyalty / Credit"]
+    C5["Wishlist / Reviews"]
+  end
+
+  subgraph ADMIN["⚙️ Admin Panel"]
+    subgraph DASH["Dashboard"]
+      D1["KPIs / Analytics / Algorithm"]
+      D2["Work / Reports"]
+    end
+    subgraph COMMERCE["Commerce"]
+      CO1["Products / Categories / Brands"]
+      CO2["Orders / Payments / Inventory"]
+      CO3["Auctions / Hampers"]
+      CO4["Quotes / Services / Bookings"]
+    end
+    subgraph PEOPLE["People"]
+      PE1["Customers / Users / Employees"]
+      PE2["Loyalty / Referrals / Promo Codes"]
+      PE3["Careers / Applicants / Jobs"]
+    end
+    subgraph CONFIG["Configuration"]
+      CF1["Settings / Content / Publications"]
+      CF2["Currency / Shipping / Tiers"]
+      CF3["AI Analytics / Dev Tools"]
+    end
+  end
+
+  subgraph API["🔌 API Layer (Laravel)"]
+    AP1["Public API (no auth)"]
+    AP2["Sanctum Auth API"]
+    AP3["Role-Gated API"]
+    AP4["Payment Callbacks (Daraja)"]
+  end
+
+  subgraph SERVICES["🧩 Core Services"]
+    S1["OrderService"]
+    S2["PaymentService (M-Pesa)"]
+    S3["InventoryStockService"]
+    S4["LoyaltyService"]
+    S5["CustomerCreditService"]
+    S6["Email / Notification Service"]
+  end
+
+  PUBLIC --> AUTH
+  AUTH --> CUSTOMER
+  AUTH --> ADMIN
+  CUSTOMER --> API
+  ADMIN --> API
+  API --> SERVICES
+  SERVICES --> DB[("Database")]
+
+  style PUBLIC fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style AUTH fill:#1a1a2e,stroke:#ef4444,stroke-width:2px,color:#fff
+  style CUSTOMER fill:#1a1a2e,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style ADMIN fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style API fill:#1a1a2e,stroke:#22c55e,stroke-width:2px,color:#fff
+  style SERVICES fill:#1a1a2e,stroke:#a855f7,stroke-width:2px,color:#fff
+  style DB fill:#0d1117,stroke:#1e2d40,stroke-width:2px,color:#fff
+      </pre
+        >
+      </div>
+    </div>
+
+    <!-- ROLE HIERARCHY -->
+    <div id="roles" class="diagram-container">
+      <div class="diagram-title">🔐 Role Hierarchy & Authority Levels</div>
+      <div class="diagram-subtitle">
+        Lower number = higher authority. Each role inherits downward permissions
+        unless explicitly blocked by policy.
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  subgraph HIERARCHY["Authority Pyramid"]
+    direction TB
+    SA["1. SUPER_ADMIN<br/>∞ authority<br/>Force delete / Run scoring / Manage keys"]
+    AD["2. ADMIN<br/>Full CRUD<br/>User management / Settings / Content"]
+    MA["3. MANAGER<br/>Team oversight<br/>Employee subordinates / Reports"]
+    FI["4. FINANCE<br/>Payment authority<br/>M-Pesa / Reconciliation / Credit"]
+    LO["5. LOGISTICS<br/>Delivery authority<br/>Shipping / Tracking / Worksheets"]
+    SR["6. SALES_REP<br/>Quote authority<br/>Leads / Proposals / Customer comms"]
+    CU["7. CUSTOMER<br/>Self-service<br/>Orders / Bookings / Loyalty"]
+    VE["8. VENDOR<br/>Portal only<br/>Zero admin authority"]
+    DR["9. DRIVER<br/>Mobile portal<br/>Delivery assignments only"]
+  end
+
+  SA --> AD --> MA --> FI --> LO --> SR --> CU --> VE --> DR
+
+  SA -.->|"can force delete"| FD["Any record"]
+  AD -.->|"can create users"| UC["Users ≤ manager"]
+  MA -.->|"can manage"| SUB["Subordinate employees"]
+  FI -.->|"can initiate"| MP["M-Pesa STK"]
+  FI -.->|"CANNOT resolve own disputes"| MD["Dispute resolution blocked"]
+  LO -.->|"can ship"| SH["Orders / Bookings"]
+  SR -.->|"can create"| QU["Quotes / Quote requests"]
+  CU -.->|"can cancel"| CO["Pending + unpaid orders only"]
+
+  style SA fill:#2a1a3a,stroke:#a855f7,stroke-width:3px,color:#fff
+  style AD fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style MA fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style FI fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style LO fill:#3a2f1a,stroke:#f97316,stroke-width:2px,color:#fff
+  style SR fill:#3a1a2a,stroke:#ec4899,stroke-width:2px,color:#fff
+  style CU fill:#3a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style VE fill:#2a2a2a,stroke:#6b7280,stroke-width:1px,color:#9ca3af
+  style DR fill:#2a2a2a,stroke:#6b7280,stroke-width:1px,color:#9ca3af
+  style FD fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+  style MD fill:#3a1a1a,stroke:#ef4444,stroke-width:1px,color:#fff
+      </pre>
+      </div>
+      <div class="note">
+        <div class="note-title">Key Policy Rules</div>
+        <ul style="margin: 0; padding-left: 18px; line-height: 1.7">
+          <li>
+            <strong>Finance & Logistics:</strong> Can only view their own
+            profile — no user management authority
+          </li>
+          <li>
+            <strong>Finance dispute resolution:</strong> Blocked from resolving
+            their own disputes (conflict of interest)
+          </li>
+          <li>
+            <strong>Manager:</strong> Can only update subordinate employees
+            (manager_id match)
+          </li>
+          <li>
+            <strong>Super Admin:</strong> Bypasses all checks via
+            <code>before()</code> hook in policies
+          </li>
+          <li>
+            <strong>Driver:</strong> Like vendor — portal access only, zero
+            admin authority
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- FRONTEND ROUTES -->
+    <div id="frontend" class="diagram-container">
+      <div class="diagram-title">🌐 Frontend Route Architecture</div>
+      <div class="diagram-subtitle">
+        All React Router routes with role requirements and component mappings
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart LR
+  subgraph PUB["Public (No Auth)"]
+    direction TB
+    PH["/ /home /portal"]
+    PP["/products /services /auctions /specials"]
+    PC["/about /contact /manual /policies"]
+    PB["/brochures /news /blog"]
+    PR["/report-bug /track-bug /dev/*"]
+  end
+
+  subgraph CAREER_PUB["Careers Public"]
+    direction TB
+    CJ["/careers /careers/:slug"]
+    CA["/careers/login /register /forgot-password /reset-password"]
+    CL["/careers/about /contact /privacy /terms /cookies"]
+  end
+
+  subgraph CAREER_PROT["Careers Protected"]
+    direction TB
+    CP1["/careers/portal"]
+    CP2["/careers/portal/profile"]
+    CP3["/careers/portal/change-password"]
+  end
+
+  subgraph CUST["Customer (Auth Required)"]
+    direction TB
+    CH["/hampers /hampers/:slug /checkout"]
+    CO["/orders /orders/:id /my-quotes /my-quote-requests"]
+    CB["/bookings /services/:id/book"]
+    CT["/my-tickets /profile /my-projects"]
+    CC["/request-quote /account/bug-reports"]
+  end
+
+  subgraph ADM["Admin (Staff Roles)"]
+    direction TB
+    AD1["/admin — Dashboard"]
+    AD2["/admin/orders /products /services /customers /users"]
+    AD3["/admin/employees /loyalty /referrals /promo-codes"]
+    AD4["/admin/auctions /hampers /bookings /tickets /quotes"]
+    AD5["/admin/projects /careers /inventory /reports"]
+    AD6["/admin/settings/* /flowchart/* /ai-analytics"]
+    AD7["/admin/finance/* /reconciliation /algorithm"]
+  end
+
+  PUB --> AUTH["🔐 Auth Wall"]
+  CAREER_PUB --> AUTH
+  AUTH --> CUST
+  AUTH --> ADM
+  AUTH --> CAREER_PROT
+
+  style PUB fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style CAREER_PUB fill:#1a1a2e,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style CAREER_PROT fill:#1a1a2e,stroke:#8b5cf6,stroke-width:2px,color:#fff
+  style CUST fill:#1a1a2e,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style ADM fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style AUTH fill:#1a1a2e,stroke:#ef4444,stroke-width:3px,color:#fff
+      </pre
+        >
+      </div>
+      <div class="note">
+        <div class="note-title">Route Protection Rules</div>
+        <ul style="margin: 0; padding-left: 18px; line-height: 1.7">
+          <li>
+            <strong>Public routes:</strong> No authentication required —
+            accessible to anyone
+          </li>
+          <li>
+            <strong>Customer routes:</strong> Require
+            <code>auth:sanctum</code> + <code>role:customer</code>
+          </li>
+          <li>
+            <strong>Admin routes:</strong> Require <code>auth:sanctum</code> +
+            any of: admin, super_admin, manager, finance, logistics, sales_rep
+          </li>
+          <li>
+            <strong>Super admin routes:</strong> Additional
+            <code>role:super_admin</code> middleware on destructive actions
+          </li>
+          <li>
+            <strong>Finance routes:</strong> Isolated under
+            <code>/admin/finance/*</code> with <code>role:finance</code> gate
+          </li>
+          <li>
+            <strong>Careers portal:</strong> Separate auth system — applicant
+            model, not customer model
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API ROUTES -->
+    <div id="api" class="diagram-container">
+      <div class="diagram-title">⚡ API Route Architecture</div>
+      <div class="diagram-subtitle">
+        Laravel API endpoints organized by authentication requirement and role
+        gate
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  subgraph PUBLIC_API["Public API (No Auth)"]
+    direction TB
+    PA1["GET /products /categories /brands /services"]
+    PA2["GET /auctions /content /publications"]
+    PA3["POST /auth/register /login /forgot-password"]
+    PA4["POST /bug-reports /search-events"]
+    PA5["GET /careers/jobs /shipping-options /customer-tiers"]
+    PA6["POST /payments/callback (Daraja)"]
+    PA7["GET /email/verify/{id}/{hash}"]
+  end
+
+  subgraph AUTH_API["Authenticated (auth:sanctum)"]
+    direction TB
+    AA1["POST /auth/logout /change-password /profile-picture"]
+    AA2["GET /auth/me"]
+    AA3["POST /chat (throttle:30,1)"]
+    AA4["POST /auctions/{auction}/bid"]
+    AA5["Notifications CRUD"]
+    AA6["GET /policies/check-reacceptance / POST accept"]
+  end
+
+  subgraph CUSTOMER_API["Customer (role:customer)"]
+    direction TB
+    CA1["GET /customer/profile /cart /wishlist /orders"]
+    CA2["POST /customer/orders /quotes /quote-requests"]
+    CA3["GET /customer/hampers /bookings /tickets"]
+    CA4["POST /customer/loyalty/redeem /reviews"]
+    CA5["GET /customer/credit/* /projects /referrals"]
+  end
+
+  subgraph ADMIN_API["Admin (role:admin,super_admin,manager,finance,logistics,sales_rep)"]
+    direction TB
+    A1["Products / Categories / Brands — CRUD"]
+    A2["Orders — confirm, ship, deliver, cancel, restore"]
+    A3["Customers / Users / Employees — CRUD"]
+    A4["Quotes / Quote Requests / Tickets — CRUD"]
+    A5["Services / Bookings / Worksheets — CRUD"]
+    A6["Auctions / Hampers / Auction Orders — CRUD"]
+    A7["Projects / Careers / Inventory — CRUD"]
+    A8["Content Pages / Sections / Publications — CRUD"]
+    A9["Loyalty / Referrals / Promo Codes — management"]
+    A10["Reports / Analytics / Work / Logs — view"]
+    A11["Settings / Currency / Shipping / Tiers — config"]
+    A12["AI Analytics / Dev Notes / Keys — view"]
+  end
+
+  subgraph FINANCE_API["Finance (role:finance,manager,admin,super_admin)"]
+    direction TB
+    F1["Payments — initiate, cancel, retry, dispute"]
+    F2["Reconciliation — sessions, lines, close/reopen"]
+    F3["Credit — global summary, global customers"]
+    F4["Reports — revenue, orders, quote-funnel, promos"]
+    F5["Search Analytics — dashboard, sessions, customers"]
+  end
+
+  subgraph SUPER_API["Super Admin Only (role:super_admin)"]
+    direction TB
+    S1["POST /admin/algorithm/run"]
+    S2["DELETE /admin/orders/{id}/force"]
+    S3["DELETE /admin/projects/{project}/force"]
+    S4["DELETE /admin/users/{id}/force"]
+    S5["DELETE /admin/tickets/{id}/force"]
+    S6["AI Provider Keys — CRUD"]
+  end
+
+  PUBLIC_API --> AUTH_API --> CUSTOMER_API
+  AUTH_API --> ADMIN_API
+  ADMIN_API --> FINANCE_API
+  ADMIN_API --> SUPER_API
+
+  style PUBLIC_API fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style AUTH_API fill:#1a1a2e,stroke:#ef4444,stroke-width:2px,color:#fff
+  style CUSTOMER_API fill:#1a1a2e,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style ADMIN_API fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style FINANCE_API fill:#1a1a2e,stroke:#10b981,stroke-width:2px,color:#fff
+  style SUPER_API fill:#1a1a2e,stroke:#a855f7,stroke-width:3px,color:#fff
+      </pre
+        >
+      </div>
+    </div>
+
+    <!-- POLICIES -->
+    <div id="policies" class="diagram-container">
+      <div class="diagram-title">🛡 Policy Gate Architecture</div>
+      <div class="diagram-subtitle">
+        How Laravel policies enforce access control across models and actions
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  subgraph USER_POLICY["UserPolicy"]
+    direction TB
+    UP1["Hierarchy: super_admin(1) → admin(2) → manager(3) → finance(4) → logistics(5) → sales_rep(6) → customer(7) → vendor(8) → driver(9)"]
+    UP2["outranks(): lower level = higher authority"]
+    UP3["viewAny(): isAdmin()"]
+    UP4["view(): outranks() OR self (finance/logistics only)"]
+    UP5["create(): super_admin, admin, manager only"]
+    UP6["update(): outranks() OR self (finance/logistics)"]
+    UP7["delete/restore(): outranks()"]
+    UP8["forceDelete(): super_admin only"]
+    UP9["canAssignRole(): level(actor) < level(role)"]
+  end
+
+  subgraph PROJECT_POLICY["ProjectPolicy"]
+    direction TB
+    PP1["isStaff(): super_admin, admin, manager, sales_rep"]
+    PP2["participant(): admin_user_id OR customer_id match"]
+    PP3["view(): super_admin OR staffGlobal OR participant"]
+    PP4["update(): admin_owner/admin_manager OR owner_admin_id OR customer_owner"]
+    PP5["delete(): super_admin (any) OR admin (must be participant)"]
+    PP6["manageParticipants(): admin_owner/admin_manager OR customer_owner"]
+    PP7["comment(): participant.can_comment = 1 (customer_viewer ✅)"]
+    PP8["viewFinance(): super_admin/admin OR can_view_finance = 1"]
+    PP9["manageLinks(): admin only (customers false)"]
+    PP10["manageWork(): staff OR customer_owner/editor"]
+  end
+
+  subgraph PAYMENT_POLICY["PaymentPolicy"]
+    direction TB
+    PAY1["viewAny(): super_admin, admin, manager, finance, sales_rep, logistics"]
+    PAY2["view(): finance sees own initiated only; admin/super_admin see all"]
+    PAY3["create(): finance, admin, super_admin"]
+    PAY4["update(): confirmed/refunded = immutable; finance sees own only"]
+    PAY5["cancel(): pending only; finance sees own; admin/super_admin see all"]
+    PAY6["retry(): failed/cancelled only; finance/admin/super_admin"]
+    PAY7["raiseDispute(): confirmed + no existing dispute; finance/admin/super_admin"]
+    PAY8["resolveDispute(): raised/investigating; finance BLOCKED from own disputes"]
+    PAY9["delete(): NEVER — payment records are immutable"]
+  end
+
+  subgraph LOYALTY_POLICY["LoyaltyPolicy"]
+    direction TB
+    LP1["before(): super_admin bypasses all"]
+    LP2["viewAny(): isAdmin()"]
+    LP3["view(): admin (any) OR customer (self only)"]
+    LP4["grantPoints(): super_admin, admin, manager, finance, sales_rep"]
+    LP5["deductPoints(): super_admin, admin, manager, finance (NOT sales_rep)"]
+    LP6["grantCredit/deductCredit(): super_admin, admin, manager, finance"]
+    LP7["redeem(): admin (any) OR customer (self)"]
+    LP8["configureSettings(): super_admin, admin only"]
+    LP9["export(): super_admin, admin, manager, finance"]
+  end
+
+  subgraph EMPLOYEE_POLICY["EmployeePolicy"]
+    direction TB
+    EP1["viewAny(): super_admin, admin, manager"]
+    EP2["view(): super_admin, admin, manager OR self"]
+    EP3["create(): super_admin, admin only"]
+    EP4["update(): super_admin (any) / admin (any) / manager (subordinates) / self"]
+    EP5["delete/restore(): super_admin, admin only"]
+    EP6["forceDelete(): super_admin only"]
+    EP7["manageSensitiveData(): super_admin, admin only"]
+    EP8["manageStatus(): super_admin, admin only"]
+  end
+
+  subgraph AI_KEY_POLICY["AiProviderKeyPolicy"]
+    direction TB
+    AI1["manage(): super_admin only"]
+    AI2["view(): super_admin, admin, manager, sales_rep (active key only, not secret)"]
+  end
+
+  USER_POLICY --> PROJECT_POLICY --> PAYMENT_POLICY --> LOYALTY_POLICY --> EMPLOYEE_POLICY --> AI_KEY_POLICY
+
+  style USER_POLICY fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style PROJECT_POLICY fill:#1a1a2e,stroke:#a855f7,stroke-width:2px,color:#fff
+  style PAYMENT_POLICY fill:#1a1a2e,stroke:#10b981,stroke-width:2px,color:#fff
+  style LOYALTY_POLICY fill:#1a1a2e,stroke:#f59e0b,stroke-width:2px,color:#fff
+  style EMPLOYEE_POLICY fill:#1a1a2e,stroke:#ec4899,stroke-width:2px,color:#fff
+  style AI_KEY_POLICY fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#fff
+      </pre
+        >
+      </div>
+    </div>
+
+    <!-- ACCESS MATRIX -->
+    <div id="access-matrix" class="diagram-container">
+      <div class="diagram-title">📊 Route Access Matrix by Role</div>
+      <div class="diagram-subtitle">
+        Which roles can access which frontend routes and API endpoints
+      </div>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart LR
+  subgraph ROUTES["Route Categories"]
+    direction TB
+    R1["Dashboard / Work / Reports"]
+    R2["Orders / Payments / Finance"]
+    R3["Products / Categories / Brands / Inventory"]
+    R4["Customers / Users / Employees"]
+    R5["Quotes / Services / Bookings / Tickets"]
+    R6["Auctions / Hampers / Projects"]
+    R7["Loyalty / Referrals / Promo Codes"]
+    R8["Settings / Content / AI / Dev"]
+    R9["Careers / Applicants / Jobs"]
+  end
+
+  subgraph SUPER["SUPER_ADMIN"]
+    direction TB
+    S1["✅ ALL ROUTES"]
+    S2["✅ Force delete"]
+    S3["✅ Run algorithm"]
+    S4["✅ AI key management"]
+    S5["✅ Backup settings"]
+    S6["✅ Security settings"]
+  end
+
+  subgraph ADMIN["ADMIN"]
+    direction TB
+    A1["✅ Dashboard"]
+    A2["✅ Orders (no force delete)"]
+    A3["✅ Products / Catalog"]
+    A4["✅ Customers / Users"]
+    A5["✅ Employees (no force delete)"]
+    A6["✅ Quotes / Services / Bookings"]
+    A7["✅ Auctions / Hampers"]
+    A8["✅ Projects / Careers"]
+    A9["✅ Settings / Content"]
+    A10["✅ Loyalty / Referrals / Promos"]
+    A11["❌ Force delete"]
+    A12["❌ Run algorithm"]
+    A13["❌ AI key management"]
+  end
+
+  subgraph MANAGER["MANAGER"]
+    direction TB
+    M1["✅ Dashboard / Work"]
+    M2["✅ Orders (view)"]
+    M3["✅ Products (view)"]
+    M4["✅ Customers (view)"]
+    M5["✅ Employees (subordinates only)"]
+    M6["✅ Quotes / Services / Bookings"]
+    M7["✅ Reports"]
+    M8["✅ Loyalty (grant points)"]
+    M9["❌ Settings / AI keys"]
+    M10["❌ Force delete"]
+  end
+
+  subgraph FINANCE["FINANCE"]
+    direction TB
+    F1["✅ Payments (own + view all)"]
+    F2["✅ Reconciliation"]
+    F3["✅ Credit (global)"]
+    F4["✅ Reports (financial)"]
+    F5["✅ Orders (view for context)"]
+    F6["✅ Customers (financial data)"]
+    F7["✅ Loyalty (grant/deduct)"]
+    F8["❌ User management"]
+    F9["❌ Resolve own disputes"]
+    F10["❌ Settings"]
+  end
+
+  subgraph LOGISTICS["LOGISTICS"]
+    direction TB
+    L1["✅ Orders (shipping queue)"]
+    L2["✅ Bookings (scheduling)"]
+    L3["✅ Projects (view)"]
+    L4["✅ Work (dashboard)"]
+    L5["✅ Employee (own record)"]
+    L6["❌ User management"]
+    L7["❌ Payments"]
+    L8["❌ Settings"]
+  end
+
+  subgraph SALES["SALES_REP"]
+    direction TB
+    SR1["✅ Quote Requests"]
+    SR2["✅ Quotes (create/edit)"]
+    SR3["✅ Customers (assigned)"]
+    SR4["✅ Orders (post-conversion)"]
+    SR5["✅ Loyalty (grant points)"]
+    SR6["❌ Deduct points"]
+    SR7["❌ User management"]
+    SR8["❌ Settings"]
+  end
+
+  subgraph CUSTOMER["CUSTOMER"]
+    direction TB
+    C1["✅ Profile / Orders / Bookings"]
+    C2["✅ Quotes / Quote Requests"]
+    C3["✅ Tickets / Projects (invited)"]
+    C4["✅ Hampers / Cart / Checkout"]
+    C5["✅ Loyalty (self redeem)"]
+    C6["✅ Reviews / Wishlist"]
+    C7["❌ Admin panel"]
+    C8["❌ Other customers' data"]
+  end
+
+  ROUTES --> SUPER --> ADMIN --> MANAGER --> FINANCE --> LOGISTICS --> SALES --> CUSTOMER
+
+  style ROUTES fill:#1a1a2e,stroke:#64748b,stroke-width:2px,color:#fff
+  style SUPER fill:#2a1a3a,stroke:#a855f7,stroke-width:3px,color:#fff
+  style ADMIN fill:#1a2744,stroke:#3b82f6,stroke-width:2px,color:#fff
+  style MANAGER fill:#1a2e1a,stroke:#10b981,stroke-width:2px,color:#fff
+  style FINANCE fill:#1a3a2f,stroke:#10b981,stroke-width:2px,color:#fff
+  style LOGISTICS fill:#3a2f1a,stroke:#f97316,stroke-width:2px,color:#fff
+  style SALES fill:#3a1a2a,stroke:#ec4899,stroke-width:2px,color:#fff
+  style CUSTOMER fill:#3a2a1a,stroke:#f59e0b,stroke-width:2px,color:#fff
+      </pre
+        >
+      </div>
+    </div>
+
+    <script>
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        themeVariables: {
+          primaryColor: "#1e293b",
+          primaryTextColor: "#e2e8f0",
+          primaryBorderColor: "#475569",
+          lineColor: "#64748b",
+          secondaryColor: "#334155",
+          tertiaryColor: "#0f172a",
+          fontFamily: "Segoe UI, system-ui, sans-serif",
+          fontSize: "13px",
+        },
+        flowchart: {
+          useMaxWidth: true,
+          htmlLabels: false,
+          curve: "basis",
+          padding: 15,
+          nodeSpacing: 50,
+          rankSpacing: 60,
+        },
+      });
+
+      document.querySelectorAll(".mermaid").forEach((node) => {
+        node.setAttribute("data-original", node.textContent);
+      });
+
+      mermaid.run({ nodes: document.querySelectorAll("#overview .mermaid") });
+      const rendered = new Set(["overview"]);
+
+      function showTab(tabId, el) {
+        document
+          .querySelectorAll(".diagram-container")
+          .forEach((c) => c.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        el.classList.add("active");
+
+        if (!rendered.has(tabId)) {
+          rendered.add(tabId);
+          const nodes = Array.from(
+            document.querySelectorAll("#" + tabId + " .mermaid"),
+          );
+          nodes.forEach((node) => {
+            node.innerHTML = node.getAttribute("data-original") || "";
+            node.removeAttribute("data-processed");
+          });
+          mermaid.run({ nodes });
+        }
+      }
+    </script>
+  </body>
+</html>

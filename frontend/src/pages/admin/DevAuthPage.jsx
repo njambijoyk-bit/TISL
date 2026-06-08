@@ -5,6 +5,7 @@ import '../../styles/bug.css';
 import Header from '../../components/layout/Header';
 import { devAuth, saveDevToken } from '../../api/bugReportsAPI';
 import MimiFooter from '../../components/bugs/MimiFooter';
+import { useBugAudio } from './settings/useBugAudio';
 
 /**
  * DevAuthPage — /dev/auth
@@ -13,11 +14,12 @@ import MimiFooter from '../../components/bugs/MimiFooter';
  */
 export default function DevAuthPage() {
   const navigate = useNavigate();
+  const audio    = useBugAudio();
 
-  const [key, setKey] = useState('');
-  const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [key,      setKey]      = useState('');
+  const [visible,  setVisible]  = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState(null);
   const [keyReset, setKeyReset] = useState(false);
 
   const handleSubmit = async () => {
@@ -28,14 +30,21 @@ export default function DevAuthPage() {
     try {
       const res = await devAuth(key.trim());
       saveDevToken(res.dev_token);
+      audio.playSuccess();
       navigate('/dev/portal');
     } catch (err) {
       const data = err?.response?.data;
       setError(data?.message ?? 'Authentication failed. Please try again.');
       if (data?.key_reset) setKeyReset(true);
+      audio.playError();
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleToggleVisible = () => {
+    setVisible(v => !v);
+    audio.playClick();
   };
 
   return (
@@ -69,13 +78,15 @@ export default function DevAuthPage() {
                   value={key}
                   onChange={e => setKey(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+                  onFocus={audio.playHover}
                   placeholder="Paste your key here..."
                   className="bug-input bug-key-text"
                   autoFocus
                 />
                 <button
                   type="button"
-                  onClick={() => setVisible(v => !v)}
+                  onClick={handleToggleVisible}
+                  onMouseEnter={audio.playHover}
                   className="bug-input-eye"
                   tabIndex={-1}
                 >
@@ -101,6 +112,7 @@ export default function DevAuthPage() {
 
             <button
               onClick={handleSubmit}
+              onMouseEnter={audio.playHover}
               disabled={loading || !key.trim()}
               className="bug-btn bug-btn-indigo"
               style={{ width: '100%', padding: '10px 16px' }}

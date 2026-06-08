@@ -3,21 +3,22 @@ import {
   FileText, Phone, BookOpen, Home, Award,
   Briefcase, Gift, UserCheck, Crown, Gavel,
   Tag, Users, Settings as SettingsIcon, Scale,
-  FootprintsIcon, ChevronLeft, Truck, Boxes,
+  FootprintsIcon, ChevronLeft, Truck, Boxes, Volume2, VolumeX,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import { useLayoutAudio } from './useLayoutAudio';
 
 const GROUPS = [
   {
     label: 'System',
     items: [
-      { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general',          active: true },
-      { name: 'Analytics', icon: Gauge,     bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/settings/analytics',        active: true },
-      { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/currency',         active: true },
-      { name: 'Customer Tiers',icon: Crown, bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/customer-tiers',   active: true },
-      { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', path: '/admin/settings/shipping',         active: true },
+      { name: 'General',        icon: Globe,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general',        active: true },
+      { name: 'Analytics',      icon: Gauge,      bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/settings/analytics',      active: true },
+      { name: 'Currency',       icon: DollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/currency',        active: true },
+      { name: 'Customer Tiers', icon: Crown,      bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/customer-tiers',  active: true },
+      { name: 'Shipping',       icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', path: '/admin/settings/shipping',        active: true },
     ],
   },
   {
@@ -33,37 +34,39 @@ const GROUPS = [
   {
     label: 'Operations',
     items: [
-      { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/work', active: true },
-      { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', path: '/admin/careers',  active: true },
-      { name: 'Inventory', icon: Boxes,        bg: 'linear-gradient(135deg,#c2410c,#f97316)', path: '/admin/inventory',  active: true },
-      { name: 'Reconciliation', icon: Scale,   bg: 'linear-gradient(135deg,#065f46,#10b981)', path: '/admin/reconciliation', active: true },  
-      { name: 'Publications', icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/settings/publications', active: true },
+      { name: 'Work',           icon: Briefcase, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/work',                      active: true },
+      { name: 'Careers',        icon: GraduationCap,bg:'linear-gradient(135deg,#4338ca,#6366f1)', path: '/admin/careers',                 active: true },
+      { name: 'Inventory',      icon: Boxes,     bg: 'linear-gradient(135deg,#c2410c,#f97316)', path: '/admin/inventory',                 active: true },
+      { name: 'Reconciliation', icon: Scale,     bg: 'linear-gradient(135deg,#065f46,#10b981)', path: '/admin/reconciliation',            active: true },
+      { name: 'Publications',   icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/settings/publications',     active: true },
     ],
   },
   {
     label: 'People & Promos',
     items: [
-      { name: 'User Management', icon: Users, bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', path: '/admin/users',       active: true },
-      { name: 'Loyalties',       icon: Award, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/loyalty',     active: true },
-      { name: 'Referral Codes',  icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/referrals',   active: true },
-      { name: 'Promo Codes',     icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/promo-codes', active: true },
+      { name: 'User Management', icon: Users, bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', path: '/admin/users',        active: true },
+      { name: 'Loyalties',       icon: Award, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', path: '/admin/loyalty',      active: true },
+      { name: 'Referral Codes',  icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/referrals',    active: true },
+      { name: 'Promo Codes',     icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/promo-codes',  active: true },
       { name: 'Policies',        icon: Gavel, bg: 'linear-gradient(135deg,#c2410c,#f97316)', path: '/admin/settings/policy', active: true },
     ],
   },
 ];
 
 const PANEL_W   = 224;
-const PANEL_W_C = 52;   // collapsed — icon squares only
+const PANEL_W_C = 52;
 
 export default function SettingsLayout({ children }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('settings_sidebar_collapsed') === 'true');
+  const audio        = useLayoutAudio();
+  const navigate     = useNavigate();
+  const { pathname } = useLocation();
 
   const toggleCollapse = (val) => {
     setCollapsed(val);
     localStorage.setItem('settings_sidebar_collapsed', val);
+    val ? audio.playCollapse() : audio.playExpand();
   };
-  const navigate     = useNavigate();
-  const { pathname } = useLocation();
 
   // ─── shared tokens ────────────────────────────────────────────────────────
   const collapseBtn = {
@@ -136,7 +139,8 @@ export default function SettingsLayout({ children }) {
             {!collapsed && (
               <>
                 <button
-                  onClick={() => navigate('/admin/settings')}
+                  onClick={() => { navigate('/admin/settings'); audio.playNav(); }}
+                  onMouseEnter={audio.playHover}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     color: 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))',
@@ -144,7 +148,6 @@ export default function SettingsLayout({ children }) {
                     cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'color 150ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))'}
                   title="Settings home"
                 >
@@ -155,14 +158,21 @@ export default function SettingsLayout({ children }) {
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ThemeSwitcher />
-                  <button onClick={() => toggleCollapse(true)} style={collapseBtn} title="Collapse panel">
+                  <button
+                    onClick={audio.toggleMute}
+                    onMouseEnter={audio.playHover}
+                    title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
+                    style={{ ...collapseBtn, color: audio.muted ? '#a855f7' : undefined }}
+                  >
+                    {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  </button>
+                  <button onClick={() => toggleCollapse(true)} onMouseEnter={audio.playHover} style={collapseBtn} title="Collapse panel">
                     <ChevronLeft size={14} />
                   </button>
                 </div>
               </>
             )}
 
-            {/* Collapsed: purple settings badge as identity marker */}
             {collapsed && (
               <div style={{
                 width: 28, height: 28, borderRadius: 7,
@@ -189,18 +199,11 @@ export default function SettingsLayout({ children }) {
                   return (
                     <button
                       key={item.name}
-                      onClick={() => item.active && navigate(item.path)}
-                      title={collapsed ? item.name : ''}
-                      style={{
-                        ...btnBase,
-                        background: isActive ? 'rgba(168,85,247,0.15)' : 'transparent',
-                        color: isActive
-                          ? '#5a4c69'
-                          : 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))',
-                        opacity: item.active ? 1 : 0.4,
-                        cursor: item.active ? 'pointer' : 'default',
+                      onClick={() => {
+                        if (item.active) { navigate(item.path); audio.playNav(); }
                       }}
                       onMouseEnter={e => {
+                        audio.playHover();
                         if (!isActive && item.active) {
                           e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
                           e.currentTarget.style.color = '#d8b4fe';
@@ -211,6 +214,16 @@ export default function SettingsLayout({ children }) {
                           e.currentTarget.style.background = 'transparent';
                           e.currentTarget.style.color = 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))';
                         }
+                      }}
+                      title={collapsed ? item.name : ''}
+                      style={{
+                        ...btnBase,
+                        background: isActive ? 'rgba(168,85,247,0.15)' : 'transparent',
+                        color: isActive
+                          ? '#5a4c69'
+                          : 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))',
+                        opacity: item.active ? 1 : 0.4,
+                        cursor: item.active ? 'pointer' : 'default',
                       }}
                     >
                       <div style={iconSquare(item.bg)}>
@@ -237,6 +250,7 @@ export default function SettingsLayout({ children }) {
             }}>
               <button
                 onClick={() => toggleCollapse(false)}
+                onMouseEnter={audio.playHover}
                 title="Expand panel"
                 style={{ ...collapseBtn, width: '100%', height: 32, borderRadius: 8 }}
               >

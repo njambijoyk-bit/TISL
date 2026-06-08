@@ -5,11 +5,12 @@ import {
   Wrench, FolderTree, MessageSquare, ClipboardList, UserCog, LifeBuoy,
   HomeIcon, Gavel, DollarSign,
   Network,BrainCircuit,Cpu,ScanLine,GitBranch,
-  Gift, IdCardLanyardIcon,
+  Gift, IdCardLanyardIcon, Volume2, VolumeX,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
+import { useLayoutAudio } from './useLayoutAudio';
 
 const MENU_GROUPS = [
   {
@@ -63,10 +64,12 @@ const MENU_GROUPS = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+  const audio = useLayoutAudio();
 
   const toggleCollapse = (val) => {
     setCollapsed(val);
     localStorage.setItem('sidebar_collapsed', val);
+    val ? audio.playCollapse() : audio.playExpand();
   };
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -96,9 +99,9 @@ export default function Sidebar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // 2. Replace handleLogout with these two handlers
-  const handleLogoutClick = () => setShowLogoutModal(true);
-  const handleLogoutConfirm = () => { setShowLogoutModal(false); logout(); navigate('/login'); };
-  const handleLogoutCancel = () => setShowLogoutModal(false);
+  const handleLogoutClick = () => { setShowLogoutModal(true); audio.playLogoutOpen(); };
+  const handleLogoutConfirm = () => { setShowLogoutModal(false); audio.playLogoutConfirm(); logout(); navigate('/login'); };
+  const handleLogoutCancel = () => { setShowLogoutModal(false); audio.playLogoutCancel(); };
 
   // ─── styles ────────────────────────────────────────────────────────────────
   const sidebarW = collapsed ? 68 : 240;
@@ -235,6 +238,13 @@ export default function Sidebar() {
           {!collapsed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ThemeSwitcher />
+              <button
+                onClick={audio.toggleMute}
+                title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
+                style={{ ...collapseBtn, color: audio.muted ? '#a855f7' : undefined }}
+              >
+                {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
               <button onClick={() => toggleCollapse(true)} style={collapseBtn} title="Collapse sidebar">
                 <ChevronLeft size={14} />
               </button>
@@ -272,6 +282,7 @@ export default function Sidebar() {
                       style={active ? { ...linkBase, background: item.color, color: '#fff' } : linkInactive}
                       title={collapsed ? item.title : ''}
                       onMouseEnter={e => {
+                        audio.playHover();
                         if (!active) {
                           e.currentTarget.style.background = `${item.color}22`;
                           e.currentTarget.style.color = item.color;
@@ -331,6 +342,7 @@ export default function Sidebar() {
               transition: 'background 150ms, color 150ms',
             }}
             onMouseEnter={e => {
+              audio.playHover();
               e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
               e.currentTarget.style.color = '#f87171'; // ← red accent hover, kept
             }}

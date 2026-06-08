@@ -51,6 +51,7 @@ const PolicyPage           = lazy(() => import('./components/legal/shared/Policy
 const PrivacyPolicy        = lazy(() => import('./components/legal/PrivacyPolicy'));
 const TermsOfService       = lazy(() => import('./components/legal/TermsOfService'));
 const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'));
+const CookieConsentBanner  = lazy(() => import('./components/legal/shared/CookieConsentBanner'));
 const WebsitePolicy        = lazy(() => import('./components/legal/WebsitePolicy'));
 const HamperPolicy         = lazy(() => import('./components/legal/HamperPolicy'));
 const OrderPolicy          = lazy(() => import('./components/legal/OrderPolicy'));
@@ -324,7 +325,8 @@ function App() {
         <BookmarkNote />
         <Mimi />
         <AiPanelRoot />
-        <FloatingJournalModal /> 
+        <FloatingJournalModal />
+        <CookieConsentBanner /> 
         <PWANavBar /> 
 
         {/* All routes are lazy — Suspense handles the loading state */}
