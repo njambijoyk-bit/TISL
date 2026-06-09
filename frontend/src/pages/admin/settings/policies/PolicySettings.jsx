@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import SettingsLayout from '../../../../components/layout/SettingsLayout';
 import policyAPI from '../../../../api/policy';
 import { useAuthStore } from '../../../../store';
+import PolicyAcceptances from './PolicyAcceptances';
 import PolicyVersionHistory from './PolicyVersionHistory';
 import {
   Shield, Edit2, X, ChevronDown, ChevronUp,
@@ -526,6 +527,7 @@ function PolicyRow({ policy, onEdit, index }) {
 
 const TABS = [
   { key: 'policies', label: 'Policies',  icon: <FileText size={13} /> },
+  { key: 'acceptances', label: 'Acceptances', icon: <Users     size={13} /> },
   { key: 'history',  label: 'Version History', icon: <History  size={13} /> },
   { key: 'reports',  label: 'Reports',   icon: <BarChart2 size={13} /> },
 ];
@@ -635,6 +637,7 @@ export default function PolicySettings() {
 
       {/* ── Reports tab ── */}
       {tab === 'reports' && <ReportsTab />}
+      {tab === 'acceptances' && <PolicyAcceptances policies={policies} />}
       {tab === 'history' && <PolicyVersionHistory policies={policies} />}
 
       {/* ── Edit modal ── */}

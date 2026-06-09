@@ -24,7 +24,7 @@ return [
     'allowed_headers' => ['*'],
 
     // Optional: expose response headers
-    'exposed_headers' => [],
+    'exposed_headers' => ['X-Mimi-Session-Token'],
 
     // How long browsers should cache preflight responses (in seconds)
     'max_age' => 0,

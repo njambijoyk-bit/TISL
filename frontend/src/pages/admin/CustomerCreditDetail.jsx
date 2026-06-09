@@ -17,6 +17,7 @@ const containerStyle = {
   border: '1px solid rgba(168,85,247,0.1)',
   boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
   padding: '20px 24px',
+  color: '#111827',    
 };
 
 const inputStyle = {

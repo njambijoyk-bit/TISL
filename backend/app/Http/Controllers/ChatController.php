@@ -5,6 +5,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Services\Chat\MimiSessionService;
+use App\Services\Chat\MimiQueryLogService;
+use App\Services\Chat\MimiBlockService;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -19,19 +22,46 @@ use App\Models\Payment;
 
 class ChatController extends Controller
 {
+    public function __construct(
+        private readonly MimiSessionService  $sessionService,
+        private readonly MimiQueryLogService $queryLogService,
+        private readonly MimiBlockService    $blockService,
+    ) {}
+
     public function chat(Request $request)
     {
+        // ── NEW: session + block check ────────────────────────────────────────
+        $session = $this->sessionService->resolveOrCreate($request, $request->user());
+ 
+        $block = $this->blockService->checkBlocked($request, $request->user());
+        if ($block) {
+            $this->sessionService->markBlocked($session, $block->reason ?? '');
+            $this->queryLogService->logQuery(
+                session:       $session,
+                query:         $request->message ?? '',
+                response:      null,
+                geminiRaw:     [],
+                responseMs:    0,
+                wasBlocked:    true,
+                errorMessage:  'Actor is blocked',
+            );
+            return response()->json([
+                'error' => $this->blockService->getBlockedMessage($block->reason),
+            ], 403);
+        }
+        // ─────────────────────────────────────────────────────────────────────
+ 
+        // ── EXISTING: validation (unchanged) ─────────────────────────────────
         $request->validate([
             'message' => 'required|string|max:2000',
             'history' => 'array|max:20',
         ]);
-
-        $user     = $request->user();
-        $role     = $user->role ?? 'customer';
-        $isStaff  = $user->isStaff();
+ 
+        $user       = $request->user();
+        $role       = $user->role ?? 'customer';
+        $isStaff    = $user->isStaff();
         $isCustomer = $user->isCustomer();
-
-        // ── Build context based on role ─────────────────────────────────────
+ 
         $context = [
             'products'          => $this->getProductsContext($isStaff),
             'services'          => $this->getServicesContext(),
@@ -40,9 +70,9 @@ class ChatController extends Controller
             'adminData'         => $isStaff    ? $this->getAdminContext($user, $role, $request->message) : null,
             'userRole'          => $role,
         ];
-
+ 
         $systemPrompt = $this->buildSystemPrompt($context, $isStaff, $isCustomer);
-
+ 
         $history = collect($request->history ?? [])
             ->map(fn($msg) => [
                 'role'  => $msg['role'] === 'assistant' ? 'model' : 'user',
@@ -50,7 +80,7 @@ class ChatController extends Controller
             ])
             ->values()
             ->toArray();
-
+ 
         $contents = array_merge(
             [
                 ['role' => 'user',  'parts' => [['text' => $systemPrompt]]],
@@ -59,8 +89,33 @@ class ChatController extends Controller
             $history,
             [['role' => 'user', 'parts' => [['text' => $request->message]]]]
         );
-
-        return $this->callGemini($contents);
+        // ── END EXISTING ──────────────────────────────────────────────────────
+ 
+        // ── NEW: timed Gemini call ────────────────────────────────────────────
+        $startMs  = (int) (microtime(true) * 1000);
+        $response = $this->callGemini($contents);             
+        $elapsed  = (int) (microtime(true) * 1000) - $startMs;
+ 
+        [$geminiRaw, $httpStatus, $errorMessage] = $this->extractGeminiMeta($response);
+ 
+        $this->queryLogService->logQuery(
+            session:      $session,
+            query:        $request->message,
+            response:     $response,
+            geminiRaw:    $geminiRaw,
+            responseMs:   $elapsed,
+            errorMessage: $errorMessage,
+            httpStatus:   $httpStatus,
+        );
+ 
+        if ($errorMessage) {
+            $this->sessionService->touchFailed($session);
+        } else {
+            $this->sessionService->touchActive($session);
+        }
+ 
+        return $this->withSessionHeader($response, $session->session_token);
+        // ─────────────────────────────────────────────────────────────────────
     }
 
     // =========================================================================
@@ -704,42 +759,64 @@ LIVE DATA CONTEXT
 
     public function chatGuest(Request $request)
     {
+        // ── NEW: session + block check ────────────────────────────────────────
+        $session = $this->sessionService->resolveOrCreate($request, null);
+ 
+        $block = $this->blockService->checkBlocked($request, null);
+        if ($block) {
+            $this->sessionService->markBlocked($session, $block->reason ?? '');
+            $this->queryLogService->logQuery(
+                session:      $session,
+                query:        $request->message ?? '',
+                response:     null,
+                geminiRaw:    [],
+                responseMs:   0,
+                wasBlocked:   true,
+                errorMessage: 'Actor is blocked',
+            );
+            return response()->json([
+                'error' => $this->blockService->getBlockedMessage($block->reason),
+            ], 403);
+        }
+        // ─────────────────────────────────────────────────────────────────────
+ 
+        // ── EXISTING: validation + prompt + history (unchanged) ───────────────
         $request->validate([
             'message' => 'required|string|max:2000',
             'history' => 'array|max:20',
         ]);
-
+ 
         $context = [
             'products'          => $this->getProductsContext(false),
             'services'          => $this->getServicesContext(),
             'serviceCategories' => $this->getServiceCategoriesContext(),
         ];
-
+ 
         $systemPrompt = "
 You are Mimi, TISL Store's assistant based in Nairobi, Kenya.
 You are warm, concise, and professional.
 You ONLY have access to PUBLIC store information below.
 If asked about orders, payments, or account details — politely explain they need to log in.
 Never ask for passwords or payment details.
-
+ 
 ════════════════════════════════════════
 STORE INFORMATION
 ════════════════════════════════════════
 Name: TISL Store | Location: Nairobi, Kenya
 Delivery: Free on orders over KSh 5,000 | Returns: 30-day policy
-
+ 
 ════════════════════════════════════════
 LIVE PUBLIC DATA
 ════════════════════════════════════════
 🛍️ PRODUCTS:
 {$context['products']}
-
+ 
 🔧 SERVICE CATEGORIES:
 {$context['serviceCategories']}
-
+ 
 ⚙️ SERVICES:
 {$context['services']}";
-
+ 
         $history = collect($request->history ?? [])
             ->map(fn($msg) => [
                 'role'  => $msg['role'] === 'assistant' ? 'model' : 'user',
@@ -747,7 +824,7 @@ LIVE PUBLIC DATA
             ])
             ->values()
             ->toArray();
-
+ 
         $contents = array_merge(
             [
                 ['role' => 'user',  'parts' => [['text' => $systemPrompt]]],
@@ -756,8 +833,33 @@ LIVE PUBLIC DATA
             $history,
             [['role' => 'user', 'parts' => [['text' => $request->message]]]]
         );
-
-        return $this->callGemini($contents);
+        // ── END EXISTING ──────────────────────────────────────────────────────
+ 
+        // ── NEW: timed Gemini call ────────────────────────────────────────────
+        $startMs  = (int) (microtime(true) * 1000);
+        $response = $this->callGemini($contents);              // ← untouched
+        $elapsed  = (int) (microtime(true) * 1000) - $startMs;
+ 
+        [$geminiRaw, $httpStatus, $errorMessage] = $this->extractGeminiMeta($response);
+ 
+        $this->queryLogService->logQuery(
+            session:      $session,
+            query:        $request->message,
+            response:     $response,
+            geminiRaw:    $geminiRaw,
+            responseMs:   $elapsed,
+            errorMessage: $errorMessage,
+            httpStatus:   $httpStatus,
+        );
+ 
+        if ($errorMessage) {
+            $this->sessionService->touchFailed($session);
+        } else {
+            $this->sessionService->touchActive($session);
+        }
+ 
+        return $this->withSessionHeader($response, $session->session_token);
+        // ─────────────────────────────────────────────────────────────────────
     }
 
     // =========================================================================
@@ -817,5 +919,33 @@ LIVE PUBLIC DATA
             Log::error('Gemini unexpected error', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'An unexpected error occurred. Please try again.'], 500);
         }
+    }
+    private function extractGeminiMeta(\Illuminate\Http\JsonResponse $response): array
+    {
+        $data       = $response->getData(true);
+        $httpStatus = $response->getStatusCode();
+        $error      = $data['error'] ?? null;
+ 
+        // callGemini() never exposes the raw Gemini payload — it only exposes
+        // the reply text. For harm scanning we need the raw payload, but since
+        // it's built inside callGemini() we can't access it here.
+        // We pass an empty array; the harm scanner will still detect Gemini
+        // safety blocks from the response_status / error text.
+        // If you want full Gemini payload scanning, extract it inside callGemini()
+        // and store it on the request: $request->attributes->set('gemini_raw', $payload).
+ 
+        return [[], $httpStatus, $error];
+    }
+ 
+    /**
+     * Append the session token to the response headers so the frontend
+     * can persist it in sessionStorage.
+     */
+    private function withSessionHeader(
+        \Illuminate\Http\JsonResponse $response,
+        string $token,
+    ): \Illuminate\Http\JsonResponse {
+        $response->headers->set('X-Mimi-Session-Token', $token);
+        return $response;
     }
 }

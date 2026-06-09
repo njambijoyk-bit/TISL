@@ -1,8 +1,12 @@
+/**
+ * FloatingMemoModal — with useFloatingWidgetAudio wired in
+ */
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { NotebookPen } from 'lucide-react';
 import { useAuthStore } from '../../store';
 import api from '../../api/axios';
 import useFinancialJournalStore from '../../store/useFinancialJournalStore';
+import { useFloatingWidgetAudio } from '../../hooks/useFloatingWidgetAudio';
 import toast from 'react-hot-toast';
 
 const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep'];
@@ -108,9 +112,9 @@ export default function FloatingMemoModal() {
 }
 
 function FloatingMemoModalInner() {
+  const audio = useFloatingWidgetAudio();
+
   // ── drag state ─────────────────────────────────────────────────
-  // collapsed: pinned to right edge, only top varies (right=0 always)
-  // expanded:  freely draggable anywhere
   const [pos, setPos]   = useState({ top: 120, right: 0 });
   const dragging        = useRef(false);
   const dragStart       = useRef({ mx: 0, my: 0, top: 0, right: 0 });
@@ -134,6 +138,24 @@ function FloatingMemoModalInner() {
     fetchSubjectPreview, clearSubjectPreview,
   } = useFinancialJournalStore();
 
+  // ── sync error sound ───────────────────────────────────────────
+  const prevSyncError = useRef(null);
+  useEffect(() => {
+    if (syncError && syncError !== prevSyncError.current) {
+      audio.playError();
+    }
+    prevSyncError.current = syncError;
+  }, [syncError, audio]);
+
+  // ── sync success sound ─────────────────────────────────────────
+  const prevLastSyncedAt = useRef(null);
+  useEffect(() => {
+    if (lastSyncedAt && lastSyncedAt !== prevLastSyncedAt.current && !syncError) {
+      audio.playSave();
+    }
+    prevLastSyncedAt.current = lastSyncedAt;
+  }, [lastSyncedAt, syncError, audio]);
+
   // ── visibility sync ────────────────────────────────────────────
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') syncDraft(); };
@@ -147,6 +169,7 @@ function FloatingMemoModalInner() {
     didDrag.current  = false;
     dragging.current = true;
     dragStart.current = { mx: e.clientX, my: e.clientY, top: pos.top, right: 0 };
+    audio.playDragStart();
 
     const onMove = (mv) => {
       if (!dragging.current) return;
@@ -164,13 +187,14 @@ function FloatingMemoModalInner() {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [pos]);
+  }, [pos, audio]);
 
   // ── expanded modal drag — free movement ────────────────────────
   const onHeaderMouseDown = useCallback((e) => {
     e.preventDefault();
     dragging.current  = true;
     dragStart.current = { mx: e.clientX, my: e.clientY, top: pos.top, right: pos.right };
+    audio.playDragStart();
 
     const onMove = (mv) => {
       if (!dragging.current) return;
@@ -188,12 +212,13 @@ function FloatingMemoModalInner() {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [pos]);
+  }, [pos, audio]);
 
   // ── when opening modal, offset from right edge so it's visible ─
   const handleOpen = () => {
     if (didDrag.current) return;
     setPos(prev => ({ top: prev.top, right: 24 }));
+    audio.playExpand();
     isMinimised ? expand() : open();
   };
 
@@ -204,22 +229,34 @@ function FloatingMemoModalInner() {
     syncTimer.current = setTimeout(() => syncDraft(), 3000);
   };
 
+  const handleMinimise = () => {
+    setPos(prev => ({ top: prev.top, right: 0 }));
+    audio.playCollapse();
+    minimise();
+  };
+
+  const handleClose = () => {
+    audio.playCollapse();
+    close();
+  };
+
+  const handleResetDraft = () => {
+    audio.playDelete();
+    resetDraft();
+  };
+
   const handleSubmit = async () => {
     clearTimeout(syncTimer.current);
+    audio.playSubmit();
     const result = await submitNote();
     if (result.success) {
       toast.success('Memo saved — ' + (result.note?.note_number ?? ''));
       setSubjectSearch('');
       setSubjectResults([]);
     } else {
+      audio.playError();
       toast.error(result.message || 'Failed to save memo');
     }
-  };
-
-  const handleMinimise = () => {
-    // snap back to right edge when minimising
-    setPos(prev => ({ top: prev.top, right: 0 }));
-    minimise();
   };
 
   const syncLabel = syncError
@@ -244,6 +281,7 @@ function FloatingMemoModalInner() {
         <button
           onMouseDown={onBubbleMouseDown}
           onClick={handleOpen}
+          onMouseEnter={audio.playHover}
           style={{
             position: 'fixed',
             top: pos.top,
@@ -266,7 +304,6 @@ function FloatingMemoModalInner() {
             userSelect: 'none',
             padding: 0,
           }}
-          onMouseEnter={e => { if (!dragging.current) e.currentTarget.style.transform = 'translateX(-3px)'; }}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}
           title="Open financial memo"
         >
@@ -376,9 +413,24 @@ function FloatingMemoModalInner() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '4px' }} onMouseDown={e => e.stopPropagation()}>
-            <button style={S.iconBtn} onClick={resetDraft}     title="Clear draft">↺</button>
-            <button style={S.iconBtn} onClick={handleMinimise} title="Minimise">─</button>
-            <button style={S.iconBtn} onClick={close}          title="Close">✕</button>
+            <button
+              style={S.iconBtn}
+              onClick={handleResetDraft}
+              onMouseEnter={audio.playHover}
+              title="Clear draft"
+            >↺</button>
+            <button
+              style={S.iconBtn}
+              onClick={handleMinimise}
+              onMouseEnter={audio.playHover}
+              title="Minimise"
+            >─</button>
+            <button
+              style={S.iconBtn}
+              onClick={handleClose}
+              onMouseEnter={audio.playHover}
+              title="Close"
+            >✕</button>
           </div>
         </div>
 
@@ -395,8 +447,11 @@ function FloatingMemoModalInner() {
           {/* Note type */}
           <div style={S.fieldWrap}>
             <label style={S.label}>Memo Type</label>
-            <select style={S.select} value={draft.note_type}
-              onChange={e => updateDraft({ note_type: e.target.value })}>
+            <select
+              style={S.select}
+              value={draft.note_type}
+              onChange={e => { audio.playSelect(); updateDraft({ note_type: e.target.value }); }}
+            >
               {NOTE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
@@ -405,17 +460,29 @@ function FloatingMemoModalInner() {
           <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
             <div style={{ flex: 1 }}>
               <label style={S.label}>Amount</label>
-              <input style={S.input} type="number" min="0" step="0.01" placeholder="0.00"
+              <input
+                style={S.input}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
                 value={draft.amount}
                 onChange={e => updateDraft({ amount: e.target.value })}
-                onBlur={syncDraft} />
+                onFocus={audio.playFieldFocus}
+                onBlur={syncDraft}
+              />
             </div>
             <div style={{ flex: '0 0 68px' }}>
               <label style={S.label}>Currency</label>
-              <input style={S.input} type="text" maxLength={8}
+              <input
+                style={S.input}
+                type="text"
+                maxLength={8}
                 value={draft.currency}
                 onChange={e => updateDraft({ currency: e.target.value.toUpperCase() })}
-                onBlur={syncDraft} />
+                onFocus={audio.playFieldFocus}
+                onBlur={syncDraft}
+              />
             </div>
           </div>
 
@@ -424,8 +491,11 @@ function FloatingMemoModalInner() {
             <label style={S.label}>Direction</label>
             <div style={{ display: 'flex', gap: '6px' }}>
               {['in', 'out'].map(dir => (
-                <button key={dir} style={S.dirBtn(draft.direction === dir, dir)}
-                  onClick={() => updateDraft({ direction: dir })}>
+                <button
+                  key={dir}
+                  style={S.dirBtn(draft.direction === dir, dir)}
+                  onClick={() => { audio.playToggle(); updateDraft({ direction: dir }); }}
+                >
                   {dir === 'in' ? '▲ MONEY IN' : '▼ MONEY OUT'}
                 </button>
               ))}
@@ -435,13 +505,17 @@ function FloatingMemoModalInner() {
           {/* Linked to */}
           <div style={S.fieldWrap}>
             <label style={S.label}>Linked To</label>
-            <select style={S.select} value={draft.subject_table}
+            <select
+              style={S.select}
+              value={draft.subject_table}
               onChange={e => {
+                audio.playSelect();
                 updateDraft({ subject_table: e.target.value, subject_id: '' });
                 setSubjectSearch('');
                 setSubjectResults([]);
                 clearSubjectPreview();
-              }}>
+              }}
+            >
               <option value="">— none —</option>
               {SUBJECT_TABLES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -466,6 +540,7 @@ function FloatingMemoModalInner() {
                   'Enter record ID'
                 }
                 value={subjectSearch}
+                onFocus={audio.playFieldFocus}
                 onChange={e => {
                   const val = e.target.value;
                   setSubjectSearch(val);
@@ -504,6 +579,7 @@ function FloatingMemoModalInner() {
                     <div
                       key={r.id}
                       onClick={() => {
+                        audio.playSelect();
                         updateDraft({ subject_id: r.id });
                         setSubjectSearch(r.label);
                         setSubjectResults([]);
@@ -531,6 +607,7 @@ function FloatingMemoModalInner() {
                   <span style={{ color: '#10b981', fontSize: '10px' }}>✓ ID #{draft.subject_id} selected</span>
                   <button
                     onClick={() => {
+                      audio.playDelete();
                       updateDraft({ subject_id: '' });
                       setSubjectSearch('');
                       setSubjectResults([]);
@@ -584,6 +661,7 @@ function FloatingMemoModalInner() {
               placeholder='e.g. "Order #ORD-2026-001 — refund via mpesa"'
               value={draft.reference_label}
               onChange={e => updateDraft({ reference_label: e.target.value })}
+              onFocus={audio.playFieldFocus}
               onBlur={syncDraft}
             />
           </div>
@@ -610,6 +688,7 @@ function FloatingMemoModalInner() {
               placeholder="What happened? Who authorised it? Mpesa ref? Any context that helps reconciliation later..."
               value={draft.body}
               onChange={e => handleBodyChange(e.target.value)}
+              onFocus={audio.playFieldFocus}
               onBlur={syncDraft}
             />
           </div>
@@ -637,7 +716,8 @@ function FloatingMemoModalInner() {
           flexShrink: 0,
         }}>
           <button
-            onClick={resetDraft}
+            onClick={handleResetDraft}
+            onMouseEnter={audio.playHover}
             style={{
               flex: 1,
               padding: '9px',
@@ -655,6 +735,7 @@ function FloatingMemoModalInner() {
           <button
             disabled={!draft.body?.trim()}
             onClick={handleSubmit}
+            onMouseEnter={audio.playHover}
             style={{
               flex: 2,
               padding: '9px',

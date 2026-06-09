@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AiAnalyticsController;
+use App\Http\Controllers\Admin\MimiAnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
@@ -1154,7 +1155,20 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    
+    // ── Mimi analytics (admin/super_admin/manager) ─────────────────────────────────────
+    Route::middleware(['auth:sanctum', 'role:admin,super_admin,manager'])
+        ->prefix('admin/mimi')
+        ->group(function () {
+            Route::get('/sessions',              [MimiAnalyticsController::class, 'sessions']);
+            Route::get('/sessions/{id}',         [MimiAnalyticsController::class, 'sessionDetail']);
+            Route::get('/queries',               [MimiAnalyticsController::class, 'queries']);
+            Route::patch('/queries/{id}/flag',   [MimiAnalyticsController::class, 'flagQuery']);
+            Route::get('/reports',               [MimiAnalyticsController::class, 'reports']);
+            Route::post('/block',                [MimiAnalyticsController::class, 'block']);
+            Route::delete('/block/{id}',         [MimiAnalyticsController::class, 'unblock']);
+            Route::get('/blocks',                [MimiAnalyticsController::class, 'blocks']);
+        });
+        
     // ============================================
     // INVENTORY — ADMIN / MANAGER
     // ============================================

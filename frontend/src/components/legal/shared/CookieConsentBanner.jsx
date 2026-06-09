@@ -10,13 +10,12 @@ export default function CookieConsentBanner() {
     const { user, customer }      = useAuthStore();
     const [submitting, setSubmitting] = useState(null); // 'accepted' | 'declined'
 
-    // Already decided — don't render
-    if (consent) return null;
+    if (!user) return null;
+    if (consent === 'accepted') return null;
 
     const handleRespond = async (response) => {
         setSubmitting(response);
         try {
-            // Only log to backend if the user is a logged-in customer
             if (user && customer) {
                 await policyAPI.logAcceptance({
                     policy_key:     'cookie_policy',
@@ -26,7 +25,7 @@ export default function CookieConsentBanner() {
                 });
             }
         } catch {
-            // Non-blocking — still persist locally even if API fails
+            // Non-blocking
         } finally {
             setConsent(response);
             setSubmitting(null);
@@ -42,11 +41,22 @@ export default function CookieConsentBanner() {
                     from { transform: translateY(100%); opacity: 0; }
                     to   { transform: translateY(0);    opacity: 1; }
                 }
+                @keyframes spin { to { transform: rotate(360deg); } }
+
                 .ccb-root {
                     animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
                 }
-                .ccb-accept:hover  { box-shadow: 0 6px 20px rgba(168,85,247,0.5) !important; }
-                .ccb-decline:hover { background: rgba(255,255,255,0.06) !important; border-color: #555 !important; }
+
+                .ccb-decline:hover {
+                    background: rgba(239,68,68,0.25) !important;
+                    border-color: rgba(239,68,68,0.55) !important;
+                    color: #fca5a5 !important;
+                }
+                .ccb-accept:hover {
+                    background: rgba(168,85,247,0.32) !important;
+                    border-color: rgba(192,132,252,0.7) !important;
+                    color: #f3e8ff !important;
+                }
             `}</style>
 
             <div
@@ -57,38 +67,58 @@ export default function CookieConsentBanner() {
                     left:       0,
                     right:      0,
                     zIndex:     9999,
-                    background: '#0f0f0f',
-                    borderTop:  '1px solid #1e1e1e',
+                    background: 'rgba(15, 10, 30, 0.92)',
+                    borderTop:  '0.5px solid rgba(168,85,247,0.3)',
                     fontFamily: "'DM Sans', sans-serif",
+                    overflow:   'hidden',
                 }}
             >
-                {/* Purple dashed top accent */}
+                {/* Shimmer top line */}
                 <div style={{
                     position:   'absolute',
-                    top:        0,
-                    left:       0,
-                    right:      0,
-                    height:     2,
-                    background: 'repeating-linear-gradient(90deg, #a855f7 0px, #a855f7 6px, transparent 6px, transparent 12px)',
-                    opacity:    0.5,
+                    top:        0, left: 0, right: 0,
+                    height:     1.5,
+                    background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.9) 30%, rgba(192,132,252,1) 50%, rgba(168,85,247,0.9) 70%, transparent)',
                 }} />
 
+                {/* Scanline texture */}
                 <div style={{
-                    maxWidth:       1100,
-                    margin:         '0 auto',
-                    padding:        '20px 32px',
-                    display:        'flex',
-                    alignItems:     'center',
-                    gap:            24,
-                    flexWrap:       'wrap',
+                    position:   'absolute',
+                    inset:      0,
+                    background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px)',
+                    pointerEvents: 'none',
+                }} />
+
+                {/* Radial purple glow */}
+                <div style={{
+                    position:   'absolute',
+                    top:        -60, left: '50%',
+                    transform:  'translateX(-50%)',
+                    width:      600, height: 130,
+                    background: 'radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, transparent 70%)',
+                    pointerEvents: 'none',
+                }} />
+
+                {/* Content */}
+                <div style={{
+                    position:   'relative',
+                    zIndex:     1,
+                    maxWidth:   1100,
+                    margin:     '0 auto',
+                    padding:    '18px 32px',
+                    display:    'flex',
+                    alignItems: 'center',
+                    gap:        24,
+                    flexWrap:   'wrap',
                 }}>
+
                     {/* Icon */}
                     <div style={{
-                        width:          44,
-                        height:         44,
-                        borderRadius:   12,
-                        background:     '#2d1b4e',
-                        border:         '1px solid #3d1b6e',
+                        width:          42,
+                        height:         42,
+                        borderRadius:   10,
+                        background:     'rgba(168,85,247,0.15)',
+                        border:         '0.5px solid rgba(168,85,247,0.4)',
                         display:        'flex',
                         alignItems:     'center',
                         justifyContent: 'center',
@@ -99,16 +129,16 @@ export default function CookieConsentBanner() {
 
                     {/* Text */}
                     <div style={{ flex: 1, minWidth: 240 }}>
-                        <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 700, color: '#f0f0f0' }}>
+                        <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
                             we use cookies
                         </p>
-                        <p style={{ margin: 0, fontSize: 12, color: '#888', lineHeight: 1.6 }}>
-                            strictly necessary cookies keep things running. analytics &amp; personalisation cookies are optional —
-                            {' '}<Link
+                        <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                            strictly necessary cookies keep things running. analytics &amp; personalisation are optional —{' '}
+                            <Link
                                 to="/cookies"
-                                style={{ color: '#a855f7', textDecoration: 'none' }}
-                                onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
-                                onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+                                style={{ color: '#c084fc', textDecoration: 'none' }}
+                                onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                                onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                             >
                                 read our cookie policy
                             </Link>
@@ -117,68 +147,73 @@ export default function CookieConsentBanner() {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                        {/* Decline */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+
+                        {/* Decline — frosted red */}
                         <button
                             className="ccb-decline"
                             onClick={() => handleRespond('disagreed')}
                             disabled={busy}
                             style={{
-                                display:        'flex',
-                                alignItems:     'center',
-                                gap:            6,
-                                padding:        '9px 18px',
-                                borderRadius:   9,
-                                fontSize:       13,
-                                fontWeight:     600,
-                                border:         '1px solid #2a2a2a',
-                                background:     'transparent',
-                                color:          '#888',
-                                cursor:         busy ? 'not-allowed' : 'pointer',
-                                fontFamily:     'inherit',
-                                transition:     'background 150ms, border-color 150ms',
-                                opacity:        busy && submitting !== 'disagreed' ? 0.4 : 1,
+                                display:            'flex',
+                                alignItems:         'center',
+                                gap:                6,
+                                padding:            '8px 16px',
+                                borderRadius:       8,
+                                fontSize:           12,
+                                fontWeight:         500,
+                                background:         'rgba(239,68,68,0.15)',
+                                border:             '0.5px solid rgba(239,68,68,0.35)',
+                                color:              'rgba(252,165,165,0.9)',
+                                backdropFilter:     'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                cursor:             busy ? 'not-allowed' : 'pointer',
+                                fontFamily:         'inherit',
+                                transition:         'all 150ms',
+                                opacity:            busy && submitting !== 'disagreed' ? 0.4 : 1,
                             }}
                         >
                             {submitting === 'disagreed'
-                                ? <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} />
-                                : <XCircle size={14} />}
+                                ? <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
+                                : <XCircle size={13} />}
                             decline
                         </button>
 
-                        {/* Accept */}
+                        {/* Divider */}
+                        <div style={{ width: 0.5, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+
+                        {/* Accept — frosted purple */}
                         <button
                             className="ccb-accept"
                             onClick={() => handleRespond('accepted')}
                             disabled={busy}
                             style={{
-                                display:        'flex',
-                                alignItems:     'center',
-                                gap:            6,
-                                padding:        '9px 20px',
-                                borderRadius:   9,
-                                fontSize:       13,
-                                fontWeight:     700,
-                                border:         '1px solid #a855f7',
-                                background:     'linear-gradient(135deg, #a855f7, #7c3aed)',
-                                color:          '#fff',
-                                cursor:         busy ? 'not-allowed' : 'pointer',
-                                fontFamily:     'inherit',
-                                boxShadow:      '0 4px 14px rgba(168,85,247,0.35)',
-                                transition:     'box-shadow 150ms',
-                                opacity:        busy && submitting !== 'accepted' ? 0.4 : 1,
+                                display:            'flex',
+                                alignItems:         'center',
+                                gap:                6,
+                                padding:            '8px 20px',
+                                borderRadius:       8,
+                                fontSize:           12,
+                                fontWeight:         500,
+                                background:         'rgba(168,85,247,0.2)',
+                                border:             '0.5px solid rgba(192,132,252,0.45)',
+                                color:              'rgba(216,180,254,0.95)',
+                                backdropFilter:     'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                cursor:             busy ? 'not-allowed' : 'pointer',
+                                fontFamily:         'inherit',
+                                transition:         'all 150ms',
+                                opacity:            busy && submitting !== 'accepted' ? 0.4 : 1,
                             }}
                         >
                             {submitting === 'accepted'
-                                ? <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} />
-                                : <CheckCircle size={14} />}
+                                ? <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
+                                : <CheckCircle size={13} />}
                             accept all
                         </button>
                     </div>
                 </div>
             </div>
-
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </>
     );
 }

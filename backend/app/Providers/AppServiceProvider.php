@@ -23,6 +23,10 @@ use App\Services\ReconciliationPopulateService;
 use App\Services\SearchAnalyticsService;
 use App\Services\AiAnalyticsService;
 use App\Services\BugReportService;
+use App\Services\Chat\MimiHarmScannerService;
+use App\Services\Chat\MimiBlockService;
+use App\Services\Chat\MimiSessionService;
+use App\Services\Chat\MimiQueryLogService;
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
 
@@ -49,6 +53,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SearchAnalyticsService::class);
         $this->app->singleton(AiAnalyticsService::class);
         $this->app->singleton(BugReportService::class);
+        $this->app->singleton(MimiHarmScannerService::class);
+        $this->app->singleton(MimiBlockService::class);
+        $this->app->singleton(MimiSessionService::class);
+        $this->app->singleton(MimiQueryLogService::class);
         $this->app->singleton(InventoryTransactionService::class);
         $this->app->singleton(InventoryOperationsService::class, function ($app) {
             return new InventoryOperationsService(

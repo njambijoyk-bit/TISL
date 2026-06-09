@@ -105,6 +105,11 @@ const AiAnalyticsSettings = lazy(() => import('./pages/admin/ai-analytics/AiAnal
 const AiKeysPage         = lazy(() => import('./pages/admin/ai-analytics/AiKeysPage'));  
 const AiModulesPage      = lazy(() => import('./pages/admin/ai-analytics/AiModulesPage'));
 const AiSessionsPage     = lazy(() => import('./pages/admin/ai-analytics/AiSessionsPage'));
+const MimiOverviewPage   = lazy(() => import('./pages/admin/ai-analytics/MimiOverviewPage'));
+const Mimisessionspage   = lazy(() => import('./pages/admin/ai-analytics/Mimisessionspage'));
+const Mimiblockspage     = lazy(() => import('./pages/admin/ai-analytics/Mimiblockspage'));
+const Mimiharmfulpage    = lazy(() => import('./pages/admin/ai-analytics/Mimiharmfulpage'));
+
 const Dashboard          = lazy(() => import('./pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./pages/admin/settings/policies/PolicySettings'))
 const AdminProducts      = lazy(() => import('./pages/admin/Products'));
@@ -666,6 +671,38 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <AiSessionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/mimi"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <MimiOverviewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/mimi-sessions"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Mimisessionspage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/mimi-eligibility"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Mimiblockspage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ai-analytics/mimi-harmful"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Mimiharmfulpage />
                 </ProtectedRoute>
               }
             />

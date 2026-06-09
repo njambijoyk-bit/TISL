@@ -137,7 +137,7 @@ function Message({ msg }) {
         borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
         background: isUser ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'white',
         
-        color: isUser ? 'white' : PURPLE_TEXT, // 
+        color: isUser ? 'white' : '#111827',
         border: isUser ? 'none' : '1px solid #f3f4f6',
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
@@ -222,7 +222,10 @@ export default function Mimi({ embedded = false }) {
     if (open && !embedded) inputRef.current?.focus();
   }, [open]);
 
-  
+  // ── Mimi session token (sessionStorage — clears on tab close) ─────────────
+  const getMimiToken = () => sessionStorage.getItem('mimi_session_token') ?? '';
+  const setMimiToken = (token) => { if (token) sessionStorage.setItem('mimi_session_token', token); };
+
   const sendMessage = async (text) => {
     const userMessage = text || input.trim();
     if (!userMessage || loading) return;
@@ -233,25 +236,30 @@ export default function Mimi({ embedded = false }) {
     setLoading(true);
 
     try {
-      // 🔑 FIX: Only send last 20 messages as history (matches backend validation)
-      const allHistory = messages.map(m => ({ role: m.role, content: m.content }));
-      const history = allHistory.slice(-20); // ← Keep only last 20
-      
-      const { data } = await api.post('/chat', { message: userMessage, history });
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-      
+      const history = messages.map(m => ({ role: m.role, content: m.content })).slice(-20);
+
+      const { data, headers } = await api.post('/chat', {
+        message: userMessage,
+        history,
+      }, {
+        headers: { 'X-Mimi-Session': getMimiToken() },
+      });
+
+      // Persist the session token the server returns
+      setMimiToken(headers['x-mimi-session-token']);
+
+      if (data.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      }
+
     } catch (err) {
-      // 🔍 Better error handling: show validation errors to user
-      const errorMsg = err.response?.data?.errors?.history?.[0] 
-        || err.response?.data?.message 
+      const errorMsg = err.response?.data?.errors?.history?.[0]
+        || err.response?.data?.message
         || "Sorry, I'm having trouble connecting right now.";
-        
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `⚠️ ${errorMsg}`,
-      }]);
-      
-      // Optional: log full error for debugging
+
+      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${errorMsg}` }]);
       console.error('Chat error:', err.response?.data || err.message);
     } finally {
       setLoading(false);
@@ -359,7 +367,7 @@ export default function Mimi({ embedded = false }) {
         onClick={() => { if (!didDrag.current) setOpen(o => !o); }}
         style={{
           position: 'fixed', bottom: pos.y, right: pos.x, zIndex: 10000,
-          width: 58, height: 58, borderRadius: '50%', border: 'none',
+          width: 48, height: 48, borderRadius: '50%', border: 'none',
           cursor: dragging.current ? 'grabbing' : 'grab',
           background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -1,11 +1,5 @@
 /**
- * BookmarkNote.jsx
- *
- * Right-edge mounted collapsed pill → right-edge anchored expanded panel → free-floating after first drag.
- * - Collapsed: icon pill on right edge, draggable vertically
- * - Expanded (docked): panel anchored to right edge, draggable vertically only
- * - Expanded (floating): free-floating after user drags horizontally away from edge
- * - Debounced auto-save via noteStore
+ * BookmarkNote.jsx — with useFloatingWidgetAudio wired in
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -16,6 +10,7 @@ import {
 } from 'lucide-react';
 import useNoteStore, { NOTE_MAX_LENGTH } from '../store/noteStore';
 import { useAuthStore } from '../store';
+import { useFloatingWidgetAudio } from '../hooks/useFloatingWidgetAudio';
 
 const STORAGE_KEY_COLLAPSED  = 'bookmark_note_collapsed';
 const STORAGE_KEY_PANEL_POS  = 'bookmark_note_panel_pos';
@@ -28,7 +23,7 @@ const ACCENT_DEEP  = '#7c3aed';
 const ACCENT_FAINT = 'rgba(168,85,247,0.10)';
 const ACCENT_BORDER= 'rgba(168,85,247,0.25)';
 const PANEL_W      = 300;
-const PANEL_GAP    = 8; // min gap from viewport edges
+const PANEL_GAP    = 8;
 
 // ── Save status badge ─────────────────────────────────────────────────────────
 function SaveStatus({ isSyncing, lastSyncedAt }) {
@@ -54,18 +49,18 @@ function SaveStatus({ isSyncing, lastSyncedAt }) {
   return null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-const safeLS = { 
-  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} },
-  getJSON: (k) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
+const safeLS = {
+  get:     (k)    => { try { return localStorage.getItem(k); } catch { return null; } },
+  set:     (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} },
+  getJSON: (k)    => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
   setJSON: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
 export default function BookmarkNote() {
   const { isAuthenticated, user } = useAuthStore();
   const { note, setNote, clearNote, isSyncing, lastSyncedAt } = useNoteStore();
+  const audio = useFloatingWidgetAudio();
 
   // ── Visibility delay ──────────────────────────────────────────────────────
   const [visible, setVisible] = useState(false);
@@ -81,18 +76,19 @@ export default function BookmarkNote() {
   const setCollapsedPersist = (val) => {
     setCollapsed(val);
     safeLS.set(STORAGE_KEY_COLLAPSED, val);
+    val ? audio.playCollapse() : audio.playExpand();
   };
 
-  // ── Docked state (panel anchored to right edge) ───────────────────────────
+  // ── Docked state ──────────────────────────────────────────────────────────
   const [docked, setDocked] = useState(
-    () => safeLS.get(STORAGE_KEY_DOCKED) !== 'false' // default docked
+    () => safeLS.get(STORAGE_KEY_DOCKED) !== 'false'
   );
   const setDockedPersist = (val) => {
     setDocked(val);
     safeLS.set(STORAGE_KEY_DOCKED, val);
   };
 
-  // ── Dock top (vertical position when docked) ──────────────────────────────
+  // ── Dock top ──────────────────────────────────────────────────────────────
   const [dockTop, setDockTop] = useState(() => {
     const v = safeLS.get(STORAGE_KEY_DOCK_TOP);
     return v ? clamp(Number(v), PANEL_GAP, window.innerHeight - 80) : 80;
@@ -102,14 +98,14 @@ export default function BookmarkNote() {
     safeLS.set(STORAGE_KEY_DOCK_TOP, val);
   };
 
-  // ── Pill top (vertical position when collapsed) ───────────────────────────
+  // ── Pill top ──────────────────────────────────────────────────────────────
   const [pillTop, setPillTop] = useState(() => {
     const v = safeLS.get(STORAGE_KEY_PILL_TOP);
     return v ? Number(v) : null;
   });
   const getPillTop = () => pillTop ?? (window.innerHeight / 2);
 
-  // ── Float panel position (when undocked) ─────────────────────────────────
+  // ── Float panel position ──────────────────────────────────────────────────
   const [panelPos, setPanelPos] = useState(() => {
     const saved = safeLS.getJSON(STORAGE_KEY_PANEL_POS);
     if (saved) return {
@@ -129,6 +125,7 @@ export default function BookmarkNote() {
     pillDidDrag.current  = false;
     pillDragging.current = true;
     pillDragStart.current = { my: e.clientY, top: getPillTop() };
+    audio.playDragStart();
 
     const onMove = (mv) => {
       if (!pillDragging.current) return;
@@ -145,20 +142,20 @@ export default function BookmarkNote() {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [pillTop]);
+  }, [pillTop, audio]);
 
-  // ── Panel drag (handles both docked vertical + free float) ───────────────
+  // ── Panel drag ────────────────────────────────────────────────────────────
   const panelDragging  = useRef(false);
   const panelDragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 });
-  const dragDetached   = useRef(false); // did this drag undock us?
+  const dragDetached   = useRef(false);
 
   const onPanelHeaderMouseDown = useCallback((e) => {
     if (e.target.closest('button')) return;
     e.preventDefault();
     panelDragging.current = true;
     dragDetached.current  = false;
+    audio.playDragStart();
 
-    // starting position depends on dock state
     const startX = docked ? (window.innerWidth - PANEL_W) : panelPos.x;
     const startY = docked ? dockTop : panelPos.y;
     panelDragStart.current = { mx: e.clientX, my: e.clientY, px: startX, py: startY };
@@ -169,20 +166,16 @@ export default function BookmarkNote() {
       const dy = mv.clientY - panelDragStart.current.my;
 
       if (docked && !dragDetached.current) {
-        // while docked: only allow vertical drag until horizontal threshold
         if (Math.abs(dx) > 20) {
-          // detach!
           dragDetached.current = true;
           setDockedPersist(false);
         } else {
-          // vertical only
           const ny = clamp(panelDragStart.current.py + dy, PANEL_GAP, window.innerHeight - 60);
           setDockTopPersist(ny);
           return;
         }
       }
 
-      // free float
       const nx = clamp(panelDragStart.current.px + dx, PANEL_GAP, window.innerWidth - PANEL_W - PANEL_GAP);
       const ny = clamp(panelDragStart.current.py + dy, PANEL_GAP, window.innerHeight - 60);
       const pos = { x: nx, y: ny };
@@ -197,15 +190,33 @@ export default function BookmarkNote() {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [docked, panelPos, dockTop]);
+  }, [docked, panelPos, dockTop, audio]);
 
   // ── Clear confirmation ────────────────────────────────────────────────────
   const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = () => {
-    if (!confirmClear) { setConfirmClear(true); return; }
-    clearNote(); setConfirmClear(false);
+    if (!confirmClear) { setConfirmClear(true); audio.playDelete(); return; }
+    clearNote();
+    setConfirmClear(false);
+    audio.playDelete();
   };
   useEffect(() => { setConfirmClear(false); }, [note]);
+
+  // ── Char warn tracking ────────────────────────────────────────────────────
+  const prevCharsWarn = useRef(false);
+  const prevCharsCrit = useRef(false);
+
+  const handleNoteChange = (val) => {
+    setNote(val);
+    const left = NOTE_MAX_LENGTH - val.length;
+    const warn = left < 200;
+    const crit = left < 50;
+    if ((warn && !prevCharsWarn.current) || (crit && !prevCharsCrit.current)) {
+      audio.playCharWarn();
+    }
+    prevCharsWarn.current = warn;
+    prevCharsCrit.current = crit;
+  };
 
   // ── Guard ─────────────────────────────────────────────────────────────────
   const isCustomer = isAuthenticated && user?.role === 'customer';
@@ -215,7 +226,6 @@ export default function BookmarkNote() {
   const charsWarn = charsLeft < 200;
   const charsCrit = charsLeft < 50;
 
-  // ── Shared styles ─────────────────────────────────────────────────────────
   const styleBlock = `
     @keyframes notePulse { 0%,100%{opacity:.4} 50%{opacity:1} }
     @keyframes noteSlideIn {
@@ -254,6 +264,7 @@ export default function BookmarkNote() {
       <button
         onMouseDown={onPillMouseDown}
         onClick={() => { if (!pillDidDrag.current) setCollapsedPersist(false); }}
+        onMouseEnter={audio.playHover}
         title="Open bookmark notes"
         style={{
           position: 'fixed', right: 0, top: getPillTop(),
@@ -268,10 +279,6 @@ export default function BookmarkNote() {
           boxShadow: `-3px 0 16px rgba(0,0,0,0.18), inset 3px 0 0 ${ACCENT}`,
           cursor: 'grab', userSelect: 'none',
           transition: 'box-shadow 0.2s, transform 0.2s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.boxShadow = `-4px 0 22px rgba(168,85,247,0.25), inset 4px 0 0 ${ACCENT}`;
-          e.currentTarget.style.transform = 'translateY(-50%) translateX(-2px)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.boxShadow = `-3px 0 16px rgba(0,0,0,0.18), inset 3px 0 0 ${ACCENT}`;
@@ -292,23 +299,10 @@ export default function BookmarkNote() {
     </>
   );
 
-  // ── Expanded panel (docked or floating) ───────────────────────────────────
+  // ── Expanded panel ────────────────────────────────────────────────────────
   const panelStyle = docked
-    ? {
-        position: 'fixed',
-        right: 0,
-        top: dockTop,
-        width: PANEL_W,
-        borderRadius: '16px 0 0 16px',
-        borderRight: 'none',
-      }
-    : {
-        position: 'fixed',
-        left: panelPos.x,
-        top: panelPos.y,
-        width: clamp(PANEL_W, 200, window.innerWidth - PANEL_GAP * 2),
-        borderRadius: 16,
-      };
+    ? { position: 'fixed', right: 0, top: dockTop, width: PANEL_W, borderRadius: '16px 0 0 16px', borderRight: 'none' }
+    : { position: 'fixed', left: panelPos.x, top: panelPos.y, width: clamp(PANEL_W, 200, window.innerWidth - PANEL_GAP * 2), borderRadius: 16 };
 
   return (
     <>
@@ -326,7 +320,7 @@ export default function BookmarkNote() {
         userSelect: 'none',
       }}>
 
-        {/* ── Header / drag handle ── */}
+        {/* ── Header ── */}
         <div
           onMouseDown={onPanelHeaderMouseDown}
           style={{
@@ -339,61 +333,39 @@ export default function BookmarkNote() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <BookMarked size={15} color={ACCENT} strokeWidth={2.2} />
-            <span style={{
-              fontSize: 12, fontWeight: 800, color: ACCENT,
-              letterSpacing: '0.05em', textTransform: 'uppercase',
-            }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: ACCENT, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Bookmark Note
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {/* dock hint */}
-            <span style={{
-              fontSize: 9, color: 'rgba(168,85,247,0.35)',
-              fontWeight: 500, letterSpacing: '0.04em',
-              marginRight: 2,
-            }}>
+            <span style={{ fontSize: 9, color: 'rgba(168,85,247,0.35)', fontWeight: 500, letterSpacing: '0.04em', marginRight: 2 }}>
               {docked ? 'drag left to float' : ''}
             </span>
-
             <GripHorizontal size={13} color='rgba(168,85,247,0.35)' strokeWidth={2} />
 
-            {/* re-dock button (only when floating) */}
             {!docked && (
               <button
                 onMouseDown={e => e.stopPropagation()}
+                onMouseEnter={audio.playHover}
                 onClick={() => {
                   setDockedPersist(true);
-                  // sync float panel y → dock top for smooth re-anchor
                   setDockTopPersist(clamp(panelPos.y, PANEL_GAP, window.innerHeight - 80));
                 }}
                 title="Re-dock to edge"
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'rgba(168,85,247,0.4)', padding: '2px 4px',
-                  borderRadius: 5, display: 'flex', alignItems: 'center',
-                  transition: 'color 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = ACCENT}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(168,85,247,0.4)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(168,85,247,0.4)'}
               >
                 <PinOff size={12} strokeWidth={2.5} />
               </button>
             )}
 
-            {/* close */}
             <button
               onMouseDown={e => e.stopPropagation()}
+              onMouseEnter={audio.playHover}
               onClick={() => setCollapsedPersist(true)}
               title="Minimise"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'rgba(168,85,247,0.5)', padding: '2px 4px',
-                borderRadius: 5, display: 'flex', alignItems: 'center',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = ACCENT}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(168,85,247,0.5)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(168,85,247,0.5)'}
             >
               <X size={14} strokeWidth={2.5} />
@@ -403,10 +375,7 @@ export default function BookmarkNote() {
 
         {/* ── Body ── */}
         <div style={{ padding: '14px 14px 12px', userSelect: 'text' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 8,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <NotebookPen size={12} color='rgba(168,85,247,0.5)' strokeWidth={2} />
               <span style={{ fontSize: 10, color: 'rgba(168,85,247,0.5)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -419,16 +388,14 @@ export default function BookmarkNote() {
           <textarea
             className="note-textarea"
             value={note ?? ''}
-            onChange={e => setNote(e.target.value)}
+            onChange={e => handleNoteChange(e.target.value)}
+            onFocus={audio.playFieldFocus}
             placeholder="jot down a thought, product ref, or anything you want to remember…"
             maxLength={NOTE_MAX_LENGTH}
             spellCheck
           />
 
-          <div style={{
-            display: 'flex', justifyContent: 'flex-end',
-            marginTop: 5, marginBottom: 10,
-          }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 5, marginBottom: 10 }}>
             <span style={{
               fontSize: 10, fontWeight: 600,
               color: charsCrit ? '#ef4444' : charsWarn ? '#f59e0b' : 'rgba(100,100,100,0.5)',
@@ -445,6 +412,7 @@ export default function BookmarkNote() {
               <button
                 className={`note-btn ${confirmClear ? 'note-btn-danger' : 'note-btn-ghost'}`}
                 onClick={handleClear}
+                onMouseEnter={audio.playHover}
                 style={{ flex: 1 }}
               >
                 <Trash2 size={11} strokeWidth={2.5} />
@@ -453,9 +421,11 @@ export default function BookmarkNote() {
             )}
             <button
               className="note-btn note-btn-primary"
+              onMouseEnter={audio.playHover}
               style={{ flex: note?.trim() ? 1 : 2 }}
               onClick={() => {
                 if (note?.trim()) {
+                  audio.playSave();
                   import('../api/axios').then(({ default: api }) => {
                     api.post('/customer/note/sync', { note }).catch(() => {});
                   });
@@ -468,21 +438,14 @@ export default function BookmarkNote() {
           </div>
 
           {confirmClear && (
-            <p style={{
-              margin: '8px 0 0', fontSize: 10, color: '#ef4444',
-              textAlign: 'center', opacity: 0.8, lineHeight: 1.4,
-            }}>
+            <p style={{ margin: '8px 0 0', fontSize: 10, color: '#ef4444', textAlign: 'center', opacity: 0.8, lineHeight: 1.4 }}>
               this will erase your note permanently. tap again to confirm.
             </p>
           )}
         </div>
 
         {/* ── Footer ── */}
-        <div style={{
-          padding: '7px 14px 10px',
-          borderTop: `1px solid rgba(168,85,247,0.07)`,
-          display: 'flex', alignItems: 'center', gap: 5,
-        }}>
+        <div style={{ padding: '7px 14px 10px', borderTop: `1px solid rgba(168,85,247,0.07)`, display: 'flex', alignItems: 'center', gap: 5 }}>
           <BookMarked size={10} color='rgba(168,85,247,0.25)' strokeWidth={2} />
           <span style={{ fontSize: 9, color: 'rgba(100,100,100,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
             only you can see this note · clears on request
