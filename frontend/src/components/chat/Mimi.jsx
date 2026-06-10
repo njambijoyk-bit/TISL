@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MessageCircle, X, Send, Minimize2, Sparkles } from 'lucide-react';
 import api from '../../api/axios';
+import useAuthStore from '../../store/authStore';
 
 
 const PURPLE_TEXT = '#a855f7';
@@ -151,6 +153,8 @@ function Message({ msg }) {
 }
 
 export default function Mimi({ embedded = false }) {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated); 
+  const navigate = useNavigate();
   const [open, setOpen]       = useState(embedded);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: "Hi! I'm Mimi 👋 TISL Store's assistant. How can I help you today?" }
@@ -238,12 +242,11 @@ export default function Mimi({ embedded = false }) {
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content })).slice(-20);
 
-      const { data, headers } = await api.post('/chat', {
-        message: userMessage,
-        history,
-      }, {
-        headers: { 'X-Mimi-Session': getMimiToken() },
-      });
+      const { data, headers } = await api.post(
+        isAuthenticated ? '/chat' : '/chat/guest', 
+        { message: userMessage, history },
+        { headers: { 'X-Mimi-Session': getMimiToken() } }
+      );
 
       // Persist the session token the server returns
       setMimiToken(headers['x-mimi-session-token']);
@@ -255,12 +258,13 @@ export default function Mimi({ embedded = false }) {
       }
 
     } catch (err) {
-      const errorMsg = err.response?.data?.errors?.history?.[0]
-        || err.response?.data?.message
-        || "Sorry, I'm having trouble connecting right now.";
+        const errorMsg = err.response?.data?.error          // ← add this first
+          || err.response?.data?.errors?.history?.[0]
+          || err.response?.data?.message
+          || "Sorry, I'm having trouble connecting right now.";
 
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${errorMsg}` }]);
-      console.error('Chat error:', err.response?.data || err.message);
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${errorMsg}` }]);
+        console.error('Chat error:', err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -277,6 +281,7 @@ export default function Mimi({ embedded = false }) {
         messages={messages} loading={loading} input={input} setInput={setInput}
         sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
         bottomRef={bottomRef} showSuggested={showSuggested} embedded
+        navigate={navigate}
       />
     );
   }
@@ -356,6 +361,7 @@ export default function Mimi({ embedded = false }) {
             messages={messages} loading={loading} input={input} setInput={setInput}
             sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
             bottomRef={bottomRef} showSuggested={showSuggested}
+            navigate={navigate}
           />
         </div>
       )}
@@ -397,7 +403,7 @@ export default function Mimi({ embedded = false }) {
 }
 
 // ── Shared chat body ──────────────────────────────────────────────────────────
-function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey, inputRef, bottomRef, showSuggested, embedded }) {
+function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey, inputRef, bottomRef, showSuggested, embedded, navigate  }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fafafa', minHeight: 0 }}>
 
@@ -437,7 +443,6 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6', background: 'white', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
           ref={inputRef}
@@ -468,6 +473,40 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
           }}
         >
           <Send size={16} />
+        </button>
+      </div>
+
+      {/* AI Policy footer */}
+      <div style={{
+        padding: '6px 14px',
+        borderTop: '1px solid #f3f4f6',
+        background: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <button
+          onClick={() => navigate('/ai-policy')}
+          style={{
+            fontSize: '0.63rem',
+            color: '#9ca3af',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'color 150ms',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: 0,
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          View our AI usage policy
         </button>
       </div>
     </div>

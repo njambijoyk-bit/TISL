@@ -122,9 +122,54 @@ class MimiAnalyticsController extends Controller
         return response()->json($blocks);
     }
 
+    public function searchActors(Request $request): JsonResponse
+    {
+        $q    = $request->string('q')->trim();
+        $type = $request->query('type', 'customer'); // 'customer' | 'staff'
+
+        if ($q->isEmpty() || $q->length() < 2) {
+            return response()->json([]);
+        }
+
+        if ($type === 'customer') {
+            $results = \App\Models\Customer::query()
+                ->where(fn($query) => $query
+                    ->where('first_name', 'like', "%{$q}%")
+                    ->orWhere('last_name',  'like', "%{$q}%")
+                    ->orWhere('email',      'like', "%{$q}%")
+                    ->orWhere('customer_number', 'like', "%{$q}%")
+                )
+                ->select('id', 'first_name', 'last_name', 'email', 'customer_number')
+                ->limit(10)
+                ->get()
+                ->map(fn($c) => [
+                    'id'    => $c->id,
+                    'label' => "{$c->first_name} {$c->last_name} — {$c->customer_number}",
+                    'sub'   => $c->email,
+                ]);
+        } else {
+            $results = \App\Models\User::query()
+                ->where(fn($query) => $query
+                    ->where('name',  'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%")
+                )
+                ->whereIn('role', ['admin', 'super_admin', 'staff', 'finance', 'sales_rep'])
+                ->select('id', 'name', 'email', 'role')
+                ->limit(10)
+                ->get()
+                ->map(fn($u) => [
+                    'id'    => $u->id,
+                    'label' => $u->name,
+                    'sub'   => "{$u->email} · {$u->role}",
+                ]);
+        }
+
+        return response()->json($results);
+    }
+
     public function block(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'actor_type'  => 'required|in:customer,guest_ip,staff',
             'customer_id' => 'required_if:actor_type,customer|nullable|exists:customers,id',
             'user_id'     => 'required_if:actor_type,staff|nullable|exists:users,id',
@@ -134,9 +179,8 @@ class MimiAnalyticsController extends Controller
             'expires_at'  => 'nullable|date|after:now',
         ]);
 
-        $block = $this->blockService->blockActor($request->validated(), $request->user());
+        $block = $this->blockService->blockActor($validated, $request->user());
 
-        // Also update any active sessions for this actor
         $this->markSessionsBlocked($request, $block);
 
         return response()->json(['block' => $block], 201);
@@ -153,7 +197,7 @@ class MimiAnalyticsController extends Controller
     public function reports(Request $request): JsonResponse
     {
         $from = $request->from ? now()->parse($request->from) : now()->subDays(30);
-        $to   = $request->to   ? now()->parse($request->to)   : now();
+        $to   = $request->to ? now()->parse($request->to)->endOfDay() : now();
 
         // Total queries
         $totals = MimiQueryLog::whereBetween('queried_at', [$from, $to])

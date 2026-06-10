@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import useUsersStore from '../../../store/usersStore';
 import { useAuthStore } from '../../../store';
+import usersAPI from '../../../api/users';
 import toast from 'react-hot-toast';
 import CreateUserModal from './components/CreateUserModal';
 import AdminLayout from '../../../components/layout/AdminLayout';
@@ -204,24 +205,6 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
 // ─── USERS SYSTEM DEV NOTES ──────────────────────────────────────────────────
 const USERS_DEV_NOTES = {
   pitfalls: [
-    {
-      title: "generateCustomerNumber() has a race condition",
-      severity: "critical",
-      detail: "The pattern Customer::withTrashed()->max('id') + 1 is used in 3 separate places (AuthController, UserController::store, handleRoleTransition). Two concurrent registrations can read the same max(id) and generate the same customer number. There is no atomic guarantee. Also, the CUST-YEAR prefix means CUST-2025-0015 and CUST-2026-0015 can coexist, which may confuse customer service.",
-      outcome: "Duplicate customer numbers under load. Fix: add a unique constraint on customer_number and use a retry loop, or replace with a DB auto-increment sequence or UUID.",
-    },
-    {
-      title: "OAuthController::handleProviderCallback() has no DB transaction",
-      severity: "critical",
-      detail: "The callback creates User, Customer, and ReferralCode in three sequential inserts with no DB::beginTransaction() wrapper. If Customer::create() succeeds but ReferralCode::createForCustomer() throws (e.g. unique code collision), the user exists in a broken half-created state with no rollback.",
-      outcome: "Orphaned users with no customer record on OAuth registration failures. Wrap the entire new-user branch in a transaction — AuthController::register() already does this correctly and is the model to follow.",
-    },
-    {
-      title: "EmployeePolicy::update() grants managers unrestricted access without a model",
-      severity: "critical",
-      detail: "The manager branch falls through to return true when $employee is null. The parameter has a nullable default (Employee $employee = null), so any code path that calls the policy gate without passing the model instance silently authorises any manager to update any employee. The same nullable default appears on delete(), restore(), view(), and manageStatus().",
-      outcome: "Potential privilege escalation if any route binds the policy gate without the model. Audit all ->authorize('update', ...) calls to confirm the Employee instance is always passed.",
-    },
     {
       title: "Email verification is permanently commented out",
       severity: "warning",
@@ -477,6 +460,53 @@ export default function UsersPage() {
     catch { toast.error('Bulk restore failed.'); }
   };
 
+  // Sequential bulk verify — no queue, runs one at a time
+const handleBulkVerifyEmail = async () => {
+  const targets = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at);
+  if (targets.length === 0) return;
+  if (!confirm(`Force-verify email for ${targets.length} user${targets.length !== 1 ? 's' : ''}?`)) return;
+
+  let done = 0;
+  const toastId = toast.loading(`Verifying emails… 0 / ${targets.length}`);
+
+  for (const u of targets) {
+    try {
+      await usersAPI.verifyEmail(u.id);
+      done++;
+      toast.loading(`Verifying emails… ${done} / ${targets.length}`, { id: toastId });
+    } catch {
+      toast.error(`Failed for ${u.name}`);
+    }
+  }
+
+  toast.success(`${done} email${done !== 1 ? 's' : ''} verified.`, { id: toastId });
+  setSelectedIds([]);
+  fetchUsers();
+};
+
+  const handleBulkVerifyPhone = async () => {
+    const targets = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at);
+    if (targets.length === 0) return;
+    if (!confirm(`Force-verify phone for ${targets.length} user${targets.length !== 1 ? 's' : ''}?`)) return;
+
+    let done = 0;
+    const toastId = toast.loading(`Verifying phones… 0 / ${targets.length}`);
+
+    for (const u of targets) {
+      try {
+        await usersAPI.verifyPhone(u.id);
+        done++;
+        toast.loading(`Verifying phones… ${done} / ${targets.length}`, { id: toastId });
+      } catch {
+        toast.error(`Failed for ${u.name}`);
+      }
+    }
+
+    toast.success(`${done} phone${done !== 1 ? 's' : ''} verified.`, { id: toastId });
+    setSelectedIds([]);
+    fetchUsers();
+  };
+
   const isLocked  = (user) => user.locked_until && new Date(user.locked_until) > new Date();
   const canManage = (targetRole) => (LEVELS[currentAdmin?.role] || 99) < (LEVELS[targetRole] || 99);
 
@@ -636,30 +666,60 @@ export default function UsersPage() {
           </div>
 
           {/* Bulk actions */}
-          {selectedIds.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
-              <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{selectedIds.length} selected</span>
-              {filters.trashed ? (
-                <button onClick={handleBulkRestore} style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: 'rgba(5,150,105,0.1)', color: '#065f46',
-                }}>
-                  <RotateCcw size={12} /> Restore
-                </button>
-              ) : (
-                <button onClick={handleBulkDelete} style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
-                }}>
-                  <Trash2 size={12} /> Delete
-                </button>
-              )}
-            </div>
-          )}
+          {selectedIds.length > 0 && (() => {
+            const emailCount = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at).length;
+            const phoneCount = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at).length;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{selectedIds.length} selected</span>
+
+                {/* Email verify */}
+                {emailCount > 0 && (
+                  <button onClick={handleBulkVerifyEmail} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'rgba(8,145,178,0.1)', color: '#0e7490',
+                  }}>
+                    <CheckCircle size={12} /> Verify {emailCount} email{emailCount !== 1 ? 's' : ''}
+                  </button>
+                )}
+
+                {/* Phone verify */}
+                {phoneCount > 0 && (
+                  <button onClick={handleBulkVerifyPhone} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'rgba(5,150,105,0.1)', color: '#065f46',
+                  }}>
+                    <CheckCircle size={12} /> Verify {phoneCount} phone{phoneCount !== 1 ? 's' : ''}
+                  </button>
+                )}
+
+                {/* Existing restore/delete */}
+                {filters.trashed ? (
+                  <button onClick={handleBulkRestore} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'rgba(5,150,105,0.1)', color: '#065f46',
+                  }}>
+                    <RotateCcw size={12} /> Restore
+                  </button>
+                ) : (
+                  <button onClick={handleBulkDelete} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                  }}>
+                    <Trash2 size={12} /> Delete
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Search + filter toggle */}

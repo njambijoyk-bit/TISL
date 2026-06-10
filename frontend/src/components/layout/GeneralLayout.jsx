@@ -1,11 +1,8 @@
 import {
   Package, Tags, Folder, ChevronLeft, LucideBinary,
   LayoutGrid, Users, Briefcase, FolderGit2Icon,
-  LucideBadgeDollarSign, Volume2,
-  BugIcon, VolumeX, 
-  FolderCodeIcon,
-  FolderCog,
-  BrainCircuit,
+  LucideBadgeDollarSign, Volume2, BugIcon, VolumeX, FolderCodeIcon,
+  FolderCog, BrainCircuit, KeyRound, Activity, Blocks, Bot,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -31,10 +28,11 @@ const GROUPS = [
   {
     label: 'AI',
     items: [
-      { name: 'AI Analytics', icon: BrainCircuit, bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/ai-analytics',         active: true },
-      { name: 'AI Keys',      icon: Briefcase,    bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/ai-analytics/keys',    active: true },
-      { name: 'AI Sessions',  icon: Briefcase,    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/ai-analytics/sessions',active: true },
-      { name: 'AI Modules',   icon: Briefcase,    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/ai-analytics/modules', active: true },
+      { name: 'AI Analytics', icon: BrainCircuit, bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/ai-analytics',          active: true },
+      { name: 'AI Keys',      icon: KeyRound,     bg: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', path: '/admin/ai-analytics/keys',     active: true },
+      { name: 'AI Sessions',  icon: Activity,     bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/ai-analytics/sessions', active: true },
+      { name: 'AI Modules',   icon: Blocks,       bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/ai-analytics/modules',  active: true },
+      { name: 'Mimi Bot',     icon: Bot,          bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/ai-analytics/mimi',     active: true },
     ],
   },
   {

@@ -1163,7 +1163,7 @@ export default function CustomerCreditDetail() {
     setError(null);
     try {
       const res = await customersAPI.getCustomer(id);
-      setCustomer(res.data || res);
+      setCustomer(res.customer || res.data?.customer || res);
     } catch (err) {
       console.error("Failed querying isolated record", err);
       setError("Failed to locate or sync customer data profile details.");
@@ -1253,7 +1253,7 @@ export default function CustomerCreditDetail() {
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '2px 0 0' }}>
-                Email: <span style={{ fontWeight: 500, color: '#374151' }}>{customer?.email}</span> · Tier Strategy: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{customer?.tier || 'Standard'}</span>
+                Email: <span style={{ fontWeight: 500, color: '#374151' }}>{customer?.email}</span> · Tier: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{customer?.tier || 'Standard'}</span>
               </p>
             </div>
           </div>
@@ -1277,7 +1277,7 @@ export default function CustomerCreditDetail() {
           </div>
           <div style={containerStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Available Balance</span><TrendingDown size={16} color="#10b981"/></div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#15803d' }}>{summary?.currency || 'KES'} {Number(summary?.available_credit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#15803d' }}>{summary?.currency || 'KES'} {Number(summary?.credit_available || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
           </div>
           <div style={containerStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Interest Parameters</span><Percent size={16} color="#f59e0b"/></div>
@@ -1302,11 +1302,18 @@ export default function CustomerCreditDetail() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => setModal('payment')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, background: '#10b981', color: 'white', border: 'none', cursor: 'pointer' }}><Plus size={14}/> Record Payment</button>
-            <button onClick={() => setModal('adjustment')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}><RefreshCw size={14}/> Adjustment</button>
-            <button onClick={() => setModal('interest')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, background: '#f59e0b', color: 'white', border: 'none', cursor: 'pointer' }}><Percent size={14}/> Accrue Interest</button>
-            <button onClick={() => setModal('schedule')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, background: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer' }}><Calendar size={14}/> Map Term Schedule</button>
-            <button onClick={() => setModal('invoice')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, background: '#111827', color: 'white', border: 'none', cursor: 'pointer' }}><FileText size={14}/> Draft Invoice</button>
+            <button
+              onClick={() => navigate(`/admin/customers/${id}`)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+              }}
+            >
+              <User size={14} /> For more actions 
+            </button>
           </div>
         </div>
 
@@ -1318,12 +1325,6 @@ export default function CustomerCreditDetail() {
         </div>
       </div>
 
-      {/* ── Inline Action Modals ── */}
-      {modal === 'payment' && <LocalPaymentModal customerId={id} onClose={() => setModal(null)} onSuccess={() => handleSuccess('Payment posted successfully.')} />}
-      {modal === 'adjustment' && <LocalAdjustmentModal customerId={id} onClose={() => setModal(null)} onSuccess={() => handleSuccess('Adjustment matrix applied.')} />}
-      {modal === 'interest' && <LocalInterestModal customerId={id} summary={summary} onClose={() => setModal(null)} onSuccess={() => handleSuccess('Interest accrual logged.')} />}
-      {modal === 'schedule' && <LocalScheduleModal customerId={id} onClose={() => setModal(null)} onSuccess={() => handleSuccess('Payment term layout mapped.')} />}
-      {modal === 'invoice' && <LocalInvoiceModal customerId={id} onClose={() => setModal(null)} onSuccess={() => handleSuccess('Credit reference invoice initialized.')} />}
     </AdminLayout>
   );
 }
@@ -1496,203 +1497,5 @@ function ModalWrapper({ title, onClose, children }) {
         {children}
       </div>
     </div>
-  );
-}
-
-function LocalPaymentModal({ customerId, onClose, onSuccess }) {
-  const [amt, setAmt] = useState('');
-  const [note, setNote] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await adminCreditAPI.recordPayment(customerId, { amount: Number(amt), note });
-      onSuccess();
-    } catch { alert("Failed transaction routing mapping."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <ModalWrapper title="Record Remittance Payment" onClose={onClose}>
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Amount Received</label>
-          <input type="number" step="0.01" required value={amt} onChange={e => setAmt(e.target.value)} style={inputStyle} placeholder="0.00" />
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Internal Reference Memo</label>
-          <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} style={{ ...inputStyle, resize: 'none' }} placeholder="Transaction receipt metadata details..." />
-        </div>
-        <button type="submit" disabled={loading} style={{ background: '#10b981', color: 'white', border: 'none', padding: 10, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
-          {loading ? 'Processing...' : 'Commit Payment Entry'}
-        </button>
-      </form>
-    </ModalWrapper>
-  );
-}
-
-function LocalAdjustmentModal({ customerId, onClose, onSuccess }) {
-  const [amt, setAmt] = useState('');
-  const [dir, setDir] = useState('credit');
-  const [note, setNote] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await adminCreditAPI.adjustment(customerId, { amount: Number(amt), direction: dir, note });
-      onSuccess();
-    } catch { alert("Failed executing balance adjustments adjustment request."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <ModalWrapper title="Manual Account Adjustment Balance" onClose={onClose}>
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Adjustment Direction Vector</label>
-          <select value={dir} onChange={e => setDir(e.target.value)} style={inputStyle}>
-            <option value="credit">Credit (Decrease Liability Balance)</option>
-            <option value="debit">Debit (Increase Liability/Used Line)</option>
-          </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Delta Amount Match</label>
-          <input type="number" step="0.01" required value={amt} onChange={e => setAmt(e.target.value)} style={inputStyle} placeholder="0.00" />
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Authorization Reason Note</label>
-          <textarea rows={2} required value={note} onChange={e => setNote(e.target.value)} style={{ ...inputStyle, resize: 'none' }} placeholder="Mandatory adjustment logging justification text..." />
-        </div>
-        <button type="submit" disabled={loading} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: 10, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
-          {loading ? 'Re-aligning...' : 'Execute Operational Adjustment'}
-        </button>
-      </form>
-    </ModalWrapper>
-  );
-}
-
-function LocalInterestModal({ customerId, summary, onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
-
-  const onAccrue = async () => {
-    setLoading(true);
-    try {
-      await adminCreditAPI.applyInterest(customerId);
-      onSuccess();
-    } catch { alert("Accrual job execution process failed."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <ModalWrapper title="Accrue Periodic Interest Charges" onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <p style={{ fontSize: '0.82rem', color: '#4b5563', margin: 0 }}>
-          This calculates and posts outstanding periodic interest metrics relative to the current strategy rate profile structure setup ({summary?.interest_rate || 0}%).
-        </p>
-        <button onClick={onAccrue} disabled={loading} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: 10, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
-          {loading ? 'Calculating Matrix...' : 'Post Interest Accruals'}
-        </button>
-      </div>
-    </ModalWrapper>
-  );
-}
-
-function LocalScheduleModal({ customerId, onClose, onSuccess }) {
-  const [amt, setAmt] = useState('');
-  const [inst, setInst] = useState('3');
-  const [freq, setFreq] = useState('monthly');
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await adminCreditAPI.createSchedule(customerId, { total_amount: Number(amt), installments: Number(inst), frequency: freq });
-      onSuccess();
-    } catch { alert("Failed generating payment term configuration plan matrices."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <ModalWrapper title="Establish Mapped Repayment Terms" onClose={onClose}>
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Principal Total Matrix Amount</label>
-          <input type="number" step="0.01" required value={amt} onChange={e => setAmt(e.target.value)} style={inputStyle} placeholder="0.00" />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Installments Count</label>
-            <input type="number" required value={inst} onChange={e => setInst(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Frequency Cycle</label>
-            <select value={freq} onChange={e => setFreq(e.target.value)} style={inputStyle}>
-              <option value="weekly">Weekly Intervals</option>
-              <option value="biweekly">Bi-weekly Cycles</option>
-              <option value="monthly">Monthly Milestone</option>
-            </select>
-          </div>
-        </div>
-        <button type="submit" disabled={loading} style={{ background: '#7c3aed', color: 'white', border: 'none', padding: 10, borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
-          {loading ? 'Structuring Layout...' : 'Generate Term Breakdown Model'}
-        </button>
-      </form>
-    </ModalWrapper>
-  );
-}
-
-function LocalInvoiceModal({ customerId, onClose, onSuccess }) {
-  const [dueDate, setDueDate] = useState('');
-  const [items, setItems] = useState([{ description: '', quantity: 1, unit_price: 0 }]);
-  const [loading, setLoading] = useState(false);
-
-  const addItemRow = () => setItems([...items, { description: '', quantity: 1, unit_price: 0 }]);
-  const updateItem = (index, field, value) => {
-    const next = [...items];
-    next[index][field] = value;
-    setItems(next);
-  };
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!dueDate) return alert("Target expiration deadline parameter required.");
-    setLoading(true);
-    try {
-      await adminCreditAPI.createInvoice(customerId, { due_date: dueDate, items });
-      onSuccess();
-    } catch { alert("Failed drafting data tracking payload ledger reference."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <ModalWrapper title="Initialize Credit Reference Invoice" onClose={onClose}>
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '72vh', overflowY: 'auto', paddingRight: 4 }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Maturity Due Date</label>
-          <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} style={inputStyle} />
-        </div>
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>Line Entry Rows</label>
-            <button type="button" onClick={addItemRow} style={{ border: 'none', background: 'none', color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>+ Append Line Item</button>
-          </div>
-          {items.map((it, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.2fr', gap: 8, marginBottom: 8 }}>
-              <input type="text" placeholder="Description Label" required value={it.description} onChange={e => updateItem(idx, 'description', e.target.value)} style={inputStyle} />
-              <input type="number" min="1" placeholder="Qty" required value={it.quantity} onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} style={inputStyle} />
-              <input type="number" step="0.01" placeholder="Unit Price" required value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', Number(e.target.value))} style={inputStyle} />
-            </div>
-          ))}
-        </div>
-        <button type="submit" disabled={loading} style={{ background: '#111827', color: 'white', border: 'none', padding: 10, borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
-          {loading ? 'Drafting Ledger Entry...' : 'Post Account Ledger Statement Invoice'}
-        </button>
-      </form>
-    </ModalWrapper>
   );
 }

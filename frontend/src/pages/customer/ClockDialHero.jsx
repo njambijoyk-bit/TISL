@@ -249,7 +249,6 @@ export default function ClockDialHero({ slides = [], countdown, loading }) {
       <style>{`
         .cdh-outer {
           position: relative;
-          background: #09090f;
           border-bottom: 1px solid rgba(255,255,255,0.06);
           overflow: hidden;
         }
@@ -266,11 +265,15 @@ export default function ClockDialHero({ slides = [], countdown, loading }) {
           pointer-events: none;
           position: absolute;
           inset: 0;
-          opacity: 0.022;
+          opacity: 0.05;
           background-image:
-            linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
+            linear-gradient(currentColor 1px, transparent 1px),
+            linear-gradient(90deg, currentColor 1px, transparent 1px);
           background-size: 48px 48px;
+        }
+
+        .dark .cdh-grid {
+          opacity: 0.022;
         }
 
         .cdh-inner {

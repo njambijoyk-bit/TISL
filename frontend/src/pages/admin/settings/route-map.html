@@ -760,9 +760,9 @@ flowchart TB
       </div>
       <div class="mermaid-wrap">
         <pre class="mermaid">
-flowchart LR
+flowchart TB
   subgraph ROUTES["Route Categories"]
-    direction TB
+    direction LR
     R1["Dashboard / Work / Reports"]
     R2["Orders / Payments / Finance"]
     R3["Products / Categories / Brands / Inventory"]
@@ -775,7 +775,7 @@ flowchart LR
   end
 
   subgraph SUPER["SUPER_ADMIN"]
-    direction TB
+    direction LR 
     S1["✅ ALL ROUTES"]
     S2["✅ Force delete"]
     S3["✅ Run algorithm"]
@@ -785,7 +785,7 @@ flowchart LR
   end
 
   subgraph ADMIN["ADMIN"]
-    direction TB
+    direction LR 
     A1["✅ Dashboard"]
     A2["✅ Orders (no force delete)"]
     A3["✅ Products / Catalog"]

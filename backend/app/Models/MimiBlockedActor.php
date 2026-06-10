@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 
 class MimiBlockedActor extends Model
 {
+    public $timestamps = false;
     protected $fillable = [
         'actor_type',
         'customer_id',

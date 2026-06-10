@@ -1067,6 +1067,7 @@ const TABS = [
 ];
 
 export default function ActivityLogs() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('orders');
 
   return (
@@ -1079,16 +1080,32 @@ export default function ActivityLogs() {
       `}</style>
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: 28, animation: 'fadeUp 0.25s ease both' }}>
-        <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: purple, marginBottom: 4 }}>
-          System
-        </p>
-        <h1 style={{ fontSize: '1.7rem', fontWeight: 900, color: '#a855f7', letterSpacing: '-0.03em', margin: '0 0 4px' }}>
-          Activity Logs
-        </h1>
-        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>
-          Track all actions taken across orders, bookings, hampers, auctions, referrals, shipping, and customer tiers.
-        </p>
+      <div style={{ marginBottom: 28, animation: 'fadeUp 0.25s ease both', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: purple, marginBottom: 4 }}>
+            System
+          </p>
+          <h1 style={{ fontSize: '1.7rem', fontWeight: 900, color: '#a855f7', letterSpacing: '-0.03em', margin: '0 0 4px' }}>
+            Activity Logs
+          </h1>
+          <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>
+            Track all actions taken across orders, bookings, hampers, auctions, referrals, shipping, and customer tiers.
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/admin/logs/export')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 18px', borderRadius: 10,
+            border: `1.5px solid ${purpleBd}`,
+            background: purpleLt, color: purpleDk,
+            fontSize: '0.82rem', fontWeight: 700,
+            cursor: 'pointer', flexShrink: 0,
+            transition: 'all 0.15s',
+          }}
+        >
+          <FileText size={14} /> Exports
+        </button>
       </div>
 
       {/* ── Tabs ── */}

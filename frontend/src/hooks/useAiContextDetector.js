@@ -142,6 +142,36 @@ const MATCHERS = [
       label:      'Projects',
     }),
   },
+  // Auction detail
+  {
+    pattern: /^\/admin\/auctions\/(\d+)/,
+    resolve: (m) => ({
+      moduleKey:  'auctions',
+      entityType: 'auction',
+      entityId:    Number(m[1]),
+      label:      `Auction #${m[1]}`,
+    }),
+  },
+  // Auctions list
+  {
+    pattern: /^\/admin\/auctions/,
+    resolve: () => ({
+      moduleKey:  'auctions',
+      entityType: null,
+      entityId:   null,
+      label:      'Auctions',
+    }),
+  },
+  // Finance
+  {
+    pattern: /^\/admin\/finance/,
+    resolve: () => ({
+      moduleKey:  'finance',
+      entityType: null,
+      entityId:   null,
+      label:      'Finance',
+    }),
+  },
 ];
 
 export default function useAiContextDetector() {

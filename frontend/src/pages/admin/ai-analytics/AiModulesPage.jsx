@@ -21,8 +21,20 @@ const MODULE_ICONS = {
     work:      { icon: Zap,          color: '#ec4899' },
 };
 
-const getModuleMeta = (key) =>
-    MODULE_ICONS[key] ?? { icon: Brain, color: '#6b7280' };
+const AUTO_COLORS = [
+    '#a855f7', '#3b82f6', '#10b981', '#f59e0b',
+    '#06b6d4', '#8b5cf6', '#ec4899', '#f97316',
+    '#14b8a6', '#84cc16', '#e879f9', '#38bdf8',
+];
+
+const getModuleMeta = (key) => {
+    if (MODULE_ICONS[key]) return MODULE_ICONS[key];
+
+    // Hash the key string to a stable index
+    const hash = [...key].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    const color = AUTO_COLORS[hash % AUTO_COLORS.length];
+    return { icon: Brain, color };
+};
 
 // ── Neural toggle switch ──────────────────────────────────────────────────────
 function NeuralToggle({ checked, onChange, loading, color }) {

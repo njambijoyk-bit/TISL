@@ -138,7 +138,6 @@ export default function MimiOverviewPage() {
                     onHover={audio.playHover}
                     items={[
                         { label: '⚙ SETTINGS',   onClick: () => navigate('/admin/settings/general') },
-                        { label: 'AI ANALYTICS', onClick: () => navigate('/admin/ai-analytics') },
                         { label: 'MIMI OVERVIEW' },
                     ]}
                 />
@@ -164,6 +163,30 @@ export default function MimiOverviewPage() {
                     <DateRange from={from} to={to} onChange={handleDateChange} />
                 </div>
                 <NeuralDivider />
+                {/* Info note */}
+                <div style={{
+                    margin: '16px 0 8px',
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    background: 'rgba(59,130,246,0.06)',
+                    border: `1px solid rgba(59,130,246,0.25)`,
+                    display: 'flex',
+                    gap: 12,
+                    alignItems: 'flex-start',
+                }}>
+                    <AlertCircle size={14} style={{ color: C.blue, flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ fontSize: '0.72rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.7 }}>
+                        <span style={{ color: C.text, fontWeight: 700 }}>MIMI CHATBOT</span> is the public-facing customer chatbot powered by{' '}
+                        <span style={{ color: C.cyan, fontWeight: 700 }}>Google Gemini</span> — chosen for its cost-efficiency at scale.
+                        Its API key is <span style={{ color: C.amber }}>hardcoded in the <code style={{ fontSize: '0.68rem' }}>.env</code> file</span> and
+                        is <strong style={{ color: C.text }}>not</strong> managed through the Analytics Keys page.{' '}
+                        <span style={{ color: C.textDim }}>
+                            The <span style={{ color: C.purple, fontWeight: 700 }}>AI Analytics module</span> is a separate,
+                            admin-only system that supports multiple providers (Anthropic, Gemini, OpenAI, Mistral, Cohere)
+                            with keys managed via the Analytics Keys page. These are two distinct systems that do not overlap. Ever!
+                        </span>
+                    </div>
+                </div>
 
                 {/* Nav pills */}
                 <div style={{ display: 'flex', gap: 8, margin: '20px 0' }}>

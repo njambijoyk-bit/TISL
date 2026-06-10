@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Shield, Loader2, AlertCircle, ShieldOff, ShieldCheck,
@@ -57,16 +57,81 @@ function Pagination({ meta, onPage, onHover }) {
     );
 }
 
+// ── Searchable dropdown atom ───────────────────────────────────────────────
+function SearchableDropdown({ type, value, onSelect, inputSt, labelSt, audio }) {
+    const [query, setQuery]       = useState('');
+    const [results, setResults]   = useState([]);
+    const [open, setOpen]         = useState(false);
+    const [loading, setLoading]   = useState(false);
+    const debounce                = useRef(null);
+
+    const search = (q) => {
+        setQuery(q);
+        clearTimeout(debounce.current);
+        if (q.length < 2) { setResults([]); setOpen(false); return; }
+        debounce.current = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const res = await mimiAPI.searchActors(type, q);
+                setResults(res);
+                setOpen(true);
+            } catch { setResults([]); }
+            finally { setLoading(false); }
+        }, 300);
+    };
+
+    const pick = (item) => {
+        onSelect(item.id, item.label);
+        setQuery(item.label);
+        setOpen(false);
+        setResults([]);
+    };
+
+    return (
+        <div style={{ position: 'relative' }}>
+            <label style={labelSt}>{type === 'customer' ? 'Customer' : 'Staff User'}</label>
+            <div style={{ position: 'relative' }}>
+                <input
+                    value={value.label || query}
+                    onChange={e => { onSelect(null, ''); search(e.target.value); }}
+                    placeholder={type === 'customer' ? 'Search by name, email, or CUST#…' : 'Search by name or email…'}
+                    style={{ ...inputSt, paddingRight: 32 }}
+                    onFocus={() => results.length > 0 && setOpen(true)}
+                    onBlur={() => setTimeout(() => setOpen(false), 150)}
+                />
+                {loading && (
+                    <Loader2 size={12} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.purple, animation: 'spin 0.8s linear infinite' }} />
+                )}
+            </div>
+            {open && results.length > 0 && (
+                <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                    background: '#1a1a2e', border: `1px solid ${C.border}`,
+                    borderRadius: 8, marginTop: 4, overflow: 'hidden',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                }}>
+                    {results.map(r => (
+                        <div key={r.id} onMouseDown={() => pick(r)}
+                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: `1px solid rgba(255,255,255,0.04)` }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; audio?.playHover(); }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                            <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{r.label}</div>
+                            <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace', marginTop: 2 }}>{r.sub}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 // ── Block actor modal ──────────────────────────────────────────────────────────
 function BlockModal({ onClose, onSuccess, audio }) {
     const [form, setForm] = useState({
         actor_type: 'customer',
-        customer_id: '',
-        user_id: '',
+        customer: { id: null, label: '' },  // ← was customer_id: ''
+        user:     { id: null, label: '' },  // ← was user_id: ''
         ip_address: '',
-        reason: '',
-        notes: '',
-        expires_at: '',
+        reason: '', notes: '', expires_at: '',
     });
     const [saving, setSaving]   = useState(false);
     const [error, setError]     = useState(null);
@@ -75,6 +140,17 @@ function BlockModal({ onClose, onSuccess, audio }) {
 
     const handleSubmit = async () => {
         setError(null);
+
+        // ── Validation ────────────────────────────────────────────────────────
+        if (form.actor_type === 'customer' && !form.customer.id) {
+            setError('Please select a customer from the dropdown.'); return;
+        }
+        if (form.actor_type === 'staff' && !form.user.id) {
+            setError('Please select a staff user from the dropdown.'); return;
+        }
+        if (form.actor_type === 'guest_ip' && !form.ip_address.trim()) {
+            setError('Please enter an IP address.'); return;
+        }
         setSaving(true);
         try {
             const payload = {
@@ -83,8 +159,8 @@ function BlockModal({ onClose, onSuccess, audio }) {
                 notes:  form.notes  || undefined,
                 expires_at: form.expires_at || undefined,
             };
-            if (form.actor_type === 'customer') payload.customer_id = parseInt(form.customer_id);
-            if (form.actor_type === 'staff')    payload.user_id     = parseInt(form.user_id);
+            if (form.actor_type === 'customer') payload.customer_id = form.customer.id;
+            if (form.actor_type === 'staff')    payload.user_id     = form.user.id;
             if (form.actor_type === 'guest_ip') payload.ip_address  = form.ip_address;
 
             await mimiAPI.blockActor(payload);
@@ -139,25 +215,34 @@ function BlockModal({ onClose, onSuccess, audio }) {
                     {/* Actor type */}
                     <div>
                         <label style={labelSt}>Actor Type</label>
-                        <select value={form.actor_type} onChange={e => set('actor_type', e.target.value)} style={selectSt}>
+                        <select value={form.actor_type} onChange={e => setForm(f => ({
+                            ...f,
+                            actor_type: e.target.value,
+                            customer: { id: null, label: '' },
+                            user:     { id: null, label: '' },
+                            ip_address: '',
+                        }))} style={selectSt}>
                             <option value="customer">Customer</option>
                             <option value="staff">Staff</option>
                             <option value="guest_ip">Guest IP</option>
                         </select>
                     </div>
 
-                    {/* ID field — conditional */}
                     {form.actor_type === 'customer' && (
-                        <div>
-                            <label style={labelSt}>Customer ID</label>
-                            <input type="number" value={form.customer_id} onChange={e => set('customer_id', e.target.value)} placeholder="e.g. 42" style={inputSt} />
-                        </div>
+                        <SearchableDropdown
+                            type="customer"
+                            value={form.customer}
+                            onSelect={(id, label) => set('customer', { id, label })}
+                            inputSt={inputSt} labelSt={labelSt} audio={audio}
+                        />
                     )}
                     {form.actor_type === 'staff' && (
-                        <div>
-                            <label style={labelSt}>User ID</label>
-                            <input type="number" value={form.user_id} onChange={e => set('user_id', e.target.value)} placeholder="e.g. 7" style={inputSt} />
-                        </div>
+                        <SearchableDropdown
+                            type="staff"
+                            value={form.user}
+                            onSelect={(id, label) => set('user', { id, label })}
+                            inputSt={inputSt} labelSt={labelSt} audio={audio}
+                        />
                     )}
                     {form.actor_type === 'guest_ip' && (
                         <div>
@@ -328,7 +413,7 @@ export default function MimiBlocksPage() {
                     onHover={audio.playHover}
                     items={[
                         { label: '⚙ SETTINGS',   onClick: () => navigate('/admin/settings/general') },
-                        { label: 'AI ANALYTICS', onClick: () => navigate('/admin/ai-analytics') },
+                        { label: 'OVERVIEW',      onClick: () => navigate('/admin/ai-analytics/mimi') },
                         { label: 'MIMI BLOCKS' },
                     ]}
                 />
@@ -450,8 +535,8 @@ export default function MimiBlocksPage() {
                                         const identifier = b.actor_type === 'guest_ip'
                                             ? b.ip_address
                                             : b.actor_type === 'customer'
-                                                ? `#${b.customer_id}`
-                                                : `User #${b.user_id}`;
+                                                ? `${b.customer?.first_name} ${b.customer?.last_name} (${b.customer_id})`  // ← show name
+                                                : `${b.user?.name} (${b.user_id})`;  
                                         const expiry = fmtExpiry(b.expires_at);
                                         const expired = expiry === 'EXPIRED';
 

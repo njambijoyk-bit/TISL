@@ -142,19 +142,41 @@ function FloatingShapes() {
         @keyframes bubble { 0%,100% { transform: translateY(0px) scale(1); opacity:0.5; } 50% { transform: translateY(-16px) scale(1.1); opacity:0.9; } }
         @keyframes drift  { 0%,100% { transform: translate(0,0) rotate(0deg); } 33% { transform: translate(8px,-12px) rotate(8deg); } 66% { transform: translate(-6px,-8px) rotate(-5deg); } }
 
+
         /* ── Light mode shapes ── */
-        .hs { background: rgba(168,85,247,0.07); border: 1.5px solid rgba(168,85,247,0.15); }
-        .hs-soft { background: rgba(192,132,252,0.07); border: 1.5px solid rgba(192,132,252,0.14); }
-        .hs-dark { background: rgba(124,58,237,0.08); border: 1.5px solid rgba(124,58,237,0.18); }
-        .hs-dot  { background: rgba(168,85,247,0.25); }
-        .hs-dot2 { background: rgba(192,132,252,0.18); }
+        .hs { background: rgba(168,85,247,0.03); border: 1.5px solid rgba(168,85,247,0.06); transform-origin: center; }
+        .hs-soft { background: rgba(192,132,252,0.03); border: 1.5px solid rgba(192,132,252,0.06); transform-origin: center; }
+        .hs-dark { background: rgba(124,58,237,0.04); border: 1.5px solid rgba(124,58,237,0.08); transform-origin: center; }
+        .hs-dot  { background: rgba(168,85,247,0.08); transform-origin: center; }
+        .hs-dot2 { background: rgba(192,132,252,0.06); transform-origin: center; }
+
 
         /* ── Dark mode overrides ── */
-        .dark .hs      { background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.25); }
-        .dark .hs-soft { background: rgba(192,132,252,0.1);  border-color: rgba(192,132,252,0.22); }
-        .dark .hs-dark { background: rgba(124,58,237,0.14); border-color: rgba(124,58,237,0.3); }
-        .dark .hs-dot  { background: rgba(168,85,247,0.4); }
-        .dark .hs-dot2 { background: rgba(192,132,252,0.3); }
+        .dark .hs      { background: rgba(168,85,247,0.05); border-color: rgba(168,85,247,0.1); }
+        .dark .hs-soft { background: rgba(192,132,252,0.04);  border-color: rgba(192,132,252,0.1); }
+        .dark .hs-dark { background: rgba(124,58,237,0.05); border-color: rgba(124,58,237,0.12); }
+        .dark .hs-dot  { background: rgba(168,85,247,0.15); }
+        .dark .hs-dot2 { background: rgba(192,132,252,0.12); }
+
+
+        /* ── Responsive shrinking ── */
+        /* Tablets and smaller */
+        @media (max-width: 1024px) {
+          .hs, .hs-soft, .hs-dark { transform: scale(0.85); }
+          .hs-dot, .hs-dot2 { transform: scale(0.8); }
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+          .hs, .hs-soft, .hs-dark { transform: scale(0.7); }
+          .hs-dot, .hs-dot2 { transform: scale(0.65); }
+        }
+
+        /* Small mobile */
+        @media (max-width: 480px) {
+          .hs, .hs-soft, .hs-dark { transform: scale(0.55); }
+          .hs-dot, .hs-dot2 { transform: scale(0.5); }
+        }
       `}</style>
 
       {/* ── LEFT ZONE ── */}
@@ -167,25 +189,12 @@ function FloatingShapes() {
       <div className="hs-dot"  style={{ position:'absolute', top:8,  left:110, width:10, height:10, borderRadius:'50%', animation:'bubble 4s ease-in-out infinite', animationDelay:'0.9s' }} />
       <div className="hs-dot"  style={{ position:'absolute', top:36, left:100, width:7,  height:7,  borderRadius:'50%', animation:'bubble 6s ease-in-out infinite', animationDelay:'2.3s' }} />
 
-      {/* Chunky rotated square left */}
-      <div className="hs-dark" style={{ position:'absolute', top:10, left:280, width:48, height:48, borderRadius:14, transform:'rotate(18deg)', animation:'float3 6s ease-in-out infinite', animationDelay:'2s' }} />
-
       {/* ── RIGHT ZONE ── */}
 
       {/* Giant bleed circle top-right */}
       <div className="hs" style={{ position:'absolute', top:-70, right:-70, width:200, height:200, borderRadius:'50%', animation:'float1 8s ease-in-out infinite', animationDelay:'0.5s' }} />
 
-      {/* Diamond right */}
-      <div className="hs-dark" style={{ position:'absolute', top:10, right:480, width:38, height:38, borderRadius:9, transform:'rotate(45deg)', animation:'drift 7s ease-in-out infinite', animationDelay:'1.8s' }} />
-
-      {/* Bubble cluster right */}
-      <div className="hs-dot2" style={{ position:'absolute', top:6,  right:200, width:36, height:36, borderRadius:'50%', animation:'bubble 4s ease-in-out infinite', animationDelay:'0.5s' }} />
-      <div className="hs-dot2" style={{ position:'absolute', top:26, right:178, width:22, height:22, borderRadius:'50%', animation:'bubble 5s ease-in-out infinite', animationDelay:'1.2s' }} />
-      <div className="hs-dot"  style={{ position:'absolute', top:4,  right:238, width:14, height:14, borderRadius:'50%', animation:'bubble 3.5s ease-in-out infinite', animationDelay:'0.8s' }} />
-
-      {/* ── BOTTOM BLEEDS ── */}
-      <div className="hs"      style={{ position:'absolute', bottom:-50, left:60,   width:120, height:120, borderRadius:'50%', animation:'float4 10s ease-in-out infinite', animationDelay:'1s' }} />
-      <div className="hs-soft" style={{ position:'absolute', bottom:-40, right:220, width:100, height:100, borderRadius:'50%', animation:'float1 8s ease-in-out infinite',  animationDelay:'3s' }} />
+      
     </div>
   );
 }

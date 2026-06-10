@@ -503,7 +503,7 @@ export default function MimiSessionsPage() {
                     onHover={audio.playHover}
                     items={[
                         { label: '⚙ SETTINGS',   onClick: () => navigate('/admin/settings/general') },
-                        { label: 'AI ANALYTICS', onClick: () => navigate('/admin/ai-analytics') },
+                        { label: 'OVERVIEW',      onClick: () => navigate('/admin/ai-analytics/mimi') },
                         { label: viewSession ? 'SESSIONS' : 'SESSIONS', onClick: viewSession ? () => setViewSession(null) : undefined },
                         ...(viewSession ? [{ label: 'SESSION DETAIL' }] : []),
                     ]}

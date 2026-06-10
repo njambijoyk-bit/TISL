@@ -187,6 +187,12 @@ export default function ReconciliationPage() {
             >
                 📓 NOTES
             </button>
+            <button 
+                style={{ ...S.newBtn, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}
+                onClick={() => navigate('/admin/data-engine')}
+            >
+                Data Engine
+            </button>
             <ThemeSwitcher />
         </div>
         </div>

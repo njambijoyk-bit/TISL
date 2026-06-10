@@ -54,6 +54,7 @@ const CookiePolicy         = lazy(() => import('./components/legal/CookiePolicy'
 const CookieConsentBanner  = lazy(() => import('./components/legal/shared/CookieConsentBanner'));
 const WebsitePolicy        = lazy(() => import('./components/legal/WebsitePolicy'));
 const HamperPolicy         = lazy(() => import('./components/legal/HamperPolicy'));
+const AiPolicy             = lazy(() => import('./components/legal/AiPolicy'));
 const OrderPolicy          = lazy(() => import('./components/legal/OrderPolicy'));
 const BookingPolicy        = lazy(() => import('./components/legal/BookingPolicy'));
 const MyTickets            = lazy(() => import('./pages/customer/MyTickets'));
@@ -176,6 +177,8 @@ const CatalogueBoostPage     = lazy(() => import('./pages/admin/algorithm/Catalo
 const FinancialNotes         = lazy(() => import('./pages/admin/finance/FinancialNotes'));
 const ReconciliationPage     = lazy(() => import('./pages/admin/finance/ReconciliationPage'));
 const ReconciliationDetail   = lazy(() => import('./pages/admin/finance/ReconciliationDetail'));
+const DataEnginePage         = lazy(() => import('./pages/admin/ai-analytics/DataEnginePage'));
+const LogExportPage          = lazy(() => import('./pages/admin/LogExportPage'));
 
 const AdminBugReportsPage = lazy(() => import('./pages/admin/AdminBugReportsPage'));
 const AdminDevNotesPage   = lazy(() => import('./pages/admin/AdminDevNotesPage'));
@@ -370,6 +373,8 @@ function App() {
             <Route path="/hamper-policy"    element={<HamperPolicy />} />
             <Route path="/order-policy"     element={<OrderPolicy />} />
             <Route path="/booking-policy"   element={<BookingPolicy />} />
+            <Route path="ai-policy"         element={<AiPolicy />} />
+
 
             <Route path="/brochures" element={<BrochureListPage />} />
             <Route path="/brochures/:slug" element={<BrochureDetail />} />
@@ -1247,6 +1252,22 @@ function App() {
                   <ReconciliationDetail />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/admin/data-engine"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DataEnginePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/admin/logs/export" 
+              element={
+                  <ProtectedRoute requireAdmin>
+                      <LogExportPage />
+                  </ProtectedRoute>
+              } 
             />
 
             {/* Admin Settings */}

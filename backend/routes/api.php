@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Admin\MimiAnalyticsController;
+use App\Http\Controllers\Admin\DataEngineController;
+use App\Http\Controllers\Admin\LogExportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
@@ -808,6 +810,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/bulk-destroy',            [UserController::class, 'bulkDestroy']);
             Route::post('/bulk-restore',            [UserController::class, 'bulkRestore']);
+
+            Route::post('/{id}/verify-email', [UserController::class, 'verifyEmail']);
+            Route::post('/{id}/verify-phone', [UserController::class, 'verifyPhone']);
         });
 
         // Reviews Management
@@ -1112,6 +1117,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/lines/{line}/attach-note',             [ReconciliationController::class, 'attachNote']);
         });
 
+        Route::prefix('data-engine')->group(function () {
+            Route::get('/export/columns',        [DataEngineController::class, 'exportColumns']);
+            Route::post('/export',               [DataEngineController::class, 'export']);
+            Route::post('/detect-identifier',    [DataEngineController::class, 'detectIdentifier']);
+            Route::post('/diff',                 [DataEngineController::class, 'diff']);
+            Route::post('/analyse',              [DataEngineController::class, 'analyse']);
+        });
+
         Route::prefix('analytics')->group(function () {
             Route::get('dashboard',                [SearchAnalyticsController::class, 'dashboard']);
             Route::get('sessions',                 [SearchAnalyticsController::class, 'sessions']);
@@ -1164,6 +1177,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/queries',               [MimiAnalyticsController::class, 'queries']);
             Route::patch('/queries/{id}/flag',   [MimiAnalyticsController::class, 'flagQuery']);
             Route::get('/reports',               [MimiAnalyticsController::class, 'reports']);
+            Route::get('/search-actors',         [MimiAnalyticsController::class, 'searchActors']);
             Route::post('/block',                [MimiAnalyticsController::class, 'block']);
             Route::delete('/block/{id}',         [MimiAnalyticsController::class, 'unblock']);
             Route::get('/blocks',                [MimiAnalyticsController::class, 'blocks']);
@@ -1293,6 +1307,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{id}',                [PolicyController::class, 'update']);
             Route::get('/{id}/acceptances',    [PolicyController::class, 'acceptances']);
             Route::get('/{id}/change-logs',    [PolicyController::class, 'changeLogs']);
+        });
+
+        Route::prefix('logs')->group(function () {
+            Route::get('/export/meta',   [LogExportController::class, 'meta']);
+            Route::post('/export',       [LogExportController::class, 'export']);
         });
 
         

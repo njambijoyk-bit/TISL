@@ -130,19 +130,19 @@ export default function CookieConsentBanner() {
                     {/* Text */}
                     <div style={{ flex: 1, minWidth: 240 }}>
                         <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
-                            we use cookies
+                            We Use Cookies
                         </p>
                         <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                            strictly necessary cookies keep things running. analytics &amp; personalisation are optional —{' '}
+                            This site uses essential cookies solely to support core functionality. No third-party, analytics, or personalisation cookies are deployed -{' '}
                             <Link
                                 to="/cookies"
                                 style={{ color: '#c084fc', textDecoration: 'none' }}
                                 onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                                 onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                             >
-                                read our cookie policy
+                                view our cookie policy
                             </Link>
-                            {' '}for the full story.
+                            {' '}for full details.
                         </p>
                     </div>
 

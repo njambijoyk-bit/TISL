@@ -510,7 +510,7 @@ export default function MimiHarmfulPage() {
                     onHover={audio.playHover}
                     items={[
                         { label: '⚙ SETTINGS',   onClick: () => navigate('/admin/settings/general') },
-                        { label: 'AI ANALYTICS', onClick: () => navigate('/admin/ai-analytics') },
+                        { label: 'OVERVIEW',      onClick: () => navigate('/admin/ai-analytics/mimi') },
                         { label: 'MIMI HARMFUL' },
                     ]}
                 />

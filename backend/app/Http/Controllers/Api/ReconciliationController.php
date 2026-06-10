@@ -48,7 +48,7 @@ class ReconciliationController extends Controller
         $validated = $request->validate([
             'period_start' => 'required|date',
             'period_end'   => 'required|date|after_or_equal:period_start',
-            'ledger'       => 'required|in:payments,store_credit,loyalty_points,credit_account,vat',
+            'ledger'       => 'required|in:payments,store_credit,loyalty_points,credit_account,vat,external_import',
             'notes'        => 'nullable|string',
         ]);
 
@@ -124,6 +124,12 @@ class ReconciliationController extends Controller
     // POST /admin/reconciliation/sessions/{session}/populate
     public function populate(ReconciliationSession $session)
     {
+        if ($session->ledger === 'external_import') {
+            return response()->json([
+                'message' => 'external_import sessions are managed by the Data Engine and cannot be re-populated.',
+            ], 422);
+        }
+
         if (!$session->isOpen()) {
             return response()->json(['message' => 'Session is closed. Reopen it before populating.'], 422);
         }

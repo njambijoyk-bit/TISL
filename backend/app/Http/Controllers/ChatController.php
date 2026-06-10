@@ -910,6 +910,13 @@ LIVE PUBLIC DATA
             $reply = $response->json('candidates.0.content.parts.0.text')
                 ?? 'Sorry, I could not process that. Please try again.';
 
+            $finishReason = $response->json('candidates.0.finishReason');
+            if ($finishReason === 'SAFETY') {
+                return response()->json([
+                    'error' => "I'm not able to help with that. Please keep our conversation focused on TISL Store topics. 💜"
+                ], 422);
+            }
+
             return response()->json(['reply' => trim($reply)]);
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BrainCircuit, X, Minus, ChevronRight, Maximize2, Minimize2,
-  Sparkles, AlignLeft, LayoutList,
+  Sparkles, AlignLeft, LayoutList,Binary,
   Loader2, AlertCircle, CheckCircle,
   Trash2, RefreshCw, ChevronDown, ChevronUp,
 } from 'lucide-react';

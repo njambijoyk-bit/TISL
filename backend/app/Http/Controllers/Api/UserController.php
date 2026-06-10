@@ -601,6 +601,34 @@ class UserController extends Controller
         return response()->json(['message' => "{$count} users restored."]);
     }
 
+    public function verifyEmail(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('manageAccount', $user);
+
+        $user->forceFill([
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ])->save();
+
+        return response()->json(['message' => 'Email verified.', 'data' => $user]);
+    }
+
+    public function verifyPhone(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('manageAccount', $user);
+
+        if (!$user->phone) {
+            return response()->json(['message' => 'User has no phone number.'], 422);
+        }
+
+        $user->forceFill([
+            'phone_verified_at' => $user->phone_verified_at ?? now(),
+        ])->save();
+
+        return response()->json(['message' => 'Phone verified.', 'data' => $user]);
+    }
+
     public function departments(Request $request)
     {
         $this->authorize('viewAny', User::class);

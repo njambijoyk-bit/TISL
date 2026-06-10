@@ -22,6 +22,8 @@ const mimiAPI = {
         api.patch(`/admin/mimi/queries/${id}/flag`, { unflag: true, reason: 'unflag' }).then(r => r.data),
 
     // ── Blocks ────────────────────────────────────────────────────────────────
+    searchActors: (type, q) =>
+    api.get('/admin/mimi/search-actors', { params: { type, q } }).then(r => r.data),
 
     getBlocks: (params = {}) =>
         api.get('/admin/mimi/blocks', { params }).then(r => r.data),

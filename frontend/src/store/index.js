@@ -15,6 +15,7 @@ export { default as usePromoCodeStore } from './promoCodeStore';
 export { default as useQuoteListStore } from './quoteListStore';
 export { default as useTicketStore } from './ticketStore';
 export { default as useAiPanelStore } from './useAiPanelStore';
+export { default as useHeaderPositionStore } from './useHeaderPositionStore';
 
 export { default as useContentStore } from './contentStore';
 export { default as useStudioStore } from './studioStore';

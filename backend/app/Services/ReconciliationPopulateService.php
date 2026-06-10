@@ -25,6 +25,7 @@ class ReconciliationPopulateService
             'loyalty_points' => $this->populateLoyaltyPoints($session),
             'credit_account' => $this->populateCreditAccount($session),
             'vat'            => $this->populateVat($session),
+            'external_import' => throw new \Exception("external_import sessions are managed by the Data Engine and cannot be re-populated here."),
             default          => throw new \Exception("Unknown ledger: {$session->ledger}"),
         };
     }

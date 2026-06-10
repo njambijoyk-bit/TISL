@@ -23,6 +23,7 @@ use App\Services\ReconciliationPopulateService;
 use App\Services\SearchAnalyticsService;
 use App\Services\AiAnalyticsService;
 use App\Services\BugReportService;
+use App\Services\DataEngineService;
 use App\Services\Chat\MimiHarmScannerService;
 use App\Services\Chat\MimiBlockService;
 use App\Services\Chat\MimiSessionService;
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SearchAnalyticsService::class);
         $this->app->singleton(AiAnalyticsService::class);
         $this->app->singleton(BugReportService::class);
+        $this->app->singleton(DataEngineService::class);
         $this->app->singleton(MimiHarmScannerService::class);
         $this->app->singleton(MimiBlockService::class);
         $this->app->singleton(MimiSessionService::class);

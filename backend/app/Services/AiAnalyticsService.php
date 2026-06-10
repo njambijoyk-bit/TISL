@@ -31,7 +31,8 @@ class AiAnalyticsService
         ?int    $entityId     = null,
         ?string $entityType   = null,
         string  $outputType   = 'summary',
-        ?string $customPrompt = null,      // free-form question from admin
+        ?string $customPrompt = null,
+        array   $extraData    = [], 
     ): AiAnalyticsOutput {
 
         // ── Validate module exists and is enabled ────────────────────
@@ -46,7 +47,7 @@ class AiAnalyticsService
         }
 
         // ── Build prompt server-side ─────────────────────────────────
-        $prompt = $this->buildPrompt($moduleKey, $outputType, $entityId, $entityType, $customPrompt);
+        $prompt = $this->buildPrompt($moduleKey, $outputType, $entityId, $entityType, $customPrompt, $extraData);
 
         $key       = $this->getActiveKey();
         $startTime = microtime(true);
@@ -110,7 +111,9 @@ class AiAnalyticsService
         string  $outputType,
         ?int    $entityId,
         ?string $entityType,
-        ?string $customPrompt
+        ?string $customPrompt,
+        array   $extraData = [], 
+
     ): string {
         $data = match($moduleKey) {
             'orders'    => $this->fetchOrdersData($entityId),
@@ -121,6 +124,8 @@ class AiAnalyticsService
             'customers' => $this->fetchCustomersData($entityId),
             'finance'   => $this->fetchFinanceData($entityId),
             'auctions'  => $this->fetchAuctionsData($entityId),
+            'quotes'    => $this->fetchQuotesData($entityId),
+            'reconciliation' => $this->fetchReconciliationData($entityId, $extraData),
             default     => throw new \Exception("No data fetcher for module: {$moduleKey}"),
         };
 
@@ -631,6 +636,237 @@ class AiAnalyticsService
         ");
 
         return compact('stats', 'topAuctions', 'endingSoon');
+    }
+
+    private function fetchQuotesData(?int $entityId): array
+    {
+        // ── Single quote ─────────────────────────────────────────────
+        if ($entityId) {
+            $quote = DB::selectOne("
+                SELECT q.id, q.quote_number, q.status, q.priority, q.quote_type,
+                    q.subtotal_kes, q.tax, q.discount, q.shipping_cost, q.total_kes,
+                    q.pricing_type, q.is_negotiable, q.valid_from, q.valid_until,
+                    q.sent_at, q.viewed_at, q.responded_at, q.converted_at,
+                    q.converted_to_order_id, q.version, q.billing_schedule,
+                    CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+                    c.tier AS customer_tier
+                FROM quotes q
+                LEFT JOIN customers c ON c.id = q.customer_id
+                WHERE q.id = ?
+                AND q.deleted_at IS NULL
+            ", [$entityId]);
+
+            $items = DB::select("
+                SELECT qi.item_type, qi.product_name, qi.service_name,
+                    qi.quantity, qi.unit_of_measure, qi.unit_price,
+                    qi.line_total, qi.discount_amount, qi.line_total_after_discount,
+                    qi.estimated_hours, qi.labor_cost, qi.material_cost,
+                    qi.availability_status, qi.is_custom_item, qi.is_negotiated_price
+                FROM quote_items qi
+                WHERE qi.quote_id = ?
+                ORDER BY qi.display_order
+            ", [$entityId]);
+
+            return ['quote' => $quote, 'items' => $items];
+        }
+
+        // ── Module-wide (last 30 days) ───────────────────────────────
+        $stats = DB::selectOne("
+            SELECT
+                COUNT(*)                                                              AS total_quotes,
+                COUNT(CASE WHEN status = 'draft'     THEN 1 END)                    AS draft,
+                COUNT(CASE WHEN status = 'pending'   THEN 1 END)                    AS pending,
+                COUNT(CASE WHEN status = 'revised'   THEN 1 END)                    AS revised,
+                COUNT(CASE WHEN status = 'approved'  THEN 1 END)                    AS approved,
+                COUNT(CASE WHEN status = 'rejected'  THEN 1 END)                    AS rejected,
+                COUNT(CASE WHEN status = 'expired'   THEN 1 END)                    AS expired,
+                COUNT(CASE WHEN status = 'converted' THEN 1 END)                    AS converted,
+                ROUND(
+                    COUNT(CASE WHEN status = 'converted' THEN 1 END) * 100.0
+                    / NULLIF(COUNT(*), 0), 2
+                )                                                                    AS conversion_rate_pct,
+                SUM(total_kes)                                                       AS total_pipeline_kes,
+                SUM(CASE WHEN status = 'converted' THEN total_kes END)              AS total_converted_kes,
+                ROUND(AVG(total_kes), 2)                                             AS avg_quote_value_kes,
+                COUNT(CASE WHEN valid_until < NOW()
+                            AND status NOT IN ('converted','rejected') THEN 1 END)  AS expiring_soon,
+                COUNT(CASE WHEN is_negotiable = 1 THEN 1 END)                       AS negotiable_quotes,
+                COUNT(CASE WHEN viewed_at IS NULL
+                            AND sent_at IS NOT NULL THEN 1 END)                     AS sent_unviewed
+            FROM quotes
+            WHERE created_at >= NOW() - INTERVAL 30 DAY
+            AND deleted_at IS NULL
+        ");
+
+        $byType = DB::select("
+            SELECT quote_type,
+                COUNT(*)            AS total,
+                SUM(total_kes)      AS value_kes,
+                ROUND(AVG(total_kes), 2) AS avg_value_kes
+            FROM quotes
+            WHERE created_at >= NOW() - INTERVAL 30 DAY
+            AND deleted_at IS NULL
+            GROUP BY quote_type
+        ");
+
+        $topQuotes = DB::select("
+            SELECT q.id, q.quote_number, q.status, q.quote_type,
+                q.total_kes, q.valid_until, q.priority,
+                CONCAT(c.first_name, ' ', c.last_name) AS customer_name
+            FROM quotes q
+            LEFT JOIN customers c ON c.id = q.customer_id
+            WHERE q.created_at >= NOW() - INTERVAL 30 DAY
+            AND q.deleted_at IS NULL
+            ORDER BY q.total_kes DESC
+            LIMIT 5
+        ");
+
+        $quoteRequests = DB::selectOne("
+            SELECT
+                COUNT(*)                                                        AS total_requests,
+                COUNT(CASE WHEN status = 'pending'   THEN 1 END)              AS pending,
+                COUNT(CASE WHEN status = 'reviewing' THEN 1 END)              AS reviewing,
+                COUNT(CASE WHEN status = 'quoted'    THEN 1 END)              AS quoted,
+                COUNT(CASE WHEN status = 'rejected'  THEN 1 END)              AS rejected,
+                COUNT(CASE WHEN status = 'expired'   THEN 1 END)              AS expired,
+                COUNT(CASE WHEN priority = 'urgent'  THEN 1 END)              AS urgent,
+                COUNT(CASE WHEN requires_clarification = 1 THEN 1 END)        AS needs_clarification,
+                COUNT(CASE WHEN assigned_to IS NULL
+                            AND status = 'pending' THEN 1 END)                AS unassigned_pending
+            FROM quote_requests
+            WHERE created_at >= NOW() - INTERVAL 30 DAY
+            AND deleted_at IS NULL
+        ");
+
+        $itemBreakdown = DB::select("
+            SELECT qi.item_type,
+                COUNT(*)                        AS line_items,
+                SUM(qi.line_total_after_discount) AS total_kes,
+                COUNT(CASE WHEN qi.is_custom_item = 1 THEN 1 END) AS custom_items
+            FROM quote_items qi
+            JOIN quotes q ON q.id = qi.quote_id
+            WHERE q.created_at >= NOW() - INTERVAL 30 DAY
+            AND q.deleted_at IS NULL
+            GROUP BY qi.item_type
+        ");
+
+        return compact('stats', 'byType', 'topQuotes', 'quoteRequests', 'itemBreakdown');
+    }
+
+    private function fetchReconciliationData(?int $sessionId, array $extraData = []): array
+    {
+        // ── Raw diff result passed directly (not yet persisted) ───
+        if (!empty($extraData['diff_result'])) {
+            $diff = $extraData['diff_result'];
+ 
+            return [
+                'mode'         => 'raw_diff',
+                'source_table' => $diff['source_table']   ?? 'unknown',
+                'period'       => [
+                    'start' => $diff['period_start'] ?? null,
+                    'end'   => $diff['period_end']   ?? null,
+                ],
+                'summary'      => $diff['summary']        ?? [],
+                'mismatches'   => array_slice($diff['mismatches']    ?? [], 0, 50),   // cap for token budget
+                'only_in_tisl' => array_slice($diff['only_in_tisl'] ?? [], 0, 25),
+                'only_in_file' => array_slice($diff['only_in_file'] ?? [], 0, 25),
+            ];
+        }
+ 
+        // ── Persisted session ────────────────────────────────────
+        if (!$sessionId) {
+            throw new \Exception('Reconciliation module requires session_id or diff_result.');
+        }
+ 
+        $session = \App\Models\ReconciliationSession::with('openedBy:id,name')->find($sessionId);
+ 
+        if (!$session) {
+            throw new \Exception("Reconciliation session {$sessionId} not found.");
+        }
+ 
+        // Summary figures
+        $summary = \Illuminate\Support\Facades\DB::table('reconciliation_lines')
+            ->where('session_id', $sessionId)
+            ->selectRaw("
+                COUNT(*)                                                             AS total_lines,
+                COUNT(CASE WHEN status = 'pending'      THEN 1 END)                 AS pending,
+                COUNT(CASE WHEN status = 'confirmed'    THEN 1 END)                 AS confirmed,
+                COUNT(CASE WHEN status = 'disputed'     THEN 1 END)                 AS disputed,
+                COUNT(CASE WHEN status = 'written_off'  THEN 1 END)                 AS written_off,
+                COUNT(CASE WHEN status = 'voided'       THEN 1 END)                 AS voided,
+                SUM(ABS(COALESCE(actual_amount,0) - COALESCE(expected_amount,0)))   AS total_variance_kes,
+                SUM(CASE WHEN status = 'confirmed'   THEN actual_amount    END)     AS confirmed_amount,
+                SUM(CASE WHEN status = 'disputed'    THEN disputed_amount  END)     AS disputed_amount,
+                SUM(CASE WHEN status = 'written_off' THEN expected_amount  END)     AS written_off_amount
+            ")
+            ->first();
+ 
+        // Top mismatched lines by variance magnitude
+        $topMismatches = \Illuminate\Support\Facades\DB::table('reconciliation_lines')
+            ->where('session_id', $sessionId)
+            ->where('status', 'pending')
+            ->whereNotNull('actual_amount')
+            ->whereNotNull('expected_amount')
+            ->whereRaw('actual_amount != expected_amount')
+            ->selectRaw("
+                subject_table,
+                subject_id,
+                expected_amount,
+                actual_amount,
+                ABS(actual_amount - expected_amount) AS variance_kes,
+                meta
+            ")
+            ->orderByRaw('variance_kes DESC')
+            ->limit(20)
+            ->get()
+            ->map(function ($row) {
+                // Surface identifier from meta without sending entire meta blob
+                $meta       = json_decode($row->meta ?? '{}', true);
+                $identifier = $meta['identifier']     ?? null;
+                $diffType   = $meta['diff_type']      ?? null;
+                $fieldDiffs = $meta['field_diffs']    ?? [];
+ 
+                return [
+                    'subject_table'   => $row->subject_table,
+                    'subject_id'      => $row->subject_id,
+                    'identifier'      => $identifier,
+                    'expected_amount' => $row->expected_amount,
+                    'actual_amount'   => $row->actual_amount,
+                    'variance_kes'    => $row->variance_kes,
+                    'diff_type'       => $diffType,
+                    'field_diffs'     => array_slice($fieldDiffs, 0, 5), // cap per-row fields
+                ];
+            });
+ 
+        // Breakdown by diff_type (mismatch / only_in_tisl / only_in_file)
+        $byDiffType = \Illuminate\Support\Facades\DB::table('reconciliation_lines')
+            ->where('session_id', $sessionId)
+            ->selectRaw("
+                JSON_UNQUOTE(JSON_EXTRACT(meta, '$.diff_type')) AS diff_type,
+                COUNT(*)                                         AS count,
+                SUM(ABS(COALESCE(actual_amount,0) - COALESCE(expected_amount,0))) AS variance_kes
+            ")
+            ->groupByRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.diff_type'))")
+            ->get();
+ 
+        return [
+            'mode'    => 'persisted_session',
+            'session' => [
+                'id'             => $session->id,
+                'session_number' => $session->session_number,
+                'ledger'         => $session->ledger,
+                'period_start'   => $session->period_start,
+                'period_end'     => $session->period_end,
+                'status'         => $session->status,
+                'source_table'   => $session->meta['source']       ?? null,
+                'diff_summary'   => $session->meta['diff_summary'] ?? null,
+                'opened_by'      => $session->openedBy?->name,
+                'opened_at'      => $session->opened_at,
+            ],
+            'line_summary'   => $summary,
+            'by_diff_type'   => $byDiffType,
+            'top_mismatches' => $topMismatches,
+        ];
     }
 
     // ════════════════════════════════════════════════════════════════
