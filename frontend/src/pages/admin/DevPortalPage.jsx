@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  GitBranch, Plus, LogOut, RefreshCw, Loader2, AlertCircle,
+import { GitBranch, Plus, LogOut, RefreshCw, Loader2, AlertCircle,
   ChevronLeft, ChevronRight, X, Edit2, Filter,
-  Link2, GitPullRequest, Hash, ShieldCheck
+  Link2, GitPullRequest, Hash, ShieldCheck, AlertTriangle, Eye
 } from 'lucide-react';
 import '../../styles/bug.css';
 import Header from '../../components/layout/Header';
@@ -68,7 +67,160 @@ function GitDetails({ note }) {
   );
 }
 
-function NoteCard({ note, onEdit }) {
+function DevWarningModal({ onClose }) {
+  return (
+    <div className="bug-modal-overlay" onClick={onClose}>
+      <div
+        className="bug-card"
+        style={{
+          maxWidth: 520, width: '90%', padding: 0, overflow: 'hidden',
+          maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+          border: '1.5px solid rgba(245,158,11,0.35)',
+          boxShadow: '0 0 0 1px rgba(245,158,11,0.15), 0 12px 48px rgba(245,158,11,0.2)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(249,115,22,0.08))',
+          padding: '20px 24px', borderBottom: '1px solid rgba(245,158,11,0.25)',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: 'rgba(245,158,11,0.15)', border: '1.5px solid rgba(245,158,11,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <AlertTriangle size={20} color="#f59e0b" />
+          </div>
+          <h2 className="bug-text-lg bug-font-bold bug-text" style={{ margin: 0 }}>
+            Heads up before you touch this module
+          </h2>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
+
+          {/* Section 1 — existing */}
+          <div>
+            <p className="bug-text-sm bug-font-semibold bug-text" style={{ margin: '0 0 6px' }}>
+              Cart / wishlist / quote-list sync
+            </p>
+            <p className="bug-text-sm bug-text" style={{ lineHeight: 1.7, margin: '0 0 8px' }}>
+              Tightly coupled to the shared auth/axios interceptor. Changes here have previously caused <strong>403 errors</strong> on:
+            </p>
+            <ul style={{ margin: '0 0 6px', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <li className="bug-text-sm bug-text">Quote Requests (customer detail view)</li>
+              <li className="bug-text-sm bug-text">Quotes</li>
+              <li className="bug-text-sm bug-text">Order Details</li>
+            </ul>
+            <p className="bug-text-xs bug-text-muted" style={{ lineHeight: 1.6, margin: 0 }}>
+              Before merging, login as a test customer and confirm Order Details and Quote Request Details still load — no unexpected redirects to /login or 403s.
+            </p>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--bug-border-light)' }} />
+
+          {/* Section 2 — status history field names */}
+          <div>
+            <p className="bug-text-sm bug-font-semibold bug-text" style={{ margin: '0 0 6px' }}>
+              Status history field names differ by endpoint — intentionally
+            </p>
+            <p className="bug-text-sm bug-text" style={{ lineHeight: 1.7, margin: '0 0 6px' }}>
+              The two public timelines use different shapes on purpose:
+            </p>
+            <ul style={{ margin: '0 0 6px', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <li className="bug-text-sm bug-text"><code>/bug-reports/track/:token</code> → <code>from</code>, <code>to</code>, <code>changed_at</code></li>
+              <li className="bug-text-sm bug-text"><code>/customer/bug-reports/:id</code> → <code>from_status</code>, <code>to_status</code>, <code>created_at</code></li>
+            </ul>
+            <p className="bug-text-xs bug-text-muted" style={{ lineHeight: 1.6, margin: 0 }}>
+              Do not "normalize" these. Each frontend Timeline component expects its own shape — changing one will silently break the other.
+            </p>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--bug-border-light)' }} />
+
+          {/* Section 3 — raw_key exposure */}
+          <div>
+            <p className="bug-text-sm bug-font-semibold bug-text" style={{ margin: '0 0 6px' }}>
+              Dev access key — confirm storage before touching <code>activeKey()</code>
+            </p>
+            <p className="bug-text-sm bug-text" style={{ lineHeight: 1.7, margin: 0 }}>
+              The <code>activeKey()</code> controller method returns <code>raw_key</code> directly in the response. Verify whether this is stored hashed (and decrypted here) or in plaintext before modifying the key generation or retrieval logic.
+            </p>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--bug-border-light)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} className="bug-btn bug-btn-indigo">
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoteViewModal({ note, onClose, onEdit }) {
+  return (
+    <div className="bug-modal-overlay" onClick={onClose}>
+      <div
+        className="bug-card"
+        style={{ maxWidth: 560, width: '90%', maxHeight: '85vh', overflowY: 'auto', padding: 0 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="bug-flex bug-items-center bug-justify-between" style={{ padding: '18px 22px', borderBottom: '1px solid var(--bug-border-light)' }}>
+          <div className="bug-flex bug-items-center bug-gap-2 bug-flex-wrap">
+            <NoteTypeTag type={note.type} />
+            {note.bug_report_id && (
+              <span className="bug-flex bug-items-center bug-gap-1 bug-text-xs bug-text-muted">
+                <Link2 size={10} /> Bug #{note.bug_report_id}
+              </span>
+            )}
+            <span className="bug-mono bug-text-xs bug-text-muted">{note.note_number}</span>
+          </div>
+          <button onClick={onClose} className="bug-copy-btn" style={{ padding: 6, borderRadius: 8 }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <p className="bug-text-xs bug-text-muted bug-font-medium" style={{ marginBottom: 4 }}>Title</p>
+            <p className="bug-text-base bug-font-semibold bug-text" style={{ margin: 0 }}>{note.title}</p>
+          </div>
+
+          {note.description && (
+            <div>
+              <p className="bug-text-xs bug-text-muted bug-font-medium" style={{ marginBottom: 4 }}>Description</p>
+              <p className="bug-text-sm bug-text bug-whitespace-pre" style={{ margin: 0, lineHeight: 1.7 }}>{note.description}</p>
+            </div>
+          )}
+
+          <GitDetails note={note} />
+
+          <div className="bug-flex bug-items-center bug-gap-3" style={{ paddingTop: 8, borderTop: '1px solid var(--bug-border-light)' }}>
+            <NoteStatusBadge status={note.status} />
+            <span className="bug-text-xs bug-text-muted">
+              Created {new Date(note.created_at).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--bug-border-light)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} className="bug-btn">Close</button>
+          <button onClick={() => onEdit(note)} className="bug-btn bug-btn-indigo">
+            <Edit2 size={14} /> Edit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoteCard({ note, onEdit, onView }) {
   return (
     <div className="bug-note-card">
       <div className="bug-flex bug-items-start bug-justify-between bug-gap-3">
@@ -85,14 +237,24 @@ function NoteCard({ note, onEdit }) {
           <p className="bug-text-sm bug-font-medium bug-text">{note.title}</p>
         </div>
 
-        <button
-          onClick={() => onEdit(note)}
-          className="bug-copy-btn"
-          style={{ padding: 6, borderRadius: 8, flexShrink: 0 }}
-          title="Edit"
-        >
-          <Edit2 size={13} />
-        </button>
+        <div className="bug-flex bug-items-center bug-gap-1" style={{ flexShrink: 0 }}>
+          <button
+            onClick={() => onView(note)}
+            className="bug-copy-btn"
+            style={{ padding: 6, borderRadius: 8 }}
+            title="View"
+          >
+            <Eye size={13} />
+          </button>
+          <button
+            onClick={() => onEdit(note)}
+            className="bug-copy-btn"
+            style={{ padding: 6, borderRadius: 8 }}
+            title="Edit"
+          >
+            <Edit2 size={13} />
+          </button>
+        </div>
       </div>
 
       {note.description && (
@@ -132,6 +294,8 @@ export default function DevPortalPage() {
   const [filters, setFilters] = useState({ status: '', type: '' });
   const [showForm, setShowForm] = useState(false);
   const [editNote, setEditNote] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [viewNote, setViewNote] = useState(null);
 
   const load = useCallback(async (p = 1, f = filters) => {
     setLoading(true);
@@ -215,6 +379,17 @@ export default function DevPortalPage() {
               className="bug-btn bug-btn-indigo"
             >
               <Plus size={15} /> New Note
+            </button>
+            <button
+              onClick={() => setShowWarning(true)}
+              className="bug-btn"
+              style={{
+                color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)',
+                background: 'rgba(245,158,11,0.06)',
+              }}
+              title="Sync system warning"
+            >
+              <AlertTriangle size={14} /> Dev
             </button>
             <button
               onClick={handleLogout}
@@ -304,6 +479,7 @@ export default function DevPortalPage() {
               key={note.id}
               note={note}
               onEdit={(n) => { setEditNote(n); setShowForm(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onView={(n) => setViewNote(n)}
             />
           ))}
         </div>
@@ -331,6 +507,16 @@ export default function DevPortalPage() {
               Next <ChevronRight size={15} />
             </button>
           </div>
+        )}
+
+        {showWarning && <DevWarningModal onClose={() => setShowWarning(false)} />}
+
+        {viewNote && (
+          <NoteViewModal
+            note={viewNote}
+            onClose={() => setViewNote(null)}
+            onEdit={(n) => { setViewNote(null); setEditNote(n); setShowForm(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          />
         )}
       </main>
 

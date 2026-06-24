@@ -1,11 +1,114 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
-  Bug, Globe, Camera, User, Mail, Send, Copy, Check, ExternalLink, Loader2, AlertCircle
+  Bug, Globe, Camera, User, Mail, Send, Copy, Check,
+  ExternalLink, Loader2, AlertCircle, X, ImagePlus,
 } from 'lucide-react';
-import { submitReport } from '../../api/bugReportsAPI';
+import { submitReport, uploadScreenshot } from '../../api/bugReportsAPI';
 import '../../styles/bug.css';
 
 const MAX_DESC = 5000;
+
+// ── ScreenshotPicker ────────────────────────────────────────────
+
+function ScreenshotPicker({ value, onChange }) {
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be under 5MB.');
+      return;
+    }
+
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const res = await uploadScreenshot(file);
+      onChange(res.url);
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      // reset input so same file can be re-selected after removal
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const handleRemove = () => {
+    onChange('');
+    setUploadError(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  // preview state — screenshot already uploaded
+  if (value) {
+    return (
+      <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
+        <img
+          src={value}
+          alt="Screenshot preview"
+          style={{
+            width: '100%', maxHeight: 220, objectFit: 'cover',
+            borderRadius: 10, border: '1px solid var(--bug-border-light)',
+            display: 'block',
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleRemove}
+          title="Remove screenshot"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%',
+            width: 26, height: 26, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', color: '#fff',
+          }}
+        >
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  // upload state
+  return (
+    <div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={e => handleFile(e.target.files?.[0])}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="bug-btn"
+        style={{ width: '100%', justifyContent: 'center', gap: 8, padding: '10px 0' }}
+      >
+        {uploading
+          ? <><Loader2 size={14} className="bug-animate-spin" /> Uploading...</>
+          : <><ImagePlus size={14} /> Attach screenshot</>
+        }
+      </button>
+      {uploadError && (
+        <p className="bug-text-xs bug-text-red" style={{ marginTop: 6 }}>
+          {uploadError}
+        </p>
+      )}
+      <p className="bug-text-xs bug-text-muted" style={{ marginTop: 6 }}>
+        JPG, PNG, GIF or WebP — max 5MB. On mobile, opens camera or gallery.
+      </p>
+    </div>
+  );
+}
+
+// ── BugReportForm ───────────────────────────────────────────────
 
 /**
  * BugReportForm
@@ -33,6 +136,7 @@ export default function BugReportForm({ onSuccess, onCancel, isModal = false, cu
   const [copied, setCopied] = useState(false);
 
   const set = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
+  const setScreenshot = (url) => setForm(prev => ({ ...prev, screenshot_url: url }));
 
   const descLeft = MAX_DESC - form.description.length;
 
@@ -46,7 +150,7 @@ export default function BugReportForm({ onSuccess, onCancel, isModal = false, cu
         title: form.title.trim(),
         description: form.description.trim(),
         page_url: form.page_url.trim() || undefined,
-        screenshot_url: form.screenshot_url.trim() || undefined,
+        screenshot_url: form.screenshot_url || undefined,
       };
       if (isGuest) {
         if (form.guest_name.trim()) payload.guest_name = form.guest_name.trim();
@@ -112,11 +216,7 @@ export default function BugReportForm({ onSuccess, onCancel, isModal = false, cu
         </div>
 
         {onCancel && (
-          <button
-            onClick={onCancel}
-            className="bug-btn bug-mt-1"
-            style={{ width: '100%' }}
-          >
+          <button onClick={onCancel} className="bug-btn bug-mt-1" style={{ width: '100%' }}>
             Close
           </button>
         )}
@@ -211,16 +311,9 @@ export default function BugReportForm({ onSuccess, onCancel, isModal = false, cu
         </div>
         <div className="bug-field">
           <label className="bug-label">
-            <span><Camera size={13} /> Screenshot URL <span className="bug-text-muted bug-font-normal">(optional)</span></span>
+            <span><Camera size={13} /> Screenshot <span className="bug-text-muted bug-font-normal">(optional)</span></span>
           </label>
-          <input
-            type="text"
-            value={form.screenshot_url}
-            onChange={set('screenshot_url')}
-            placeholder="Paste image URL"
-            maxLength={2048}
-            className="bug-input"
-          />
+          <ScreenshotPicker value={form.screenshot_url} onChange={setScreenshot} />
         </div>
       </div>
 

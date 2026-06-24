@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
+import 'leaflet/dist/leaflet.css';
 import { useThemeStore, useAuthStore } from './store';
 
 import InstallPrompt from './components/common/InstallPrompt';
@@ -180,6 +181,26 @@ const ReconciliationDetail   = lazy(() => import('./pages/admin/finance/Reconcil
 const DataEnginePage         = lazy(() => import('./pages/admin/ai-analytics/DataEnginePage'));
 const LogExportPage          = lazy(() => import('./pages/admin/LogExportPage'));
 
+// ── Admin Delivery ────────────────────────────────────────────────────────────
+const DeliveryOverviewPage    = lazy(() => import('./pages/admin/delivery/DeliveryOverviewPage'));
+const ManifestsPage           = lazy(() => import('./pages/admin/delivery/ManifestsPage'));
+const ManifestDetailPage      = lazy(() => import('./pages/admin/delivery/ManifestDetailPage'));
+const CreateManifestPage      = lazy(() => import('./pages/admin/delivery/CreateManifestPage'))
+const ManifestTransferPage    = lazy(() => import('./pages/admin/delivery/ManifestTransferPage'));
+const ManifestRoutePage       = lazy(() => import('./pages/admin/delivery/ManifestRoutePage'));
+const DriversPage             = lazy(() => import('./pages/admin/delivery/DriversPage'));
+const DriverDetailPage        = lazy(() => import('./pages/admin/delivery/DriverDetailPage'));
+const IncidentsPage           = lazy(() => import('./pages/admin/delivery/IncidentsPage'));
+const RatingsPage             = lazy(() => import('./pages/admin/delivery/RatingsPage'));
+const DeliveryReportsPage     = lazy(() => import('./pages/admin/delivery/DeliveryReportsPage'));
+
+// ── Driver Pages ──────────────────────────────────────────────────────────────
+const DriverManifestsPage      = lazy(() => import('./pages/admin/driver/DriverManifestsPage'));
+const DriverManifestDetailPage = lazy(() => import('./pages/admin/driver/DriverManifestDetailPage'));
+const DriverRatingsPage        = lazy(() => import('./pages/admin/driver/DriverRatingsPage'));
+const DriverIncidentsPage      = lazy(() => import('./pages/admin/driver/DriverIncidentsPage'));
+const DeliveryInsightsPage     = lazy(() => import('./pages/admin/delivery/DeliveryInsightsPage'));
+
 const AdminBugReportsPage = lazy(() => import('./pages/admin/AdminBugReportsPage'));
 const AdminDevNotesPage   = lazy(() => import('./pages/admin/AdminDevNotesPage'));
 const AdminDevKeysPage    = lazy(() => import('./pages/admin/AdminDevKeysPage'));
@@ -191,6 +212,9 @@ const AdminBookingDetail   = lazy(() => import('./pages/admin/AdminBookingDetail
 const AdminBookingForm     = lazy(() => import('./pages/admin/AdminBookingForm'));
 const AdminWorksheetForm   = lazy(() => import('./pages/admin/AdminWorksheetForm'));
 const BookingSettings      = lazy(() => import('./pages/admin/BookingSettings'));
+
+const CustomerShipmentTracking = lazy(() => import('./pages/customer/CustomerShipmentTracking'));
+const CustomerDeliveryHistory  = lazy(() => import('./pages/customer/CustomerDeliveryHistoryPage'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
 const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayout.jsx'))
@@ -257,7 +281,7 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
 
   // Admin routes (includes admin, super_admin, manager, finance, logistics, sales_rep)
   if (requireAdmin) {
-    const allowedRoles = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep'];
+    const allowedRoles = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep', 'driver'];
     if (!allowedRoles.includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
@@ -457,6 +481,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CustomerOrderDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders/:id/shipment"
+              element={
+                <ProtectedRoute>
+                  <CustomerShipmentTracking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/delivery-history"
+              element={
+                <ProtectedRoute>
+                  <CustomerDeliveryHistory />
                 </ProtectedRoute>
               }
             />
@@ -711,6 +751,168 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* ── Admin Delivery Routes ─────────────────────────────────────────── */}
+            {/* Overview */}
+            <Route
+              path="/admin/delivery"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DeliveryOverviewPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Manifests */}
+            <Route
+              path="/admin/delivery/manifests"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ManifestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/manifests/create"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <CreateManifestPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/manifests/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ManifestDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/manifests/transfer"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ManifestTransferPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/manifests/:id/route"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <ManifestRoutePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Drivers */}
+            <Route
+              path="/admin/delivery/drivers"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DriversPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/drivers/:id"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DriverDetailPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Incidents */}
+            <Route
+              path="/admin/delivery/incidents"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <IncidentsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Ratings */}
+            <Route
+              path="/admin/delivery/ratings"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <RatingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* AI Insights */}
+            <Route
+              path="/admin/delivery/insights"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DeliveryInsightsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/insights/:entityType"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DeliveryInsightsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/delivery/insights/:entityType/:entityId"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DeliveryInsightsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Reports */}
+            <Route
+              path="/admin/delivery/reports"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <DeliveryReportsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Driver Routes ─────────────────────────────────────────────────── */}
+
+            <Route
+              path="/driver/manifests"
+              element={
+                <ProtectedRoute>
+                  <DriverManifestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/manifests/:id"
+              element={
+                <ProtectedRoute>
+                  <DriverManifestDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/ratings"
+              element={
+                <ProtectedRoute>
+                  <DriverRatingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/incidents"
+              element={
+                <ProtectedRoute>
+                  <DriverIncidentsPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Admin Auction Routes */}
             <Route
               path="/admin/auctions"
               element={

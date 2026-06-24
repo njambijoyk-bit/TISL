@@ -444,8 +444,29 @@ class Employee extends Model
         parent::boot();
 
         static::creating(function ($employee) {
-            if (!$employee->employee_number) {
-                $employee->employee_number = self::generateEmployeeNumber();
+            // Only auto-generate if it hasn't been manually provided
+            if (empty($employee->employee_number)) {
+                $year = date('Y');
+                $prefix = "EMP-{$year}-";
+
+                // 1. Find the highest employee number for the current year
+                // We use withTrashed() so we don't reuse numbers from deleted employees
+                $lastEmployee = static::withTrashed()
+                    ->where('employee_number', 'LIKE', "{$prefix}%")
+                    ->orderBy('employee_number', 'desc') // String sorting works perfectly for EMP-2026-0001
+                    ->first();
+
+                $nextNumber = 1;
+                
+                // 2. If we found one, extract the numeric part and increment it
+                if ($lastEmployee) {
+                    // Grabs the last 4 characters (e.g., "0001" -> 1)
+                    $lastNumber = (int) substr($lastEmployee->employee_number, -4);
+                    $nextNumber = $lastNumber + 1;
+                }
+
+                // 3. Format it back to 4 digits (e.g., 1 -> 0001)
+                $employee->employee_number = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
             }
         });
     }

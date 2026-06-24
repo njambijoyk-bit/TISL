@@ -245,4 +245,53 @@ class CustomerSyncController extends Controller
             return response()->json(['success' => false]);
         }
     }
+
+    // Clears DB
+    public function clearCart(Request $request)
+    {
+        try {
+            $customerId = $this->customerId($request);
+            if (!$customerId) return response()->json(['success' => false, 'reason' => 'no_customer']);
+
+            DB::table('customer_carts')
+                ->where('customer_id', $customerId)
+                ->update(['items' => json_encode([]), 'updated_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (Throwable) {
+            return response()->json(['success' => false]);
+        }
+    }
+
+    public function clearWishlist(Request $request)
+    {
+        try {
+            $customerId = $this->customerId($request);
+            if (!$customerId) return response()->json(['success' => false, 'reason' => 'no_customer']);
+
+            DB::table('customer_wishlists')
+                ->where('customer_id', $customerId)
+                ->update(['ids' => json_encode([]), 'updated_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (Throwable) {
+            return response()->json(['success' => false]);
+        }
+    }
+
+    public function clearQuoteList(Request $request)
+    {
+        try {
+            $customerId = $this->customerId($request);
+            if (!$customerId) return response()->json(['success' => false, 'reason' => 'no_customer']);
+
+            DB::table('customer_quote_lists')
+                ->where('customer_id', $customerId)
+                ->update(['items' => json_encode([]), 'updated_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (Throwable) {
+            return response()->json(['success' => false]);
+        }
+    }
 }

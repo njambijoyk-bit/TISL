@@ -1838,6 +1838,9 @@ export default function CustomerOrderDetail() {
                       <p className="font-semibold text-gray-800 dark:text-gray-200">{safeFormat(order.estimated_delivery_date, 'MMMM d, yyyy')}</p>
                     </div>
                   )}
+                  <PurpleBtn onClick={() => navigate(`/orders/${id}/shipment`)}>
+                    <Truck size={14} /> Track Shipment
+                  </PurpleBtn>
                 </div>
               </Section>
             )}

@@ -17,7 +17,7 @@ class AiProviderKeyPolicy
     public function view(User $user): bool
     {
         return in_array($user->role, [
-            'super_admin', 'admin', 'manager', 'sales_rep'
+            'super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',
         ]);
     }
 }

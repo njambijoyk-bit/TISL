@@ -26,7 +26,12 @@ const useAuthStore = create(
 
       logout: () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('auth-storage');
         set({ user: null, customer: null, token: null, isAuthenticated: false });
+
+        import('../store/cartStore').then(m => m.default.getState().resetLocal());
+        import('../store/wishlistStore').then(m => m.default.getState().resetLocal());
+        import('../store/quoteListStore').then(m => m.default.getState().resetLocal());
       },
 
       updateUser: (user) => set({ user }),

@@ -193,27 +193,31 @@ export default function Register() {
             </div>
           )}
 
-          {/* OAuth */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-            <button type="button" onClick={() => handleOAuth('google')}
-              style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 150ms' }}
-              className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700">
-              <GoogleIcon /> Google
-            </button>
-            <button type="button" disabled title="Microsoft login coming soon"
-              style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: 0.5, position: 'relative' }}
-              className="text-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500">
-              <MicrosoftIcon /> Microsoft
-              <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Soon</span>
-            </button>
-          </div>
+          {/* OAuth — hidden when a referral code is present (referral = email sign-up only) */}
+          {!refCode && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                <button type="button" onClick={() => handleOAuth('google')}
+                  style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 150ms' }}
+                  className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700">
+                  <GoogleIcon /> Google
+                </button>
+                <button type="button" disabled title="Microsoft login coming soon"
+                  style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#f9fafb', cursor: 'not-allowed', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: 0.5, position: 'relative' }}
+                  className="text-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500">
+                  <MicrosoftIcon /> Microsoft
+                  <span style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.55rem', fontWeight: 800, background: '#e5e7eb', color: '#9ca3af', padding: '1px 5px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Soon</span>
+                </button>
+              </div>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-            <div style={{ flex: 1, height: 1 }} className="bg-gray-200 dark:bg-gray-600" />
-            <span style={{ fontSize: '0.72rem', fontWeight: 600 }} className="text-gray-400">Or register with email</span>
-            <div style={{ flex: 1, height: 1 }} className="bg-gray-200 dark:bg-gray-600" />
-          </div>
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                <div style={{ flex: 1, height: 1 }} className="bg-gray-200 dark:bg-gray-600" />
+                <span style={{ fontSize: '0.72rem', fontWeight: 600 }} className="text-gray-400">Or register with email</span>
+                <div style={{ flex: 1, height: 1 }} className="bg-gray-200 dark:bg-gray-600" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 

@@ -14,7 +14,7 @@ class ProjectPolicy
      */
     private function isStaff(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin', 'manager', 'sales_rep'], true);
+        return in_array($user->role, ['super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',], true);
     }
 
     /**

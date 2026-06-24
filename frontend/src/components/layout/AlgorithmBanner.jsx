@@ -49,26 +49,36 @@ export default function AlgorithmBanner() {
 
   // ── Segment reveal sound — fires once when segment first loads ────────────
   const segmentRevealed = useRef(false);
+
+  const headerRef = useRef(null);
+  const pillRef = useRef(null);
+  
   useEffect(() => {
     if (visible && profile.segment && profile.segment !== 'guest' && !segmentRevealed.current && !collapsed) {
       segmentRevealed.current = true;
-      audio.playSegmentReveal();
+      // Delay gives browser time after page load — won't fix autoplay policy
+      // but the real fix is: only play after a user has interacted
+      const t = setTimeout(() => audio.playSegmentReveal(), 1000);
+      return () => clearTimeout(t);
     }
   }, [visible, profile.segment, collapsed]);
 
   const getInitialTop = () => dragTop ?? (window.innerHeight / 2);
 
   const startDrag = useCallback((e) => {
+    const point = e.touches ? e.touches[0] : e;
     e.preventDefault();
     didDrag.current  = false;
     dragging.current = true;
-    dragStart.current = { my: e.clientY, top: getInitialTop() };
+    dragStart.current = { my: point.clientY, top: getInitialTop() };
     audio.playDragStart();
 
     const onMove = (e) => {
+      const p = e.touches ? e.touches[0] : e;
       if (!dragging.current) return;
-      const dy = e.clientY - dragStart.current.my;
-      if (Math.abs(dy) > 3) didDrag.current = true;
+      const dy = p.clientY - dragStart.current.my;
+      const threshold = e.touches ? 8 : 3;
+      if (Math.abs(dy) > threshold) didDrag.current = true;
       const next = Math.max(40, Math.min(window.innerHeight - 40, dragStart.current.top + dy));
       setDragTop(next);
     };
@@ -76,10 +86,29 @@ export default function AlgorithmBanner() {
       dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [dragTop, audio]);
+
+  useEffect(() => {
+    const pill = pillRef.current;
+    const header = headerRef.current;
+    if (pill) {
+      pill.addEventListener('touchstart', startDrag, { passive: false });
+    }
+    if (header) {
+      header.addEventListener('touchstart', startDrag, { passive: false });
+    }
+    return () => {
+      pill?.removeEventListener('touchstart', startDrag);
+      header?.removeEventListener('touchstart', startDrag);
+    };
+  }, [startDrag]);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 600);
@@ -99,7 +128,7 @@ export default function AlgorithmBanner() {
   };
 
   const role = user?.role;
-  const isCustomerFacing = isAuthenticated && !['admin', 'super_admin', 'staff', 'finance'].includes(role);
+  const isCustomerFacing = isAuthenticated && !['admin', 'super_admin', 'staff', 'finance', 'logistics', 'sales_rep', 'driver'].includes(role);
   if (!visible || !isCustomerFacing || profile.segment === 'guest') return null;
 
   const meta    = SEGMENT_META[profile.segment] ?? SEGMENT_META.loyal;
@@ -109,9 +138,15 @@ export default function AlgorithmBanner() {
   if (collapsed) {
     return (
       <button
+        ref={pillRef}
         onMouseDown={startDrag}
         onMouseEnter={audio.playHover}
         onClick={() => { if (!didDrag.current) handleExpand(); }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          if (!didDrag.current) handleExpand();
+          didDrag.current = false;
+        }}
         title="Your personalised insights"
         style={{
           position: 'fixed', left: 0,
@@ -174,6 +209,7 @@ export default function AlgorithmBanner() {
 
       {/* ── Header ── */}
       <div
+        ref={headerRef}
         onMouseDown={startDrag}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -205,6 +241,7 @@ export default function AlgorithmBanner() {
           onMouseDown={e => e.stopPropagation()}
           onMouseEnter={audio.playHover}
           onClick={handleCollapse}
+          onTouchEnd={(e) => { e.preventDefault(); handleCollapse(); }}
           title="Minimise"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',

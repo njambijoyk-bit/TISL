@@ -79,13 +79,29 @@ use App\Http\Controllers\Api\Careers\AdminApplicantController;
 use App\Http\Controllers\Api\CustomerCreditController;
 use App\Http\Controllers\Api\CustomerCreditCustomerController;
 
+use App\Http\Controllers\Api\DeliveryManifestController;
+use App\Http\Controllers\Api\DeliveryRouteController;
+use App\Http\Controllers\Api\DeliveryInsightController;
+use App\Http\Controllers\Api\DriverManifestController;
+use App\Http\Controllers\Api\OrderShipmentController;
+use App\Http\Controllers\Api\DeliveryIncidentController;
+use App\Http\Controllers\Api\DeliveryRatingController;
+use App\Http\Controllers\Api\DeliveryStatsController;
+
 //use App\Http\Controllers\Jobs\ScreenApplicationJob;
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
-
+Route::get('/ping', function () {
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Laravel is alive and routing correctly!',
+        'time' => now()->toDateTimeString(),
+        'env' => app()->environment(),
+    ]);
+});
 // ============================================
 // PUBLIC ROUTES (No Authentication Required)
 // ============================================
@@ -99,6 +115,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
 });
+
+Route::get('/bug-reports/search', [BugReportController::class, 'search']);
+Route::post('/bug-reports/screenshot', [BugReportController::class, 'uploadScreenshot']);
 
 Route::post('/search-events', [SearchEventController::class, 'store']);
 
@@ -294,6 +313,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('note', [CustomerSyncController::class, 'getNote']);
         Route::post('note/sync', [CustomerSyncController::class, 'syncNote']);
         Route::delete('note', [CustomerSyncController::class, 'clearNote']);
+
+        Route::delete('cart', [CustomerSyncController::class, 'clearCart']);
+        Route::delete('wishlist', [CustomerSyncController::class, 'clearWishlist']);
+        Route::delete('quote-list', [CustomerSyncController::class, 'clearQuoteList']);
         
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);
@@ -441,12 +464,65 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/invoices/{inv}',   [CustomerCreditCustomerController::class, 'showInvoice']);
             Route::get('/schedules',        [CustomerCreditCustomerController::class, 'schedules']);
         });
+
+        // ── DELIVERY — CUSTOMER ────────────────────────────────────────────────────
+        Route::prefix('delivery')->group(function () {
+            // Track shipment for their order
+            Route::get('/orders/{orderId}/shipment', [OrderShipmentController::class, 'showForOrder']);
+            Route::get('/orders/{orderId}/pings',    [OrderShipmentController::class, 'getLivePings']);
+            Route::get('/orders/{orderId}/driver-rating', [DeliveryRatingController::class, 'driverRatingForOrder']);
+            Route::get('/orders/{orderId}/tracking', [DeliveryRouteController::class, 'getCustomerTracking']);
+
+            // Rate a delivery after it's completed
+            Route::post('/ratings', [DeliveryRatingController::class, 'store']);
+
+            // File an incident (e.g. rude driver)
+            Route::post('/incidents', [DeliveryIncidentController::class, 'store']);
+
+            // View their own ratings & incidents history
+            Route::get('/my-ratings', [DeliveryRatingController::class, 'myRatings']);
+            Route::get('/my-incidents', [DeliveryIncidentController::class, 'myIncidentsCustomer']);
+        });
+    });
+
+    // ============================================
+    // DRIVER ROUTES
+    // ============================================
+    Route::middleware('role:driver')->prefix('driver')->group(function () {
+
+        // Manifests assigned to this driver
+        Route::prefix('manifests')->group(function () {
+            Route::get('/',           [DriverManifestController::class, 'index']);
+            Route::get('/{id}',       [DriverManifestController::class, 'show']);
+            Route::post('/{id}/start',[DriverManifestController::class, 'startTrip']);
+            Route::get('/{id}/route', [DeliveryRouteController::class, 'getDriverRoute']);
+            Route::get('/{id}/pings', [DriverManifestController::class, 'myPings']);
+            Route::post('/{id}/route/optimize', [DeliveryRouteController::class, 'driverOptimizeRoute']);
+            Route::post('/{id}/route/reorder', [DeliveryRouteController::class, 'reorderStops']);
+            Route::post('/{id}/stops/{itemId}/skip', [DeliveryRouteController::class, 'skipStop']);
+        });
+        
+        Route::post('incidents', [DeliveryIncidentController::class, 'storeDriverIncident']);
+
+        // GPS ping — throttled: 240/min ceiling (1 per 15s normal cadence)
+        Route::post('/ping', [DriverManifestController::class, 'ping'])
+            ->middleware('throttle:240,1');
+
+        // Stop management
+        Route::post('/stops/{itemId}/update', [DriverManifestController::class, 'updateStop']);
+
+        // Driver's own ratings
+        Route::get('/ratings', [DriverManifestController::class, 'myRatings']);
+        Route::get('/my-rating-summary', [DeliveryRatingController::class, 'myRatingSummary']);
+
+        // Incidents filed against the driver that they're allowed to see
+        Route::get('/incidents', [DeliveryIncidentController::class, 'myIncidents']);
     });
 
     // ============================================
     // ADMIN/MANAGER/SALES REP ROUTES
     // ============================================
-    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
+    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep,driver')->prefix('admin')->group(function () {
         // Dashboard
         // Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
@@ -1137,7 +1213,88 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // LOGISTICS ROUTES
     // ============================================
-    Route::middleware('role:logistics,admin,super_admin')->prefix('admin')->group(function () {
+    Route::middleware('role:logistics,manager,admin,super_admin')->prefix('admin')->group(function () {
+
+        // ── DELIVERY — ADMIN ──────────────────────────────────────────────────────
+        Route::prefix('delivery')->group(function () {
+
+            Route::get('/drivers',                           [DeliveryManifestController::class, 'activeDrivers']);
+            Route::post('/drivers/check-safety',             [DeliveryManifestController::class, 'checkDriverSafety']);
+            
+            Route::post('/orders/eligibility', [DeliveryManifestController::class, 'checkOrderEligibility']);
+            
+            // Manifests CRUD
+            Route::prefix('manifests')->group(function () {
+                Route::get('/',                              [DeliveryManifestController::class, 'index']);
+                Route::get('/statistics',                    [DeliveryManifestController::class, 'statistics']);
+                Route::post('/',                             [DeliveryManifestController::class, 'store']);
+                Route::post('/transfer-items',               [DeliveryManifestController::class, 'transferItems']);
+                // NEW: Hard delete manifest if empty (must be before {id} catch-all)
+                Route::delete('/{id}/force',                 [DeliveryManifestController::class, 'deleteIfEmpty']);                
+                Route::get('/{id}',                          [DeliveryManifestController::class, 'show']);
+                Route::patch('/{id}',                        [DeliveryManifestController::class, 'update']);
+                Route::delete('/{id}',                       [DeliveryManifestController::class, 'destroy']);
+                Route::get('/{id}/pings',                    [DeliveryManifestController::class, 'getLivePings']);
+
+                // Route planning (admin)
+                Route::get('/{id}/route', [DeliveryRouteController::class, 'getRoutePlan']);
+                Route::post('/{id}/route', [DeliveryRouteController::class, 'saveRoutePlan']);
+                Route::post('/{id}/route/optimize', [DeliveryRouteController::class, 'optimizeRoute']);
+
+                // Lifecycle
+                Route::post('/{id}/dispatch',                [DeliveryManifestController::class, 'dispatchManifest']);
+                Route::post('/{id}/cancel',                  [DeliveryManifestController::class, 'cancel']);
+                Route::post('/{id}/reassign-driver',         [DeliveryManifestController::class, 'reassignDriver']);
+
+                // Items
+                Route::post('/{id}/items',                   [DeliveryManifestController::class, 'addItems']);
+                Route::delete('/{id}/items/{itemId}',        [DeliveryManifestController::class, 'removeItem']);
+                
+                Route::get('/{id}/participants',             [DeliveryIncidentController::class, 'manifestParticipants']);
+
+                // AI manifest generation
+                Route::post('/ai-generate',                  [DeliveryManifestController::class, 'aiGenerate']);
+
+                // Print / export
+                Route::get('/{id}/print',                    [DeliveryManifestController::class, 'printData']);
+            });
+        
+            Route::prefix('insights')->group(function () {
+                Route::get('/{entityType}', [DeliveryInsightController::class, 'history']); // fleet-wide, no entityId
+                Route::get('/{entityType}/{entityId}', [DeliveryInsightController::class, 'history']);
+                Route::get('/{entityType}/{entityId}/latest', [DeliveryInsightController::class, 'latest']);
+            });
+
+            // Shipments (all 3 workflows)
+            Route::prefix('shipments')->group(function () {
+                Route::post('/',      [OrderShipmentController::class, 'store']);
+                Route::patch('/{id}', [OrderShipmentController::class, 'update']);
+            });
+
+            // Incidents — admin full access
+            Route::prefix('incidents')->group(function () {
+                Route::get('/',       [DeliveryIncidentController::class, 'index']);
+                Route::post('/',      [DeliveryIncidentController::class, 'store']);
+                Route::patch('/{id}', [DeliveryIncidentController::class, 'update']);
+                Route::post('/admin-report', [DeliveryIncidentController::class, 'storeAdminIncident']);
+            });
+
+            // Ratings — admin view + controls
+            Route::prefix('ratings')->group(function () {
+                Route::get('/drivers/{driverId}',           [DeliveryRatingController::class, 'driverRatings']);
+                Route::post('/drivers/{driverId}/adjust',   [DeliveryRatingController::class, 'adjust']);
+                Route::patch('/{ratingId}/visibility',      [DeliveryRatingController::class, 'toggleVisibility']);
+                Route::get('/fleet-kpis', [DeliveryRatingController::class, 'fleetRatingKpis']);
+            });
+
+            // Stats & performance
+            Route::prefix('stats')->group(function () {
+                Route::get('/overview',              [DeliveryStatsController::class, 'overview']);
+                Route::get('/drivers',               [DeliveryStatsController::class, 'driverPerformance']);
+                Route::get('/drivers/{driverId}',    [DeliveryStatsController::class, 'driverDetail']);
+                Route::get('/manifests/{id}/trail',  [DeliveryStatsController::class, 'locationTrail']);
+            });
+        });
 
         // Projects — policy-gated, same as admin
         Route::prefix('projects')->group(function () {

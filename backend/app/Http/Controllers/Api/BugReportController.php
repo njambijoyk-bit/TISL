@@ -73,6 +73,7 @@ class BugReportController extends Controller
             'status'        => $report->status,
             'priority'      => $report->priority,
             'created_at'    => $report->created_at,
+            'screenshot_url' => $report->screenshot_url,
             'history'       => $report->statusHistory->map(fn($h) => [
                 'from'       => $h->from_status,
                 'to'         => $h->to_status,
@@ -436,6 +437,51 @@ class BugReportController extends Controller
     {
         DevNote::findOrFail($id)->delete();
         return response()->json(['message' => 'Dev note deleted.']);
+    }
+
+    /**
+     * GET /api/bug-reports/search
+     * Public lightweight search — for dropdowns (e.g. DevNoteForm bug picker).
+     * No auth required.
+     */
+    public function search(Request $request)
+    {
+        $query = BugReport::query();
+
+        if ($request->filled('search')) {
+            $q = $request->search;
+            $query->where(fn($sq) => $sq
+                ->where('title', 'like', "%{$q}%")
+                ->orWhere('report_number', 'like', "%{$q}%")
+                ->orWhere('guest_email', 'like', "%{$q}%")
+            );
+        }
+
+        $query->orderByDesc('created_at');
+
+        return response()->json(
+            $query->paginate($request->integer('per_page', 15))
+        );
+    }
+
+    /**
+     * POST /api/bug-reports/screenshot
+     * Public — upload a screenshot for a bug report.
+     * Stores to storage/app/public/bugs/ and returns the public URL.
+     */
+    public function uploadScreenshot(Request $request)
+    {
+        $request->validate([
+            'screenshot' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+        ]);
+
+        $file     = $request->file('screenshot');
+        $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $file->storeAs('bugs', $filename, 'public');
+
+        return response()->json([
+            'url' => asset('storage/bugs/' . $filename),
+        ], 201);
     }
 
     // ================================================================

@@ -18,7 +18,9 @@
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
     "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.8",
     "jwt-decode": "^4.0.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.540.0",
     "mermaid": "^11.15.0",
     "react": "^19.1.0",
@@ -28,8 +30,9 @@
     "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
     "react-image-gallery": "^1.4.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.6.3",
-    "recharts": "^3.6.0",
+    "recharts": "^3.8.1",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

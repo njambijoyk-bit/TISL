@@ -3,7 +3,7 @@ import { useLayoutAudio } from './useLayoutAudio';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Heart, User, Sun, Moon, Menu, X, ChevronDown, ChevronRight,
-  Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, 
+  Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
   Bug, Volume2, VolumeX,
@@ -230,7 +230,8 @@ export default function Header() {
                   user?.role === 'manager' || 
                   user?.role === 'finance' || 
                   user?.role === 'logistics' ||
-                  user?.role === 'sales_rep';
+                  user?.role === 'sales_rep' ||
+                  user?.role === 'driver';  
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
   const wishlistCount = wishlistItems?.length ?? 0;
   const quoteListCount = quoteListItems?.length ?? 0;
@@ -238,13 +239,17 @@ export default function Header() {
 
   useEffect(() => {
     Promise.all([
-      categoriesAPI.getCategories().catch(() => []),
-      brandsAPI.getBrands().catch(() => []),
-      serviceCategoriesAPI.getMainCategories().catch(() => []),  // ← fix
+      categoriesAPI.getCategories().catch(() => ({ data: [] })),
+      brandsAPI.getBrands().catch(() => ({ data: [] })),
+      serviceCategoriesAPI.getMainCategories().catch(() => ({ data: [] })),
     ]).then(([catRes, brandRes, svcCatRes]) => {
-      setProductCategories(catRes?.data ?? catRes ?? []);
-      setBrands((brandRes?.data ?? brandRes ?? []).slice(0, 12));
-      setServiceCategories(svcCatRes?.data ?? svcCatRes ?? []);
+      const cats  = catRes?.data ?? catRes;
+      const brnds = brandRes?.data ?? brandRes;
+      const svcs  = svcCatRes?.data ?? svcCatRes;
+
+      setProductCategories(Array.isArray(cats)  ? cats         : []);
+      setBrands(           Array.isArray(brnds) ? brnds.slice(0, 12) : []);
+      setServiceCategories(Array.isArray(svcs)  ? svcs         : []);
     });
   }, []);
 
@@ -353,7 +358,7 @@ export default function Header() {
     { label: 'My Hampers',        icon: Package,       to: '/hampers' },
     { label: 'Auctions',          icon: Zap,           to: '/auctions' },
     { label: 'Wishlist',          icon: Heart,         to: '/wishlist' },
-    { label: 'Report bug',        icon: Bug,           to: '/report-bug'},
+    { label: 'Report a Bug',        icon: Bug,           to: '/report-bug'},
   ];
 
   return (
@@ -387,6 +392,10 @@ export default function Header() {
         }
         @media (min-width: 900px) {
           .show-mobile { display: none !important; }
+        }
+        .show-account-mobile { display: none !important; }
+        @media (min-width: 480px) {
+          .show-account-mobile { display: block !important; }
         }
         .site-header {
           background: linear-gradient(135deg,
@@ -604,9 +613,16 @@ export default function Header() {
               {cartCount > 0 && <Badge count={cartCount} />}
             </Link>
 
+            {/* Mobile menu toggle */}
+            <button type="button" onClick={() => { setMobileOpen(o => !o); audio.playMenuToggle(); }}
+              style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
+              className="show-mobile dark:text-gray-200">
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
             {/* User menu */}
             {isAuthenticated ? (
-              <div style={{ position: 'relative' }} ref={userMenuRef}>
+              <div className="show-account-mobile" style={{ position: 'relative' }} ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => { setUserMenuOpen(o => !o); audio.playFlyoutOpen(); }}
@@ -726,21 +742,26 @@ export default function Header() {
               </div>
             ) : (
               <div style={{ display: 'flex', gap: 6 }}>
-                <Link to="/login" style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }} className="dark:text-gray-200 dark:border-gray-600 dark:bg-gray-800">
+                {/* Sign In - icon only on mobile */}
+                <Link to="/login"
+                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', background: 'white', transition: 'all 150ms' }}
+                  className="dark:text-gray-200 dark:border-gray-600 dark:bg-gray-800 hidden-mobile">
                   Sign In
                 </Link>
-                <Link to="/register" style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
+                <Link to="/register"
+                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}
+                  className="hidden-mobile">
                   Register
+                </Link>
+
+                {/* Sign In icon - mobile only */}
+                <Link to="/login"
+                  style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', color: '#a855f7', textDecoration: 'none', border: '1.5px solid transparent', background: 'transparent' }}
+                  className="show-mobile">
+                  <LogInIcon size={18} />
                 </Link>
               </div>
             )}
-
-            {/* Mobile menu toggle */}
-            <button type="button" onClick={() => { setMobileOpen(o => !o); audio.playMenuToggle(); }}
-              style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}
-              className="show-mobile dark:text-gray-200">
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
         </div>
 

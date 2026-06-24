@@ -9,7 +9,7 @@ import useFinancialJournalStore from '../../store/useFinancialJournalStore';
 import { useFloatingWidgetAudio } from '../../hooks/useFloatingWidgetAudio';
 import toast from 'react-hot-toast';
 
-const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep'];
+const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep', 'logistics', 'driver'];
 
 const NOTE_TYPES = [
   { value: 'refund',             label: 'Refund' },
@@ -163,43 +163,57 @@ function FloatingMemoModalInner() {
     return () => document.removeEventListener('visibilitychange', onHide);
   }, [syncDraft]);
 
-  // ── collapsed bubble drag — vertical only, pinned to right edge ─
-  const onBubbleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    didDrag.current  = false;
-    dragging.current = true;
-    dragStart.current = { mx: e.clientX, my: e.clientY, top: pos.top, right: 0 };
-    audio.playDragStart();
+  // ── refs ───────────────────────────────────────────────────────
+  const bubbleRef = useRef(null);
+  const headerRef = useRef(null);
 
-    const onMove = (mv) => {
-      if (!dragging.current) return;
-      const dy = mv.clientY - dragStart.current.my;
-      if (Math.abs(dy) > 3) didDrag.current = true;
-      setPos({
-        top:   Math.max(8, Math.min(window.innerHeight - 120, dragStart.current.top + dy)),
-        right: 0,
-      });
-    };
+  // ── collapsed bubble drag — vertical only, pinned to right edge ─
+    const onBubbleMouseDown = useCallback((e) => {
+      const point = e.touches ? e.touches[0] : e;  // 👈
+      if (e.cancelable) e.preventDefault();  // 👈 replace e.preventDefault();
+      didDrag.current  = false;
+      dragging.current = true;
+      dragStart.current = { mx: point.clientX, my: point.clientY, top: pos.top, right: 0 };  // 👈
+      audio.playDragStart();
+
+      const onMove = (mv) => {
+        const p = mv.touches ? mv.touches[0] : mv;  // 👈
+        if (!dragging.current) return;
+        const dy = p.clientY - dragStart.current.my;  // 👈
+        const threshold = mv.touches ? 8 : 3;          // 👈
+        if (Math.abs(dy) > threshold) didDrag.current = true;
+        setPos({
+          top:   Math.max(8, Math.min(window.innerHeight - 120, dragStart.current.top + dy)),
+          right: 0,
+        });
+      };
     const onUp = () => {
       dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);   // 👈
+      window.removeEventListener('touchend', onUp);      // 👈
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });  // 👈
+    window.addEventListener('touchend', onUp);                          // 👈
   }, [pos, audio]);
+
 
   // ── expanded modal drag — free movement ────────────────────────
   const onHeaderMouseDown = useCallback((e) => {
-    e.preventDefault();
+    const point = e.touches ? e.touches[0] : e;
+    if (e.cancelable) e.preventDefault();  // 👈 replace e.preventDefault();
     dragging.current  = true;
-    dragStart.current = { mx: e.clientX, my: e.clientY, top: pos.top, right: pos.right };
+    dragStart.current = { mx: point.clientX, my: point.clientY, top: pos.top, right: pos.right };
     audio.playDragStart();
 
     const onMove = (mv) => {
+      const p = mv.touches ? mv.touches[0] : mv;
       if (!dragging.current) return;
-      const dx = mv.clientX - dragStart.current.mx;
-      const dy = mv.clientY - dragStart.current.my;
+      const dx = p.clientX - dragStart.current.mx;
+      const dy = p.clientY - dragStart.current.my;
       setPos({
         top:   Math.max(8, dragStart.current.top  + dy),
         right: Math.max(8, dragStart.current.right - dx),
@@ -209,10 +223,25 @@ function FloatingMemoModalInner() {
       dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [pos, audio]);
+
+  useEffect(() => {
+    const bubble = bubbleRef.current;
+    const header = headerRef.current;
+    bubble?.addEventListener('touchstart', onBubbleMouseDown, { passive: false });
+    header?.addEventListener('touchstart', onHeaderMouseDown, { passive: false });
+    return () => {
+      bubble?.removeEventListener('touchstart', onBubbleMouseDown);
+      header?.removeEventListener('touchstart', onHeaderMouseDown);
+    };
+  }, [onBubbleMouseDown, onHeaderMouseDown]);
 
   // ── when opening modal, offset from right edge so it's visible ─
   const handleOpen = () => {
@@ -279,8 +308,15 @@ function FloatingMemoModalInner() {
           }
         `}</style>
         <button
+          ref={bubbleRef}  
           onMouseDown={onBubbleMouseDown}
           onClick={handleOpen}
+          // collapsed button onTouchEnd
+          onTouchEnd={(e) => {
+            if (e.cancelable) e.preventDefault();  // 👈
+            if (!didDrag.current) handleOpen();
+            didDrag.current = false;
+          }}
           onMouseEnter={audio.playHover}
           style={{
             position: 'fixed',
@@ -362,7 +398,8 @@ function FloatingMemoModalInner() {
         top: pos.top,
         right: pos.right,
         zIndex: 9999,
-        width: '420px',
+        width: 'min(420px, calc(100vw - 16px))',
+        maxHeight: 'calc(100dvh - 48px)', 
         background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)',
         border: '1px solid rgba(168,85,247,0.4)',
         borderRadius: '16px',
@@ -372,11 +409,11 @@ function FloatingMemoModalInner() {
         animation: 'memoPop 250ms cubic-bezier(0.34,1.56,0.64,1)',
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 'calc(100vh - 48px)',
       }}>
 
         {/* ── Draggable header ── */}
         <div
+          ref={headerRef} 
           onMouseDown={onHeaderMouseDown}
           style={{
             display: 'flex',
@@ -412,22 +449,36 @@ function FloatingMemoModalInner() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '4px' }} onMouseDown={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', gap: '4px' }} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
             <button
               style={S.iconBtn}
               onClick={handleResetDraft}
               onMouseEnter={audio.playHover}
               title="Clear draft"
             >↺</button>
+
             <button
               style={S.iconBtn}
+              onMouseDown={e => e.stopPropagation()}
+              onTouchStart={e => e.stopPropagation()}
               onClick={handleMinimise}
+              onTouchEnd={(e) => {
+                if (e.cancelable) e.preventDefault();
+                handleMinimise();
+              }}
               onMouseEnter={audio.playHover}
               title="Minimise"
             >─</button>
+
             <button
               style={S.iconBtn}
+              onMouseDown={e => e.stopPropagation()}
+              onTouchStart={e => e.stopPropagation()}
               onClick={handleClose}
+              onTouchEnd={(e) => {
+                if (e.cancelable) e.preventDefault();
+                handleClose();
+              }}
               onMouseEnter={audio.playHover}
               title="Close"
             >✕</button>

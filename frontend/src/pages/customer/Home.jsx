@@ -74,6 +74,12 @@ const PULSE_CSS = `
     50%       { opacity: 0.4; box-shadow: 0 0 26px rgba(168,85,247,0.30); }
   }
 `;
+const ANIM_CSS = `
+  @keyframes pill-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  }
+`;
 
 function Skeleton({ h = 60, r = 12, w = '100%', delay = 0, style = {} }) {
   return (
@@ -148,11 +154,23 @@ export default function Home() {
   const [brands, setBrands]                     = useState([]);
   const [dataLoading, setDataLoading]           = useState(true);
 
+  const [catPage, setCatPage] = useState(0);
+
   useEffect(() => {
     fetchPublicPage('homepage');
     fetchHomeData();
     return () => clearPublicPage();
   }, []);
+
+  
+  useEffect(() => {
+    if (categories.length <= 10) return;
+    const id = setInterval(() => {
+      setCatPage(p => (p + 1) % Math.ceil(categories.slice(0, 24).length / 5));
+    }, 3000);
+    return () => clearInterval(id);
+  }, [categories]);
+
 
   const fetchHomeData = async () => {
     try {
@@ -227,55 +245,101 @@ export default function Home() {
       ))}
 
       {/* ── Shop by Category ── */}
-      {categories.length > 0 && (
-        <Section>
-          <SectionTitle eyebrow="Browse" title="Shop by Category" cta="All Products" ctaPath="/products" />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {categories.slice(0, 24).map(category => (
-              <button
-                key={category.id}
-                onClick={() => navigate(`/products?category=${category.id}`)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: category.parent_id ? '5px 13px' : '7px 16px',
-                  border: '1px solid rgba(168,85,247,0.22)',
-                  boxShadow: '0 0 8px rgba(168,85,247,0.07)',
-                  borderRadius: 999, cursor: 'pointer', color: '#d9b3ff',
-                  fontSize: category.parent_id ? '0.76rem' : '0.82rem',
-                  fontWeight: category.parent_id ? 500 : 600,
-                  whiteSpace: 'nowrap', background: 'transparent',
-                  transition: 'all 150ms ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = '#a855f7';
-                  e.currentTarget.style.color = '#a855f7';
-                  e.currentTarget.style.boxShadow = '0 0 18px rgba(168,85,247,0.28)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)';
-                  e.currentTarget.style.color = '';
-                  e.currentTarget.style.boxShadow = '0 0 8px rgba(168,85,247,0.07)';
-                  e.currentTarget.style.transform = 'none';
-                }}
-              >
-                {category.image_url ? (
-                  <img src={category.image_url} alt={category.name}
-                    style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                    onError={e => { e.target.style.display = 'none'; }}
-                  />
-                ) : (
-                  <Package size={12} style={{ flexShrink: 0, color: '#c084fc' }} />
-                )}
-                {category.name}
-                {category.parent_id && (
-                  <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 400 }}>sub</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </Section>
-      )}
+      {categories.length > 0 && (() => {
+        const COLORS = [
+  { color: '#7c3aed', glow: 'rgba(124,58,237,0.25)' }, // deep violet
+  { color: '#0891b2', glow: 'rgba(8,145,178,0.22)'  }, // deep cyan
+  { color: '#c026d3', glow: 'rgba(192,38,211,0.22)' }, // deep fuchsia
+  { color: '#059669', glow: 'rgba(5,150,105,0.22)'  }, // deep emerald
+  { color: '#d97706', glow: 'rgba(217,119,6,0.22)'  }, // deep amber
+];
+        const sliced   = categories.slice(0, 24);
+        const perPage  = 10;
+        const start    = catPage * perPage;
+        const visible  = sliced.slice(start, start + perPage);
+
+        return (
+          <Section>
+            <style>{`
+              @keyframes pill-in {
+                from { opacity: 0; transform: translateY(8px) scale(0.95); }
+                to   { opacity: 1; transform: translateY(0)   scale(1); }
+              }
+              @keyframes pill-out {
+                from { opacity: 1; transform: translateY(0)   scale(1); }
+                to   { opacity: 0; transform: translateY(-6px) scale(0.95); }
+              }
+            `}</style>
+
+            <SectionTitle eyebrow="Browse" title="Shop by Category" cta="All Products" ctaPath="/products" />
+
+            {/* page dots */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+              {Array.from({ length: Math.ceil(sliced.length / perPage) }).map((_, di) => (
+                <button
+                  key={di}
+                  onClick={() => setCatPage(di)}
+                  style={{
+                    width: di === catPage ? 20 : 6,
+                    height: 6, borderRadius: 99, border: 'none', padding: 0,
+                    background: di === catPage ? '#a855f7' : 'rgba(168,85,247,0.25)',
+                    cursor: 'pointer',
+                    transition: 'all 400ms ease',
+                  }}
+                />
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 48 }}>
+              {visible.map((category, i) => {
+                const { color, glow } = COLORS[i % COLORS.length];
+                return (
+                  <button
+                    key={`${catPage}-${category.id}`}
+                    onClick={() => navigate(`/products?category=${category.id}`)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      padding: category.parent_id ? '5px 13px' : '7px 16px',
+                      border: `1px solid ${color}55`,
+                      boxShadow: `0 0 10px ${glow}`,
+                      borderRadius: 999, cursor: 'pointer', color,
+                      fontSize: category.parent_id ? '0.76rem' : '0.82rem',
+                      fontWeight: category.parent_id ? 500 : 600,
+                      whiteSpace: 'nowrap', background: 'transparent',
+                      animation: `pill-in 0.35s ease both`,
+                      animationDelay: `${i * 60}ms`,
+                      transition: 'transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.boxShadow = `0 0 22px ${glow}`;
+                      e.currentTarget.style.borderColor = color;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.boxShadow = `0 0 10px ${glow}`;
+                      e.currentTarget.style.borderColor = `${color}55`;
+                      e.currentTarget.style.transform = 'none';
+                    }}
+                  >
+                    {category.image_url ? (
+                      <img src={category.image_url} alt={category.name}
+                        style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <Package size={12} style={{ flexShrink: 0, color }} />
+                    )}
+                    {category.name}
+                    {category.parent_id && (
+                      <span style={{ fontSize: '0.6rem', opacity: 0.6, fontWeight: 400 }}>sub</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* ── Featured Products ── */}
       {featuredProducts.length > 0 && (

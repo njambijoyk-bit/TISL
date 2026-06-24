@@ -21,7 +21,7 @@ class PaymentPolicy
     public function viewAny(User $user): bool
     {
         return in_array($user->role, [
-            'super_admin', 'admin', 'manager', 'finance', 'sales_rep', 'logistics'
+            'super_admin', 'admin', 'manager', 'finance', 'sales_rep', 'logistics', 'driver'
         ]);
     }
 

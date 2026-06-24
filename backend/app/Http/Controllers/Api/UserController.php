@@ -117,11 +117,11 @@ class UserController extends Controller
             'locked'               => (clone $base)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
             'unverified'           => (clone $base)->whereNull('email_verified_at')->count(),
             'by_role'              => (clone $base)->selectRaw('role, COUNT(*) as count')->groupBy('role')->pluck('count', 'role'),
-            'by_department'        => (clone $base)->whereIn('role', ['admin','manager','sales_rep','finance','logistics'])
+            'by_department'        => (clone $base)->whereIn('role', ['admin','manager','sales_rep','finance','logistics','driver'])
                                         ->whereNotNull('department')
                                         ->selectRaw('department, COUNT(*) as count')
                                         ->groupBy('department')->pluck('count', 'department'),
-            'staff_without_employee_record' => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded
+            'staff_without_employee_record' => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded
                                         ->whereDoesntHave('employee')->count(),
         ]);
     }
@@ -335,8 +335,8 @@ class UserController extends Controller
      */
     private function handleRoleTransition(User $user, string $oldRole, string $newRole, User $actor, Request $request): void
     {
-        $wasStaff    = in_array($oldRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics']);
-        $isStaff     = in_array($newRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics']);
+        $wasStaff    = in_array($oldRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']);
+        $isStaff     = in_array($newRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']);
         $wasCustomer = $oldRole === 'customer';
         $isCustomer  = $newRole === 'customer';
         $wasVendor   = $oldRole === 'vendor';
@@ -633,7 +633,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $departments = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded to include new staff roles
+        $departments = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded to include new staff roles
             ->whereNotNull('department')
             ->distinct()
             ->pluck('department');
@@ -645,7 +645,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics']) // ← expanded to include new staff roles
+        $users = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded to include new staff roles
             ->whereDoesntHave('employee')
             ->get(['id', 'name', 'email', 'role', 'department', 'employee_id']);
 

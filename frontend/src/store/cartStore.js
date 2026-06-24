@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import useAuthStore from './authStore';
 import api from '../api/axios';
 import { searchEvents } from '../services/searchEventService';
 
@@ -7,13 +8,12 @@ const DEBOUNCE_MS = 1500;
 let cartSyncTimer = null;
 
 const syncCartToServer = (items) => {
+  if (!useAuthStore.getState().isAuthenticated) return; // guests don't sync
   clearTimeout(cartSyncTimer);
   cartSyncTimer = setTimeout(async () => {
     try {
       await api.post('/customer/cart/sync', { items });
-    } catch {
-      // silent — localStorage is source of truth
-    }
+    } catch {}
   }, DEBOUNCE_MS);
 };
 
@@ -49,8 +49,11 @@ const useCartStore = create(
       },
 
       clearCart: () => {
+        clearTimeout(cartSyncTimer);
         set({ items: [] });
-        syncCartToServer([]);
+        if (useAuthStore.getState().isAuthenticated) {
+          api.delete('/customer/cart').catch(() => {});
+        }
       },
 
       // ── Getters ────────────────────────────────────────────────────────
@@ -65,27 +68,24 @@ const useCartStore = create(
         try {
           const { data } = await api.get('/customer/cart');
           const serverItems = data.items ?? [];
-          if (!serverItems.length) return;
 
           const localItems = get().items;
-
-          // merge: for conflicts add quantities together
-          const merged = [...localItems];
-          serverItems.forEach(serverItem => {
-            const idx = merged.findIndex(i => i.id === serverItem.id);
+          const merged = [...serverItems.map(i => ({ ...i }))];
+          localItems.forEach(localItem => {
+            const idx = merged.findIndex(i => i.id === localItem.id);
             if (idx !== -1) {
-              merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + serverItem.quantity };
+              merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + localItem.quantity };
             } else {
-              merged.push(serverItem);
+              merged.push(localItem);
             }
           });
 
           set({ items: merged });
-          syncCartToServer(merged);
-        } catch {
-          // silent — keep local
-        }
+          api.post('/customer/cart/sync', { items: merged }).catch(() => {});
+        } catch {}
       },
+
+      resetLocal: () => set({ items: [] }),
     }),
     { name: 'cart-storage' }
   )

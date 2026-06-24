@@ -39,13 +39,20 @@ const glass = (extra = {}) => ({
   WebkitBackdropFilter: 'blur(14px)',
   border: `1px solid ${BORDER}`,
   borderRadius: 14,
+  // Prevents backdrop-filter from turning grainy/noisy on mobile Safari/Chrome
+  transform: 'translateZ(0)',
+  WebkitTransform: 'translateZ(0)',
   ...extra,
 });
 
 const glowBtn = (color) => ({
-  background: `radial-gradient(ellipse at 50% 0%, ${color}25 0%, ${color}0a 100%)`,
+  // Linear gradients band significantly less than radial gradients on mobile displays
+  background: `linear-gradient(180deg, ${color}22 0%, ${color}0a 100%)`,
   border: `1px solid ${color}35`,
   boxShadow: `0 2px 12px ${color}18`,
+  // Force GPU hardware acceleration to prevent mobile compositing artifacts
+  transform: 'translateZ(0)',
+  WebkitTransform: 'translateZ(0)',
 });
 
 // ── Route catalogs ────────────────────────────────────────────────────────────
@@ -810,9 +817,16 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
             <code style={{ flex: 1, padding: '7px 11px', borderRadius: 8, background: 'rgba(168,85,247,0.12)', border: `1px dashed ${BORDER_P}`, fontFamily: 'monospace', fontWeight: 900, fontSize: '0.9rem', color: '#c4b5fd', letterSpacing: '0.06em' }}>
               {customer.referral_code.code}
             </code>
-            <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.code); toast.success('Copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Copy
-            </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.code); toast.success('Code copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Copy code
+              </button>
+              {customer.referral_code.share_url && (
+                <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.share_url); toast.success('Link copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Copy link
+                </button>
+              )}
+            </div>
           </div>
         </GlassCard>
       )}
@@ -850,21 +864,31 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
 function CustomerWalletTab({ wallet, navigate }) {
   const credit = wallet?.store_credit ?? 0;
   const points = wallet?.loyalty_points ?? 0;
-  const fmt    = n => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-
+  const fmt = n => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+  
   return (
     <div style={{ padding: '14px 14px 8px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
         {[
-          { label: 'Store Credit',   value: fmt(credit), color: '#10b981', icon: CreditCard },
+          { label: 'Store Credit', value: fmt(credit), color: '#10b981', icon: CreditCard },
           { label: 'Loyalty Points', value: points.toLocaleString(), color: PURPLE, icon: Star },
         ].map(({ label, value, color, icon: Icon }) => (
-          <div key={label} style={{ ...glowBtn(color), borderRadius: 13, padding: '14px 12px', textAlign: 'center' }}>
+          <div 
+            key={label} 
+            style={{ 
+              ...glowBtn(color), 
+              borderRadius: 13, 
+              padding: '14px 12px', 
+              textAlign: 'center',
+              // Add this line to prevent grainy rendering during tab transitions
+              willChange: 'transform', 
+            }} 
+          >
             <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}28`, boxShadow: `0 0 12px ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
               <Icon size={16} color={color} strokeWidth={2} />
             </div>
             <p style={{ margin: '0 0 2px', fontSize: '0.6rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color }}>{value}</p>
+            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: color }}>{value}</p>
           </div>
         ))}
       </div>

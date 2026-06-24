@@ -11,6 +11,14 @@ export default function WishlistItem({ item }) {
   const { addItem } = useCartStore();
 
   const hasPriceDiff = item.original_price && parseFloat(item.original_price) !== parseFloat(item.price);
+
+  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `${API_BASE}${path}`;
+  };
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
@@ -20,7 +28,7 @@ export default function WishlistItem({ item }) {
       {/* Product image */}
       {item.main_image && (
         <img
-          src={item.main_image} alt={item.name}
+          src={getImageUrl(item.main_image)} alt={item.name}
           style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', background: '#f3f4f6', flexShrink: 0 }}
         />
       )}

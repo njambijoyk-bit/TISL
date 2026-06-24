@@ -4,12 +4,13 @@ import {
   LayoutGrid, Users, Briefcase,
   FolderGit2Icon, LucideBadgeDollarSign,
   LucideBinary, KeyRound, Activity, Blocks, Bot,
-  BugIcon,
+  BugIcon, FileText, Star, AlertTriangle, Truck,
   FolderCodeIcon,
   FolderCog,
   BrainCircuit,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import useAuthStore from '../../../store/authStore';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
 
 const GROUPS = [
@@ -168,6 +169,15 @@ const GROUPS = [
   },
 ];
 
+const DELIVERY_DRIVER_GROUP = {
+  label: 'Delivery',
+  items: [
+    { name: 'My Manifests', icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', color: '#60a5fa', path: '/driver/manifests',  active: true },
+    { name: 'My Ratings',   icon: Star,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/driver/ratings',    active: true },
+    { name: 'My Incidents', icon: AlertTriangle, bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', color: '#fbbf24', path: '/driver/incidents',  active: true },
+  ],
+};
+
 // ── Reusable Setting Row ──────────────────────────────────────────────────
 const SettingRow = ({ item, onClick, isLast }) => {
   const Icon = item.icon;
@@ -271,6 +281,13 @@ const GroupCard = ({ group, onNavigate }) => (
 // ── Main Layout ───────────────────────────────────────────────────────────
 export default function GeneralLayout() {
   const navigate = useNavigate();
+  const userRole = useAuthStore(state => state.user?.role);
+  const isDriver = userRole === 'driver';
+
+  // drivers only see their delivery group; admins see everything
+  const groups = isDriver
+    ? [DELIVERY_DRIVER_GROUP]
+    : GROUPS;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -304,7 +321,7 @@ export default function GeneralLayout() {
 
             {/* Group cards */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-              {GROUPS.map(group => (
+              {groups.map(group => (
                 <GroupCard key={group.label} group={group} onNavigate={navigate} />
               ))}
             </div>

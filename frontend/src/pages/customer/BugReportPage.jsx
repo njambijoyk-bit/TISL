@@ -1,4 +1,5 @@
 import { Bug } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../../styles/bug.css';
 import Header from '../../components/layout/Header';
 import BugReportForm from '../../components/bugs/BugReportForm';
@@ -12,6 +13,7 @@ import MimiFooter from '../../components/bugs/MimiFooter';
  * Public standalone page. Works for guests, customers, and admins.
  */
 export default function BugReportPage() {
+  const navigate = useNavigate();
   // const { user } = useAuth();
   const user = null; // swap with real auth
 
@@ -27,7 +29,10 @@ export default function BugReportPage() {
               <div className="bug-icon-box bug-icon-box-md bug-icon-box-blue">
                 <Bug size={18} />
               </div>
-              <h1 className="bug-text-2xl bug-font-bold bug-text">Report a Bug</h1>
+              <h1 className="bug-text-2xl bug-font-bold bug-text" style ={{color: '#7c3aed'}}>Report a Bug</h1>
+              <button className="bug-btn" onClick={() => navigate('/track-bug')} style={{ marginLeft: '12px', bordercolor: '#7c3aed', color: '#7c3aed' }}>
+                Track a Bug
+              </button>
             </div>
             <p className="bug-text-sm bug-text-muted" style={{ paddingLeft: 2 }}>
               Found something broken? Let us know and we'll get it fixed.

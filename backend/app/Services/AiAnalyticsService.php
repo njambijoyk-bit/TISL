@@ -126,6 +126,13 @@ class AiAnalyticsService
             'auctions'  => $this->fetchAuctionsData($entityId),
             'quotes'    => $this->fetchQuotesData($entityId),
             'reconciliation' => $this->fetchReconciliationData($entityId, $extraData),
+
+            // ── Delivery module ──────────────────────────────────────────────
+            'delivery_manifest_generator' => $this->fetchManifestGeneratorData($entityId, $extraData),
+            'driver_performance'          => $this->fetchDriverPerformanceData($entityId),
+            'delivery_incident_analysis'  => $this->fetchDeliveryIncidentData($entityId),
+            'driver_assignment_safety'    => $this->fetchDriverSafetyData($entityId, $extraData),
+            'delivery_route_optimiser'    => $this->fetchRouteOptimiserData($entityId),
             default     => throw new \Exception("No data fetcher for module: {$moduleKey}"),
         };
 
@@ -870,6 +877,376 @@ class AiAnalyticsService
     }
 
     // ════════════════════════════════════════════════════════════════
+    // ── Delivery data fetchers ───────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * manifest_generator — called from aiGenerate() with order_ids + optional driver_id.
+     * extraData should contain: order_ids (array), driver_id (nullable)
+     */
+    private function fetchManifestGeneratorData(?int $entityId, array $extraData = []): array
+    {
+        $orderIds = $extraData['order_ids'] ?? [];
+        $driverId = $extraData['driver_id'] ?? null;
+
+        // Orders to be routed
+        $orders = [];
+        if (!empty($orderIds)) {
+            $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+            $orders = DB::select("
+                SELECT o.id, o.order_number,
+                    CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+                    c.phone AS customer_phone,
+                    o.shipping_address,
+                    o.total_kes
+                FROM orders o
+                LEFT JOIN customers c ON c.id = o.customer_id
+                WHERE o.id IN ({$placeholders})
+                AND o.deleted_at IS NULL
+            ", $orderIds);
+        }
+
+        // Available drivers (active, no critical open incidents)
+        $drivers = DB::select("
+            SELECT u.id, u.name, u.phone,
+                COUNT(DISTINCT dm.id)                                          AS manifests_last_30d,
+                ROUND(AVG(dr.rating), 2)                                      AS avg_rating,
+                COUNT(CASE WHEN di.severity = 'critical'
+                            AND di.status IN ('open','under_review') THEN 1 END) AS critical_incidents
+            FROM users u
+            LEFT JOIN delivery_manifests dm ON dm.driver_id = u.id
+                AND dm.created_at >= NOW() - INTERVAL 30 DAY
+            LEFT JOIN delivery_ratings dr ON dr.driver_id = u.id
+            LEFT JOIN delivery_incidents di ON di.reported_against = u.id
+            WHERE u.role = 'driver'
+            AND u.status = 'active'
+            AND u.deleted_at IS NULL
+            GROUP BY u.id
+            ORDER BY avg_rating DESC
+        ");
+
+        // Suggested driver context (if specific driver passed)
+        $selectedDriver = null;
+        if ($driverId) {
+            $selectedDriver = DB::selectOne("
+                SELECT u.id, u.name,
+                    COUNT(DISTINCT dm.id) AS total_manifests,
+                    ROUND(AVG(dr.rating), 2) AS avg_rating,
+                    SUM(dm.total_distance_km) AS total_km_driven,
+                    COUNT(CASE WHEN di.status IN ('open','under_review') THEN 1 END) AS open_incidents
+                FROM users u
+                LEFT JOIN delivery_manifests dm ON dm.driver_id = u.id
+                LEFT JOIN delivery_ratings dr   ON dr.driver_id = u.id
+                LEFT JOIN delivery_incidents di ON di.reported_against = u.id
+                WHERE u.id = ?
+                GROUP BY u.id
+            ", [$driverId]);
+        }
+
+        return [
+            'orders_to_route'  => $orders,
+            'available_drivers'=> $drivers,
+            'selected_driver'  => $selectedDriver,
+            'instructions'     => 'Suggest an optimal delivery sequence for these orders. '
+                . 'Consider driver workload, ratings, and incident history. '
+                . 'Return a recommended stop order with brief reasoning.',
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * driver_performance — called from driverDetail() with entityId = driver user id.
+     * Also used by driverPerformance() for all-driver overview (entityId = null).
+     */
+    private function fetchDriverPerformanceData(?int $driverId): array
+    {
+        if ($driverId) {
+            // Single driver deep dive
+            $profile = DB::selectOne("
+                SELECT u.id, u.name, u.phone, u.status,
+                    u.created_at AS joined_at,
+                    COUNT(DISTINCT dm.id)                                       AS total_manifests,
+                    COUNT(DISTINCT CASE WHEN dm.status = 'completed' THEN dm.id END) AS completed_manifests,
+                    COUNT(DISTINCT CASE WHEN dm.status = 'cancelled' THEN dm.id END) AS cancelled_manifests,
+                    ROUND(SUM(dm.total_distance_km), 2)                        AS total_km,
+                    ROUND(AVG(dm.actual_duration_minutes), 0)                  AS avg_trip_mins,
+                    COUNT(DISTINCT di_total.id)                                AS total_stops,
+                    COUNT(DISTINCT CASE WHEN di_total.status = 'delivered' THEN di_total.id END) AS delivered_stops,
+                    COUNT(DISTINCT CASE WHEN di_total.status = 'failed'    THEN di_total.id END) AS failed_stops,
+                    ROUND(AVG(dr.rating), 2)                                   AS avg_rating,
+                    COUNT(DISTINCT dr.id)                                      AS total_ratings
+                FROM users u
+                LEFT JOIN delivery_manifests dm      ON dm.driver_id = u.id
+                LEFT JOIN delivery_items     di_total ON di_total.manifest_id = dm.id
+                LEFT JOIN delivery_ratings   dr      ON dr.driver_id = u.id
+                WHERE u.id = ?
+                GROUP BY u.id
+            ", [$driverId]);
+
+            $recentManifests = DB::select("
+                SELECT dm.manifest_number, dm.status, dm.scheduled_date,
+                    dm.total_distance_km, dm.actual_duration_minutes,
+                    COUNT(di.id)                                               AS stops,
+                    COUNT(CASE WHEN di.status = 'delivered' THEN 1 END)       AS delivered,
+                    COUNT(CASE WHEN di.status = 'failed'    THEN 1 END)       AS failed
+                FROM delivery_manifests dm
+                LEFT JOIN delivery_items di ON di.manifest_id = dm.id
+                WHERE dm.driver_id = ?
+                AND dm.created_at >= NOW() - INTERVAL 60 DAY
+                GROUP BY dm.id
+                ORDER BY dm.scheduled_date DESC
+                LIMIT 10
+            ", [$driverId]);
+
+            $openIncidents = DB::select("
+                SELECT category, severity, status, created_at
+                FROM delivery_incidents
+                WHERE reported_against = ?
+                AND status IN ('open', 'under_review')
+                ORDER BY severity DESC, created_at DESC
+            ", [$driverId]);
+
+            $ratingDistribution = DB::select("
+                SELECT rating, COUNT(*) AS count
+                FROM delivery_ratings
+                WHERE driver_id = ?
+                GROUP BY rating
+                ORDER BY rating DESC
+            ", [$driverId]);
+
+            $onTimeRate = DB::selectOne("
+                SELECT
+                    COUNT(*)  AS with_eta,
+                    COUNT(CASE WHEN delivered_at <= estimated_arrival THEN 1 END) AS on_time
+                FROM delivery_items
+                WHERE manifest_id IN (
+                    SELECT id FROM delivery_manifests WHERE driver_id = ?
+                )
+                AND status = 'delivered'
+                AND estimated_arrival IS NOT NULL
+            ", [$driverId]);
+
+            return compact(
+                'profile', 'recentManifests', 'openIncidents',
+                'ratingDistribution', 'onTimeRate'
+            );
+        }
+
+        // All-driver summary
+        $summary = DB::selectOne("
+            SELECT
+                COUNT(DISTINCT u.id)                                           AS total_drivers,
+                COUNT(DISTINCT CASE WHEN u.status = 'active' THEN u.id END)  AS active_drivers,
+                COUNT(DISTINCT dm.id)                                          AS total_manifests,
+                COUNT(DISTINCT CASE WHEN dm.status = 'completed' THEN dm.id END) AS completed_manifests,
+                ROUND(AVG(dr.rating), 2)                                      AS platform_avg_rating,
+                COUNT(DISTINCT CASE WHEN di.status IN ('open','under_review')
+                                    AND di.severity IN ('high','critical') THEN di.id END) AS open_high_incidents
+            FROM users u
+            LEFT JOIN delivery_manifests dm ON dm.driver_id = u.id
+            LEFT JOIN delivery_ratings   dr ON dr.driver_id = u.id
+            LEFT JOIN delivery_incidents di ON di.reported_against = u.id
+            WHERE u.role = 'driver'
+            AND u.deleted_at IS NULL
+        ");
+
+        $topDrivers = DB::select("
+            SELECT u.id, u.name,
+                COUNT(DISTINCT CASE WHEN dm.status = 'completed' THEN dm.id END) AS completed,
+                ROUND(AVG(dr.rating), 2)                                          AS avg_rating,
+                COUNT(DISTINCT CASE WHEN di.status IN ('open','under_review') THEN di.id END) AS open_incidents
+            FROM users u
+            LEFT JOIN delivery_manifests dm ON dm.driver_id = u.id
+            LEFT JOIN delivery_ratings   dr ON dr.driver_id = u.id
+            LEFT JOIN delivery_incidents di ON di.reported_against = u.id
+            WHERE u.role = 'driver' AND u.status = 'active'
+            GROUP BY u.id
+            ORDER BY avg_rating DESC, completed DESC
+            LIMIT 10
+        ");
+
+        return compact('summary', 'topDrivers');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * delivery_incident_analysis — entityId = specific incident id, or null for patterns.
+     */
+    private function fetchDeliveryIncidentData(?int $entityId): array
+    {
+        if ($entityId) {
+            $incident = DB::selectOne("
+                SELECT di.id, di.category, di.severity, di.status,
+                    di.reporter_role, di.created_at, di.resolved_at,
+                    reporter.name AS reported_by_name,
+                    accused.name  AS reported_against_name,
+                    dm.manifest_number
+                FROM delivery_incidents di
+                LEFT JOIN users reporter ON reporter.id = di.reported_by
+                LEFT JOIN users accused  ON accused.id  = di.reported_against
+                LEFT JOIN delivery_manifests dm ON dm.id = di.manifest_id
+                WHERE di.id = ?
+            ", [$entityId]);
+
+            return ['incident' => $incident];
+        }
+
+        $summary = DB::selectOne("
+            SELECT
+                COUNT(*)                                                      AS total,
+                COUNT(CASE WHEN status = 'open'         THEN 1 END)         AS open,
+                COUNT(CASE WHEN status = 'under_review' THEN 1 END)         AS under_review,
+                COUNT(CASE WHEN status = 'resolved'     THEN 1 END)         AS resolved,
+                COUNT(CASE WHEN severity = 'critical'   THEN 1 END)         AS critical,
+                COUNT(CASE WHEN severity = 'high'       THEN 1 END)         AS high,
+                COUNT(CASE WHEN category = 'assault'    THEN 1 END)         AS assault_incidents
+            FROM delivery_incidents
+            WHERE created_at >= NOW() - INTERVAL 90 DAY
+        ");
+
+        $byCategory = DB::select("
+            SELECT category, severity, COUNT(*) AS count
+            FROM delivery_incidents
+            WHERE created_at >= NOW() - INTERVAL 90 DAY
+            GROUP BY category, severity
+            ORDER BY count DESC
+        ");
+
+        $repeatDrivers = DB::select("
+            SELECT u.name, u.id,
+                COUNT(*) AS incident_count,
+                COUNT(CASE WHEN di.severity IN ('high','critical') THEN 1 END) AS high_severity_count
+            FROM delivery_incidents di
+            JOIN users u ON u.id = di.reported_against
+            WHERE di.created_at >= NOW() - INTERVAL 90 DAY
+            GROUP BY u.id
+            HAVING incident_count > 1
+            ORDER BY high_severity_count DESC, incident_count DESC
+            LIMIT 10
+        ");
+
+        $trend = DB::select("
+            SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
+                COUNT(*) AS total,
+                COUNT(CASE WHEN severity IN ('high','critical') THEN 1 END) AS serious
+            FROM delivery_incidents
+            WHERE created_at >= NOW() - INTERVAL 6 MONTH
+            GROUP BY month
+            ORDER BY month ASC
+        ");
+
+        return compact('summary', 'byCategory', 'repeatDrivers', 'trend');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * driver_assignment_safety — called non-blocking from checkDriverSafetyForOrders().
+     * extraData should be empty here; entityId = driver user id.
+     * The AI gets full incident history for this driver to give a risk assessment.
+     */
+    private function fetchDriverSafetyData(?int $driverId, array $extraData = []): array
+    {
+        if (!$driverId) {
+            throw new \Exception('driver_assignment_safety requires a driver entity_id.');
+        }
+
+        $driver = DB::selectOne("
+            SELECT u.id, u.name, u.status,
+                COUNT(DISTINCT dm.id) AS total_manifests,
+                ROUND(AVG(dr.rating), 2) AS avg_rating
+            FROM users u
+            LEFT JOIN delivery_manifests dm ON dm.driver_id = u.id
+            LEFT JOIN delivery_ratings   dr ON dr.driver_id = u.id
+            WHERE u.id = ?
+            GROUP BY u.id
+        ", [$driverId]);
+
+        $incidents = DB::select("
+            SELECT di.category, di.severity, di.status, di.reporter_role,
+                di.created_at,
+                accused.name  AS against_name,
+                reporter.name AS by_name
+            FROM delivery_incidents di
+            LEFT JOIN users reporter ON reporter.id = di.reported_by
+            LEFT JOIN users accused  ON accused.id  = di.reported_against
+            WHERE di.reported_against = ?
+            ORDER BY di.severity DESC, di.created_at DESC
+            LIMIT 20
+        ", [$driverId]);
+
+        $incidentSummary = DB::selectOne("
+            SELECT
+                COUNT(*)                                                          AS total,
+                COUNT(CASE WHEN status IN ('open','under_review') THEN 1 END)   AS unresolved,
+                COUNT(CASE WHEN severity = 'critical'             THEN 1 END)   AS critical,
+                COUNT(CASE WHEN category = 'assault'              THEN 1 END)   AS assault,
+                COUNT(CASE WHEN severity IN ('high','critical')
+                            AND status IN ('open','under_review') THEN 1 END)   AS blocking
+            FROM delivery_incidents
+            WHERE reported_against = ?
+        ", [$driverId]);
+
+        return [
+            'driver'           => $driver,
+            'incident_summary' => $incidentSummary,
+            'incidents'        => $incidents,
+            'instructions'     => 'Based on this driver\'s incident history, provide a risk assessment '
+                . 'for assigning them to new deliveries. Flag any patterns that warrant admin attention.',
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * delivery_route_optimiser — entityId = manifest id.
+     * Returns stop coordinates and order details for AI to suggest optimal sequencing.
+     */
+    private function fetchRouteOptimiserData(?int $manifestId): array
+    {
+        if (!$manifestId) {
+            throw new \Exception('delivery_route_optimiser requires a manifest entity_id.');
+        }
+
+        $manifest = DB::selectOne("
+            SELECT dm.id, dm.manifest_number, dm.scheduled_date,
+                dm.start_latitude, dm.start_longitude,
+                u.name AS driver_name,
+                COUNT(di.id) AS total_stops
+            FROM delivery_manifests dm
+            LEFT JOIN users u ON u.id = dm.driver_id
+            LEFT JOIN delivery_items di ON di.manifest_id = dm.id
+            WHERE dm.id = ?
+            GROUP BY dm.id
+        ", [$manifestId]);
+
+        $stops = DB::select("
+            SELECT di.id, di.sort_order, di.status,
+                di.estimated_arrival,
+                o.order_number,
+                o.shipping_address,
+                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+                c.phone AS customer_phone,
+                o.total_kes
+            FROM delivery_items di
+            JOIN orders o    ON o.id = di.order_id
+            LEFT JOIN customers c ON c.id = o.customer_id
+            WHERE di.manifest_id = ?
+            ORDER BY di.sort_order ASC
+        ", [$manifestId]);
+
+        return [
+            'manifest'    => $manifest,
+            'stops'       => $stops,
+            'instructions'=> 'Suggest an optimal stop ordering for this manifest to minimise travel time. '
+                . 'Consider geographic clustering where addresses are available. '
+                . 'Return a recommended sequence by stop ID with brief reasoning.',
+        ];
+    }
+
+    // ════════════════════════════════════════════════════════════════
     // ── Provider calls ───────────────────────────────────────────────
     // ════════════════════════════════════════════════════════════════
 
@@ -880,7 +1257,8 @@ class AiAnalyticsService
             'anthropic-version' => '2023-06-01',
             'content-type'      => 'application/json',
         ])->post('https://api.anthropic.com/v1/messages', [
-            'model'      => 'claude-sonnet-4-20250514',
+            'model'      => 'claude-sonnet-4-5',
+            //'claude-sonnet-4-20250514',
             'max_tokens' => 1024,
             'messages'   => [
                 ['role' => 'user', 'content' => $prompt]
@@ -897,7 +1275,8 @@ class AiAnalyticsService
             'content'           => $data['content'][0]['text'] ?? '',
             'prompt_tokens'     => $data['usage']['input_tokens'] ?? 0,
             'completion_tokens' => $data['usage']['output_tokens'] ?? 0,
-            'model'             => $data['model'] ?? 'claude-sonnet-4-20250514',
+            'model'             => $data['model'] ?? 'claude-sonnet-4-5',
+            //claude-sonnet-4-20250514',
         ];
     }
 

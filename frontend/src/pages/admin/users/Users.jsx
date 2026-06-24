@@ -15,13 +15,16 @@ import CreateUserModal from './components/CreateUserModal';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
 const ROLE_META = {
   super_admin: { label: 'Super Admin', color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },
   admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
   manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
+  finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
+  logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
+  driver:      { label: 'Driver',      color: '#6b7280', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
   customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
+  vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
 };
 
 const STATUS_STYLES = {
@@ -40,15 +43,25 @@ const STAT_META = [
   { key: 'customers', label: 'Customers',    icon: <UserCheck size={18} />,   accent: '#0891b2', bg: 'rgba(8,145,178,0.08)'   },
 ];
 
-const STAFF_ROLES = ['admin', 'manager', 'sales_rep'];
-const LEVELS = { super_admin: 1, admin: 2, manager: 3, sales_rep: 4, customer: 5 };
-const PER_PAGE_OPTIONS = [10, 20, 50];
+const STAFF_ROLES = ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver'];
 
+const LEVELS = { 
+  super_admin: 1, 
+  admin: 2, 
+  manager: 3, 
+  finance: 4, 
+  logistics: 5, 
+  sales_rep: 6, 
+  customer: 7, 
+  vendor: 8, 
+  driver: 9 
+};
+
+const PER_PAGE_OPTIONS = [10, 20, 50];
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
-
 const card = {
   background: 'white',
   borderRadius: 12,
@@ -64,6 +77,7 @@ const selectStyle = {
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
+
 const selectFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
 const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
 
@@ -74,7 +88,6 @@ const TH_LABEL = ({ children }) => (
 );
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
 function StatCard({ icon, label, value, accent, bg }) {
   return (
     <div style={{ ...card, padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -109,11 +122,9 @@ function Badge({ bg, color, ring, children }) {
 function SkeletonRow({ cols }) {
   return (
     <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
-      {/* Checkbox */}
       <td style={{ padding: '12px 16px', width: 44 }}>
         <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(168,85,247,0.08)' }} />
       </td>
-      {/* User cell */}
       <td style={{ padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(168,85,247,0.08)', flexShrink: 0 }} />
@@ -133,10 +144,9 @@ function SkeletonRow({ cols }) {
 }
 
 // ── Action menu ───────────────────────────────────────────────────────────────
-
 function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDelete, onRestore, isLocked }) {
   const [open, setOpen] = useState(false);
-
+  
   const items = [
     { icon: Eye,       label: 'View details',         onClick: onView,                              danger: false },
     ...(!user.deleted_at ? [
@@ -145,7 +155,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
         : { icon: UserX,     label: 'Suspend',        onClick: () => onStatusChange('suspended'),   danger: true  },
       ...(isLocked ? [{ icon: Unlock, label: 'Unlock account', onClick: onUnlock, danger: false }] : []),
       { icon: KeyRound,  label: 'Force password reset', onClick: onForceReset,                      danger: false },
-      null, // divider
+      null,
       { icon: Trash2,    label: 'Delete',              onClick: onDelete,                            danger: true  },
     ] : [
       { icon: RotateCcw, label: 'Restore',             onClick: onRestore,                           danger: false },
@@ -333,7 +343,6 @@ function UsersDevNotesModal({ onClose }) {
         style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(168,85,247,0.18), 0 4px 20px rgba(0,0,0,0.12)" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f3f4f6" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
             <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#a855f7" }}>
@@ -357,9 +366,7 @@ function UsersDevNotesModal({ onClose }) {
           </div>
         </div>
 
-        {/* Body */}
         <div style={{ padding: "18px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-
           {tab === "pitfalls" && USERS_DEV_NOTES.pitfalls.map((n, i) => (
             <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: `1px solid ${USEV[n.severity]}2a`, background: `${USEV[n.severity]}07` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -389,7 +396,6 @@ function UsersDevNotesModal({ onClose }) {
               <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
-
         </div>
       </div>
     </div>
@@ -397,11 +403,9 @@ function UsersDevNotesModal({ onClose }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-
 export default function UsersPage() {
   const navigate = useNavigate();
   const { user: currentAdmin } = useAuthStore();
-
   const {
     users, statistics, departments, pagination, filters,
     loading, actionLoading,
@@ -460,35 +464,30 @@ export default function UsersPage() {
     catch { toast.error('Bulk restore failed.'); }
   };
 
-  // Sequential bulk verify — no queue, runs one at a time
-const handleBulkVerifyEmail = async () => {
-  const targets = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at);
-  if (targets.length === 0) return;
-  if (!confirm(`Force-verify email for ${targets.length} user${targets.length !== 1 ? 's' : ''}?`)) return;
-
-  let done = 0;
-  const toastId = toast.loading(`Verifying emails… 0 / ${targets.length}`);
-
-  for (const u of targets) {
-    try {
-      await usersAPI.verifyEmail(u.id);
-      done++;
-      toast.loading(`Verifying emails… ${done} / ${targets.length}`, { id: toastId });
-    } catch {
-      toast.error(`Failed for ${u.name}`);
+  const handleBulkVerifyEmail = async () => {
+    const targets = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at);
+    if (targets.length === 0) return;
+    if (!confirm(`Force-verify email for ${targets.length} user${targets.length !== 1 ? 's' : ''}?`)) return;
+    let done = 0;
+    const toastId = toast.loading(`Verifying emails… 0 / ${targets.length}`);
+    for (const u of targets) {
+      try {
+        await usersAPI.verifyEmail(u.id);
+        done++;
+        toast.loading(`Verifying emails… ${done} / ${targets.length}`, { id: toastId });
+      } catch {
+        toast.error(`Failed for ${u.name}`);
+      }
     }
-  }
-
-  toast.success(`${done} email${done !== 1 ? 's' : ''} verified.`, { id: toastId });
-  setSelectedIds([]);
-  fetchUsers();
-};
+    toast.success(`${done} email${done !== 1 ? 's' : ''} verified.`, { id: toastId });
+    setSelectedIds([]);
+    fetchUsers();
+  };
 
   const handleBulkVerifyPhone = async () => {
     const targets = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at);
     if (targets.length === 0) return;
     if (!confirm(`Force-verify phone for ${targets.length} user${targets.length !== 1 ? 's' : ''}?`)) return;
-
     let done = 0;
     const toastId = toast.loading(`Verifying phones… 0 / ${targets.length}`);
 
@@ -509,386 +508,401 @@ const handleBulkVerifyEmail = async () => {
 
   const isLocked  = (user) => user.locked_until && new Date(user.locked_until) > new Date();
   const canManage = (targetRole) => (LEVELS[currentAdmin?.role] || 99) < (LEVELS[targetRole] || 99);
-
   const hasFilters = filters.search || filters.role || filters.status || filters.department || filters.locked || filters.unverified || filters.trashed;
   const activeFilterCount = [filters.role, filters.status, filters.department, filters.locked && 'locked', filters.unverified && 'unverified', filters.trashed && 'trashed'].filter(Boolean).length;
 
+  const showStaffTab = filters.tab === 'staff';
+  const showFinanceTab = filters.tab === 'finance';
+  const showLogisticsTab = filters.tab === 'logistics';
+  const showDriversTab = filters.tab === 'drivers';
+  const showCustomersTab = filters.tab === 'customers';
+  const showVendorsTab = filters.tab === 'vendors';
+
   return (
     <AdminLayout>
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+              Users
+            </h1>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+              {statistics?.total?.toLocaleString() ?? 0} total users
+            </p>
+          </div>
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
-            Users
-          </h1>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
-            {statistics?.total?.toLocaleString() ?? 0} total users
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setDevNotesOpen(true)}
+                style={{
+                  padding: '9px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
+                  border: '1.5px solid rgba(168,85,247,0.3)', cursor: 'pointer',
+                  background: 'transparent', color: '#a855f7', fontFamily: 'monospace',
+                }}
+              >
+                // dev
+              </button>
+
+              <div style={{ position: 'relative' }}>
+                <button
+                  onMouseEnter={() => setShowInfo(true)}
+                  onMouseLeave={() => setShowInfo(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                    boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+                    transition: 'box-shadow 150ms',
+                  }}
+                  onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
+                  onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+                >
+                  <UserPlus size={15} /> New user
+                </button>
+
+                {showInfo && (
+                  <div
+                    onMouseEnter={() => setShowInfo(true)}
+                    onMouseLeave={() => setShowInfo(false)}
+                    style={{
+                      position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
+                      background: 'white', borderRadius: 12, padding: 16,
+                      border: '1.5px solid rgba(168,85,247,0.2)',
+                      boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                      <Info size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
+                      <div>
+                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+                          Customers can't be created by admins
+                        </p>
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                          Customers register themselves or can be added in bulk via a manual import. No admin of any role can create a customer account directly.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 10px', borderRadius: 8, marginBottom: 12,
+                      background: 'rgba(168,85,247,0.04)',
+                      border: '1px solid rgba(168,85,247,0.12)',
+                    }}>
+                      <Upload size={13} style={{ color: '#a855f7', flexShrink: 0 }} />
+                      <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
+                        Need to add many customers at once?{' '}
+                        <span style={{ color: '#7c3aed', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
+                      </p>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 12 }}>
+                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
+                        Looking to add a staff member instead?
+                      </p>
+                      <button
+                        onClick={() => navigate('/admin/employees/create')}
+                        style={{
+                          width: '100%', padding: '8px', borderRadius: 8,
+                          fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                          fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                          boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                        }}
+                      >
+                        Create new employee <ExternalLink size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          onClick={() => setDevNotesOpen(true)}
-          style={{
-            padding: '9px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
-            border: '1.5px solid rgba(168,85,247,0.3)', cursor: 'pointer',
-            background: 'transparent', color: '#a855f7', fontFamily: 'monospace',
-          }}
-        >
-          // dev
-        </button>
-        
-        {/* New user button — customers self-register, so show info popover */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onMouseEnter={() => setShowInfo(true)}
-            onMouseLeave={() => setShowInfo(false)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
-              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
-              transition: 'box-shadow 150ms',
-            }}
-            onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
-          >
-            <UserPlus size={15} /> New user
-          </button>
+        {/* ── Stat cards ── */}
+        {statistics && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+            {STAT_META.map(({ key, label, icon, accent, bg }) => (
+              <StatCard key={key} icon={icon} label={label} value={statistics[key]?.toLocaleString()} accent={accent} bg={bg} />
+            ))}
+          </div>
+        )}
 
-          {showInfo && (
-            <div
-              onMouseEnter={() => setShowInfo(true)}
-              onMouseLeave={() => setShowInfo(false)}
+        {/* ── Tabs + search + filters ── */}
+        <div style={card}>
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 16px',
+            borderBottom: '1px solid rgba(168,85,247,0.1)',
+          }}>
+            <div style={{ display: 'flex' }}>
+              {['staff', 'finance', 'logistics', 'drivers', 'customers', 'vendors'].map(tab => {
+                const tabLabels = {
+                  staff: 'Staff',
+                  finance: 'Finance',
+                  logistics: 'Logistics',
+                  drivers: 'Drivers',
+                  customers: 'Customers',
+                  vendors: 'Vendors',
+                };
+
+                const tabStats = {
+                  staff: statistics?.staff,
+                  finance: statistics?.finance,
+                  logistics: statistics?.logistics,
+                  drivers: statistics?.drivers,
+                  customers: statistics?.customers,
+                  vendors: statistics?.vendors,
+                };
+
+                return (
+                  <button key={tab} onClick={() => setTab(tab)} style={{
+                    padding: '12px 18px', fontSize: '0.82rem', fontWeight: filters.tab === tab ? 700 : 500,
+                    color: filters.tab === tab ? '#a855f7' : '#9ca3af',
+                    background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    borderBottom: `2px solid ${filters.tab === tab ? '#a855f7' : 'transparent'}`,
+                    marginBottom: -1, textTransform: 'capitalize', transition: 'color 150ms',
+                  }}>
+                    {tabLabels[tab]}
+                    {tabStats[tab] !== undefined && (
+                      <span style={{
+                        marginLeft: 7, padding: '1px 7px', borderRadius: 99,
+                        fontSize: '0.65rem', fontWeight: 700,
+                        background: filters.tab === tab ? 'rgba(168,85,247,0.12)' : 'rgba(107,114,128,0.1)',
+                        color: filters.tab === tab ? '#7c3aed' : '#9ca3af',
+                      }}>
+                        {tabStats[tab]}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bulk actions */}
+            {selectedIds.length > 0 && (() => {
+              const emailCount = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at).length;
+              const phoneCount = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at).length;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+                  <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{selectedIds.length} selected</span>
+
+                  {emailCount > 0 && (
+                    <button onClick={handleBulkVerifyEmail} style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: 'rgba(8,145,178,0.1)', color: '#0e7490',
+                    }}>
+                      <CheckCircle size={12} /> Verify {emailCount} email{emailCount !== 1 ? 's' : ''}
+                    </button>
+                  )}
+
+                  {phoneCount > 0 && (
+                    <button onClick={handleBulkVerifyPhone} style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: 'rgba(5,150,105,0.1)', color: '#065f46',
+                    }}>
+                      <CheckCircle size={12} /> Verify {phoneCount} phone{phoneCount !== 1 ? 's' : ''}
+                    </button>
+                  )}
+
+                  {filters.trashed ? (
+                    <button onClick={handleBulkRestore} style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: 'rgba(5,150,105,0.1)', color: '#065f46',
+                    }}>
+                      <RotateCcw size={12} /> Restore
+                    </button>
+                  ) : (
+                    <button onClick={handleBulkDelete} style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                    }}>
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Search + filter toggle */}
+          <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search name, email, phone…"
+                value={filters.search}
+                onChange={e => setFilter('search', e.target.value)}
+                style={{
+                  width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
+                  background: 'rgba(168,85,247,0.04)',
+                  border: '1.5px solid rgba(168,85,247,0.18)',
+                  color: '#111827', outline: 'none', fontFamily: 'inherit',
+                  boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+            </div>
+
+            <button
+              onClick={() => setShowFilters(v => !v)}
               style={{
-                position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
-                background: 'white', borderRadius: 12, padding: 16,
-                border: '1.5px solid rgba(168,85,247,0.2)',
-                boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
+                background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
+                border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
+                color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
               }}
             >
-              {/* Top — explanation */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <Info size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
-                    Customers can't be created by admins
-                  </p>
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Customers register themselves or can be added in bulk via a manual import. No admin of any role can create a customer account directly.
-                  </p>
-                </div>
-              </div>
+              <Filter size={14} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
+                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                }}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
 
-              {/* Import hint */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 10px', borderRadius: 8, marginBottom: 12,
-                background: 'rgba(168,85,247,0.04)',
-                border: '1px solid rgba(168,85,247,0.12)',
-              }}>
-                <Upload size={13} style={{ color: '#a855f7', flexShrink: 0 }} />
-                <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
-                  Need to add many customers at once?{' '}
-                  <span style={{ color: '#7c3aed', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
-                </p>
-              </div>
+          {/* Expanded filters */}
+          {showFilters && (
+            <div style={{
+              padding: '12px 16px 14px',
+              borderTop: '1px solid rgba(168,85,247,0.1)',
+              display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
+            }}>
+              {(showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab) && (
+                <select value={filters.role ?? ''} onChange={e => setFilter('role', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
+                  <option value="">All roles</option>
+                  {STAFF_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label || r}</option>)}
+                </select>
+              )}
 
-              {/* Divider + employee CTA */}
-              <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 12 }}>
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
-                  Looking to add a staff member instead?
-                </p>
-                <button
-                  onClick={() => navigate('/admin/employees/create')}
-                  style={{
-                    width: '100%', padding: '8px', borderRadius: 8,
-                    fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                    boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
-                  }}
-                >
-                  Create new employee <ExternalLink size={12} />
+              {(showStaffTab || showFinanceTab || showLogisticsTab) && departments?.length > 0 && (
+                <select value={filters.department ?? ''} onChange={e => setFilter('department', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
+                  <option value="">All departments</option>
+                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              )}
+
+              <select value={filters.status ?? ''} onChange={e => setFilter('status', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
+                <option value="">All statuses</option>
+                {Object.entries(STATUS_STYLES).map(([v]) => (
+                  <option key={v} value={v} style={{ textTransform: 'capitalize' }}>{v.replace('_', ' ')}</option>
+                ))}
+              </select>
+
+              {[
+                { key: 'locked',     label: 'Locked'     },
+                { key: 'unverified', label: 'Unverified' },
+                { key: 'trashed',     label: 'Trash'      },
+              ].map(({ key, label }) => (
+                <button key={key} onClick={() => setFilter(key, !filters[key])} style={{
+                  padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
+                  background: filters[key] ? 'rgba(168,85,247,0.1)' : 'transparent',
+                  border: `1.5px solid ${filters[key] ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
+                  color: filters[key] ? '#7c3aed' : '#9ca3af',
+                }}>
+                  {label}
                 </button>
-              </div>
+              ))}
+
+              {hasFilters && (
+                <button onClick={resetFilters} style={{
+                  fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd',
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  padding: '0 4px', transition: 'color 150ms',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
+                >
+                  Clear all
+                </button>
+              )}
             </div>
           )}
         </div>
-        </div></div>
-      </div>
 
-      {/* ── Stat cards ── */}
-      {statistics && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
-          {STAT_META.map(({ key, label, icon, accent, bg }) => (
-            <StatCard key={key} icon={icon} label={label} value={statistics[key]?.toLocaleString()} accent={accent} bg={bg} />
-          ))}
-        </div>
-      )}
+        {/* ── Table ── */}
+        <div style={{ ...card, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                  <th style={{ padding: '10px 16px', width: 44 }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.length === users.length && users.length > 0}
+                      onChange={toggleSelectAll}
+                      style={{ accentColor: '#a855f7', width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                  </th>
+                  <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
+                    <TH_LABEL>User</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
+                    <TH_LABEL>{showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab ? 'Department' : 'Company'}</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
+                    <TH_LABEL>Role</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 100 }}>
+                    <TH_LABEL>Status</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}>
+                    <TH_LABEL>Last login</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 140 }}>
+                    <TH_LABEL>Flags</TH_LABEL>
+                  </th>
+                  <th style={{ padding: '10px 16px', width: 44 }} />
+                </tr>
+              </thead>
 
-      {/* ── Tabs + search + filters ── */}
-      <div style={card}>
+              <tbody>
+                {loading
+                  ? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
 
-        {/* Tab bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px',
-          borderBottom: '1px solid rgba(168,85,247,0.1)',
-        }}>
-          <div style={{ display: 'flex' }}>
-            {['staff', 'customers'].map(tab => (
-              <button key={tab} onClick={() => setTab(tab)} style={{
-                padding: '12px 18px', fontSize: '0.82rem', fontWeight: filters.tab === tab ? 700 : 500,
-                color: filters.tab === tab ? '#a855f7' : '#9ca3af',
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                borderBottom: `2px solid ${filters.tab === tab ? '#a855f7' : 'transparent'}`,
-                marginBottom: -1, textTransform: 'capitalize', transition: 'color 150ms',
-              }}>
-                {tab === 'staff' ? 'Staff' : 'Customers'}
-                {statistics && (
-                  <span style={{
-                    marginLeft: 7, padding: '1px 7px', borderRadius: 99,
-                    fontSize: '0.65rem', fontWeight: 700,
-                    background: filters.tab === tab ? 'rgba(168,85,247,0.12)' : 'rgba(107,114,128,0.1)',
-                    color: filters.tab === tab ? '#7c3aed' : '#9ca3af',
-                  }}>
-                    {tab === 'staff' ? statistics.staff : statistics.customers}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+                  : users.length === 0
+                    ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
+                          <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                          <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No users found</p>
+                          {hasFilters && (
+                            <button onClick={resetFilters} style={{
+                              fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
+                              background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            }}>
+                              Clear filters
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
 
-          {/* Bulk actions */}
-          {selectedIds.length > 0 && (() => {
-            const emailCount = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at).length;
-            const phoneCount = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at).length;
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
-                <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{selectedIds.length} selected</span>
-
-                {/* Email verify */}
-                {emailCount > 0 && (
-                  <button onClick={handleBulkVerifyEmail} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: 'rgba(8,145,178,0.1)', color: '#0e7490',
-                  }}>
-                    <CheckCircle size={12} /> Verify {emailCount} email{emailCount !== 1 ? 's' : ''}
-                  </button>
-                )}
-
-                {/* Phone verify */}
-                {phoneCount > 0 && (
-                  <button onClick={handleBulkVerifyPhone} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: 'rgba(5,150,105,0.1)', color: '#065f46',
-                  }}>
-                    <CheckCircle size={12} /> Verify {phoneCount} phone{phoneCount !== 1 ? 's' : ''}
-                  </button>
-                )}
-
-                {/* Existing restore/delete */}
-                {filters.trashed ? (
-                  <button onClick={handleBulkRestore} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: 'rgba(5,150,105,0.1)', color: '#065f46',
-                  }}>
-                    <RotateCcw size={12} /> Restore
-                  </button>
-                ) : (
-                  <button onClick={handleBulkDelete} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
-                  }}>
-                    <Trash2 size={12} /> Delete
-                  </button>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Search + filter toggle */}
-        <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
-            <input
-              type="text"
-              placeholder="Search name, email, phone…"
-              value={filters.search}
-              onChange={e => setFilter('search', e.target.value)}
-              style={{
-                width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'rgba(168,85,247,0.04)',
-                border: '1.5px solid rgba(168,85,247,0.18)',
-                color: '#111827', outline: 'none', fontFamily: 'inherit',
-                boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
-              }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-              onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
-            />
-          </div>
-
-          <button
-            onClick={() => setShowFilters(v => !v)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-              fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-              background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-              border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-              color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
-            }}
-          >
-            <Filter size={14} />
-            Filters
-            {activeFilterCount > 0 && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              }}>
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Expanded filters */}
-        {showFilters && (
-          <div style={{
-            padding: '12px 16px 14px',
-            borderTop: '1px solid rgba(168,85,247,0.1)',
-            display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
-          }}>
-            {filters.tab === 'staff' && (
-              <select value={filters.role ?? ''} onChange={e => setFilter('role', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
-                <option value="">All roles</option>
-                {STAFF_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r].label}</option>)}
-              </select>
-            )}
-
-            {filters.tab === 'staff' && departments?.length > 0 && (
-              <select value={filters.department ?? ''} onChange={e => setFilter('department', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
-                <option value="">All departments</option>
-                {departments.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            )}
-
-            <select value={filters.status ?? ''} onChange={e => setFilter('status', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
-              <option value="">All statuses</option>
-              {Object.entries(STATUS_STYLES).map(([v]) => (
-                <option key={v} value={v} style={{ textTransform: 'capitalize' }}>{v.replace('_', ' ')}</option>
-              ))}
-            </select>
-
-            {/* Toggle pills */}
-            {[
-              { key: 'locked',     label: 'Locked'     },
-              { key: 'unverified', label: 'Unverified' },
-              { key: 'trashed',    label: 'Trash'      },
-            ].map(({ key, label }) => (
-              <button key={key} onClick={() => setFilter(key, !filters[key])} style={{
-                padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
-                fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                background: filters[key] ? 'rgba(168,85,247,0.1)' : 'transparent',
-                border: `1.5px solid ${filters[key] ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-                color: filters[key] ? '#7c3aed' : '#9ca3af',
-              }}>
-                {label}
-              </button>
-            ))}
-
-            {hasFilters && (
-              <button onClick={resetFilters} style={{
-                fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd',
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                padding: '0 4px', transition: 'color 150ms',
-              }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Table ── */}
-      <div style={{ ...card, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
-                {/* Checkbox */}
-                <th style={{ padding: '10px 16px', width: 44 }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length === users.length && users.length > 0}
-                    onChange={toggleSelectAll}
-                    style={{ accentColor: '#a855f7', width: 15, height: 15, cursor: 'pointer' }}
-                  />
-                </th>
-                <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
-                  <TH_LABEL>User</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
-                  <TH_LABEL>{filters.tab === 'staff' ? 'Department' : 'Company'}</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
-                  <TH_LABEL>Role</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 100 }}>
-                  <TH_LABEL>Status</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}>
-                  <TH_LABEL>Last login</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 140 }}>
-                  <TH_LABEL>Flags</TH_LABEL>
-                </th>
-                <th style={{ padding: '10px 16px', width: 44 }} />
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-
-                : users.length === 0
-                  ? (
-                    <tr>
-                      <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                        <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No users found</p>
-                        {hasFilters && (
-                          <button onClick={resetFilters} style={{
-                            fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
-                            background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                          }}>
-                            Clear filters
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-
-                  : users.map((user, i) => {
+                    : users.map((user, i) => {
                       const rm     = ROLE_META[user.role]     ?? ROLE_META.customer;
                       const st     = STATUS_STYLES[user.status] ?? STATUS_STYLES.inactive;
                       const locked = isLocked(user);
@@ -905,8 +919,6 @@ const handleBulkVerifyEmail = async () => {
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-
-                          {/* Checkbox */}
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
                             <input
                               type="checkbox"
@@ -916,7 +928,6 @@ const handleBulkVerifyEmail = async () => {
                             />
                           </td>
 
-                          {/* User */}
                           <td style={{ padding: '12px 20px', cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${user.id}`)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                               <img
@@ -926,7 +937,7 @@ const handleBulkVerifyEmail = async () => {
                                     : user.profile_picture_url
                                 }
                                 alt={user.name}
-                                style={{
+                                style={{ 
                                   width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
                                   flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block',
                                 }}
@@ -947,21 +958,18 @@ const handleBulkVerifyEmail = async () => {
                             </div>
                           </td>
 
-                          {/* Department / Company */}
                           <td style={{ padding: '12px 16px' }}>
                             <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
-                              {filters.tab === 'staff' ? (user.department || '—') : (user.company_name || '—')}
+                              {showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab ? (user.department || '—') : (user.company_name || '—')}
                             </span>
                           </td>
 
-                          {/* Role */}
                           <td style={{ padding: '12px 16px' }}>
                             <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>
                               {rm.label}
                             </Badge>
                           </td>
 
-                          {/* Status */}
                           <td style={{ padding: '12px 16px' }}>
                             <Badge bg={st.bg} color={st.color} ring={st.ring}>
                               <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
@@ -969,7 +977,6 @@ const handleBulkVerifyEmail = async () => {
                             </Badge>
                           </td>
 
-                          {/* Last login */}
                           <td style={{ padding: '12px 16px' }}>
                             <span style={{ fontSize: '0.75rem', color: user.last_login_at ? '#374151' : '#d1d5db' }}>
                               {fmtDate(user.last_login_at)}
@@ -981,7 +988,6 @@ const handleBulkVerifyEmail = async () => {
                             )}
                           </td>
 
-                          {/* Flags */}
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                               {locked && (
@@ -1027,7 +1033,6 @@ const handleBulkVerifyEmail = async () => {
                             </div>
                           </td>
 
-                          {/* Action */}
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
                             {canManage(user.role) && (
                               <ActionMenu
@@ -1042,97 +1047,96 @@ const handleBulkVerifyEmail = async () => {
                               />
                             )}
                           </td>
-
                         </tr>
                       );
                     })
-              }
-            </tbody>
-          </table>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Pagination ── */}
+          {!loading && users.length > 0 && pagination.last_page > 1 && (
+            <div style={{
+              padding: '12px 20px',
+              borderTop: '1px solid rgba(168,85,247,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'rgba(168,85,247,0.02)',
+            }}>
+              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} users
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={() => setFilter('page', pagination.current_page - 1)}
+                  disabled={pagination.current_page <= 1}
+                  style={{
+                    width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
+                    border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
+                    color: '#a855f7', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
+                  }}
+                  onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+                  const p = pagination.current_page <= 3
+                    ? i + 1
+                    : pagination.current_page >= pagination.last_page - 2
+                    ? pagination.last_page - 4 + i
+                    : pagination.current_page - 2 + i;
+                  if (p < 1 || p > pagination.last_page) return null;
+                  const isActive = p === pagination.current_page;
+                  return (
+                    <button
+                      key={p} onClick={() => setFilter('page', p)}
+                      style={{
+                        width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
+                        background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
+                        border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
+                        color: isActive ? 'white' : '#9ca3af',
+                        boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setFilter('page', pagination.current_page + 1)}
+                  disabled={pagination.current_page >= pagination.last_page}
+                  style={{
+                    width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
+                    border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
+                    color: '#a855f7', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
+                  }}
+                  onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ── Pagination ── */}
-        {!loading && users.length > 0 && pagination.last_page > 1 && (
-          <div style={{
-            padding: '12px 20px',
-            borderTop: '1px solid rgba(168,85,247,0.08)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
-          }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-              Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} users
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button
-                onClick={() => setFilter('page', pagination.current_page - 1)}
-                disabled={pagination.current_page <= 1}
-                style={{
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
-                }}
-                onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                const p = pagination.current_page <= 3
-                  ? i + 1
-                  : pagination.current_page >= pagination.last_page - 2
-                  ? pagination.last_page - 4 + i
-                  : pagination.current_page - 2 + i;
-                if (p < 1 || p > pagination.last_page) return null;
-                const isActive = p === pagination.current_page;
-                return (
-                  <button
-                    key={p} onClick={() => setFilter('page', p)}
-                    style={{
-                      width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                      background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                      border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
-                      color: isActive ? 'white' : '#9ca3af',
-                      boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
-                    }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-
-              <button
-                onClick={() => setFilter('page', pagination.current_page + 1)}
-                disabled={pagination.current_page >= pagination.last_page}
-                style={{
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
-                }}
-                onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
+        {showCreateModal && (
+          <CreateUserModal
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={() => { setShowCreateModal(false); fetchUsers(); fetchStatistics(); }}
+          />
         )}
+        {devNotesOpen && <UsersDevNotesModal onClose={() => setDevNotesOpen(false)} />}
       </div>
-
-      {showCreateModal && (
-        <CreateUserModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => { setShowCreateModal(false); fetchUsers(); fetchStatistics(); }}
-        />
-      )}
-      {devNotesOpen && <UsersDevNotesModal onClose={() => setDevNotesOpen(false)} />}
-    </div>
     </AdminLayout>
   );
 }

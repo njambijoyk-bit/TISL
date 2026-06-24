@@ -10,7 +10,6 @@ import employeesApi from '../../../api/employees';
 import currencyAPI from '../../../api/currency';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
   { value: 'part_time', label: 'Part Time' },
@@ -43,12 +42,31 @@ const MARITAL_OPTIONS = [
 ];
 
 const ROLE_OPTIONS = [
+  { value: 'driver',    label: 'Driver' },
   { value: 'sales_rep', label: 'Sales Rep' },
+  { value: 'finance',   label: 'Finance' },
+  { value: 'logistics', label: 'Logistics' },
   { value: 'manager',   label: 'Manager'   },
   { value: 'admin',     label: 'Admin'     },
 ];
 
-const ROLE_RANK = { sales_rep: 1, manager: 2, admin: 3 };
+// Role hierarchy mapping - who each role can report to
+const CAN_REPORT_TO = {
+  driver: ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+  sales_rep: ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+  finance: ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
+  logistics: ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
+  manager: ['manager', 'admin', 'super_admin'],
+  admin: ['admin', 'super_admin'],
+  super_admin: ['super_admin'],
+};
+
+// Helper function to check if a manager is eligible
+const canBeManager = (employeeRole, managerRole) => {
+  if (!employeeRole || !managerRole) return false;
+  const allowedManagers = CAN_REPORT_TO[employeeRole] || [];
+  return allowedManagers.includes(managerRole);
+};
 
 const EMPTY_FORM = {
   name: '', email: '', phone: '',
@@ -68,7 +86,6 @@ const EMPTY_FORM = {
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
-
 const card = {
   background: 'white',
   borderRadius: 12,
@@ -94,7 +111,6 @@ const eFocus = e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTa
 const eBlur  = e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.boxShadow = 'none'; };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
 function SectionCard({ title, icon: Icon, children }) {
   return (
     <div style={card}>
@@ -160,12 +176,10 @@ function Grid({ cols = 3, children }) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
-
 export default function EmployeeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
-
   const [loading, setLoading]             = useState(isEditing);
   const [saving, setSaving]               = useState(false);
   const [managers, setManagers]           = useState([]);
@@ -183,45 +197,55 @@ export default function EmployeeForm() {
   useEffect(() => {
     if (!form.manager_id || !form.role) return;
     const m = managers.find(m => String(m.id) === String(form.manager_id));
-    if (m && ROLE_RANK[m.role] < ROLE_RANK[form.role]) {
+    if (m && !canBeManager(form.role, m.role)) {
       set('manager_id', '');
       setManagerSearch('');
     }
   }, [form.role, managers]);
 
   const fetchManagers = async () => {
-    try { const data = await employeesApi.getPotentialManagers(); setManagers(data.data || []); }
-    catch { console.error('Failed to fetch managers'); }
+    try { 
+      const params = isEditing ? { exclude_id: id } : {};
+      const data = await employeesApi.getPotentialManagers(params); 
+      setManagers(data.data || []); 
+    } catch { 
+      console.error('Failed to fetch managers'); 
+    }
   };
-
+  
   const fetchCurrencies = async () => {
     try {
       const data = await currencyAPI.getCurrencies();
       const active = (data.data || data).filter(c => c.is_active);
       setCurrencies(active);
-    } catch { console.error('Failed to fetch currencies'); }
+    } catch { 
+      console.error('Failed to fetch currencies'); 
+    }
   };
 
   const filteredManagers = managers.filter(m => {
-  const q = managerSearch.toLowerCase();
-  return !q
-    || m.name?.toLowerCase().includes(q)
-    || m.job_title?.toLowerCase().includes(q)
-    || m.department?.toLowerCase().includes(q)
-    || m.role?.toLowerCase().includes(q);
-});
+    const q = managerSearch.toLowerCase();
+    const matchesSearch = !q || 
+      m.name?.toLowerCase().includes(q) ||
+      m.job_title?.toLowerCase().includes(q) ||
+      m.department?.toLowerCase().includes(q) ||
+      m.role?.toLowerCase().includes(q);
+    
+    const isEligibleManager = canBeManager(form.role, m.role);
+    
+    return matchesSearch && isEligibleManager;
+  });
 
   const fetchEmployee = async () => {
     try {
       const data = await employeesApi.getEmployee(id);
       const emp = data.employee;
-
-      // date inputs need YYYY-MM-DD — API returns ISO strings like "2026-03-25T00:00:00.000000Z"
+      
       const toDateInput = (val) => val ? val.toString().slice(0, 10) : '';
 
       setForm({
         name: emp.user?.name || '', email: emp.user?.email || '', phone: emp.user?.phone || '',
-        employee_id: emp.employee_id || '', job_title: emp.job_title || '',
+        employee_id: emp.employee_id || '', job_title: emp.job_title || '',role: emp.user?.role || 'sales_rep',
         department: emp.department || '', employment_type: emp.employment_type || 'full_time',
         hire_date: toDateInput(emp.hire_date), work_location: emp.work_location || '',
         work_email: emp.work_email || '', work_phone: emp.work_phone || '',
@@ -240,8 +264,12 @@ export default function EmployeeForm() {
         skills: emp.skills || [], certifications: emp.certifications || [],
         notes: emp.notes || '',
       });
-    } catch { toast.error('Failed to load employee'); navigate('/admin/employees'); }
-    finally { setLoading(false); }
+    } catch { 
+      toast.error('Failed to load employee'); 
+      navigate('/admin/employees'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const set = (field, value) => {
@@ -264,13 +292,24 @@ export default function EmployeeForm() {
     if (!validate()) return;
     setSaving(true);
     try {
-      if (isEditing) { await employeesApi.updateEmployee(id, form); toast.success('Employee updated'); }
-      else { await employeesApi.createEmployee(form); toast.success('Employee created'); }
+      if (isEditing) { 
+        await employeesApi.updateEmployee(id, form); 
+        toast.success('Employee updated'); 
+      } else { 
+        await employeesApi.createEmployee(form); 
+        toast.success('Employee created'); 
+      }
       navigate('/admin/employees');
     } catch (err) {
-      if (err.response?.data?.errors) { setErrors(err.response.data.errors); toast.error('Please fix the errors'); }
-      else toast.error(err.response?.data?.message || 'Failed to save employee');
-    } finally { setSaving(false); }
+      if (err.response?.data?.errors) { 
+        setErrors(err.response.data.errors); 
+        toast.error('Please fix the errors'); 
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to save employee'); 
+      }
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   if (loading) return (
@@ -287,7 +326,9 @@ export default function EmployeeForm() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => navigate('/admin/employees')} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
+          <button 
+            onClick={() => navigate('/admin/employees')} 
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
           >
@@ -303,13 +344,18 @@ export default function EmployeeForm() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => navigate('/admin/employees')} style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
+          <button 
+            onClick={() => navigate('/admin/employees')} 
+            style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
           >
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1, transition: 'box-shadow 150ms' }}
+          <button 
+            onClick={handleSubmit} 
+            disabled={saving} 
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1, transition: 'box-shadow 150ms' }}
             onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'; }}
             onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
           >
@@ -369,20 +415,24 @@ export default function EmployeeForm() {
           </Field>
           <Field label="Reports To">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-
-              {/* role restriction hint */}
+              {/* Role restriction hint */}
               {form.role === 'admin' && (
                 <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
-                  Admins can only report to another admin.
+                  Admins can only report to another admin or super admin.
                 </p>
               )}
               {form.role === 'manager' && (
                 <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
-                  Managers can only report to a manager or admin — not a sales rep.
+                  Managers can report to managers, admins, or super admins.
+                </p>
+              )}
+              {form.role === 'driver' && (
+                <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: 0, fontWeight: 500 }}>
+                  Drivers can report to anyone in the organization.
                 </p>
               )}
 
-              {/* selected manager chip */}
+              {/* Selected manager chip */}
               {form.manager_id && (() => {
                 const m = managers.find(m => String(m.id) === String(form.manager_id));
                 return m ? (
@@ -390,10 +440,13 @@ export default function EmployeeForm() {
                     <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 600 }}>
                       {m.name}{m.job_title ? ` · ${m.job_title}` : ''}
                     </span>
-                    <button type="button" onClick={() => set('manager_id', '')}
+                    <button 
+                      type="button" 
+                      onClick={() => set('manager_id', '')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd', display: 'flex', padding: 2 }}
                       onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}>
+                      onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
+                    >
                       <X size={12} />
                     </button>
                   </div>
@@ -407,14 +460,18 @@ export default function EmployeeForm() {
                   value={managerSearch}
                   onChange={e => setManagerSearch(e.target.value)}
                   style={{ ...baseInput, paddingLeft: 30 }}
-                  onFocus={iFocus} onBlur={iBlur}
+                  onFocus={iFocus} 
+                  onBlur={iBlur}
                 />
                 <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#c4b5fd', pointerEvents: 'none' }} />
                 {managerSearch && (
-                  <button type="button" onClick={() => setManagerSearch('')}
+                  <button 
+                    type="button" 
+                    onClick={() => setManagerSearch('')}
                     style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
                     onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                    onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
+                    onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+                  >
                     <X size={12} />
                   </button>
                 )}
@@ -424,20 +481,21 @@ export default function EmployeeForm() {
                 <select
                   value={form.manager_id}
                   onChange={e => { set('manager_id', e.target.value); setManagerSearch(''); }}
-                  style={{ ...baseInput, appearance: 'auto' }} onFocus={iFocus} onBlur={iBlur}
-                  size={Math.min(filteredManagers.filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role]).length + 1, 6)}>
+                  style={{ ...baseInput, appearance: 'auto' }} 
+                  onFocus={iFocus} 
+                  onBlur={iBlur}
+                  size={Math.min(filteredManagers.length + 1, 6)}
+                >
                   <option value="">— No Manager —</option>
-                  {filteredManagers
-                    .filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role])
-                    .map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role ? ` [${m.role.replace(/_/g, ' ')}]` : ''}
-                      </option>
-                    ))}
+                  {filteredManagers.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role ? ` [${m.role.replace(/_/g, ' ')}]` : ''}
+                    </option>
+                  ))}
                 </select>
               )}
 
-              {managerSearch && filteredManagers.filter(m => ROLE_RANK[m.role] >= ROLE_RANK[form.role]).length === 0 && (
+              {managerSearch && filteredManagers.length === 0 && (
                 <p style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
                   No eligible managers match "{managerSearch}"
                 </p>
@@ -468,33 +526,52 @@ export default function EmployeeForm() {
       {/* ── Identification ── */}
       <SectionCard title="Identification" icon={Hash}>
         <Grid cols={4}>
-          <Field label="ID Number"><Input value={form.id_number} onChange={v => set('id_number', v)} placeholder="12345678" /></Field>
-          <Field label="KRA PIN"><Input value={form.kra_pin} onChange={v => set('kra_pin', v)} placeholder="A000000000X" /></Field>
-          <Field label="NSSF Number"><Input value={form.nssf_number} onChange={v => set('nssf_number', v)} /></Field>
-          <Field label="NHIF Number"><Input value={form.nhif_number} onChange={v => set('nhif_number', v)} /></Field>
+          <Field label="ID Number">
+            <Input value={form.id_number} onChange={v => set('id_number', v)} placeholder="12345678" />
+          </Field>
+          <Field label="KRA PIN">
+            <Input value={form.kra_pin} onChange={v => set('kra_pin', v)} placeholder="A000000000X" />
+          </Field>
+          <Field label="NSSF Number">
+            <Input value={form.nssf_number} onChange={v => set('nssf_number', v)} />
+          </Field>
+          <Field label="NHIF Number">
+            <Input value={form.nhif_number} onChange={v => set('nhif_number', v)} />
+          </Field>
         </Grid>
       </SectionCard>
 
       {/* ── Emergency Contact ── */}
       <SectionCard title="Emergency Contact" icon={Users}>
         <Grid cols={3}>
-          <Field label="Contact Name"><Input value={form.emergency_contact_name} onChange={v => set('emergency_contact_name', v)} icon={User} /></Field>
-          <Field label="Contact Phone"><Input value={form.emergency_contact_phone} onChange={v => set('emergency_contact_phone', v)} icon={Phone} /></Field>
-          <Field label="Relationship"><Input value={form.emergency_contact_relationship} onChange={v => set('emergency_contact_relationship', v)} placeholder="e.g. Spouse, Parent" /></Field>
+          <Field label="Contact Name">
+            <Input value={form.emergency_contact_name} onChange={v => set('emergency_contact_name', v)} icon={User} />
+          </Field>
+          <Field label="Contact Phone">
+            <Input value={form.emergency_contact_phone} onChange={v => set('emergency_contact_phone', v)} icon={Phone} />
+          </Field>
+          <Field label="Relationship">
+            <Input value={form.emergency_contact_relationship} onChange={v => set('emergency_contact_relationship', v)} placeholder="e.g. Spouse, Parent" />
+          </Field>
         </Grid>
       </SectionCard>
 
       {/* ── Compensation ── */}
       <SectionCard title="Compensation" icon={DollarSign}>
         <Grid cols={4}>
-          <Field label="Salary Grade"><Input value={form.salary_grade} onChange={v => set('salary_grade', v)} placeholder="G4" /></Field>
-          <Field label="Base Salary"><Input value={form.base_salary} onChange={v => set('base_salary', v)} type="number" icon={DollarSign} placeholder="50000" /></Field>
+          <Field label="Salary Grade">
+            <Input value={form.salary_grade} onChange={v => set('salary_grade', v)} placeholder="G4" />
+          </Field>
+          <Field label="Base Salary">
+            <Input value={form.base_salary} onChange={v => set('base_salary', v)} type="number" icon={DollarSign} placeholder="50000" />
+          </Field>
           <Field label="Currency">
             <select
               value={form.currency}
               onChange={e => set('currency', e.target.value)}
               style={baseInput}
-              onFocus={iFocus} onBlur={iBlur}
+              onFocus={iFocus} 
+              onBlur={iBlur}
             >
               {currencies.length === 0
                 ? <option value="KES">KES</option>
@@ -506,35 +583,53 @@ export default function EmployeeForm() {
               }
             </select>
           </Field>
-          <Field label="Annual Leave Days"><Input value={form.annual_leave_days} onChange={v => set('annual_leave_days', v)} type="number" icon={Calendar} /></Field>
+          <Field label="Annual Leave Days">
+            <Input value={form.annual_leave_days} onChange={v => set('annual_leave_days', v)} type="number" icon={Calendar} />
+          </Field>
         </Grid>
       </SectionCard>
 
       {/* ── Bank Details ── */}
       <SectionCard title="Bank Details" icon={CreditCard}>
         <Grid cols={3}>
-          <Field label="Bank Name"><Input value={form.bank_name} onChange={v => set('bank_name', v)} placeholder="Equity Bank" /></Field>
-          <Field label="Account Name"><Input value={form.bank_account_name} onChange={v => set('bank_account_name', v)} /></Field>
-          <Field label="Account Number"><Input value={form.bank_account_number} onChange={v => set('bank_account_number', v)} /></Field>
+          <Field label="Bank Name">
+            <Input value={form.bank_name} onChange={v => set('bank_name', v)} placeholder="Equity Bank" />
+          </Field>
+          <Field label="Account Name">
+            <Input value={form.bank_account_name} onChange={v => set('bank_account_name', v)} />
+          </Field>
+          <Field label="Account Number">
+            <Input value={form.bank_account_number} onChange={v => set('bank_account_number', v)} />
+          </Field>
         </Grid>
       </SectionCard>
 
       {/* ── Notes ── */}
       <SectionCard title="Notes" icon={AlertCircle}>
         <textarea
-          value={form.notes} onChange={e => set('notes', e.target.value)}
-          rows={4} placeholder="Additional notes about this employee…"
+          value={form.notes} 
+          onChange={e => set('notes', e.target.value)}
+          rows={4} 
+          placeholder="Additional notes about this employee…"
           style={{ ...baseInput, resize: 'vertical', lineHeight: 1.6 }}
-          onFocus={iFocus} onBlur={iBlur}
+          onFocus={iFocus} 
+          onBlur={iBlur}
         />
       </SectionCard>
 
       {/* ── Footer actions ── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-        <button onClick={() => navigate('/admin/employees')} style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button 
+          onClick={() => navigate('/admin/employees')} 
+          style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
           Cancel
         </button>
-        <button onClick={handleSubmit} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1 }}>
+        <button 
+          onClick={handleSubmit} 
+          disabled={saving} 
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1 }}
+        >
           <Save size={14} />
           {saving ? 'Saving…' : isEditing ? 'Update Employee' : 'Create Employee'}
         </button>

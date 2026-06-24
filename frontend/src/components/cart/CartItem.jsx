@@ -14,6 +14,14 @@ export default function CartItem({ item }) {
   const hasDiscount = item.original_price && parseFloat(item.original_price) > parseFloat(item.price);
   const saved       = hasDiscount ? (parseFloat(item.original_price) - parseFloat(item.price)) * item.quantity : 0;
 
+  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path; // already absolute (Unsplash etc.)
+    return `${API_BASE}${path}`;
+  };
+
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
@@ -23,7 +31,7 @@ export default function CartItem({ item }) {
       {/* Product image */}
       {item.main_image && (
         <img
-          src={item.main_image} alt={item.name}
+          src={getImageUrl(item.main_image)} alt={item.name}
           style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', background: '#f3f4f6', flexShrink: 0 }}
         />
       )}

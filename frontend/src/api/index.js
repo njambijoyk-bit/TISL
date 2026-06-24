@@ -25,6 +25,7 @@ export { default as referralsAPI } from './referrals';
 export { default as promoCodesAPI } from './promoCodes'; 
 export { default as customerLoyaltyAPI } from './customerLoyalty';
 export { default as loyaltyAPI } from './loyalty';
+export { default as deliveryAPI } from './delivery';
 export { default as paymentsAPI} from './payments';
 export { default as workAPI } from './work';
 export { default as mimiAPI } from './mimiAPI';

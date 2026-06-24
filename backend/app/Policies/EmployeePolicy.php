@@ -12,8 +12,8 @@ class EmployeePolicy
      */
     public function viewAny(User $user): bool
     {
-        // Only admin, manager, and super_admin can view employees
-        return in_array($user->role, ['super_admin', 'admin', 'manager']);
+        // Allow operational roles to view employees
+        return in_array($user->role, ['super_admin', 'admin', 'manager', 'finance', 'logistics']);
     }
 
     /**

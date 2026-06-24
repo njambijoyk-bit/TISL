@@ -201,40 +201,34 @@ const Skel = ({ h = 100 }) => (
 );
 
 // ── Responsive grid helpers ────────────────────────────────────────────────
-// We use a CSS class approach via a <style> tag for breakpoints
 const GRID_STYLES = `
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
   @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
   .dash-fade { animation: fadeUp 0.35s ease both; }
-
+  
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(140px, 1fr));
+    /* auto-fit prevents awkward jagged gaps when the 7 cards wrap on smaller screens */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 14px;
     margin-bottom: 28px;
   }
+  
   .main-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 18px;
+    /* CRITICAL FIX: Prevents shorter cards from artificially stretching to match the tallest card in the row */
+    align-items: start; 
   }
-  .funnel-inner {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0;
-    overflow-x: auto;
-    padding-bottom: 8px;
-  }
-  .funnel-inner::-webkit-scrollbar { height: 4px; }
-  .funnel-inner::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 2px; }
-  .funnel-inner::-webkit-scrollbar-thumb { background: ${T.pink}60; border-radius: 2px; }
 
   /* Tablet: 2 columns */
-  @media (max-width: 1100px) {
-    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 1024px) {
     .main-grid { grid-template-columns: repeat(2, 1fr); }
+    /* CRITICAL FIX: When dropping to 2 columns, this makes the 3rd card (Alerts) span the full width, 
+       preventing it from sitting awkwardly on the left with an empty void on the right */
+    .main-grid > :nth-child(3) { grid-column: 1 / -1; }
     .full-width  { grid-column: 1 / -1 !important; }
     .span-2      { grid-column: span 1 !important; }
   }
@@ -243,6 +237,8 @@ const GRID_STYLES = `
   @media (max-width: 640px) {
     .kpi-grid  { grid-template-columns: repeat(2, 1fr); }
     .main-grid { grid-template-columns: 1fr; }
+    /* Reset the 3rd child rule for mobile so it stacks normally */
+    .main-grid > :nth-child(3) { grid-column: auto; }
     .full-width  { grid-column: 1 / -1 !important; }
     .span-2      { grid-column: span 1 !important; }
   }

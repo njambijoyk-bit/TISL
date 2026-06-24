@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Search, ArrowRight, Loader2, AlertCircle,
-  Clock, Hash, Flag, Calendar
+  Search, ArrowRight, Loader2, AlertCircle, X, ExternalLink,
+  Clock, Hash, Flag, Calendar, Camera, ZoomIn,
 } from 'lucide-react';
 import '../../styles/bug.css';
 import Header from '../../components/layout/Header';
@@ -73,6 +73,109 @@ function Timeline({ history }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// ── Lightbox ────────────────────────────────────────────────────
+
+function Lightbox({ src, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute', top: 16, right: 16,
+          background: 'rgba(255,255,255,0.12)', border: 'none',
+          borderRadius: '50%', width: 36, height: 36,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: '#fff',
+        }}
+      >
+        <X size={18} />
+      </button>
+      <img
+        src={src}
+        alt="Screenshot expanded"
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: '100%', maxHeight: '90vh',
+          borderRadius: 10, objectFit: 'contain',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+        }}
+      />
+    </div>
+  );
+}
+
+// ── ScreenshotThumbnail ─────────────────────────────────────────
+
+function ScreenshotThumbnail({ url }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  return (
+    <>
+      <div style={{ marginTop: 8 }}>
+        <p className="bug-text-xs bug-text-muted" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Camera size={11} /> Screenshot
+        </p>
+        <div
+          onClick={() => setLightboxOpen(true)}
+          style={{
+            position: 'relative', display: 'inline-block',
+            cursor: 'zoom-in', borderRadius: 8, overflow: 'hidden',
+            border: '1px solid var(--bug-border-light)',
+            maxWidth: '100%',
+          }}
+        >
+          <img
+            src={url}
+            alt="Screenshot thumbnail"
+            style={{
+              display: 'block', width: '100%', maxHeight: 160,
+              objectFit: 'cover', borderRadius: 8,
+            }}
+          />
+          {/* hover overlay */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(0,0,0,0)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s',
+              borderRadius: 8,
+            }}
+            className="bug-screenshot-overlay"
+          >
+            <ZoomIn size={20} color="#fff" style={{ opacity: 0, transition: 'opacity 0.15s' }} className="bug-screenshot-zoom" />
+          </div>
+        </div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="bug-link"
+          style={{ display: 'inline-flex', marginTop: 6, fontSize: 11 }}
+        >
+          <ExternalLink size={10} /> Open original
+        </a>
+      </div>
+
+      {lightboxOpen && <Lightbox src={url} onClose={() => setLightboxOpen(false)} />}
+    </>
   );
 }
 
@@ -189,6 +292,13 @@ export default function BugTrackerPage() {
                   {new Date(report.created_at).toLocaleString()}
                 </MetaRow>
               </div>
+
+                {/* screenshot */}
+                {report.screenshot_url && (
+                  <div className="bug-px-6" style={{ paddingTop: 16, paddingBottom: 16, borderTop: '1px solid var(--bug-border-light)' }}>
+                    <ScreenshotThumbnail url={report.screenshot_url} />
+                  </div>
+                )}
 
               {/* timeline */}
               {report.history?.length > 0 && (

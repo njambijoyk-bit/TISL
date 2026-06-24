@@ -3,10 +3,12 @@ import {
   LayoutGrid, Users, Briefcase, FolderGit2Icon,
   LucideBadgeDollarSign, Volume2, BugIcon, VolumeX, FolderCodeIcon,
   FolderCog, BrainCircuit, KeyRound, Activity, Blocks, Bot,
+  Truck, FileText, Star, AlertTriangle, BarChart2, UserCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import useAuthStore from '../../store/authStore'; 
 import { useLayoutAudio } from './useLayoutAudio';
 
 const GROUPS = [
@@ -16,6 +18,17 @@ const GROUPS = [
       { name: 'Products',   icon: Package,              bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/settings/general/bulk/products',   active: true },
       { name: 'Brands',     icon: Tags,                 bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/general/bulk/brands',     active: false },
       { name: 'Categories', icon: Folder,               bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/general/bulk/categories', active: false },
+    ],
+  },
+  {
+    label: 'Delivery',
+    items: [
+      { name: 'Overview',   icon: Truck,         bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/delivery',                active: true },
+      { name: 'Manifests',  icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/delivery/manifests',      active: true },
+      { name: 'Drivers',    icon: UserCircle,    bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/delivery/drivers',        active: true },
+      { name: 'Incidents',  icon: AlertTriangle, bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/delivery/incidents',      active: true },
+      { name: 'Ratings',    icon: Star,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/delivery/ratings',        active: true },
+      { name: 'Reports',    icon: BarChart2,     bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/admin/delivery/reports',        active: true },
     ],
   },
   {
@@ -53,6 +66,21 @@ const GROUPS = [
   },
 ];
 
+const DELIVERY_ADMIN_ITEMS = [
+  { name: 'Overview',   icon: Truck,         bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/admin/delivery',                active: true },
+  { name: 'Manifests',  icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/delivery/manifests',      active: true },
+  { name: 'Drivers',    icon: UserCircle,    bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/delivery/drivers',        active: true },
+  { name: 'Incidents',  icon: AlertTriangle, bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/admin/delivery/incidents',      active: true },
+  { name: 'Ratings',    icon: Star,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/delivery/ratings',        active: true },
+  { name: 'Reports',    icon: BarChart2,     bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/admin/delivery/reports',        active: true },
+];
+
+const DELIVERY_DRIVER_ITEMS = [
+  { name: 'My Manifests', icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/driver/manifests',  active: true },
+  { name: 'My Ratings',   icon: Star,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/driver/ratings',    active: true },
+  { name: 'My Incidents', icon: AlertTriangle, bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/driver/incidents',  active: true },
+];
+
 const PANEL_W   = 224;
 const PANEL_W_C = 52;
 
@@ -62,6 +90,16 @@ export default function GeneralLayout({ children }) {
   const navigate     = useNavigate();
   const { pathname } = useLocation();
 
+  const userRole = useAuthStore(state => state.user?.role);
+  const isDriver = userRole === 'driver';
+
+  // swap delivery items based on role
+  const groups = GROUPS.map(g =>
+    g.label === 'Delivery'
+      ? { ...g, items: isDriver ? DELIVERY_DRIVER_ITEMS : DELIVERY_ADMIN_ITEMS }
+      : g
+  );
+  
   const doCollapse = (val) => {
     setCollapsed(val);
     val ? audio.playCollapse() : audio.playExpand();
@@ -198,7 +236,7 @@ export default function GeneralLayout({ children }) {
             overflowY: 'auto',
             overflowX: 'hidden',
           }}>
-            {GROUPS.map((group, groupIndex) => (
+            {groups.map((group, groupIndex) => (
               <div key={group.label}>
                 {groupIndex > 0 && !collapsed && (
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />

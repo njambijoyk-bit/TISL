@@ -457,6 +457,11 @@ class Order extends Model
         ]);
     }
 
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(OrderShipment::class)->latestOfMany();
+    }
+
     /**
      * Mark order as delivered.
      */

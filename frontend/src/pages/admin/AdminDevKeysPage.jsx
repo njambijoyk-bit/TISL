@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     KeyRound, RefreshCw, Loader2, AlertCircle, Shield, Check, CheckCircle2, XCircle,
-    Clock, ChevronLeft, ChevronRight, Eye, EyeOff, Copy, Volume2, VolumeX,
+    Clock, ChevronLeft, ChevronRight, Eye, EyeOff, Copy, Volume2, VolumeX, Globe,
 } from 'lucide-react';
 import '../../styles/bug.css';
 import GeneralLayout from '../../components/layout/GeneralLayout';
@@ -9,14 +9,24 @@ import { adminGetActiveKey, adminRegenerateKey, adminGetKeyLogs } from '../../ap
 import { useBugAudio } from './settings/useBugAudio';
 
 function KeyDisplay({ keyData, onRegenerate, regenerating, audio }) {
-    const [copied,  setCopied]  = useState(false);
-    const [visible, setVisible] = useState(false);
+    const [copied,    setCopied]    = useState(false);
+    const [visible,   setVisible]   = useState(false);
+    const [urlCopied, setUrlCopied] = useState(false);
+
+    const devPortalUrl = `${window.location.origin}/dev/auth`;
 
     const copy = () => {
         navigator.clipboard.writeText(keyData.raw_key);
         setCopied(true);
         audio.playPing();
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const copyUrl = () => {
+        navigator.clipboard.writeText(devPortalUrl);
+        setUrlCopied(true);
+        audio.playPing();
+        setTimeout(() => setUrlCopied(false), 2000);
     };
 
     const usedPercent = Math.round((keyData.failed_attempts / 10) * 100);
@@ -82,6 +92,27 @@ function KeyDisplay({ keyData, onRegenerate, regenerating, audio }) {
                 </div>
             </div>
 
+            {/* Dev portal URL */}
+            <div className="bug-key-box">
+                <div className="bug-flex bug-items-center bug-justify-between bug-gap-3">
+                    <div className="bug-flex-col bug-gap-1 bug-min-w-0">
+                        <p className="bug-text-xs bug-text-muted" style={{ marginBottom: 4 }}>Dev Portal URL (share with dev)</p>
+                        <p className="bug-key-text bug-text-sm bug-text bug-mono bug-truncate">
+                            {devPortalUrl}
+                        </p>
+                    </div>
+                    <button
+                        onClick={copyUrl}
+                        onMouseEnter={audio.playHover}
+                        className="bug-copy-btn"
+                        style={{ padding: 8, borderRadius: 8, flexShrink: 0 }}
+                        title="Copy portal URL"
+                    >
+                        {urlCopied ? <Check size={14} className="bug-text-green" /> : <Copy size={14} />}
+                    </button>
+                </div>
+            </div>
+
             {/* Attempt meter */}
             <div className="bug-flex-col bug-gap-2">
                 <div className="bug-flex bug-items-center bug-justify-between bug-text-xs">
@@ -139,7 +170,6 @@ function LogsTable({ logs, meta, page, loading, onPage, audio }) {
                     style={{
                         borderBottom: '1px solid var(--bug-border-light)',
                         fontSize: 14, padding: '14px 20px',
-                        // clinical: left accent per result
                         borderLeft: `3px solid ${log.result === 'success' ? '#10b981' : '#dc2626'}`,
                         paddingLeft: 17,
                     }}

@@ -5,8 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use App\Models\DeliveryManifest;
+use App\Models\DriverLocationPing;
+use App\Models\DeliveryRating;
+use App\Models\MpesaTransaction;
+use App\Models\Order;
+use App\Models\Quote;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Auth\MustVerifyEmail;
 
@@ -127,6 +134,34 @@ class User extends Authenticatable
     public function assignedDeliveries()
     {
         return $this->hasMany(Delivery::class, 'assigned_by');
+    }
+
+    public function manifests(): HasMany
+    {
+        return $this->hasMany(DeliveryManifest::class, 'driver_id');
+    }
+
+    /**
+     * Alias for deliveryManifests — used by withCount in activeDrivers().
+     */
+    public function deliveryManifests(): HasMany
+    {
+        return $this->hasMany(DeliveryManifest::class, 'driver_id');
+    }
+
+    public function assignedManifests(): HasMany
+    {
+        return $this->hasMany(DeliveryManifest::class, 'assigned_by');
+    }
+
+    public function locationPings(): HasMany
+    {
+        return $this->hasMany(DriverLocationPing::class, 'driver_id');
+    }
+
+    public function deliveryRatings(): HasMany
+    {
+        return $this->hasMany(DeliveryRating::class, 'driver_id');
     }
 
     /**
@@ -290,7 +325,7 @@ class User extends Authenticatable
         // Core admin roles that can access the admin panel generally
         return in_array($this->role, [
             'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics',
+            'finance', 'logistics', 'driver',
         ]);
     }
 
@@ -358,7 +393,7 @@ class User extends Authenticatable
     {
         return in_array($this->role, [
             'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics',
+            'finance', 'logistics', 'driver',
         ]);
     }
 
@@ -664,7 +699,7 @@ class User extends Authenticatable
     {
         return $query->whereIn('role', [
             'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics',
+            'finance', 'logistics', 'driver',
         ]);
     }
 

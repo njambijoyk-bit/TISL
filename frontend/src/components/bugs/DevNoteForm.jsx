@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  GitBranch, GitPullRequest, Hash, Link2, FileText,
-  Tag, Activity, Loader2, AlertCircle
+  GitBranch, GitPullRequest, Hash, Link2, FileText, Tag, 
+  Activity, Loader2, AlertCircle, Search, X as XIcon,
 } from 'lucide-react';
-import { DEV_NOTE_TYPES, DEV_NOTE_STATUSES, gitFieldsForType } from '../../api/bugReportsAPI';
+import { DEV_NOTE_TYPES, DEV_NOTE_STATUSES, gitFieldsForType, searchReports } from '../../api/bugReportsAPI';
 import '../../styles/bug.css';
 
 const GIT_FIELD_CONFIG = {
@@ -14,6 +14,165 @@ const GIT_FIELD_CONFIG = {
   commit_hash: { label: 'Commit Hash', icon: Hash, placeholder: 'a1b2c3d...' },
 };
 
+// add this hook just above the component
+function useBugSearch() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); setOpen(false); return; }
+    const timeout = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchReports({ search: query, per_page: 10, page: 1 });
+        setResults(res.data ?? []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  return { query, setQuery, results, searching, open, setOpen };
+}
+
+const PRIORITY_DOT = {
+  critical: '#dc2626',
+  high:     '#d97706',
+  medium:   '#2563eb',
+  low:      '#9ca3af',
+};
+
+const STATUS_COLORS = {
+  open:        { bg: 'rgba(37,99,235,0.08)',  color: '#1d4ed8' },
+  in_progress: { bg: 'rgba(217,119,6,0.08)',  color: '#b45309' },
+  resolved:    { bg: 'rgba(22,163,74,0.08)',   color: '#15803d' },
+  wont_fix:    { bg: 'rgba(107,114,128,0.08)', color: '#6b7280' },
+};
+
+function BugSearchField({ value, onChange }) {
+  // value = { id, label } | null
+  const { query, setQuery, results, searching, open, setOpen } = useBugSearch();
+  const [focused, setFocused] = useState(false);
+
+  // If a bug is already selected, show its label; otherwise show the search input
+  if (value) {
+    return (
+      <div
+        className="bug-input bug-flex bug-items-center bug-justify-between"
+        style={{ cursor: 'default', paddingTop: 0, paddingBottom: 0, height: 38 }}
+      >
+        <span className="bug-text-sm bug-text bug-truncate" style={{ flex: 1 }}>{value.label}</span>
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: 'var(--bug-text-muted)' }}
+        >
+          <XIcon size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.45 }} />
+        {searching && (
+          <Loader2 size={13} className="bug-animate-spin" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.45 }} />
+        )}
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => { setFocused(true); if (results.length) setOpen(true); }}
+          onBlur={() => setTimeout(() => { setFocused(false); setOpen(false); }, 150)}
+          placeholder="Search by title or report number..."
+          className="bug-input"
+          style={{ paddingLeft: 32, paddingRight: 32 }}
+        />
+      </div>
+
+      {open && results.length > 0 && (
+        <div
+          style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+            background: 'var(--bug-card-bg, #fff)',
+            border: '1px solid var(--bug-border-light)',
+            borderRadius: 10, overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+          }}
+        >
+          {results.map(r => {
+            const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.open;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onMouseDown={() => {
+                  onChange({ id: r.id, label: `${r.report_number} — ${r.title}` });
+                  setQuery('');
+                  setOpen(false);
+                }}
+                style={{
+                  width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                  padding: '10px 14px', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', gap: 10, borderBottom: '1px solid var(--bug-border-light)',
+                }}
+                className="bug-row-hover"
+              >
+                {/* priority dot */}
+                <span style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: PRIORITY_DOT[r.priority] ?? '#9ca3af',
+                }} />
+
+                {/* main info */}
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="bug-mono bug-text-xs bug-text-muted" style={{ display: 'block' }}>{r.report_number}</span>
+                  <span className="bug-text-sm bug-text bug-truncate" style={{ display: 'block' }}>{r.title}</span>
+                </span>
+
+                {/* status pill */}
+                <span style={{
+                  fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 20, flexShrink: 0,
+                  background: sc.bg, color: sc.color,
+                }}>
+                  {r.status.replace('_', ' ')}
+                </span>
+
+                {/* priority label */}
+                <span className="bug-text-xs bug-text-muted" style={{ flexShrink: 0, textTransform: 'capitalize' }}>
+                  {r.priority}
+                </span>
+              </button>
+            );
+          })}
+
+          {!searching && results.length === 0 && (
+            <p className="bug-text-xs bug-text-muted" style={{ padding: '12px 14px', margin: 0 }}>No reports found.</p>
+          )}
+        </div>
+      )}
+
+      {open && !searching && results.length === 0 && query.trim() && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+          background: 'var(--bug-card-bg, #fff)', border: '1px solid var(--bug-border-light)',
+          borderRadius: 10, padding: '12px 14px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+        }}>
+          <p className="bug-text-xs bug-text-muted" style={{ margin: 0 }}>No reports found.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 /**
  * DevNoteForm
  *
@@ -28,13 +187,18 @@ export default function DevNoteForm({ initial = {}, onSubmit, onCancel, submitLa
     description: initial.description ?? '',
     type: initial.type ?? 'general',
     status: initial.status ?? 'pending',
-    bug_report_id: initial.bug_report_id ? String(initial.bug_report_id) : '',
     pr_number: initial.pr_number ?? '',
     pr_url: initial.pr_url ?? '',
     branch_name: initial.branch_name ?? '',
     git_url: initial.git_url ?? '',
     commit_hash: initial.commit_hash ?? '',
   });
+
+  const [selectedBug, setSelectedBug] = useState(
+    initial.bug_report_id
+      ? { id: initial.bug_report_id, label: `#${initial.bug_report_id}` }
+      : null
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -67,7 +231,7 @@ export default function DevNoteForm({ initial = {}, onSubmit, onCancel, submitLa
         description: form.description.trim() || undefined,
         type: form.type,
         status: form.status,
-        bug_report_id: form.bug_report_id ? Number(form.bug_report_id) : undefined,
+        bug_report_id: selectedBug ? selectedBug.id : undefined,
       };
       visibleGitFields.forEach(f => {
         if (form[f]?.trim()) payload[f] = form[f].trim();
@@ -124,15 +288,9 @@ export default function DevNoteForm({ initial = {}, onSubmit, onCancel, submitLa
       {/* linked bug report */}
       <div className="bug-field">
         <label className="bug-label">
-          <span><Link2 size={13} /> Linked Bug Report ID <span className="bug-text-muted bug-font-normal">(optional)</span></span>
+          <span><Link2 size={13} /> Linked Bug Report <span className="bug-text-muted bug-font-normal">(optional)</span></span>
         </label>
-        <input
-          type="number"
-          value={form.bug_report_id}
-          onChange={set('bug_report_id')}
-          placeholder="e.g. 14"
-          className="bug-input"
-        />
+        <BugSearchField value={selectedBug} onChange={setSelectedBug} />
       </div>
 
       {/* conditional git fields */}

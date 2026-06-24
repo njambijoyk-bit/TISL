@@ -113,7 +113,7 @@ class EmployeeController extends Controller
             'email' => 'required_without:user_id|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:8',
-            'role' => 'nullable|in:admin,manager,sales_rep',
+            'role' => 'nullable|in:super_admin,admin,manager,finance,logistics,sales_rep,driver',
             
             // Either user_id or name/email must be provided
             'user_id' => 'nullable|exists:users,id',
@@ -147,6 +147,31 @@ class EmployeeController extends Controller
             'certifications' => 'nullable|array',
             'notes' => 'nullable|string',
         ]);
+
+        if ($request->filled('manager_id') && $request->filled('role')) {
+            $manager = Employee::with('user')->find($request->manager_id);
+            
+            if ($manager && $manager->user) {
+                $canReportTo = [
+                    'driver' => ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'sales_rep' => ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'finance' => ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'logistics' => ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
+                    'manager' => ['manager', 'admin', 'super_admin'],
+                    'admin' => ['admin', 'super_admin'],
+                    'super_admin' => ['super_admin'],
+                ];
+                
+                $allowedRoles = $canReportTo[$request->role] ?? [];
+                if (!in_array($manager->user->role, $allowedRoles)) {
+                    return response()->json([
+                        'errors' => [
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}. They must be one of: " . implode(', ', $allowedRoles)]
+                        ]
+                    ], 422);
+                }
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -277,8 +302,50 @@ class EmployeeController extends Controller
             'certifications' => 'nullable|array',
             'status' => 'in:active,on_leave,suspended,terminated,probation',
             'notes' => 'nullable|string',
-            'role' => 'nullable|in:admin,manager,sales_rep',
+            'role' => 'nullable|in:super_admin,admin,manager,finance,logistics,sales_rep,driver',
         ]);
+
+        if ($request->filled('manager_id') && $request->filled('role')) {
+            $manager = Employee::with('user')->find($request->manager_id);
+            
+            if ($manager && $manager->user) {
+                $canReportTo = [
+                    'driver' => ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'sales_rep' => ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'finance' => ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
+                    'logistics' => ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
+                    'manager' => ['manager', 'admin', 'super_admin'],
+                    'admin' => ['admin', 'super_admin'],
+                    'super_admin' => ['super_admin'],
+                ];
+                
+                $allowedRoles = $canReportTo[$request->role] ?? [];
+                if (!in_array($manager->user->role, $allowedRoles)) {
+                    return response()->json([
+                        'errors' => [
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}. They must be one of: " . implode(', ', $allowedRoles)]
+                        ]
+                    ], 422);
+                }
+            }
+        }
+
+        if ($request->filled('manager_id')) {
+            // Prevent self-reference
+            if ($request->manager_id == $id) { // $id is the employee being updated
+                return response()->json([
+                    'errors' => ['manager_id' => ['An employee cannot report to themselves.']]
+                ], 422);
+            }
+            
+            // Prevent circular reporting (check if the manager reports to this employee)
+            $manager = Employee::find($request->manager_id);
+            if ($manager && $manager->manager_id == $id) {
+                return response()->json([
+                    'errors' => ['manager_id' => ['Circular reporting detected: This manager already reports to the employee.']]
+                ], 422);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -518,24 +585,30 @@ class EmployeeController extends Controller
     /**
      * Get potential managers (for dropdown)
      */
-    public function potentialManagers()
+    public function potentialManagers(Request $request)
     {
         $this->authorize('viewAny', Employee::class);
-
-        $managers = Employee::with('user')
-            ->whereIn('status', ['active', 'on_leave'])
-            ->get()
-            ->map(function ($employee) {
-                return [
-                    'id' => $employee->id,
-                    'user_id' => $employee->user_id,
-                    'name' => $employee->full_name,
-                    'role' => $employee->user?->role,
-                    'job_title' => $employee->job_title,
-                    'department' => $employee->department,
-                ];
-            });
-
+        
+        $excludeId = $request->input('exclude_id'); // Pass current employee ID when editing
+        
+        $query = Employee::with('user')
+            ->whereIn('status', ['active', 'on_leave']);
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        
+        $managers = $query->get()->map(function ($employee) {
+            return [
+                'id' => $employee->id,
+                'user_id' => $employee->user_id,
+                'name' => $employee->full_name,
+                'role' => $employee->user?->role,
+                'job_title' => $employee->job_title,
+                'department' => $employee->department,
+            ];
+        });
+        
         return response()->json(['data' => $managers], 200);
     }
 

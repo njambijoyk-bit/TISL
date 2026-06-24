@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import useAuthStore from './authStore';
 import api from '../api/axios';
 import { searchEvents } from '../services/searchEventService';
 
@@ -7,13 +8,12 @@ const DEBOUNCE_MS = 1500;
 let quoteSyncTimer = null;
 
 const syncQuoteToServer = (items) => {
+  if (!useAuthStore.getState().isAuthenticated) return;
   clearTimeout(quoteSyncTimer);
   quoteSyncTimer = setTimeout(async () => {
     try {
       await api.post('/customer/quote-list/sync', { items });
-    } catch {
-      // silent
-    }
+    } catch {}
   }, DEBOUNCE_MS);
 };
 
@@ -68,8 +68,11 @@ const useQuoteListStore = create(
       },
 
       clearList: () => {
+        clearTimeout(quoteSyncTimer);
         set({ items: [] });
-        syncQuoteToServer([]);
+        if (useAuthStore.getState().isAuthenticated) {
+          api.delete('/customer/quote-list').catch(() => {});
+        }
       },
 
       // ── Server sync ────────────────────────────────────────────────────
@@ -79,29 +82,28 @@ const useQuoteListStore = create(
         try {
           const { data } = await api.get('/customer/quote-list');
           const serverItems = data.items ?? [];
-          if (!serverItems.length) return;
 
           const localItems = get().items;
-          const merged = [...localItems];
-          serverItems.forEach(serverItem => {
-            const idx = merged.findIndex(i => i.product.id === serverItem.product.id);
+          const merged = [...serverItems.map(i => ({ ...i }))];
+          localItems.forEach(localItem => {
+            const idx = merged.findIndex(i => i.product.id === localItem.product.id);
             if (idx !== -1) {
               merged[idx] = {
                 ...merged[idx],
-                quantity: merged[idx].quantity + serverItem.quantity,
-                notes: merged[idx].notes || serverItem.notes,
+                quantity: merged[idx].quantity + localItem.quantity,
+                notes: merged[idx].notes || localItem.notes,
               };
             } else {
-              merged.push(serverItem);
+              merged.push(localItem);
             }
           });
 
           set({ items: merged });
-          syncQuoteToServer(merged);
-        } catch {
-          // silent — keep local
-        }
+          api.post('/customer/quote-list/sync', { items: merged }).catch(() => {});
+        } catch {}
       },
+
+      resetLocal: () => set({ items: [] }),
     }),
     { name: 'tisl-quote-list', version: 1 }
   )

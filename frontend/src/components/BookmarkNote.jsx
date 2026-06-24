@@ -121,16 +121,19 @@ export default function BookmarkNote() {
   const pillDragStart = useRef({ my: 0, top: 0 });
 
   const onPillMouseDown = useCallback((e) => {
+    const point = e.touches ? e.touches[0] : e;
     e.preventDefault();
     pillDidDrag.current  = false;
     pillDragging.current = true;
-    pillDragStart.current = { my: e.clientY, top: getPillTop() };
+    pillDragStart.current = { my: point.clientY, top: getPillTop() };
     audio.playDragStart();
 
     const onMove = (mv) => {
+      const p = mv.touches ? mv.touches[0] : mv;
       if (!pillDragging.current) return;
-      const dy = mv.clientY - pillDragStart.current.my;
-      if (Math.abs(dy) > 3) pillDidDrag.current = true;
+      const dy = p.clientY - pillDragStart.current.my;
+      const threshold = mv.touches ? 8 : 3;
+        if (Math.abs(dy) > threshold) pillDidDrag.current = true;
       const next = clamp(pillDragStart.current.top + dy, 48, window.innerHeight - 48);
       setPillTop(next);
       safeLS.set(STORAGE_KEY_PILL_TOP, next);
@@ -139,9 +142,13 @@ export default function BookmarkNote() {
       pillDragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [pillTop, audio]);
 
   // ── Panel drag ────────────────────────────────────────────────────────────
@@ -151,6 +158,7 @@ export default function BookmarkNote() {
 
   const onPanelHeaderMouseDown = useCallback((e) => {
     if (e.target.closest('button')) return;
+    const point = e.touches ? e.touches[0] : e;
     e.preventDefault();
     panelDragging.current = true;
     dragDetached.current  = false;
@@ -158,12 +166,13 @@ export default function BookmarkNote() {
 
     const startX = docked ? (window.innerWidth - PANEL_W) : panelPos.x;
     const startY = docked ? dockTop : panelPos.y;
-    panelDragStart.current = { mx: e.clientX, my: e.clientY, px: startX, py: startY };
+    panelDragStart.current = { mx: point.clientX, my: point.clientY, px: startX, py: startY };
 
     const onMove = (mv) => {
+      const p = mv.touches ? mv.touches[0] : mv;
       if (!panelDragging.current) return;
-      const dx = mv.clientX - panelDragStart.current.mx;
-      const dy = mv.clientY - panelDragStart.current.my;
+      const dx = p.clientX - panelDragStart.current.mx;
+      const dy = p.clientY - panelDragStart.current.my;
 
       if (docked && !dragDetached.current) {
         if (Math.abs(dx) > 20) {
@@ -182,14 +191,17 @@ export default function BookmarkNote() {
       setPanelPos(pos);
       safeLS.setJSON(STORAGE_KEY_PANEL_POS, pos);
     };
-
     const onUp = () => {
       panelDragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [docked, panelPos, dockTop, audio]);
 
   // ── Clear confirmation ────────────────────────────────────────────────────
@@ -202,9 +214,23 @@ export default function BookmarkNote() {
   };
   useEffect(() => { setConfirmClear(false); }, [note]);
 
+  useEffect(() => {
+    const pill = pillRef.current;
+    const header = panelHeaderRef.current;
+    pill?.addEventListener('touchstart', onPillMouseDown, { passive: false });
+    header?.addEventListener('touchstart', onPanelHeaderMouseDown, { passive: false });
+    return () => {
+      pill?.removeEventListener('touchstart', onPillMouseDown);
+      header?.removeEventListener('touchstart', onPanelHeaderMouseDown);
+    };
+  }, [onPillMouseDown, onPanelHeaderMouseDown]);
+
   // ── Char warn tracking ────────────────────────────────────────────────────
   const prevCharsWarn = useRef(false);
   const prevCharsCrit = useRef(false);
+
+  const pillRef = useRef(null);
+  const panelHeaderRef = useRef(null);
 
   const handleNoteChange = (val) => {
     setNote(val);
@@ -262,8 +288,14 @@ export default function BookmarkNote() {
     <>
       <style>{styleBlock}</style>
       <button
+        ref={pillRef}
         onMouseDown={onPillMouseDown}
         onClick={() => { if (!pillDidDrag.current) setCollapsedPersist(false); }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          if (!pillDidDrag.current) setCollapsedPersist(false);
+          pillDidDrag.current = false;
+        }}
         onMouseEnter={audio.playHover}
         title="Open bookmark notes"
         style={{
@@ -322,6 +354,7 @@ export default function BookmarkNote() {
 
         {/* ── Header ── */}
         <div
+          ref={pillRef}
           onMouseDown={onPanelHeaderMouseDown}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -364,6 +397,7 @@ export default function BookmarkNote() {
               onMouseDown={e => e.stopPropagation()}
               onMouseEnter={audio.playHover}
               onClick={() => setCollapsedPersist(true)}
+              onTouchEnd={(e) => { e.preventDefault(); setCollapsedPersist(true); }}
               title="Minimise"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(168,85,247,0.5)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(168,85,247,0.5)'}

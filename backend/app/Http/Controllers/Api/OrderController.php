@@ -721,12 +721,12 @@ class OrderController extends Controller
 
         //return response()->json(['order' => $order], 200);
         return response()->json([
-        'order' => array_merge($order->toArray(), [
-        'promo_code'               => $order->promoCode?->code,
-        'referral_code'            => $order->referralCode?->code,
-        'credit_account_deduction' => (float) ($order->metadata['credit_account_deduction'] ?? 0),
-    ]),
-    ], 200);
+            'order' => array_merge($order->toArray(), [
+            'promo_code'               => $order->promoCode?->code,
+            'referral_code'            => $order->referralCode?->code,
+            'credit_account_deduction' => (float) ($order->metadata['credit_account_deduction'] ?? 0),
+        ]),
+        ], 200);
     }
 
     /**

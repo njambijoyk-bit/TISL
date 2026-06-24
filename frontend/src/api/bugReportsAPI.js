@@ -74,6 +74,31 @@ export async function submitReport(data) {
 }
 
 /**
+ * Public bug report search — no auth required.
+ * Used for dropdowns (e.g. DevNoteForm bug picker).
+ */
+export async function searchReports(params = {}) {
+  const res = await api.get('/bug-reports/search', { params });
+  return res.data;
+}
+
+/**
+ * Upload a screenshot for a bug report.
+ * Public — no auth required.
+ *
+ * @param {File} file  Image file from input
+ * @returns {{ url: string }}
+ */
+export async function uploadScreenshot(file) {
+  const form = new FormData();
+  form.append('screenshot', file);
+  const res = await api.post('/bug-reports/screenshot', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
+/**
  * Track a bug report by its tracking token (public — for guests).
  *
  * @param {string} token  UUID tracking token returned on submit

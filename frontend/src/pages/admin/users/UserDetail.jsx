@@ -17,8 +17,12 @@ const ROLE_META = {
   super_admin: { label: 'Super Admin', color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },
   admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
   manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
+  finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
+  logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
+  driver:      { label: 'Driver',      color: '#6b7280', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
   customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
+  vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
 };
 
 const STATUS_STYLES = {
@@ -28,8 +32,19 @@ const STATUS_STYLES = {
   pending_verification: { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
 };
 
-const ROLES_ASSIGNABLE = ['admin', 'manager', 'sales_rep', 'customer'];
-const LEVELS = { super_admin: 1, admin: 2, manager: 3, sales_rep: 4, customer: 5 };
+const ROLES_ASSIGNABLE = ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver', 'customer', 'vendor'];
+
+const LEVELS = {
+  super_admin: 1,
+  admin: 2,
+  manager: 3,
+  finance: 4,
+  logistics: 5,
+  sales_rep: 6,
+  customer: 7,
+  vendor: 8,
+  driver: 9
+};
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 

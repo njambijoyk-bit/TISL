@@ -28,13 +28,6 @@ const labelStyle = {
   fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4,
 };
 
-const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid #e5e7eb',
-  boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-  padding: 24,
-};
-
 const sectionTitle = {
   fontSize: '0.875rem', fontWeight: 700, color: '#111827',
   display: 'flex', alignItems: 'center', gap: 8,
@@ -107,6 +100,19 @@ export default function Checkout() {
   
   const submittedRef = useRef(false);
 
+  
+
+const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  const card = {
+    background: 'white', borderRadius: 12,
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+    padding: isMobile ? 14 : 24,      // 
+    minWidth: 0,                       // 
+    boxSizing: 'border-box',           // 
+  };
+
   const [shippingOptions, setShippingOptions] = useState([]);
 
   const [storeCreditMaxPct, setStoreCreditMaxPct] = useState(50); // default 50 until loaded
@@ -152,8 +158,6 @@ export default function Checkout() {
 
   const [policyAccepted,    setPolicyAccepted]    = useState(false);
   const [policyAcceptances, setPolicyAcceptances] = useState([]);
-
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -297,10 +301,10 @@ export default function Checkout() {
   if (items.length === 0 && !submittedRef.current) { navigate('/cart'); return null; }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
       <Header />
 
-      <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: '32px 20px', width: '100%' }}>
+      <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: isMobile ? '20px 12px' : '32px 20px', width: '100%', boxSizing: 'border-box' }}>
 
         {/* Breadcrumb */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#9ca3af', marginBottom: 24 }}>
@@ -519,6 +523,8 @@ export default function Checkout() {
                         border: `1.5px solid ${applyCredit ? '#a855f7' : '#e5e7eb'}`,
                         background: applyCredit ? 'rgba(168,85,247,0.04)' : 'white',
                         fontFamily: 'inherit', transition: 'all 150ms',
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -565,7 +571,7 @@ export default function Checkout() {
                               const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
                               setCreditInput(String(val.toFixed(0)));
                             }}
-                            style={{ ...inputStyle, paddingLeft: 38 }}
+                            style={{ ...inputStyle, paddingLeft: 38, fontSize: '16px' }}
                             onFocus={inputFocus}
                           />
                           {creditCalculating && (
@@ -688,6 +694,8 @@ export default function Checkout() {
                     background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
                     fontSize: '0.7rem', color: '#7c3aed',
                     display: 'flex', alignItems: 'flex-start', gap: 6,
+                    transform: 'translateZ(0)',
+                    WebkitTransform: 'translateZ(0)',
                   }}>
                     <Tag size={11} style={{ flexShrink: 0, marginTop: 1 }} />
                     Referral discounts are automatically applied on the server when eligible.

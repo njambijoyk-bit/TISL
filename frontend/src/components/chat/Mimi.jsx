@@ -171,15 +171,17 @@ export default function Mimi({ embedded = false }) {
   const didDrag = useRef(false);
 
   const onBubbleMouseDown = useCallback((e) => {
+    const point = e.touches ? e.touches[0] : e;
     e.preventDefault();
     didDrag.current = false;
     dragging.current = true;
-    dragStart.current = { mx: e.clientX, my: e.clientY, x: pos.x, y: pos.y };
+    dragStart.current = { mx: point.clientX, my: point.clientY, x: pos.x, y: pos.y };
 
     const onMove = (e) => {
+      const p = e.touches ? e.touches[0] : e;
       if (!dragging.current) return;
-      const dx = dragStart.current.mx - e.clientX;
-      const dy = dragStart.current.my - e.clientY;
+      const dx = dragStart.current.mx - p.clientX;
+      const dy = dragStart.current.my - p.clientY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
       setPos({
         x: Math.max(8, dragStart.current.x + dx),
@@ -190,20 +192,26 @@ export default function Mimi({ embedded = false }) {
       dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [pos]);
 
   const onDragMouseDown = useCallback((e) => {
+    const point = e.touches ? e.touches[0] : e;
     e.preventDefault();
     dragging.current = true;
-    dragStart.current = { mx: e.clientX, my: e.clientY, x: pos.x, y: pos.y };
+    dragStart.current = { mx: point.clientX, my: point.clientY, x: pos.x, y: pos.y };
 
     const onMove = (e) => {
+      const p = e.touches ? e.touches[0] : e;
       if (!dragging.current) return;
-      const dx = dragStart.current.mx - e.clientX;
-      const dy = dragStart.current.my - e.clientY;
+      const dx = dragStart.current.mx - p.clientX;
+      const dy = dragStart.current.my - p.clientY;
       setPos({
         x: Math.max(8, dragStart.current.x + dx),
         y: Math.max(8, dragStart.current.y + dy),
@@ -213,10 +221,32 @@ export default function Mimi({ embedded = false }) {
       dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [pos]);
+
+  const bubbleRef = useRef(null);
+  const dragHeaderRef = useRef(null);
+
+  // Attach touch listeners directly to DOM
+  useEffect(() => {
+    const bubble = bubbleRef.current;
+    const header = dragHeaderRef.current;
+    if (!bubble || !header) return;
+
+    bubble.addEventListener('touchstart', onBubbleMouseDown, { passive: false });
+    header.addEventListener('touchstart', onDragMouseDown, { passive: false });
+
+    return () => {
+      bubble.removeEventListener('touchstart', onBubbleMouseDown);
+      header.removeEventListener('touchstart', onDragMouseDown);
+    };
+  }, [onBubbleMouseDown, onDragMouseDown]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -308,7 +338,9 @@ export default function Mimi({ embedded = false }) {
       {open && (
         <div style={{
           position: 'fixed', bottom: pos.y + 70, right: pos.x, zIndex: 10000,
-          width: 360, height: 520,
+          width: 'min(360px, calc(100vw - 24px))',
+          height: 'min(520px, calc(100dvh - 120px))',
+          maxHeight: '-webkit-fill-available',
           animation: 'mimiPop 250ms cubic-bezier(0.34,1.56,0.64,1)',
           display: 'flex', flexDirection: 'column',
           borderRadius: 20, overflow: 'hidden',
@@ -316,6 +348,7 @@ export default function Mimi({ embedded = false }) {
         }}>
           {/* Draggable header */}
           <div
+            ref={dragHeaderRef}
             onMouseDown={onDragMouseDown}
             style={{
               background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
@@ -369,6 +402,7 @@ export default function Mimi({ embedded = false }) {
       {/* Floating bubble */}
       <button
         type="button"
+        ref={bubbleRef}
         onMouseDown={onBubbleMouseDown}
         onClick={() => { if (!didDrag.current) setOpen(o => !o); }}
         style={{
@@ -405,10 +439,11 @@ export default function Mimi({ embedded = false }) {
 // ── Shared chat body ──────────────────────────────────────────────────────────
 function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey, inputRef, bottomRef, showSuggested, embedded, navigate  }) {
   return (
+    
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fafafa', minHeight: 0 }}>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', WebkitOverflowScrolling: 'touch' }}>
         {messages.map((msg, i) => <Message key={i} msg={msg} />)}
         {loading && (
           <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10 }}>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   headers: {
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
@@ -28,11 +28,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Only redirect to login if we're NOT already on the login page.
+      // If we are on login, the failed auth is handled by the form's own catch block.
+      const isLoginPage = window.location.pathname === '/login';
+      if (!isLoginPage) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth-storage');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
 
     // Handle 403 Forbidden

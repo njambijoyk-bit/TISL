@@ -17,7 +17,7 @@ const P  = C.purple;
 const PL = 'rgba(168,85,247,0.08)';
 const PB = 'rgba(168,85,247,0.2)';
 
-const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep'];
+const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'driver'];
 
 const OUTPUT_TYPES = [
   { value: 'summary',        label: 'Summary',   desc: 'High-level overview' },

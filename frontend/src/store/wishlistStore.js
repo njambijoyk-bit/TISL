@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import useAuthStore from './authStore';
 import { productsAPI } from '../api';
 import api from '../api/axios';
 import { searchEvents } from '../services/searchEventService';
@@ -8,13 +9,12 @@ const DEBOUNCE_MS = 1500;
 let wishlistSyncTimer = null;
 
 const syncWishlistToServer = (ids) => {
+  if (!useAuthStore.getState().isAuthenticated) return;
   clearTimeout(wishlistSyncTimer);
   wishlistSyncTimer = setTimeout(async () => {
     try {
       await api.post('/customer/wishlist/sync', { ids });
-    } catch {
-      // silent
-    }
+    } catch {}
   }, DEBOUNCE_MS);
 };
 
@@ -64,8 +64,11 @@ const useWishlistStore = create(
       },
 
       clearWishlist: () => {
+        clearTimeout(wishlistSyncTimer);
         set({ ids: [], items: [], error: null });
-        syncWishlistToServer([]);
+        if (useAuthStore.getState().isAuthenticated) {
+          api.delete('/customer/wishlist').catch(() => {});
+        }
       },
 
       fetchWishlistItems: async () => {
@@ -93,16 +96,16 @@ const useWishlistStore = create(
         try {
           const { data } = await api.get('/customer/wishlist');
           const serverIds = data.ids ?? [];
-          if (!serverIds.length) return;
 
           const localIds = get().ids;
-          const merged = [...new Set([...localIds, ...serverIds])];
+          const merged = [...new Set([...serverIds, ...localIds])];
+
           set({ ids: merged });
-          syncWishlistToServer(merged);
-        } catch {
-          // silent — keep local
-        }
+          api.post('/customer/wishlist/sync', { ids: merged }).catch(() => {});
+        } catch {}
       },
+
+      resetLocal: () => set({ ids: [], items: [], error: null }),
     }),
     { name: 'wishlist:v1', partialize: (state) => ({ ids: state.ids }) }
   )
