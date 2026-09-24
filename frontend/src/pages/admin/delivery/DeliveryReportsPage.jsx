@@ -10,7 +10,7 @@ import {
     PieChart, Pie, Cell, Legend, LineChart, Line,
 } from 'recharts';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import GeneralLayout from '../../../components/layout/GeneralLayout';
 import deliveryAPI from '../../../api/delivery';
 import { useDeliveryAudio } from './useDeliveryAudio';
@@ -79,10 +79,10 @@ const PIE_COLORS = [D.purple, '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444', '#94a3
 
 // ── PDF export helper ────────────────────────────────────────────────────────────
 function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc   = new jsPDF('p', 'mm', 'a4');
     const pageW = doc.internal.pageSize.getWidth();
 
-    // Header
+    // ── Header ──
     doc.setFillColor(168, 85, 247);
     doc.rect(0, 0, pageW, 28, 'F');
     doc.setTextColor(255, 255, 255);
@@ -96,32 +96,31 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
 
     let y = 36;
 
-    // ── Summary KPIs ──
+    const manifests  = overview?.manifests  || {};
+    const deliveries = overview?.deliveries || {};
+    const incidents  = overview?.incidents  || {};
+    const shipments  = overview?.shipments  || {};
+
+    // ── KPI Summary ──
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('Executive Summary', 14, y);
     y += 2;
 
-    const manifests  = overview?.manifests  || {};
-    const deliveries = overview?.deliveries || {};
-    const incidents  = overview?.incidents  || {};
-
-    const kpiData = [
-        ['Total Manifests', String(manifests.total ?? 0)],
-        ['Completion Rate', `${manifests.completion_rate ?? 0}%`],
-        ['On-Time Delivery', `${deliveries.on_time_rate ?? 0}%`],
-        ['Open Incidents', String(incidents.open ?? 0)],
-        ['Total Delivered', String(deliveries.delivered ?? 0)],
-        ['Total Failed', String(deliveries.failed ?? 0)],
-        ['Avg Distance', manifests.avg_distance_km ? `${manifests.avg_distance_km} km` : '—'],
-        ['Avg Duration', manifests.avg_duration_mins ? `${manifests.avg_duration_mins} min` : '—'],
-    ];
-
-    doc.autoTable({
+    autoTable(doc, {
         startY: y,
         head: [['Metric', 'Value']],
-        body: kpiData,
+        body: [
+            ['Total Manifests',  String(manifests.total ?? 0)],
+            ['Completion Rate',  `${manifests.completion_rate ?? 0}%`],
+            ['On-Time Delivery', `${deliveries.on_time_rate ?? 0}%`],
+            ['Open Incidents',   String(incidents.open ?? 0)],
+            ['Total Delivered',  String(deliveries.delivered ?? 0)],
+            ['Total Failed',     String(deliveries.failed ?? 0)],
+            ['Avg Distance',     manifests.avg_distance_km ? `${manifests.avg_distance_km} km` : '—'],
+            ['Avg Duration',     manifests.avg_duration_mins ? `${manifests.avg_duration_mins} min` : '—'],
+        ],
         theme: 'striped',
         headStyles: { fillColor: [168, 85, 247], textColor: 255, fontSize: 9 },
         bodyStyles: { fontSize: 9, textColor: 60 },
@@ -133,6 +132,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
 
     // ── Manifest Status Breakdown ──
     if (manifStats) {
+        if (y > 240) { doc.addPage(); y = 20; }
         doc.setTextColor(80, 80, 80);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
@@ -150,7 +150,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
             statusRows.push(['AI-Generated', String(manifStats.ai_generated)]);
         }
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             head: [['Status', 'Count']],
             body: statusRows,
@@ -164,7 +164,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
     }
 
     // ── Failed Delivery Reasons ──
-    const failedReasons = (deliveries.failed_reasons || []);
+    const failedReasons = deliveries.failed_reasons || [];
     if (failedReasons.length > 0) {
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setTextColor(80, 80, 80);
@@ -173,7 +173,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
         doc.text('Failed Delivery Reasons', 14, y);
         y += 2;
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             head: [['Reason', 'Count']],
             body: failedReasons.map(r => [r.failed_reason || 'Unknown', String(r.count)]),
@@ -187,7 +187,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
     }
 
     // ── Incidents by Category ──
-    const incidentsCat = (incidents.by_category || []);
+    const incidentsCat = incidents.by_category || [];
     if (incidentsCat.length > 0) {
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setTextColor(80, 80, 80);
@@ -196,7 +196,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
         doc.text('Incidents by Category', 14, y);
         y += 2;
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             head: [['Category', 'Count']],
             body: incidentsCat.map(r => [(r.category || 'Other').replace(/_/g, ' '), String(r.count)]),
@@ -210,12 +210,12 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
     }
 
     // ── Shipment Workflows ──
-    const shipments = overview?.shipments || {};
     const shipRows = [
         ['Internal',  String(shipments.internal ?? 0)],
         ['Courier',   String(shipments.external_courier ?? 0)],
         ['In-store',  String(shipments.instore ?? 0)],
     ].filter(r => r[1] !== '0');
+
     if (shipRows.length > 0) {
         if (y > 250) { doc.addPage(); y = 20; }
         doc.setTextColor(80, 80, 80);
@@ -224,7 +224,7 @@ function generateDeliveryPDF({ overview, manifStats, reportTitle, dateRange }) {
         doc.text('Shipment Workflows', 14, y);
         y += 2;
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             head: [['Workflow Type', 'Count']],
             body: shipRows,

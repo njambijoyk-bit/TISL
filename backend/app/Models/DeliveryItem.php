@@ -27,12 +27,14 @@ class DeliveryItem extends Model
         'failed_reason',
         'attempted_at',
         'delivered_at',
+        'returned_at',
     ];
 
     protected $casts = [
         'estimated_arrival'      => 'datetime',
         'attempted_at'           => 'datetime',
         'delivered_at'           => 'datetime',
+        'returned_at'            => 'datetime',
         'delivery_latitude'      => 'decimal:7',  
         'delivery_longitude'     => 'decimal:7',  
         'arrival_latitude'       => 'decimal:7',

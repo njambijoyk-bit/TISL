@@ -671,7 +671,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                     ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: '#a855f7' }] : []),
                     ...(creditDeduction > 0 ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
                     ...(creditAccountDeductionDisplay > 0 ? [{ label: 'Credit account', value: `−${fmt(creditAccountDeductionDisplay)}`, color: '#7c3aed' }] : []),
-                    { label: 'Tax (16%)', value: fmt(tax) },
+                    { label: 'VAT (16%)', value: fmt(tax) },
                     { label: 'Shipping',  value: shipping === 0 ? 'Free' : fmt(shipping) },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>

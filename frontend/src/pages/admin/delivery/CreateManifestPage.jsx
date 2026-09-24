@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import GeneralLayout from '../../../components/layout/GeneralLayout';
 import deliveryAPI from '../../../api/delivery';
+import AiManifestCreator from './AiManifestCreator';
 import { useDeliveryAudio } from './useDeliveryAudio';
 import {
     D, DeliveryPageShell, DeliveryPageHeader, DeliveryBreadcrumb,
@@ -768,20 +769,6 @@ function ManualFlow({ onBack, onSuccess, audio }) {
     );
 }
 
-// ── AI flow (stub) ────────────────────────────────────────────────────────────
-function AiFlow({ onBack, onSuccess, audio }) {
-    const [deliveryMethod, setDeliveryMethod] = useState('internal_driver');
-    return (
-        <div>
-            <div style={{ marginBottom: 16 }}>
-                <label style={field.label}>Delivery method</label>
-                <DeliveryMethodPicker value={deliveryMethod} onChange={setDeliveryMethod} onHover={audio.playHover} />
-            </div>
-            <div style={{ fontSize: '0.82rem', color: D.textDim, padding: 20, textAlign: 'center' }}>AI Flow — implementation pending</div>
-        </div>
-    );
-}
-
 // ── Success screen ────────────────────────────────────────────────────────────
 function SuccessScreen({ manifestId, onView, onPlanRoute, onCreateAnother, onHover }) {
     return (
@@ -834,7 +821,7 @@ export default function CreateManifestPage() {
 
                 {mode === MODES.CHOOSE && <ModeChooser onChoose={setMode} onHover={audio.playHover} />}
                 {mode === MODES.MANUAL && <ManualFlow onBack={() => { audio.playHover(); setMode(MODES.CHOOSE); }} onSuccess={handleSuccess} audio={audio} />}
-                {mode === MODES.AI     && <AiFlow     onBack={() => { audio.playHover(); setMode(MODES.CHOOSE); }} onSuccess={handleSuccess} audio={audio} />}
+                {mode === MODES.AI && <AiManifestCreator onBack={() => { audio.playHover(); setMode(MODES.CHOOSE); }} onSuccess={handleSuccess} audio={audio} />}
                 {mode === 'done' && (
                     <DeliveryCard>
                         <SuccessScreen

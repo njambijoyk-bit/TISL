@@ -23,6 +23,12 @@ const deliveryAPI = {
   createManifest: (data) =>
     api.post('/admin/delivery/manifests', data).then(r => r.data),
 
+  aiCreateManifest: (data) =>
+    api.post('/admin/delivery/manifests/ai-create', data).then(r => r.data),
+
+  aiAdvisory: (data) =>
+    api.post('/admin/delivery/manifests/ai-generate', data).then(r => r.data),
+
   updateManifest: (id, data) =>
     api.patch(`/admin/delivery/manifests/${id}`, data).then(r => r.data),
 
@@ -41,6 +47,14 @@ const deliveryAPI = {
         driver_id: driverId,
         order_ids: orderIds,
     }).then(r => r.data),
+
+  // Admin override item status for non-internal-driver manifests
+  overrideExternalItemStatus: (manifestId, itemId, data) =>
+      api.patch(`/admin/delivery/manifests/${manifestId}/items/${itemId}/override-external`, data).then(r => r.data),
+
+  // Admin force-complete a manifest
+  completeManifest: (id, data = {}) =>
+      api.post(`/admin/delivery/manifests/${id}/complete`, data).then(r => r.data),
 
   deleteManifestIfEmpty: (manifestId) =>
     api.delete(`/admin/delivery/manifests/${manifestId}/force`).then(r => r.data),
@@ -84,6 +98,13 @@ const deliveryAPI = {
   checkOrderEligibility: (orderIds) =>
     api.post('/admin/delivery/orders/eligibility', { order_ids: orderIds }).then(r => r.data),
 
+  // Returned items awaiting reassignment
+  getReturnedItems: () =>
+    api.get('/admin/delivery/manifests/returned-items').then(r => r.data),
+
+  getFailedItems: () =>
+    api.get('/admin/delivery/manifests/failed-items').then(r => r.data),
+  
   // ========================================
   // ADMIN — SHIPMENTS
   // ========================================
@@ -194,6 +215,27 @@ const deliveryAPI = {
         headers: {
             'Content-Type': undefined,  // Remove any default so browser sets it
         }
+    }).then(r => r.data);
+  },
+
+  // Replace proof of delivery photo for a delivered stop
+  updateStopProof: (itemId, file) => {
+      const form = new FormData();
+      form.append('proof_of_delivery', file);
+      return api.post(`/driver/stops/${itemId}/update-proof`, form, {
+          headers: { 'Content-Type': undefined },
+      }).then(r => r.data);
+  },
+
+  retryStop: (itemId, data) => {
+    const form = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        form.append(key, value);
+      }
+    });
+    return api.post(`/driver/stops/${itemId}/retry`, form, {
+      headers: { 'Content-Type': undefined },
     }).then(r => r.data);
   },
 

@@ -85,7 +85,7 @@ const PANEL_W   = 224;
 const PANEL_W_C = 52;
 
 export default function GeneralLayout({ children }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('general_sidebar_collapsed') === 'true');
   const audio        = useLayoutAudio();
   const navigate     = useNavigate();
   const { pathname } = useLocation();
@@ -102,6 +102,7 @@ export default function GeneralLayout({ children }) {
   
   const doCollapse = (val) => {
     setCollapsed(val);
+    localStorage.setItem('general_sidebar_collapsed', String(val));
     val ? audio.playCollapse() : audio.playExpand();
   };
 

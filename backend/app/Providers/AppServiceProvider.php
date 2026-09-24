@@ -28,6 +28,9 @@ use App\Services\Chat\MimiHarmScannerService;
 use App\Services\Chat\MimiBlockService;
 use App\Services\Chat\MimiSessionService;
 use App\Services\Chat\MimiQueryLogService;
+use App\Services\Vault\VaultService;
+use App\Services\Vault\VaultPolicyService;
+use App\Services\Vault\VaultArchiverService;
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
 
@@ -59,6 +62,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MimiBlockService::class);
         $this->app->singleton(MimiSessionService::class);
         $this->app->singleton(MimiQueryLogService::class);
+        $this->app->singleton(VaultService ::class);
+        $this->app->singleton(VaultPolicyService::class);
+        $this->app->singleton(VaultArchiverService::class);
         $this->app->singleton(InventoryTransactionService::class);
         $this->app->singleton(InventoryOperationsService::class, function ($app) {
             return new InventoryOperationsService(

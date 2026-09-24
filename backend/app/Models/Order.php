@@ -219,6 +219,7 @@ class Order extends Model
             'confirmed' => 'Confirmed',
             'processing' => 'Processing',
             'ready_for_pickup' => 'Ready for Pickup',
+            'out_for_delivery' => 'Out for Delivery',
             'shipped' => 'Shipped',
             'delivered' => 'Delivered',
             'cancelled' => 'Cancelled',

@@ -9,9 +9,10 @@ import {
   ShoppingCart, FileText, Bell, LogOut, Edit3, Check, X, ChevronDown,
   User, Star, CreditCard, Lock, LayoutDashboard, Briefcase, ChevronUp,
   Users, Shield, ShieldAlert, Package, Wrench, ShoppingBag, ClipboardList,
-  Heart, Gavel, Tag, BarChart2, LifeBuoy, FolderOpen, Award,
-  MessageSquare, BookOpen, Info, Settings, Gift, ChevronRight,
+  Heart, Gavel, Tag, BarChart2, LifeBuoy, FolderOpen, Award, ScrollText,
+  MessageSquare, BookOpen, Info, Settings, Gift, ChevronRight, Truck,
   Eye, EyeOff, Loader2, Sparkles, Globe, ShieldCheck,
+  RouteIcon,
 } from 'lucide-react';
 import { useAuthStore, useCartStore, useQuoteListStore, usePromoCodeStore } from '../../store';
 import {
@@ -72,6 +73,7 @@ const CUSTOMER_ROUTES = [
   { key: 'brochures',      label: 'Brochures',      icon: BookOpen,      path: '/brochures',         color: '#64748b' },
   { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: '#7c3aed' },
   { key: 'profile',        label: 'My Profile',     icon: Info,          path: '/profile',           color: '#0ea5e9' },
+  { key: 'd-hist',         label: 'Delivery History',icon: ScrollText,   path: '/delivery-history',  color: '#14b8a6' },
 ];
 
 const ADMIN_ROUTES = [
@@ -90,18 +92,20 @@ const ADMIN_ROUTES = [
   { key: 'q-requests', label: 'Quote Reqs', icon: MessageSquare,   path: '/admin/quote-requests', color: '#f43f5e' },
   { key: 'employees',  label: 'Employees',  icon: Users,           path: '/admin/employees',      color: '#0ea5e9' },
   { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: '#7c3aed' },
+  { key: 'manifests',  label: 'Manifests',  icon: ScrollText,      path: '/admin/delivery',       color: '#f97316' },
+  { key: 'd-mnfst',    label: 'Driver Mnfst', icon: Truck,         path: '/driver/manifests',     color: '#0ea5e9' },
 ];
 
 const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'bookings', 'profile', 'products', 'services'];
 const DEFAULT_ADMIN_SHORTCUTS    = ['dashboard', 'orders', 'products', 'customers', 'bookings', 'reports'];
 
 const ROLE_LABELS = {
-  admin: 'Admin', super_admin: 'Super Admin', manager: 'Manager',
-  finance: 'Finance', logistics: 'Logistics', sales_rep: 'Sales Rep', staff: 'Staff',
+  admin: 'Admin', super_admin: 'Super Admin', manager: 'Manager', finance: 'Finance',
+  driver: 'Driver', logistics: 'Logistics', sales_rep: 'Sales Rep', staff: 'Staff',
 };
 const ROLE_COLORS = {
-  super_admin: '#a855f7', admin: '#3b82f6', manager: '#10b981',
-  finance: '#f59e0b', logistics: '#f97316', sales_rep: '#ec4899', staff: '#06b6d4',
+  super_admin: '#a855f7', admin: '#3b82f6', manager: '#10b981', finance: '#f59e0b',
+  driver: '#0ea5e9', logistics: '#f97316', sales_rep: '#ec4899', staff: '#06b6d4',
 };
 
 const getGreeting = () => {
@@ -1328,7 +1332,7 @@ export default function Portal() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
   const handleLogout = () => { logout(); navigate('/login'); };
-  const isAdmin = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'staff'].includes(user?.role);
+  const isAdmin = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'driver','staff'].includes(user?.role);
 
   if (!isAuthenticated) return <UnauthPWAHome />;
   if (isAdmin)          return <AdminPWAHome   user={user} onLogout={handleLogout} />;

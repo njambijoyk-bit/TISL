@@ -5,7 +5,7 @@ import {
   FolderOpen, FileText, AlertCircle, MapPin, ShoppingBag,
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
-  MessageSquareQuote, ArrowRight, CalendarClock, Bell,
+  MessageSquareQuote, ArrowRight, CalendarClock, Bell, Truck,
   ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
@@ -103,6 +103,8 @@ export default function AdminProfile() {
   const [empRecord, setEmpRecord] = useState(null);
   const [empLoading, setEmpLoading] = useState(false);
 
+  const [incompleteManifests, setIncompleteManifests] = useState([]);
+
   // Profile picture
   const imgInputRef = useRef(null);
   const [imgLoading, setImgLoading] = useState(false);
@@ -135,18 +137,27 @@ export default function AdminProfile() {
   useEffect(() => {
     if (!user?.id) return;
     fetchDashboard();
-    fetchEmployeeRecord();
+    if (user?.role !== 'driver') fetchEmployeeRecord();
   }, [user?.id]);
 
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const dashData = await workAPI.myDashboard();
-      setAssignments(
-        dashData?.assignments ?? { customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} }
-      );
-      setDeadlines(dashData?.deadlines ?? { projects: [], quotes: [], milestones: [], tasks: [], tickets: [] });
-      setActivity(dashData?.activity ?? []);
+      if (user?.role === 'driver') {
+        const res = await workAPI.driverManifests(user.id);
+        setIncompleteManifests(res.data ?? []);
+      } else {
+        const dashData = await workAPI.myDashboard();
+        setAssignments(
+          dashData?.assignments ?? { customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} }
+        );
+        setDeadlines(dashData?.deadlines ?? { projects: [], quotes: [], milestones: [], tasks: [], tickets: [] });
+        setActivity(dashData?.activity ?? []);
+        // Fire and forget — banner is non-blocking
+        workAPI.incompleteManifests()
+          .then(res => setIncompleteManifests(res.data ?? []))
+          .catch(() => {});
+      }
     } catch (err) {
       console.error('Dashboard error:', err.response?.data || err.message);
       toast.error('Failed to load dashboard data');
@@ -434,6 +445,48 @@ export default function AdminProfile() {
                     <Loader2 size={12} /> Refresh
                   </button>
                 </div>
+
+                {/* ── Incomplete Manifests Banner ──────────────────────── */}
+              {incompleteManifests.length > 0 && (
+                <div style={{
+                  background: '#fff7ed',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 10,
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 4,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Truck size={15} style={{ color: '#ea580c' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 700, color: '#9a3412' }}>
+                      {incompleteManifests.length} incomplete manifest{incompleteManifests.length > 1 ? 's' : ''}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#c2410c' }}>
+                      {incompleteManifests.filter(m => m.status === 'in_progress').length > 0
+                        ? `${incompleteManifests.filter(m => m.status === 'in_progress').length} in progress · `
+                        : ''}
+                      Across all delivery methods
+                    </p>
+                  </div>
+                  <Link
+                  to={user?.role === 'driver' ? '/driver/manifests' : '/admin/delivery/manifests'}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '6px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
+                      background: '#ea580c', color: 'white', textDecoration: 'none', flexShrink: 0,
+                    }}
+                  >
+                    View <ArrowRight size={12} />
+                  </Link>
+                </div>
+              )}
 
                 {/* Each section is a collapsible card */}
                 {[

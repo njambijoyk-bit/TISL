@@ -431,7 +431,7 @@ const QuoteDetail = () => {
         totals.itemDiscounts > 0 && ['Item Discounts',          `-${fmt(totals.itemDiscounts)}`],
         totals.itemIncreases > 0 && ['Item Increases',          `+${fmt(totals.itemIncreases)}`],
         totals.quoteDiscount > 0 && ['Quote Discount',          `-${fmt(totals.quoteDiscount)}`],
-        totals.tax       > 0     && ['Tax (VAT)',                 fmt(totals.tax)],
+        totals.tax       > 0     && ['VAT',                       fmt(totals.tax)],
         totals.shipping  > 0     && ['Shipping',                  fmt(totals.shipping)],
       ].filter(Boolean);
 
@@ -994,7 +994,7 @@ const QuoteDetail = () => {
                     { label: 'After Item Adjustments',        value: money(totals.subtotalAfterItems),   show: totals.itemDiscounts > 0 || totals.itemIncreases > 0, divider: true },
                     { label: 'Quote Discount',                value: `-${money(totals.quoteDiscount)}`,  show: totals.quoteDiscount > 0, color: purple, icon: Percent },
                     { label: 'After All Discounts',           value: money(totals.subtotalAfterAll),     show: totals.quoteDiscount > 0, divider: true },
-                    { label: 'Tax (VAT)',                     value: `+${money(totals.tax)}`,            show: totals.tax > 0 },
+                    { label: 'VAT',                           value: `+${money(totals.tax)}`,            show: totals.tax > 0 },
                     { label: 'Shipping',                      value: `+${money(totals.shipping)}`,       show: totals.shipping > 0 },
                   ].filter(r => r.show).map(({ label, value, color, icon: Icon, divider }, i) => (
                     <div key={label} style={{ paddingTop: divider ? 8 : 0, borderTop: divider ? '1px solid var(--border,#f3f4f6)' : 'none' }}>

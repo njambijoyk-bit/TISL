@@ -291,7 +291,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
             )}
             {order.tax > 0 && (
               <div className="flex justify-between text-gray-500 dark:text-gray-400">
-                <span>Tax</span><span className="font-semibold text-gray-700 dark:text-gray-300">{money(order.tax)}</span>
+                <span>VAT</span><span className="font-semibold text-gray-700 dark:text-gray-300">{money(order.tax)}</span>
               </div>
             )}
             {order.shipping_cost > 0 && (

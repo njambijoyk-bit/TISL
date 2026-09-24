@@ -35,7 +35,7 @@ export default function CartSummary() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
         {[
           { label: `Subtotal (${items.length} item${items.length !== 1 ? 's' : ''})`, value: fmt(subtotal) },
-          { label: 'Tax (16% VAT)', value: fmt(tax) },
+          { label: 'VAT (16%)', value: fmt(tax) },
         ].map(({ label, value }) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
             <span style={{ color: '#6b7280' }}>{label}</span>

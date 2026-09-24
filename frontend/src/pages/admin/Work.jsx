@@ -4,7 +4,7 @@ import {
   Briefcase, Users, ShoppingBag, FileText, FolderOpen,
   MessageSquareQuote, AlertTriangle, CalendarClock, Activity,
   ArrowRight, Loader2, RefreshCw, Bell, Calendar,
-  CheckSquare, Milestone, Ticket,
+  CheckSquare, Milestone, Ticket, Truck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import NotificationsModal from '../../components/common/NotificationsModal';
@@ -288,6 +288,7 @@ export default function Work() {
   const [refreshHover, setRefreshHover] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [incompleteManifests, setIncompleteManifests] = useState([]);
 
   useEffect(() => { fetchOverview(); }, []);
 
@@ -296,6 +297,9 @@ export default function Work() {
     try {
       const res = await workAPI.teamOverview();
       setData(res);
+      workAPI.incompleteManifests()
+      .then(r => setIncompleteManifests(r.data ?? []))
+      .catch(() => {});
     } catch {
       toast.error('Failed to load work overview');
     } finally {
@@ -425,6 +429,52 @@ export default function Work() {
             Refresh
           </button>
         </div>
+        {/* ── Incomplete Manifests Banner ── */}
+        {incompleteManifests.length > 0 && (
+          <div style={{
+            background: '#fff7ed',
+            border: '1px solid #fed7aa',
+            borderRadius: 12,
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+          }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+              background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Truck size={17} style={{ color: '#ea580c' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: '0 0 3px', fontSize: '0.875rem', fontWeight: 700, color: '#9a3412' }}>
+                {incompleteManifests.length} incomplete delivery manifest{incompleteManifests.length > 1 ? 's' : ''}
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {['draft','dispatched','in_progress'].map(s => {
+                  const count = incompleteManifests.filter(m => m.status === s).length;
+                  return count > 0 ? (
+                    <span key={s} style={{
+                      fontSize: '0.72rem', fontWeight: 600, color: '#c2410c',
+                    }}>
+                      {count} {s.replace('_', ' ')}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            </div>
+            <Link
+              to="/admin/delivery/manifests"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                background: '#ea580c', color: 'white', textDecoration: 'none', flexShrink: 0,
+              }}
+            >
+              View manifests <ArrowRight size={13} />
+            </Link>
+          </div>
+        )}
 
         {/* ── Loading ── */}
         {loading ? (

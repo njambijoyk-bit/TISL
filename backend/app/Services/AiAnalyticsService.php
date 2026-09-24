@@ -886,8 +886,10 @@ class AiAnalyticsService
      */
     private function fetchManifestGeneratorData(?int $entityId, array $extraData = []): array
     {
-        $orderIds = $extraData['order_ids'] ?? [];
-        $driverId = $extraData['driver_id'] ?? null;
+        $orderIds     = $extraData['order_ids']     ?? [];
+        $driverId     = $extraData['driver_id']     ?? null;
+        $priorContext = $extraData['prior_context'] ?? null;  // from chained modules
+        $customPrompt = $extraData['custom_prompt'] ?? null;
 
         // Orders to be routed
         $orders = [];
@@ -898,15 +900,17 @@ class AiAnalyticsService
                     CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                     c.phone AS customer_phone,
                     o.shipping_address,
+                    o.priority,
                     o.total_kes
                 FROM orders o
                 LEFT JOIN customers c ON c.id = o.customer_id
                 WHERE o.id IN ({$placeholders})
                 AND o.deleted_at IS NULL
+                ORDER BY FIELD(o.priority, 'urgent', 'high', 'medium', 'low')
             ", $orderIds);
         }
 
-        // Available drivers (active, no critical open incidents)
+        // Available drivers
         $drivers = DB::select("
             SELECT u.id, u.name, u.phone,
                 COUNT(DISTINCT dm.id)                                          AS manifests_last_30d,
@@ -925,7 +929,6 @@ class AiAnalyticsService
             ORDER BY avg_rating DESC
         ");
 
-        // Suggested driver context (if specific driver passed)
         $selectedDriver = null;
         if ($driverId) {
             $selectedDriver = DB::selectOne("
@@ -943,13 +946,40 @@ class AiAnalyticsService
             ", [$driverId]);
         }
 
+        // Build instructions — inject prior module context if available
+        $instructions = "You are building a delivery manifest for a Kenyan e-commerce platform.\n\n";
+
+        if ($priorContext) {
+            $instructions .= "CONTEXT FROM PRIOR ANALYSIS:\n{$priorContext}\n\n";
+        }
+
+        if ($customPrompt) {
+            $instructions .= "ADMIN INSTRUCTION: {$customPrompt}\n\n";
+        }
+
+        $instructions .= <<<'EOT'
+    Based on the orders and drivers above, return a JSON object with this exact structure:
+    {
+    "driver_id": <integer or null>,
+    "order_ids": [<ordered array of order IDs to include, highest priority first>],
+    "sort_order": { "<order_id>": <position 1-based integer>, ... },
+    "reasoning": "<brief explanation of your choices>"
+    }
+
+    Rules:
+    - Only include orders from the provided list
+    - Exclude orders from any driver with critical open incidents unless no alternative exists
+    - Prefer drivers with higher avg_rating and lower critical_incidents
+    - Group orders by geographic area where shipping_address suggests proximity
+    - If priority field is 'urgent', it must appear in position 1 or 2
+    - Return ONLY the JSON block, no prose before or after
+    EOT;
+
         return [
-            'orders_to_route'  => $orders,
-            'available_drivers'=> $drivers,
-            'selected_driver'  => $selectedDriver,
-            'instructions'     => 'Suggest an optimal delivery sequence for these orders. '
-                . 'Consider driver workload, ratings, and incident history. '
-                . 'Return a recommended stop order with brief reasoning.',
+            'orders_to_route'   => $orders,
+            'available_drivers' => $drivers,
+            'selected_driver'   => $selectedDriver,
+            'instructions'      => $instructions,
         ];
     }
 

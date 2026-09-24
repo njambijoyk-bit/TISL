@@ -28,4 +28,6 @@ backend/env
 frontend/.env
 *.log
 .DS_Store
-Thumbs.db
+Thumbs.dbbackend.zip
+frontend.zip
+*.zip

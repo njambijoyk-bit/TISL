@@ -45,6 +45,23 @@ const workAPI = {
   },
 
   /**
+   * Admin banner — all incomplete manifests (all delivery methods).
+   * Returns: { data: [{ id, manifest_number, status, scheduled_date, delivery_method, driver, items_count, stops_resolved }] }
+   */
+  incompleteManifests: async () => {
+    const response = await api.get('/admin/work/incomplete-manifests');
+    return response.data;
+  },
+
+  /**
+   * Driver profile Work tab — incomplete manifests for a specific driver.
+   * Returns: { data: [...] }
+   */
+  driverManifests: async (userId) => {
+    const response = await api.get(`/admin/work/driver/${userId}/manifests`);
+    return response.data;
+  },
+  /**
    * Team overview — admin / super_admin only.
    * Returns: { team_load, unassigned, deadlines, activity }
    * 

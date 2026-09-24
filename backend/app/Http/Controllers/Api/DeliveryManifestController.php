@@ -62,7 +62,17 @@ class DeliveryManifestController extends Controller
 
         $manifests = $query->paginate($request->input('per_page', 20));
 
-        return response()->json($manifests);
+         return response()->json([
+            'data' => $manifests->items(),
+            'meta' => [
+                'current_page' => $manifests->currentPage(),
+                'last_page'    => $manifests->lastPage(),
+                'from'         => $manifests->firstItem(),
+                'to'           => $manifests->lastItem(),
+                'total'        => $manifests->total(),
+                'per_page'     => $manifests->perPage(),
+            ],
+        ]);
     }
 
     // ========================================
@@ -253,6 +263,308 @@ class DeliveryManifestController extends Controller
                 'errors'  => ['general' => [$e->getMessage()]],
             ], 500);
         }
+    }
+
+    // ========================================
+    // AI: CREATE MANIFEST (God mode / AI Implement)
+    // Chains delivery AI modules in sequence, skipping disabled/failed
+    // steps gracefully. Creates the manifest atomically at the end.
+    // All steps are audit-logged via LogsDeliveryActivity.
+    // ========================================
+
+    public function aiCreate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'mode'               => 'required|in:advisory,creator',
+            'delivery_method'    => 'required|string|in:internal_driver,courier,customer_pickup,third_party',
+            'driver_id'          => 'nullable|integer|exists:users,id',
+            'scheduled_date'     => 'nullable|date|after_or_equal:today',
+            'order_period_days'  => 'nullable|integer|min:1|max:90',
+            'order_statuses'     => 'nullable|array',
+            'order_statuses.*'   => 'string|in:confirmed,processing,ready_for_pickup',
+            'custom_prompt'      => 'nullable|string|max:1000',
+            'advisory_context'   => 'nullable|string|max:5000', // prior advisory for AI Implement
+            'conversation_history' => 'nullable|array|max:20',  // reiterate thread
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $adminId        = Auth::id();
+        $mode           = $request->input('mode');
+        $deliveryMethod = $request->input('delivery_method');
+        $driverId       = $request->input('driver_id');
+        $steps          = []; // audit trail returned to frontend
+
+        // ── Step helper — wraps each module call ─────────────────────────
+        $runStep = function (string $moduleKey, array $extraData = [], ?int $entityId = null) use ($adminId, &$steps): ?string {
+            $module = \App\Models\AiAnalyticsModule::where('key', $moduleKey)->first();
+
+            if (! $module) {
+                $steps[] = ['module' => $moduleKey, 'status' => 'skipped', 'reason' => 'module_not_found'];
+                return null;
+            }
+
+            if (! $module->is_enabled) {
+                $steps[] = ['module' => $moduleKey, 'status' => 'skipped', 'reason' => 'disabled', 'label' => $module->label];
+                return null;
+            }
+
+            try {
+                $output = $this->ai->analyse(
+                    moduleKey:  $moduleKey,
+                    adminId:    $adminId,
+                    entityId:   $entityId,           // ← was hardcoded null
+                    entityType: 'manifest_ai_session',
+                    outputType: 'recommendation',
+                    extraData:  $extraData,
+                );
+
+                $steps[] = ['module' => $moduleKey, 'status' => 'success', 'label' => $module->label, 'content' => $output->content];
+                return $output->content;
+
+            } catch (\Exception $e) {
+                $steps[] = ['module' => $moduleKey, 'status' => 'failed', 'label' => $module->label, 'reason' => $e->getMessage()];
+                Log::warning("AI step [{$moduleKey}] failed: " . $e->getMessage());
+                return null;
+            }
+        };
+
+        // ── Resolve eligible orders ───────────────────────────────────────
+        $periodDays    = $request->input('order_period_days', 14);
+        $orderStatuses = $request->input('order_statuses', ['confirmed', 'processing', 'ready_for_pickup']);
+
+        $eligibleOrders = Order::whereIn('status', $orderStatuses)
+            ->where('created_at', '>=', now()->subDays($periodDays))
+            ->whereNotIn('id', function ($sub) {
+                $sub->select('order_id')
+                    ->from('delivery_items')
+                    ->join('delivery_manifests', 'delivery_manifests.id', '=', 'delivery_items.manifest_id')
+                    ->whereNotIn('delivery_manifests.status', ['cancelled']);
+            })
+            ->select('id', 'order_number', 'status', 'priority', 'shipping_address', 'created_at')
+            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->limit(50)
+            ->get();
+
+        if ($eligibleOrders->isEmpty()) {
+            return response()->json([
+                'message' => 'No eligible orders found for the given period and statuses.',
+                'steps'   => $steps,
+            ], 422);
+        }
+
+        $orderIds = $eligibleOrders->pluck('id')->toArray();
+
+        // ── Resolve scheduled date (God mode fallback via priority) ──────
+        $scheduledDate = $request->input('scheduled_date');
+        if (! $scheduledDate) {
+            $topPriority = $eligibleOrders->first()?->priority ?? 'medium';
+            $scheduledDate = match ($topPriority) {
+                'urgent' => now()->toDateString(),
+                'high'   => now()->addDay()->toDateString(),
+                'medium' => now()->addDays(2)->toDateString(),
+                'low'    => now()->addDays(3)->toDateString(),
+                default  => now()->addDay()->toDateString(),
+            };
+        }
+
+        // ── Module chain ─────────────────────────────────────────────────
+        // Step 1: Incident analysis — surface risk areas and drivers first
+        $incidentInsight = $runStep('delivery_incident_analysis');
+
+        // Step 2: Driver performance — score available drivers
+        $driverInsight = $runStep('driver_performance', [
+            'driver_id' => $driverId, // null = all drivers overview
+        ]);
+
+        // Step 3: Driver-customer safety check
+        $safetyInsight = null;
+        if ($deliveryMethod === 'internal_driver') {
+            $safetyInsight = $runStep('driver_assignment_safety', [
+                'order_ids' => $orderIds,
+            ], $driverId);                           // ← entityId now flows through
+        } else {
+            $steps[] = ['module' => 'driver_assignment_safety', 'status' => 'skipped', 'reason' => 'not_internal_driver'];
+        }
+
+        // Step 4: Manifest generator — select orders, pick driver, suggest sequence
+        // Inject prior module outputs as context so AI builds on them
+        $priorContext = implode("\n\n", array_filter([
+            $incidentInsight ? "INCIDENT ANALYSIS:\n{$incidentInsight}" : null,
+            $driverInsight   ? "DRIVER PERFORMANCE:\n{$driverInsight}"  : null,
+            $safetyInsight   ? "SAFETY CHECK:\n{$safetyInsight}"        : null,
+            $request->advisory_context ? "PRIOR ADVISORY:\n{$request->advisory_context}" : null,
+        ]));
+
+        $manifestSuggestion = $runStep('delivery_manifest_generator', [
+            'order_ids'       => $orderIds,
+            'driver_id'       => $driverId,
+            'delivery_method' => $deliveryMethod,
+            'prior_context'   => $priorContext,
+            'custom_prompt'   => $request->input('custom_prompt'),
+        ]);
+
+        if (! $manifestSuggestion) {
+            // Core step failed — cannot proceed to creation
+            $this->logManifestActivity(0, 'ai_create_aborted', 'warning', [
+                'reason' => 'manifest_generator_step_failed',
+                'mode'   => $mode,
+                'steps'  => $steps,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'AI manifest generation failed. See steps for details.',
+                'steps'   => $steps,
+            ], 500);
+        }
+
+        // ── Advisory mode: return suggestion without creating ────────────
+        if ($mode === 'advisory') {
+            $this->logManifestActivity(0, 'ai_advisory_generated', 'info', [
+                'mode'            => 'advisory',
+                'delivery_method' => $deliveryMethod,
+                'order_count'     => count($orderIds),
+                'steps_run'       => count($steps),
+                'admin_id'        => $adminId,
+            ]);
+
+            return response()->json([
+                'success'    => true,
+                'mode'       => 'advisory',
+                'suggestion' => $manifestSuggestion,
+                'steps'      => $steps,
+                'meta'       => [
+                    'order_count'    => count($orderIds),
+                    'scheduled_date' => $scheduledDate,
+                    'delivery_method'=> $deliveryMethod,
+                    'driver_hinted'  => $driverId,
+                ],
+            ]);
+        }
+
+        // ── Creator mode: parse AI output and build the manifest ─────────
+        // AI is expected to return JSON-parseable content from the manifest generator.
+        // We attempt to extract it; if parsing fails we still create with what we have.
+        $aiDecision = $this->parseAiManifestDecision($manifestSuggestion, $orderIds, $driverId);
+
+        $resolvedDriverId  = $aiDecision['driver_id'];
+        $resolvedOrderIds  = $aiDecision['order_ids'];
+        $resolvedSortOrder = $aiDecision['sort_order']; // [order_id => position]
+
+        DB::beginTransaction();
+        try {
+            $manifest = DeliveryManifest::create([
+                'assigned_by'     => $adminId,
+                'status'          => 'draft',
+                'scheduled_date'  => $scheduledDate,
+                'delivery_method' => $deliveryMethod,
+                'ai_generated'    => true,
+                'notes'           => 'AI-generated manifest. ' . now()->toDateTimeString(),
+                ...($resolvedDriverId ? ['driver_id' => $resolvedDriverId] : []),
+            ]);
+
+            // Attach orders respecting AI-suggested sort order
+            $lastOrder = 0;
+            foreach ($resolvedOrderIds as $orderId) {
+                $position = $resolvedSortOrder[$orderId] ?? (++$lastOrder);
+                DeliveryItem::create([
+                    'manifest_id' => $manifest->id,
+                    'order_id'    => $orderId,
+                    'status'      => 'pending',
+                    'sort_order'  => $position,
+                ]);
+            }
+
+            // Step 5: Route optimiser — runs after items exist
+            $routeInsight = $runStep('delivery_route_optimiser', [
+                'manifest_id' => $manifest->id,
+            ]);
+
+            $this->logManifestActivity(
+                $manifest->id,
+                'ai_manifest_created',
+                'info',
+                [
+                    'mode'             => 'creator',
+                    'delivery_method'  => $deliveryMethod,
+                    'driver_id'        => $resolvedDriverId,
+                    'order_count'      => count($resolvedOrderIds),
+                    'scheduled_date'   => $scheduledDate,
+                    'steps'            => $steps,
+                    'ai_parse_source'  => $aiDecision['source'], // 'parsed' or 'fallback'
+                    'admin_id'         => $adminId,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success'    => true,
+                'mode'       => 'creator',
+                'message'    => 'AI manifest created successfully.',
+                'suggestion' => $manifestSuggestion,
+                'steps'      => $steps,
+                'data'       => $manifest->load('items.order.customer', 'driver:id,name'),
+                'meta'       => [
+                    'scheduled_date'  => $scheduledDate,
+                    'delivery_method' => $deliveryMethod,
+                    'driver_id'       => $resolvedDriverId,
+                    'order_count'     => count($resolvedOrderIds),
+                    'parse_source'    => $aiDecision['source'],
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('AI manifest creation failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create manifest from AI suggestion.',
+                'steps'   => $steps,
+                'errors'  => ['general' => [$e->getMessage()]],
+            ], 500);
+        }
+    }
+
+    // ── Parse AI decision from manifest generator output ─────────────────
+    // Attempts to extract structured JSON from the AI response.
+    // Falls back to using all eligible order IDs in original order
+    // if the AI didn't return parseable JSON — creation still proceeds.
+    private function parseAiManifestDecision(string $content, array $fallbackOrderIds, ?int $fallbackDriverId): array
+    {
+        // Try to extract a JSON block from the AI response
+        if (preg_match('/```json\s*([\s\S]*?)\s*```/i', $content, $matches) ||
+            preg_match('/\{[\s\S]*"order_ids"[\s\S]*\}/i', $content, $matches)) {
+
+            $json = $matches[1] ?? $matches[0];
+
+            try {
+                $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+                return [
+                    'driver_id'  => $decoded['driver_id']  ?? $fallbackDriverId,
+                    'order_ids'  => $decoded['order_ids']  ?? $fallbackOrderIds,
+                    'sort_order' => $decoded['sort_order']  ?? [], // [order_id => position]
+                    'source'     => 'parsed',
+                ];
+            } catch (\JsonException) {
+                // Fall through to fallback
+            }
+        }
+
+        return [
+            'driver_id'  => $fallbackDriverId,
+            'order_ids'  => $fallbackOrderIds,
+            'sort_order' => [],
+            'source'     => 'fallback',
+        ];
     }
 
     // ========================================
@@ -653,21 +965,27 @@ class DeliveryManifestController extends Controller
             ], 422);
         }
 
-        // Fetch items and verify they all come from transferable manifests (draft or cancelled)
+        // Fetch items and verify they all come from transferable manifests.
+        // Allowed sources:
+        //   - draft or cancelled manifests (any item status)
+        //   - completed manifests BUT only items that are failed or returned
         $items = DeliveryItem::with('manifest:id,status,manifest_number')
             ->whereIn('id', $request->item_ids)
             ->get();
 
-        $invalidItems = $items->filter(
-            fn($item) => ! in_array($item->manifest?->status, ['draft', 'cancelled'])
-        );
+        $invalidItems = $items->filter(function ($item) {
+            $manifestStatus = $item->manifest?->status;
+            if (in_array($manifestStatus, ['draft', 'cancelled'])) return false;
+            if ($manifestStatus === 'completed' && in_array($item->status, ['failed', 'returned'])) return false;
+            return true; // everything else is invalid
+        });
 
         if ($invalidItems->isNotEmpty()) {
             return response()->json([
-                'message' => 'One or more items belong to a manifest that cannot be transferred from.',
+                'message' => 'One or more items cannot be transferred. Only failed/returned items from completed manifests, or items from draft/cancelled manifests, are eligible.',
                 'errors'  => [
-                    'item_ids' => $invalidItems->map(fn($i) => 
-                        "Item #{$i->id} is in a {$i->manifest?->status} manifest ({$i->manifest?->manifest_number})."
+                    'item_ids' => $invalidItems->map(fn($i) =>
+                        "Item #{$i->id} (status: {$i->status}) is in a {$i->manifest?->status} manifest ({$i->manifest?->manifest_number})."
                     )->values()->toArray(),
                 ],
             ], 422);
@@ -957,6 +1275,427 @@ class DeliveryManifestController extends Controller
         }
 
         return response()->json(['safe' => true]);
+    }
+
+    // ========================================
+    // GET RETURNED ITEMS
+    // All delivery items currently in 'returned' status across completed
+    // manifests — these are awaiting reassignment to a new manifest.
+    // ========================================
+
+    public function getReturnedItems(): JsonResponse
+    {
+        $items = DeliveryItem::with([
+            'order:id,order_number,status,customer_id',
+            'order.customer:id,first_name,last_name,phone',
+            'manifest:id,manifest_number,scheduled_date,driver_id',
+            'manifest.driver:id,name',
+        ])
+        ->where('status', 'returned')
+        ->whereHas('manifest', fn($q) => $q->where('status', 'completed'))
+        ->orderByDesc('returned_at')
+        ->get()
+        ->map(fn($item) => [
+            'id'              => $item->id,
+            'order_id'        => $item->order_id,
+            'order_number'    => $item->order?->order_number,
+            'customer_name'   => $item->order?->customer
+                ? trim("{$item->order->customer->first_name} {$item->order->customer->last_name}")
+                : null,
+            'customer_phone'  => $item->order?->customer?->phone,
+            'failed_reason'   => $item->failed_reason,
+            'returned_at'     => $item->returned_at?->toISOString(),
+            'manifest_id'     => $item->manifest_id,
+            'manifest_number' => $item->manifest?->manifest_number,
+            'manifest_date'   => $item->manifest?->scheduled_date,
+            'driver_name'     => $item->manifest?->driver?->name,
+        ]);
+
+        return response()->json([
+            'data'  => $items,
+            'total' => $items->count(),
+        ]);
+    }
+
+    // ========================================
+    // ADMIN: GET FAILED ITEMS
+    // All delivery items in 'failed' status across completed manifests
+    // ========================================
+
+    public function getFailedItems(): JsonResponse
+    {
+        $items = DeliveryItem::with([
+            'order:id,order_number,status,customer_id',
+            'order.customer:id,first_name,last_name,phone',
+            'manifest:id,manifest_number,scheduled_date,driver_id',
+            'manifest.driver:id,name',
+        ])
+        ->where('status', 'failed')
+        ->whereHas('manifest', fn($q) => $q->where('status', 'completed'))
+        ->orderByDesc('attempted_at')
+        ->get()
+        ->map(fn($item) => [
+            'id'              => $item->id,
+            'order_id'        => $item->order_id,
+            'order_number'    => $item->order?->order_number,
+            'customer_name'   => $item->order?->customer
+                ? trim("{$item->order->customer->first_name} {$item->order->customer->last_name}")
+                : null,
+            'customer_phone'  => $item->order?->customer?->phone,
+            'failed_reason'   => $item->failed_reason,
+            'attempted_at'    => $item->attempted_at?->toISOString(),
+            'manifest_id'     => $item->manifest_id,
+            'manifest_number' => $item->manifest?->manifest_number,
+            'manifest_date'   => $item->manifest?->scheduled_date,
+            'driver_name'     => $item->manifest?->driver?->name,
+        ]);
+
+        return response()->json([
+            'data'  => $items,
+            'total' => $items->count(),
+        ]);
+    }
+
+    // ========================================
+    // ADMIN: OVERRIDE ITEM STATUS
+    // Force a failed delivery item to 'delivered' or reset it to 'pending'
+    // so it can be transferred to another manifest or retried.
+    // ========================================
+
+    public function overrideItemStatus(Request $request, int $manifestId, int $itemId): JsonResponse
+    {
+        $manifest = DeliveryManifest::findOrFail($manifestId);
+
+        $validator = Validator::make($request->all(), [
+            'status'         => 'required|in:delivered,pending',
+            'override_notes' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $item = DeliveryItem::where('manifest_id', $manifestId)->findOrFail($itemId);
+
+        // Only failed or returned items can be overridden
+        if (! in_array($item->status, ['failed', 'returned'])) {
+            return response()->json([
+                'message' => 'Only failed or returned items can be overridden.',
+                'errors'  => ['status' => ['Item must be in failed or returned status.']],
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($request->status === 'delivered') {
+                // Admin force-marks as delivered: update the item, the order, and the shipment
+                $item->update([
+                    'status'         => 'delivered',
+                    'delivered_at'   => now(),
+                    'delivery_notes' => $request->override_notes,
+                    'failed_reason'  => null,
+                ]);
+
+                $item->order->update(['status' => 'delivered']);
+
+                OrderShipment::where('manifest_id', $manifestId)
+                    ->where('order_id', $item->order_id)
+                    ->update(['status' => 'delivered', 'delivered_at' => now()]);
+
+            } else {
+                // Admin resets to pending: clear failed state so item can be retransferred
+                $item->update([
+                    'status'                => 'pending',
+                    'failed_reason'         => null,
+                    'delivery_notes'        => $request->override_notes,
+                    'delivered_at'          => null,
+                    'arrival_latitude'      => null,
+                    'arrival_longitude'     => null,
+                    'distance_from_prev_km'   => null,
+                    'time_from_prev_minutes'  => null,
+                ]);
+
+                // Walk the order back to processing so it shows up in eligible status checks
+                $item->order->update(['status' => 'processing']);
+
+                OrderShipment::where('manifest_id', $manifestId)
+                    ->where('order_id', $item->order_id)
+                    ->update(['status' => 'failed']); // shipment stays failed — a new one will be made on re-dispatch
+            }
+
+            $this->logDeliveryItemActivity(
+                $item->id,
+                'admin_status_override',
+                'warning',
+                [
+                    'overridden_by'  => Auth::user()->name,
+                    'new_status'     => $request->status,
+                    'override_notes' => $request->override_notes,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message' => "Item status overridden to '{$request->status}'.",
+                'data'    => $item->fresh(['order.customer']),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Item status override failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Override failed. Please try again.',
+                'errors'  => ['general' => [$e->getMessage()]],
+            ], 500);
+        }
+    }
+
+    // ========================================
+    // EXTERNAL DELIVERY — ITEM STATUS OVERRIDE
+    // For courier, customer_pickup, third_party manifests.
+    // Admin can force any item to: pending, out_for_delivery,
+    // delivered, failed, returned
+    // ========================================
+
+    public function overrideExternalItemStatus(Request $request, int $manifestId, int $itemId): JsonResponse
+    {
+        $manifest = DeliveryManifest::findOrFail($manifestId);
+
+        if ($manifest->delivery_method === 'internal_driver') {
+            return response()->json([
+                'message' => 'Use the driver workflow for internal manifests. This endpoint is for external delivery methods only.',
+                'errors'  => ['delivery_method' => ['Not applicable to internal_driver manifests.']],
+            ], 422);
+        }
+
+        if (! in_array($manifest->status, ['dispatched', 'in_progress', 'completed'])) {
+            return response()->json([
+                'message' => 'Manifest must be dispatched or in progress to update item statuses.',
+                'errors'  => ['status' => ['Manifest is not active.']],
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status'         => 'required|in:pending,out_for_delivery,delivered,failed,returned',
+            'override_notes' => 'required|string|max:500',
+            'failed_reason'  => 'nullable|string|max:500', // required when status=failed
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
+        }
+
+        if ($request->status === 'failed' && ! $request->filled('failed_reason')) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => ['failed_reason' => ['A reason is required when marking an item as failed.']],
+            ], 422);
+        }
+
+        $item = DeliveryItem::where('manifest_id', $manifestId)->findOrFail($itemId);
+
+        DB::beginTransaction();
+        try {
+            $now = now();
+
+            $updateData = [
+                'status'         => $request->status,
+                'delivery_notes' => $request->override_notes,
+            ];
+
+            match ($request->status) {
+                'delivered' => $updateData += [
+                    'delivered_at'  => $now,
+                    'failed_reason' => null,
+                    'returned_at'   => null,
+                ],
+                'failed' => $updateData += [
+                    'failed_reason' => $request->failed_reason,
+                    'delivered_at'  => null,
+                    'returned_at'   => null,
+                ],
+                'returned' => $updateData += [
+                    'returned_at'   => $now,
+                    'failed_reason' => $item->failed_reason, // preserve original reason
+                    'delivered_at'  => null,
+                ],
+                'pending', 'out_for_delivery' => $updateData += [
+                    'failed_reason' => null,
+                    'delivered_at'  => null,
+                    'returned_at'   => null,
+                ],
+            };
+
+            $item->update($updateData);
+
+            // Cascade order status
+            $orderStatus = match ($request->status) {
+                'delivered'        => 'delivered',
+                'failed'           => 'processing',   // back to processable
+                'returned'         => 'processing',
+                'out_for_delivery' => 'out_for_delivery',
+                'pending'          => 'processing',
+                default            => null,
+            };
+
+            if ($orderStatus) {
+                $item->order->update(['status' => $orderStatus]);
+            }
+
+            // Cascade shipment status
+            $shipmentStatus = match ($request->status) {
+                'delivered'        => 'delivered',
+                'failed'           => 'failed',
+                'returned'         => 'failed',
+                'out_for_delivery' => 'in_transit',
+                'pending'          => 'pending',
+                default            => null,
+            };
+
+            if ($shipmentStatus) {
+                OrderShipment::where('manifest_id', $manifestId)
+                    ->where('order_id', $item->order_id)
+                    ->update([
+                        'status'       => $shipmentStatus,
+                        'delivered_at' => $request->status === 'delivered' ? $now : null,
+                    ]);
+            }
+
+            $this->logDeliveryItemActivity(
+                $item->id,
+                'admin_external_status_override',
+                'warning',
+                [
+                    'overridden_by'  => Auth::user()->name,
+                    'new_status'     => $request->status,
+                    'override_notes' => $request->override_notes,
+                    'delivery_method' => $manifest->delivery_method,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message' => "Item status updated to '{$request->status}'.",
+                'data'    => $item->fresh(['order.customer']),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('External item override failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Override failed. Please try again.',
+                'errors'  => ['general' => [$e->getMessage()]],
+            ], 500);
+        }
+    }
+
+    // ========================================
+    // COMPLETE MANIFEST (admin force-close)
+    // For courier / pickup / third_party workflows where
+    // no driver app is updating status automatically.
+    // Also works on in_progress internal manifests if needed.
+    // ========================================
+
+    public function completeManifest(Request $request, int $id): JsonResponse
+    {
+        $manifest = DeliveryManifest::with('items.order')->findOrFail($id);
+
+        if (! in_array($manifest->status, ['dispatched', 'in_progress'])) {
+            return response()->json([
+                'message' => 'Only dispatched or in-progress manifests can be completed.',
+                'errors'  => ['status' => ['Manifest is not in a completable state.']],
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'completion_notes'       => 'nullable|string|max:500',
+            'auto_fail_pending'      => 'boolean', // if true, mark still-pending items as failed
+            'pending_fail_reason'    => 'nullable|string|max:300',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
+        }
+
+        // Warn if there are still-active (pending/out_for_delivery) items
+        $activeItems = $manifest->items->whereIn('status', ['pending', 'out_for_delivery']);
+
+        if ($activeItems->isNotEmpty() && ! $request->boolean('auto_fail_pending') && ! $request->boolean('force')) {
+            return response()->json([
+                'requires_confirmation' => true,
+                'active_item_count'     => $activeItems->count(),
+                'message'               => "{$activeItems->count()} item(s) are still pending/out-for-delivery. Pass auto_fail_pending=true to mark them failed, or force=true to complete anyway leaving them as-is.",
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            $now          = now();
+            $autoFailed   = 0;
+            $failReason   = $request->input('pending_fail_reason', 'Manifest closed by admin without delivery confirmation.');
+
+            if ($request->boolean('auto_fail_pending') && $activeItems->isNotEmpty()) {
+                foreach ($activeItems as $item) {
+                    $item->update([
+                        'status'        => 'failed',
+                        'failed_reason' => $failReason,
+                    ]);
+                    $item->order->update(['status' => 'processing']);
+                    OrderShipment::where('manifest_id', $id)
+                        ->where('order_id', $item->order_id)
+                        ->update(['status' => 'failed']);
+                    $autoFailed++;
+                }
+            }
+
+            $manifest->update([
+                'status'                   => 'completed',
+                'actual_end_time'          => $now,
+                'actual_duration_minutes'  => $manifest->actual_start_time
+                    ? (int) $manifest->actual_start_time->diffInMinutes($now)
+                    : null,
+            ]);
+
+            // Mark all delivered shipments with delivered_at if not already set
+            OrderShipment::where('manifest_id', $id)
+                ->where('status', 'delivered')
+                ->whereNull('delivered_at')
+                ->update(['delivered_at' => $now]);
+
+            $this->logManifestActivity(
+                $manifest->id,
+                'manifest_completed',
+                'info',
+                [
+                    'completed_by'     => Auth::user()->name,
+                    'delivery_method'  => $manifest->delivery_method,
+                    'auto_failed'      => $autoFailed,
+                    'completion_notes' => $request->completion_notes,
+                    'force'            => $request->boolean('force'),
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message'      => 'Manifest completed.',
+                'auto_failed'  => $autoFailed,
+                'data'         => $manifest->fresh(['items.order.customer', 'driver:id,name']),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Manifest completion failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to complete manifest.',
+                'errors'  => ['general' => [$e->getMessage()]],
+            ], 500);
+        }
     }
 
     // ========================================
