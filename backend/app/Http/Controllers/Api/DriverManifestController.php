@@ -46,7 +46,17 @@ class DriverManifestController extends Controller
 
         $manifests = $query->orderByDesc('scheduled_date')->paginate(10);
 
-        return response()->json($manifests);
+        return response()->json([
+            'data' => $manifests->items(),
+            'meta' => [
+                'current_page' => $manifests->currentPage(),
+                'last_page'    => $manifests->lastPage(),
+                'from'         => $manifests->firstItem(),
+                'to'           => $manifests->lastItem(),
+                'total'        => $manifests->total(),
+                'per_page'     => $manifests->perPage(),
+            ],
+        ]);
     }
 
     // ========================================
@@ -215,7 +225,7 @@ class DriverManifestController extends Controller
         )->findOrFail($itemId);
 
         $validator = Validator::make($request->all(), [
-            'status'             => 'required|in:out_for_delivery,delivered,failed,returned',
+            'status'             => 'required|in:out_for_delivery,delivered,failed',
             'delivery_notes'     => 'nullable|string|max:1000',
             'failed_reason'      => 'required_if:status,failed|nullable|string|max:500',
             'latitude'           => 'nullable|numeric|between:-90,90',
@@ -300,6 +310,169 @@ class DriverManifestController extends Controller
     }
 
     // ========================================
+    // DRIVER: REPLACE PROOF OF DELIVERY PHOTO
+    // Only allowed on delivered items belonging to an in_progress or completed manifest
+    // ========================================
+
+    public function updateProof(Request $request, int $itemId): JsonResponse
+    {
+        $driver = Auth::user();
+
+        $item = DeliveryItem::whereHas('manifest', fn($q) =>
+            $q->where('driver_id', $driver->id)->whereIn('status', ['in_progress', 'completed'])
+        )->findOrFail($itemId);
+
+        if ($item->status !== 'delivered') {
+            return response()->json([
+                'message' => 'Proof can only be replaced on delivered stops.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'proof_of_delivery' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        if ($validator->fails())
+            return response()->json(['errors' => $validator->errors()], 422);
+
+        DB::beginTransaction();
+        try {
+            // Store new file first
+            $newPath = $request->file('proof_of_delivery')
+                ->store("delivery/proof/{$item->manifest_id}", 'public');
+
+            // Delete old file if one exists
+            $oldPath = $item->proof_of_delivery;
+            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $item->update(['proof_of_delivery' => $newPath]);
+
+            $this->logDeliveryItemActivity(
+                $item->id,
+                'proof_replaced',
+                'info',
+                [
+                    'driver_id' => $driver->id,
+                    'old_path'  => $oldPath,
+                    'new_path'  => $newPath,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message'           => 'Proof of delivery updated.',
+                'proof_of_delivery' => Storage::disk('public')->url($newPath),
+                'data'              => $item->fresh(['order.customer', 'rating']),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if (isset($newPath)) {
+                Storage::disk('public')->delete($newPath);
+            }
+            Log::error('Proof update failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update proof.'], 500);
+        }
+    }
+
+    // ========================================
+    // DRIVER: RETRY A FAILED STOP
+    // Allows driver to re-attempt a failed/returned item while the
+    // manifest is still in_progress. They can re-mark it as delivered or failed.
+    // ========================================
+
+    public function retryStop(Request $request, int $itemId): JsonResponse
+    {
+        $driver = Auth::user();
+
+        $item = DeliveryItem::whereHas('manifest', fn($q) =>
+            $q->where('driver_id', $driver->id)->where('status', 'in_progress')
+        )->findOrFail($itemId);
+
+        if (! in_array($item->status, ['failed', 'returned'])) {
+            return response()->json([
+                'message' => 'Only failed or returned stops can be retried.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status'            => 'required|in:delivered,failed',
+            'delivery_notes'    => 'nullable|string|max:1000',
+            'failed_reason'     => 'required_if:status,failed|nullable|string|max:500',
+            'latitude'          => 'nullable|numeric|between:-90,90',
+            'longitude'         => 'nullable|numeric|between:-180,180',
+            'proof_of_delivery' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        if ($validator->fails())
+            return response()->json(['errors' => $validator->errors()], 422);
+
+        DB::beginTransaction();
+        try {
+            $proofPath = null;
+            if ($request->hasFile('proof_of_delivery')) {
+                $proofPath = $request->file('proof_of_delivery')
+                    ->store("delivery/proof/{$item->manifest_id}", 'public');
+            }
+
+            if ($request->status === 'delivered') {
+                $item->markDelivered(
+                    lat:   $request->latitude,
+                    lng:   $request->longitude,
+                    notes: $request->delivery_notes,
+                    proof: $proofPath,
+                );
+            } else {
+                $item->markFailed(
+                    reason: $request->failed_reason,
+                    lat:    $request->latitude,
+                    lng:    $request->longitude,
+                );
+            }
+
+            // Re-check if all stops are now resolved (retry may complete the manifest)
+            $manifest = $item->manifest;
+            $allDone  = $manifest->items()
+                ->whereNotIn('status', ['delivered', 'failed', 'returned'])
+                ->doesntExist();
+
+            if ($allDone) {
+                $this->completeManifest($manifest);
+            }
+
+            $this->logDeliveryItemActivity(
+                $item->id,
+                'stop_retried_' . $request->status,
+                $request->status === 'failed' ? 'warning' : 'info',
+                [
+                    'driver_id'     => $driver->id,
+                    'order_id'      => $item->order_id,
+                    'failed_reason' => $request->failed_reason,
+                    'has_proof'     => ! is_null($proofPath),
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Stop retry recorded.',
+                'data'    => $item->fresh(['order.customer', 'rating']),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($proofPath) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($proofPath);
+            }
+            Log::error('Stop retry failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to retry stop.'], 500);
+        }
+    }
+
+    // ========================================
     // DRIVER: VIEW OWN RATINGS
     // ========================================
 
@@ -357,12 +530,22 @@ class DriverManifestController extends Controller
     /**
      * Complete a manifest once all stops are resolved.
      *
-     * FIX: shipment sync now correctly sets 'delivered' only for delivered stops
-     * and 'failed' for failed/returned stops, rather than blanket-marking everything
-     * as delivered regardless of outcome.
+     * Any item still in 'failed' status is promoted to 'returned' before the
+     * manifest is sealed — this is the single moment where the driver hands
+     * undelivered goods back, so 'returned' is the correct terminal state.
+     * 'failed' then means "attempted but not yet accounted for", while
+     * 'returned' means "confirmed back with us, ready to re-assign".
      */
     private function completeManifest(DeliveryManifest $manifest): void
     {
+        // Promote any lingering failed items to returned before sealing
+        $manifest->items()
+            ->where('status', 'failed')
+            ->update([
+                'status'      => 'returned',
+                'returned_at' => now(),
+            ]);
+
         $totalKm  = $manifest->calculateDistanceFromPings();
         $duration = $manifest->started_at
             ? (int) $manifest->started_at->diffInMinutes(now())
@@ -379,13 +562,15 @@ class DriverManifestController extends Controller
             'end_longitude'           => $lastPing?->longitude,
         ]);
 
-        // FIX: sync shipment status per stop outcome, not blanket 'delivered'
-        $deliveredOrderIds = $manifest->items()
+        // Reload items after the status promotion above
+        $manifest->load('items');
+
+        $deliveredOrderIds = $manifest->items
             ->where('status', 'delivered')
             ->pluck('order_id');
 
-        $failedOrderIds = $manifest->items()
-            ->whereIn('status', ['failed', 'returned'])
+        $returnedOrderIds = $manifest->items
+            ->where('status', 'returned')
             ->pluck('order_id');
 
         if ($deliveredOrderIds->isNotEmpty()) {
@@ -394,9 +579,9 @@ class DriverManifestController extends Controller
                 ->update(['status' => 'delivered', 'delivered_at' => now()]);
         }
 
-        if ($failedOrderIds->isNotEmpty()) {
+        if ($returnedOrderIds->isNotEmpty()) {
             OrderShipment::where('manifest_id', $manifest->id)
-                ->whereIn('order_id', $failedOrderIds)
+                ->whereIn('order_id', $returnedOrderIds)
                 ->update(['status' => 'failed']);
         }
 
@@ -409,7 +594,7 @@ class DriverManifestController extends Controller
                 'actual_duration_minutes' => $duration,
                 'stops_total'             => $manifest->items->count(),
                 'stops_delivered'         => $deliveredOrderIds->count(),
-                'stops_failed'            => $failedOrderIds->count(),
+                'stops_returned'          => $returnedOrderIds->count(),
             ]
         );
     }

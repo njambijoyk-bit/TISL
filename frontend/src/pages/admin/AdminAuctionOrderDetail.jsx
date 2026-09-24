@@ -607,7 +607,7 @@ const fetchOrder = async () => {
                       { label: 'Charged Amount', value: formatPrice(order.charged_amount), color: '#a855f7', bold: true },
                       { label: 'Quantity', value: order.quantity || 1, color: '#6b7280' },
                       { label: 'Subtotal', value: formatPrice(order.subtotal), color: '#6b7280' },
-                      { label: 'Tax (16%)', value: formatPrice(order.tax), color: '#6b7280' },
+                      { label: 'VAT (16%)', value: formatPrice(order.tax), color: '#6b7280' },
                       { label: 'Shipping', value: formatPrice(order.shipping_cost), color: '#6b7280' },
                       { label: 'Total', value: formatPrice(order.total), color: '#059669', bold: true, large: true },
                     ].map((row, i) => (

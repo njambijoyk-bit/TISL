@@ -4,7 +4,7 @@ import {
     ArrowRight, Package, RefreshCw, Loader2, CheckSquare,
     Square, AlertTriangle, CheckCircle, XCircle, Shuffle,
     ChevronDown, Trash2, ArrowLeftRight, ShieldAlert,
-    ExternalLink, FileText,
+    ExternalLink, FileText, RotateCcw, ChevronRight,
 } from 'lucide-react';
 import GeneralLayout from '../../../components/layout/GeneralLayout';
 import deliveryAPI from '../../../api/delivery';
@@ -27,8 +27,13 @@ function customerName(item) {
     return item.order?.order_number ?? `Item #${item.id}`;
 }
 
+function statusColor(s) {
+    return { delivered: D.teal, failed: '#ef4444', returned: '#f59e0b', out_for_delivery: D.purple }[s] ?? D.textDim;
+}
+
 // statuses allowed in source panel (left)
-const TRANSFERABLE_STATUSES = ['draft', 'cancelled'];
+// completed is allowed but only returned items within are selectable
+const TRANSFERABLE_STATUSES = ['draft', 'cancelled', 'completed'];
 
 const OVERRIDE_PRESETS = [
     'Manager approved',
@@ -39,25 +44,41 @@ const OVERRIDE_PRESETS = [
 ];
 
 // ── SelectableItem row ────────────────────────────────────────────────────────
-function SelectableItem({ item, selected, onToggle, disabled }) {
+function SelectableItem({ item, selected, onToggle, sourceManifestStatus }) {
+    // Items from completed manifests are only selectable if they are 'returned'
+    const fromCompleted = sourceManifestStatus === 'completed';
+    const disabled = fromCompleted && item.status !== 'returned';
+
+    const disabledReason = disabled ? 'Only returned items can be transferred from a completed manifest' : null;
+
     return (
         <div
             onClick={() => !disabled && onToggle(item.id)}
+            title={disabledReason ?? undefined}
             style={{
                 display:        'flex',
                 alignItems:     'center',
                 gap:            10,
                 padding:        '9px 12px',
                 borderRadius:   D.radiusSm,
-                background:     selected ? 'rgba(168,85,247,0.10)' : 'transparent',
-                border:         `1px solid ${selected ? D.purple : 'transparent'}`,
+                background:     selected
+                    ? 'rgba(168,85,247,0.10)'
+                    : disabled
+                        ? 'rgba(255,255,255,0.02)'
+                        : 'transparent',
+                border:         `1px solid ${selected ? D.purple : disabled ? 'transparent' : 'transparent'}`,
                 cursor:         disabled ? 'not-allowed' : 'pointer',
                 transition:     'all 0.15s',
-                opacity:        disabled ? 0.45 : 1,
+                opacity:        disabled ? 0.38 : 1,
             }}
         >
             <div style={{ flexShrink: 0, color: selected ? D.purple : D.textDim }}>
-                {selected ? <CheckSquare size={15} /> : <Square size={15} />}
+                {disabled
+                    ? <Square size={15} style={{ opacity: 0.3 }} />
+                    : selected
+                        ? <CheckSquare size={15} />
+                        : <Square size={15} />
+                }
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '0.82rem', fontWeight: 600, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -70,10 +91,6 @@ function SelectableItem({ item, selected, onToggle, disabled }) {
             <StatusBadge status={item.status} />
         </div>
     );
-}
-
-function statusColor(s) {
-    return { delivered: D.teal, failed: '#ef4444', returned: '#f59e0b', out_for_delivery: D.purple }[s] ?? D.textDim;
 }
 
 // ── ReadonlyItem row (destination preview) ────────────────────────────────────
@@ -385,46 +402,270 @@ function ManifestLinkChip({ manifest, label, navigate, onHover }) {
     );
 }
 
+// ── Returned items section ────────────────────────────────────────────────────
+// Groups returned items by manifest and renders a card per manifest
+// with a "Load into source" shortcut.
+function ReturnedItemsSection({ returnedItems, loadingReturned, onLoad, audio }) {
+    const [expanded, setExpanded] = useState(true);
+
+    if (loadingReturned) {
+        return (
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '14px 16px',
+                background: D.card,
+                border: `1px solid ${D.purpleBorder}`,
+                borderRadius: D.radiusLg,
+                marginBottom: 20,
+                color: D.textDim,
+                fontSize: '0.82rem',
+            }}>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} color={D.purple} />
+                Checking for returned items…
+            </div>
+        );
+    }
+
+    if (!returnedItems || returnedItems.length === 0) return null;
+
+    // Group by manifest_id
+    const byManifest = returnedItems.reduce((acc, item) => {
+        const key = item.manifest_id;
+        if (!acc[key]) {
+            acc[key] = {
+                manifest_id:     item.manifest_id,
+                manifest_number: item.manifest_number,
+                manifest_date:   item.manifest_date,
+                driver_name:     item.driver_name,
+                items:           [],
+            };
+        }
+        acc[key].items.push(item);
+        return acc;
+    }, {});
+
+    const groups = Object.values(byManifest);
+
+    return (
+        <div style={{ marginBottom: 24 }}>
+            {/* Section header */}
+            <button
+                onClick={() => { setExpanded(e => !e); audio.playHover(); }}
+                style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    gap:            8,
+                    marginBottom:   expanded ? 10 : 0,
+                    background:     'transparent',
+                    border:         'none',
+                    cursor:         'pointer',
+                    padding:        0,
+                    width:          '100%',
+                    textAlign:      'left',
+                }}
+            >
+                <RotateCcw size={13} color="#f59e0b" />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Returned items awaiting reassignment
+                </span>
+                <span style={{
+                    fontSize:     '0.68rem',
+                    fontWeight:   700,
+                    color:        '#f59e0b',
+                    background:   'rgba(245,158,11,0.15)',
+                    border:       '1px solid rgba(245,158,11,0.3)',
+                    borderRadius: '999px',
+                    padding:      '1px 7px',
+                    marginLeft:   2,
+                }}>
+                    {returnedItems.length}
+                </span>
+                <ChevronRight
+                    size={13}
+                    color={D.textDim}
+                    style={{
+                        marginLeft: 'auto',
+                        transition: 'transform 0.2s',
+                        transform:  expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            {expanded && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {groups.map(group => (
+                        <ReturnedManifestCard
+                            key={group.manifest_id}
+                            group={group}
+                            onLoad={onLoad}
+                            audio={audio}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Single returned-manifest card ─────────────────────────────────────────────
+function ReturnedManifestCard({ group, onLoad, audio }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div style={{
+            background:   D.card,
+            border:       '1px solid rgba(245,158,11,0.25)',
+            borderRadius: D.radiusLg,
+            overflow:     'hidden',
+        }}>
+            {/* Card header row */}
+            <div style={{
+                display:        'flex',
+                alignItems:     'center',
+                gap:            10,
+                padding:        '10px 14px',
+                cursor:         'pointer',
+            }}
+                onClick={() => { setOpen(o => !o); audio.playHover(); }}
+            >
+                <RotateCcw size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.83rem', fontWeight: 700, color: D.text }}>
+                        {group.manifest_number}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: D.textDim, marginTop: 1 }}>
+                        {group.driver_name ? `${group.driver_name} · ` : ''}
+                        {group.manifest_date ? fmtDate(group.manifest_date) : ''}
+                    </div>
+                </div>
+
+                {/* item count badge */}
+                <span style={{
+                    fontSize:     '0.7rem',
+                    fontWeight:   700,
+                    color:        '#f59e0b',
+                    background:   'rgba(245,158,11,0.12)',
+                    border:       '1px solid rgba(245,158,11,0.25)',
+                    borderRadius: '999px',
+                    padding:      '2px 8px',
+                    whiteSpace:   'nowrap',
+                    flexShrink:   0,
+                }}>
+                    {group.items.length} returned
+                </span>
+
+                {/* Load shortcut */}
+                <DeliveryBtn
+                    variant="primary"
+                    size="sm"
+                    onClick={e => {
+                        e.stopPropagation();
+                        audio.playHover();
+                        onLoad(group.manifest_id, group.items.map(i => i.id));
+                    }}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                >
+                    <ArrowRight size={11} /> Load
+                </DeliveryBtn>
+
+                <ChevronRight
+                    size={13}
+                    color={D.textDim}
+                    style={{
+                        flexShrink: 0,
+                        transition: 'transform 0.2s',
+                        transform:  open ? 'rotate(90deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </div>
+
+            {/* Expanded item list */}
+            {open && (
+                <div style={{
+                    borderTop:    '1px solid rgba(245,158,11,0.15)',
+                    padding:      '8px 14px',
+                    display:      'flex',
+                    flexDirection: 'column',
+                    gap:          4,
+                }}>
+                    {group.items.map(item => (
+                        <div key={item.id} style={{
+                            display:      'flex',
+                            alignItems:   'center',
+                            gap:          8,
+                            padding:      '6px 8px',
+                            borderRadius: D.radiusSm,
+                            background:   'rgba(245,158,11,0.05)',
+                            border:       '1px solid rgba(245,158,11,0.12)',
+                        }}>
+                            <RotateCcw size={11} color="#f59e0b" style={{ flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {item.customer_name || '—'}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: D.textDim }}>
+                                    {item.order_number ?? '—'}
+                                    {item.failed_reason ? ` · ${item.failed_reason}` : ''}
+                                </div>
+                            </div>
+                            {item.returned_at && (
+                                <span style={{ fontSize: '0.65rem', color: D.textDim, flexShrink: 0 }}>
+                                    {fmtDate(item.returned_at)}
+                                </span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function ManifestTransferPage() {
     const navigate = useNavigate();
     const audio    = useDeliveryAudio();
 
-    // all manifests (filtered for source: draft+cancelled; dest: draft only)
+    // all manifests
     const [allManifests, setAllManifests] = useState([]);
     const [loadingManifests, setLoadingManifests] = useState(true);
 
+    // returned items (from completed manifests)
+    const [returnedItems, setReturnedItems]       = useState([]);
+    const [loadingReturned, setLoadingReturned]   = useState(true);
+
     // panel state
-    const [sourceId,      setSourceId]      = useState('');
-    const [destId,        setDestId]        = useState('');
+    const [sourceId,       setSourceId]       = useState('');
+    const [destId,         setDestId]         = useState('');
     const [sourceManifest, setSourceManifest] = useState(null);
     const [destManifest,   setDestManifest]   = useState(null);
-    const [loadingSource, setLoadingSource] = useState(false);
-    const [loadingDest,   setLoadingDest]   = useState(false);
+    const [loadingSource,  setLoadingSource]  = useState(false);
+    const [loadingDest,    setLoadingDest]    = useState(false);
 
     // selection
     const [selected, setSelected] = useState(new Set());
 
     // transfer state
-    const [transferring, setTransferring] = useState(false);
-    const [transferError, setTransferError] = useState(null);
-    const [transferSuccess, setTransferSuccess] = useState(null);
+    const [transferring,     setTransferring]     = useState(false);
+    const [transferError,    setTransferError]     = useState(null);
+    const [transferSuccess,  setTransferSuccess]   = useState(null);
 
     // override modal state
-    const [overrideModal, setOverrideModal] = useState(null); // { warning, driver_id, driver_name }
+    const [overrideModal,    setOverrideModal]     = useState(null);
 
-    // pre-flight safety warning (subtle badge)
-    const [preflightWarning, setPreflightWarning] = useState(null); // { warning, driver_id, driver_name }
+    // pre-flight safety warning
+    const [preflightWarning, setPreflightWarning] = useState(null);
 
     // post-transfer empty-source modal
-    const [emptySourceModal, setEmptySourceModal] = useState(null); // { manifestId, manifestNumber }
-    const [deleting, setDeleting] = useState(false);
+    const [emptySourceModal, setEmptySourceModal] = useState(null);
+    const [deleting,         setDeleting]         = useState(false);
 
     // ── load manifest list ────────────────────────────────────────────────────
     const fetchManifestList = useCallback(async () => {
         setLoadingManifests(true);
         try {
-            const res = await deliveryAPI.getManifests({ per_page: 200 });
+            const res  = await deliveryAPI.getManifests({ per_page: 200 });
             const data = res.data ?? res;
             const list = Array.isArray(data) ? data : (data.data ?? []);
             setAllManifests(list);
@@ -435,7 +676,23 @@ export default function ManifestTransferPage() {
         }
     }, []);
 
-    useEffect(() => { fetchManifestList(); }, [fetchManifestList]);
+    // ── load returned items ───────────────────────────────────────────────────
+    const fetchReturnedItems = useCallback(async () => {
+        setLoadingReturned(true);
+        try {
+            const res = await deliveryAPI.getReturnedItems();
+            setReturnedItems(res.data ?? []);
+        } catch {
+            setReturnedItems([]);
+        } finally {
+            setLoadingReturned(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchManifestList();
+        fetchReturnedItems();
+    }, [fetchManifestList, fetchReturnedItems]);
 
     // ── fetch source manifest detail ──────────────────────────────────────────
     useEffect(() => {
@@ -464,7 +721,6 @@ export default function ManifestTransferPage() {
 
     // ── pre-flight safety check ───────────────────────────────────────────────
     useEffect(() => {
-        // Only check when we have a destination with a driver, selected items, and no override already open
         if (
             !destManifest?.driver_id
             || selected.size === 0
@@ -479,31 +735,24 @@ export default function ManifestTransferPage() {
             .filter(i => selected.has(i.id))
             .map(i => i.order_id);
 
-        if (orderIds.length === 0) {
-            setPreflightWarning(null);
-            return;
-        }
+        if (orderIds.length === 0) { setPreflightWarning(null); return; }
 
         let cancelled = false;
         deliveryAPI.checkDriverSafety(destManifest.driver_id, orderIds)
             .then(res => {
                 if (cancelled) return;
-                if (res.warning) {
-                    setPreflightWarning({
-                        warning: res.warning,
-                        driver_id: destManifest.driver_id,
-                        driver_name: destManifest.driver?.name ?? 'Driver',
-                    });
-                } else {
-                    setPreflightWarning(null);
-                }
+                setPreflightWarning(res.warning ? {
+                    warning:     res.warning,
+                    driver_id:   destManifest.driver_id,
+                    driver_name: destManifest.driver?.name ?? 'Driver',
+                } : null);
             })
             .catch(e => {
                 if (cancelled) return;
                 if (e.response?.status === 409) {
                     setPreflightWarning({
-                        warning: e.response.data.warning,
-                        driver_id: e.response.data.driver_id,
+                        warning:     e.response.data.warning,
+                        driver_id:   e.response.data.driver_id,
                         driver_name: e.response.data.driver_name ?? 'Driver',
                     });
                 } else {
@@ -525,20 +774,51 @@ export default function ManifestTransferPage() {
     };
 
     const toggleAll = () => {
+        // For completed manifests, only select returned items
         const sourceItems = sourceManifest?.items ?? [];
-        if (selected.size === sourceItems.length) {
+        const fromCompleted = sourceManifest?.status === 'completed';
+        const selectableItems = fromCompleted
+            ? sourceItems.filter(i => i.status === 'returned')
+            : sourceItems;
+
+        if (selected.size === selectableItems.length) {
             setSelected(new Set());
         } else {
-            setSelected(new Set(sourceItems.map(i => i.id)));
+            setSelected(new Set(selectableItems.map(i => i.id)));
         }
         audio.playHover();
     };
+
+    // ── load a returned-items group into source panel ─────────────────────────
+    // Called from the returned items section "Load" button
+    const handleLoadReturned = useCallback((manifestId, itemIds) => {
+        setSourceId(String(manifestId));
+        setTransferError(null);
+        setTransferSuccess(null);
+        // Pre-select the returned item IDs after manifest loads
+        // We store them temporarily and apply once sourceManifest is ready
+        setPendingSelection(new Set(itemIds.map(String)));
+    }, []);
+
+    // pending selection to apply after source manifest loads
+    const [pendingSelection, setPendingSelection] = useState(null);
+
+    useEffect(() => {
+        if (!pendingSelection || !sourceManifest) return;
+        // Map the pending IDs (which are delivery_item ids) against loaded items
+        const validIds = new Set(
+            (sourceManifest.items ?? [])
+                .filter(i => pendingSelection.has(String(i.id)))
+                .map(i => i.id)
+        );
+        setSelected(validIds);
+        setPendingSelection(null);
+    }, [sourceManifest, pendingSelection]);
 
     // ── transfer ──────────────────────────────────────────────────────────────
     const handleTransfer = async (overrideReason = null) => {
         if (selected.size === 0 || !destId || !sourceId || sourceId === destId) return;
 
-        // If pre-flight flagged a warning and no override provided yet, open modal
         if (preflightWarning && !overrideReason && !overrideModal) {
             setOverrideModal(preflightWarning);
             return;
@@ -553,26 +833,22 @@ export default function ManifestTransferPage() {
                 item_ids:                [...selected],
                 destination_manifest_id: Number(destId),
             };
-            if (overrideReason) {
-                payload.override_reason = overrideReason;
-            }
+            if (overrideReason) payload.override_reason = overrideReason;
 
             const res = await deliveryAPI.transferManifestItems(payload);
             audio.playSuccess();
-            const msg = res.message ?? `${selected.size} item(s) transferred.`;
-            setTransferSuccess(msg);
+            setTransferSuccess(res.message ?? `${selected.size} item(s) transferred.`);
             setOverrideModal(null);
             setPreflightWarning(null);
 
-            // check if source is now empty
+            // check if source is now empty (only relevant for draft/cancelled)
             const updatedSources = res.sources ?? [];
             const srcAfter = updatedSources.find(m => String(m.id) === String(sourceId));
             const srcEmpty = srcAfter && (srcAfter.items?.length === 0);
 
-            // refresh destination
             setDestManifest(res.destination ?? destManifest);
 
-            if (srcEmpty) {
+            if (srcEmpty && sourceManifest?.status !== 'completed') {
                 setEmptySourceModal({
                     manifestId:     srcAfter.id,
                     manifestNumber: srcAfter.manifest_number,
@@ -584,20 +860,22 @@ export default function ManifestTransferPage() {
                 setSelected(new Set());
             }
 
+            // Refresh both lists so the returned items section updates
             fetchManifestList();
+            fetchReturnedItems();
+
         } catch (e) {
             const status = e.response?.status;
             const data   = e.response?.data;
 
             if (status === 409 && data?.requires_override) {
                 setOverrideModal({
-                    warning: data.warning,
-                    driver_id: data.driver_id,
+                    warning:     data.warning,
+                    driver_id:   data.driver_id,
                     driver_name: data.driver_name ?? 'Driver',
                 });
             } else {
-                const errMsg = data?.message ?? 'Transfer failed. Please try again.';
-                setTransferError(errMsg);
+                setTransferError(data?.message ?? 'Transfer failed. Please try again.');
                 audio.playError();
             }
         } finally {
@@ -625,23 +903,36 @@ export default function ManifestTransferPage() {
     };
 
     // ── derived ───────────────────────────────────────────────────────────────
-    const sourceManifests = allManifests.filter(m => TRANSFERABLE_STATUSES.includes(m.status));
-    const destManifests   = allManifests.filter(m => m.status === 'draft');
 
-    const sourceItems = sourceManifest?.items ?? [];
-    const destItems   = destManifest?.items ?? [];
+    // Build the set of manifest IDs that have returned items (for filtering completed ones)
+    const returnedManifestIds = new Set(returnedItems.map(i => String(i.manifest_id)));
 
-    const allSelected  = sourceItems.length > 0 && selected.size === sourceItems.length;
+    // Source list: draft + cancelled always; completed only if they have returned items
+    const sourceManifests = allManifests.filter(m => {
+        if (m.status === 'draft' || m.status === 'cancelled') return true;
+        if (m.status === 'completed') return returnedManifestIds.has(String(m.id));
+        return false;
+    });
+
+    const destManifests = allManifests.filter(m => m.status === 'draft');
+
+    const sourceItems   = sourceManifest?.items ?? [];
+    const destItems     = destManifest?.items ?? [];
+    const fromCompleted = sourceManifest?.status === 'completed';
+
+    // For "select all", only count selectable items
+    const selectableItems = fromCompleted
+        ? sourceItems.filter(i => i.status === 'returned')
+        : sourceItems;
+
+    const allSelected  = selectableItems.length > 0 && selected.size === selectableItems.length;
     const someSelected = selected.size > 0;
 
-    const canTransfer = someSelected && destId && sourceId && sourceId !== destId && !transferring;
-
+    const canTransfer      = someSelected && destId && sourceId && sourceId !== destId && !transferring;
     const sameManifestError = sourceId && destId && sourceId === destId;
-
-    // Determine which manifests to show links for
-    const hasAnySelection = sourceId || destId;
-    const activeSource = sourceManifest;
-    const activeDest   = destManifest;
+    const hasAnySelection  = sourceId || destId;
+    const activeSource     = sourceManifest;
+    const activeDest       = destManifest;
 
     // ── render ────────────────────────────────────────────────────────────────
     return (
@@ -659,12 +950,12 @@ export default function ManifestTransferPage() {
 
                 <DeliveryPageHeader
                     title="Transfer items"
-                    sub="Move stops between draft or cancelled manifests"
+                    sub="Move stops between manifests — or reassign returned items to a new run"
                     actions={
                         <DeliveryBtn
                             variant="ghost"
                             size="sm"
-                            onClick={() => { audio.playHover(); fetchManifestList(); }}
+                            onClick={() => { audio.playHover(); fetchManifestList(); fetchReturnedItems(); }}
                             onHover={audio.playHover}
                             disabled={loadingManifests}
                         >
@@ -673,19 +964,27 @@ export default function ManifestTransferPage() {
                     }
                 />
 
+                {/* ── returned items section ── */}
+                <ReturnedItemsSection
+                    returnedItems={returnedItems}
+                    loadingReturned={loadingReturned}
+                    onLoad={handleLoadReturned}
+                    audio={audio}
+                />
+
                 {/* ── success banner ── */}
                 {transferSuccess && !emptySourceModal && (
                     <div style={{
-                        background:    'rgba(20,184,166,0.1)',
-                        border:        '1px solid rgba(20,184,166,0.3)',
-                        borderRadius:  D.radiusSm,
-                        padding:       '10px 14px',
-                        color:         D.teal,
-                        fontSize:      '0.82rem',
-                        marginBottom:  16,
-                        display:       'flex',
-                        alignItems:    'center',
-                        gap:           8,
+                        background:   'rgba(20,184,166,0.1)',
+                        border:       '1px solid rgba(20,184,166,0.3)',
+                        borderRadius: D.radiusSm,
+                        padding:      '10px 14px',
+                        color:        D.teal,
+                        fontSize:     '0.82rem',
+                        marginBottom: 16,
+                        display:      'flex',
+                        alignItems:   'center',
+                        gap:          8,
                     }}>
                         <CheckCircle size={14} /> {transferSuccess}
                     </div>
@@ -712,17 +1011,20 @@ export default function ManifestTransferPage() {
 
                 {/* ── two-panel layout ── */}
                 <div style={{
-                    display:   'flex',
-                    gap:       'clamp(12px, 2vw, 20px)',
+                    display:    'flex',
+                    gap:        'clamp(12px, 2vw, 20px)',
                     alignItems: 'flex-start',
-                    flexWrap:  'wrap',
+                    flexWrap:   'wrap',
                 }}>
 
                     {/* ── LEFT: source panel ── */}
                     <Panel
                         title="Move from"
-                        sub="Draft or cancelled manifests"
-                        accent={someSelected ? D.purple : D.purpleBorder}
+                        sub={fromCompleted
+                            ? 'Completed manifest — only returned items are transferable'
+                            : 'Draft or cancelled manifests'
+                        }
+                        accent={someSelected ? D.purple : fromCompleted ? 'rgba(245,158,11,0.3)' : D.purpleBorder}
                     >
                         <ManifestSelect
                             label="Source manifest"
@@ -733,26 +1035,49 @@ export default function ManifestTransferPage() {
                             loading={loadingManifests}
                         />
 
+                        {/* completed manifest notice */}
+                        {fromCompleted && (
+                            <div style={{
+                                display:      'flex',
+                                alignItems:   'center',
+                                gap:          7,
+                                padding:      '7px 11px',
+                                marginBottom: 10,
+                                borderRadius: D.radiusSm,
+                                background:   'rgba(245,158,11,0.07)',
+                                border:       '1px solid rgba(245,158,11,0.2)',
+                                fontSize:     '0.73rem',
+                                color:        '#f59e0b',
+                            }}>
+                                <RotateCcw size={11} style={{ flexShrink: 0 }} />
+                                Only <strong style={{ margin: '0 2px' }}>returned</strong> items can be moved from a completed manifest.
+                                Other stops are locked.
+                            </div>
+                        )}
+
                         {/* select all row */}
-                        {sourceItems.length > 0 && (
+                        {selectableItems.length > 0 && (
                             <div
                                 onClick={toggleAll}
                                 style={{
-                                    display:       'flex',
-                                    alignItems:    'center',
-                                    gap:           8,
-                                    padding:       '6px 12px',
-                                    marginBottom:  6,
-                                    cursor:        'pointer',
-                                    borderRadius:  D.radiusSm,
-                                    background:    allSelected ? 'rgba(168,85,247,0.07)' : 'transparent',
+                                    display:      'flex',
+                                    alignItems:   'center',
+                                    gap:          8,
+                                    padding:      '6px 12px',
+                                    marginBottom: 6,
+                                    cursor:       'pointer',
+                                    borderRadius: D.radiusSm,
+                                    background:   allSelected ? 'rgba(168,85,247,0.07)' : 'transparent',
                                 }}
                             >
                                 <div style={{ color: allSelected ? D.purple : D.textDim }}>
                                     {allSelected ? <CheckSquare size={14} /> : <Square size={14} />}
                                 </div>
                                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textMid }}>
-                                    {allSelected ? 'Deselect all' : `Select all (${sourceItems.length})`}
+                                    {allSelected
+                                        ? 'Deselect all'
+                                        : `Select all${fromCompleted ? ' returned' : ''} (${selectableItems.length})`
+                                    }
                                 </span>
                                 {someSelected && !allSelected && (
                                     <span style={{ fontSize: '0.72rem', color: D.purple, marginLeft: 'auto' }}>
@@ -778,14 +1103,14 @@ export default function ManifestTransferPage() {
                                         item={item}
                                         selected={selected.has(item.id)}
                                         onToggle={toggleItem}
-                                        disabled={false}
+                                        sourceManifestStatus={sourceManifest?.status}
                                     />
                                 ))
                             )}
                         </div>
                     </Panel>
 
-                    {/* ── MIDDLE: transfer button (desktop vertical center, mobile horizontal) ── */}
+                    {/* ── MIDDLE: transfer button ── */}
                     <div style={{
                         display:        'flex',
                         flexDirection:  'column',
@@ -795,12 +1120,11 @@ export default function ManifestTransferPage() {
                         paddingTop:     'clamp(56px, 8vw, 80px)',
                         flexShrink:     0,
                     }}>
-                        {/* item count pill */}
                         {someSelected && (
                             <div style={{
                                 background:   'rgba(168,85,247,0.15)',
                                 border:       `1px solid ${D.purpleBorder}`,
-                                borderRadius:  D.radiusSm,
+                                borderRadius: D.radiusSm,
                                 padding:      '3px 10px',
                                 fontSize:     '0.72rem',
                                 fontWeight:   700,
@@ -811,25 +1135,24 @@ export default function ManifestTransferPage() {
                             </div>
                         )}
 
-                        {/* pre-flight warning badge */}
                         {preflightWarning && someSelected && (
                             <div
                                 onClick={() => setOverrideModal(preflightWarning)}
                                 title="Click to review and override"
                                 style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    padding: '5px 10px',
+                                    display:      'flex',
+                                    alignItems:   'center',
+                                    gap:          6,
+                                    padding:      '5px 10px',
                                     borderRadius: D.radiusSm,
-                                    background: 'rgba(245,158,11,0.12)',
-                                    border: '1px solid rgba(245,158,11,0.3)',
-                                    color: '#f59e0b',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.15s',
+                                    background:   'rgba(245,158,11,0.12)',
+                                    border:       '1px solid rgba(245,158,11,0.3)',
+                                    color:        '#f59e0b',
+                                    fontSize:     '0.72rem',
+                                    fontWeight:   600,
+                                    cursor:       'pointer',
+                                    whiteSpace:   'nowrap',
+                                    transition:   'all 0.15s',
                                 }}
                             >
                                 <ShieldAlert size={12} />
@@ -851,42 +1174,42 @@ export default function ManifestTransferPage() {
                             }
                         </DeliveryBtn>
 
-                        {/* swap dropdowns shortcut */}
-                        {sourceId && destId && sourceId !== destId && (
-                            <button
-                                onClick={() => {
-                                    const destIsTransferable = TRANSFERABLE_STATUSES.includes(
-                                        allManifests.find(m => String(m.id) === String(destId))?.status
-                                    );
-                                    if (!destIsTransferable) return;
-                                    const tmp = sourceId;
-                                    setSourceId(destId);
-                                    setDestId(tmp);
-                                    setSelected(new Set());
-                                    audio.playHover();
-                                }}
-                                title="Swap source and destination"
-                                style={{
-                                    background: 'transparent',
-                                    border:     `1px solid ${D.purpleBorder}`,
-                                    borderRadius: D.radiusSm,
-                                    padding:    '5px 8px',
-                                    cursor:     'pointer',
-                                    color:      D.textDim,
-                                    display:    'flex',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <ArrowLeftRight size={13} />
-                            </button>
-                        )}
+                        {sourceId && destId && sourceId !== destId && (() => {
+                            const destIsTransferable = ['draft', 'cancelled'].includes(
+                                allManifests.find(m => String(m.id) === String(destId))?.status
+                            );
+                            return destIsTransferable ? (
+                                <button
+                                    onClick={() => {
+                                        const tmp = sourceId;
+                                        setSourceId(destId);
+                                        setDestId(tmp);
+                                        setSelected(new Set());
+                                        audio.playHover();
+                                    }}
+                                    title="Swap source and destination"
+                                    style={{
+                                        background:   'transparent',
+                                        border:       `1px solid ${D.purpleBorder}`,
+                                        borderRadius: D.radiusSm,
+                                        padding:      '5px 8px',
+                                        cursor:       'pointer',
+                                        color:        D.textDim,
+                                        display:      'flex',
+                                        alignItems:   'center',
+                                    }}
+                                >
+                                    <ArrowLeftRight size={13} />
+                                </button>
+                            ) : null;
+                        })()}
                     </div>
 
                     {/* ── RIGHT: destination panel ── */}
                     <Panel
                         title="Move to"
                         sub="Draft manifests only"
-                        accent={destId ? D.purpleBorder : D.purpleBorder}
+                        accent={D.purpleBorder}
                     >
                         <ManifestSelect
                             label="Destination manifest"
@@ -897,7 +1220,6 @@ export default function ManifestTransferPage() {
                             loading={loadingManifests}
                         />
 
-                        {/* destination stats */}
                         {destManifest && (
                             <div style={{
                                 display:      'flex',
@@ -941,7 +1263,6 @@ export default function ManifestTransferPage() {
                             )}
                         </div>
 
-                        {/* incoming preview */}
                         {someSelected && destId && (
                             <>
                                 <DeliveryDivider label={`+ ${selected.size} incoming`} />
@@ -980,18 +1301,18 @@ export default function ManifestTransferPage() {
                 {hasAnySelection && (
                     <div style={{ marginTop: 24 }}>
                         <div style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: D.textDim,
+                            fontSize:      '0.72rem',
+                            fontWeight:    700,
+                            color:         D.textDim,
                             textTransform: 'uppercase',
                             letterSpacing: '0.06em',
-                            marginBottom: 10,
+                            marginBottom:  10,
                         }}>
                             Selected manifests
                         </div>
                         <div style={{
-                            display: 'flex',
-                            gap: 'clamp(8px, 1.5vw, 14px)',
+                            display:  'flex',
+                            gap:      'clamp(8px, 1.5vw, 14px)',
                             flexWrap: 'wrap',
                         }}>
                             {activeSource && (

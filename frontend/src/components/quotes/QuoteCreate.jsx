@@ -972,7 +972,7 @@ const QuoteCreate = ({ isOpen, onClose, onSuccess, prefilledData = null, custome
                       {/* Tax */}
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>Tax (VAT)</span>
+                          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>VAT</span>
                           <button type="button" onClick={() => handleChange('tax', totals.subtotalAfterAllDiscounts * 0.16)} style={{ fontSize: '0.7rem', color: purple, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Apply 16%</button>
                         </div>
                         <StyledInput type="number" value={formData.tax} onChange={e => handleChange('tax', e.target.value)} min="0" step="0.01" prefix={cs} />

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Truck, Plus, Search, RefreshCw, Filter,
-    Calendar, User, ChevronLeft, ChevronRight,
-    Loader2, FileText, X,
+    Calendar, User, ChevronLeft, ChevronRight, XCircle,
+    Loader2, FileText, X, RotateCcw, PackageX, ChevronDown, ChevronUp, ArrowRightLeft,
 } from 'lucide-react';
 import GeneralLayout from '../../../components/layout/GeneralLayout';
 import deliveryAPI from '../../../api/delivery';
@@ -123,6 +123,7 @@ function ManifestRow({ manifest, onClick, onHover }) {
     const total     = items.length;
     const delivered = items.filter(i => i.status === 'delivered').length;
     const failed    = items.filter(i => i.status === 'failed').length;
+    const returned  = items.filter(i => i.status === 'returned').length;
 
     return (
         <DeliveryCard
@@ -176,7 +177,8 @@ function ManifestRow({ manifest, onClick, onHover }) {
                     <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: '0.7rem', color: D.textDim }}>
                         <span style={{ color: D.teal }}>{delivered} delivered</span>
                         {failed > 0 && <span style={{ color: '#ef4444' }}>{failed} failed</span>}
-                        <span>{total - delivered - failed} pending</span>
+                        {returned > 0 && <span style={{ color: '#f59e0b' }}>{returned} returned</span>}
+                        <span>{total - delivered - failed - returned} pending</span>
                         {manifest.total_distance_km > 0 && (
                             <span style={{ marginLeft: 'auto' }}>{manifest.total_distance_km} km</span>
                         )}
@@ -248,6 +250,532 @@ function Pagination({ meta, onPage, onHover }) {
                     <ChevronRight size={14} />
                 </button>
             </div>
+        </div>
+    );
+}
+
+// ── returned items panel ──────────────────────────────────────────────────────
+function ReturnedItemsPanel({ onHover, navigate, audio }) {
+    const [open,         setOpen]         = useState(false);
+    const [items,        setItems]        = useState([]);
+    const [loading,      setLoading]      = useState(false);
+    const [error,        setError]        = useState(null);
+    const [drafts,       setDrafts]       = useState([]);
+    const [transferring, setTransferring] = useState(null); // item id being transferred
+    const [pickerItem,   setPickerItem]   = useState(null); // item id showing draft picker
+
+    const load = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await deliveryAPI.getReturnedItems();
+            setItems(res.data ?? []);
+        } catch {
+            setError('Failed to load returned items.');
+            audio.playError();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadDrafts = async () => {
+        try {
+            const res = await deliveryAPI.getManifests({ status: 'draft', per_page: 50 });
+            setDrafts(res.data ?? []);
+        } catch { /* silent — user will see empty picker */ }
+    };
+
+    const handleToggle = () => {
+        onHover();
+        if (!open) { load(); loadDrafts(); }
+        setOpen(o => !o);
+    };
+
+    const handleTransfer = async (itemId, manifestId) => {
+        setTransferring(itemId);
+        try {
+            await deliveryAPI.transferManifestItems({
+                item_ids: [itemId],
+                destination_manifest_id: manifestId,
+            });
+            audio.playHover();
+            setPickerItem(null);
+            setItems(prev => prev.filter(i => i.id !== itemId));
+        } catch {
+            audio.playError();
+        } finally {
+            setTransferring(null);
+        }
+    };
+
+    const panelStyle = {
+        background:   D.card,
+        border:       `1px solid ${D.purpleBorder}`,
+        borderRadius: D.radiusLg,
+        overflow:     'hidden',
+        marginTop:    16,
+    };
+
+    const headerStyle = {
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+        padding:        '12px 16px',
+        cursor:         'pointer',
+        userSelect:     'none',
+    };
+
+    const rowStyle = {
+        display:      'flex',
+        alignItems:   'center',
+        gap:          12,
+        padding:      '10px 16px',
+        borderTop:    `1px solid ${D.purpleBorder}`,
+        flexWrap:     'wrap',
+    };
+
+    const badgeStyle = {
+        display:      'inline-flex',
+        alignItems:   'center',
+        gap:          4,
+        padding:      '2px 8px',
+        borderRadius: 20,
+        fontSize:     '0.7rem',
+        fontWeight:   600,
+        background:   'rgba(245,158,11,0.12)',
+        color:        '#f59e0b',
+        border:       '1px solid rgba(245,158,11,0.25)',
+        whiteSpace:   'nowrap',
+    };
+
+    return (
+        <div style={panelStyle}>
+            <div style={headerStyle} onClick={handleToggle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <RotateCcw size={14} color="#f59e0b" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: D.text }}>
+                        Returned items
+                    </span>
+                    {items.length > 0 && (
+                        <span style={{ ...badgeStyle, background: 'rgba(245,158,11,0.15)' }}>
+                            {items.length}
+                        </span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', color: D.textDim }}>
+                        — awaiting reassignment
+                    </span>
+                </div>
+                {open ? <ChevronUp size={14} color={D.textDim} /> : <ChevronDown size={14} color={D.textDim} />}
+            </div>
+
+            {open && (
+                <>
+                    {loading && (
+                        <div style={{ padding: '20px 16px', textAlign: 'center', color: D.textDim, fontSize: '0.82rem', display: 'flex', gap: 8, justifyContent: 'center' }}>
+                            <Loader2 size={14} color={D.purple} style={{ animation: 'spin 1s linear infinite' }} />
+                            Loading…
+                        </div>
+                    )}
+                    {error && (
+                        <div style={{ padding: '16px', color: '#ef4444', fontSize: '0.82rem', borderTop: `1px solid ${D.purpleBorder}` }}>
+                            {error}
+                        </div>
+                    )}
+                    {!loading && !error && items.length === 0 && (
+                        <div style={{ padding: '20px 16px', textAlign: 'center', color: D.textDim, fontSize: '0.82rem', borderTop: `1px solid ${D.purpleBorder}` }}>
+                            No returned items — all clear.
+                        </div>
+                    )}
+                    {!loading && items.map(item => (
+                        <div key={item.id} style={rowStyle}>
+                            <PackageX size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
+
+                            {/* order + customer */}
+                            <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: D.text }}>
+                                    {item.order_number}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: D.textDim }}>
+                                    {item.customer_name || '—'}
+                                    {item.customer_phone && <> · {item.customer_phone}</>}
+                                </div>
+                                {item.returned_at && (
+                                    <div style={{ fontSize: '0.68rem', color: '#f59e0b', marginTop: 2 }}>
+                                        returned {new Date(item.returned_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* failed reason */}
+                            {item.failed_reason && (
+                                <div style={{ flex: '1 1 140px', fontSize: '0.72rem', color: D.textDim, fontStyle: 'italic', minWidth: 0 }}>
+                                    "{item.failed_reason}"
+                                </div>
+                            )}
+
+                            {/* source manifest */}
+                            <div
+                                style={{ fontSize: '0.72rem', color: D.purple, cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                                onClick={() => { onHover(); navigate(`/admin/delivery/manifests/${item.manifest_id}`); }}
+                            >
+                                {item.manifest_number}
+                            </div>
+
+                            {/* transfer action */}
+                            {pickerItem === item.id ? (
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, flex: '1 1 auto' }}>
+                                    <div style={{ flex: 1, minWidth: 180 }}>
+                                        {drafts.length === 0 ? (
+                                            <div style={{ fontSize: '0.75rem', color: D.textDim, padding: '6px 0' }}>
+                                                No draft manifests available
+                                            </div>
+                                        ) : (
+                                            <div style={{
+                                                background:   D.card,
+                                                border:       `1px solid ${D.purpleBorder}`,
+                                                borderRadius: D.radiusSm,
+                                                overflow:     'hidden',
+                                                maxHeight:    180,
+                                                overflowY:    'auto',
+                                            }}>
+                                                {drafts.map(d => {
+                                                    const stopCount = d.items?.length ?? 0;
+                                                    const statusColor = {
+                                                        draft:       '#94a3b8',
+                                                        dispatched:  '#a855f7',
+                                                        in_progress: '#f59e0b',
+                                                        completed:   '#22c55e',
+                                                        cancelled:   '#ef4444',
+                                                    }[d.status] ?? '#94a3b8';
+
+                                                    return (
+                                                        <div
+                                                            key={d.id}
+                                                            onClick={() => handleTransfer(item.id, d.id)}
+                                                            style={{
+                                                                padding:      '8px 12px',
+                                                                cursor:       'pointer',
+                                                                borderBottom: `1px solid ${D.purpleBorder}`,
+                                                                display:      'flex',
+                                                                alignItems:   'center',
+                                                                gap:          10,
+                                                                transition:   'background 0.1s',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = D.purpleDim}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                        >
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: D.text }}>
+                                                                    {d.manifest_number}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.68rem', color: D.textDim, marginTop: 1 }}>
+                                                                    {d.driver?.name ?? 'Unassigned'}
+                                                                    {stopCount > 0 && <> · {stopCount} stop{stopCount !== 1 ? 's' : ''}</>}
+                                                                    {d.scheduled_date && <> · {fmtDate(d.scheduled_date)}</>}
+                                                                </div>
+                                                            </div>
+                                                            <span style={{
+                                                                fontSize:     '0.62rem',
+                                                                fontWeight:   700,
+                                                                color:        statusColor,
+                                                                textTransform:'uppercase',
+                                                                letterSpacing:'0.05em',
+                                                                flexShrink:   0,
+                                                            }}>
+                                                                {d.status?.replace('_', ' ')}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <DeliveryBtn variant="ghost" size="sm" onClick={() => setPickerItem(null)} onHover={onHover}>
+                                        <X size={11} />
+                                    </DeliveryBtn>
+                                </div>
+                            ) : (
+                                <DeliveryBtn
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { onHover(); setPickerItem(item.id); }}
+                                    onHover={onHover}
+                                    disabled={transferring === item.id}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                >
+                                    {transferring === item.id
+                                        ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                        : <ArrowRightLeft size={11} />
+                                    }
+                                    Transfer
+                                </DeliveryBtn>
+                            )}
+                        </div>
+                    ))}
+                </>
+            )}
+        </div>
+    );
+}
+
+// ── failed items panel ────────────────────────────────────────────────────────
+function FailedItemsPanel({ onHover, navigate, audio }) {
+    const [open,         setOpen]         = useState(false);
+    const [items,        setItems]        = useState([]);
+    const [loading,      setLoading]      = useState(false);
+    const [error,        setError]        = useState(null);
+    const [drafts,       setDrafts]       = useState([]);
+    const [transferring, setTransferring] = useState(null);
+    const [pickerItem,   setPickerItem]   = useState(null);
+
+    const load = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await deliveryAPI.getFailedItems();
+            setItems(res.data ?? []);
+        } catch {
+            setError('Failed to load failed items.');
+            audio.playError();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadDrafts = async () => {
+        try {
+            const res = await deliveryAPI.getManifests({ status: 'draft', per_page: 50 });
+            setDrafts(res.data ?? []);
+        } catch { /* silent */ }
+    };
+
+    const handleToggle = () => {
+        onHover();
+        if (!open) { load(); loadDrafts(); }
+        setOpen(o => !o);
+    };
+
+    const handleTransfer = async (itemId, manifestId) => {
+        setTransferring(itemId);
+        try {
+            await deliveryAPI.transferManifestItems({
+                item_ids: [itemId],
+                destination_manifest_id: manifestId,
+            });
+            audio.playHover();
+            setPickerItem(null);
+            setItems(prev => prev.filter(i => i.id !== itemId));
+        } catch {
+            audio.playError();
+        } finally {
+            setTransferring(null);
+        }
+    };
+
+    const panelStyle = {
+        background:   D.card,
+        border:       `1px solid rgba(239,68,68,0.25)`,
+        borderRadius: D.radiusLg,
+        overflow:     'hidden',
+        marginTop:    16,
+    };
+
+    const headerStyle = {
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+        padding:        '12px 16px',
+        cursor:         'pointer',
+        userSelect:     'none',
+    };
+
+    const rowStyle = {
+        display:   'flex',
+        alignItems:'center',
+        gap:       12,
+        padding:   '10px 16px',
+        borderTop: `1px solid rgba(239,68,68,0.15)`,
+        flexWrap:  'wrap',
+    };
+
+    const badgeStyle = {
+        display:      'inline-flex',
+        alignItems:   'center',
+        gap:          4,
+        padding:      '2px 8px',
+        borderRadius: 20,
+        fontSize:     '0.7rem',
+        fontWeight:   600,
+        background:   'rgba(239,68,68,0.12)',
+        color:        '#ef4444',
+        border:       '1px solid rgba(239,68,68,0.25)',
+        whiteSpace:   'nowrap',
+    };
+
+    return (
+        <div style={panelStyle}>
+            <div style={headerStyle} onClick={handleToggle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <XCircle size={14} color="#ef4444" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: D.text }}>
+                        Failed items
+                    </span>
+                    {items.length > 0 && (
+                        <span style={badgeStyle}>{items.length}</span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', color: D.textDim }}>
+                        — awaiting retry or reassignment
+                    </span>
+                </div>
+                {open ? <ChevronUp size={14} color={D.textDim} /> : <ChevronDown size={14} color={D.textDim} />}
+            </div>
+
+            {open && (
+                <>
+                    {loading && (
+                        <div style={{ padding: '20px 16px', textAlign: 'center', color: D.textDim, fontSize: '0.82rem', display: 'flex', gap: 8, justifyContent: 'center' }}>
+                            <Loader2 size={14} color={D.purple} style={{ animation: 'spin 1s linear infinite' }} />
+                            Loading…
+                        </div>
+                    )}
+                    {error && (
+                        <div style={{ padding: '16px', color: '#ef4444', fontSize: '0.82rem', borderTop: `1px solid rgba(239,68,68,0.15)` }}>
+                            {error}
+                        </div>
+                    )}
+                    {!loading && !error && items.length === 0 && (
+                        <div style={{ padding: '20px 16px', textAlign: 'center', color: D.textDim, fontSize: '0.82rem', borderTop: `1px solid rgba(239,68,68,0.15)` }}>
+                            No failed items — all clear.
+                        </div>
+                    )}
+                    {!loading && items.map(item => (
+                        <div key={item.id} style={rowStyle}>
+                            <PackageX size={14} color="#ef4444" style={{ flexShrink: 0 }} />
+
+                            {/* order + customer */}
+                            <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: D.text }}>
+                                    {item.order_number}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: D.textDim }}>
+                                    {item.customer_name || '—'}
+                                    {item.customer_phone && <> · {item.customer_phone}</>}
+                                </div>
+                                {item.attempted_at && (
+                                    <div style={{ fontSize: '0.68rem', color: '#ef4444', marginTop: 2 }}>
+                                        failed {new Date(item.attempted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* failed reason */}
+                            {item.failed_reason && (
+                                <div style={{ flex: '1 1 140px', fontSize: '0.72rem', color: D.textDim, fontStyle: 'italic', minWidth: 0 }}>
+                                    "{item.failed_reason}"
+                                </div>
+                            )}
+
+                            {/* source manifest */}
+                            <div
+                                style={{ fontSize: '0.72rem', color: D.purple, cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                                onClick={() => { onHover(); navigate(`/admin/delivery/manifests/${item.manifest_id}`); }}
+                            >
+                                {item.manifest_number}
+                            </div>
+
+                            {/* transfer action */}
+                            {pickerItem === item.id ? (
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, flex: '1 1 auto' }}>
+                                    <div style={{ flex: 1, minWidth: 180 }}>
+                                        {drafts.length === 0 ? (
+                                            <div style={{ fontSize: '0.75rem', color: D.textDim, padding: '6px 0' }}>
+                                                No draft manifests available
+                                            </div>
+                                        ) : (
+                                            <div style={{
+                                                background:   D.card,
+                                                border:       `1px solid ${D.purpleBorder}`,
+                                                borderRadius: D.radiusSm,
+                                                overflow:     'hidden',
+                                                maxHeight:    180,
+                                                overflowY:    'auto',
+                                            }}>
+                                                {drafts.map(d => {
+                                                    const stopCount = d.items?.length ?? 0;
+                                                    const statusColor = {
+                                                        draft:       '#94a3b8',
+                                                        dispatched:  '#a855f7',
+                                                        in_progress: '#f59e0b',
+                                                        completed:   '#22c55e',
+                                                        cancelled:   '#ef4444',
+                                                    }[d.status] ?? '#94a3b8';
+
+                                                    return (
+                                                        <div
+                                                            key={d.id}
+                                                            onClick={() => handleTransfer(item.id, d.id)}
+                                                            style={{
+                                                                padding:      '8px 12px',
+                                                                cursor:       'pointer',
+                                                                borderBottom: `1px solid ${D.purpleBorder}`,
+                                                                display:      'flex',
+                                                                alignItems:   'center',
+                                                                gap:          10,
+                                                                transition:   'background 0.1s',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = D.purpleDim}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                        >
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: D.text }}>
+                                                                    {d.manifest_number}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.68rem', color: D.textDim, marginTop: 1 }}>
+                                                                    {d.driver?.name ?? 'Unassigned'}
+                                                                    {stopCount > 0 && <> · {stopCount} stop{stopCount !== 1 ? 's' : ''}</>}
+                                                                    {d.scheduled_date && <> · {fmtDate(d.scheduled_date)}</>}
+                                                                </div>
+                                                            </div>
+                                                            <span style={{
+                                                                fontSize:      '0.62rem',
+                                                                fontWeight:    700,
+                                                                color:         statusColor,
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.05em',
+                                                                flexShrink:    0,
+                                                            }}>
+                                                                {d.status?.replace('_', ' ')}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <DeliveryBtn variant="ghost" size="sm" onClick={() => setPickerItem(null)} onHover={onHover}>
+                                        <X size={11} />
+                                    </DeliveryBtn>
+                                </div>
+                            ) : (
+                                <DeliveryBtn
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { onHover(); setPickerItem(item.id); }}
+                                    onHover={onHover}
+                                    disabled={transferring === item.id}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                >
+                                    {transferring === item.id
+                                        ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                        : <ArrowRightLeft size={11} />
+                                    }
+                                    Transfer
+                                </DeliveryBtn>
+                            )}
+                        </div>
+                    ))}
+                </>
+            )}
         </div>
     );
 }
@@ -393,6 +921,22 @@ export default function ManifestsPage() {
                         )}
                     </div>
                 )}
+
+                <DeliveryDivider />
+
+                {/* returned items */}
+                <ReturnedItemsPanel
+                    onHover={audio.playHover}
+                    navigate={navigate}
+                    audio={audio}
+                />
+
+                {/* failed items */}
+                <FailedItemsPanel
+                    onHover={audio.playHover}
+                    navigate={navigate}
+                    audio={audio}
+                />
 
                 <DeliveryDivider label={
                     meta ? `${meta.total} manifest${meta.total !== 1 ? 's' : ''}` : 'Manifests'

@@ -224,6 +224,7 @@ const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/Emplo
 
 const StudioEditor         = lazy(() => import('./components/studio/StudioEditor'));
 const PublicationListPage  = lazy(() => import('./pages/admin/PublicationListPage'));
+const VaultPage            = lazy(() => import('./pages/admin/vault/VaultPage'));
 
 const Settings             = lazy(() => import('./pages/admin/settings/Settings'));
 const FlowchartPage        = lazy(() => import('./pages/admin/settings/diagrams/FlowchartPage'));  
@@ -669,6 +670,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/vault"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <VaultPage />
                 </ProtectedRoute>
               }
             />

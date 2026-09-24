@@ -98,6 +98,50 @@ class WorkController extends Controller
     }
 
     // =========================================================================
+    // DELIVERY MANIFEST SHORTCUTS
+    // =========================================================================
+
+    /**
+     * Admin banner — all incomplete manifests across all delivery methods.
+     * Incomplete = not completed and not cancelled.
+     */
+    public function incompleteManifests(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->authorizeRole($request->user(), ['admin', 'super_admin', 'logistics', 'manager']);
+
+        $manifests = \App\Models\DeliveryManifest::with(['driver:id,name'])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->withCount('items')
+            ->withCount(['items as stops_resolved' => fn($q) =>
+                $q->whereIn('status', ['delivered', 'failed', 'returned'])
+            ])
+            ->orderBy('scheduled_date')
+            ->get(['id', 'manifest_number', 'status', 'scheduled_date', 'delivery_method', 'driver_id']);
+
+        return response()->json(['data' => $manifests]);
+    }
+
+    /**
+     * Driver profile Work tab — manifests assigned to a specific driver that are not done.
+     */
+    public function driverManifests(Request $request, int $userId): \Illuminate\Http\JsonResponse
+    {
+        $this->authorizeRole($request->user(), ['admin', 'super_admin', 'logistics', 'manager', 'driver']);
+
+        $manifests = \App\Models\DeliveryManifest::with(['driver:id,name'])
+            ->where('driver_id', $userId)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->withCount('items')
+            ->withCount(['items as stops_resolved' => fn($q) =>
+                $q->whereIn('status', ['delivered', 'failed', 'returned'])
+            ])
+            ->orderBy('scheduled_date')
+            ->get(['id', 'manifest_number', 'status', 'scheduled_date', 'delivery_method', 'driver_id']);
+
+        return response()->json(['data' => $manifests]);
+    }
+
+    // =========================================================================
     // PRIVATE — MY (personal) helpers
     // =========================================================================
 

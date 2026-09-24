@@ -1,0 +1,11 @@
+# API Configuration
+# Backend is at http://localhost:8000
+# Routes are at /auth/login NOT /api/auth/login
+VITE_API_URL=https://targetisl.co.ke/api
+VITE_STORAGE_URL=https://targetisl.co.ke
+VITE_APP_NAME=TISL
+VITE_APP_URL=https://targetisl.co.ke
+VITE_GOOGLE_CLIENT_ID=your-google-client-id-here
+VITE_MICROSOFT_CLIENT_ID=your-microsoft-client-id-here
+VITE_ENABLE_OAUTH=true
+VITE_ENABLE_DARK_MODE=true

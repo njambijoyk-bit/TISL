@@ -3,13 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
     Truck, Package, User, Calendar, MapPin, Clock, ShieldAlert,
     CheckCircle, XCircle, AlertTriangle, RefreshCw, Route,
-    ChevronDown, ChevronUp, Navigation, Send, Ban,
+    ChevronDown, ChevronUp, Navigation, Send, Ban, Info,
     Loader2, Printer, RotateCcw, Activity, Edit2,
     ArrowLeft, Image as ImageIcon, Star, Trash2,
 } from 'lucide-react';
 import GeneralLayout from '../../../components/layout/GeneralLayout';
+import ManifestItemModal from './ManifestItemModal';
 import DriverTrackingModal from './DriverTrackingModal';
 import deliveryAPI from '../../../api/delivery';
+import PrintManifestModal from './PrintManifestModal';
 import { useDeliveryAudio } from './useDeliveryAudio';
 import {
     D, DeliveryPageShell, DeliveryPageHeader, DeliveryBreadcrumb,
@@ -48,7 +50,7 @@ function StopIcon({ status }) {
 }
 
 // ── individual stop card ──────────────────────────────────────────────────────
-function StopCard({ item, index, expanded, onToggle, onHover }) {
+function StopCard({ item, index, expanded, onToggle, onHover, onInfo, onOverride, isExternalDelivery }) {
     const customer = item.order?.customer;
     const custName = customer
         ? `${customer.first_name ?? ''} ${customer.last_name ?? ''}`.trim()
@@ -106,9 +108,24 @@ function StopCard({ item, index, expanded, onToggle, onHover }) {
                     </div>
                 </div>
 
-                {/* right: badge + chevron */}
+                {/* right: badge + info + chevron */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <StatusBadge status={item.status} />
+                    <button
+                        onClick={e => { e.stopPropagation(); onInfo(); }}
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            padding: 4, borderRadius: 6,
+                            display: 'flex', alignItems: 'center',
+                            color: D.textDim,
+                            transition: 'color 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = D.purple}
+                        onMouseLeave={e => e.currentTarget.style.color = D.textDim}
+                        title="Stop details"
+                    >
+                        <Info size={15} />
+                    </button>
                     {expanded ? <ChevronUp size={14} color={D.textDim} /> : <ChevronDown size={14} color={D.textDim} />}
                 </div>
             </div>
@@ -270,6 +287,25 @@ function StopCard({ item, index, expanded, onToggle, onHover }) {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+                    {/* admin override — external delivery only */}
+                    {isExternalDelivery && expanded && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                            <button
+                                onClick={e => { e.stopPropagation(); onOverride(item); }}
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                                    padding: '5px 12px',
+                                    background: 'rgba(168,85,247,0.08)',
+                                    border: `1px solid ${D.purpleBorder}`,
+                                    borderRadius: D.radiusSm,
+                                    color: D.purple, fontSize: '0.75rem', fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <Edit2 size={12} /> Override status
+                            </button>
                         </div>
                     )}
                 </div>
@@ -622,6 +658,157 @@ function ReassignModal({ manifest, onClose, onSuccess, onHover, audio }) {
     );
 }
 
+const ITEM_STATUSES = [
+    { value: 'delivered',        label: 'Delivered',        color: D.teal    },
+    { value: 'failed',           label: 'Failed',           color: '#ef4444' },
+    { value: 'returned',         label: 'Returned',         color: '#f59e0b' },
+    { value: 'out_for_delivery', label: 'Out for delivery', color: D.purple  },
+    { value: 'pending',          label: 'Pending',          color: '#94a3b8' },
+];
+
+function ItemOverrideModal({ item, manifestId, onClose, onSuccess, audio }) {
+    const [status,     setStatus]     = useState(item.status);
+    const [notes,      setNotes]      = useState('');
+    const [failReason, setFailReason] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [error,      setError]      = useState(null);
+
+    const needsReason = status === 'failed';
+    const canSubmit   = notes.trim() && (!needsReason || failReason.trim());
+
+    const handleSubmit = async () => {
+        setSubmitting(true);
+        setError(null);
+        try {
+            await deliveryAPI.overrideExternalItemStatus(manifestId, item.id, {
+                status,
+                override_notes: notes,
+                ...(needsReason && { failed_reason: failReason }),
+            });
+            audio.playSuccess();
+            onSuccess();
+        } catch (e) {
+            setError(e?.response?.data?.message ?? 'Override failed.');
+            audio.playError();
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const custName = item.order?.customer
+        ? `${item.order.customer.first_name ?? ''} ${item.order.customer.last_name ?? ''}`.trim()
+        : '—';
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: D.card, border: `1px solid ${D.purpleBorder}`,
+                borderRadius: D.radiusLg, padding: 'clamp(20px, 4vw, 28px)',
+                width: '100%', maxWidth: 440,
+            }}>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: D.text, marginBottom: 2 }}>
+                    Override delivery status
+                </div>
+                <div style={{ fontSize: '0.78rem', color: D.textDim, marginBottom: 20 }}>
+                    {item.order?.order_number} · {custName}
+                </div>
+
+                {error && (
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: D.radiusSm, padding: '8px 12px', color: '#ef4444', fontSize: '0.8rem', marginBottom: 14 }}>
+                        {error}
+                    </div>
+                )}
+
+                {/* status picker */}
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: D.textMid, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        New status
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {ITEM_STATUSES.map(s => (
+                            <button
+                                key={s.value}
+                                onClick={() => setStatus(s.value)}
+                                style={{
+                                    padding: '5px 12px', borderRadius: D.radiusSm,
+                                    border: `1px solid ${status === s.value ? s.color : D.purpleBorder}`,
+                                    background: status === s.value ? `${s.color}18` : 'transparent',
+                                    color: status === s.value ? s.color : D.textMid,
+                                    fontSize: '0.78rem', fontWeight: status === s.value ? 700 : 500,
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                }}
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* fail reason */}
+                {needsReason && (
+                    <div style={{ marginBottom: 14 }}>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 600, color: D.textMid, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            Fail reason *
+                        </label>
+                        <input
+                            value={failReason}
+                            onChange={e => setFailReason(e.target.value)}
+                            placeholder="e.g. Customer not home, address not found…"
+                            style={{
+                                width: '100%', boxSizing: 'border-box',
+                                background: D.card, border: `1px solid ${D.purpleBorder}`,
+                                borderRadius: D.radiusSm, color: D.text,
+                                fontSize: '0.85rem', padding: '8px 10px', outline: 'none',
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* override notes */}
+                <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: D.textMid, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Override notes * <span style={{ fontWeight: 400, textTransform: 'none' }}>(why you're doing this)</span>
+                    </label>
+                    <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        placeholder="e.g. Confirmed delivered via courier tracking reference #XYZ…"
+                        rows={3}
+                        style={{
+                            width: '100%', boxSizing: 'border-box',
+                            background: D.card, border: `1px solid ${D.purpleBorder}`,
+                            borderRadius: D.radiusSm, color: D.text,
+                            fontSize: '0.85rem', padding: '8px 10px', outline: 'none', resize: 'vertical',
+                        }}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <DeliveryBtn variant="ghost" size="sm" onClick={onClose} onHover={audio.playHover}>
+                        Cancel
+                    </DeliveryBtn>
+                    <DeliveryBtn
+                        variant="primary"
+                        size="sm"
+                        onClick={handleSubmit}
+                        onHover={audio.playHover}
+                        disabled={!canSubmit || submitting}
+                    >
+                        {submitting
+                            ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</>
+                            : <><CheckCircle size={13} /> Apply override</>
+                        }
+                    </DeliveryBtn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── cancel modal ──────────────────────────────────────────────────────────────
 function CancelModal({ manifest, onClose, onSuccess, onHover, audio }) {
     const [reason,     setReason]     = useState('');
@@ -720,6 +907,12 @@ export default function ManifestDetailPage() {
 
     const [trackingModal, setTrackingModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+
+    const [itemOverrideModal, setItemOverrideModal] = useState(null); // { item }
+    const [completing,        setCompleting]        = useState(false);
+    const [completeConfirm,   setCompleteConfirm]   = useState(false); // 409 confirmation state
+    const [showPrint, setShowPrint] = useState(false);
 
     // ── fetch ─────────────────────────────────────────────────────────────────
     const fetchManifest = useCallback(async (silent = false) => {
@@ -759,15 +952,9 @@ export default function ManifestDetailPage() {
     };
 
     // ── print ─────────────────────────────────────────────────────────────────
-    const handlePrint = async () => {
-        audio.playDownload();
-        try {
-            await deliveryAPI.getManifestPrintData(manifest.id);
-            // In a real implementation, open the print view or trigger PDF
-            window.print();
-        } catch {
-            audio.playError();
-        }
+    const handlePrint = () => {
+        audio.playHover();
+        setShowPrint(true);
     };
 
     // ── derived ───────────────────────────────────────────────────────────────
@@ -777,10 +964,39 @@ export default function ManifestDetailPage() {
     const failed    = items.filter(i => i.status === 'failed').length;
     const pending   = total - delivered - failed;
     const pct       = total > 0 ? Math.round((delivered / total) * 100) : 0;
+    const hasCodItems = items.some(
+        i => i.order?.payment_status === 'unpaid' && i.order?.payment_method === 'pay_on_delivery'
+    );
 
-    const canDispatch = manifest?.status === 'draft' && total > 0 && manifest?.driver_id;
+    const canDispatch = manifest?.status === 'draft' && total > 0;
     const canCancel   = ['draft', 'dispatched', 'in_progress'].includes(manifest?.status);
     const canReassign = ['draft', 'dispatched'].includes(manifest?.status);
+
+    const isExternalDelivery = manifest?.delivery_method !== 'internal_driver';
+    const canComplete = isExternalDelivery && ['dispatched', 'in_progress'].includes(manifest?.status);
+
+    const handleComplete = async (autoFailPending = false) => {
+        setCompleting(true);
+        setActionError(null);
+        try {
+            await deliveryAPI.completeManifest(manifest.id, {
+                auto_fail_pending: autoFailPending,
+                force: !autoFailPending,
+            });
+            audio.playSuccess();
+            setCompleteConfirm(false);
+            fetchManifest(true);
+        } catch (e) {
+            if (e?.response?.status === 409 && e?.response?.data?.requires_confirmation) {
+                setCompleteConfirm(e.response.data); // { active_item_count, message }
+            } else {
+                setActionError(e?.response?.data?.message ?? 'Failed to complete manifest.');
+                audio.playError();
+            }
+        } finally {
+            setCompleting(false);
+        }
+    };
 
     // ── loading ───────────────────────────────────────────────────────────────
     if (loading) {
@@ -853,6 +1069,55 @@ export default function ManifestDetailPage() {
                     </div>
                 )}
 
+                {manifest?.delivery_method && manifest?.delivery_method !== 'internal_driver' && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 16px', borderRadius: D.radiusSm,
+                        background: 'rgba(236,72,153,0.08)',
+                        border: '1px solid rgba(236,72,153,0.3)',
+                        marginBottom: 16,
+                    }}>
+                        <Truck size={15} color="#ec4899" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#ec4899' }}>
+                            {{
+                                courier:         'External Courier',
+                                customer_pickup: 'Customer Self-Pickup',
+                                third_party:     'Third-Party Delivery Partner',
+                            }[manifest.delivery_method] ?? manifest.delivery_method}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', color: '#db2777', marginLeft: 'auto' }}>
+                            Delivery method
+                        </span>
+                    </div>
+                )}
+
+                {/* ── COD payment warning ── */}
+                {hasCodItems && (
+                    <div style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                        padding: '10px 16px', borderRadius: D.radiusSm,
+                        background: 'rgba(245,158,11,0.08)',
+                        border: '1px solid rgba(245,158,11,0.3)',
+                        marginBottom: 16,
+                    }}>
+                        <AlertTriangle size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#d97706' }}>
+                                Payment required on delivery
+                            </div>
+                            <div style={{ fontSize: '0.77rem', color: '#92400e', marginTop: 2 }}>
+                                This manifest contains items that might require payment collection at the door.
+                            </div>
+                            <div style={{ fontSize: '0.77rem', color: '#92400e', marginTop: 2 }}>
+                                Why does this happen? Order is unpaid and payment method is pay on delivery
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── stops ── */}
+                <DeliveryDivider label={`${total} stops`} />
+
                 {/* page header */}
                 <DeliveryPageHeader
                     title={manifest?.manifest_number ?? '—'}
@@ -875,14 +1140,29 @@ export default function ManifestDetailPage() {
                                     <Trash2 size={13} /> Delete
                                 </DeliveryBtn>
                             )}
-                            {canReassign && (
+                            {canReassign && manifest?.delivery_method === 'internal_driver' && (
                                 <DeliveryBtn variant="secondary" size="sm" onClick={() => { audio.playHover(); setShowReassign(true); }} onHover={audio.playHover}>
                                     <Edit2 size={13} /> Reassign
                                 </DeliveryBtn>
                             )}
+                            
                             {canCancel && (
                                 <DeliveryBtn variant="danger" size="sm" onClick={() => { audio.playHover(); setShowCancel(true); }} onHover={audio.playHover}>
                                     <Ban size={13} /> Cancel
+                                </DeliveryBtn>
+                            )}
+                            {canComplete && (
+                                <DeliveryBtn
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleComplete(false)}
+                                    onHover={audio.playHover}
+                                    disabled={completing}
+                                >
+                                    {completing
+                                        ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Completing…</>
+                                        : <><CheckCircle size={13} /> Mark Complete</>
+                                    }
                                 </DeliveryBtn>
                             )}
                             {canDispatch && (
@@ -1161,11 +1441,11 @@ export default function ManifestDetailPage() {
                                 item={item}
                                 index={i}
                                 expanded={expandedStop === item.id}
-                                onToggle={() => {
-                                    audio.playHover();
-                                    setExpandedStop(expandedStop === item.id ? null : item.id);
-                                }}
+                                onToggle={() => { audio.playHover(); setExpandedStop(expandedStop === item.id ? null : item.id); }}
                                 onHover={audio.playHover}
+                                onInfo={() => setSelectedItem(item)}
+                                onOverride={(item) => setItemOverrideModal({ item })}
+                                isExternalDelivery={isExternalDelivery}
                             />
                         ))}
                     </div>
@@ -1266,6 +1546,67 @@ export default function ManifestDetailPage() {
                                     onHover={audio.playHover}
                                 >
                                     <Trash2 size={13} /> Delete permanently
+                                </DeliveryBtn>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {selectedItem && (
+                    <ManifestItemModal
+                        item={selectedItem}
+                        manifest={manifest}
+                        onClose={() => setSelectedItem(null)}
+                        audio={audio}
+                    />
+                )}
+
+                {showPrint && (
+                    <PrintManifestModal
+                        manifest={manifest}
+                        open={showPrint}
+                        onClose={() => setShowPrint(false)}
+                        audio={audio}
+                    />
+                )}
+
+                {itemOverrideModal && (
+                    <ItemOverrideModal
+                        item={itemOverrideModal.item}
+                        manifestId={manifest.id}
+                        onClose={() => setItemOverrideModal(null)}
+                        onSuccess={() => { setItemOverrideModal(null); fetchManifest(true); }}
+                        audio={audio}
+                    />
+                )}
+
+                {completeConfirm && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 50,
+                        background: 'rgba(0,0,0,0.6)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+                    }} onClick={() => setCompleteConfirm(false)}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: D.card, border: `1px solid ${D.purpleBorder}`,
+                            borderRadius: D.radiusLg, padding: 'clamp(20px, 4vw, 28px)',
+                            width: '100%', maxWidth: 420,
+                        }}>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>
+                                {completeConfirm.active_item_count} items still pending
+                            </div>
+                            <div style={{ fontSize: '0.82rem', color: D.textDim, marginBottom: 20, lineHeight: 1.6 }}>
+                                {completeConfirm.message}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                <DeliveryBtn variant="ghost" size="sm" onClick={() => setCompleteConfirm(false)} onHover={audio.playHover}>
+                                    Go back
+                                </DeliveryBtn>
+                                <DeliveryBtn variant="secondary" size="sm" onClick={() => handleComplete(false)} onHover={audio.playHover} disabled={completing}>
+                                    Complete anyway (leave as-is)
+                                </DeliveryBtn>
+                                <DeliveryBtn variant="danger" size="sm" onClick={() => handleComplete(true)} onHover={audio.playHover} disabled={completing}>
+                                    {completing ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                                    Fail remaining & complete
                                 </DeliveryBtn>
                             </div>
                         </div>

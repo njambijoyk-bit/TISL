@@ -6,6 +6,7 @@ import {
   HomeIcon, Gavel, DollarSign,
   Network,BrainCircuit,Cpu,ScanLine,GitBranch,
   Gift, IdCardLanyardIcon, Volume2, VolumeX,
+  Vault,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
@@ -58,6 +59,7 @@ const MENU_GROUPS = [
       { title: 'Settings', icon: Settings,  path: '/admin/settings', color: '#64748b' }, // slate
       { title: 'Algorithm', icon: BrainCircuit,  path: '/admin/algorithm', color: '#3b82f6' }, // blue
       { title: 'Reports',  icon: BarChart2, path: '/admin/reports',  color: '#22c55e' }, // green
+      { title: 'Vault',  icon: Vault, path: '/admin/vault',  color: '#c52222' }, // red
     ],
   },
 ];

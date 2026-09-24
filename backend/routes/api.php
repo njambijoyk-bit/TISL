@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\VaultController;
 use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Admin\MimiAnalyticsController;
 use App\Http\Controllers\Admin\DataEngineController;
@@ -46,7 +48,6 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\PromoCodeController;
-use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\ReportsController;
@@ -510,6 +511,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Stop management
         Route::post('/stops/{itemId}/update', [DriverManifestController::class, 'updateStop']);
+        Route::post('/stops/{itemId}/update-proof', [DriverManifestController::class, 'updateProof']);
+        Route::post('/stops/{itemId}/retry',  [DriverManifestController::class, 'retryStop']);
 
         // Driver's own ratings
         Route::get('/ratings', [DriverManifestController::class, 'myRatings']);
@@ -946,6 +949,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/dashboard',   [WorkController::class, 'myDashboard']);
             Route::get('/assignments', [WorkController::class, 'myAssignmentsEndpoint']);
             Route::get('/deadlines',   [WorkController::class, 'myDeadlinesEndpoint']);
+
+            Route::get('/incomplete-manifests',            [WorkController::class, 'incompleteManifests']);
+            Route::get('/driver/{userId}/manifests',       [WorkController::class, 'driverManifests']);
         });
 
         Route::prefix('reports')->group(function () {
@@ -1088,6 +1094,67 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('customers/{customerId}/note/save', [AdminSavedNoteController::class, 'save']);
         Route::get('customers/{customerId}/note/saved', [AdminSavedNoteController::class, 'index']);
         Route::delete('customers/{customerId}/note/saved/{snapshotId}', [AdminSavedNoteController::class, 'destroy']);
+
+        // ── VAULT ─────────────────────────────────────────────────────────────────────
+        Route::prefix('vault')->group(function () {
+
+                // Folders
+                Route::get('folders',                          [VaultController::class, 'folderTree']);
+                Route::get('folders/{folder}',                 [VaultController::class, 'showFolder']);
+                Route::get('contents',                      [VaultController::class, 'folderContents']);
+                Route::post('folders',                         [VaultController::class, 'createFolder']);
+                Route::put('folders/{folder}',                 [VaultController::class, 'updateFolder']);
+                Route::delete('folders/{folder}',              [VaultController::class, 'deleteFolder']);
+                Route::post('folders/{folder}/move',           [VaultController::class, 'moveFolder']);
+                Route::post('folders/{folder}/archive',        [VaultController::class, 'archiveFolder']);
+                Route::post('folders/{folder}/unlock',         [VaultController::class, 'unlockFolder']);
+                Route::post('folders/{folder}/password',       [VaultController::class, 'setFolderPassword']);
+                Route::delete('folders/{folder}/password',     [VaultController::class, 'removeFolderPassword']);
+                Route::post('folders/{folder}/restore',        [VaultController::class, 'restoreFolder']);
+
+                // Documents
+                Route::get('documents/{document}',             [VaultController::class, 'showDocument']);
+                Route::post('documents',                       [VaultController::class, 'uploadDocument']);
+                Route::put('documents/{document}',             [VaultController::class, 'updateDocument']);
+                Route::delete('documents/{document}',          [VaultController::class, 'deleteDocument']);
+                Route::post('documents/{document}/version',    [VaultController::class, 'uploadVersion']);
+                Route::post('documents/{document}/move',       [VaultController::class, 'moveDocument']);
+                Route::post('documents/{document}/copy',       [VaultController::class, 'copyDocument']);
+                Route::post('documents/{document}/archive',    [VaultController::class, 'archiveDocument']);
+                Route::post('documents/{document}/unlock',     [VaultController::class, 'unlockDocument']);
+                Route::post('documents/{document}/password',   [VaultController::class, 'setDocumentPassword']);
+                Route::delete('documents/{document}/password', [VaultController::class, 'removeDocumentPassword']);
+                Route::get('documents/{document}/preview',     [VaultController::class, 'previewDocument']);
+                Route::get('/documents/{document}/stream',     [VaultController::class, 'streamDocument']);
+                Route::get('documents/{document}/download',    [VaultController::class, 'downloadDocument']);
+                Route::post('documents/{document}/restore',    [VaultController::class, 'restoreDocument']);
+
+                // Archiver
+                Route::get('archiver/configs',                 [VaultController::class, 'listArchiverConfigs']);
+                Route::post('archiver/configs',                [VaultController::class, 'createArchiverConfig']);
+                Route::post('archiver/configs/run-multiple',   [VaultController::class, 'runMultipleArchiverConfigs']);
+                Route::put('archiver/configs/{config}',        [VaultController::class, 'updateArchiverConfig']);
+                Route::post('archiver/configs/{config}/run',   [VaultController::class, 'runArchiverConfig']);
+                Route::get('archiver/runs',                    [VaultController::class, 'listArchiveRuns']);
+                Route::get('archiver/runs/{run}',              [VaultController::class, 'showArchiveRun']);
+
+                // Policies — super_admin + admin only
+                Route::middleware('role:admin,super_admin')->group(function () {
+                    Route::get('policies',                     [VaultController::class, 'listPolicies']);
+                    Route::post('policies',                    [VaultController::class, 'createPolicy']);
+                    Route::put('policies/{vaultPolicy}',       [VaultController::class, 'updatePolicy']);
+                    Route::delete('policies/{vaultPolicy}',    [VaultController::class, 'deletePolicy']);
+                });
+
+                // Settings — super_admin only
+                Route::get('settings',                         [VaultController::class, 'getSettings']);
+                Route::middleware('role:super_admin')->group(function () {
+                    Route::put('settings',                     [VaultController::class, 'updateSettings']);
+                });
+
+                // Logs
+                Route::get('logs',                             [VaultController::class, 'accessLogs']);
+            });
     });
 
     // ============================================
@@ -1228,7 +1295,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/',                              [DeliveryManifestController::class, 'index']);
                 Route::get('/statistics',                    [DeliveryManifestController::class, 'statistics']);
                 Route::post('/',                             [DeliveryManifestController::class, 'store']);
+                Route::post('/ai-generate',                  [DeliveryManifestController::class, 'aiGenerate']);
+                Route::post('/ai-create',                    [DeliveryManifestController::class, 'aiCreate']);
                 Route::post('/transfer-items',               [DeliveryManifestController::class, 'transferItems']);
+                Route::get('/returned-items',                [DeliveryManifestController::class, 'getReturnedItems']);
+                Route::get('/failed-items',                  [DeliveryManifestController::class, 'getFailedItems']);
                 // NEW: Hard delete manifest if empty (must be before {id} catch-all)
                 Route::delete('/{id}/force',                 [DeliveryManifestController::class, 'deleteIfEmpty']);                
                 Route::get('/{id}',                          [DeliveryManifestController::class, 'show']);
@@ -1245,6 +1316,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/{id}/dispatch',                [DeliveryManifestController::class, 'dispatchManifest']);
                 Route::post('/{id}/cancel',                  [DeliveryManifestController::class, 'cancel']);
                 Route::post('/{id}/reassign-driver',         [DeliveryManifestController::class, 'reassignDriver']);
+
+                // External delivery item override (courier, pickup, third_party)
+                Route::patch('/{manifestId}/items/{itemId}/override-external', [DeliveryManifestController::class, 'overrideExternalItemStatus']);
+
+                // Admin force-complete (non-internal-driver workflows)
+                Route::post('/{id}/complete', [DeliveryManifestController::class, 'completeManifest']);
 
                 // Items
                 Route::post('/{id}/items',                   [DeliveryManifestController::class, 'addItems']);

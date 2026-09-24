@@ -568,7 +568,7 @@ export default function OrderDetail() {
       ? [['Store Credit',      `-${fmt(o?.store_credit_deduction || order.store_credit_deduction)}`]] : []),
     ...(Number(o?.credit_account_deduction || order.credit_account_deduction) > 0
     ? [['Credit Account',   `-${fmt(o?.credit_account_deduction || order.credit_account_deduction)}`]] : []),
-    ['Tax (16%)', fmt(o?.tax           || order.tax)],
+    ['VAT (16%)', fmt(o?.tax           || order.tax)],
     ['Shipping',  fmt(o?.shipping_cost || order.shipping_cost)],
   ];
 
@@ -1374,7 +1374,7 @@ export default function OrderDetail() {
                     value:  `-${money(order.credit_account_deduction)}`,
                     color:  '#7c3aed',
                   },
-                  { label: 'Tax',       value: money(order.tax) },
+                  { label: 'VAT',       value: money(order.tax) },
                   { label: 'Shipping',  value: money(order.shipping_cost) },
                 ].filter(Boolean).map(({ label, value, color, kes }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>

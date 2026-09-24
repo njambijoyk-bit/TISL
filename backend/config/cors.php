@@ -3,7 +3,7 @@
 return [
 
     // Apply CORS to API routes only
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'storage/*'],
 
     // Allow all request methods
     'allowed_methods' => ['*'],
@@ -11,6 +11,8 @@ return [
     // 👇 This is where you add your React/Vite access points
     'allowed_origins' => [
         'https://bluearc-frontend-production.up.railway.app',
+        'https://targetisl.co.ke',
+        'https://www.targetisl.co.ke',
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:5175',

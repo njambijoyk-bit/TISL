@@ -688,7 +688,7 @@ const CustomerQuoteDetail = () => {
     const summaryRows = [
       { label: 'Subtotal',                              value: `${quote.currency || 'KES'} ${pdfFmt(quote.subtotal)}` },
       quote.discount > 0 && { label: 'Discount',        value: `-${pdfFmt(quote.discount)}`,   color: '#10b981' },
-      quote.tax > 0      && { label: 'Tax (16%)',        value: pdfFmt(quote.tax) },
+      quote.tax > 0      && { label: 'VAT (16%)',        value: pdfFmt(quote.tax) },
       quote.shipping_cost > 0 && { label: 'Shipping',   value: pdfFmt(quote.shipping_cost) },
       { label: 'Total', value: `${quote.currency || 'KES'} ${pdfFmt(quote.total)}`, bold: true },
     ].filter(Boolean);
@@ -1340,7 +1340,7 @@ const CustomerQuoteDetail = () => {
                     <>
                       <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
                       <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Tax</span>
+                        <span className="text-gray-500 dark:text-gray-400">VAT</span>
                         <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.tax)}</span>
                       </div>
                     </>

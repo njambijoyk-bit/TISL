@@ -710,7 +710,7 @@ export default function CustomerOrderDetail() {
           value: `-${money(order.promo_discount)}`,
           color: '#10b981',
         },
-        order.tax > 0           && { label: 'Tax (16%)',  value: money(order.tax) },
+        order.tax > 0           && { label: 'VAT (16%)',  value: money(order.tax) },
         order.shipping_cost > 0 && { label: 'Shipping',  value: money(order.shipping_cost) },
         Number(order.store_credit_deduction) > 0 && {
           label: `Store Credit${showKes && Number(order.store_credit_deduction_kes) > 0 ? ` (${moneyKes(order.store_credit_deduction_kes)})` : ''}`,
@@ -1521,7 +1521,7 @@ export default function CustomerOrderDetail() {
                     value: `-${money(order.promo_discount)}`, 
                     color: '#10b981' 
                   },
-                  { label: 'Tax (16%)', value: money(order.tax) },
+                  { label: 'VAT (16%)', value: money(order.tax) },
                   { label: 'Shipping', value: money(order.shipping_cost) },
                   Number(order.store_credit_deduction) > 0 && {
                     label: (
