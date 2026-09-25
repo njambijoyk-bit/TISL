@@ -249,6 +249,7 @@ export const buildServiceQueryParams = (filters = {}) => {
   if (filters.page) params.page = filters.page;
 
   if (filters.status) params.status = filters.status;
+  if (filters.currency_id) params.currency_id = filters.currency_id;
   if (filters.is_available !== undefined) params.is_available = filters.is_available;
   if (filters.is_visible !== undefined) params.is_visible = filters.is_visible;
   if (filters.is_featured !== undefined) params.is_featured = filters.is_featured;

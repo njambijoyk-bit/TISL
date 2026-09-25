@@ -9,6 +9,18 @@ const unwrapList = (response) => {
   if (Array.isArray(response)) {
     return { items: response, pagination: null };
   }
+  // Laravel paginator JSON: { data: [...], current_page, last_page, per_page, total, ... }
+  if (Array.isArray(response?.data) && response.current_page !== undefined) {
+    return {
+      items: response.data,
+      pagination: {
+        current_page: response.current_page,
+        last_page:    response.last_page,
+        per_page:     response.per_page,
+        total:        response.total,
+      },
+    };
+  }
   if (response?.data && Array.isArray(response.data)) {
     return { items: response.data, pagination: response.pagination ?? response.meta ?? null };
   }
@@ -107,6 +119,17 @@ const useProductStore = create(
       },
 
       clearRecentlyViewed: () => set({ recentlyViewed: [] }),
+
+      /**
+       * Call after the display currency changes. recentlyViewed is persisted,
+       * so its display_price is in the OLD currency. Re-fetching via show()
+       * would inflate view_count, so drop the converted fields instead —
+       * formatItemPrice() then falls back to the native price + currency.
+       */
+      invalidateDisplayPrices: () =>
+        set({
+          recentlyViewed: get().recentlyViewed.map(({ display_price, display_original_price, display_currency, ...p }) => p),
+        }),
       removeFromRecentlyViewed: (productId) =>
         set({ recentlyViewed: get().recentlyViewed.filter((p) => p.id !== productId) }),
 
@@ -186,8 +209,10 @@ const useProductStore = create(
         try {
           const response = await productsAPI.getProduct(id);
           set({ currentProduct: response, loading: false });
-          const filtered = get().recentlyViewed.filter((p) => p.id !== response.id);
-          set({ recentlyViewed: [response, ...filtered].slice(0, 10) });
+          // show() returns { product, related_products } — track the product itself
+          const viewed = response?.product ?? response;
+          const filtered = get().recentlyViewed.filter((p) => p.id !== viewed.id);
+          set({ recentlyViewed: [viewed, ...filtered].slice(0, 10) });
           return response;
         } catch (error) {
           set({ error: error.response?.data?.message || 'Failed to fetch product', loading: false });

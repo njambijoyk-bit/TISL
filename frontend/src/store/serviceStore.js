@@ -66,6 +66,7 @@ const useServiceStore = create((set, get) => ({
     is_available: null,
     is_visible: null,
     is_featured: null,
+    currency_id: null,   // native currency filter (admin)
   },
   
   // Statistics
@@ -455,6 +456,7 @@ const useServiceStore = create((set, get) => ({
         is_available: null,
         is_visible: null,
         is_featured: null,
+        currency_id: null,   // native currency filter (admin)
       },
     });
   },
@@ -567,6 +569,7 @@ const useServiceStore = create((set, get) => ({
         is_available: null,
         is_visible: null,
         is_featured: null,
+        currency_id: null,   // native currency filter (admin)
       },
       statistics: null,
       loading: false,

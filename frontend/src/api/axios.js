@@ -17,6 +17,17 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Display currency chosen in the price toggle (persisted by currencyStore).
+    // Backend SetDisplayCurrency middleware reads it; unknown codes fall back to base.
+    if (!config.headers['X-Currency']) {
+      try {
+        const code = JSON.parse(localStorage.getItem('currency-storage') || '{}')?.state?.displayCurrency;
+        if (code) config.headers['X-Currency'] = code;
+      } catch {
+        /* corrupted storage — just use base currency */
+      }
+    }
     return config;
   },
   (error) => {

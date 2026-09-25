@@ -1,6 +1,22 @@
 import api from './axios';
 
 const currencyAPI = {
+  // Public: active currencies for the storefront toggle (no rates)
+  getPublicCurrencies: async () => {
+    const response = await api.get('/currencies');
+    return response.data;
+  },
+
+  // Convert an amount between two currencies (admin, all panel roles)
+  convert: async (fromCurrencyId, toCurrencyId, amount) => {
+    const response = await api.post('/admin/currencies/convert', {
+      from_currency_id: fromCurrencyId,
+      to_currency_id: toCurrencyId,
+      amount,
+    });
+    return response.data;
+  },
+
   // Get all currencies 
   getCurrencies: async () => {
     const response = await api.get('/admin/currencies');

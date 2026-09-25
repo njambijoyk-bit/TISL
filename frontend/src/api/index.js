@@ -8,6 +8,11 @@ export { default as productsAPI } from './products';
 export { default as hampersAPI } from './hampers';
 export { default as ordersAPI } from './orders';
 export { default as currencyAPI } from './currency';
+export { default as taxAPI } from './tax';
+export { default as withholdingAPI } from './withholding';
+export { default as taxCertificatesAPI } from './taxCertificates';
+export { default as unitsOfMeasureAPI } from './unitsOfMeasure';
+export { default as productVariantsAPI } from './productVariants';
 export { default as shippingAPI } from './shipping';
 export { default as customerTiersAPI } from './customerTiers'
 export { default as quotesAPI } from './quotes';
