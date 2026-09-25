@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'applicant' => \App\Http\Middleware\EnsureApplicant::class, 
         ]);
+
+        // ?currency=USD / X-Currency header -> display currency for every API response
+        $middleware->api(append: [
+            \App\Http\Middleware\SetDisplayCurrency::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

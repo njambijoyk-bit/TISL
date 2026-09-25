@@ -24,6 +24,18 @@ class Currency extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * Any currency write can change the base or its rates — drop the cached
+     * base so CurrencyConversionService never serves a stale one.
+     */
+    protected static function booted(): void
+    {
+        $forget = fn () => app(\App\Services\CurrencyConversionService::class)->forgetBaseCurrencyCache();
+
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
     public static function getBaseCurrency()
     {
         return self::where('is_base', true)->first();

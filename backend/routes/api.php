@@ -204,6 +204,9 @@ Route::post('/payments/callback', [PaymentController::class, 'callback'])
     ->name('payments.callback');
 
 // PUBLIC PRODUCTS - ANYONE CAN VIEW (NO AUTH REQUIRED)
+// Active currencies for the storefront price toggle (?currency= / X-Currency)
+Route::get('/currencies', [CurrencyController::class, 'publicIndex']);
+
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
 Route::get('/products/new-arrivals', [ProductController::class, 'newArrivals']);
@@ -617,85 +620,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [UnitOfMeasureController::class, 'adminDestroyLocaleDefault']);
         });
 
-        // Tax config
-        Route::prefix('tax')->group(function () {
-            Route::prefix('types')->group(function () {
-                Route::get('/', [TaxController::class, 'adminIndexTypes']);
-                Route::post('/', [TaxController::class, 'adminStoreType']);
-                Route::put('/{id}', [TaxController::class, 'adminUpdateType']);
-                Route::delete('/{id}', [TaxController::class, 'adminDestroyType']);
-            });
-
-            Route::prefix('rates')->group(function () {
-                Route::get('/', [TaxController::class, 'adminIndexRates']);
-                Route::post('/', [TaxController::class, 'adminStoreRate']);
-                Route::put('/{id}', [TaxController::class, 'adminUpdateRate']);
-                Route::delete('/{id}', [TaxController::class, 'adminDestroyRate']);
-            });
-
-            Route::prefix('rules')->group(function () {
-                Route::get('/', [TaxController::class, 'adminIndexRules']);
-                Route::post('/', [TaxController::class, 'adminStoreRule']);
-                Route::put('/{id}', [TaxController::class, 'adminUpdateRule']);
-                Route::delete('/{id}', [TaxController::class, 'adminDestroyRule']);
-                Route::put('/{id}/districts', [TaxController::class, 'adminSyncRuleDistricts']);
-            });
-
-            Route::prefix('districts')->group(function () {
-                Route::get('/', [TaxController::class, 'adminIndexDistricts']);
-                Route::post('/', [TaxController::class, 'adminStoreDistrict']);
-                Route::put('/{id}', [TaxController::class, 'adminUpdateDistrict']);
-                Route::delete('/{id}', [TaxController::class, 'adminDestroyDistrict']);
-            });
-
-            Route::prefix('applicability')->group(function () {
-                Route::get('/', [TaxController::class, 'adminIndexApplicability']);
-                Route::post('/', [TaxController::class, 'adminStoreApplicability']);
-                Route::put('/{id}', [TaxController::class, 'adminUpdateApplicability']);
-                Route::delete('/{id}', [TaxController::class, 'adminDestroyApplicability']);
-            });
-
-            Route::get('applications', [TaxController::class, 'adminIndexApplications']);
-        });
-
-        // Withholding
-        Route::prefix('withholding')->group(function () {
-            Route::prefix('classifications')->group(function () {
-                Route::get('/', [WithholdingController::class, 'adminIndexClassifications']);
-                Route::post('/', [WithholdingController::class, 'adminStoreClassification']);
-                Route::put('/{id}', [WithholdingController::class, 'adminUpdateClassification']);
-                Route::delete('/{id}', [WithholdingController::class, 'adminDestroyClassification']);
-            });
-
-            Route::prefix('certificates')->group(function () {
-                Route::get('/', [WithholdingController::class, 'adminIndexCertificates']);
-                Route::post('/', [WithholdingController::class, 'adminStoreCertificate']);
-                Route::get('/{id}', [WithholdingController::class, 'adminShowCertificate']);
-                Route::post('/{id}/mark-issued', [WithholdingController::class, 'adminMarkIssued']);
-                Route::post('/{id}/mark-received', [WithholdingController::class, 'adminMarkReceived']);
-            });
-
-            Route::prefix('credits')->group(function () {
-                Route::get('/', [WithholdingController::class, 'adminIndexCredits']);
-                Route::post('/', [WithholdingController::class, 'adminStoreCredit']);
-                Route::get('/{id}', [WithholdingController::class, 'adminShowCredit']);
-                Route::post('/{id}/apply-clearance', [WithholdingController::class, 'adminApplyClearance']);
-                Route::post('/{id}/write-off', [WithholdingController::class, 'adminWriteOff']);
-                Route::get('/{id}/clearances', [WithholdingController::class, 'adminIndexClearances']);
-            });
-        });
-
-        // Tax legitimacy certificates
-        Route::prefix('tax-legitimacy-certificates')->group(function () {
-            Route::get('/', [TaxLegitimacyCertificateController::class, 'adminIndex']);
-            Route::post('/', [TaxLegitimacyCertificateController::class, 'adminStore']);
-            Route::get('/{id}', [TaxLegitimacyCertificateController::class, 'adminShow']);
-            Route::put('/{id}', [TaxLegitimacyCertificateController::class, 'adminUpdate']);
-            Route::delete('/{id}', [TaxLegitimacyCertificateController::class, 'adminDestroy']);
-            Route::post('/{id}/verify', [TaxLegitimacyCertificateController::class, 'adminVerify']);
-            Route::post('/{id}/revoke', [TaxLegitimacyCertificateController::class, 'adminRevoke']);
-        });
-
         // Admin Auction Management
         Route::prefix('auctions')->group(function () {
             Route::post('/', [AuctionController::class, 'store']);
@@ -826,16 +750,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/reorder', [ServiceCategoryController::class, 'reorder']);
         });
         
-        // Currency Management
+        // Currencies — read-only here (product/service forms need the list).
+        // All currency writes live in the FINANCE group below.
         Route::prefix('currencies')->group(function () {
             Route::get('/', [CurrencyController::class, 'index']);
             Route::get('/base', [CurrencyController::class, 'getBaseCurrency']);
-            Route::post('/', [CurrencyController::class, 'store']);
-            Route::post('/base', [CurrencyController::class, 'setBaseCurrency']);
-            Route::put('/{id}', [CurrencyController::class, 'update']);
-            Route::patch('/{id}/anchor-rate', [CurrencyController::class, 'updateAnchorRate']);
-            Route::patch('/{id}/status', [CurrencyController::class, 'toggleStatus']);
-            Route::delete('/{id}', [CurrencyController::class, 'destroy']);
             Route::post('/convert', [CurrencyController::class, 'convert']);
         });
 
@@ -1304,6 +1223,98 @@ Route::middleware('auth:sanctum')->group(function () {
     // FINANCE ROUTES
     // ============================================
     Route::middleware('role:finance,manager,admin,super_admin')->prefix('admin')->group(function () {
+
+        // ============================================
+        // TAX, WITHHOLDING, TAX CERTIFICATES, CURRENCY CONFIG
+        // Reads:  finance, manager, admin, super_admin (this group)
+        // Writes: finance, admin, super_admin only — mirrors
+        //         TaxLegitimacyCertificatePolicy / WithholdingCertificatePolicy.
+        // URIs are unchanged from before the move.
+        // ============================================
+        Route::where(['id' => '[0-9]+'])->group(function () {
+
+            // ---------- Reads ----------
+            Route::prefix('tax')->group(function () {
+                Route::get('types',         [TaxController::class, 'adminIndexTypes']);
+                Route::get('rates',         [TaxController::class, 'adminIndexRates']);
+                Route::get('rules',         [TaxController::class, 'adminIndexRules']);
+                Route::get('districts',     [TaxController::class, 'adminIndexDistricts']);
+                Route::get('applicability', [TaxController::class, 'adminIndexApplicability']);
+                Route::get('applications',  [TaxController::class, 'adminIndexApplications']);
+            });
+
+            Route::prefix('withholding')->group(function () {
+                Route::get('classifications',            [WithholdingController::class, 'adminIndexClassifications']);
+                Route::get('certificates',               [WithholdingController::class, 'adminIndexCertificates']);
+                Route::get('certificates/{id}',          [WithholdingController::class, 'adminShowCertificate']);
+                Route::get('credits',                    [WithholdingController::class, 'adminIndexCredits']);
+                Route::get('credits/{id}',               [WithholdingController::class, 'adminShowCredit']);
+                Route::get('credits/{id}/clearances',    [WithholdingController::class, 'adminIndexClearances']);
+            });
+
+            Route::prefix('tax-legitimacy-certificates')->group(function () {
+                Route::get('/',     [TaxLegitimacyCertificateController::class, 'adminIndex']);
+                Route::get('/{id}', [TaxLegitimacyCertificateController::class, 'adminShow']);
+            });
+
+            // ---------- Writes ----------
+            Route::middleware('role:finance,admin,super_admin')->group(function () {
+
+                Route::prefix('tax')->group(function () {
+                    Route::post('types',          [TaxController::class, 'adminStoreType']);
+                    Route::put('types/{id}',      [TaxController::class, 'adminUpdateType']);
+                    Route::delete('types/{id}',   [TaxController::class, 'adminDestroyType']);
+
+                    Route::post('rates',          [TaxController::class, 'adminStoreRate']);
+                    Route::put('rates/{id}',      [TaxController::class, 'adminUpdateRate']);
+                    Route::delete('rates/{id}',   [TaxController::class, 'adminDestroyRate']);
+
+                    Route::post('rules',                [TaxController::class, 'adminStoreRule']);
+                    Route::put('rules/{id}',            [TaxController::class, 'adminUpdateRule']);
+                    Route::delete('rules/{id}',         [TaxController::class, 'adminDestroyRule']);
+                    Route::put('rules/{id}/districts',  [TaxController::class, 'adminSyncRuleDistricts']);
+
+                    Route::post('districts',        [TaxController::class, 'adminStoreDistrict']);
+                    Route::put('districts/{id}',    [TaxController::class, 'adminUpdateDistrict']);
+                    Route::delete('districts/{id}', [TaxController::class, 'adminDestroyDistrict']);
+
+                    Route::post('applicability',        [TaxController::class, 'adminStoreApplicability']);
+                    Route::put('applicability/{id}',    [TaxController::class, 'adminUpdateApplicability']);
+                    Route::delete('applicability/{id}', [TaxController::class, 'adminDestroyApplicability']);
+                });
+
+                Route::prefix('withholding')->group(function () {
+                    Route::post('classifications',          [WithholdingController::class, 'adminStoreClassification']);
+                    Route::put('classifications/{id}',      [WithholdingController::class, 'adminUpdateClassification']);
+                    Route::delete('classifications/{id}',   [WithholdingController::class, 'adminDestroyClassification']);
+
+                    Route::post('certificates',                    [WithholdingController::class, 'adminStoreCertificate']);
+                    Route::post('certificates/{id}/mark-issued',   [WithholdingController::class, 'adminMarkIssued']);
+                    Route::post('certificates/{id}/mark-received', [WithholdingController::class, 'adminMarkReceived']);
+
+                    Route::post('credits',                      [WithholdingController::class, 'adminStoreCredit']);
+                    Route::post('credits/{id}/apply-clearance', [WithholdingController::class, 'adminApplyClearance']);
+                    Route::post('credits/{id}/write-off',       [WithholdingController::class, 'adminWriteOff']);
+                });
+
+                Route::prefix('tax-legitimacy-certificates')->group(function () {
+                    Route::post('/',             [TaxLegitimacyCertificateController::class, 'adminStore']);
+                    Route::put('/{id}',          [TaxLegitimacyCertificateController::class, 'adminUpdate']);
+                    Route::delete('/{id}',       [TaxLegitimacyCertificateController::class, 'adminDestroy']);
+                    Route::post('/{id}/verify',  [TaxLegitimacyCertificateController::class, 'adminVerify']);
+                    Route::post('/{id}/revoke',  [TaxLegitimacyCertificateController::class, 'adminRevoke']);
+                });
+
+                Route::prefix('currencies')->group(function () {
+                    Route::post('/',                 [CurrencyController::class, 'store']);
+                    Route::post('/base',             [CurrencyController::class, 'setBaseCurrency']);
+                    Route::put('/{id}',              [CurrencyController::class, 'update']);
+                    Route::patch('/{id}/anchor-rate', [CurrencyController::class, 'updateAnchorRate']);
+                    Route::patch('/{id}/status',     [CurrencyController::class, 'toggleStatus']);
+                    Route::delete('/{id}',           [CurrencyController::class, 'destroy']);
+                });
+            });
+        });
 
         // PAYMENTS
         Route::prefix('payments')->group(function () {

@@ -112,6 +112,8 @@ class Service extends Model
         'main_image_url',
         'images_url',
         'is_published',
+        'display_price',
+        'display_currency',
     ];
 
     // ========================================

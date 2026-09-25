@@ -41,6 +41,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Scoped, not singleton: holds the per-request display currency.
+        $this->app->scoped(\App\Services\CurrencyConversionService::class);
+
         $this->app->singleton(OrderMailService::class);
         $this->app->singleton(QuoteMailService::class);
         $this->app->singleton(QuoteRequestMailService::class);

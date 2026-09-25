@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Currency;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
@@ -11,11 +12,20 @@ use RuntimeException;
  * currency is this priced in" and "what does that amount look like in
  * another currency" — wraps Currency::convertTo() rather than
  * reimplementing the conversion math.
+ *
+ * Registered as a scoped binding (AppServiceProvider), so one instance
+ * lives per request: currencies are loaded once and the display currency
+ * chosen by SetDisplayCurrency middleware is visible to every model.
  */
 class CurrencyConversionService
 {
     private const BASE_CURRENCY_CACHE_KEY = 'currency:base';
     private const BASE_CURRENCY_CACHE_TTL = 3600; // seconds
+
+    /** @var Collection<int, Currency>|null keyed by id */
+    private ?Collection $currencies = null;
+
+    private ?Currency $displayCurrency = null;
 
     /**
      * The admin-set display/base currency. Cached since this gets hit on
@@ -38,6 +48,36 @@ class CurrencyConversionService
     public function forgetBaseCurrencyCache(): void
     {
         Cache::forget(self::BASE_CURRENCY_CACHE_KEY);
+        $this->currencies = null;
+    }
+
+    /** All currencies, loaded once per request. */
+    public function all(): Collection
+    {
+        return $this->currencies ??= Currency::all()->keyBy('id');
+    }
+
+    public function findByCode(?string $code): ?Currency
+    {
+        if ($code === null || $code === '') {
+            return null;
+        }
+
+        $code = strtoupper($code);
+
+        return $this->all()->first(fn (Currency $c) => $c->code === $code && $c->is_active);
+    }
+
+    /** Set by SetDisplayCurrency middleware from ?currency= / X-Currency. */
+    public function setDisplayCurrency(?Currency $currency): void
+    {
+        $this->displayCurrency = $currency;
+    }
+
+    /** What the client asked to see prices in, falling back to base. */
+    public function getDisplayCurrency(): Currency
+    {
+        return $this->displayCurrency ?? $this->getBaseCurrency();
     }
 
     /** A listing's own currency, or the base currency when it has none set. */
@@ -47,7 +87,7 @@ class CurrencyConversionService
             return $this->getBaseCurrency();
         }
 
-        return Currency::find($currencyId) ?? $this->getBaseCurrency();
+        return $this->all()->get($currencyId) ?? $this->getBaseCurrency();
     }
 
     public function convert(float $amount, Currency $from, Currency $to): float
@@ -61,15 +101,14 @@ class CurrencyConversionService
 
     /**
      * Convert a native amount into a target currency for display — defaults
-     * the target to the current base currency when none is given (the
-     * "no toggle selected yet" case).
+     * the target to the request's display currency (itself defaulting to base).
      */
     public function convertForDisplay(float $amount, ?int $nativeCurrencyId, ?int $targetCurrencyId = null): array
     {
         $native = $this->resolveCurrency($nativeCurrencyId);
         $target = $targetCurrencyId !== null
             ? $this->resolveCurrency($targetCurrencyId)
-            : $this->getBaseCurrency();
+            : $this->getDisplayCurrency();
 
         $converted = $this->convert($amount, $native, $target);
 

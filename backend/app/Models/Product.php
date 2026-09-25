@@ -16,6 +16,8 @@ class Product extends Model
     protected $appends = [
         'main_image_url',
         'image_urls',
+        'display_price',
+        'display_currency',
     ];
 
     protected $fillable = [
@@ -384,7 +386,8 @@ class Product extends Model
      */
     public function scopePriceRange($query, $min, $max)
     {
-        return $query->whereBetween('price', [$min, $max]);
+        // min/max are in the display currency; products may be priced in any currency.
+        return $query->priceBetweenIn('price', $min, $max);
     }
 
     /**
