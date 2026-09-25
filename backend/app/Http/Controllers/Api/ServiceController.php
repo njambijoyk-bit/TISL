@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Product;
+use App\Services\CurrencyConversionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Service::with(['category'])
+        $query = Service::with(['category', 'currency:id,code,symbol'])
             ->where('is_available', true)
             ->where('is_visible', true)
             ->where('status', 'active');
@@ -50,8 +51,10 @@ class ServiceController extends Controller
         if ($request->boolean('remote_only'))      { $query->where('is_remote_available', true); }
         if ($request->has('requires_site_visit'))  { $query->where('requires_site_visit', $request->boolean('requires_site_visit')); }
         if ($request->boolean('featured'))         { $query->where('is_featured', true); }
-        if ($request->has('min_price'))            { $query->where('base_price', '>=', $request->min_price); }
-        if ($request->has('max_price'))            { $query->where('base_price', '<=', $request->max_price); }
+        // min/max are in the display currency (?currency=), compared across service currencies
+        if ($request->filled('min_price') || $request->filled('max_price')) {
+            $query->priceBetweenIn('base_price', $request->min_price, $request->max_price);
+        }
         // ------------------------------------------
 
         // Sort: honour manual sort_by param; otherwise personalise
@@ -60,8 +63,8 @@ class ServiceController extends Controller
             $sortOrder = $request->get('sort_order', 'desc');
             if ($sortBy === 'popular')    { $query->orderBy('order_count', 'desc'); }
             elseif ($sortBy === 'rating') { $query->orderBy('rating', 'desc'); }
-            elseif ($sortBy === 'price_low')  { $query->orderBy('base_price', 'asc'); }
-            elseif ($sortBy === 'price_high') { $query->orderBy('base_price', 'desc'); }
+            elseif ($sortBy === 'price_low')  { $query->orderByBasePrice('base_price', 'asc'); }
+            elseif ($sortBy === 'price_high') { $query->orderByBasePrice('base_price', 'desc'); }
             else  { $query->orderBy($sortBy, $sortOrder); }
             $meta = ['personalized' => false, 'segment' => 'manual'];
         } else {
@@ -108,7 +111,7 @@ class ServiceController extends Controller
      */
     public function featured()
     {
-        $services = Service::with(['category'])
+        $services = Service::with(['category', 'currency:id,code,symbol'])
             ->where('is_available', true)
             ->where('is_visible', true)
             ->where('is_featured', true)
@@ -125,7 +128,7 @@ class ServiceController extends Controller
      */
     public function show($id)
     {
-        $service = Service::with(['category'])->findOrFail($id);
+        $service = Service::with(['category', 'currency:id,code,symbol'])->findOrFail($id);
         $service->increment('view_count');
 
         return response()->json([
@@ -144,7 +147,8 @@ class ServiceController extends Controller
     {
         $service = Service::findOrFail($id);
         
-        $related = Service::where('id', '!=', $id)
+        $related = Service::with('currency:id,code,symbol')
+            ->where('id', '!=', $id)
             ->where('category_id', $service->category_id)
             ->where('is_available', true)
             ->where('is_visible', true)
@@ -182,7 +186,7 @@ class ServiceController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Service::with(['category']);
+        $query = Service::with(['category', 'currency:id,code,symbol']);
 
         // Search
         if ($request->has('search')) {
@@ -225,9 +229,15 @@ class ServiceController extends Controller
         }
 
         // Sort
+        if ($request->filled('currency_id')) {
+            $query->where('currency_id', $request->currency_id);
+        }
+
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortBy === 'base_price'
+            ? $query->orderByBasePrice('base_price', $sortOrder)
+            : $query->orderBy($sortBy, $sortOrder);
 
         $services = $query->paginate($request->get('per_page', 20));
 
@@ -236,7 +246,7 @@ class ServiceController extends Controller
 
     public function adminShow($id)
     {
-        $service = Service::with(['category'])->findOrFail($id);
+        $service = Service::with(['category', 'currency:id,code,symbol'])->findOrFail($id);
 
         return response()->json([
             'service' => array_merge($service->toArray(), [
@@ -284,6 +294,7 @@ class ServiceController extends Controller
             
             // Pricing
             'base_price' => 'nullable|numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'price_is_negotiable' => 'nullable|boolean',
             'pricing_model' => 'required|in:fixed,hourly,daily,project_based,subscription',
             'hourly_rate' => 'nullable|numeric|min:0',
@@ -406,6 +417,8 @@ class ServiceController extends Controller
             }
             
             $data['created_by'] = Auth::id();
+            // Pin to an explicit currency: a NULL would silently follow the base if it's ever changed.
+            $data['currency_id'] = ($data['currency_id'] ?? null) ?: app(CurrencyConversionService::class)->getBaseCurrency()->id;
 
             // Handle main image
             if ($request->hasFile('main_image')) {
@@ -498,6 +511,7 @@ class ServiceController extends Controller
             
             // Pricing
             'base_price' => 'nullable|numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'price_is_negotiable' => 'nullable|boolean',
             'pricing_model' => 'sometimes|required|in:fixed,hourly,daily,project_based,subscription',
             'hourly_rate' => 'nullable|numeric|min:0',
@@ -582,6 +596,9 @@ class ServiceController extends Controller
             }
             
             $data['updated_by'] = Auth::id();
+            if (array_key_exists('currency_id', $data) && empty($data['currency_id'])) {
+                $data['currency_id'] = app(CurrencyConversionService::class)->getBaseCurrency()->id;
+            }
 
             // Handle main image
             if ($request->hasFile('main_image')) {
@@ -734,7 +751,7 @@ class ServiceController extends Controller
     {
         $services = Service::where('status', 'active')
             ->where('is_available', true)
-            ->select('id', 'name', 'sku', 'pricing_model', 'base_price')
+            ->select('id', 'name', 'sku', 'pricing_model', 'base_price', 'hourly_rate', 'daily_rate', 'currency_id')
             ->orderBy('name')
             ->get();
 
@@ -747,7 +764,7 @@ class ServiceController extends Controller
     public function getAvailableProducts()
     {
         $products = Product::where('status', 'active')
-            ->select('id', 'name', 'sku', 'price')
+            ->select('id', 'name', 'sku', 'price', 'currency_id')
             ->orderBy('name')
             ->get();
 
@@ -759,7 +776,7 @@ class ServiceController extends Controller
      */
     public function trash(Request $request)
     {
-        $query = Service::onlyTrashed()->with(['category']);
+        $query = Service::onlyTrashed()->with(['category', 'currency:id,code,symbol']);
 
         // Search in trash
         if ($request->has('search')) {

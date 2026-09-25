@@ -7,6 +7,7 @@ use App\Services\Inventory\InventoryStockService;
 use App\Models\Product;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Services\CurrencyConversionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class ProductController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Product::with(['brand', 'category', 'activeAuction']);
+        $query = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction']);
 
         // Search
         if ($request->has('search')) {
@@ -43,10 +44,17 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Sort
+        // Filter by native currency
+        if ($request->filled('currency_id')) {
+            $query->where('currency_id', $request->currency_id);
+        }
+
+        // Sort (price is normalised to base so mixed currencies order correctly)
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortBy === 'price'
+            ? $query->orderByBasePrice('price', $sortOrder)
+            : $query->orderBy($sortBy, $sortOrder);
 
         // Paginate
         $perPage = $request->get('per_page', 20);
@@ -57,14 +65,14 @@ class ProductController extends Controller
 
     public function adminShow($id)
     {
-        $product = Product::with(['brand', 'category', 'activeAuction'])->findOrFail($id);
+        $product = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction'])->findOrFail($id);
 
         $relatedProductsData = collect([]);
         if (!empty($product->related_products)) {
-            $relatedProductsData = Product::with(['brand', 'category'])
+            $relatedProductsData = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->whereIn('id', $product->related_products)
                 ->where('id', '!=', $id)
-                ->get(['id', 'name', 'sku', 'price', 'main_image', 'slug']);
+                ->get(['id', 'name', 'sku', 'price', 'currency_id', 'main_image', 'slug']);
         }
 
         return response()->json([
@@ -81,7 +89,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['brand', 'category', 'activeAuction'])
+        $query = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction'])
             ->where('is_visible', true)
             ->where('status', 'active');
 
@@ -89,7 +97,8 @@ class ProductController extends Controller
         if ($request->filled('search'))      { $query->search($request->search); }
         if ($request->filled('category_id')) { $query->inCategory($request->category_id); }
         if ($request->filled('brand_id'))    { $query->byBrand($request->brand_id); }
-        if ($request->filled('min_price') && $request->filled('max_price')) {
+        // min/max are in the display currency (?currency=), compared across product currencies
+        if ($request->filled('min_price') || $request->filled('max_price')) {
             $query->priceRange($request->min_price, $request->max_price);
         }
         if ($request->filled('featured') && filter_var($request->featured, FILTER_VALIDATE_BOOLEAN)) {
@@ -108,7 +117,9 @@ class ProductController extends Controller
             $sortParts = explode('_', $request->sort);
             $sortOrder = array_pop($sortParts);
             $sortBy    = implode('_', $sortParts);
-            $query->orderBy($sortBy, $sortOrder);
+            $sortBy === 'price'
+                ? $query->orderByBasePrice('price', $sortOrder)
+                : $query->orderBy($sortBy, $sortOrder);
             $meta = ['personalized' => false, 'segment' => 'manual'];
         } else {
             $order = app(\App\Services\CatalogueRankingService::class)
@@ -162,6 +173,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
@@ -241,6 +253,8 @@ class ProductController extends Controller
                 'category_id' => $request->category_id,
                 'brand_id' => $request->brand_id,
                 'price' => $request->price,
+                // Pin to an explicit currency: a NULL would silently follow the base if it's ever changed.
+                'currency_id' => $request->currency_id ?: app(CurrencyConversionService::class)->getBaseCurrency()->id,
                 'original_price' => $request->original_price,
                 'price_is_negotiable' => $priceNegotiable,
                 'in_stock' => $inStock,
@@ -289,6 +303,7 @@ class ProductController extends Controller
             $product = Product::with([
                 'brand',
                 'category',
+                'currency:id,code,symbol',
                 'activeAuction',
                 'reviews' => function($query) {
                     $query->where('is_approved', true)  // Changed from status
@@ -324,7 +339,7 @@ class ProductController extends Controller
                 ->count();
 
             // Get related products (same category, excluding current)
-            $relatedProducts = Product::with(['brand', 'category'])
+            $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
@@ -349,8 +364,12 @@ class ProductController extends Controller
                     'description' => $product->description,
                     'short_description' => $product->short_description,
                     
-                    // Pricing
+                    // Pricing (price/original_price are native; display_* follow ?currency=)
                     'price' => $product->price,
+                    'currency' => $product->currency,
+                    'display_price' => $product->display_price,
+                    'display_original_price' => $product->convertAmount($product->original_price !== null ? (float) $product->original_price : null),
+                    'display_currency' => $product->display_currency,
                     'original_price' => $product->original_price,
                     'price_is_negotiable' => $product->price_is_negotiable,
                     'on_sale' => $product->on_sale,
@@ -437,6 +456,9 @@ class ProductController extends Controller
                         'name' => $item->name,
                         'slug' => $item->slug,
                         'price' => $item->price,
+                        'currency' => $item->currency,
+                        'display_price' => $item->display_price,
+                        'display_currency' => $item->display_currency,
                         'original_price' => $item->original_price,
                         'price_is_negotiable' => $item->price_is_negotiable,
                         'main_image' => $item->main_image,
@@ -474,6 +496,7 @@ class ProductController extends Controller
             'category_id' => 'exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'additional_image_urls' => 'nullable|string', // expect JSON array string or newline-separated from frontend
@@ -657,6 +680,9 @@ class ProductController extends Controller
             if ($request->has('category_id')) $product->category_id = $request->category_id;
             if ($request->has('brand_id')) $product->brand_id = $request->brand_id;
             if ($request->has('price')) $product->price = $request->price;
+            if ($request->has('currency_id')) {
+                $product->currency_id = $request->currency_id ?: app(CurrencyConversionService::class)->getBaseCurrency()->id;
+            }
             if ($request->has('original_price')) $product->original_price = $request->original_price;
             if ($request->has('stock_quantity')) {
                 $product->stock_quantity = $request->stock_quantity;
@@ -694,6 +720,7 @@ class ProductController extends Controller
             'name'                => 'sometimes|string|max:255',
             'stock_quantity'      => 'sometimes|integer|min:0',
             'price'               => 'sometimes|numeric|min:0',
+            'currency_id'         => 'sometimes|exists:currencies,id,is_active,1',
             'original_price'      => 'sometimes|nullable|numeric|min:0',
             'price_is_negotiable' => 'sometimes|boolean',
             'category_id'         => 'sometimes|exists:categories,id',
@@ -719,6 +746,7 @@ class ProductController extends Controller
 
         // ── Pricing fields ────────────────────────────────────────
         if ($request->has('price'))               $data['price']               = $request->price;
+        if ($request->has('currency_id'))         $data['currency_id']         = $request->currency_id;
         if ($request->has('original_price'))      $data['original_price']      = $request->original_price;
         if ($request->has('price_is_negotiable')) $data['price_is_negotiable'] = $request->boolean('price_is_negotiable');
         if ($request->has('category_id'))         $data['category_id']         = $request->category_id;
@@ -860,7 +888,7 @@ class ProductController extends Controller
      */
     public function featured()
     {
-        $products = Product::with(['brand', 'category'])
+        $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_featured', true)
             ->where('is_visible', true)
             ->where('status', 'active')
@@ -876,7 +904,7 @@ class ProductController extends Controller
      */
     public function newArrivals()
     {
-        $products = Product::with(['brand', 'category'])
+        $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_new', true)
             ->where('is_visible', true)
             ->limit(12)
@@ -891,7 +919,7 @@ class ProductController extends Controller
      */
     public function onSale()
     {
-        $products = Product::with(['brand', 'category'])
+        $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('on_sale', true)
             ->where('is_visible', true)
             ->where('status', 'active')
@@ -915,7 +943,7 @@ public function related($id)
         
         // If no related products defined, fallback to same category
         if (empty($relatedProductIds)) {
-            $relatedProducts = Product::with(['brand', 'category'])
+            $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
@@ -923,7 +951,7 @@ public function related($id)
                 ->get();
         } else {
             // Fetch the specific related products by their IDs
-            $relatedProducts = Product::with(['brand', 'category'])
+            $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
                 ->whereIn('id', $relatedProductIds)
                 ->get();
@@ -939,6 +967,9 @@ public function related($id)
                 'name' => $item->name,
                 'slug' => $item->slug,
                 'price' => $item->price,
+                'currency' => $item->currency,
+                'display_price' => $item->display_price,
+                'display_currency' => $item->display_currency,
                 'original_price' => $item->original_price,
                 'price_is_negotiable' => $item->price_is_negotiable ?? $item->priceisnegotiable ?? false,
                 'main_image' => $item->main_image,
@@ -1021,7 +1052,7 @@ public function related($id)
      */
     public function trashIndex(Request $request)
     {
-        $query = Product::onlyTrashed()->with(['brand', 'category']);
+        $query = Product::onlyTrashed()->with(['brand', 'category', 'currency:id,code,symbol']);
 
         // Search
         if ($request->has('search')) {
