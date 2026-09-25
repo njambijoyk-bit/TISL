@@ -24,6 +24,20 @@ class CurrencyController extends Controller
     }
 
     /**
+     * Public: active currencies for the storefront price toggle.
+     * Only what a shopper needs — no rates.
+     */
+    public function publicIndex()
+    {
+        $currencies = Currency::where('is_active', true)
+            ->orderBy('is_base', 'desc')
+            ->orderBy('code', 'asc')
+            ->get(['id', 'code', 'name', 'symbol', 'is_base']);
+
+        return response()->json($currencies);
+    }
+
+    /**
      * Get base currency
      */
     public function getBaseCurrency()
