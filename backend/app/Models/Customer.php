@@ -35,6 +35,10 @@ class Customer extends Model
         'company_name',
         'company_registration_number',
         'tax_id',
+        'is_withholding_agent',
+        'withholding_classification_id',
+        'default_tax_legitimacy_certificate_id',
+        'default_withholding_certificate_id',
         'customer_type',
         'tier',
         'default_shipping_address',
@@ -82,6 +86,7 @@ class Customer extends Model
      */
     protected $casts = [
         'birthday' => 'date',
+        'is_withholding_agent' => 'boolean',
         'has_credit_account' => 'boolean',
         'credit_limit' => 'decimal:2',
         'credit_used' => 'decimal:2',
@@ -258,6 +263,50 @@ class Customer extends Model
     public function creditCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'credit_currency_id');
+    }
+
+    // ── Tax / withholding ──────────────────────────────────────────────
+
+    /**
+     * Every exemption / withholding-agent certificate ever issued to this
+     * customer (polymorphic holder on tax_legitimacy_certificates).
+     */
+    public function legitimacyCertificates()
+    {
+        return $this->morphMany(\App\Models\TaxLegitimacyCertificate::class, 'holder');
+    }
+
+    /** The certificate currently pinned as this customer's active exemption proof. */
+    public function defaultTaxLegitimacyCertificate(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\TaxLegitimacyCertificate::class, 'default_tax_legitimacy_certificate_id');
+    }
+
+    public function withholdingClassification(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\WithholdingClassification::class);
+    }
+
+    /** The most recently issued withholding certificate this customer gave TISL. */
+    public function defaultWithholdingCertificate(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\WithholdingCertificate::class, 'default_withholding_certificate_id');
+    }
+
+    public function withholdingCertificates(): HasMany
+    {
+        return $this->hasMany(\App\Models\WithholdingCertificate::class);
+    }
+
+    public function withholdingCredits(): HasMany
+    {
+        return $this->hasMany(\App\Models\WithholdingCredit::class);
+    }
+
+    /** Entity-level tax overrides where this customer is the taxable entity. */
+    public function taxApplicability()
+    {
+        return $this->morphMany(\App\Models\TaxApplicability::class, 'taxable');
     }
 
     /**
@@ -529,6 +578,33 @@ class Customer extends Model
         }
 
         return $this->available_credit >= $amount;
+    }
+
+    /**
+     * Whether the withholding-agent designation actually holds right now -
+     * the flag alone isn't enough, it also needs a verified, currently
+     * valid tax_legitimacy_certificates row of type withholding_agent.
+     */
+    public function isVerifiedWithholdingAgent($on = null): bool
+    {
+        if (! $this->is_withholding_agent) {
+            return false;
+        }
+
+        return $this->legitimacyCertificates()
+            ->withholdingAgent()
+            ->currentlyValid($on)
+            ->exists();
+    }
+
+    /** The withholding rate that applies to this customer right now, if any. */
+    public function currentWithholdingRate($on = null): ?\App\Models\TaxRate
+    {
+        if (! $this->isVerifiedWithholdingAgent($on) || $this->withholding_classification_id === null) {
+            return null;
+        }
+
+        return $this->withholdingClassification?->currentRate($on);
     }
 
     /**

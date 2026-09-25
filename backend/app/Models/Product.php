@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Auction;
+use App\Traits\HasCurrencyConversion;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasCurrencyConversion;
     
     protected $appends = [
         'main_image_url',
@@ -25,6 +26,7 @@ class Product extends Model
         'brand_id',
         'type',
         'price',
+        'currency_id',
         'original_price',
         'price_is_negotiable',
         'in_stock',
@@ -163,6 +165,55 @@ class Product extends Model
     }
 
     // ========================================
+    // VARIANT / OPTION / IMAGE RELATIONSHIPS
+    // ========================================
+    // Named productVariants()/productImages() rather than variants()/images():
+    // the products table already has raw JSON columns called 'variants' and
+    // 'images' (see $casts above). Eloquent always resolves a magic property
+    // access ($product->variants) against an existing raw attribute before
+    // it ever considers a relationship of the same name - so a variants()
+    // relation would be silently unreachable via $product->variants, only
+    // callable as $product->variants(). Distinct names sidestep that trap.
+
+    /**
+     * Structured variants (product_variants table) - the new system. Does
+     * NOT replace the legacy 'variants' JSON column / has_variants flag;
+     * both currently coexist. Use hasStructuredVariants() to tell which
+     * system a given product is actually using.
+     */
+    public function productVariants()
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
+
+    public function activeProductVariants()
+    {
+        return $this->hasMany(ProductVariant::class)->where('status', 'active');
+    }
+
+    public function defaultVariant()
+    {
+        return $this->hasOne(ProductVariant::class)->where('is_default', true);
+    }
+
+    public function options()
+    {
+        return $this->hasMany(ProductOption::class)->orderBy('position');
+    }
+
+    /** Gallery/variant/option-value images from product_images - distinct from the raw 'images' JSON column. */
+    public function productImages()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position');
+    }
+
+    /** Entity-level tax overrides where this product is the taxable entity. */
+    public function taxApplicability()
+    {
+        return $this->morphMany(\App\Models\TaxApplicability::class, 'taxable');
+    }
+
+    // ========================================
     // ACCESSORS & MUTATORS
     // ========================================
 
@@ -260,6 +311,12 @@ class Product extends Model
             return round((($this->original_price - $this->price) / $this->original_price) * 100, 2);
         }
         return null;
+    }
+
+    /** Converted price for browsing/comparison — the raw price/currency_id stay untouched. */
+    public function getDisplayPriceAttribute(): ?float
+    {
+        return $this->convertAmount((float) $this->price);
     }
 
     // ========================================
@@ -435,6 +492,16 @@ class Product extends Model
         }
 
         return $price;
+    }
+
+    /**
+     * Whether this product's variants live in the structured product_variants
+     * table (new system) rather than only the legacy 'variants' JSON column.
+     * has_variants alone doesn't tell you which system populated it.
+     */
+    public function hasStructuredVariants(): bool
+    {
+        return $this->has_variants && $this->productVariants()->exists();
     }
 
     /**

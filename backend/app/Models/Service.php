@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasCurrencyConversion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 
 class Service extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasCurrencyConversion;
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +24,7 @@ class Service extends Model
         'service_category',
         'type',
         'base_price',
+        'currency_id',
         'price_is_negotiable',
         'pricing_model',
         'hourly_rate',
@@ -206,6 +208,11 @@ class Service extends Model
             'subscription' => 'Subscription',
             default => ucfirst($this->pricing_model),
         };
+    }
+
+    public function getDisplayPriceAttribute(): ?float
+    {
+        return $this->convertAmount($this->getPrice());
     }
 
     /**
