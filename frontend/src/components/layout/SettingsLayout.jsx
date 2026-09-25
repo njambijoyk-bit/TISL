@@ -3,7 +3,7 @@ import {
   FileText, Phone, BookOpen, Home, Award,
   Briefcase, Gift, UserCheck, Crown, Gavel,
   Tag, Users, Settings as SettingsIcon, Scale,
-  FootprintsIcon, ChevronLeft, Truck, Boxes, Volume2, VolumeX,
+  FootprintsIcon, ChevronLeft, Truck, Boxes, Volume2, VolumeX, Ruler,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -17,6 +17,7 @@ const GROUPS = [
       { name: 'General',        icon: Globe,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/admin/settings/general',        active: true },
       { name: 'Analytics',      icon: Gauge,      bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', path: '/admin/settings/analytics',      active: true },
       { name: 'Currency',       icon: DollarSign, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/admin/settings/currency',        active: true },
+      { name: 'Units',          icon: Ruler,      bg: 'linear-gradient(135deg,#0891b2,#22d3ee)', path: '/admin/settings/units',           active: true },
       { name: 'Customer Tiers', icon: Crown,      bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/admin/settings/customer-tiers',  active: true },
       { name: 'Shipping',       icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', path: '/admin/settings/shipping',        active: true },
     ],

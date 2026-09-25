@@ -14,6 +14,8 @@ import FloatingJournalModal from './components/finance/FloatingJournalModal';
 import Portal from './pages/pwa/Portal';
 import PWANavBar from './pages/pwa/PWANavBar';
 
+import { FINANCE_READ } from './lib/roles';
+
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./pages/auth/Login'));
 const Register            = lazy(() => import('./pages/auth/Register'));
@@ -108,9 +110,9 @@ const AiKeysPage         = lazy(() => import('./pages/admin/ai-analytics/AiKeysP
 const AiModulesPage      = lazy(() => import('./pages/admin/ai-analytics/AiModulesPage'));
 const AiSessionsPage     = lazy(() => import('./pages/admin/ai-analytics/AiSessionsPage'));
 const MimiOverviewPage   = lazy(() => import('./pages/admin/ai-analytics/MimiOverviewPage'));
-const Mimisessionspage   = lazy(() => import('./pages/admin/ai-analytics/Mimisessionspage'));
-const Mimiblockspage     = lazy(() => import('./pages/admin/ai-analytics/Mimiblockspage'));
-const Mimiharmfulpage    = lazy(() => import('./pages/admin/ai-analytics/Mimiharmfulpage'));
+const Mimisessionspage   = lazy(() => import('./pages/admin/ai-analytics/MimiSessionsPage'));
+const Mimiblockspage     = lazy(() => import('./pages/admin/ai-analytics/MimiBlocksPage'));
+const Mimiharmfulpage    = lazy(() => import('./pages/admin/ai-analytics/MimiHarmfulPage'));
 
 const Dashboard          = lazy(() => import('./pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./pages/admin/settings/policies/PolicySettings'))
@@ -233,6 +235,9 @@ const TxFlowchartPage      = lazy(() => import('./pages/admin/settings/diagrams/
 const AnalyticDashboard    = lazy(() => import('./pages/admin/settings/analytics/AdminAnalyticsDashboard'));
 const AnalyticsDetail      = lazy(() => import('./pages/admin/settings/analytics/AdminAnalyticsDetail'));
 const CurrencySettings     = lazy(() => import('./pages/admin/settings/CurrencySettings'));
+const UnitsOfMeasure       = lazy(() => import('./pages/admin/settings/UnitsOfMeasure'));
+const TaxCompliance        = lazy(() => import('./pages/admin/tax/TaxCompliance'));
+const WithholdingCompliance = lazy(() => import('./pages/admin/tax/WithholdingCompliance'));
 const ShippingSettings     = lazy(() => import('./pages/admin/settings/ShippingSettings'));
 const CustomerTierSettings = lazy(() => import('./pages/admin/settings/CustomerTierSettings'));
 
@@ -268,7 +273,7 @@ function PageLoader() {
 }
 
 // ── Protected Route ───────────────────────────────────────────────────────────
-function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false }) {
+function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false, roles = null }) {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -286,6 +291,11 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
     if (!allowedRoles.includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
+  }
+
+  // Narrower role list for a specific route (e.g. finance pages)
+  if (roles && !roles.includes(user?.role)) {
+    return <Navigate to="/admin" replace />;
   }
 
   return children;
@@ -1527,6 +1537,31 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin>
                   <AnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
+            <Route
+              path="/admin/tax"
+              element={
+                <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                  <TaxCompliance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/withholding"
+              element={
+                <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                  <WithholdingCompliance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/units"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <UnitsOfMeasure />
                 </ProtectedRoute>
               }
             />

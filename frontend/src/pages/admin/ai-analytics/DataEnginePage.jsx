@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDataEngineAudio } from './useDataEngineAudio';
-import { FinancialPageShell, FinancialBreadcrumb, WizardNav, TickerTape, WIZARD_STEPS } from './dataEngineShared';
+import { FinancialPageShell, FinancialBreadcrumb, WizardNav, TickerTape, WIZARD_STEPS } from './DataEngineShared';
 
 import DataEngineIndex       from './DataEngineIndex';
 import DataEngineExportFlow  from './DataEngineExportFlow';

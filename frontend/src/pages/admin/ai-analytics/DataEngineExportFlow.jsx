@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { FileDown, ChevronLeft, Check, Loader2 } from 'lucide-react';
-import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge, SOURCE_META } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge, SOURCE_META } from './DataEngineShared';
 import { dataEngineAPI } from '../../../api'; 
 
 const SOURCES = Object.keys(SOURCE_META);

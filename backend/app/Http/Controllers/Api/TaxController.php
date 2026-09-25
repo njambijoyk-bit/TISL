@@ -112,7 +112,8 @@ class TaxController extends Controller
 
     public function adminIndexRates(Request $request)
     {
-        $query = TaxRate::with('taxType');
+        // applications_count tells the UI which rates are locked (already charged on orders)
+        $query = TaxRate::with(['taxType', 'unit', 'currency:id,code,symbol'])->withCount('applications');
 
         if ($request->filled('tax_type_id')) {
             $query->where('tax_type_id', $request->tax_type_id);
@@ -137,6 +138,7 @@ class TaxController extends Controller
             'rate_type'            => 'required|in:percentage,fixed_amount',
             'rate_value'           => 'required|numeric|min:0',
             'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id|required_if:rate_type,fixed_amount',
+            'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
             'calculation_sequence' => 'nullable|integer',
             'requires_certificate' => 'boolean',
@@ -149,12 +151,20 @@ class TaxController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $rate = TaxRate::create($request->only([
+        $data = $request->only([
             'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until',
-        ]) + ['is_active' => $request->boolean('is_active', true)]);
+        ]) + ['is_active' => $request->boolean('is_active', true)];
 
-        return response()->json(['tax_rate' => $rate], 201);
+        // A fixed amount is money, so it needs a currency. Percentages are
+        // currency-neutral and keep currency_id NULL.
+        $data['currency_id'] = $request->rate_type === TaxRate::TYPE_FIXED_AMOUNT
+            ? ($request->currency_id ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id)
+            : null;
+
+        $rate = TaxRate::create($data);
+
+        return response()->json(['tax_rate' => $rate->load(['taxType', 'unit', 'currency:id,code,symbol'])], 201);
     }
 
     public function adminUpdateRate(Request $request, $id)
@@ -166,6 +176,7 @@ class TaxController extends Controller
             'rate_type'            => 'sometimes|required|in:percentage,fixed_amount',
             'rate_value'           => 'sometimes|required|numeric|min:0',
             'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id',
+            'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
             'calculation_sequence' => 'nullable|integer',
             'requires_certificate' => 'boolean',
@@ -184,7 +195,7 @@ class TaxController extends Controller
         if ($rate->applications()->exists()) {
             $locked = array_intersect(
                 array_keys($request->all()),
-                ['rate_type', 'rate_value', 'classification', 'unit_of_measure_id', 'calculation_base']
+                ['rate_type', 'rate_value', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
             );
 
             if (!empty($locked)) {
@@ -194,12 +205,21 @@ class TaxController extends Controller
             }
         }
 
-        $rate->update($request->only([
-            'classification', 'rate_type', 'rate_value', 'unit_of_measure_id',
+        $data = $request->only([
+            'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active',
-        ]));
+        ]);
 
-        return response()->json(['tax_rate' => $rate], 200);
+        $type = $data['rate_type'] ?? $rate->rate_type;
+        if ($type !== TaxRate::TYPE_FIXED_AMOUNT) {
+            $data['currency_id'] = null;
+        } elseif (empty($data['currency_id']) && $rate->currency_id === null) {
+            $data['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
+        }
+
+        $rate->update($data);
+
+        return response()->json(['tax_rate' => $rate->load(['taxType', 'unit', 'currency:id,code,symbol'])], 200);
     }
 
     public function adminDestroyRate($id)

@@ -285,6 +285,11 @@ class ProductVariantController extends Controller
                     $product->productVariants()->where('id', '!=', $variant->id)->update(['is_default' => false]);
                 }
 
+                // Product::hasStructuredVariants() checks this flag — keep it in step.
+                if (! $product->has_variants) {
+                    $product->forceFill(['has_variants' => true])->save();
+                }
+
                 return $variant;
             });
 

@@ -8,6 +8,8 @@ import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import CurrencySelect from '../../components/common/currency/CurrencySelect';
 import TaxOverridesPanel from '../../components/admin/tax/TaxOverridesPanel';
 import useCurrencyStore from '../../store/currencyStore';
+import useProductVariantStore from '../../store/productVariantStore';
+import VariantEditor from '../../components/admin/variants/VariantEditor';
 import {
   Save, X, Trash2, Edit2, ChevronLeft, Plus, AlertTriangle,
 } from 'lucide-react';
@@ -289,6 +291,9 @@ export default function ProductForm() {
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [activeTab, setActiveTab]   = useState('basic');
   const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
+  // Structured variants loaded by the Variants tab (only counts for this product)
+  const structuredVariantCount = useProductVariantStore(s =>
+    s.productId === Number(id) ? s.variants.length : 0);
 
   const [existingImageUrlsRaw, setExistingImageUrlsRaw] = useState([]);
   const [additionalImages,     setAdditionalImages]     = useState([]);
@@ -534,10 +539,13 @@ export default function ProductForm() {
         fd.append('specifications', JSON.stringify(obj));
       }
 
+      // has_variants is only ever switched ON here. The server keeps it on when
+      // structured variants are created, and updates leave it alone when it's
+      // not sent — so never send '0' (that used to wipe it on every save).
       if (formData.has_variants && variantsText.trim()) {
         fd.append('variants', JSON.stringify(variantsText.split(',').map(v => v.trim()).filter(Boolean)));
         fd.append('has_variants', '1');
-      } else { fd.append('has_variants', '0'); }
+      }
 
       if (selectedRelated.length > 0)
         fd.append('related_products', JSON.stringify(selectedRelated.map(p => p.id ?? p)));
@@ -927,31 +935,28 @@ export default function ProductForm() {
 
           {/* ── VARIANTS ── */}
           {activeTab === 'variants' && (
-            <>
-              <p style={sectionHeader}>Product variants</p>
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: -12 }}>
-                Add size, colour, or other variations of this product.
-              </p>
-              <Toggle
-                checked={formData.has_variants}
-                onChange={v => setFormData(p => ({ ...p, has_variants: v }))}
-                disabled={isView}
-                label="This product has variants"
-                sub="Size, colour, material, etc."
-              />
-              {formData.has_variants ? (
-                <Field label="Variants" hint={!isView ? 'Comma-separated — e.g. 10mm, 12mm, 15mm or Red, Blue, Green' : undefined}>
-                  <StyledInput value={variantsText} onChange={e => setVariantsText(e.target.value)} disabled={isView} placeholder="Small, Medium, Large, X-Large" />
-                </Field>
-              ) : (
-                <div style={{
-                  padding: '40px 24px', borderRadius: 10, textAlign: 'center',
-                  border: '1.5px dashed rgba(168,85,247,0.2)', color: '#9ca3af', fontSize: '0.82rem',
-                }}>
-                  Enable variants above to add product variations
-                </div>
-              )}
-            </>
+            id ? (
+              <>
+                {formData.has_variants && variantsText.trim() && structuredVariantCount === 0 && (
+                  <div style={{
+                    marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: '0.78rem', lineHeight: 1.55,
+                    background: 'rgba(245,158,11,0.1)', color: '#92400e',
+                  }}>
+                    This product still uses the old text list of variants: <strong>{variantsText}</strong>.
+                    Recreate them below as options and variants to give each one its own SKU, stock and price —
+                    the old list stops being used once the first variant is saved.
+                  </div>
+                )}
+                <VariantEditor productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
+              </>
+            ) : (
+              <div style={{
+                padding: '40px 24px', borderRadius: 10, textAlign: 'center',
+                border: '1.5px dashed rgba(168,85,247,0.2)', color: '#6b7280', fontSize: '0.82rem',
+              }}>
+                Create the product first — then come back here to add options like size or colour, and a price for each variant.
+              </div>
+            )
           )}
 
           {/* ── TAX ── */}

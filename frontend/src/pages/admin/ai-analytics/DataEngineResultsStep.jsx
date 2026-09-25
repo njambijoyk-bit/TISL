@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, RotateCcw, FileDown, Filter, X, Brain, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { dataEngineAPI } from '../../../api';
-import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge, StatCard, StatusPill } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge, StatCard, StatusPill } from './DataEngineShared';
 
 const FILTER_OPTIONS = ['clean', 'mismatch', 'only_in_tisl', 'only_in_file'];
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Upload, FileText, X, AlertCircle } from 'lucide-react';
-import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge } from './DataEngineShared';
 import { dataEngineAPI } from '../../../api'; 
 
 const ACCEPTED = ['.csv', '.txt', '.xlsx', '.xls'];

@@ -13,7 +13,7 @@ import { input, inputDisabled, focusRing } from '../../../theme/tokens';
  */
 export default function CurrencySelect({
   value, onChange, disabled = false, allowEmpty = false, includeInactive = false,
-  emptyLabel = 'Base currency', style, id, name = 'currency_id',
+  emptyLabel = 'Base currency', style, id, name = 'currency_id', ...rest
 }) {
   const { adminCurrencies, adminLoading, fetchAdminCurrencies } = useCurrencyStore();
 
@@ -25,6 +25,7 @@ export default function CurrencySelect({
 
   return (
     <select
+      {...rest}
       id={id}
       name={name}
       value={value ?? ''}

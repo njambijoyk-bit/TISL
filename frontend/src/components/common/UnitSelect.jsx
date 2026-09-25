@@ -14,7 +14,7 @@ const prettify = (s) => String(s ?? '').replace(/_/g, ' ').replace(/^\w/, (c) =>
  */
 export default function UnitSelect({
   value, onChange, dimension, disabled = false, allowEmpty = true,
-  emptyLabel = 'Select a unit', style, id, name,
+  emptyLabel = 'Select a unit', style, id, name, ...rest
 }) {
   const { units, loading, fetchUnits } = useUomStore();
 
@@ -31,6 +31,7 @@ export default function UnitSelect({
 
   return (
     <select
+      {...rest}
       id={id}
       name={name}
       value={value ?? ''}

@@ -27,7 +27,7 @@ class TaxLegitimacyCertificateController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $query = TaxLegitimacyCertificate::with('verifiedBy');
+        $query = TaxLegitimacyCertificate::with(['verifiedBy', 'holder']);
 
         if ($request->filled('holder_type')) {
             $query->where('holder_type', self::HOLDER_MODELS[$request->holder_type]);

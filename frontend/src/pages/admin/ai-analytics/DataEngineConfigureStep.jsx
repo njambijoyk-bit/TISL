@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
-import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, ErrorBanner, SourceBadge } from './DataEngineShared';
 
 export default function DataEngineConfigureStep({
   audio,

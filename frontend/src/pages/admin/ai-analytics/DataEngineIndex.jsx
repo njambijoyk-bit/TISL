@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Database, Upload, Zap, ArrowRight, BarChart3, FileDown } from 'lucide-react';
-import { F, financialCard, FinancialDivider, SOURCE_META } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, SOURCE_META } from './DataEngineShared';
 
 export default function DataEngineIndex({ audio, onSelectExport, onSelectDiff }) {
     const [hoveredCard, setHoveredCard] = useState(null);

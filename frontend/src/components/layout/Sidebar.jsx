@@ -6,12 +6,13 @@ import {
   HomeIcon, Gavel, DollarSign,
   Network,BrainCircuit,Cpu,ScanLine,GitBranch,
   Gift, IdCardLanyardIcon, Volume2, VolumeX,
-  Vault,
+  Vault, Landmark, Receipt,
 } from 'lucide-react';
 import { useState } from 'react';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
 import { useLayoutAudio } from './useLayoutAudio';
+import { FINANCE_READ } from '../../lib/roles';
 
 const MENU_GROUPS = [
   {
@@ -34,6 +35,13 @@ const MENU_GROUPS = [
       { title: 'Quotes',         icon: FileText,      path: '/admin/quotes',         color: '#8b5cf6' }, // violet
       { title: 'Quote Requests', icon: MessageSquare, path: '/admin/quote-requests', color: '#ec4899' }, // pink
       { title: 'Projects',       icon: ClipboardList, path: '/admin/projects',       color: '#14b8a6' }, // teal
+    ],
+  },
+  {
+    label: 'Tax',
+    items: [
+      { title: 'Tax & Compliance',         icon: Landmark, path: '/admin/tax',         color: '#7c3aed' }, // deep violet
+      { title: 'Withholding & Compliance', icon: Receipt,  path: '/admin/withholding', color: '#0d9488' }, // teal
     ],
   },
   {
@@ -81,12 +89,16 @@ export default function Sidebar() {
   // ─── Role filter for menu items ─────────────────────────────────────
   const { user } = useAuthStore();
   const canSeePayments = ['admin', 'super_admin', 'finance'].includes(user?.role);
+  const canSeeTax = FINANCE_READ.includes(user?.role);
 
   const filterMenuItems = (items) => {
     return items.filter(item => {
       // Payments is the only role-restricted item for now
       if (item.path === '/admin/finance/payments') {
         return canSeePayments;
+      }
+      if (item.path === '/admin/tax' || item.path === '/admin/withholding') {
+        return canSeeTax;
       }
       return true; // all other items visible to all admin roles
     });

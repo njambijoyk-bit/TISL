@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, Zap, Loader2 } from 'lucide-react';
-import { F, financialCard, FinancialDivider, ErrorBanner } from './dataEngineShared';
+import { F, financialCard, FinancialDivider, ErrorBanner } from './DataEngineShared';
 import { dataEngineAPI } from '../../../api';
 
 export default function DataEngineDiffStep({

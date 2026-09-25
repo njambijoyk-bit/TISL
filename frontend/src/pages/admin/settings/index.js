@@ -3,6 +3,7 @@
 
 export { default as Settings } from './Settings';
 export { default as CurrencySettings } from './CurrencySettings';
+export { default as UnitsOfMeasure } from './UnitsOfMeasure';
 export { default as ShippingSettings } from './ShippingSettings';
 export { default as CustomerTierSettings } from './CustomerTierSettings'
 export { default as GeneralSettings } from './GeneralSettings';
