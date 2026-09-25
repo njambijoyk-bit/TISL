@@ -73,6 +73,13 @@ const useWithholdingStore = create((set, get) => {
       set({ classifications: removeById(get().classifications, id) });
     }, 'Failed to delete classification'),
 
+    // ── Customer profile ─────────────────────────────────────────────────
+    /** Returns { id, is_withholding_agent, withholding_classification_id, withholding_classification } */
+    updateCustomerProfile: (customerId, data) => act(async () => {
+      const res = await withholdingAPI.updateCustomerProfile(customerId, data);
+      return res.customer;
+    }, 'Failed to update withholding profile'),
+
     // ── Certificates ─────────────────────────────────────────────────────
     /** params: { customer_id, status, page, per_page } */
     fetchCertificates: (params = {}) => load('certificates', async () => {

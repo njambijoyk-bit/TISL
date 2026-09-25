@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\WithholdingClassification;
 use App\Models\WithholdingCertificate;
 use App\Models\WithholdingCredit;
@@ -83,6 +84,49 @@ class WithholdingController extends Controller
         $classification->delete();
 
         return response()->json(['message' => 'Classification deleted.'], 200);
+    }
+
+    // ========================================
+    // CUSTOMER WITHHOLDING PROFILE
+    // ========================================
+
+    /**
+     * Mark a customer as a withholding agent (they deduct WHT when paying TISL)
+     * and set which classification/rate applies. Finance-only route.
+     * Being an agent only takes effect once they also hold a verified
+     * withholding_agent certificate (Customer::isVerifiedWithholdingAgent()).
+     */
+    public function adminUpdateCustomerProfile(Request $request, $customerId)
+    {
+        $customer = Customer::findOrFail($customerId);
+
+        $validator = Validator::make($request->all(), [
+            'is_withholding_agent'          => 'required|boolean',
+            'withholding_classification_id' => 'nullable|required_if:is_withholding_agent,true|exists:withholding_classifications,id,is_active,1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $isAgent = $request->boolean('is_withholding_agent');
+
+        $customer->update([
+            'is_withholding_agent'          => $isAgent,
+            // Not an agent → no classification, so nothing can be withheld by accident.
+            'withholding_classification_id' => $isAgent ? $request->withholding_classification_id : null,
+        ]);
+
+        $customer->load('withholdingClassification');
+
+        return response()->json([
+            'customer' => [
+                'id'                            => $customer->id,
+                'is_withholding_agent'          => $customer->is_withholding_agent,
+                'withholding_classification_id' => $customer->withholding_classification_id,
+                'withholding_classification'    => $customer->withholdingClassification,
+            ],
+        ], 200);
     }
 
     // ========================================

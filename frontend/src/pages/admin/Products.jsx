@@ -4,6 +4,8 @@ import { productsAPI } from '../../api';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import PriceTag from '../../components/common/PriceTag';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
 import Header from '../../components/layout/Header';
 import {
   Plus, Search, Edit2, Eye, Trash2, Filter, X,
@@ -239,7 +241,7 @@ export default function Products() {
   const [loading,     setLoading]     = useState(true);
   const [searchTerm,  setSearchTerm]  = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ status: '', is_featured: '', on_sale: '', in_stock: '' });
+  const [filters, setFilters] = useState({ status: '', is_featured: '', on_sale: '', in_stock: '', currency_id: '' });
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, product: null, loading: false });
@@ -311,7 +313,7 @@ export default function Products() {
   };
 
   // ── helpers ────────────────────────────────────────────────────────────────
-  const clearFilters = () => { setFilters({ status: '', is_featured: '', on_sale: '', in_stock: '' }); setSearchTerm(''); };
+  const clearFilters = () => { setFilters({ status: '', is_featured: '', on_sale: '', in_stock: '', currency_id: '' }); setSearchTerm(''); };
   const hasFilters   = searchTerm || Object.values(filters).some(Boolean);
 
   const toggleSelect    = (id) => setTrashModal(p => ({ ...p, selectedIds: p.selectedIds.includes(id) ? p.selectedIds.filter(x => x !== id) : [...p.selectedIds, id] }));
@@ -403,6 +405,17 @@ export default function Products() {
                   </select>
                 </div>
               ))}
+              <div>
+                <label style={labelStyle}>Currency</label>
+                <CurrencySelect
+                  value={filters.currency_id}
+                  onChange={v => { setFilters(p => ({ ...p, currency_id: v })); setPagination(p => ({ ...p, current_page: 1 })); }}
+                  allowEmpty
+                  includeInactive
+                  emptyLabel="All currencies"
+                  style={selectStyle}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -471,14 +484,8 @@ export default function Products() {
                         </td>
                         {/* Price */}
                         <td style={tdStyle}>
-                          <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                            KSh {parseFloat(product.price).toLocaleString()}
-                          </p>
-                          {product.original_price && parseFloat(product.original_price) > parseFloat(product.price) && (
-                            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)', textDecoration: 'line-through' }}>
-                              KSh {parseFloat(product.original_price).toLocaleString()}
-                            </p>
-                          )}
+                          {/* Admin sees the stored price in the product's own currency */}
+                          <PriceTag item={product} native showOriginal />
                         </td>
                         {/* Stock */}
                         <td style={tdStyle}>

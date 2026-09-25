@@ -9,6 +9,9 @@ import {
   Home, Warehouse, MoreHorizontal, Settings, Loader2,
 } from 'lucide-react';
 import CreditTab from './CreditTab';
+import CustomerTaxTab from '../../components/admin/tax/CustomerTaxTab';
+import useAuthStore from '../../store/authStore';
+import { canReadFinance } from '../../lib/roles';
 import customersAPI from '../../api/customers';
 import customerTiersAPI from '../../api/customerTiers';
 import ordersAPI from '../../api/orders';
@@ -388,6 +391,9 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
 export default function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const authUser = useAuthStore((st) => st.user);
+  const showTaxTab = canReadFinance(authUser);
 
   const [customer,    setCustomer]    = useState(null);
   const [loading,     setLoading]     = useState(true);
@@ -836,7 +842,7 @@ export default function CustomerDetail() {
 
         {/* ── Tab bar ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, borderBottom: '2px solid rgba(168,85,247,0.1)' }}>
-          {['overview', 'addresses', 'orders', 'credit'].map(t => (
+          {['overview', 'addresses', 'orders', 'credit', ...(showTaxTab ? ['tax'] : [])].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '10px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
               color: tab === t ? '#a855f7' : '#9ca3af',
@@ -1792,6 +1798,14 @@ export default function CustomerDetail() {
         {/* ══ TAB: CREDIT ════════════════════════════════════════════════════════ */}
         {tab === 'credit' && (
           <CreditTab customer={customer} notify={notify} />
+        )}
+
+        {/* ══ TAB: TAX ═══════════════════════════════════════════════════════════ */}
+        {tab === 'tax' && showTaxTab && (
+          <CustomerTaxTab
+            customer={customer}
+            onUpdated={(patch) => setCustomer((c) => ({ ...c, ...patch }))}
+          />
         )}
 
       </div>

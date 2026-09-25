@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '../../../components/layout/SettingsLayout';
-import currencyAPI from '../../../api/currency';
+import useCurrencyStore from '../../../store/currencyStore';
 import {
   Plus, Edit2, Save, X, Check, Info, Star,
   ChevronDown, ChevronUp, AlertTriangle, Trash2,
@@ -49,18 +49,21 @@ function Field({ label, children, hint }) {
   );
 }
 
-function InlineEdit({ value, onSave, onCancel, step = '0.00000001', width = 160 }) {
+function InlineEdit({ value, onSave, onCancel, step = '0.00000001', width = 160, preview, saving = false }) {
   const [val, setVal] = useState(value);
+  const onKey = (e) => { if (e.key === 'Enter') onSave(val); if (e.key === 'Escape') onCancel(); };
   return (
+    <div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <input
         type="number" step={step} value={val}
         onChange={e => setVal(e.target.value)}
+        onKeyDown={onKey}
         style={{ ...inputStyle, width, padding: '5px 9px' }}
         onFocus={inputFocus} onBlur={inputBlur}
         autoFocus
       />
-      <button onClick={() => onSave(val)} style={{
+      <button onClick={() => onSave(val)} disabled={saving} aria-label="Save" style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 7, border: 'none', cursor: 'pointer',
         background: 'rgba(5,150,105,0.1)', color: '#065f46',
@@ -75,8 +78,17 @@ function InlineEdit({ value, onSave, onCancel, step = '0.00000001', width = 160 
         <X size={13} />
       </button>
     </div>
+    {preview && <p style={{ fontSize: '0.68rem', color: '#7c3aed', margin: '4px 0 0' }}>{preview(val)}</p>}
+    </div>
   );
 }
+
+/** 1 USD = N units, from an anchor rate (USD value of 1 unit). */
+const unitsPerUsd = (anchor) => {
+  const a = Number(anchor);
+  return a > 0 ? (1 / a) : null;
+};
+const fmtRate = (n, dp = 4) => (n == null || !isFinite(n) ? '—' : Number(n).toLocaleString(undefined, { maximumFractionDigits: dp }));
 
 function EditTrigger({ value, onEdit }) {
   return (
@@ -152,13 +164,18 @@ function InfoPanel() {
   );
 }
 
-function AddCurrencyModal({ onClose, onSave }) {
+function AddCurrencyModal({ onClose, onSave, baseCurrency, saving }) {
   const [form, setForm] = useState({ code: '', name: '', symbol: '', anchor_rate: '' });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const perUsd = unitsPerUsd(form.anchor_rate);
+  const baseAnchor = Number(baseCurrency?.anchor_rate);
+  // The API still requires conversion_rate on create; derive it the same way the server does.
+  const conversionRate = form.anchor_rate && baseAnchor > 0 ? Number(form.anchor_rate) / baseAnchor : 1;
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...form, code: form.code.toUpperCase() });
+    onSave({ ...form, code: form.code.toUpperCase(), conversion_rate: conversionRate });
   };
 
   return (
@@ -191,8 +208,10 @@ function AddCurrencyModal({ onClose, onSave }) {
             />
           </Field>
           <Field
-            label="Anchor rate (USD per 1 unit)"
-            hint="e.g., KES = 0.00775 because 1 KES ≈ $0.00775 (= 1 ÷ 129.03)"
+            label="USD value of 1 unit (anchor rate)"
+            hint={perUsd
+              ? `So 1 USD = ${fmtRate(perUsd)} ${form.code || 'units'}${baseCurrency && form.code ? `, and 1 ${form.code} = ${fmtRate(conversionRate, 6)} ${baseCurrency.code}` : ''}`
+              : 'Not the usual "1 USD = …" rate — it\'s the other way round. KES ≈ 0.00775 because 1 KES ≈ $0.00775.'}
           >
             <input type="number" step="0.00000001" required value={form.anchor_rate} onChange={set('anchor_rate')}
               placeholder="0.00775074" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
@@ -209,8 +228,8 @@ function AddCurrencyModal({ onClose, onSave }) {
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
-            }}>Add currency</button>
+              boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: saving ? 0.6 : 1,
+            }} disabled={saving}>{saving ? 'Adding…' : 'Add currency'}</button>
           </div>
         </form>
       </div>
@@ -221,61 +240,50 @@ function AddCurrencyModal({ onClose, onSave }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function CurrencySettings() {
-  const [currencies,    setCurrencies]    = useState([]);
-  const [baseCurrency,  setBaseCurrency]  = useState(null);
-  const [loading,       setLoading]       = useState(true);
-  const [editingRate,   setEditingRate]   = useState(null); // { id, value }
+  const {
+    adminCurrencies: currencies, baseCurrency, adminLoading, actionLoading,
+    fetchAdminCurrencies, createCurrency, updateAnchorRate, setBaseCurrency,
+    toggleStatus, deleteCurrency,
+  } = useCurrencyStore();
+
   const [editingAnchor, setEditingAnchor] = useState(null); // { id, value }
   const [showAdd,       setShowAdd]       = useState(false);
+  const loading = adminLoading && !currencies.length;
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { fetchAdminCurrencies().catch(() => toast.error('Failed to load currencies')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [currData, baseData] = await Promise.all([
-        currencyAPI.getCurrencies(),
-        currencyAPI.getBaseCurrency(),
-      ]);
-      setCurrencies(currData);
-      setBaseCurrency(baseData);
-    } catch {
-      toast.error('Failed to load currencies');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const serverMsg = (e, fallback) => e?.response?.data?.message || fallback;
 
-  const handleSetBase = async (id) => {
-    if (!confirm('Change base currency? All conversion rates will be recalculated.')) return;
-    try { await currencyAPI.setBaseCurrency(id); await loadData(); toast.success('Base currency updated'); }
-    catch { toast.error('Failed to set base currency'); }
-  };
-
-  const handleSaveRate = async (id, value) => {
-    try { await currencyAPI.updateCurrency(id, { conversion_rate: value }); await loadData(); setEditingRate(null); toast.success('Rate updated'); }
-    catch { toast.error('Failed to update rate'); }
+  const handleSetBase = async (c) => {
+    if (!confirm(`Make ${c.code} the base currency? Every conversion rate is recalculated, and items without their own currency will be priced in ${c.code}.`)) return;
+    try { await setBaseCurrency(c.id); toast.success(`${c.code} is now the base currency`); }
+    catch (e) { toast.error(serverMsg(e, 'Failed to set base currency')); }
   };
 
   const handleSaveAnchor = async (id, value) => {
-    try { await currencyAPI.updateAnchorRate(id, value); await loadData(); setEditingAnchor(null); toast.success('Anchor rate updated'); }
-    catch { toast.error('Failed to update anchor rate'); }
+    if (!(Number(value) > 0)) { toast.error('Enter a rate above zero'); return; }
+    try { await updateAnchorRate(id, value); setEditingAnchor(null); toast.success('Rate updated'); }
+    catch (e) { toast.error(serverMsg(e, 'Failed to update rate')); }
   };
 
-  const handleToggle = async (id, current) => {
-    try { await currencyAPI.toggleStatus(id, !current); await loadData(); }
-    catch { toast.error('Failed to toggle status'); }
+  const handleToggle = async (c) => {
+    if (c.is_base && c.is_active) { toast.error('The base currency must stay active. Set another base first.'); return; }
+    try { await toggleStatus(c.id, !c.is_active); toast.success(`${c.code} ${c.is_active ? 'deactivated' : 'activated'}`); }
+    catch (e) { toast.error(serverMsg(e, 'Failed to change status')); }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this currency?')) return;
-    try { await currencyAPI.deleteCurrency(id); await loadData(); toast.success('Currency deleted'); }
-    catch { toast.error('Failed to delete currency'); }
+  const handleDelete = async (c) => {
+    if (!confirm(`Delete ${c.code}? If any products, services or tax rates are priced in ${c.code}, deactivate it instead.`)) return;
+    try { await deleteCurrency(c.id); toast.success(`${c.code} deleted`); }
+    catch (e) { toast.error(serverMsg(e, `${c.code} could not be deleted. It may still be in use — deactivate it instead.`)); }
   };
 
   const handleAdd = async (form) => {
-    try { await currencyAPI.createCurrency(form); setShowAdd(false); await loadData(); toast.success('Currency added'); }
-    catch (e) { toast.error(e.response?.data?.message || 'Failed to add currency'); }
+    try { await createCurrency(form); setShowAdd(false); await fetchAdminCurrencies(); toast.success(`${form.code} added`); }
+    catch (e) {
+      const errs = e.response?.data?.errors;
+      toast.error(errs ? Object.values(errs)[0][0] : serverMsg(e, 'Failed to add currency'));
+    }
   };
 
   if (loading) return (
@@ -329,8 +337,8 @@ export default function CurrencySettings() {
                     { label: 'Code',            w: 120 },
                     { label: 'Name',            w: 180 },
                     { label: 'Symbol',          w: 80  },
-                    { label: 'Conversion rate', w: 200 },
-                    { label: 'Anchor rate',     w: 200 },
+                    { label: `Value in ${baseCurrency?.code ?? 'base'}`, w: 200 },
+                    { label: 'USD value of 1 unit', w: 220 },
                     { label: 'Status',          w: 100 },
                     { label: '',                w: 120 },
                   ].map(({ label, w }) => (
@@ -384,21 +392,14 @@ export default function CurrencySettings() {
                         <span style={{ fontSize: '0.88rem', color: '#6b7280', fontWeight: 600 }}>{c.symbol}</span>
                       </td>
 
-                      {/* Conversion rate */}
+                      {/* Value in base — derived from anchor rates, not editable */}
                       <td style={{ padding: '12px 16px' }}>
                         {isBase ? (
-                          <span style={{ fontSize: '0.82rem', color: '#d1d5db', fontFamily: 'monospace' }}>1.00000000</span>
-                        ) : editingRate?.id === c.id ? (
-                          <InlineEdit
-                            value={editingRate.value}
-                            onSave={(v) => handleSaveRate(c.id, v)}
-                            onCancel={() => setEditingRate(null)}
-                          />
+                          <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Base currency</span>
                         ) : (
-                          <EditTrigger
-                            value={parseFloat(c.conversion_rate).toFixed(8)}
-                            onEdit={() => setEditingRate({ id: c.id, value: c.conversion_rate })}
-                          />
+                          <span style={{ fontSize: '0.8rem', color: '#374151' }}>
+                            1 {c.code} = <strong style={{ fontFamily: 'monospace' }}>{fmtRate(Number(c.conversion_rate), 6)}</strong> {baseCurrency?.code}
+                          </span>
                         )}
                       </td>
 
@@ -411,19 +412,27 @@ export default function CurrencySettings() {
                             value={editingAnchor.value}
                             onSave={(v) => handleSaveAnchor(c.id, v)}
                             onCancel={() => setEditingAnchor(null)}
+                            saving={actionLoading}
+                            preview={(v) => unitsPerUsd(v) ? `1 USD = ${fmtRate(unitsPerUsd(v))} ${c.code}` : 'Enter a value above zero'}
                           />
                         ) : (
-                          <EditTrigger
-                            value={Number(c.anchor_rate).toFixed(8)}
-                            onEdit={() => setEditingAnchor({ id: c.id, value: c.anchor_rate })}
-                          />
+                          <div>
+                            <EditTrigger
+                              value={Number(c.anchor_rate).toFixed(8)}
+                              onEdit={() => setEditingAnchor({ id: c.id, value: c.anchor_rate })}
+                            />
+                            <p style={{ fontSize: '0.66rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                              1 USD = {fmtRate(unitsPerUsd(c.anchor_rate))} {c.code}
+                            </p>
+                          </div>
                         )}
                       </td>
 
                       {/* Status toggle */}
                       <td style={{ padding: '12px 16px' }}>
                         <button
-                          onClick={() => handleToggle(c.id, c.is_active)}
+                          onClick={() => handleToggle(c)}
+                          title={isBase && c.is_active ? 'The base currency must stay active' : undefined}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 5,
                             padding: '4px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
@@ -443,7 +452,7 @@ export default function CurrencySettings() {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {!isBase && (
-                            <button onClick={() => handleSetBase(c.id)} style={{
+                            <button onClick={() => handleSetBase(c)} disabled={!c.is_active} title={!c.is_active ? 'Activate it first' : undefined} style={{
                               padding: '4px 10px', borderRadius: 7, fontSize: '0.7rem', fontWeight: 700,
                               background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
                               border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
@@ -456,7 +465,8 @@ export default function CurrencySettings() {
                             </button>
                           )}
                           <button
-                            onClick={() => handleDelete(c.id)}
+                            onClick={() => handleDelete(c)}
+                            aria-label={`Delete ${c.code}`}
                             disabled={isBase}
                             style={{
                               width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -481,7 +491,7 @@ export default function CurrencySettings() {
 
         <InfoPanel />
 
-        {showAdd && <AddCurrencyModal onClose={() => setShowAdd(false)} onSave={handleAdd} />}
+        {showAdd && <AddCurrencyModal onClose={() => setShowAdd(false)} onSave={handleAdd} baseCurrency={baseCurrency} saving={actionLoading} />}
       </div>
     </SettingsLayout>
   );

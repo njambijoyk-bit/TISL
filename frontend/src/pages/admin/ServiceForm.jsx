@@ -8,6 +8,9 @@ import ProductSelectorModalAdmin from '../../components/quotes/request-wizard/Pr
 import ServiceSelectorModalAdmin from '../../components/quotes/request-wizard/ServiceSelectorModalAdmin';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
+import TaxOverridesPanel from '../../components/admin/tax/TaxOverridesPanel';
+import useCurrencyStore from '../../store/currencyStore';
 import { getAvailableServices, getAvailableProducts } from '../../api/services';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -196,6 +199,8 @@ function OutlineBtn({ onClick, children }) {
 
 // Searchable picker — type to filter, selected shown as removable pills
 function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Search…' }) {
+  const adminCurrencies = useCurrencyStore(st => st.adminCurrencies);
+  const currencyCode = (cid) => adminCurrencies.find(c => c.id === cid)?.code;
   const [query, setQuery] = useState('');
   const [open,  setOpen]  = useState(false);
 
@@ -310,7 +315,7 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
                   )}
                   {item.price != null && (
                     <span style={{ fontSize: '0.72rem', color: '#9ca3af', flexShrink: 0 }}>
-                      KES {Number(item.price).toLocaleString()}
+                      {currencyCode(item.currency_id) ?? 'KES'} {Number(item.price).toLocaleString()}
                     </span>
                   )}
                 </button>
@@ -347,7 +352,7 @@ const ServiceForm = () => {
     name: '', sku: '', category_id: '', type: 'standard',
     short_description: '', description: '',
     pricing_model: 'fixed', base_price: '', hourly_rate: '', daily_rate: '',
-    minimum_charge: '', price_is_negotiable: false,
+    minimum_charge: '', price_is_negotiable: false, currency_id: '',
     estimated_duration: '', lead_time: '', service_area: '',
     unit_of_measure: 'project', requires_site_visit: false,
     is_remote_available: true, booking_required: false,
@@ -375,6 +380,7 @@ const ServiceForm = () => {
   const [showServiceSelector, setShowServiceSelector] = useState(false);
   const [productSelectorTarget, setProductSelectorTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
 
   useEffect(() => {
     fetchCategories({ all: true });
@@ -392,6 +398,7 @@ const ServiceForm = () => {
       base_price: cs.base_price || '', hourly_rate: cs.hourly_rate || '',
       daily_rate: cs.daily_rate || '', minimum_charge: cs.minimum_charge || '',
       price_is_negotiable: cs.price_is_negotiable || false,
+      currency_id: cs.currency_id ?? cs.currency?.id ?? '',
       estimated_duration: cs.estimated_duration || '', lead_time: cs.lead_time || '',
       service_area: cs.service_area || '', unit_of_measure: cs.unit_of_measure || 'project',
       requires_site_visit: cs.requires_site_visit || false,
@@ -514,6 +521,12 @@ const ServiceForm = () => {
     </AdminLayout>
   );
 
+  // Code shown in price labels: the chosen currency, else the base.
+  const priceCurrencyCode =
+    adminCurrencies.find(c => String(c.id) === String(formData.currency_id))?.code
+    ?? adminCurrencies.find(c => c.is_base)?.code
+    ?? 'KES';
+
   const showBasePrice  = ['fixed','project_based','subscription'].includes(formData.pricing_model);
   const showHourly     = formData.pricing_model === 'hourly';
   const showDaily      = formData.pricing_model === 'daily';
@@ -619,6 +632,14 @@ const ServiceForm = () => {
               {/* Pricing */}
               <SectionCard title="Pricing">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <Field label="Currency" hint="Every rate below is in this currency. Shoppers see it converted to theirs.">
+                    <CurrencySelect
+                      value={formData.currency_id}
+                      onChange={v => setFormData(p => ({ ...p, currency_id: v }))}
+                      allowEmpty={!isEditMode}
+                      emptyLabel="Base currency"
+                    />
+                  </Field>
                   <Field label="Pricing model *">
                     <SS name="pricing_model" value={formData.pricing_model} onChange={handleChange} required>
                       <option value="fixed">Fixed price</option>
@@ -630,21 +651,21 @@ const ServiceForm = () => {
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     {showBasePrice && (
-                      <Field label="Base price (KES) *">
+                      <Field label={`Base price (${priceCurrencyCode}) *`}>
                         <SI type="number" name="base_price" value={formData.base_price} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required={formData.pricing_model === 'fixed'} />
                       </Field>
                     )}
                     {showHourly && (
-                      <Field label="Hourly rate (KES) *">
+                      <Field label={`Hourly rate (${priceCurrencyCode}) *`}>
                         <SI type="number" name="hourly_rate" value={formData.hourly_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
                       </Field>
                     )}
                     {showDaily && (
-                      <Field label="Daily rate (KES) *">
+                      <Field label={`Daily rate (${priceCurrencyCode}) *`}>
                         <SI type="number" name="daily_rate" value={formData.daily_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
                       </Field>
                     )}
-                    <Field label="Minimum charge (optional)">
+                    <Field label={`Minimum charge (${priceCurrencyCode}, optional)`}>
                       <SI type="number" name="minimum_charge" value={formData.minimum_charge} onChange={handleChange} placeholder="0.00" step="0.01" min="0" />
                     </Field>
                   </div>
@@ -665,7 +686,7 @@ const ServiceForm = () => {
                         <GhostBtn onClick={() => removeTier(i)} danger><Trash2 size={13} /></GhostBtn>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 8 }}>
-                        {[['min_quantity','Min qty','1'],['max_quantity','Max qty','10'],['price','Price (KES)','0.00']].map(([f, lbl, ph]) => (
+                        {[['min_quantity','Min qty','1'],['max_quantity','Max qty','10'],['price',`Price (${priceCurrencyCode})`,'0.00']].map(([f, lbl, ph]) => (
                           <Field key={f} label={lbl}>
                             <SI type="number" value={tier[f]} onChange={e => updateTier(i, f, e.target.value)} placeholder={ph} min="0" step={f === 'price' ? '0.01' : '1'} />
                           </Field>
@@ -679,6 +700,11 @@ const ServiceForm = () => {
                   <OutlineBtn onClick={addTier}><Plus size={13} /> Add pricing tier</OutlineBtn>
                 </div>
               </SectionCard>
+
+              {/* Tax overrides — only once the service exists */}
+              {isEditMode && id && (
+                <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
+              )}
 
               {/* Service details */}
               <SectionCard title="Service details">

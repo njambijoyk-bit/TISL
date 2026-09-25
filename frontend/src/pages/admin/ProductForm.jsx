@@ -5,6 +5,9 @@ import toast from 'react-hot-toast';
 import ProductSelectorModalAdmin from '../../components/quotes/request-wizard/ProductSelectorModalAdmin';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
+import TaxOverridesPanel from '../../components/admin/tax/TaxOverridesPanel';
+import useCurrencyStore from '../../store/currencyStore';
 import {
   Save, X, Trash2, Edit2, ChevronLeft, Plus, AlertTriangle,
 } from 'lucide-react';
@@ -285,6 +288,7 @@ export default function ProductForm() {
   const [brands,     setBrands]     = useState([]);
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [activeTab, setActiveTab]   = useState('basic');
+  const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
 
   const [existingImageUrlsRaw, setExistingImageUrlsRaw] = useState([]);
   const [additionalImages,     setAdditionalImages]     = useState([]);
@@ -301,7 +305,7 @@ export default function ProductForm() {
 
   const [formData, setFormData] = useState({
     name: '', sku: '', type: '', category_id: '', brand_id: '',
-    price: '', original_price: '', price_is_negotiable: false,
+    price: '', original_price: '', price_is_negotiable: false, currency_id: '',
     stock_quantity: '', in_stock: true, has_variants: false,
     short_description: '', description: '',
     badge: '', is_featured: false, is_new: false, on_sale: false,
@@ -354,6 +358,7 @@ export default function ProductForm() {
         brand_id:    product.brand_id    ?? product.brand?.id    ?? '',
         price: product.price || '', original_price: product.original_price || '',
         price_is_negotiable: product.price_is_negotiable || false,
+        currency_id: product.currency_id ?? product.currency?.id ?? '',
         stock_quantity: product.stock_quantity || '',
         in_stock: product.in_stock !== undefined ? Boolean(product.in_stock) : true,
         has_variants: product.has_variants || false,
@@ -496,6 +501,7 @@ export default function ProductForm() {
       str('category_id', formData.category_id); str('brand_id', formData.brand_id);
       str('type', formData.type); str('price', formData.price);
       str('original_price', formData.original_price);
+      str('currency_id', formData.currency_id);   // '' → server pins the current base
       bool('price_is_negotiable', formData.price_is_negotiable);
       str('stock_quantity', formData.stock_quantity || '0');
       bool('in_stock', formData.in_stock);
@@ -565,6 +571,12 @@ export default function ProductForm() {
     </AdminLayout>
   );
 
+  // Code shown in price labels: the chosen currency, else the base.
+  const priceCurrencyCode =
+    adminCurrencies.find(c => String(c.id) === String(formData.currency_id))?.code
+    ?? adminCurrencies.find(c => c.is_base)?.code
+    ?? 'KES';
+
   const TABS = [
     { id: 'basic',    name: 'Basic info'      },
     { id: 'pricing',  name: 'Pricing & stock'  },
@@ -573,6 +585,8 @@ export default function ProductForm() {
     { id: 'variants', name: 'Variants'         },
     { id: 'marketing',name: 'Marketing'        },
     { id: 'seo',      name: 'SEO & advanced'   },
+    // Overrides attach to a saved product, so only once it has an id
+    ...(id ? [{ id: 'tax', name: 'Tax' }] : []),
   ];
 
   return (
@@ -729,10 +743,20 @@ export default function ProductForm() {
             <>
               <p style={sectionHeader}>Pricing & inventory</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                <Field label="Price (KES) *">
+                <Field label="Currency" hint={!isView ? 'The currency this price is set in. Shoppers see it converted to theirs.' : undefined}>
+                  <CurrencySelect
+                    value={formData.currency_id}
+                    onChange={v => setFormData(p => ({ ...p, currency_id: v }))}
+                    disabled={isView}
+                    allowEmpty={isCreate}
+                    emptyLabel="Base currency"
+                  />
+                </Field>
+                <div />
+                <Field label={`Price (${priceCurrencyCode}) *`}>
                   <StyledInput type="number" name="price" value={formData.price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" required={!isView} />
                 </Field>
-                <Field label="Original price (KES)" hint={!isView ? 'Used for showing discounts' : undefined}>
+                <Field label={`Original price (${priceCurrencyCode})`} hint={!isView ? 'Used for showing discounts' : undefined}>
                   <StyledInput type="number" name="original_price" value={formData.original_price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" />
                 </Field>
                 <Field label="Stock quantity" hint={!isView ? 'Leave empty if not tracking' : undefined}>
@@ -928,6 +952,11 @@ export default function ProductForm() {
                 </div>
               )}
             </>
+          )}
+
+          {/* ── TAX ── */}
+          {activeTab === 'tax' && id && (
+            <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
           )}
 
           {/* ── MARKETING ── */}

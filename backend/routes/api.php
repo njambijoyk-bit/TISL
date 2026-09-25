@@ -1292,6 +1292,8 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::post('certificates/{id}/mark-issued',   [WithholdingController::class, 'adminMarkIssued']);
                     Route::post('certificates/{id}/mark-received', [WithholdingController::class, 'adminMarkReceived']);
 
+                    Route::put('customers/{id}/profile',        [WithholdingController::class, 'adminUpdateCustomerProfile']);
+
                     Route::post('credits',                      [WithholdingController::class, 'adminStoreCredit']);
                     Route::post('credits/{id}/apply-clearance', [WithholdingController::class, 'adminApplyClearance']);
                     Route::post('credits/{id}/write-off',       [WithholdingController::class, 'adminWriteOff']);

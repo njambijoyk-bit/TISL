@@ -17,6 +17,11 @@ const withholdingAPI = {
   deleteClassification: async (id) =>
     (await api.delete(`/admin/withholding/classifications/${id}`)).data,
 
+  // ── Customer withholding profile (finance only) ───────────────────────
+  /** data: { is_withholding_agent: boolean, withholding_classification_id?: number } */
+  updateCustomerProfile: async (customerId, data) =>
+    (await api.put(`/admin/withholding/customers/${customerId}/profile`, data)).data,
+
   // ── Certificates (paginated list) ──────────────────────────────────────
   // params: { customer_id, status, page, per_page }
   getCertificates: async (params = {}) =>

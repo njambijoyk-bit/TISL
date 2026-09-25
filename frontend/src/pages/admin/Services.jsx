@@ -18,6 +18,8 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import useServiceStore from '../../store/serviceStore';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
+import { formatMoney } from '../../lib/money';
 import useAuthStore from '../../store/authStore';
 import { getTrashedServices, restoreMultipleServices, forceDeleteMultipleServices } from '../../api/services';
 import AdminLayout from '../../components/layout/AdminLayout';
@@ -52,6 +54,7 @@ const Services = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [currencyFilter, setCurrencyFilter] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -87,6 +90,12 @@ const Services = () => {
   const handleStatusFilter = (status) => {
     setStatusFilter(status);
     setAdminFilters({ status: status || null });
+    fetchAdminServices();
+  };
+
+  const handleCurrencyFilter = (currencyId) => {
+    setCurrencyFilter(currencyId);
+    setAdminFilters({ currency_id: currencyId || null });
     fetchAdminServices();
   };
 
@@ -141,11 +150,9 @@ const Services = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return `KES ${parseFloat(amount || 0).toLocaleString()}`;
-  };
-
+  // Admin sees the stored rate in the service's own currency
   const getPricingDisplay = (service) => {
+    const formatCurrency = (amount) => formatMoney(amount || 0, service.currency);
     if (service.price_is_negotiable) return 'Negotiable';
     switch (service.pricing_model) {
       case 'hourly': return `${formatCurrency(service.hourly_rate)}/hr`;
@@ -674,6 +681,18 @@ const Services = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+
+          {/* Currency Filter */}
+          <div style={{ minWidth: 190 }}>
+            <CurrencySelect
+              value={currencyFilter}
+              onChange={handleCurrencyFilter}
+              allowEmpty
+              includeInactive
+              emptyLabel="All currencies"
+              style={{ padding: '8px 12px' }}
+            />
+          </div>
 
         </div>
       </div>
