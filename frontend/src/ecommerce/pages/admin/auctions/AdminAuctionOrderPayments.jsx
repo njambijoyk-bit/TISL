@@ -8,8 +8,8 @@ import {
   AlertTriangle, Clock, Ban, RotateCcw, FileText, DollarSign,
   Shield, TrendingUp, User, Package, ChevronRight, Copy, Check
 } from 'lucide-react';
-import auctionsAPI from '../../../_shared/api/auctions';
-import paymentsAPI from '../../../_shared/api/payments';
+import auctionsAPI from '../../../../_shared/api/auctions';
+import paymentsAPI from '../../../../_shared/api/payments';
 
 const statusConfig = {
   pending:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', label: 'Pending', icon: Clock },

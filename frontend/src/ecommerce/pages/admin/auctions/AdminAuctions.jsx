@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
-import { formatMoney } from '../../../_shared/lib/money';
+import { formatMoney } from '../../../../_shared/lib/money';
 import {
   Search, Plus, Eye, Edit, Trash2, RefreshCw,
   Package, Clock, Gavel, Users, TrendingUp, CheckCircle,
   XCircle, AlertCircle, X, Filter,
 } from 'lucide-react';
-import auctionsAPI from '../../../_shared/api/auctions';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
+import auctionsAPI from '../../../../_shared/api/auctions';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import LoadingSpinner from '../../../../_shared/components/layout/LoadingSpinner';
 
 // ─── Style tokens (matches Products page) ────────────────────────────────────
 const card = {

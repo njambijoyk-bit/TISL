@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import auctionsAPI from '../../../_shared/api/auctions';
+import auctionsAPI from '../../../../_shared/api/auctions';
 import toast from 'react-hot-toast';
-import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
-import useCurrencyStore from '../../../_shared/store/currencyStore';
-import { formatMoney } from '../../../_shared/lib/money';
+import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../../../_shared/store/currencyStore';
+import { formatMoney } from '../../../../_shared/lib/money';
 import { Helmet } from 'react-helmet-async';
 import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-react';
-import ProductSelectorModalAdmin from '../../../ecommerce/components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
 
 const inputStyle = {
   width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb',

@@ -10,10 +10,10 @@ import {
   ChevronUp, Ban, RotateCcw, FileText, Send, DollarSign,
   MapPin, Phone, Mail
 } from 'lucide-react';
-import auctionsAPI from '../../../_shared/api/auctions';
-import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
-import useCurrencyStore from '../../../_shared/store/currencyStore';
-import { formatMoney } from '../../../_shared/lib/money';
+import auctionsAPI from '../../../../_shared/api/auctions';
+import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../../../_shared/store/currencyStore';
+import { formatMoney } from '../../../../_shared/lib/money';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb',

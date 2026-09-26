@@ -10,8 +10,8 @@ import {
   ChevronUp, Ban, RotateCcw, FileText, Send, DollarSign,
   MapPin, Phone, Mail, ChevronRight, RefreshCw, User,
 } from 'lucide-react';
-import auctionsAPI from '../../../_shared/api/auctions';
-import paymentsAPI from '../../../_shared/api/payments';
+import auctionsAPI from '../../../../_shared/api/auctions';
+import paymentsAPI from '../../../../_shared/api/payments';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb',

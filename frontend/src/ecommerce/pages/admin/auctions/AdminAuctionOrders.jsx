@@ -7,8 +7,8 @@ import {
   CheckCircle, XCircle, Truck, CreditCard, AlertTriangle, ChevronLeft,
   ChevronRight, Download, RefreshCw, Clock, Shield, X,
 } from 'lucide-react';
-import auctionsAPI from '../../../_shared/api/auctions';
-import useAuthStore from '../../../_shared/store/authStore'; // ✅ correct import
+import auctionsAPI from '../../../../_shared/api/auctions';
+import useAuthStore from '../../../../_shared/store/authStore'; // ✅ correct import
 
 // ── shared style helpers ──────────────────────────────────────────────────────
 

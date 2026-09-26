@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { X, Search, Loader2, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import useProjectStore from '../../../../_shared/store/projectStore';
-import { getAdminQuoteRequests } from '../../../../_shared/api/quoteRequests';
-import { getAllQuotes } from '../../../../_shared/api/quotes';
-import ordersAPI from '../../../../_shared/api/orders';
+import useProjectStore from '../../../_shared/store/projectStore';
+import { getAdminQuoteRequests } from '../../../_shared/api/quoteRequests';
+import { getAllQuotes } from '../../../_shared/api/quotes';
+import ordersAPI from '../../../_shared/api/orders';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

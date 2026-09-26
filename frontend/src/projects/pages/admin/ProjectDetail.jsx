@@ -7,22 +7,22 @@ import {
   DollarSign, Plus,
 } from 'lucide-react';
 import AdminLayout           from '../../../_shared/components/layout/AdminLayout';
-import ProjectStatusBadge    from '../../components/admin/ProjectStatusBadge';
-import ProjectPriorityBadge  from '../../components/admin/ProjectPriorityBadge';
-import EditProjectModal       from '../../components/projects/admin/EditProjectModal';
-import TransferOwnershipModal from '../../components/projects/admin/TransferOwnershipModal';
-import ParticipantsPanel      from '../../components/projects/admin/ParticipantsPanel';
-import ProjectLinksPanel      from '../../components/projects/admin/ProjectLinksPanel';
-import CreateItemModal        from '../../components/projects/admin/CreateItemModal';
-import CreateTaskModal        from '../../components/projects/admin/CreateTaskModal';
-import CreateMilestoneModal   from '../../components/projects/admin/CreateMilestoneModal';
-import ActivityFeed           from '../../components/projects/admin/ActivityFeed';
-import ProjectItemsTable      from '../../components/projects/shared/ProjectItemsTable';
-import TaskCard               from '../../components/projects/shared/TaskCard';
-import MilestoneCard          from '../../components/projects/shared/MilestoneCard';
-import MessageThread          from '../../components/projects/shared/MessageThread';
-import MessageComposer        from '../../components/projects/shared/MessageComposer';
-import ProjectFinanceTab      from '../../components/projects/shared/ProjectFinanceTab';
+import ProjectStatusBadge    from '../../components/shared/ProjectStatusBadge';
+import ProjectPriorityBadge  from '../../components/shared/ProjectPriorityBadge';
+import EditProjectModal       from '../../components/admin/EditProjectModal';
+import TransferOwnershipModal from '../../../core/components/projects/admin/TransferOwnershipModal';
+import ParticipantsPanel      from '../../../core/components/projects/admin/ParticipantsPanel';
+import ProjectLinksPanel      from '../../components/admin/ProjectLinksPanel';
+import CreateItemModal        from '../../../core/components/projects/admin/CreateItemModal';
+import CreateTaskModal        from '../../../core/components/projects/admin/CreateTaskModal';
+import CreateMilestoneModal   from '../../../core/components/projects/admin/CreateMilestoneModal';
+import ActivityFeed           from '../../../core/components/projects/admin/ActivityFeed';
+import ProjectItemsTable      from '../../components/shared/ProjectItemsTable';
+import TaskCard               from '../../../core/components/projects/shared/TaskCard';
+import MilestoneCard          from '../../../core/components/projects/shared/MilestoneCard';
+import MessageThread          from '../../../core/components/projects/shared/MessageThread';
+import MessageComposer        from '../../../core/components/projects/shared/MessageComposer';
+import ProjectFinanceTab      from '../../components/shared/ProjectFinanceTab';
 import useProjectStore        from '../../../_shared/store/projectStore';
 import { useAuthStore }       from '../../../_shared/store/index';
 

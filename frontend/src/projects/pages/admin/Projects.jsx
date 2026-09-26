@@ -6,8 +6,8 @@ import ProjectTrashModal from './ProjectTrashModal';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import PageHeader from '../../../_shared/components/layout/PageHeader';
 import AdminPagination from '../../../_shared/components/common/AdminPagination';
-import ProjectFilters from '../../components/admin/ProjectFilters';
-import ProjectTable from '../../components/admin/ProjectTable';
+import ProjectFilters from '../../components/shared/ProjectFilters';
+import ProjectTable from '../../components/shared/ProjectTable';
 import useProjectStore from '../../../_shared/store/projectStore';
 import { useAuthStore } from '../../../_shared/store/index';
 

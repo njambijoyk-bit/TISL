@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Calendar, AlertTriangle } from 'lucide-react';
-import ProjectStatusBadge from '../../admin/ProjectStatusBadge';
-import ProjectPriorityBadge from '../../admin/ProjectPriorityBadge';
+import ProjectStatusBadge from '../shared/ProjectStatusBadge';
+import ProjectPriorityBadge from '../shared/ProjectPriorityBadge';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '—';
