@@ -123,6 +123,18 @@ class AppearanceController extends Controller
         return response()->json(['colouring' => $colouring]);
     }
 
+    public function adminDeleteColouring(int $id): JsonResponse
+    {
+        $colouring = Colouring::findOrFail($id);
+
+        if ($colouring->is_default) {
+            return response()->json(['message' => 'Cannot delete the default colouring.'], 422);
+        }
+
+        $colouring->delete();
+        return response()->json(['message' => 'Deleted.']);
+    }
+
     // ── Admin: fonts ──────────────────────────────────────────────────────────
 
     public function adminFonts(): JsonResponse
