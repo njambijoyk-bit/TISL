@@ -157,7 +157,7 @@ export default function CollapsedServiceCard({ service }) {
           justify-content: space-between;
           gap: 14px;
           padding: 18px 18px 18px 20px;
-          background: #ffffff;
+          background: var(--bg-card);
           border-radius: 16px;
           box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
           cursor: pointer;
@@ -181,11 +181,6 @@ export default function CollapsedServiceCard({ service }) {
           transform: translateY(-2px);
         }
 
-        .dark .csc-card {
-          background: #1f2937;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-        }
-
         .dark .csc-card::before {
           border-color: rgba(255,255,255,0.07);
         }
@@ -204,11 +199,7 @@ export default function CollapsedServiceCard({ service }) {
           font-weight: 700;
           letter-spacing: 0.13em;
           text-transform: uppercase;
-          color: #6b7280;
-        }
-
-        .dark .csc-eyebrow {
-          color: #9ca3af;
+          color: var(--text-muted);
         }
 
         .csc-title {
@@ -222,23 +213,15 @@ export default function CollapsedServiceCard({ service }) {
           text-overflow: ellipsis;
         }
 
-        .dark .csc-title {
-          color: var(--color-primary-500);
-        }
-
         .csc-desc {
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--text-secondary);
           margin: 0;
           line-height: 1.45;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-        }
-
-        .dark .csc-desc {
-          color: #f9fafb;
         }
 
         /* ── Footer row ──────────────────────────────────────────────── */
@@ -262,7 +245,7 @@ export default function CollapsedServiceCard({ service }) {
           align-items: center;
           gap: 3px;
           font-size: 0.68rem;
-          color: #9ca3af;
+          color: var(--text-muted);
           white-space: nowrap;
         }
 
@@ -276,30 +259,19 @@ export default function CollapsedServiceCard({ service }) {
           font-size: 0.7rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1.5px solid #bfdbfe;
-          background: #eff6ff;
-          color: #3b82f6;
+          border: 1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+          background: color-mix(in srgb, var(--color-primary-500) 8%, var(--bg-secondary));
+          color: var(--color-primary-600);
           transition: all 150ms ease;
           white-space: nowrap;
           margin-left: auto;
         }
 
         .csc-quote-btn:hover {
-          background: #3b82f6;
+          background: var(--color-primary-500);
           color: #ffffff;
-          border-color: #3b82f6;
+          border-color: var(--color-primary-500);
           transform: scale(1.04);
-        }
-
-        .dark .csc-quote-btn {
-          background: #1e3a8a;
-          color: #93c5fd;
-          border-color: #1e40af;
-        }
-
-        .dark .csc-quote-btn:hover {
-          background: #3b82f6;
-          color: #ffffff;
         }
 
         /* ── Circular image ──────────────────────────────────────────── */
@@ -311,12 +283,11 @@ export default function CollapsedServiceCard({ service }) {
           overflow: hidden;
           box-shadow: 0 4px 14px rgba(0,0,0,0.13);
           border: 2.5px solid rgba(255,255,255,0.9);
-          background: #f3f4f6;
+          background: var(--bg-secondary);
         }
 
         .dark .csc-image-wrap {
           border-color: rgba(255,255,255,0.1);
-          background: #374151;
         }
 
         .csc-image {
@@ -332,7 +303,7 @@ export default function CollapsedServiceCard({ service }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #9ca3af;
+          color: var(--text-muted);
         }
       `}</style>
     </div>
