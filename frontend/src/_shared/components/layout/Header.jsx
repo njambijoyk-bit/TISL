@@ -34,7 +34,7 @@ function NavItem({ label, to, icon: Icon, flyout, active }) {
         <Link to={to} style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          color: active ? 'var(--color-primary-500)' : '#374151', textDecoration: 'none',
+          color: active ? 'var(--color-primary-500)' : 'var(--text-primary)', textDecoration: 'none',
           background: active ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
           transition: 'all 150ms ease',
         }}
@@ -46,7 +46,7 @@ function NavItem({ label, to, icon: Icon, flyout, active }) {
         <button type="button" style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          color: flyout?.open ? 'var(--color-primary-500)' : '#374151',
+          color: flyout?.open ? 'var(--color-primary-500)' : 'var(--text-primary)',
           background: flyout?.open ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
           border: 'none', cursor: 'pointer', transition: 'all 150ms ease',
         }}
