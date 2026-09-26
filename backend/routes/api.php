@@ -1923,6 +1923,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/admin/appearance/colourings', [AppearanceController::class, 'adminColourings']);
     Route::post('/admin/appearance/colourings', [AppearanceController::class, 'adminStoreColouring']);
     Route::patch('/admin/appearance/colourings/{id}', [AppearanceController::class, 'adminUpdateColouring']);
+    Route::delete('/admin/appearance/colourings/{id}', [AppearanceController::class, 'adminDeleteColouring']);
 
     Route::get('/admin/appearance/fonts', [AppearanceController::class, 'adminFonts']);
     Route::patch('/admin/appearance/fonts/{id}', [AppearanceController::class, 'adminUpdateFont']);
