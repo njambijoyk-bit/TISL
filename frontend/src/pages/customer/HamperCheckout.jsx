@@ -159,7 +159,7 @@ export default function HamperCheckout() {
 
   if (!checkoutData) return null;
 
-  const { hamper, shipping_options, store_credit, promo_allowed, apply_vat, accent_color } = checkoutData;
+  const { hamper, shipping_options, store_credit, promo_allowed, tax, accent_color } = checkoutData;
   const accent     = accent_color || '#a855f7';
   const accentFade = `${accent}10`;
   const accentMid  = `${accent}28`;
@@ -172,8 +172,9 @@ export default function HamperCheckout() {
     : 0;
 
   const subtotal        = Number(hamper.price);
-  const vatAmount       = apply_vat ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
   const promoDiscount   = appliedPromo?.discount ?? 0;
+  // The hamper's chosen tax, on the price after discount — same as the server
+  const vatAmount       = tax ? Math.round(Math.max(0, subtotal - promoDiscount) * tax.rate) / 100 : 0;
   const creditBalance   = store_credit.allowed ? (store_credit.balance ?? 0) : 0;
   const maxStoreCredit  = store_credit.max_apply ?? 500;
   const preCredit       = subtotal + vatAmount + shippingCost - promoDiscount;
@@ -506,7 +507,7 @@ export default function HamperCheckout() {
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { label: 'Subtotal',      value: fmt(subtotal) },
-                    ...(apply_vat             ? [{ label: 'VAT (16%)',      value: fmt(vatAmount) }] : []),
+                    ...(tax                   ? [{ label: tax.label,        value: fmt(vatAmount) }] : []),
                     { label: 'Shipping',       value: shippingCost === 0 ? 'Free' : fmt(shippingCost) },
                     ...(promoDiscount > 0     ? [{ label: 'Promo discount', value: `−${fmt(promoDiscount)}`,   color: accent }] : []),
                     ...(creditDeduction > 0   ? [{ label: 'Store credit',   value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),

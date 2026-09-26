@@ -214,7 +214,7 @@ export default function HamperDetail() {
                   hamper.allow_promo_codes   && 'Promo codes accepted',
                   hamper.allow_store_credit  && 'Store credit accepted',
                   hamper.earn_loyalty_points && 'Earn loyalty points',
-                  hamper.apply_vat           && 'VAT inclusive pricing',
+                  hamper.tax_label           && `${hamper.tax_label} added at checkout`,
                 ].filter(Boolean).map(perk => (
                   <div key={perk} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: '#374151' }}>
                     <CheckCircle size={13} style={{ color: accent, flexShrink: 0 }} />

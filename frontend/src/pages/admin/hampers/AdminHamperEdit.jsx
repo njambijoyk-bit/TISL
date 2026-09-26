@@ -5,6 +5,7 @@ import AdminLayout from '../../../components/layout/AdminLayout';
 import hampersAPI from '../../../api/hampers';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
+import TaxRateSelect from '../../../components/admin/tax/TaxRateSelect';
 import CurrencySelect from '../../../components/common/currency/CurrencySelect';
 import useCurrencyStore from '../../../store/currencyStore';
 
@@ -219,7 +220,7 @@ export default function AdminHamperEdit() {
         price:                      data.price || '',
         currency_id:                data.currency_id ?? data.currency?.id ?? '',
         status:                     data.status || 'draft',
-        apply_vat:                  !!data.apply_vat,
+        tax_rate_id:                data.tax_rate_id ?? '',
         allow_promo_codes:          !!data.allow_promo_codes,
         allow_store_credit:         !!data.allow_store_credit,
         earn_loyalty_points:        !!data.earn_loyalty_points,
@@ -275,7 +276,7 @@ export default function AdminHamperEdit() {
         price:                      Number(form.price),
         currency_id:                form.currency_id || null,
         status:                     form.status,
-        apply_vat:                  form.apply_vat,
+        tax_rate_id:                form.tax_rate_id || null,   // null → no tax
         allow_promo_codes:          form.allow_promo_codes,
         allow_store_credit:         form.allow_store_credit,
         earn_loyalty_points:        form.earn_loyalty_points,
@@ -375,6 +376,12 @@ export default function AdminHamperEdit() {
                     <Field label={`Price (${priceCode}) *`} error={errors.price}>
                       <Input name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" error={errors.price} />
                     </Field>
+                    <Field label="Tax" hint="Added on top of the price at checkout">
+                      <TaxRateSelect
+                        value={form.tax_rate_id}
+                        onChange={v => setForm(f => ({ ...f, tax_rate_id: v }))}
+                      />
+                    </Field>
                     <Field label="Status">
                       <select name="status" value={form.status} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer', color: '#111827' }}>
                         <option value="draft">Draft</option>
@@ -458,7 +465,6 @@ export default function AdminHamperEdit() {
               <div style={card}>
                 <p style={sectionTitle}>Feature Toggles</p>
                 <div>
-                  <ToggleRow name="apply_vat"           value={form.apply_vat}           onChange={handleToggle} label="Apply VAT (16%)"      hint="Tax applied at checkout" />
                   <ToggleRow name="allow_promo_codes"   value={form.allow_promo_codes}   onChange={handleToggle} label="Allow Promo Codes"    hint="Referral/promo codes accepted" />
                   <ToggleRow name="allow_store_credit"  value={form.allow_store_credit}  onChange={handleToggle} label="Allow Store Credit"   hint="Customers can redeem store credit" />
                   <ToggleRow name="earn_loyalty_points" value={form.earn_loyalty_points} onChange={handleToggle} label="Earn Loyalty Points"  hint="1pt per 100 spent, in the base currency" />

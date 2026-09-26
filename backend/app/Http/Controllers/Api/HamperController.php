@@ -24,7 +24,7 @@ class HamperController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $hampers = Hamper::with(['items', 'createdBy:id,name', 'currency:id,code,symbol'])
+        $hampers = Hamper::with(['items', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])
             ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
             ->when($request->filled('eligibility_type'), fn($q) => $q->where('eligibility_type', $request->eligibility_type))
             ->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
@@ -53,6 +53,7 @@ class HamperController extends Controller
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'required|numeric|min:0',
             'currency_id'                => 'nullable|exists:currencies,id,is_active,1',
+            'tax_rate_id'                => 'nullable|integer|exists:tax_rates,id',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -67,6 +68,22 @@ class HamperController extends Controller
             'valid_from'                 => 'nullable|date',
             'valid_until'                => 'nullable|date|after_or_equal:valid_from',
         ]);
+
+        // Only an active, in-effect percentage rate of an "added to price" tax
+        if (! empty($data['tax_rate_id'])) {
+            $ok = \App\Models\TaxRate::whereKey($data['tax_rate_id'])
+                ->active()->effectiveOn()
+                ->where('rate_type', \App\Models\TaxRate::TYPE_PERCENTAGE)
+                ->whereHas('taxType', fn ($q) => $q->active()->additive())
+                ->exists();
+            if (! $ok) {
+                return response()->json(['errors' => ['tax_rate_id' => ['Choose an active percentage tax that is added to the price.']]], 422);
+            }
+        }
+        if (array_key_exists('tax_rate_id', $data)) {
+            $data['tax_rate_id'] = $data['tax_rate_id'] ?: null;
+            $data['apply_vat']   = $data['tax_rate_id'] !== null;
+        }
 
         $data['slug']            = Str::slug($data['name']) . '-' . Str::random(6);
         $data['created_by']      = auth()->id();
@@ -88,7 +105,7 @@ class HamperController extends Controller
 
     public function show($id): JsonResponse
     {
-        $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'createdBy:id,name', 'currency:id,code,symbol'])->findOrFail($id);
+        $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->findOrFail($id);
         return response()->json($hamper);
     }
 
@@ -103,6 +120,7 @@ class HamperController extends Controller
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'sometimes|numeric|min:0',
             'currency_id'                => 'sometimes|nullable|exists:currencies,id,is_active,1',
+            'tax_rate_id'                => 'sometimes|nullable|integer|exists:tax_rates,id',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -129,12 +147,28 @@ class HamperController extends Controller
             $data['stock_remaining'] = $data['total_stock'];
         }
 
+        // Only an active, in-effect percentage rate of an "added to price" tax
+        if (! empty($data['tax_rate_id'])) {
+            $ok = \App\Models\TaxRate::whereKey($data['tax_rate_id'])
+                ->active()->effectiveOn()
+                ->where('rate_type', \App\Models\TaxRate::TYPE_PERCENTAGE)
+                ->whereHas('taxType', fn ($q) => $q->active()->additive())
+                ->exists();
+            if (! $ok) {
+                return response()->json(['errors' => ['tax_rate_id' => ['Choose an active percentage tax that is added to the price.']]], 422);
+            }
+        }
+        if (array_key_exists('tax_rate_id', $data)) {
+            $data['tax_rate_id'] = $data['tax_rate_id'] ?: null;
+            $data['apply_vat']   = $data['tax_rate_id'] !== null;
+        }
+
         if (array_key_exists('currency_id', $data) && empty($data['currency_id'])) {
             $data['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
         }
 
         $watchedFields = [
-            'price', 'currency_id', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
+            'price', 'currency_id', 'tax_rate_id', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
             'earn_loyalty_points', 'total_stock', 'max_purchases_per_customer',
             'status', 'is_visible', 'eligibility_type', 'eligible_tiers',
             'eligible_customer_types', 'valid_from', 'valid_until',

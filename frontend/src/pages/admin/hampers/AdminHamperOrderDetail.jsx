@@ -312,7 +312,7 @@ export default function AdminHamperOrderDetail() {
                 )}
                 {Number(order.vat_amount) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                    <span style={{ color: 'var(--color-text-secondary)' }}>VAT (16%)</span>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Tax</span>
                     <span style={{ fontWeight: 600 }}>{fmt(order.vat_amount)}</span>
                   </div>
                 )}

@@ -289,7 +289,7 @@ export default function AdminHampers() {
                         {/* Toggles */}
                         <td style={tdStyle}>
                           <div style={{ display: 'flex', gap: 4 }}>
-                            <TogglePill value={hamper.apply_vat}           label="VAT"           icon={Tag} />
+                            <TogglePill value={Boolean(hamper.tax_label)}  label={hamper.tax_label ?? 'No tax'} icon={Tag} />
                             <TogglePill value={hamper.allow_promo_codes}   label="Promos"        icon={Tag} />
                             <TogglePill value={hamper.allow_store_credit}  label="Store Credit"  icon={Wallet} />
                             <TogglePill value={hamper.earn_loyalty_points} label="Loyalty"       icon={Star} />

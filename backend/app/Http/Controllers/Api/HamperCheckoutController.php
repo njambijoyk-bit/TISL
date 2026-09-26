@@ -49,6 +49,10 @@ class HamperCheckoutController extends Controller
             ],
             'promo_allowed'    => $hamper->allow_promo_codes,
             'apply_vat'        => $hamper->apply_vat,
+            // What checkout adds on top: { label: "VAT 16%", rate: 16 } or null
+            'tax'              => $hamper->taxRate && $hamper->taxRate->rate_type === \App\Models\TaxRate::TYPE_PERCENTAGE
+                ? ['label' => $hamper->tax_label, 'rate' => (float) $hamper->taxRate->rate_value]
+                : null,
             'accent_color'     => $hamper->accent_color,
             'customer'         => [
                 'name'      => $customer->name,
@@ -168,7 +172,8 @@ class HamperCheckoutController extends Controller
         // totals
         $subtotal           = (float) $hamper->price;
         $taxableAmount      = max(0, $subtotal - $discount);
-        $vatAmount          = $hamper->apply_vat ? round($taxableAmount * 0.16, 2) : 0;
+        // The tax chosen on the hamper (no longer a fixed 16%)
+        $vatAmount          = $hamper->taxOn($taxableAmount);
         $preTotalBeforeCredit = round($subtotal - $discount + $vatAmount + $shippingCost, 2);
 
         $shippingSnapshot = [

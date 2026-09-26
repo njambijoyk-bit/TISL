@@ -20,7 +20,8 @@ class Hamper extends Model
         'price',
         'currency_id',
         'status',
-        'apply_vat',
+        'apply_vat',      // kept in step with tax_rate_id (true when a tax is chosen)
+        'tax_rate_id',
         'allow_promo_codes',
         'allow_store_credit',
         'earn_loyalty_points',
@@ -38,7 +39,7 @@ class Hamper extends Model
     ];
 
     // Price in the shopper's chosen currency, like products
-    protected $appends = ['display_price', 'display_currency'];
+    protected $appends = ['display_price', 'display_currency', 'tax_label'];
 
     protected $casts = [
         'price'                      => 'decimal:2',
@@ -63,6 +64,37 @@ class Hamper extends Model
     public function getDisplayPriceAttribute(): ?float
     {
         return $this->convertAmount((float) $this->price);
+    }
+
+    /** The tax added on top at checkout. NULL = no tax. */
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class);
+    }
+
+    /** e.g. "VAT 16%" — null when no tax applies. */
+    public function getTaxLabelAttribute(): ?string
+    {
+        if (! $this->tax_rate_id) {
+            return null;
+        }
+        $rate = $this->relationLoaded('taxRate') ? $this->taxRate : $this->taxRate()->with('taxType:id,name,code')->first();
+        if (! $rate) {
+            return null;
+        }
+
+        return trim(($rate->taxType?->code ?? $rate->taxType?->name ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . '%');
+    }
+
+    /** Tax on an amount in the hamper's currency (percentage rates only). */
+    public function taxOn(float $taxableAmount): float
+    {
+        $rate = $this->taxRate;
+        if (! $rate || ! $rate->is_active || $rate->rate_type !== TaxRate::TYPE_PERCENTAGE) {
+            return 0.0;
+        }
+
+        return round($taxableAmount * (float) $rate->rate_value / 100, 2);
     }
 
     public function items(): HasMany
