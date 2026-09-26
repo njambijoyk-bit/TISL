@@ -3,6 +3,11 @@
 namespace App\Services;
 
 use App\Models\Currency;
+use App\Models\Logs\CurrencyActivityLog;
+use App\Support\Money\ConversionSnapshot;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
+use Throwable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -117,5 +122,104 @@ class CurrencyConversionService
             'currency'  => $target->code,
             'formatted' => $target->formatAmount($converted),
         ];
+    }
+
+    // ========================================
+    // SNAPSHOT CONVERSIONS (anything that gets saved)
+    // ========================================
+
+    /** A Currency, an id, or null (= base). Inactive currencies still resolve: old records must convert. */
+    public function currencyFrom(Currency|int|null $currency): Currency
+    {
+        if ($currency instanceof Currency) {
+            return $currency;
+        }
+        if ($currency === null) {
+            return $this->getBaseCurrency();
+        }
+
+        return $this->all()->get($currency)
+            ?? Currency::find($currency)
+            ?? throw new RuntimeException("Currency #{$currency} not found.");
+    }
+
+    /**
+     * Convert an amount and freeze the rates used, for anything that will be
+     * stored: order totals, wallet movements, loyalty earnings, promo
+     * discounts. Keep the snapshot with the record so it can be reversed at
+     * the same rate later (ConversionSnapshot::reverse()).
+     *
+     * Display-only conversions (price labels) should keep using
+     * convertForDisplay() — no snapshot needed there.
+     */
+    public function snapshot(float $amount, Currency|int|null $from, Currency|int|null $to): ConversionSnapshot
+    {
+        $from = $this->currencyFrom($from);
+        $to   = $this->currencyFrom($to);
+        $base = $this->getBaseCurrency();
+
+        $fromRate = (float) $from->conversion_rate; // 1 unit of $from in base
+        $toRate   = (float) $to->conversion_rate;
+
+        if ($fromRate <= 0 || $toRate <= 0) {
+            throw new RuntimeException("Missing exchange rate for {$from->code} or {$to->code}.");
+        }
+
+        $rate = $from->id === $to->id ? 1.0 : $fromRate / $toRate;
+
+        return new ConversionSnapshot(
+            amountFrom:         round($amount, 2),
+            fromCurrencyId:     $from->id,
+            fromCurrencyCode:   $from->code,
+            amountTo:           $from->id === $to->id ? round($amount, 2) : round($amount * $rate, 2),
+            toCurrencyId:       $to->id,
+            toCurrencyCode:     $to->code,
+            rate:               round($rate, 10),
+            exchangeRateToBase: round($from->id === $base->id ? 1.0 : $fromRate, 10),
+            baseCurrencyId:     $base->id,
+            baseCurrencyCode:   $base->code,
+            convertedAt:        CarbonImmutable::now(),
+        );
+    }
+
+    /** Convert straight into the base currency (loyalty earning, reporting). */
+    public function snapshotToBase(float $amount, Currency|int|null $from): ConversionSnapshot
+    {
+        return $this->snapshot($amount, $from, null);
+    }
+
+    /**
+     * Record a saved conversion in the currency activity log against the
+     * record it belongs to (an order, a wallet transaction…). Never throws.
+     */
+    public function logConversion(Model $subject, ConversionSnapshot $snapshot, string $event = 'converted', array $context = []): void
+    {
+        $this->logEvent($subject, $event, null, null, ['conversion' => $snapshot->toArray()] + $context);
+    }
+
+    /**
+     * Write any currency event (e.g. a customer's currency assigned or
+     * changed) to currency_activity_logs against $subject. Never throws —
+     * a logging failure must not break the real operation.
+     */
+    public function logEvent(Model $subject, string $event, ?array $old = null, ?array $new = null, array $context = []): void
+    {
+        try {
+            $request = app()->runningInConsole() ? null : request();
+
+            CurrencyActivityLog::create([
+                'loggable_type' => $subject->getMorphClass(),
+                'loggable_id'   => $subject->getKey(),
+                'event'         => $event,
+                'user_id'       => auth()->id(),
+                'old_values'    => $old ?: null,
+                'new_values'    => $new ?: null,
+                'context'       => $context ?: null,
+                'ip_address'    => $request?->ip(),
+                'user_agent'    => $request ? mb_substr((string) $request->userAgent(), 0, 255) : null,
+            ]);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

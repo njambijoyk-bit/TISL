@@ -65,6 +65,18 @@ const customersAPI = {
     return response.data;
   },
 
+  // FINANCE: change a customer's account currency (refused while they hold a balance)
+  updateCurrency: async (id, currencyId, reason) => {
+    const response = await api.put(`/admin/customers/${id}/currency`, { currency_id: currencyId, reason });
+    return response.data;
+  },
+
+  // FINANCE: account currency history + whether it can change right now
+  getCurrencyLog: async (id) => {
+    const response = await api.get(`/admin/customers/${id}/currency-log`);
+    return response.data;
+  },
+
   // ADMIN: Update customer
   updateCustomer: async (id, data) => {
     const response = await api.put(`/admin/customers/${id}`, data);

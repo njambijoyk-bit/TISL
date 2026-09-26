@@ -78,7 +78,8 @@ class Customer extends Model
         'policy_flagged_policy_key',
         'policy_flagged_version',
         'credit_interest_rate',
-        'credit_currency_id',
+        'credit_currency_id',   // always mirrors currency_id (kept for the credit service)
+        'currency_id',          // the customer's pinned account currency
     ];
 
     /**
@@ -263,6 +264,67 @@ class Customer extends Model
     public function creditCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'credit_currency_id');
+    }
+
+    /**
+     * The customer's account currency: their wallet (store credit), credit
+     * account and checkout are all in it. Set to the system base when the
+     * customer is created, changed only through changeCurrency().
+     */
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * Why the account currency can't change right now, or null if it can.
+     * Balances are in the current currency; changing it would silently
+     * re-denominate them, so they must be zero first.
+     */
+    public function currencyChangeBlocker(): ?string
+    {
+        if ((float) $this->store_credit != 0.0) {
+            return 'They still have store credit. Use or clear it before changing currency.';
+        }
+        if ((float) $this->credit_used != 0.0) {
+            return 'Their credit account has an outstanding balance.';
+        }
+        if ($this->creditInvoices()->whereNotIn('status', ['paid', 'cancelled', 'void'])->exists()) {
+            return 'They have unpaid credit invoices.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Change the pinned account currency. Throws when a balance exists.
+     * Logged to currency_activity_logs with who, why and through what route.
+     *
+     * @param string $source  'admin' | 'customer_request' | 'system'
+     */
+    public function changeCurrency(Currency $to, string $reason, string $source = 'admin', array $context = []): void
+    {
+        if ((int) $this->currency_id === (int) $to->id) {
+            return;
+        }
+        if (! $to->is_active) {
+            throw new \InvalidArgumentException("{$to->code} is not an active currency.");
+        }
+        if ($blocker = $this->currencyChangeBlocker()) {
+            throw new \InvalidArgumentException($blocker);
+        }
+
+        $from = $this->currency;
+        $this->currency_id = $to->id;
+        $this->save();
+
+        app(\App\Services\CurrencyConversionService::class)->logEvent(
+            $this,
+            'currency_changed',
+            ['currency_id' => $from?->id, 'currency' => $from?->code],
+            ['currency_id' => $to->id, 'currency' => $to->code],
+            ['reason' => $reason, 'source' => $source] + $context
+        );
     }
 
     // ── Tax / withholding ──────────────────────────────────────────────
@@ -953,6 +1015,28 @@ class Customer extends Model
             if (!$customer->customer_number) {
                 $customer->customer_number = self::generateCustomerNumber();
             }
+            // Every new customer starts in the system base currency
+            if (!$customer->currency_id) {
+                $customer->currency_id = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
+            }
+        });
+
+        // The credit account always runs in the account currency
+        static::saving(function ($customer) {
+            if ($customer->currency_id && (int) $customer->credit_currency_id !== (int) $customer->currency_id) {
+                $customer->credit_currency_id = $customer->currency_id;
+            }
+        });
+
+        static::created(function ($customer) {
+            $currency = $customer->currency;
+            app(\App\Services\CurrencyConversionService::class)->logEvent(
+                $customer,
+                'currency_assigned',
+                null,
+                ['currency_id' => $currency?->id, 'currency' => $currency?->code],
+                ['source' => 'account_created', 'rule' => 'defaults to the base currency']
+            );
         });
     }
 }

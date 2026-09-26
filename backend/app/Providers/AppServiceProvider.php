@@ -112,9 +112,25 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
+        // Short names stored in *_type columns. Must match the aliases the
+        // 01_morph_types_to_aliases.sql script wrote — rows saved as e.g.
+        // "product" can't be loaded without this.
         Relation::morphMap([
-            'employee' => \App\Models\Employee::class,
-            'customer' => \App\Models\Customer::class,
+            'employee'                   => \App\Models\Employee::class,
+            'customer'                   => \App\Models\Customer::class,
+            'currency'                   => \App\Models\Currency::class,
+            'product'                    => \App\Models\Product::class,
+            'product_variant'            => \App\Models\ProductVariant::class,
+            'product_variant_unit'       => \App\Models\ProductVariantUnit::class,
+            'service'                    => \App\Models\Service::class,
+            'tax_type'                   => \App\Models\TaxType::class,
+            'tax_rate'                   => \App\Models\TaxRate::class,
+            'tax_rule'                   => \App\Models\TaxRule::class,
+            'tax_applicability'          => \App\Models\TaxApplicability::class,
+            'tax_legitimacy_certificate' => \App\Models\TaxLegitimacyCertificate::class,
+            'withholding_classification' => \App\Models\WithholdingClassification::class,
+            'withholding_certificate'    => \App\Models\WithholdingCertificate::class,
+            'withholding_credit'         => \App\Models\WithholdingCredit::class,
         ]);
     }
 }

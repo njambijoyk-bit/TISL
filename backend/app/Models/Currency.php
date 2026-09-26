@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\LogsCurrencyActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class Currency extends Model
 {
+    // Every create / rate change / activation / delete goes to currency_activity_logs
+    use LogsCurrencyActivity;
+
     protected $fillable = [
         'code',
         'name',
@@ -67,16 +71,31 @@ class Currency extends Model
     {
         return DB::transaction(function () use ($currencyId) {
             $newBase = self::lockForUpdate()->findOrFail($currencyId);
+            $oldBase = self::where('is_base', true)->first();
 
             // Ensure base always has valid anchor_rate
             if ((float)$newBase->anchor_rate <= 0) {
                 throw new \Exception("Selected base currency has invalid anchor_rate");
             }
 
+            // Each currency's rate change is logged as it saves (see the trait)
             self::recalcRatesForBase($newBase);
 
-            // Reload fresh base row
-            return self::findOrFail($currencyId);
+            $fresh = self::findOrFail($currencyId);
+
+            // One clear event for the switch itself. Stored amounts are NOT
+            // converted — every record keeps its own currency, and saved
+            // conversions keep the base they were made against.
+            if ($oldBase?->id !== $fresh->id) {
+                $fresh->recordActivity(
+                    'base_changed',
+                    ['base_currency_id' => $oldBase?->id, 'base_currency' => $oldBase?->code],
+                    ['base_currency_id' => $fresh->id, 'base_currency' => $fresh->code],
+                    ['anchor_rate' => (float) $fresh->anchor_rate]
+                );
+            }
+
+            return $fresh;
         });
     }
 

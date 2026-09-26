@@ -14,6 +14,7 @@ import CustomerCreditTab from './CustomerCreditTab';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../api';
 import { useAuthStore, usePromoCodeStore } from '../../store';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../lib/money';
 
 // ── Shared input styles ───────────────────────────────────────────────────────
 
@@ -443,6 +444,9 @@ export default function Profile() {
   const tier    = customer.tier ?? 'bronze';
   const tierClr = tierStyle(tier, tierOptions);
   const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+  // Store credit lives in the customer's account currency
+  const acctCode  = customer?.currency?.code ?? 'KES';
+  const acctMoney = (n) => formatMoney(Number(n ?? 0), customer?.currency?.symbol || acctCode, { decimals: 'auto' });
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -880,7 +884,7 @@ export default function Profile() {
                   <div style={{ ...card, padding: '16px 20px' }}>
                     <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Store Credit</p>
                     <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#059669', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                      {walletLoading ? '…' : Number(wallet?.store_credit ?? customer.store_credit ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 })}
+                      {walletLoading ? '…' : acctMoney(wallet?.store_credit ?? customer.store_credit ?? 0)}
                     </p>
                     <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Available to spend at checkout</p>
                   </div>
@@ -1051,7 +1055,7 @@ export default function Profile() {
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
                               <p style={{ fontSize: '0.85rem', fontWeight: 800, color: positive ? '#059669' : '#dc2626', margin: '0 0 1px', fontVariantNumeric: 'tabular-nums' }}>
                                 {positive ? '+' : ''}{walletLedger === 'credit'
-                                  ? val.toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 })
+                                  ? acctMoney(val)
                                   : `${val.toLocaleString()} pts`}
                               </p>
                               <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
@@ -1470,7 +1474,8 @@ export default function Profile() {
                 { label: 'Avg order value',  value: fmt(customer.average_order_value) },
                 { label: 'First order',      value: fmtDate(customer.first_order_date) },
                 { label: 'Last order',       value: fmtDate(customer.last_order_date) },
-                { label: 'Store credit',  value: fmt(customer.store_credit) },
+                { label: 'Store credit',  value: acctMoney(customer.store_credit) },
+                { label: 'Account currency', value: customer.currency ? `${customer.currency.code} — ${customer.currency.name}` : acctCode },
                 { label: 'Loyalty pts',   value: `${(customer.loyalty_points ?? 0).toLocaleString()} pts` },
               ].map(({ label, value, mono }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, fontSize: '0.78rem' }}>

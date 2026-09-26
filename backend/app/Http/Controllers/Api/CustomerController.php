@@ -68,7 +68,7 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::with(['user', 'salesRep', 'orders', 'quotes'])
+        $customer = Customer::with(['user', 'salesRep', 'orders', 'quotes', 'currency:id,code,name,symbol'])
             ->findOrFail($id);
 
         return response()->json([
@@ -80,6 +80,58 @@ class CustomerController extends Controller
                 'first_order_date' => $customer->first_order_date,
                 'last_order_date' => $customer->last_order_date,
             ]
+        ], 200);
+    }
+
+    /**
+     * Change a customer's account currency (FINANCE). Refused while they
+     * have store credit, a credit balance or unpaid invoices. Logged.
+     */
+    public function adminUpdateCurrency(Request $request, $id)
+    {
+        $customer = Customer::with('currency:id,code,name,symbol')->findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'currency_id' => 'required|integer|exists:currencies,id,is_active,1',
+            'reason'      => 'required|string|min:3|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $customer->changeCurrency(\App\Models\Currency::findOrFail($request->currency_id), $request->reason, 'admin');
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $customer->load('currency:id,code,name,symbol');
+
+        return response()->json([
+            'message'  => 'Account currency updated',
+            'customer' => [
+                'id'          => $customer->id,
+                'currency_id' => $customer->currency_id,
+                'currency'    => $customer->currency,
+            ],
+        ], 200);
+    }
+
+    /** Currency history for a customer: assignment, changes, and who/why (FINANCE READ). */
+    public function adminCurrencyLog($id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $logs = \App\Models\Logs\CurrencyActivityLog::with('user:id,name')
+            ->forModel($customer)
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'blocker' => $customer->currencyChangeBlocker(),   // null = can change now
+            'logs'    => $logs,
         ], 200);
     }
 
@@ -168,8 +220,8 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        // Load referral code
-        $customer->load('myReferralCode');
+        // Load referral code + account currency
+        $customer->load(['myReferralCode', 'currency:id,code,name,symbol']);
 
         return response()->json([
             'customer' => $customer,

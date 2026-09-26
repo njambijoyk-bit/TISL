@@ -1253,6 +1253,9 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('credits/{id}/clearances',    [WithholdingController::class, 'adminIndexClearances']);
             });
 
+            // Customer account currency — history (read) and change (write, below)
+            Route::get('customers/{id}/currency-log', [CustomerController::class, 'adminCurrencyLog']);
+
             Route::prefix('tax-legitimacy-certificates')->group(function () {
                 Route::get('/',     [TaxLegitimacyCertificateController::class, 'adminIndex']);
                 Route::get('/{id}', [TaxLegitimacyCertificateController::class, 'adminShow']);
@@ -1307,6 +1310,8 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::post('/{id}/verify',  [TaxLegitimacyCertificateController::class, 'adminVerify']);
                     Route::post('/{id}/revoke',  [TaxLegitimacyCertificateController::class, 'adminRevoke']);
                 });
+
+                Route::put('customers/{id}/currency', [CustomerController::class, 'adminUpdateCurrency']);
 
                 Route::prefix('currencies')->group(function () {
                     Route::post('/',                 [CurrencyController::class, 'store']);

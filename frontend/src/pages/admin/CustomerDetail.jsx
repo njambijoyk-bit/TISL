@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import CreditTab from './CreditTab';
 import CustomerTaxTab from '../../components/admin/tax/CustomerTaxTab';
+import AccountCurrencyCard from '../../components/admin/customers/AccountCurrencyCard';
 import useAuthStore from '../../store/authStore';
 import { canReadFinance } from '../../lib/roles';
 import customersAPI from '../../api/customers';
@@ -455,6 +456,9 @@ export default function CustomerDetail() {
     return `${currency} ${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  // Store credit and the credit account are in the customer's account currency
+  const acct = customer?.currency?.code ?? 'KES';
+
   // Add new state for stats loading
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -594,7 +598,7 @@ export default function CustomerDetail() {
     try {
       const data = await customersAPI.addCredit(id, amount, reason);
       setCustomer(c => ({ ...c, store_credit: data.new_balance })); setShowCredit(false);
-      notify(`${fmt(amount)} credit added`);
+      notify(`${fmt(amount, acct)} credit added`);
     } catch { notify('Failed to add credit', 'error'); }
   };
 
@@ -1056,7 +1060,7 @@ export default function CustomerDetail() {
 
                   {/* Store credit balance */}
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
-                    {fmt(customer.credit_limit)}
+                    {fmt(customer.credit_limit, acct)}
                   </p>
 
                   {/* Credit account section */}
@@ -1100,7 +1104,7 @@ export default function CustomerDetail() {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
                               <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{pct.toFixed(0)}% used</span>
-                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>Limit: {fmt(limit)}</span>
+                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>Limit: {fmt(limit, acct)}</span>
                             </div>
                           </div>
                         )}
@@ -1108,9 +1112,9 @@ export default function CustomerDetail() {
                         {/* Three stat rows */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           {[
-                            { label: 'Credit limit', value: fmt(limit),     color: '#6b7280' },
-                            { label: 'Used',         value: fmt(used),      color: isOver ? '#ef4444' : '#6b7280' },
-                            { label: 'Available',    value: fmt(available), color: available === 0 ? '#ef4444' : '#059669' },
+                            { label: 'Credit limit', value: fmt(limit, acct),     color: '#6b7280' },
+                            { label: 'Used',         value: fmt(used, acct),      color: isOver ? '#ef4444' : '#6b7280' },
+                            { label: 'Available',    value: fmt(available, acct), color: available === 0 ? '#ef4444' : '#059669' },
                           ].map(({ label, value, color }) => (
                             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
                               <span style={{ color: '#9ca3af' }}>{label}</span>
@@ -1171,7 +1175,7 @@ export default function CustomerDetail() {
                     <StatBlock
                       icon={<CreditCard size={14} />}
                       label="Store credit"
-                      value={fmt(customer.store_credit)}
+                      value={fmt(customer.store_credit, acct)}
                     />
                     <StatBlock
                       icon={<Star size={14} />}
@@ -1193,6 +1197,12 @@ export default function CustomerDetail() {
                   </Link>
                 </div>
 
+                {/* Account currency */}
+                <AccountCurrencyCard
+                  customer={customer}
+                  onChanged={(patch) => setCustomer(c => ({ ...c, ...patch }))}
+                />
+
                 {/* Store credit */}
                 <div style={card}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1211,11 +1221,11 @@ export default function CustomerDetail() {
                     </div>
                   </div>
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
-                    {fmt(customer.store_credit)}
+                    {fmt(customer.store_credit, acct)}
                   </p>
                   {customer.has_credit_account && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {[['Credit limit', fmt(customer.credit_limit)], ['Used', fmt(customer.credit_used)], ['Available', fmt(customer.available_credit)]].map(([lbl, val]) => (
+                      {[['Credit limit', fmt(customer.credit_limit, acct)], ['Used', fmt(customer.credit_used, acct)], ['Available', fmt(customer.available_credit, acct)]].map(([lbl, val]) => (
                         <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
                           <span style={{ color: '#9ca3af' }}>{lbl}</span>
                           <span style={{ color: '#6b7280', fontWeight: 600 }}>{val}</span>
