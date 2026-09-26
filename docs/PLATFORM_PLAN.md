@@ -204,15 +204,15 @@ API clients, stores, hooks, common UI (Button, SmartSearchBox, Pagination, Heade
 
 | Page | Status |
 |---|---|
-| Products (list) | 🔀 in core/pages/admin/ |
-| Product form (create/edit) | 🔀 in core/pages/admin/ |
-| Product variants | 🔀 in core/pages/admin/ |
-| Services (list) | 🔀 in core/pages/admin/ |
-| Service form | 🔀 in core/pages/admin/ |
-| Service categories | 🔀 in core/pages/admin/ |
-| Categories (list, form) | 🔀 in core/pages/admin/ |
-| Brands (list, form) | 🔀 in core/pages/admin/ |
-| Reviews | 🔀 in core/pages/admin/ |
+| Products (list) | ✅ in ecommerce/pages/admin/ |
+| Product form (create/edit) | ✅ in ecommerce/pages/admin/ |
+| Product variants | ✅ in ProductForm + ecommerce/components/admin/variants/ |
+| Services (list) | ✅ in ecommerce/pages/admin/ |
+| Service form | ✅ in ecommerce/pages/admin/ |
+| Service categories | ✅ in ecommerce/pages/admin/ |
+| Categories (list, form) | ✅ in ecommerce/pages/admin/ |
+| Brands (list, form) | ✅ in ecommerce/pages/admin/ |
+| Reviews | ✅ in ecommerce/pages/admin/ |
 | Specials | ❌ |
 | Hampers (list, detail, orders) | ✅ in ecommerce/pages/admin/hampers/ |
 | Auctions (list, detail, orders) | ✅ in ecommerce/pages/admin/auctions/ |
@@ -222,25 +222,26 @@ API clients, stores, hooks, common UI (Button, SmartSearchBox, Pagination, Heade
 
 | Page | Status |
 |---|---|
-| Products (list) | 🔀 in core/pages/customer/ |
-| Product detail | 🔀 in core/pages/customer/ |
-| Services (list) | 🔀 in core/pages/customer/ |
-| Service detail + Book service | 🔀 in core/pages/customer/ |
-| Specials | 🔀 in core/pages/customer/ |
-| Wishlist | 🔀 in core/pages/customer/ |
-| Hamper list + detail + checkout + my hamper orders | 🔀 in core/pages/customer/ |
+| Products (list) | ✅ in ecommerce/pages/customer/ |
+| Product detail | ✅ in ecommerce/pages/customer/ |
+| Services (list) | ✅ in ecommerce/pages/customer/ |
+| Service detail + Book service | ✅ in ecommerce/pages/customer/ |
+| Specials | ✅ in ecommerce/pages/customer/ |
+| Wishlist | ✅ in ecommerce/pages/customer/ |
+| Hamper list + detail + checkout + my hamper orders | ✅ in ecommerce/pages/customer/ |
 | Auction list + detail | ✅ in ecommerce/pages/customer/ |
 
 **Components**
 
 | Area | Status |
 |---|---|
-| Product card, grid, filters | 🔀 in core/components/ |
-| Service card, grid, filters | 🔀 in core/components/ |
-| Cart components | 🔀 in _shared/components/cart/ |
-| Hamper components | 🔀 in core/components/ |
-| Auction components | ✅ in ecommerce/components/ |
-| Wishlists, reviews | 🔀 in _shared/components/ or core/ |
+| Product card, grid, filters | ✅ in ecommerce/components/storefront/products/ |
+| Service card, grid, filters | ✅ in ecommerce/components/storefront/services/ |
+| Cart components | ✅ in core/components/cart/ (cart and checkout are Core, section 9) |
+| Hamper components | ✅ none separate (inside the hamper pages) |
+| Auction components | ✅ in ecommerce/components/ (BidModal in storefront/auctions/) |
+| Wishlist items | ✅ in ecommerce/components/storefront/wishlist/ |
+| Specials hero + polaroid card | ✅ in ecommerce/components/storefront/specials/ |
 
 ---
 
@@ -497,7 +498,7 @@ Project portfolios and project-based collaboration.
 | Project detail (milestones, tasks, messages, participants, links) | ✅ |
 | Project create | ✅ |
 | AI analytics | ✅ in extras/pages/admin/ai-analytics/ |
-| Work board | ✅ in core/pages/admin/Work.jsx — needs to move |
+| Work board | ✅ in projects/pages/admin/Work.jsx |
 
 **Customer pages**
 
@@ -533,20 +534,20 @@ Operational toolbox — not all visible to customers.
 
 ### 5.8 Pages that need to move (relocation backlog)
 
-These exist but are in the wrong folder. No code changes — just file moves and import updates.
+**Done (27 Sep 2026).** File moves and import updates only, no code changes; production build passes.
 
-| File | From | To |
+| What | From | To |
 |---|---|---|
-| Products.jsx, ProductDetail.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
-| Services.jsx, ServiceDetail.jsx, BookService.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
-| SpecialsPage.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
-| Wishlist.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
-| HamperListPage.jsx, HamperDetail.jsx, HamperCheckout.jsx, MyHamperOrders.jsx, MyHamperOrderDetail.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
-| Products.jsx (admin), ProductForm.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
-| Services.jsx (admin), ServiceForm.jsx, ServiceCategories.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
-| Categories.jsx, CategoryForm.jsx, Brands.jsx, BrandForm.jsx, Reviews.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
+| Products, ProductDetail, Services, ServiceDetail, BookService, SpecialsPage, Wishlist, HamperListPage, HamperDetail, HamperCheckout, MyHamperOrders, MyHamperOrderDetail | core/pages/customer/ | ecommerce/pages/customer/ |
+| SpecialsPolaroidCard, ClockDialHero (used only by Specials) | core/pages/customer/ | ecommerce/components/storefront/specials/ |
+| Products, ProductForm, Services, ServiceForm, ServiceCategories, Categories, CategoryForm, Brands, BrandForm, Reviews (admin) | core/pages/admin/ | ecommerce/pages/admin/ |
 | Work.jsx (admin) | core/pages/admin/ | projects/pages/admin/ |
-| Product/service components | core/components/services/, core/components/ | ecommerce/components/ |
+| Service card, grid, filters, collapsed card | core/components/services/ | ecommerce/components/storefront/services/ |
+| Variant editor, options, variant form, images, unit form | core/components/admin/variants/ | ecommerce/components/admin/variants/ |
+| BidModal | core/components/auctions/ | ecommerce/components/storefront/auctions/ |
+| Project admin, customer and shared components | core/components/projects/ | projects/components/ (customer → storefront/) |
+
+**Still in the wrong place (Core module, section 5.7):** Payments, Reconciliation and Financial notes (finance/), Referral & promo codes (referrals/), Content pages and Policies (settings/), and the scattered settings pages. These stay in `src/core/` and only need regrouping inside it, so they wait for the Settings hub work.
 
 ---
 
@@ -563,6 +564,8 @@ Build one module at a time, backend + frontend together, in this order:
 7. **Menus** — needs kitchen display, table management
 
 ---
+
+## 6. Admin navigation (done)
 
 **One sidebar replaces four places** (main sidebar, Settings sidebar, Settings card page, General sidebar).
 
