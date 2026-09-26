@@ -3,6 +3,8 @@ import SearchableDropdown from '../../../../../components/common/SearchableDropd
 import ImageDrawer from './ImageDrawer';
 import { productsAPI } from '../../../../../api';
 import toast from 'react-hot-toast';
+import CurrencySelect from '../../../../../components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../../../../store/currencyStore';
 
 /**
  * ProductBulkTable
@@ -18,7 +20,7 @@ export default function ProductBulkTable({
   onToggleAll,
   onProductUpdated,
 }) {
-  const [dirty, setDirty]         = useState({});   // { [id]: { price, original_price, price_is_negotiable, category_id, brand_id } }
+  const [dirty, setDirty]         = useState({});   // { [id]: { price, original_price, price_is_negotiable, category_id, brand_id, currency_id } }
   const [saving, setSaving]       = useState({});   // { [id]: bool }
   const [saved, setSaved]         = useState({});   // { [id]: bool } — green flash
   const [drawerProduct, setDrawerProduct] = useState(null);
@@ -57,6 +59,7 @@ export default function ProductBulkTable({
       if (changes.price_is_negotiable !== undefined) payload.price_is_negotiable = changes.price_is_negotiable ? 1 : 0;
       if (changes.category_id        !== undefined) payload.category_id        = changes.category_id;
       if (changes.brand_id           !== undefined) payload.brand_id           = changes.brand_id;
+      if (changes.currency_id        !== undefined) payload.currency_id        = changes.currency_id;
 
       await productsAPI.updateProduct(product.id, payload);
 
@@ -67,7 +70,12 @@ export default function ProductBulkTable({
       setSaved(prev => ({ ...prev, [product.id]: true }));
       setTimeout(() => setSaved(prev => ({ ...prev, [product.id]: false })), 2500);
 
-      onProductUpdated(product.id, { ...product, ...payload });
+      const updated = { ...product, ...payload };
+      if (payload.currency_id !== undefined) {
+        const cur = useCurrencyStore.getState().adminCurrencies.find(c => c.id === Number(payload.currency_id));
+        if (cur) updated.currency = { id: cur.id, code: cur.code, symbol: cur.symbol };
+      }
+      onProductUpdated(product.id, updated);
       toast.success(`${product.name.substring(0, 30)} updated`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Save failed');
@@ -150,7 +158,8 @@ export default function ProductBulkTable({
               <Th width={110}>Stock Qty</Th>
               <Th width={160}>Category</Th>
               <Th width={140}>Brand</Th>
-              <Th width={110}>Price (KSh)</Th>
+              <Th width={150}>Currency</Th>
+              <Th width={110}>Price</Th>
               <Th width={110}>Original</Th>
               <Th width={90}>Negotiable</Th>
               <Th width={100}>Actions</Th>
@@ -178,7 +187,7 @@ export default function ProductBulkTable({
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: 13 }}>
+                <td colSpan={12} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: 13 }}>
                   No products found
                 </td>
               </tr>
@@ -218,6 +227,13 @@ function ProductRow({
   const currentPrice = getVal('price');
   const currentOrig  = getVal('original_price');
   const isNegotiable = getVal('price_is_negotiable');
+
+  // Code of the currency this row is priced in (follows an unsaved change too)
+  const currencyId   = getVal('currency_id') ?? product.currency?.id;
+  const currencyCode = useCurrencyStore(s =>
+    s.adminCurrencies.find(c => String(c.id) === String(currencyId))?.code
+    ?? product.currency?.code
+    ?? s.adminCurrencies.find(c => c.is_base)?.code);
 
   const rowBg = saved
     ? 'rgba(34,197,94,0.06)'
@@ -311,6 +327,15 @@ function ProductRow({
         />
       </Td>
 
+      {/* Currency — the price and original price are in this currency */}
+      <Td>
+        <CurrencySelect
+          value={getVal('currency_id') ?? product.currency?.id ?? ''}
+          onChange={val => markDirty('currency_id', val === '' ? null : val)}
+          style={{ padding: '5px 8px', fontSize: 12, minWidth: 130 }}
+        />
+      </Td>
+
       {/* Price */}
       <Td>
         {editingPrice ? (
@@ -340,6 +365,9 @@ function ProductRow({
               color: currentPrice > 0 ? 'var(--text-primary, #111)' : 'var(--text-muted, #d1d5db)',
             }}
           >
+            {currentPrice > 0 && currencyCode && (
+              <span style={{ fontSize: 10, fontWeight: 600, marginRight: 4, opacity: 0.55 }}>{currencyCode}</span>
+            )}
             {currentPrice > 0 ? Number(currentPrice).toLocaleString() : '—'}
             <span style={{ fontSize: 10, marginLeft: 3, opacity: 0.4 }}>✎</span>
           </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { formatMoney } from '../../lib/money';
 import {
   ArrowRight, Zap, Award, Sparkles, Package,
   TrendingUp, BadgePercent, Truck,
@@ -58,6 +59,14 @@ const DIAL_SIZE  = 420;
 function polarToXY(angleDeg, r, cx = 0, cy = 0) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+/**
+ * Price exactly as stored, in the product's own currency (e.g. "$ 25",
+ * "KSh 3,000") — the carousel shows the listed price, not a conversion.
+ */
+function nativePrice(amount, product) {
+  return formatMoney(amount, product?.currency?.symbol || product?.currency?.code || 'KSh', { decimals: 'auto' });
 }
 
 function discountPct(price, original) {
@@ -545,11 +554,11 @@ export default function ClockDialHero({ slides = [], countdown, loading }) {
             {/* Price row */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '2rem', fontWeight: 900, color: t.accent, letterSpacing: '-0.01em' }}>
-                KSh {Number(active.price).toLocaleString()}
+                {nativePrice(active.price, active)}
               </span>
               {active.original_price && (
                 <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through' }}>
-                  KSh {Number(active.original_price).toLocaleString()}
+                  {nativePrice(active.original_price, active)}
                 </span>
               )}
               {pct > 0 && (
