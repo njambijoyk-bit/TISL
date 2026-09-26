@@ -247,6 +247,7 @@ const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/Secu
 const EmailSettings        = lazy(() => import('./core/pages/admin/settings/EmailSettings'));
 const BackupSettings       = lazy(() => import('./core/pages/admin/settings/BackupSettings'));
 const AppearanceSettings   = lazy(() => import('./core/pages/admin/settings/AppearanceSettings'));
+const AppearancePage       = lazy(() => import('./core/pages/admin/AppearancePage'));
 const IntegrationSettings  = lazy(() => import('./core/pages/admin/settings/IntegrationSettings'));
 const AboutSettings        = lazy(() => import('./core/pages/admin/settings/content/AboutSettings'));
 const ContactSettings      = lazy(() => import('./core/pages/admin/settings/content/ContactSettings'));
@@ -1660,6 +1661,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin>
                     <AppearanceSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/appearance"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AppearancePage />
                   </ProtectedRoute>
                 }
               />
