@@ -29,7 +29,7 @@ const LOOK = {
   '/admin/algorithm':                 { icon: BrainCircuit,   bg: 'linear-gradient(135deg,#1d4ed8,#60a5fa)', color: '#60a5fa' },
   '/admin/vault':                     { icon: Vault,          bg: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#ef4444' },
   '/admin/logs':                      { icon: Network,        bg: 'linear-gradient(135deg,#1e40af,#3b82f6)', color: '#3b82f6' },
-  '/admin/settings/themes':           { icon: Palette,        bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa' },
+  '/admin/appearance':                { icon: Palette,        bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa' },
   '/admin/settings/navigation':       { icon: Compass,        bg: 'linear-gradient(135deg,#0f766e,#14b8a6)', color: '#14b8a6' },
   '/admin/settings/modules':          { icon: Blocks,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899' },
 };
