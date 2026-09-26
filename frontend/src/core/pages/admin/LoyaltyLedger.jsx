@@ -13,13 +13,13 @@ import { useAuthStore } from '../../../_shared/store/index';
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const inputStyle = {
   padding: '7px 11px 7px 34px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -27,8 +27,8 @@ const inputStyle = {
 const pill = (active) => ({
   padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
   cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-  background: active ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.06)',
-  color: active ? 'white' : '#7c3aed',
+  background: active ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+  color: active ? 'white' : 'var(--color-primary-600)',
   transition: 'all 150ms',
 });
 
@@ -36,7 +36,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -53,12 +53,12 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, sub, color = '#a855f7' }) {
+function StatCard({ icon, label, value, sub, color = 'var(--color-primary-500)' }) {
   return (
     <div style={{ ...card, padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
       <div style={{
         width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-        background: `rgba(168,85,247,0.08)`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: `color-mix(in srgb, var(--color-primary-500) 8%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {icon}
       </div>
@@ -228,8 +228,8 @@ const LOYALTY_DEV_NOTES = {
   ],
 };
 
-const SEV_COLOR = { critical: "#ff4d4d", warning: "#f59e0b", low: "#a855f7" };
-const HOR_COLOR = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+const SEV_COLOR = { critical: "#ff4d4d", warning: "#f59e0b", low: "var(--color-primary-500)" };
+const HOR_COLOR = { near: "#06b6d4", medium: "#f59e0b", long: "var(--color-primary-500)" };
 
 function LoyaltyDevNotesModal({ onClose }) {
   const [tab, setTab] = useState("pitfalls");
@@ -249,7 +249,7 @@ function LoyaltyDevNotesModal({ onClose }) {
         {/* Header */}
         <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--border,#e5e7eb)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-            <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "#a855f7" }}>
+            <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — loyalty system
             </span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af" }}>✕</button>
@@ -261,8 +261,8 @@ function LoyaltyDevNotesModal({ onClose }) {
             {["pitfalls", "strengths", "future"].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 18px", background: "none", border: "none",
-                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
-                color: tab === t ? "#a855f7" : "var(--text-secondary,#6b7280)",
+                borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
+                color: tab === t ? "var(--color-primary-500)" : "var(--text-secondary,#6b7280)",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1,
               }}>{t}</button>
@@ -298,9 +298,9 @@ function LoyaltyDevNotesModal({ onClose }) {
           {tab === "strengths" && LOYALTY_DEV_NOTES.strengths.map((n, i) => (
             <div key={i} style={{
               padding: "14px 16px", borderRadius: 8,
-              border: "1px solid #a855f722", background: "#a855f706",
+              border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)06",
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
               <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
@@ -393,7 +393,7 @@ export default function LoyaltyLedger() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#a855f7', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
             Loyalty Ledger
           </h1>
           <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
@@ -407,7 +407,7 @@ export default function LoyaltyLedger() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-                background: 'transparent', border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#9ca3af', cursor: 'pointer', fontFamily: 'monospace',
               }}
             >
@@ -418,8 +418,8 @@ export default function LoyaltyLedger() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-                background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.18)',
-                color: '#7c3aed', cursor: 'pointer', fontFamily: 'inherit',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
               <Settings size={14} /> Settings
@@ -430,9 +430,9 @@ export default function LoyaltyLedger() {
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-        <StatCard icon={<Users size={18} style={{ color: '#a855f7' }} />}   label="Total customers" value={meta.total?.toLocaleString() ?? '—'} />
-        <StatCard icon={<Coins size={18} style={{ color: '#a855f7' }} />}   label="Points on this page" value={fmtPts(totalPts)} sub="sum of visible rows" />
-        <StatCard icon={<CreditCard size={18} style={{ color: '#a855f7' }} />} label="Credit on this page" value={fmtKes(totalCred)} sub="sum of visible rows" />
+        <StatCard icon={<Users size={18} style={{ color: 'var(--color-primary-500)' }} />}   label="Total customers" value={meta.total?.toLocaleString() ?? '—'} />
+        <StatCard icon={<Coins size={18} style={{ color: 'var(--color-primary-500)' }} />}   label="Points on this page" value={fmtPts(totalPts)} sub="sum of visible rows" />
+        <StatCard icon={<CreditCard size={18} style={{ color: 'var(--color-primary-500)' }} />} label="Credit on this page" value={fmtKes(totalCred)} sub="sum of visible rows" />
       </div>
 
       {/* Filters */}
@@ -444,8 +444,8 @@ export default function LoyaltyLedger() {
             ref={searchRef} placeholder="Search name, email, number…"
             style={inputStyle}
             onChange={e => onSearch(e.target.value)}
-            onFocus={e => { e.target.style.borderColor = '#a855f7'; e.target.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-            onBlur={e  => { e.target.style.borderColor = 'rgba(168,85,247,0.18)'; e.target.style.boxShadow = 'none'; }}
+            onFocus={e => { e.target.style.borderColor = 'var(--color-primary-500)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+            onBlur={e  => { e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.target.style.boxShadow = 'none'; }}
           />
         </div>
 
@@ -487,11 +487,11 @@ export default function LoyaltyLedger() {
       <div style={{ ...card, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.08)', background: 'rgba(168,85,247,0.02)' }}>
+            <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
               {['Customer','Tier','Loyalty Points','Store Credit','Orders','Last Order'].map(h => (
                 <th key={h} style={{
                   padding: '10px 16px', fontSize: '0.65rem', fontWeight: 700,
-                  color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em',
+                  color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.07em',
                   textAlign: h === 'Customer' || h === 'Tier' ? 'left' : 'right',
                 }}>
                   {h}
@@ -521,10 +521,10 @@ export default function LoyaltyLedger() {
                 <tr key={c.id}
                   onClick={() => navigate(`/admin/loyalty/${c.id}`)}
                   style={{
-                    borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                    borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                     cursor: 'pointer', transition: 'background 120ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   {/* Customer */}
@@ -535,7 +535,7 @@ export default function LoyaltyLedger() {
                       ) : (
                         <div style={{
                           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '0.68rem', fontWeight: 700, color: 'white',
                         }}>
@@ -561,7 +561,7 @@ export default function LoyaltyLedger() {
                   {/* Points */}
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                      <Coins size={13} style={{ color: Number(c.loyalty_points) > 0 ? '#a855f7' : '#d1d5db' }} />
+                      <Coins size={13} style={{ color: Number(c.loyalty_points) > 0 ? 'var(--color-primary-500)' : '#d1d5db' }} />
                       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.loyalty_points) > 0 ? '#111827' : '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtPts(c.loyalty_points)}
                       </span>
@@ -597,15 +597,15 @@ export default function LoyaltyLedger() {
         {/* Pagination */}
         {!loading && customers.length > 0 && meta.last_page > 1 && (
         <div style={{
-            padding: '12px 16px', borderTop: '1px solid rgba(168,85,247,0.08)',
+            padding: '12px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(168,85,247,0.02)', gap: 4,
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', gap: 4,
         }}>
             {/* Prev */}
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={meta.current_page <= 1} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-            color: '#a855f7', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
+            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            color: 'var(--color-primary-500)', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
             opacity: meta.current_page <= 1 ? 0.3 : 1,
             }}>
             <ChevronLeft size={13} />
@@ -626,8 +626,8 @@ export default function LoyaltyLedger() {
                 width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: 7, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
                 fontFamily: 'inherit', border: 'none',
-                background: meta.current_page === p ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.06)',
-                color: meta.current_page === p ? 'white' : '#7c3aed',
+                background: meta.current_page === p ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                color: meta.current_page === p ? 'white' : 'var(--color-primary-600)',
                 }}>
                 {p}
                 </button>
@@ -637,8 +637,8 @@ export default function LoyaltyLedger() {
             {/* Next */}
             <button onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={meta.current_page >= meta.last_page} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-            color: '#a855f7', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
+            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            color: 'var(--color-primary-500)', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
             opacity: meta.current_page >= meta.last_page ? 0.3 : 1,
             }}>
             <ChevronRight size={13} />

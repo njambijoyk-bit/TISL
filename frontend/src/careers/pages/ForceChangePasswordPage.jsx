@@ -14,7 +14,7 @@ const s = {
     field: { marginBottom: 18 },
     label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginBottom: 7, fontWeight: 600 },
     input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #222', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
-    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
+    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
     errField: { fontSize: 12, color: '#f87171', marginTop: 5 },
     errBox: { background: '#2d1111', border: '1px solid #5a1d1d', borderRadius: 8, padding: '12px 14px', color: '#f87171', fontSize: 13, marginBottom: 20 },
 };
@@ -77,7 +77,7 @@ export default function ForceChangePasswordPage() {
                             style={s.input} type="password"
                             value={form.password} onChange={patch('password')}
                             placeholder="Min. 8 characters" required autoFocus
-                            onFocus={e => e.target.style.borderColor = '#a855f7'}
+                            onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                             onBlur={e => e.target.style.borderColor = '#222'}
                         />
                         {errors.password && <p style={s.errField}>{errors.password[0]}</p>}
@@ -88,7 +88,7 @@ export default function ForceChangePasswordPage() {
                             style={s.input} type="password"
                             value={form.password_confirmation} onChange={patch('password_confirmation')}
                             placeholder="Repeat your new password" required
-                            onFocus={e => e.target.style.borderColor = '#a855f7'}
+                            onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                             onBlur={e => e.target.style.borderColor = '#222'}
                         />
                         {errors.password_confirmation && <p style={s.errField}>{errors.password_confirmation[0]}</p>}

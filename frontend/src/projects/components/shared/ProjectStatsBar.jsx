@@ -9,7 +9,7 @@ const StatCard = ({ label, value, sub, color, onClick }) => (
       transition: 'box-shadow 200ms, transform 200ms, border-color 200ms',
       position: 'relative', overflow: 'hidden',
     }}
-    onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; } }}
+    onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; } }}
     onMouseLeave={e => { if (onClick) { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = '#f3f4f6'; } }}
   >
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, opacity: 0.5 }} />
@@ -41,7 +41,7 @@ const ProjectStatsBar = ({ statistics, loading }) => {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 16 }}>
-      <StatCard label="Total Projects"      value={totals?.all}        color="#a855f7" onClick={() => navigate('/admin/projects/list')} />
+      <StatCard label="Total Projects"      value={totals?.all}        color="var(--color-primary-500)" onClick={() => navigate('/admin/projects/list')} />
       <StatCard label="Active"              value={totals?.active}     color="#10b981" onClick={() => navigate('/admin/projects/list?status=active')} />
       <StatCard label="Completed"           value={totals?.completed}  color="#6b7280" onClick={() => navigate('/admin/projects/list?status=completed')} />
       <StatCard label="Overdue"             value={totals?.overdue}    color="#ef4444" sub="Past target date" />

@@ -10,7 +10,7 @@ const NOTE_TYPE_COLORS = {
   refund:             { bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.3)',    text: '#ef4444' },
   overpayment:        { bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   text: '#f59e0b' },
   credit_adjustment:  { bg: 'rgba(59,130,246,0.1)',   border: 'rgba(59,130,246,0.3)',   text: '#3b82f6' },
-  loyalty_adjustment: { bg: 'rgba(168,85,247,0.1)',   border: 'rgba(168,85,247,0.3)',   text: '#a855f7' },
+  loyalty_adjustment: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',   border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',   text: 'var(--color-primary-500)' },
   manual_payment:     { bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.3)',   text: '#10b981' },
   reversal:           { bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.3)',   text: '#f97316' },
   other:              { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.3)',  text: '#64748b' },
@@ -50,7 +50,7 @@ const S = {
   },
   newBtn: {
     padding: '10px 20px',
-    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
     border: 'none',
     borderRadius: '10px',
     color: '#fff',
@@ -70,7 +70,7 @@ const S = {
   },
   filterInput: {
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '8px',
     color: '#e2e8f0',
     fontSize: '12px',
@@ -81,7 +81,7 @@ const S = {
   },
   filterSelect: {
     background: '#0f0f1a',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '8px',
     color: '#e2e8f0',
     fontSize: '12px',
@@ -94,7 +94,7 @@ const S = {
   // table
   tableWrap: {
     background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '14px',
     overflow: 'hidden',
   },
@@ -110,8 +110,8 @@ const S = {
     fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    borderBottom: '1px solid rgba(168,85,247,0.15)',
-    background: 'rgba(168,85,247,0.04)',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
     fontFamily: 'monospace',
   },
   td: {
@@ -120,7 +120,7 @@ const S = {
     verticalAlign: 'top',
   },
   tr: (hover) => ({
-    background: hover ? 'rgba(168,85,247,0.04)' : 'transparent',
+    background: hover ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent',
     transition: 'background 0.15s',
     cursor: 'default',
   }),
@@ -141,7 +141,7 @@ const S = {
   }),
 
   noteNumber: {
-    color: '#a855f7',
+    color: 'var(--color-primary-500)',
     fontSize: '11px',
     fontWeight: 700,
   },
@@ -200,7 +200,7 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 20px',
-    borderTop: '1px solid rgba(168,85,247,0.1)',
+    borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   },
   pageInfo: {
     color: '#475569',
@@ -214,9 +214,9 @@ const S = {
   pageBtn: (disabled) => ({
     padding: '6px 12px',
     background: 'transparent',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '6px',
-    color: disabled ? '#334155' : '#a855f7',
+    color: disabled ? '#334155' : 'var(--color-primary-500)',
     fontSize: '11px',
     fontFamily: 'monospace',
     cursor: disabled ? 'not-allowed' : 'pointer',

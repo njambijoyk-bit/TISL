@@ -76,14 +76,14 @@ export default function CommandPalette({ onClose, nav }) {
           color: 'var(--text-primary, #111827)',
           width: '100%', maxWidth: 560,
           borderRadius: 14,
-          border: '1px solid rgba(168,85,247,0.25)',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
           boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column', maxHeight: '70vh',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-          <Search size={17} style={{ color: '#a855f7', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+          <Search size={17} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
           <input
             autoFocus
             value={query}
@@ -98,7 +98,7 @@ export default function CommandPalette({ onClose, nav }) {
               fontSize: '0.95rem', fontFamily: 'inherit', color: 'inherit',
             }}
           />
-          <kbd style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(168,85,247,0.25)', color: '#a855f7', fontFamily: 'inherit' }}>Esc</kbd>
+          <kbd style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: 4, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)', fontFamily: 'inherit' }}>Esc</kbd>
         </div>
 
         <ul id="cmdk-results" ref={listRef} role="listbox" style={{ listStyle: 'none', margin: 0, padding: 6, overflowY: 'auto' }}>
@@ -122,7 +122,7 @@ export default function CommandPalette({ onClose, nav }) {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
-                  background: sel ? 'rgba(168,85,247,0.12)' : 'transparent',
+                  background: sel ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
                 }}
               >
                 <span style={{
@@ -140,7 +140,7 @@ export default function CommandPalette({ onClose, nav }) {
                     <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--color-text-muted, #6b7280)' }}>{r.section}</span>
                   )}
                 </span>
-                {sel && <CornerDownLeft size={14} style={{ color: '#a855f7', flexShrink: 0 }} />}
+                {sel && <CornerDownLeft size={14} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />}
               </li>
             );
           })}

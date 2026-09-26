@@ -1,18 +1,18 @@
 // src/lib/finance-ui.jsx
-export const purple = '#a855f7';
-export const purpleDk = '#7c3aed';
-export const purpleLt = 'rgba(168,85,247,0.08)';
-export const purpleBd = 'rgba(168,85,247,0.2)';
+export const purple = 'var(--color-primary-500)';
+export const purpleDk = 'var(--color-primary-600)';
+export const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+export const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 export const Panel = ({ children, accent = false, style = {} }) => (
-  <div style={{ background: 'var(--panel-bg, white)', border: `1px solid ${accent ? purpleBd : 'var(--border, #f3f4f6)'}`, borderRadius: 16, overflow: 'hidden', boxShadow: accent ? '0 0 0 1px rgba(168,85,247,0.12), 0 4px 20px rgba(168,85,247,0.08)' : '0 1px 4px rgba(0,0,0,0.04)', ...style }}>
+  <div style={{ background: 'var(--panel-bg, white)', border: `1px solid ${accent ? purpleBd : 'var(--border, #f3f4f6)'}`, borderRadius: 16, overflow: 'hidden', boxShadow: accent ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 1px 4px rgba(0,0,0,0.04)', ...style }}>
     {children}
   </div>
 );
 
 export const Btn = ({ children, onClick, disabled, variant = 'primary', icon, size = 'md' }) => {
   const v = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: '#fff', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     success: { background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' },
     danger:  { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },

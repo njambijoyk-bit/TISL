@@ -199,19 +199,19 @@ export default function EmptyCart() {
 
         /* Start Shopping Button - Colors swapped */
         .start-shopping-btn {
-          background-color: #d8b4fe;
-          border: 1px solid #d8b4fe;
+          background-color: var(--color-primary-300);
+          border: 1px solid var(--color-primary-300);
         }
 
         .start-shopping-btn:hover {
-          background-color: #c084fc;
-          border-color: #c084fc;
+          background-color: var(--color-primary-400);
+          border-color: var(--color-primary-400);
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
           transform: translateY(-2px);
         }
 
         .start-shopping-btn:active {
-          background-color: #c084fc;
+          background-color: var(--color-primary-400);
           transform: translateY(0) scale(0.98);
         }
       `}</style>

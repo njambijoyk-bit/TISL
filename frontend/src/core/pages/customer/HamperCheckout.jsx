@@ -46,7 +46,7 @@ function Input({ name, type = 'text', value, onChange, placeholder, error }) {
       type={type} name={name} value={value} onChange={onChange}
       placeholder={placeholder}
       style={{ ...makeInputStyle(), borderColor: error ? '#ef4444' : '#e5e7eb' }}
-      onFocus={e => { e.currentTarget.style.borderColor = window.__hamperAccent || '#a855f7'; e.currentTarget.style.boxShadow = `0 0 0 3px ${window.__hamperAccent || '#a855f7'}18`; }}
+      onFocus={e => { e.currentTarget.style.borderColor = window.__hamperAccent || 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = `0 0 0 3px ${window.__hamperAccent || 'var(--color-primary-500)'}18`; }}
       onBlur={e  => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
     />
   );
@@ -120,7 +120,7 @@ export default function HamperCheckout() {
         if (data.shipping_options?.length > 0) {
           setForm(f => ({ ...f, shipping_option_id: String(data.shipping_options[0].id) }));
         }
-        window.__hamperAccent = data.accent_color || '#a855f7';
+        window.__hamperAccent = data.accent_color || 'var(--color-primary-500)';
       })
       .catch(err => {
         if (err?.response?.status === 403) {
@@ -137,7 +137,7 @@ export default function HamperCheckout() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-      <div style={{ width: 40, height: 40, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 40, height: 40, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -160,7 +160,7 @@ export default function HamperCheckout() {
   if (!checkoutData) return null;
 
   const { hamper, shipping_options, store_credit, promo_allowed, tax, accent_color } = checkoutData;
-  const accent     = accent_color || '#a855f7';
+  const accent     = accent_color || 'var(--color-primary-500)';
   const accentFade = `${accent}10`;
   const accentMid  = `${accent}28`;
 

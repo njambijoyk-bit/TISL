@@ -17,10 +17,10 @@ import { ordersAPI, customersAPI, projectsAPI } from '../../../_shared/api/index
 import toast from 'react-hot-toast';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ── Atoms ──────────────────────────────────────────────────────────────────
 const SectionLabel = ({ children, Icon }) => (
@@ -39,7 +39,7 @@ const Panel = ({ children, style = {}, accent = false }) => (
     borderRadius: 14,
     border: `1px solid ${accent ? purpleBd : 'rgba(0,0,0,0.06)'}`,
     boxShadow: accent
-      ? `0 2px 16px rgba(168,85,247,0.1)`
+      ? `0 2px 16px color-mix(in srgb, var(--color-primary-500) 10%, transparent)`
       : '0 1px 6px rgba(0,0,0,0.04)',
     padding: 22,
     ...style,
@@ -56,7 +56,7 @@ const Btn = ({ children, onClick, variant = 'primary', icon: Icon, disabled, sma
     padding: small ? '6px 12px' : '9px 16px',
   };
   const variants = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', boxShadow: '0 3px 10px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', boxShadow: '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}` },
     outline: { background: 'white', color: '#374151', border: '1.5px solid #e5e7eb' },
   };
@@ -89,8 +89,8 @@ const PERIOD_LABEL = {
 };
 
 const TYPE_PALETTE = [
-  '#3b82f6', '#a855f7', '#059669', '#f59e0b',
-  '#ef4444', '#06b6d4', '#f97316', '#8b5cf6',
+  '#3b82f6', 'var(--color-primary-500)', '#059669', '#f59e0b',
+  '#ef4444', '#06b6d4', '#f97316', 'var(--color-primary-400)',
   '#ec4899', '#14b8a6',
 ];
 
@@ -347,7 +347,7 @@ function PeriodBar({ period, setPeriod, startDate, setStartDate, endDate, setEnd
             fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
             background: period === p.id ? `linear-gradient(135deg,${purple},${purpleDk})` : 'transparent',
             color: period === p.id ? 'white' : '#6b7280',
-            boxShadow: period === p.id ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+            boxShadow: period === p.id ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
           }}>{p.label}</button>
         ))}
       </div>
@@ -395,7 +395,7 @@ function LoginHeatmap({ data = [] }) {
   const evening   = data.slice(18, 24);
   const night     = data.slice(0, 6);
   const sessions  = [
-    { label: 'Early AM (0–5)',    items: night,     color: '#8b5cf6' },
+    { label: 'Early AM (0–5)',    items: night,     color: 'var(--color-primary-400)' },
     { label: 'Morning (6–11)',    items: morning,   color: '#f59e0b' },
     { label: 'Afternoon (12–17)', items: afternoon, color: '#059669' },
     { label: 'Evening (18–23)',   items: evening,   color: '#3b82f6' },
@@ -421,7 +421,7 @@ function LoginHeatmap({ data = [] }) {
           return (
             <div key={i} title={`${d.label}: ${d.count} logins`} style={{
               height: 36, borderRadius: 4,
-              background: `rgba(168,85,247,${0.08 + intensity * 0.82})`,
+              background: `color-mix(in srgb, var(--color-primary-500) ${Math.round((0.08 + intensity * 0.82) * 100)}%, transparent)`,
               cursor: 'default',
             }} />
           );
@@ -1411,7 +1411,7 @@ async function downloadSectionPDF(sectionId, data, period, tierColorMap = {} ) {
           const label = slug.charAt(0).toUpperCase() + slug.slice(1);
           const pct = total > 0 ? (count / total) * 100 : 0;
           // Match case-insensitively against tierColorMap
-          const colorHex = tierColorMap[slug] || tierColorMap[slug.toLowerCase()] || '#a855f7';
+          const colorHex = tierColorMap[slug] || tierColorMap[slug.toLowerCase()] || 'var(--color-primary-500)';
           const hexToRgb = (hex) => [
             parseInt(hex.slice(1,3),16),
             parseInt(hex.slice(3,5),16),
@@ -2157,10 +2157,10 @@ export default function Reports() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16, overflowX: 'hidden', minWidth: 0  }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${purple},${purpleDk})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${purple},${purpleDk})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
               <BarChart2 size={20} color="white" />
             </div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#a855f7' }}>Reports & Analytics</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-primary-500)' }}>Reports & Analytics</h1>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>Full business intelligence — revenue, orders, products, brands, services, customers, tickets & promos.</p>
         </div>
@@ -2427,7 +2427,7 @@ export default function Reports() {
                   data={products?.by_category || []}
                   labelKey="category"
                   valueKey="product_count"
-                  color={['#a855f7','#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#4c1d95','#3b0764','#2e1065']}
+                  color={['var(--color-primary-500)','var(--color-primary-400)','var(--color-primary-600)','var(--color-primary-700)','var(--color-primary-800)','var(--color-primary-900)','#3b0764','#2e1065']}
                   fmtValue={fmtNum}
                 />
               </Panel>
@@ -2585,7 +2585,7 @@ export default function Reports() {
                     <>
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Revenue Split — {periodLabel}</div>
                       <div style={{ height: 12, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden', marginBottom: 8 }}>
-                        <div style={{ height: '100%', width: `${svcPct}%`, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', borderRadius: 6, transition: 'width 0.6s' }} />
+                        <div style={{ height: '100%', width: `${svcPct}%`, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', borderRadius: 6, transition: 'width 0.6s' }} />
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                         <div><span style={{ color: purple, fontWeight: 700 }}>Services</span> {fmtKES(services.revenue_split.service_revenue)} ({fmtPct(svcPct)})</div>
@@ -2602,7 +2602,7 @@ export default function Reports() {
                   <HBar
                     data={(services.by_category || []).map(c => ({ label: c.category || 'Uncategorised', value: c.order_count || c.service_count }))}
                     labelKey="label" valueKey="value"
-                    color={['#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#4c1d95']}
+                    color={['var(--color-primary-400)','var(--color-primary-600)','var(--color-primary-700)','var(--color-primary-800)','var(--color-primary-900)']}
                     fmtValue={fmtNum}
                   />
                 ) : (
@@ -2764,7 +2764,7 @@ export default function Reports() {
                   Icon={UserPlus} color="#3b82f6"
                 />
                 <MetricRow label="VIP (Gold+)"        value={fmtNum(customers?.vip_customers)}    Icon={Star}        color="#f59e0b"  />
-                <MetricRow label="Credit Accounts"    value={fmtNum(customers?.with_credit)}      Icon={ShieldCheck} color="#8b5cf6"  />
+                <MetricRow label="Credit Accounts"    value={fmtNum(customers?.with_credit)}      Icon={ShieldCheck} color="var(--color-primary-400)"  />
                 <MetricRow label="Avg Lifetime Value" value={fmtKES(customers?.avg_lifetime_value)} Icon={Target}   color="#059669"  />
               </Panel>
 
@@ -2867,7 +2867,7 @@ export default function Reports() {
                     { label: 'Resolved',    value: tickets?.resolved,    color: '#059669' },
                     { label: 'Closed',      value: tickets?.closed,      color: '#9ca3af' },
                     { label: 'On Hold',     value: tickets?.on_hold,     color: '#3b82f6' },
-                    { label: 'Waiting',     value: tickets?.waiting_customer, color: '#8b5cf6' },
+                    { label: 'Waiting',     value: tickets?.waiting_customer, color: 'var(--color-primary-400)' },
                   ].map(m => (
                     <div key={m.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 8, background: `${m.color}08`, border: `1px solid ${m.color}20` }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{fmtNum(m.value)}</div>
@@ -2922,7 +2922,7 @@ export default function Reports() {
                   { label: 'Resolved',    value: tickets?.resolved,    color: '#059669' },
                   { label: 'Closed',      value: tickets?.closed,      color: '#9ca3af' },
                   { label: 'On Hold',     value: tickets?.on_hold,     color: '#3b82f6' },
-                  { label: 'Waiting',     value: tickets?.waiting_customer, color: '#8b5cf6' },
+                  { label: 'Waiting',     value: tickets?.waiting_customer, color: 'var(--color-primary-400)' },
                 ].map(s => <StatusRow key={s.label} {...s} total={tickets?.total} />)}
               </Panel>
 
@@ -2932,7 +2932,7 @@ export default function Reports() {
                   <HBar
                     data={(tickets.by_category || []).map(c => ({ label: c.category || 'Uncategorised', value: c.count }))}
                     labelKey="label" valueKey="value"
-                    color={['#f59e0b','#3b82f6','#8b5cf6','#059669','#ef4444']}
+                    color={['#f59e0b','#3b82f6','var(--color-primary-400)','#059669','#ef4444']}
                     fmtValue={fmtNum}
                   />
                 ) : (
@@ -3025,7 +3025,7 @@ export default function Reports() {
                         value: t.revenue,
                       }))}
                     labelKey="label" valueKey="value"
-                    color={['#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#4c1d95']}
+                    color={['var(--color-primary-400)','var(--color-primary-600)','var(--color-primary-700)','var(--color-primary-800)','var(--color-primary-900)']}
                     fmtValue={fmtKES}
                   />
                 </Panel>

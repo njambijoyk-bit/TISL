@@ -11,29 +11,29 @@ import policyAPI from '../../../../../_shared/api/policy';
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const inputStyle = {
   padding: '6px 10px', borderRadius: 8, fontSize: '0.78rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; };
 
 function Spinner() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
       <div style={{
         width: 28, height: 28,
-        border: '3px solid rgba(168,85,247,0.2)',
-        borderTopColor: '#a855f7',
+        border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+        borderTopColor: 'var(--color-primary-500)',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -65,7 +65,7 @@ function ResponseBadge({ response }) {
 const CONTEXT_COLORS = {
   login:               { bg: 'rgba(59,130,246,0.08)',  color: '#1d4ed8' },
   register:            { bg: 'rgba(16,185,129,0.08)',  color: '#059669' },
-  cookie_consent:      { bg: 'rgba(168,85,247,0.08)',  color: '#7c3aed' },
+  cookie_consent:      { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  color: 'var(--color-primary-600)' },
   website_policy:      { bg: 'rgba(107,114,128,0.08)', color: '#4b5563' },
   standard_checkout:   { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
   hamper_checkout:     { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
@@ -123,7 +123,7 @@ function SnapshotModal({ acceptance, onClose }) {
         <div style={{
           display: 'flex', gap: 16, flexWrap: 'wrap',
           padding: '10px 14px', borderRadius: 8, marginBottom: 16,
-          background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           fontSize: '0.75rem',
         }}>
           {[
@@ -147,7 +147,7 @@ function SnapshotModal({ acceptance, onClose }) {
         <div style={{
           flex: 1, overflowY: 'auto',
           padding: '14px 16px', borderRadius: 8,
-          background: '#f9fafb', border: '1px solid rgba(168,85,247,0.08)',
+          background: '#f9fafb', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           fontSize: '0.8rem', lineHeight: 1.75, color: '#374151',
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           fontFamily: 'Georgia, serif',
@@ -253,9 +253,9 @@ export default function PolicyAcceptances({ policies = [] }) {
             onClick={() => { setPolicyId(p.id); setPage(1); }}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-              border: `1.5px solid ${activePolicyId === p.id ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-              background: activePolicyId === p.id ? 'rgba(168,85,247,0.08)' : 'white',
-              color: activePolicyId === p.id ? '#7c3aed' : '#9ca3af',
+              border: `1.5px solid ${activePolicyId === p.id ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              background: activePolicyId === p.id ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+              color: activePolicyId === p.id ? 'var(--color-primary-600)' : '#9ca3af',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -267,7 +267,7 @@ export default function PolicyAcceptances({ policies = [] }) {
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {[
-          { label: 'Total records',  value: meta.total,     color: '#7c3aed', icon: <Users size={14} /> },
+          { label: 'Total records',  value: meta.total,     color: 'var(--color-primary-600)', icon: <Users size={14} /> },
           { label: 'Accepted',       value: accepted,       color: '#059669', icon: <CheckCircle size={14} /> },
           { label: 'Disagreed',      value: disagreed,      color: '#dc2626', icon: <XCircle size={14} /> },
           { label: 'Flagged',        value: flaggedRows,    color: '#b45309', icon: <AlertTriangle size={14} /> },
@@ -345,7 +345,7 @@ export default function PolicyAcceptances({ policies = [] }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead>
-              <tr style={{ background: 'rgba(168,85,247,0.03)', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                 {[
                   'Customer', 'Customer #', 'Response', 'Context',
                   'Version', 'Flagged', 'IP Address', 'Date', 'Snapshot',
@@ -363,10 +363,10 @@ export default function PolicyAcceptances({ policies = [] }) {
             <tbody>
               {loading
                 ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                       {[120, 80, 72, 110, 55, 50, 100, 110, 60].map((w, j) => (
                         <td key={j} style={{ padding: '12px 14px' }}>
-                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'rgba(168,85,247,0.08)' }} />
+                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
                         </td>
                       ))}
                     </tr>
@@ -395,11 +395,11 @@ export default function PolicyAcceptances({ policies = [] }) {
                         <tr
                           key={row.id}
                           style={{
-                            borderBottom: i === rows.length - 1 ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                            borderBottom: i === rows.length - 1 ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                             transition: 'background 120ms',
                             background: row.flagged ? 'rgba(245,158,11,0.03)' : 'transparent',
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = row.flagged ? 'rgba(245,158,11,0.06)' : 'rgba(168,85,247,0.02)'}
+                          onMouseEnter={e => e.currentTarget.style.background = row.flagged ? 'rgba(245,158,11,0.06)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = row.flagged ? 'rgba(245,158,11,0.03)' : 'transparent'}
                         >
                           {/* Customer name + email */}
@@ -411,8 +411,8 @@ export default function PolicyAcceptances({ policies = [] }) {
                           {/* Customer number */}
                           <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                             <code style={{
-                              fontSize: '0.72rem', background: 'rgba(168,85,247,0.07)',
-                              color: '#7c3aed', padding: '2px 6px', borderRadius: 4,
+                              fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+                              color: 'var(--color-primary-600)', padding: '2px 6px', borderRadius: 4,
                             }}>
                               {row.customer_number ?? '—'}
                             </code>
@@ -433,7 +433,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                             <span style={{
                               fontSize: '0.72rem', fontWeight: 700,
                               padding: '2px 7px', borderRadius: 99,
-                              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
                             }}>
                               v{row.policy_version}
                             </span>
@@ -474,14 +474,14 @@ export default function PolicyAcceptances({ policies = [] }) {
                                   style={{
                                     fontSize: '0.7rem', fontWeight: 700,
                                     padding: '3px 10px', borderRadius: 6,
-                                    border: '1.5px solid rgba(168,85,247,0.2)',
-                                    background: 'rgba(168,85,247,0.05)',
-                                    color: '#7c3aed', cursor: 'pointer', fontFamily: 'inherit',
+                                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                                    background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                                    color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit',
                                     whiteSpace: 'nowrap',
                                     transition: 'background 120ms',
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.12)'}
-                                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
                                 >
                                   View
                                 </button>
@@ -500,9 +500,9 @@ export default function PolicyAcceptances({ policies = [] }) {
         {/* Pagination */}
         {!loading && rows.length > 0 && meta.last_page > 1 && (
           <div style={{
-            padding: '10px 14px', borderTop: '1px solid rgba(168,85,247,0.08)',
+            padding: '10px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Page {meta.current_page} of {meta.last_page} · {meta.total} records
@@ -518,8 +518,8 @@ export default function PolicyAcceptances({ policies = [] }) {
                   disabled={disabled}
                   style={{
                     width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                    color: '#a855f7', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
+                    borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    color: 'var(--color-primary-500)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
                   }}
                 >
                   {icon}

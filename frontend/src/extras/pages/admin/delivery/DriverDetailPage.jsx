@@ -267,7 +267,7 @@ export default function DriverDetailPage() {
         }))
         : [];
 
-    const PIE_COLORS = [D.purple, '#a855f7', '#c084fc', '#d8b4fe', '#e9d5ff'];
+    const PIE_COLORS = [D.purple, 'var(--color-primary-500)', 'var(--color-primary-400)', 'var(--color-primary-300)', 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'];
 
     const onTimeRate = driver?.on_time_rate ?? 0;
     const avgRating  = ratingBreakdown?.overall_rating ?? driver?.overall_rating ?? 0;

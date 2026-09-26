@@ -86,11 +86,11 @@ function PrimaryBtn({ onClick, disabled, children, style }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-        border: 'none', background: '#7c3aed', color: 'white',
+        border: 'none', background: 'var(--color-primary-600)', color: 'white',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         fontFamily: 'inherit',
-        boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+        boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
         ...style,
       }}
     >
@@ -261,8 +261,8 @@ export default function Brands() {
         {/* ── Page heading ───────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Tag size={24} style={{ color: '#a855f7' }} /> Brands
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Tag size={24} style={{ color: 'var(--color-primary-500)' }} /> Brands
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage product brands and manufacturers</p>
           </div>
@@ -273,7 +273,7 @@ export default function Brands() {
 
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total Brands" value={brands.length}                          icon={Tag}         iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
+          <StatCard label="Total Brands" value={brands.length}                          icon={Tag}         iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)"  iconColor="var(--color-primary-600)" />
           <StatCard label="Active"        value={brands.filter(isActive).length}         icon={CheckCircle} iconBg="rgba(16,185,129,0.1)"  iconColor="#10b981" />
           <StatCard label="Inactive"      value={brands.filter(b => !isActive(b)).length} icon={XCircle}    iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
           <StatCard label="Featured"      value={brands.filter(b => b.is_featured).length} icon={TrendingUp} iconBg="rgba(245,158,11,0.1)"  iconColor="#f59e0b" />
@@ -374,7 +374,7 @@ export default function Brands() {
                             href={brand.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', color: 'var(--color-primary-600)', textDecoration: 'none', fontWeight: 600 }}
                           >
                             <Globe size={13} /> Visit
                           </a>
@@ -408,7 +408,7 @@ export default function Brands() {
                           <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                             <Eye size={15} />
                           </IconBtn>
-                          <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="#7c3aed">
+                          <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                             <Edit2 size={15} />
                           </IconBtn>
                           <IconBtn onClick={() => setDeleteModal({ isOpen: true, brand, loading: false })} title="Delete" color="var(--color-text-danger)">

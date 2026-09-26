@@ -108,12 +108,12 @@ export default function ProductBulkTable({
     <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 14px', marginBottom: 8,
-        background: 'rgba(124,58,237,0.06)',
-        border: '1px solid rgba(124,58,237,0.2)',
+        background: 'color-mix(in srgb, var(--color-primary-600) 6%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-600) 20%, transparent)',
         borderRadius: 8,
     }}>
         <span style={{ fontSize: 13, color: 'var(--text-primary, #111)' }}>
-        <strong style={{ color: '#7c3aed' }}>{Object.keys(dirty).length}</strong>
+        <strong style={{ color: 'var(--color-primary-600)' }}>{Object.keys(dirty).length}</strong>
         {' '}unsaved {Object.keys(dirty).length === 1 ? 'change' : 'changes'}
         </span>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -129,9 +129,9 @@ export default function ProductBulkTable({
             onClick={handleSaveAll}
             style={{
             padding: '6px 16px', borderRadius: 6, border: 'none',
-            background: '#7c3aed', color: '#fff',
+            background: 'var(--color-primary-600)', color: '#fff',
             fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+            boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
             }}
         >
             💾 Save all ({Object.keys(dirty).length})
@@ -238,7 +238,7 @@ function ProductRow({
   const rowBg = saved
     ? 'rgba(34,197,94,0.06)'
     : isSelected
-      ? 'var(--accent-light, #7c3aed75)'
+      ? 'var(--accent-light, var(--color-primary-600)75)'
       : isEven
         ? 'var(--bg-primary, #fff)'
         : 'var(--bg-secondary, #fafafa)';
@@ -262,7 +262,7 @@ function ProductRow({
             borderRadius: 6,
             overflow: 'hidden',
             background: 'var(--bg-secondary, #f3f4f6)',
-            border: '1px solid var(--accent, #7c3aed)',
+            border: '1px solid var(--accent, var(--color-primary-600))',
             boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
             cursor: 'pointer',
           }}
@@ -440,7 +440,7 @@ function ProductRow({
               disabled={saving}
               style={{
                 padding: '4px 10px',
-                background: saved ? '#22c55e' : 'var(--accent, #7c3aed)',
+                background: saved ? '#22c55e' : 'var(--accent, var(--color-primary-600))',
                 border: 'none',
                 borderRadius: 6,
                 color: '#fff',
@@ -461,7 +461,7 @@ function ProductRow({
             style={{
                 padding: '4px 8px',
                 background: 'var(--bg-secondary, #f3f4f6)',
-                border: '1px solid var(--accent, #7c3aed)',
+                border: '1px solid var(--accent, var(--color-primary-600))',
                 boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -472,7 +472,7 @@ function ProductRow({
             }}
             onMouseEnter={e => {
                 e.currentTarget.style.background = 'var(--bg-tertiary, #e5e7eb)';
-                e.currentTarget.style.borderColor = 'var(--accent, #7c3aed)';
+                e.currentTarget.style.borderColor = 'var(--accent, var(--color-primary-600))';
             }}
             onMouseLeave={e => {
                 e.currentTarget.style.background = 'var(--bg-secondary, #f3f4f6)';
@@ -562,7 +562,7 @@ function EditableCell({ value, onCommit, type = 'text' }) {
 const priceInputStyle = {
   width: '100%',
   padding: '5px 8px',
-  border: '1px solid var(--accent, #7c3aed)',
+  border: '1px solid var(--accent, var(--color-primary-600))',
   borderRadius: 5,
   fontSize: 12,
   outline: 'none',

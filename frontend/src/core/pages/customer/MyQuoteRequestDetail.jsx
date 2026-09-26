@@ -64,8 +64,8 @@ function Section({ title, icon: Icon, children, accentColor }) {
       <div style={{ padding: '22px 24px' }}>
         {title && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-            {Icon && <Icon size={16} color="#c084fc" />}
-            <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{title}</p>
+            {Icon && <Icon size={16} color="var(--color-primary-400)" />}
+            <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{title}</p>
           </div>
         )}
         {children}
@@ -81,7 +81,7 @@ function InfoRow({ label, value, icon: Icon }) {
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600, flexShrink: 0 }}>
         {Icon && <Icon size={13} />} {label}
       </span>
-      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#c084fc', textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-400)', textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -213,7 +213,7 @@ const MyQuoteRequestDetail = () => {
       pdf.setTextColor(124, 58, 237);
       pdf.text(text, M, y);
       y += 5;
-      hline('#a855f7', 0.25);
+      hline('var(--color-primary-500)', 0.25);
       y += 6;
     };
 
@@ -470,7 +470,7 @@ const MyQuoteRequestDetail = () => {
 
     (request.requested_items || []).forEach((item, idx) => {
       const isService  = item.item_type === 'service' || item.item_type === 'custom_service';
-      const typeColor  = isService ? '#10b981' : '#a855f7';
+      const typeColor  = isService ? '#10b981' : 'var(--color-primary-500)';
       const { r: ir, g: ig, b: ib } = rgb(typeColor);
 
       // Compute dynamic card height
@@ -592,7 +592,7 @@ const MyQuoteRequestDetail = () => {
     sectionHeading('Timeline');
 
     [
-      { label: 'Submitted', val: request.created_at,  color: '#a855f7' },
+      { label: 'Submitted', val: request.created_at,  color: 'var(--color-primary-500)' },
       { label: 'Quoted',    val: request.quoted_at,   color: '#10b981' },
       { label: 'Expires',   val: request.expires_at,  color: '#f59e0b' },
     ].filter(t => t.val).forEach((ev, i, arr) => {
@@ -729,7 +729,7 @@ const MyQuoteRequestDetail = () => {
           {/* Back */}
           <button onClick={() => navigate('/my-quote-requests')} type="button"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', marginBottom: 20, transition: 'all 150ms' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#6b7280'; }}
           >
             <ArrowLeft size={13} /> Back to Requests
@@ -740,7 +740,7 @@ const MyQuoteRequestDetail = () => {
               <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
                 {request.request_number}
               </p>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#c084fc', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary-400)', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>
                 {request.request_title}
               </h1>
               {/* Status pill */}
@@ -759,7 +759,7 @@ const MyQuoteRequestDetail = () => {
                 type="button"
                 style={{ 
                   display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, 
-                  border: '1.5px solid rgba(168, 85, 247, 0.4)', background: 'transparent', color: '#a855f7', 
+                  border: '1.5px solid rgba(168, 85, 247, 0.4)', background: 'transparent', color: 'var(--color-primary-500)', 
                   fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
                   boxShadow: '0 0 0 1px rgba(168, 85, 247, 0.1), 0 2px 10px rgba(168, 85, 247, 0.08)',
                   transition: 'all 150ms ease'
@@ -767,7 +767,7 @@ const MyQuoteRequestDetail = () => {
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)';
                   e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.25), 0 4px 18px rgba(168, 85, 247, 0.2)';
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.04)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.4)';
@@ -799,10 +799,10 @@ const MyQuoteRequestDetail = () => {
 
             {/* Assignment */}
             {request.assigned_to && (
-              <Section title="Assigned Handler" icon={UserCheck} accentColor="#a855f7">
+              <Section title="Assigned Handler" icon={UserCheck} accentColor="var(--color-primary-500)">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', border: '2px solid rgba(168,85,247,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <UserCheck size={20} color="#a855f7" />
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '2px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <UserCheck size={20} color="var(--color-primary-500)" />
                   </div>
                   <div>
                     <p style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0 }}>
@@ -810,7 +810,7 @@ const MyQuoteRequestDetail = () => {
                     </p>
                     {request.assigned_to.email && (
                       <a href={`mailto:${request.assigned_to.email}`}
-                        style={{ fontSize: '0.8rem', color: '#a855f7', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        style={{ fontSize: '0.8rem', color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <Mail size={12} /> {request.assigned_to.email}
                       </a>
                     )}
@@ -911,14 +911,14 @@ const MyQuoteRequestDetail = () => {
                             e.currentTarget.style.boxShadow = '0 0 0 1px rgba(168, 85, 247, 0.15), 0 4px 20px rgba(168, 85, 247, 0.12)';
                           }}
                         >
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: isService ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon size={16} color={isService ? '#3b82f6' : '#a855f7'} />
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: isService ? 'rgba(59,130,246,0.1)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon size={16} color={isService ? '#3b82f6' : 'var(--color-primary-500)'} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                             <div>
                               <p style={{ fontSize: '0.88rem', fontWeight: 700, margin: 0 }}>{item.description}</p>
-                              <span style={{ display: 'inline-block', marginTop: 4, fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 9999, background: isService ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)', color: isService ? '#3b82f6' : '#a855f7' }}>
+                              <span style={{ display: 'inline-block', marginTop: 4, fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 9999, background: isService ? 'rgba(59,130,246,0.1)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: isService ? '#3b82f6' : 'var(--color-primary-500)' }}>
                                 {item.item_type.replace('_', ' ')}
                               </span>
                             </div>
@@ -945,7 +945,7 @@ const MyQuoteRequestDetail = () => {
                               </span>
                             )}
                             {item.budget_per_unit && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)', color: '#a855f7' }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-500)' }}>
                                 KES {parseFloat(item.budget_per_unit).toLocaleString()} / {item.unit_of_measure || 'unit'}
                               </span>
                             )}
@@ -975,7 +975,7 @@ const MyQuoteRequestDetail = () => {
               {request.delivery_location && <InfoRow label="Delivery Location" value={request.delivery_location} icon={MapPin} />}
               {request.customer_notes && (
                 <div>
-                  <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Notes</p>
+                  <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Notes</p>
                   <p style={{ fontSize: '0.82rem', margin: 0, lineHeight: 1.6 }}>{request.customer_notes}</p>
                 </div>
               )}
@@ -990,9 +990,9 @@ const MyQuoteRequestDetail = () => {
                   { label: 'Expires', val: request.expires_at },
                 ].filter(t => t.val).map(({ label, val }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid rgba(168, 85, 247, 0.25)', boxShadow: 'inset 0 -1px 0 rgba(168, 85, 247, 0.15)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c084fc', flexShrink: 0, marginTop: 5 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-primary-400)', flexShrink: 0, marginTop: 5 }} />
                     <div>
-                      <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+                      <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
                       <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '3px 0 0', fontWeight: 600 }}>{formatDate(val)}</p>
                     </div>
                   </div>
@@ -1007,11 +1007,11 @@ const MyQuoteRequestDetail = () => {
                   {request.attachments.map((file, i) => (
                     <button key={i} onClick={() => handleDownloadAttachment(i, file.name)} type="button"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #f3f4f6', background: '#fafafa', cursor: 'pointer', transition: 'all 150ms', textAlign: 'left', width: '100%' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = '#f3f4f6'; e.currentTarget.style.background = '#fafafa'; }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-                        <FileText size={15} color="#c084fc" style={{ flexShrink: 0 }} />
+                        <FileText size={15} color="var(--color-primary-400)" style={{ flexShrink: 0 }} />
                         <div style={{ overflow: 'hidden' }}>
                           <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', margin: 0, wordBreak: 'break-word', whiteSpace: 'normal' }}>
                             {file.name}

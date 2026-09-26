@@ -72,7 +72,7 @@ function DisagreeModal({ policy, onClose, onConfirm, loading }) {
               fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
               transition: 'border-color 150ms',
             }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; }}
             onBlur={e  => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
           />
         </div>
@@ -179,7 +179,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
 
   const SENSITIVITY_LABEL = {
     critical: { label: 'Critical Policy',  bg: 'rgba(239,68,68,0.08)',  color: '#dc2626',  border: 'rgba(239,68,68,0.2)'  },
-    standard: { label: 'Standard Policy',  bg: 'rgba(168,85,247,0.06)', color: '#7c3aed',  border: 'rgba(168,85,247,0.2)' },
+    standard: { label: 'Standard Policy',  bg: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)',  border: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' },
     soft:     { label: 'Informational',    bg: 'rgba(107,114,128,0.06)',color: '#6b7280',  border: 'rgba(107,114,128,0.2)'},
   };
 
@@ -199,7 +199,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
             padding: 0, marginBottom: 32, fontFamily: 'inherit',
             transition: 'color 150ms',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
         >
           <ChevronLeft size={15} /> Back
@@ -207,7 +207,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : !policy ? (
           <div style={{ textAlign: 'center', padding: '80px 24px' }}>
@@ -246,7 +246,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
               <div style={{
                 padding: '32px 40px 28px',
                 borderBottom: '1px solid #f3f4f6',
-                background: 'linear-gradient(135deg, rgba(168,85,247,0.03), rgba(124,58,237,0.02))',
+                background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 3%, transparent), color-mix(in srgb, var(--color-primary-600) 2%, transparent))',
               }}>
                 {/* Sensitivity badge */}
                 {policy.sensitivity && (() => {
@@ -273,7 +273,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                    Version <strong style={{ color: '#7c3aed' }}>v{policy.major_version}.{policy.minor_version}</strong>
+                    Version <strong style={{ color: 'var(--color-primary-600)' }}>v{policy.major_version}.{policy.minor_version}</strong>
                   </span>
                   {policy.updated_at && (
                     <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
@@ -328,12 +328,12 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
                             display: 'flex', alignItems: 'center', gap: 7,
                             padding: '10px 24px', borderRadius: 10, fontSize: '0.88rem', fontWeight: 700,
                             border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                            boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: submitting ? 0.7 : 1,
+                            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', opacity: submitting ? 0.7 : 1,
                             transition: 'box-shadow 150ms',
                           }}
-                          onMouseEnter={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'; }}
-                          onMouseLeave={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'; }}
+                          onMouseEnter={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+                          onMouseLeave={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
                         >
                           {submitting
                             ? <Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} />

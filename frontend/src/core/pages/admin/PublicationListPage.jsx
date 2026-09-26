@@ -66,13 +66,13 @@ export default function PublicationListPage() {
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
                         <div>
-                            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>Content Studio</h1>
+                            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>Content Studio</h1>
                             <p style={{ color: '#64748b', marginTop: 4 }}>Manage your brochures, news, and blog posts.</p>
                         </div>
                         <button 
                             onClick={() => setShowCreateModal(true)}
                             style={{ 
-                                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                                background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                                 color: 'white',
                                 border: 'none',
                                 padding: '12px 24px',
@@ -82,7 +82,7 @@ export default function PublicationListPage() {
                                 alignItems: 'center',
                                 gap: 8,
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(168,85,247,0.3)'
+                                boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'
                             }}
                         >
                             <Plus size={20} /> Create New
@@ -131,7 +131,7 @@ export default function PublicationListPage() {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                 <div style={{ 
                                                     width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', 
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7'
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-500)'
                                                 }}>
                                                     {pub.type === 'brochure' && <BookOpen size={20} />}
                                                     {pub.type === 'news' && <Newspaper size={20} />}
@@ -251,12 +251,12 @@ function TypeOption({ active, onClick, icon: Icon, label }) {
         <div 
             onClick={onClick}
             style={{ 
-                padding: '12px 8px', borderRadius: 12, border: active ? '2px solid #a855f7' : '1px solid #e2e8f0',
+                padding: '12px 8px', borderRadius: 12, border: active ? '2px solid var(--color-primary-500)' : '1px solid #e2e8f0',
                 background: active ? '#fdf4ff' : 'white', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
             }}
         >
-            <Icon size={20} color={active ? '#a855f7' : '#64748b'} style={{ marginBottom: 4 }} />
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: active ? '#a855f7' : '#64748b' }}>{label}</div>
+            <Icon size={20} color={active ? 'var(--color-primary-500)' : '#64748b'} style={{ marginBottom: 4 }} />
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: active ? 'var(--color-primary-500)' : '#64748b' }}>{label}</div>
         </div>
     );
 }
@@ -268,5 +268,5 @@ const actionBtn = { display: 'flex', alignItems: 'center', justifyContent: 'cent
 const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContent = { background: 'white', padding: 32, borderRadius: 20, width: 450, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' };
 const ghostBtn = { background: 'none', border: 'none', padding: '10px 20px', fontWeight: 700, cursor: 'pointer', color: '#64748b' };
-const primaryBtn = { background: '#a855f7', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' };
+const primaryBtn = { background: 'var(--color-primary-500)', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' };
 const labelStyle = { fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: 8, display: 'block' };

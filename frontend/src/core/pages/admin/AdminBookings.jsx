@@ -80,7 +80,7 @@ const AdminBookings = () => {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CalendarDays size={18} color="white" />
             </div>
             <div>
@@ -122,20 +122,20 @@ const AdminBookings = () => {
             <button onClick={() => setShowFilters(f => !f)} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
               borderRadius: 9, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-              background: showFilters ? 'rgba(168,85,247,0.1)' : 'white',
-              border: `1.5px solid ${showFilters ? '#a855f7' : 'rgba(168,85,247,0.2)'}`,
-              color: showFilters ? '#7c3aed' : '#9ca3af',
+              background: showFilters ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'white',
+              border: `1.5px solid ${showFilters ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
+              color: showFilters ? 'var(--color-primary-600)' : '#9ca3af',
             }}><Filter size={13} /> Filters</button>
 
-            <button onClick={fetchBookings} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'white', border: '1.5px solid rgba(168,85,247,0.2)', color: '#9ca3af' }}>
+            <button onClick={fetchBookings} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'white', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#9ca3af' }}>
               <RefreshCw size={13} />
             </button>
 
             <button onClick={() => navigate('/admin/bookings/create')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
               borderRadius: 9, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', border: 'none',
-              boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', border: 'none',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             }}><Plus size={14} /> New Booking</button>
           </div>
         </div>
@@ -143,7 +143,7 @@ const AdminBookings = () => {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
           {[
-            { label: "Today's bookings", value: todayBookings.length,        color: '#a855f7', bg: 'rgba(168,85,247,0.06)' },
+            { label: "Today's bookings", value: todayBookings.length,        color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' },
             { label: 'Pending',          value: pendingCount,                color: '#f59e0b', bg: 'rgba(245,158,11,0.06)'  },
             { label: 'Confirmed',        value: confirmedCount,              color: '#2563eb', bg: 'rgba(37,99,235,0.06)'   },
             { label: 'Total',            value: bookings.length,             color: '#374151', bg: 'rgba(107,114,128,0.06)' },
@@ -157,15 +157,15 @@ const AdminBookings = () => {
 
         {/* Filters */}
         {showFilters && (
-          <div style={{ padding: '14px 16px', borderRadius: 12, border: '1.5px solid rgba(168,85,247,0.15)', background: 'rgba(168,85,247,0.02)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ padding: '14px 16px', borderRadius: 12, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7c3aed', display: 'block', marginBottom: 5 }}>Status</label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5 }}>Status</label>
               <select value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))}
-                style={{ padding: '7px 10px', borderRadius: 8, fontSize: '0.78rem', border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#374151', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ padding: '7px 10px', borderRadius: 8, fontSize: '0.78rem', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#374151', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {STATUSES.map(s => <option key={s} value={s}>{s ? s.replace(/_/g, ' ') : 'All statuses'}</option>)}
               </select>
             </div>
-            <button onClick={() => setFilters({ status: '', service_id: '' })} style={{ padding: '7px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+            <button onClick={() => setFilters({ status: '', service_id: '' })} style={{ padding: '7px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               Clear
             </button>
           </div>
@@ -236,8 +236,8 @@ const AdminBookings = () => {
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                         <button
                           onClick={() => navigate(`/admin/bookings/${booking.id}`)}
-                          style={{ padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.2)', background: 'none', color: '#7c3aed', cursor: 'pointer', fontFamily: 'inherit' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                          style={{ padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
                         >
                           View
@@ -262,7 +262,7 @@ const AdminBookings = () => {
         {/* Calendar */}
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 10, color: '#9ca3af', fontSize: '0.82rem' }}>
-            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
             Loading bookings…
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>

@@ -60,7 +60,7 @@ export default function CareersHeader() {
             <style>{`
                 .careers-nav-link:hover { color: #d0d0d0 !important; }
                 .careers-menu-item:hover { background: #1e1e1e !important; color: #f0f0f0 !important; }
-                .careers-auth-btn-primary:hover { background: #9333ea !important; }
+                .careers-auth-btn-primary:hover { background: var(--color-primary-600) !important; }
                 .careers-auth-btn-ghost:hover { color: #f0f0f0 !important; }
             `}</style>
 
@@ -84,7 +84,7 @@ export default function CareersHeader() {
                 <Link to="/careers" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, marginRight: 36 }}>
                     <span style={{
                         width: 28, height: 28, borderRadius: 7,
-                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                     }}>
@@ -128,7 +128,7 @@ export default function CareersHeader() {
                             >
                                 <span style={{
                                     width: 24, height: 24, borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                                    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
                                 }}>
@@ -220,7 +220,7 @@ export default function CareersHeader() {
                                 style={{
                                     fontSize: 13, fontWeight: 600, color: '#fff',
                                     textDecoration: 'none', padding: '6px 14px',
-                                    borderRadius: 7, background: '#a855f7',
+                                    borderRadius: 7, background: 'var(--color-primary-500)',
                                     transition: 'background 0.15s',
                                 }}
                             >

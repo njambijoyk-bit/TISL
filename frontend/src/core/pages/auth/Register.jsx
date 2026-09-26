@@ -14,7 +14,7 @@ function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, 
         {label}
       </label>
       <div style={{ position: 'relative' }}>
-        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? '#a855f7' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
+        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
         <input
           name={name} type={type} value={value}
           onChange={onChange || handleChange}
@@ -23,7 +23,7 @@ function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, 
           style={{
             width: '100%', padding: `10px ${rightEl ? '44px' : '13px'} 10px ${Icon ? '36px' : '13px'}`,
             borderRadius: 10, fontSize: '0.85rem', outline: 'none', transition: 'border-color 150ms',
-            border: `1.5px solid ${fieldError ? '#ef4444' : focused === name ? '#a855f7' : '#e5e7eb'}`,
+            border: `1.5px solid ${fieldError ? '#ef4444' : focused === name ? 'var(--color-primary-500)' : '#e5e7eb'}`,
             boxSizing: 'border-box',
           }}
           className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -124,7 +124,7 @@ export default function Register() {
 
       {/* ── MOBILE TOP BAR ───────────────────────────────────────────────── */}
       <div className="tisl-mobile-bar" style={{
-        display: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        display: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
         padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -138,7 +138,7 @@ export default function Register() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link to="/login" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</Link>
-          <div style={{ background: 'white', color: '#a855f7', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
+          <div style={{ background: 'white', color: 'var(--color-primary-500)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export default function Register() {
         {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
         <div className="tisl-sidebar" style={{
           position: 'relative', overflow: 'hidden',
-          background: 'linear-gradient(145deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%)',
+          background: 'linear-gradient(145deg, var(--color-primary-400) 0%, var(--color-primary-500) 40%, var(--color-primary-600) 100%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '40px 32px', gap: 24,
         }}>
@@ -170,7 +170,7 @@ export default function Register() {
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
             <Link to="/login" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 600, textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase', textDecoration: 'none' }}>Login</Link>
-            <div style={{ background: 'white', color: '#a855f7', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
+            <div style={{ background: 'white', color: 'var(--color-primary-500)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</div>
           </div>
 
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
@@ -184,11 +184,11 @@ export default function Register() {
         <div style={{ padding: '36px 40px', overflowY: 'auto' }} className="bg-white dark:bg-gray-800">
 
           {refCode && (
-            <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '1rem' }}>🎁</span>
               <div>
-                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>You were referred!</p>
-                <p style={{ fontSize: '0.72rem', color: '#a855f7', margin: 0 }}>Code <strong>{refCode}</strong> — get 5% off your first order after signing up.</p>
+                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>You were referred!</p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-500)', margin: 0 }}>Code <strong>{refCode}</strong> — get 5% off your first order after signing up.</p>
               </div>
             </div>
           )}
@@ -199,7 +199,7 @@ export default function Register() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
                 <button type="button" onClick={() => handleOAuth('google')}
                   style={{ height: 40, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 150ms' }}
-                  className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700">
+                  className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-gray-700">
                   <GoogleIcon /> Google
                 </button>
                 <button type="button" disabled title="Microsoft login coming soon"
@@ -265,11 +265,11 @@ export default function Register() {
               style={{
                 height: 46, borderRadius: 12, border: 'none',
                 cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
-                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                 color: (loading || !policyAccepted) ? '#9ca3af' : 'white',
                 fontSize: '0.88rem', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                 transition: 'all 200ms', letterSpacing: '0.04em',
                 opacity: !policyAccepted ? 0.5 : 1,
               }}
@@ -280,7 +280,7 @@ export default function Register() {
 
           <p style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: 16 }} className="text-gray-500 dark:text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#a855f7', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+            <Link to="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
           </p>
         </div>
       </div>

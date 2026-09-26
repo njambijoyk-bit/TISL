@@ -123,7 +123,7 @@ const QuoteRequests = () => {
         {statistics && !loadingStatistics && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
             {[
-              { label: 'Total Requests', value: statistics.total_requests, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  Icon: FileText    },
+              { label: 'Total Requests', value: statistics.total_requests, color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  Icon: FileText    },
               { label: 'Pending',        value: statistics.pending,        color: '#eab308', bg: 'rgba(234,179,8,0.1)',   Icon: Clock       },
               { label: 'Under Review',   value: statistics.reviewing,      color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', Icon: TrendingUp  },
               { label: 'Quoted',         value: statistics.quoted,         color: '#10b981', bg: 'rgba(16,185,129,0.1)', Icon: CheckCircle },
@@ -167,7 +167,7 @@ const QuoteRequests = () => {
             </h3>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              style={{ display: 'none', background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer' }}
+              style={{ display: 'none', background: 'none', border: 'none', color: 'var(--color-primary-600)', cursor: 'pointer' }}
               className="lg:hidden"
             >
               <Filter size={18} />
@@ -188,7 +188,7 @@ const QuoteRequests = () => {
                   width: '100%', padding: '8px 36px', borderRadius: 8, fontSize: '0.875rem',
                   border: '1px solid var(--color-border-tertiary)',
                   background: 'var(--color-background-primary)',
-                  color: '#7c3aed', outline: 'none',
+                  color: 'var(--color-primary-600)', outline: 'none',
                   fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
@@ -239,7 +239,7 @@ const QuoteRequests = () => {
                   type="checkbox"
                   checked={clarificationFilter}
                   onChange={e => { setClarificationFilter(e.target.checked); handleFilterChange(); }}
-                  style={{ width: 16, height: 16, accentColor: '#7c3aed', cursor: 'pointer' }}
+                  style={{ width: 16, height: 16, accentColor: 'var(--color-primary-600)', cursor: 'pointer' }}
                 />
                 Needs Clarification
               </label>

@@ -29,7 +29,7 @@ const AuctionSkeleton = () => (
 const ORDER_STATUS_COLORS = {
   pending:    { bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  text: '#d97706' },
   confirmed:  { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.3)',  text: '#2563eb' },
-  processing: { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(168,85,247,0.3)',  text: '#7c3aed' },
+  processing: { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',  text: 'var(--color-primary-600)' },
   shipped:    { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.3)',  text: '#059669' },
   delivered:  { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.4)',  text: '#047857' },
   cancelled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.3)',   text: '#dc2626' },
@@ -39,7 +39,7 @@ const PAYMENT_STATUS_COLORS = {
   unpaid:         { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
   partially_paid: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
   paid:           { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  refunded:       { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  refunded:       { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
   failed:         { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
 };
 
@@ -77,8 +77,8 @@ function MyOrderCard({ order, onClick }) {
     <div style={{
       background: 'white', borderRadius: 14,
       boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-      border: '1px solid rgba(168,85,247,0.15)',
-      borderLeft: '3px solid #a855f7',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+      borderLeft: '3px solid var(--color-primary-500)',
       overflow: 'hidden',
     }}>
       {/* ── main row — clickable to open auction detail ── */}
@@ -96,7 +96,7 @@ function MyOrderCard({ order, onClick }) {
 
         {/* product + order info */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '0.825rem', fontWeight: 700, color: '#a855f7', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {product?.name ?? 'Auction Item'}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -146,18 +146,18 @@ function MyOrderCard({ order, onClick }) {
       {hasPayments && (
         <>
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderTop: '1px solid #f3f4f6', cursor: 'pointer', background: expanded ? 'rgba(168,85,247,0.02)' : 'transparent' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderTop: '1px solid #f3f4f6', cursor: 'pointer', background: expanded ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent' }}
             onClick={() => setExpanded(e => !e)}
           >
-            <CreditCard size={11} style={{ color: '#a855f7' }} />
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#a855f7', flex: 1 }}>
+            <CreditCard size={11} style={{ color: 'var(--color-primary-500)' }} />
+            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-primary-500)', flex: 1 }}>
               {order.payments.length} payment{order.payments.length !== 1 ? 's' : ''}
             </span>
             <span style={{ fontSize: '0.6rem', color: '#9ca3af', userSelect: 'none' }}>{expanded ? '▲' : '▼'}</span>
           </div>
 
           {expanded && (
-            <div style={{ padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+            <div style={{ padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
               {order.payments.map((pmt, i) => {
                 const isRefund  = pmt.method === 'refund';
                 const pmtAmount = Number(pmt.mpesa_amount_confirmed ?? pmt.amount_received ?? 0);
@@ -269,7 +269,7 @@ export default function AuctionListPage() {
               <Package className="mx-auto text-gray-400 mb-4" size={48} />
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No active auctions right now</h3>
               <p className="text-sm text-gray-400 mt-1 mb-4">Check back soon or browse our products</p>
-              <button onClick={() => navigate('/products')} className="text-purple-600 hover:underline text-sm font-medium">
+              <button onClick={() => navigate('/products')} className="text-primary-600 hover:underline text-sm font-medium">
                 Browse regular products →
               </button>
             </div>
@@ -283,11 +283,11 @@ export default function AuctionListPage() {
           {!ordersLoading && myOrders.length > 0 && (
             <div style={{ marginTop: 40 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                <Receipt size={18} style={{ color: '#a855f7' }} />
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>My Auction Orders</h2>
+                <Receipt size={18} style={{ color: 'var(--color-primary-500)' }} />
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>My Auction Orders</h2>
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-                  background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: '#a855f7',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)',
                 }}>
                   {myOrders.length}
                 </span>

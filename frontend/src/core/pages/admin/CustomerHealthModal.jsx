@@ -14,7 +14,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -48,14 +48,14 @@ const TABS = [
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const inputStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none', fontFamily: 'inherit',
   transition: 'border-color 150ms, box-shadow 150ms',
   width: 90,
@@ -70,7 +70,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 function Spinner() {
   return (
     <div style={{ padding: '48px 0', textAlign: 'center' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+      <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
       <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Loading…</p>
     </div>
   );
@@ -79,7 +79,7 @@ function Spinner() {
 function Empty({ message }) {
   return (
     <div style={{ padding: '48px 0', textAlign: 'center' }}>
-      <Activity size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+      <Activity size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
       <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>{message}</p>
     </div>
   );
@@ -100,13 +100,13 @@ function CustomerRow({ c, onClick, right }) {
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-        border: '1px solid rgba(168,85,247,0.1)', transition: 'all 150ms',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', transition: 'all 150ms',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.background = 'rgba(168,85,247,0.03)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.background = 'transparent'; }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(168,85,247,0.08)', color: '#7c3aed', fontSize: '0.78rem', fontWeight: 800 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', fontSize: '0.78rem', fontWeight: 800 }}>
           {`${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase() || '?'}
         </div>
         <div style={{ minWidth: 0 }}>
@@ -127,17 +127,17 @@ function CustomerRow({ c, onClick, right }) {
 function Pagination({ meta, onPage }) {
   if (!meta || meta.last_page <= 1) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
       <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
         Page {meta.current_page} of {meta.last_page} · {meta.total} customers
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => onPage(meta.current_page - 1)} disabled={meta.current_page <= 1}
-          style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: meta.current_page <= 1 ? 0.3 : 1 }}>
+          style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: meta.current_page <= 1 ? 0.3 : 1 }}>
           <ChevronLeft size={13} style={{ display: 'inline' }} /> Prev
         </button>
         <button onClick={() => onPage(meta.current_page + 1)} disabled={meta.current_page >= meta.last_page}
-          style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: meta.current_page >= meta.last_page ? 0.3 : 1 }}>
+          style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: meta.current_page >= meta.last_page ? 0.3 : 1 }}>
           Next <ChevronRight size={13} style={{ display: 'inline' }} />
         </button>
       </div>
@@ -184,11 +184,11 @@ function LowLoyaltyTab({ navigate, onClose }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleApply()}
           style={inputStyle}
-          onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
         <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>points</span>
-        <button onClick={handleApply} style={{ padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white' }}>
+        <button onClick={handleApply} style={{ padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' }}>
           Apply
         </button>
       </div>
@@ -243,18 +243,18 @@ function IdleCreditTab({ navigate, onClose }) {
   return (
     <div>
       {/* Config */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.12)' }}>
-        <CreditCard size={14} style={{ color: '#7c3aed', flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-600) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-600) 12%, transparent)' }}>
+        <CreditCard size={14} style={{ color: 'var(--color-primary-600)', flexShrink: 0 }} />
         <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Customers with credit above KES</span>
         <input
           type="number" min="0" value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleApply()}
           style={inputStyle}
-          onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
-        <button onClick={handleApply} style={{ padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white' }}>
+        <button onClick={handleApply} style={{ padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' }}>
           Apply
         </button>
       </div>
@@ -264,7 +264,7 @@ function IdleCreditTab({ navigate, onClose }) {
           {data.map(c => (
             <CustomerRow key={c.id} c={c} onClick={() => { onClose(); navigate(`/admin/customers/${c.id}`); }}
               right={
-                <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>
+                <p style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0 }}>
                   {fmt(c.store_credit)}
                 </p>
               }
@@ -382,9 +382,9 @@ function DormantTab({ navigate, onClose }) {
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 13px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
-            background: subTab === id ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.07)',
+            background: subTab === id ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
             color: subTab === id ? 'white' : '#9ca3af',
-            boxShadow: subTab === id ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+            boxShadow: subTab === id ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
           }}>
             <Icon size={13} /> {label}
           </button>
@@ -441,10 +441,10 @@ export default function CustomerHealthModal({ onClose }) {
       <div style={{ ...card, width: '100%', maxWidth: 660, maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(168,85,247,0.1)' }}>
-              <Activity size={18} style={{ color: '#a855f7' }} />
+            <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+              <Activity size={18} style={{ color: 'var(--color-primary-500)' }} />
             </div>
             <div>
               <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Customer Health</p>
@@ -452,7 +452,7 @@ export default function CustomerHealthModal({ onClose }) {
             </div>
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             <X size={16} />
@@ -460,15 +460,15 @@ export default function CustomerHealthModal({ onClose }) {
         </div>
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(168,85,247,0.1)', padding: '0 4px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 4px', flexShrink: 0 }}>
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '11px 15px', fontSize: '0.78rem',
               fontWeight: activeTab === tab.id ? 700 : 500,
-              color: activeTab === tab.id ? '#a855f7' : '#9ca3af',
+              color: activeTab === tab.id ? 'var(--color-primary-500)' : '#9ca3af',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              borderBottom: `2.5px solid ${activeTab === tab.id ? '#a855f7' : 'transparent'}`,
+              borderBottom: `2.5px solid ${activeTab === tab.id ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -1, transition: 'color 150ms',
             }}>
               <tab.icon size={13} /> {tab.label}

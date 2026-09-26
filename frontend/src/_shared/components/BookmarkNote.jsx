@@ -18,10 +18,10 @@ const STORAGE_KEY_PILL_TOP   = 'bookmark_note_pill_top';
 const STORAGE_KEY_DOCKED     = 'bookmark_note_docked';
 const STORAGE_KEY_DOCK_TOP   = 'bookmark_note_dock_top';
 
-const ACCENT       = '#a855f7';
-const ACCENT_DEEP  = '#7c3aed';
-const ACCENT_FAINT = 'rgba(168,85,247,0.10)';
-const ACCENT_BORDER= 'rgba(168,85,247,0.25)';
+const ACCENT       = 'var(--color-primary-500)';
+const ACCENT_DEEP  = 'var(--color-primary-600)';
+const ACCENT_FAINT = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+const ACCENT_BORDER= 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
 const PANEL_W      = 300;
 const PANEL_GAP    = 8;
 
@@ -260,16 +260,16 @@ export default function BookmarkNote() {
     }
     .note-textarea {
       width: 100%; box-sizing: border-box; resize: none;
-      border: 1px solid rgba(168,85,247,0.15); border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent); border-radius: 10px;
       padding: 11px 12px; font-size: 13px; line-height: 1.65;
       font-family: 'Georgia','Palatino',serif;
       color: var(--text-primary, #e8e8e8);
-      background: rgba(168,85,247,0.04); outline: none;
+      background: color-mix(in srgb, var(--color-primary-500) 4%, transparent); outline: none;
       transition: border-color 0.2s, background 0.2s;
       min-height: 160px; max-height: 300px;
     }
-    .note-textarea:focus { border-color: rgba(168,85,247,0.45); background: rgba(168,85,247,0.07); }
-    .note-textarea::placeholder { color: rgba(168,85,247,0.3); font-style: italic; }
+    .note-textarea:focus { border-color: color-mix(in srgb, var(--color-primary-500) 45%, transparent); background: color-mix(in srgb, var(--color-primary-500) 7%, transparent); }
+    .note-textarea::placeholder { color: color-mix(in srgb, var(--color-primary-500) 30%, transparent); font-style: italic; }
     .note-btn {
       display:flex; align-items:center; justify-content:center; gap:5px;
       padding:6px 12px; border-radius:7px; border:none;
@@ -278,7 +278,7 @@ export default function BookmarkNote() {
     }
     .note-btn:active { transform: scale(0.97); }
     .note-btn-primary { background: linear-gradient(135deg,${ACCENT},${ACCENT_DEEP}); color:#fff; }
-    .note-btn-ghost   { background: rgba(168,85,247,0.08); color:${ACCENT}; border:1px solid ${ACCENT_BORDER}; }
+    .note-btn-ghost   { background: color-mix(in srgb, var(--color-primary-500) 8%, transparent); color:${ACCENT}; border:1px solid ${ACCENT_BORDER}; }
     .note-btn-danger  { background: rgba(239,68,68,0.10); color:#ef4444; border:1px solid rgba(239,68,68,0.20); }
     .note-btn:hover   { opacity: 0.85; }
   `;
@@ -346,7 +346,7 @@ export default function BookmarkNote() {
         background: 'var(--bg-primary, #111114)',
         boxShadow: docked
           ? `-6px 0 32px rgba(0,0,0,0.3), -2px 0 0 ${ACCENT}`
-          : `0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(168,85,247,0.08), inset 0 1px 0 rgba(255,255,255,0.04)`,
+          : `0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 8%, transparent), inset 0 1px 0 rgba(255,255,255,0.04)`,
         animation: 'noteSlideIn 0.24s cubic-bezier(0.34,1.56,0.64,1)',
         overflow: 'hidden',
         userSelect: 'none',
@@ -372,10 +372,10 @@ export default function BookmarkNote() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 9, color: 'rgba(168,85,247,0.35)', fontWeight: 500, letterSpacing: '0.04em', marginRight: 2 }}>
+            <span style={{ fontSize: 9, color: 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)', fontWeight: 500, letterSpacing: '0.04em', marginRight: 2 }}>
               {docked ? 'drag left to float' : ''}
             </span>
-            <GripHorizontal size={13} color='rgba(168,85,247,0.35)' strokeWidth={2} />
+            <GripHorizontal size={13} color='color-mix(in srgb, var(--color-primary-500) 35%, transparent)' strokeWidth={2} />
 
             {!docked && (
               <button
@@ -386,8 +386,8 @@ export default function BookmarkNote() {
                   setDockTopPersist(clamp(panelPos.y, PANEL_GAP, window.innerHeight - 80));
                 }}
                 title="Re-dock to edge"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(168,85,247,0.4)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(168,85,247,0.4)'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+                onMouseLeave={e => e.currentTarget.style.color = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
               >
                 <PinOff size={12} strokeWidth={2.5} />
               </button>
@@ -399,8 +399,8 @@ export default function BookmarkNote() {
               onClick={() => setCollapsedPersist(true)}
               onTouchEnd={(e) => { e.preventDefault(); setCollapsedPersist(true); }}
               title="Minimise"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(168,85,247,0.5)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(168,85,247,0.5)'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)', padding: '2px 4px', borderRadius: 5, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+              onMouseLeave={e => e.currentTarget.style.color = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
             >
               <X size={14} strokeWidth={2.5} />
             </button>
@@ -411,8 +411,8 @@ export default function BookmarkNote() {
         <div style={{ padding: '14px 14px 12px', userSelect: 'text' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <NotebookPen size={12} color='rgba(168,85,247,0.5)' strokeWidth={2} />
-              <span style={{ fontSize: 10, color: 'rgba(168,85,247,0.5)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <NotebookPen size={12} color='color-mix(in srgb, var(--color-primary-500) 50%, transparent)' strokeWidth={2} />
+              <span style={{ fontSize: 10, color: 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 scratch pad
               </span>
             </div>
@@ -479,8 +479,8 @@ export default function BookmarkNote() {
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ padding: '7px 14px 10px', borderTop: `1px solid rgba(168,85,247,0.07)`, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <BookMarked size={10} color='rgba(168,85,247,0.25)' strokeWidth={2} />
+        <div style={{ padding: '7px 14px 10px', borderTop: `1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)`, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <BookMarked size={10} color='color-mix(in srgb, var(--color-primary-500) 25%, transparent)' strokeWidth={2} />
           <span style={{ fontSize: 9, color: 'rgba(100,100,100,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
             only you can see this note · clears on request
           </span>

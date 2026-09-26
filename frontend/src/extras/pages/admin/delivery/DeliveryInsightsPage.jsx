@@ -24,7 +24,7 @@ const TABS = [
     { key: 'driver',   label: 'Drivers',    icon: User,    color: '#3b82f6' },
     { key: 'manifest', label: 'Manifests',  icon: Truck,   color: '#10b981' },
     { key: 'incident', label: 'Incidents',  icon: AlertTriangle, color: '#f59e0b' },
-    { key: 'fleet',    label: 'Fleet Overview', icon: BarChart3, color: '#8b5cf6' },
+    { key: 'fleet',    label: 'Fleet Overview', icon: BarChart3, color: 'var(--color-primary-400)' },
 ];
 
 // Each tab can have multiple modules — we show chips to filter/sort them
@@ -57,7 +57,7 @@ const MODULE_LABELS = {
 
 const OUTPUT_TYPE_ICONS = {
     summary: { icon: Layers, color: '#6366f1' },
-    insight: { icon: Sparkles, color: '#8b5cf6' },
+    insight: { icon: Sparkles, color: 'var(--color-primary-400)' },
     risk:    { icon: AlertTriangle, color: '#ef4444' },
     recommendation: { icon: CheckCircle2, color: '#10b981' },
 };

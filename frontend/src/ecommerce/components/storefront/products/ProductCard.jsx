@@ -25,7 +25,7 @@ import Badge from '../../../../_shared/components/common/Badge';
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
   social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
-  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: 'var(--color-primary-400)', text: '#fff' },
   urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
   tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
 };
@@ -134,7 +134,8 @@ export default function ProductCard({ product }) {
 
   return (
     <div
-      className="product-card group bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer w-full"
+      className="product-card group rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer w-full"
+      style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}
       onClick={handleViewProduct}
       style={product.boost_badge_type ? {
         borderLeft: `3px solid ${BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981'}`,
@@ -230,13 +231,13 @@ export default function ProductCard({ product }) {
             style={{
               padding: '0.5rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
               transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: wished ? 'rgba(168,85,247,0.15)' : 'white',
-              boxShadow: wished ? '0 0 0 1.5px rgba(168,85,247,0.35)' : 'none',
+              backgroundColor: wished ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white',
+              boxShadow: wished ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = wished ? 'rgba(168,85,247,0.25)' : '#faf5ff'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = wished ? 'rgba(168,85,247,0.15)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = wished ? 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 5%, var(--bg-card))'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = wished ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <Heart size={18} style={{ color: '#a855f7', fill: wished ? '#a855f7' : 'none', transition: 'fill 150ms ease' }} />
+            <Heart size={18} style={{ color: 'var(--color-primary-500)', fill: wished ? 'var(--color-primary-500)' : 'none', transition: 'fill 150ms ease' }} />
           </button>
 
           {/* Quote list */}
@@ -248,13 +249,13 @@ export default function ProductCard({ product }) {
             style={{
               padding: '0.5rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
               transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: inQL ? 'rgba(168,85,247,0.15)' : 'white',
-              boxShadow: inQL ? '0 0 0 1.5px rgba(124,58,237,0.5)' : 'none',
+              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white',
+              boxShadow: inQL ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-600) 50%, transparent)' : 'none',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'rgba(124,58,237,0.25)' : '#faf5ff'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'rgba(168,85,247,0.15)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 5%, var(--bg-card))'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <FileText size={18} style={{ color: inQL ? '#7c3aed' : '#a855f7', transition: 'color 150ms ease' }} />
+            <FileText size={18} style={{ color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'color 150ms ease' }} />
           </button>
           
         <p className="collapsed-name">
@@ -391,9 +392,9 @@ export default function ProductCard({ product }) {
           padding: 0.5rem; border-radius: 9999px; backdrop-filter: blur(4px);
           transition: all 200ms; border: none;
         }
-        .image-nav-btn:hover { background-color: white; color: #a855f7; transform: scale(1.1); }
+        .image-nav-btn:hover { background-color: white; color: var(--color-primary-500); transform: scale(1.1); }
         .dark .image-nav-btn { background-color: rgba(31,41,55,0.9); color: #d1d5db; }
-        .dark .image-nav-btn:hover { background-color: #1f2937; color: #d8b4fe; }
+        .dark .image-nav-btn:hover { background-color: #1f2937; color: var(--color-primary-300); }
 
         .image-indicator {
           width: 8px; height: 8px; border-radius: 9999px;
@@ -402,7 +403,7 @@ export default function ProductCard({ product }) {
         .image-indicator:hover { background-color: rgba(255,255,255,0.8); transform: scale(1.2); }
         .image-indicator.active { background-color: white; width: 24px; }
         .dark .image-indicator { background-color: rgba(156,163,175,0.6); }
-        .dark .image-indicator.active { background-color: #d8b4fe; }
+        .dark .image-indicator.active { background-color: var(--color-primary-300); }
 
         .quick-view-controls {
           position: absolute; top: 8px; right: 8px; z-index: 50;
@@ -414,30 +415,30 @@ export default function ProductCard({ product }) {
           border-radius: 9999px; transition: all 200ms; border: none;
           display: flex; align-items: center; justify-content: center;
         }
-        .quick-view-btn:hover { background-color: #faf5ff; color: #a855f7; transform: scale(1.1); }
+        .quick-view-btn:hover { background-color: color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)); color: var(--color-primary-500); transform: scale(1.1); }
         .dark .quick-view-btn { background-color: #1f2937; color: #d1d5db; }
-        .dark .quick-view-btn:hover { background-color: #374151; color: #d8b4fe; }
+        .dark .quick-view-btn:hover { background-color: #374151; color: var(--color-primary-300); }
 
         .auction-btn { background-color: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.4); font-weight: 700; }
         .auction-btn:hover { background-color: #dc2626; color: white; border-color: #dc2626; transform: translateY(-1px); }
         .dark .auction-btn { background-color: rgba(220,38,38,0.15); color: #f87171; border-color: rgba(248,113,113,0.4); }
         .dark .auction-btn:hover { background-color: #dc2626; color: white; }
         
-        .add-to-cart-btn { background-color: #a855f7; color: white; border: none; }
-        .add-to-cart-btn:hover:not(:disabled) { background-color: white; color: #9333ea; border: 1px solid #9333ea; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .add-to-cart-btn { background-color: var(--color-primary-500); color: white; border: none; }
+        .add-to-cart-btn:hover:not(:disabled) { background-color: white; color: var(--color-primary-600); border: 1px solid var(--color-primary-600); transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .add-to-cart-btn:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
         .dark .add-to-cart-btn:disabled { background-color: #374151; color: #6b7280; }
 
-        .buy-now-btn { background-color: white; color: #9333ea; border: 1px solid #9333ea; }
-        .buy-now-btn:hover:not(:disabled) { background-color: #a855f7; color: white; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.12); }
+        .buy-now-btn { background-color: white; color: var(--color-primary-600); border: 1px solid var(--color-primary-600); }
+        .buy-now-btn:hover:not(:disabled) { background-color: var(--color-primary-500); color: white; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.12); }
         .buy-now-btn:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
         .dark .buy-now-btn:disabled { background-color: #374151; color: #6b7280; }
 
-        .quote-btn { background-color: rgba(168,85,247,0.08); color: #a855f7; border: 1px solid rgba(168,85,247,0.25); }
-        .quote-btn:hover { background-color: #a855f7; color: white; border-color: #a855f7; transform: translateY(-1px); }
-        .quote-btn.in-list { background-color: rgba(124,58,237,0.15); color: #7c3aed; border-color: #7c3aed; font-weight: 700; }
-        .quote-btn.in-list:hover { background-color: #7c3aed; color: white; }
-        .dark .quote-btn { background-color: rgba(168,85,247,0.1); color: #c084fc; border-color: rgba(168,85,247,0.3); }
+        .quote-btn { background-color: color-mix(in srgb, var(--color-primary-500) 8%, transparent); color: var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent); }
+        .quote-btn:hover { background-color: var(--color-primary-500); color: white; border-color: var(--color-primary-500); transform: translateY(-1px); }
+        .quote-btn.in-list { background-color: color-mix(in srgb, var(--color-primary-600) 15%, transparent); color: var(--color-primary-600); border-color: var(--color-primary-600); font-weight: 700; }
+        .quote-btn.in-list:hover { background-color: var(--color-primary-600); color: white; }
+        .dark .quote-btn { background-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent); color: var(--color-primary-400); border-color: color-mix(in srgb, var(--color-primary-500) 30%, transparent); }
       `}</style>
     </div>
   );

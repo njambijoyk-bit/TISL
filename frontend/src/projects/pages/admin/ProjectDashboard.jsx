@@ -45,7 +45,7 @@ function GlowCard({ children, className = '', hover = true }) {
 const GradientDivider = ({ className = '' }) => (
   <div 
     className={`h-px w-full ${className}`} 
-    style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} 
+    style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary-500) 25%, transparent), transparent)' }} 
   />
 );
 
@@ -56,7 +56,7 @@ const SkeletonRows = ({ count = 5, height = 'h-4' }) => (
       <div 
         key={i} 
         className={`${height} rounded animate-pulse`}
-        style={{ background: 'linear-gradient(90deg, rgba(168,85,247,0.08), rgba(168,85,247,0.15), rgba(168,85,247,0.08))' }}
+        style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 8%, transparent), color-mix(in srgb, var(--color-primary-500) 15%, transparent), color-mix(in srgb, var(--color-primary-500) 8%, transparent))' }}
       />
     ))}
   </div>
@@ -90,7 +90,7 @@ const ProjectDashboard = () => {
   return (
     <AdminLayout>
       {/* ── Page Header with Glow Accent ───────────────────────────────────── */}
-      <div className="mb-6" style={{ borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+      <div className="mb-6" style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
         <PageHeader
           title="Projects"
           subtitle="Overview of all projects across your organisation"
@@ -100,18 +100,18 @@ const ProjectDashboard = () => {
                 onClick={() => navigate('/admin/projects/list')}
                 className="px-4 py-2 text-sm rounded-xl font-semibold transition-all"
                 style={{
-                  border: '1.5px solid rgba(168,85,247,0.3)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                   background: 'transparent',
-                  color: '#a855f7'
+                  color: 'var(--color-primary-500)'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.15)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
@@ -121,8 +121,8 @@ const ProjectDashboard = () => {
                 onClick={() => navigate('/admin/projects/create')}
                 className="px-4 py-2 text-sm rounded-xl font-extrabold text-white transition-opacity hover:opacity-90"
                 style={{
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                  boxShadow: '0 4px 12px rgba(168,85,247,0.35)'
+                  background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
+                  boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'
                 }}
               >
                 + New Project
@@ -145,10 +145,10 @@ const ProjectDashboard = () => {
           <GlowCard>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 <span style={{ fontSize: '14px' }}>📊</span>
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>By Status</h3>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>By Status</h3>
             </div>
             {loading.statistics ? (
               <SkeletonRows count={5} />
@@ -163,8 +163,8 @@ const ProjectDashboard = () => {
                         border: '1px solid transparent',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
@@ -172,7 +172,7 @@ const ProjectDashboard = () => {
                       }}
                     >
                       <ProjectStatusBadge status={status} />
-                      <span className="text-sm font-extrabold" style={{ color: '#a855f7' }}>
+                      <span className="text-sm font-extrabold" style={{ color: 'var(--color-primary-500)' }}>
                         {byStatus[status] ?? 0}
                       </span>
                     </div>
@@ -190,7 +190,7 @@ const ProjectDashboard = () => {
                 style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
                 <span style={{ fontSize: '14px' }}>🎯</span>
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>By Priority</h3>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>By Priority</h3>
             </div>
             {loading.statistics ? (
               <SkeletonRows count={4} />
@@ -203,8 +203,8 @@ const ProjectDashboard = () => {
                       onClick={() => navigate(`/admin/projects/list?priority=${priority}`)}
                       style={{ border: '1px solid transparent' }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
@@ -212,7 +212,7 @@ const ProjectDashboard = () => {
                       }}
                     >
                       <ProjectPriorityBadge priority={priority} />
-                      <span className="text-sm font-extrabold" style={{ color: '#a855f7' }}>
+                      <span className="text-sm font-extrabold" style={{ color: 'var(--color-primary-500)' }}>
                         {byPriority[priority] ?? 0}
                       </span>
                     </div>
@@ -230,7 +230,7 @@ const ProjectDashboard = () => {
                 style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                 <span style={{ fontSize: '14px' }}>👥</span>
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>Top Customers</h3>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Top Customers</h3>
             </div>
             {loading.statistics ? (
               <SkeletonRows count={5} />
@@ -240,11 +240,11 @@ const ProjectDashboard = () => {
               <div className="space-y-3">
                 {topCustomers.map((c, i) => (
                   <div key={c.id}>
-                    <div className="flex items-center justify-between gap-2 py-2 px-2 rounded-lg hover:bg-purple-50/50 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between gap-2 py-2 px-2 rounded-lg hover:bg-primary-50/50 transition-colors cursor-pointer">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                         {c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || '—'}
                       </span>
-                      <span className="text-sm font-extrabold shrink-0" style={{ color: '#a855f7' }}>
+                      <span className="text-sm font-extrabold shrink-0" style={{ color: 'var(--color-primary-500)' }}>
                         {c.project_count} project{c.project_count !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -264,12 +264,12 @@ const ProjectDashboard = () => {
                 style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
                 <span style={{ fontSize: '14px' }}>📈</span>
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>
                 Projects Created — Last 6 Months
               </h3>
             </div>
             {loading.statistics ? (
-              <div className="h-24 rounded animate-pulse" style={{ background: 'rgba(168,85,247,0.08)' }} />
+              <div className="h-24 rounded animate-pulse" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
             ) : (
               <div className="flex items-end gap-3 h-28">
                 {createdPerMonth.map((m) => {
@@ -277,7 +277,7 @@ const ProjectDashboard = () => {
                   return (
                     <div key={m.month} className="flex-1 flex flex-col items-center gap-2 group">
                       <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity" 
-                        style={{ color: '#a855f7' }}>
+                        style={{ color: 'var(--color-primary-500)' }}>
                         {m.count > 0 ? m.count : ''}
                       </span>
                       <div
@@ -285,8 +285,8 @@ const ProjectDashboard = () => {
                         style={{ 
                           height: `${height}%`, 
                           minHeight: m.count > 0 ? '6px' : '0',
-                          background: 'linear-gradient(180deg, #a855f7, #7c3aed)',
-                          boxShadow: height > 0 ? '0 0 8px rgba(168,85,247,0.4)' : 'none'
+                          background: 'linear-gradient(180deg, var(--color-primary-500), var(--color-primary-600))',
+                          boxShadow: height > 0 ? '0 0 8px color-mix(in srgb, var(--color-primary-500) 40%, transparent)' : 'none'
                         }}
                       />
                       <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
@@ -302,20 +302,20 @@ const ProjectDashboard = () => {
 
         {/* Recent Active Projects - List Card */}
         <GlowCard className="overflow-hidden">
-          <div className="flex items-center justify-between px-1 py-3 mb-4" style={{ borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+          <div className="flex items-center justify-between px-1 py-3 mb-4" style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 <span style={{ fontSize: '14px' }}>📋</span>
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>
                 Recent Active Projects
               </h3>
             </div>
             <button
               onClick={() => navigate('/admin/projects/list?status=active')}
               className="text-xs font-bold transition-colors hover:underline"
-              style={{ color: '#a855f7' }}
+              style={{ color: 'var(--color-primary-500)' }}
             >
               View all →
             </button>
@@ -324,7 +324,7 @@ const ProjectDashboard = () => {
           {loading.statistics ? (
             <div className="p-2 space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-14 rounded animate-pulse" style={{ background: 'rgba(168,85,247,0.08)' }} />
+                <div key={i} className="h-14 rounded animate-pulse" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
               ))}
             </div>
           ) : recentProjects.length === 0 ? (
@@ -332,7 +332,7 @@ const ProjectDashboard = () => {
               No active projects found.
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'rgba(168,85,247,0.1)' }}>
+            <div className="divide-y" style={{ borderColor: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
               {recentProjects.map((project) => (
                 <div
                   key={project.id}
@@ -340,9 +340,9 @@ const ProjectDashboard = () => {
                   className="flex items-center justify-between px-2 py-4 cursor-pointer rounded-xl transition-all mx-1 my-1"
                   style={{ border: '1px solid transparent' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(168,85,247,0.04)';
-                    e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
-                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(168,85,247,0.08)';
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)';
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
+                    e.currentTarget.style.boxShadow = '0 2px 12px color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
@@ -355,7 +355,7 @@ const ProjectDashboard = () => {
                       {project.title}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      <span style={{ color: '#a855f7', fontWeight: 600 }}>{project.project_number}</span> · {customerName(project.customer)}
+                      <span style={{ color: 'var(--color-primary-500)', fontWeight: 600 }}>{project.project_number}</span> · {customerName(project.customer)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 ml-4 shrink-0">

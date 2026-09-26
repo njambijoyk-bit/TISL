@@ -137,7 +137,7 @@ export default function SmartSearchBox({
           left: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          color: focused ? '#a855f7' : '#9ca3af',
+          color: focused ? 'var(--color-primary-500)' : '#9ca3af',
           transition: 'color 150ms',
           pointerEvents: 'none',
           display: 'flex',
@@ -160,13 +160,13 @@ export default function SmartSearchBox({
             width: '100%',
             padding: '9px 80px 9px 38px',
             borderRadius: 10,
-            border: `1.5px solid ${focused ? '#a855f7' : '#e5e7eb'}`,
+            border: `1.5px solid ${focused ? 'var(--color-primary-500)' : '#e5e7eb'}`,
             fontSize: '0.85rem',
             outline: 'none',
             background: 'white',
             color: '#111827',
             transition: 'border-color 150ms, box-shadow 150ms',
-            boxShadow: focused ? '0 0 0 3px rgba(168,85,247,0.12)' : '0 1px 3px rgba(0,0,0,0.06)',
+            boxShadow: focused ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '0 1px 3px rgba(0,0,0,0.06)',
           }}
           className="dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
@@ -210,7 +210,7 @@ export default function SmartSearchBox({
             borderRadius: 7,
             border: 'none',
             background: hasValue
-              ? 'linear-gradient(135deg, #a855f7, #7c3aed)'
+              ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))'
               : '#f3f4f6',
             color: hasValue ? 'white' : '#d1d5db',
             cursor: hasValue ? 'pointer' : 'default',
@@ -247,7 +247,7 @@ export default function SmartSearchBox({
           left: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          color: focused ? '#a855f7' : '#9ca3af',
+          color: focused ? 'var(--color-primary-500)' : '#9ca3af',
           transition: 'color 150ms',
           pointerEvents: 'none',
           display: 'flex',
@@ -269,11 +269,11 @@ export default function SmartSearchBox({
             width: '100%',
             padding: '8px 36px 8px 38px',
             borderRadius: 10,
-            border: `1.5px solid ${focused ? '#a855f7' : '#e5e7eb'}`,
+            border: `1.5px solid ${focused ? 'var(--color-primary-500)' : '#e5e7eb'}`,
             fontSize: '0.85rem',
             outline: 'none',
             transition: 'border-color 150ms, box-shadow 150ms',
-            boxShadow: focused ? '0 0 0 3px rgba(168,85,247,0.12)' : 'none',
+            boxShadow: focused ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'none',
             boxSizing: 'border-box',
           }}
           className="dark:bg-gray-800 dark:border-gray-600 dark:text-white"
@@ -307,7 +307,7 @@ export default function SmartSearchBox({
         style={{
           padding: '8px 18px',
           borderRadius: 10,
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
           color: 'white',
           border: 'none',
           cursor: 'pointer',
@@ -317,7 +317,7 @@ export default function SmartSearchBox({
           alignItems: 'center',
           gap: 6,
           whiteSpace: 'nowrap',
-          boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+          boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         }}
       >
         <Search size={14} />

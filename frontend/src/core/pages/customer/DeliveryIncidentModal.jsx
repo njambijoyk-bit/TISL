@@ -33,7 +33,7 @@ function ModalShell({ onClose, children }) {
 
 function Label({ children, required }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#c084fc', marginBottom: 6 }}>
+    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-primary-400)', marginBottom: 6 }}>
       {children}
       {required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
     </label>
@@ -42,7 +42,7 @@ function Label({ children, required }) {
 
 const SELECT_BASE = {
   width: '100%', boxSizing: 'border-box',
-  border: '1px solid rgba(168,85,247,0.2)', borderRadius: 12,
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 12,
   padding: '9px 32px 9px 12px', fontSize: 13, color: '#111827',
   background: 'white', appearance: 'none', WebkitAppearance: 'none',
   outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
@@ -55,8 +55,8 @@ function Select({ value, onChange, options, placeholder }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         style={SELECT_BASE}
-        onFocus={e => e.target.style.borderColor = '#a855f7'}
-        onBlur={e => e.target.style.borderColor = 'rgba(168,85,247,0.2)'}
+        onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
+        onBlur={e => e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
       >
         <option value="">{placeholder}</option>
         {options.map(o => (
@@ -90,7 +90,7 @@ const SEVERITY_COLORS = {
   low:      { bg: 'rgba(16,185,129,0.06)',  border: 'rgba(16,185,129,0.2)',  color: '#059669' },
   medium:   { bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)',  color: '#d97706' },
   high:     { bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)',   color: '#dc2626' },
-  critical: { bg: 'rgba(109,40,217,0.06)',  border: 'rgba(109,40,217,0.25)', color: '#7c3aed' },
+  critical: { bg: 'rgba(109,40,217,0.06)',  border: 'rgba(109,40,217,0.25)', color: 'var(--color-primary-600)' },
 };
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -212,13 +212,13 @@ export default function DeliveryIncidentModal({
             placeholder="Please describe what happened in detail (minimum 20 characters)…"
             style={{
               width: '100%', resize: 'vertical', boxSizing: 'border-box',
-              border: `1px solid ${descLength > 0 && descLength < 20 ? 'rgba(239,68,68,0.4)' : 'rgba(168,85,247,0.2)'}`,
+              border: `1px solid ${descLength > 0 && descLength < 20 ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
               borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#111827',
               outline: 'none', fontFamily: 'inherit', lineHeight: 1.5,
               transition: 'border-color 0.15s',
             }}
-            onFocus={e => e.target.style.borderColor = '#a855f7'}
-            onBlur={e => e.target.style.borderColor = descLength > 0 && descLength < 20 ? 'rgba(239,68,68,0.4)' : 'rgba(168,85,247,0.2)'}
+            onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
+            onBlur={e => e.target.style.borderColor = descLength > 0 && descLength < 20 ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             {descLength > 0 && descLength < 20 && (
@@ -233,7 +233,7 @@ export default function DeliveryIncidentModal({
         </div>
 
         {/* Privacy note */}
-        <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)', marginBottom: 16 }}>
+        <div style={{ padding: '10px 12px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
             Your report is reviewed by our team. Depending on the outcome, the driver may be informed — but your personal details are kept confidential.
           </p>

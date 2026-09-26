@@ -25,7 +25,7 @@ export default function CartItem({ item }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
-      padding: '16px 0', borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
+      padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
 
       {/* Product image */}
@@ -44,7 +44,7 @@ export default function CartItem({ item }) {
 
         {/* Chosen variant / unit */}
         {item.selectedVariant?.name && (
-          <p style={{ fontSize: '0.75rem', color: '#a855f7', fontWeight: 600, margin: '0 0 4px' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-primary-500)', fontWeight: 600, margin: '0 0 4px' }}>
             {item.selectedVariant.name}{item.selectedVariant.unit ? ` · ${item.selectedVariant.unit}` : ''}
           </p>
         )}
@@ -60,7 +60,7 @@ export default function CartItem({ item }) {
 
         {/* Price */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a855f7' }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>
             {fmt(item.price)}
           </span>
           {hasDiscount && (
@@ -77,17 +77,17 @@ export default function CartItem({ item }) {
             aria-label="Decrease quantity"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8, border: '1px solid rgba(168,85,247,0.3)', cursor: 'pointer',
-              background: 'transparent', color: '#a855f7', transition: 'background 120ms, border-color 120ms',
+              borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
+              background: 'transparent', color: 'var(--color-primary-500)', transition: 'background 120ms, border-color 120ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.borderColor = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
           >
             <Minus size={14} />
           </button>
 
           <span style={{
-            minWidth: 32, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: '#a855f7',
+            minWidth: 32, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-500)',
           }}>
             {item.quantity}
           </span>
@@ -97,11 +97,11 @@ export default function CartItem({ item }) {
             aria-label="Increase quantity"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8, border: '1px solid rgba(168,85,247,0.3)', cursor: 'pointer',
-              background: 'transparent', color: '#a855f7', transition: 'background 120ms, border-color 120ms',
+              borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
+              background: 'transparent', color: 'var(--color-primary-500)', transition: 'background 120ms, border-color 120ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.borderColor = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
           >
             <Plus size={14} />
           </button>
@@ -124,7 +124,7 @@ export default function CartItem({ item }) {
 
       {/* Subtotal + savings */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#a855f7' }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
           {fmt(parseFloat(item.price) * item.quantity)}
         </span>
         {hasDiscount && saved > 0 && (

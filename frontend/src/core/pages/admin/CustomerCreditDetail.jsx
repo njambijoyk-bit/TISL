@@ -14,37 +14,37 @@ import customersAPI from '../../../_shared/api/customers';
 const containerStyle = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: '20px 24px',
   color: '#111827',    
 };
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
 
 const sectionHeader = {
-  fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)',
   display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
 };
 
@@ -68,7 +68,7 @@ function Field({ label, children }) {
   );
 }
 
-function Pill({ children, color = '#7c3aed', bg = 'rgba(168,85,247,0.08)', ring = 'rgba(168,85,247,0.2)' }) {
+function Pill({ children, color = 'var(--color-primary-600)', bg = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', ring = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -121,8 +121,8 @@ function ActionBtn({ onClick, icon, label, variant = 'ghost' }) {
     transition: 'box-shadow 150ms, background 150ms',
   };
   const styles = {
-    primary: { background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 10px rgba(168,85,247,0.3)' },
-    ghost:   { background: 'rgba(168,85,247,0.06)', color: '#7c3aed', border: '1px solid rgba(168,85,247,0.2)' },
+    primary: { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
+    ghost:   { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' },
     danger:  { background: 'rgba(239,68,68,0.06)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' },
   };
   return (
@@ -147,7 +147,7 @@ function Modal({ title, onClose, children, width = 440 }) {
       <div style={{
         background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: width,
         boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
-        border: '1px solid rgba(168,85,247,0.12)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>{title}</h3>
@@ -156,7 +156,7 @@ function Modal({ title, onClose, children, width = 440 }) {
             display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 150ms, background 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'none'; }}
           >
             <X size={16} />
@@ -174,15 +174,15 @@ function ModalFooter({ onClose, onSubmit, submitting, submitLabel = 'Confirm' })
       <button onClick={onClose} style={{
         padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
         background: 'transparent', color: '#9ca3af',
-        border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer', fontFamily: 'inherit',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
       }}>
         Cancel
       </button>
       <button onClick={onSubmit} disabled={submitting} style={{
         padding: '8px 18px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
         border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-        boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: submitting ? 0.7 : 1,
+        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+        boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: submitting ? 0.7 : 1,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         {submitting && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
@@ -285,7 +285,7 @@ function AdjustmentModal({ customerId, onSuccess, onClose }) {
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
                   background: active ? (isDebit ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)') : 'transparent',
                   color: active ? (isDebit ? '#dc2626' : '#059669') : '#9ca3af',
-                  border: `1.5px solid ${active ? (isDebit ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.35)') : 'rgba(168,85,247,0.15)'}`,
+                  border: `1.5px solid ${active ? (isDebit ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.35)') : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
                   {isDebit ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
@@ -339,7 +339,7 @@ function InterestModal({ customerId, summary, onSuccess, onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{
           padding: '12px 14px', borderRadius: 10,
-          background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.8rem' }}>
             <span style={{ color: '#6b7280' }}>Current balance</span>
@@ -349,9 +349,9 @@ function InterestModal({ customerId, summary, onSuccess, onClose }) {
             <span style={{ color: '#6b7280' }}>Interest rate</span>
             <span style={{ fontWeight: 700, color: '#111827' }}>{summary?.interest_rate}%</span>
           </div>
-          <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-            <span style={{ color: '#7c3aed', fontWeight: 700 }}>Interest to charge</span>
-            <span style={{ fontWeight: 800, color: '#7c3aed' }}>KES {Number(interestAmt).toLocaleString()}</span>
+          <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+            <span style={{ color: 'var(--color-primary-600)', fontWeight: 700 }}>Interest to charge</span>
+            <span style={{ fontWeight: 800, color: 'var(--color-primary-600)' }}>KES {Number(interestAmt).toLocaleString()}</span>
           </div>
         </div>
         <Field label="Note">
@@ -425,8 +425,8 @@ function ScheduleModal({ customerId, onSuccess, onClose }) {
         {perInstallment && (
           <div style={{
             padding: '10px 14px', borderRadius: 8,
-            background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
-            fontSize: '0.8rem', color: '#7c3aed', display: 'flex', justifyContent: 'space-between',
+            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            fontSize: '0.8rem', color: 'var(--color-primary-600)', display: 'flex', justifyContent: 'space-between',
           }}>
             <span>Per installment</span>
             <strong>KES {Number(perInstallment).toLocaleString()}</strong>
@@ -508,7 +508,7 @@ function InvoiceModal({ customerId, onSuccess, onClose }) {
           </div>
           <button onClick={addLine} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: '0.75rem', color: '#a855f7', background: 'none', border: 'none',
+            fontSize: '0.75rem', color: 'var(--color-primary-500)', background: 'none', border: 'none',
             cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, padding: '4px 0',
           }}>
             <Plus size={13} /> Add line
@@ -518,11 +518,11 @@ function InvoiceModal({ customerId, onSuccess, onClose }) {
         {total > 0 && (
           <div style={{
             padding: '10px 14px', borderRadius: 8,
-            background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem',
           }}>
-            <span style={{ color: '#7c3aed', fontWeight: 700 }}>Total</span>
-            <strong style={{ color: '#7c3aed' }}>KES {total.toLocaleString()}</strong>
+            <span style={{ color: 'var(--color-primary-600)', fontWeight: 700 }}>Total</span>
+            <strong style={{ color: 'var(--color-primary-600)' }}>KES {total.toLocaleString()}</strong>
           </div>
         )}
         {error && <p style={{ fontSize: '0.75rem', color: '#dc2626', margin: 0 }}>{error}</p>}
@@ -537,7 +537,7 @@ function InvoiceModal({ customerId, onSuccess, onClose }) {
 function SummaryTab({ customerId, summary, onRefresh, onAction }) {
   if (!summary) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-      <Loader2 size={24} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={24} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
     </div>
   );
 
@@ -570,7 +570,7 @@ function SummaryTab({ customerId, summary, onRefresh, onAction }) {
 
           {/* Progress bar */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ height: 8, borderRadius: 4, background: 'rgba(168,85,247,0.08)', overflow: 'hidden', marginBottom: 6 }}>
+            <div style={{ height: 8, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', overflow: 'hidden', marginBottom: 6 }}>
               <div style={{
                 height: '100%', width: `${pct}%`, borderRadius: 4,
                 background: barColor, transition: 'width 0.8s ease',
@@ -588,12 +588,12 @@ function SummaryTab({ customerId, summary, onRefresh, onAction }) {
               ['Credit limit',    fmt(credit_limit),    '#6b7280'],
               ['Used',            fmt(credit_used),     pct >= 100 ? '#ef4444' : '#6b7280'],
               ['Available',       fmt(credit_available),credit_available <= 0 ? '#ef4444' : '#059669'],
-              ['Interest rate',   `${interest_rate}%`,  '#7c3aed'],
-              ['Currency',        currency?.code ?? 'KES', '#7c3aed'],
+              ['Interest rate',   `${interest_rate}%`,  'var(--color-primary-600)'],
+              ['Currency',        currency?.code ?? 'KES', 'var(--color-primary-600)'],
             ].map(([lbl, val, color]) => (
               <div key={lbl} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '7px 10px', borderRadius: 8, background: 'rgba(168,85,247,0.03)',
+                padding: '7px 10px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                 fontSize: '0.8rem',
               }}>
                 <span style={{ color: '#9ca3af' }}>{lbl}</span>
@@ -621,8 +621,8 @@ function SummaryTab({ customerId, summary, onRefresh, onAction }) {
                 padding: '9px 12px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
                 ...(variant === 'primary'
-                  ? { background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', border: 'none', boxShadow: '0 2px 10px rgba(168,85,247,0.3)' }
-                  : { background: 'rgba(168,85,247,0.05)', color: '#7c3aed', border: '1px solid rgba(168,85,247,0.18)' }
+                  ? { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', border: 'none', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }
+                  : { background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }
                 ),
                 transition: 'opacity 150ms',
               }}
@@ -704,7 +704,7 @@ function StatementTab({ customerId }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                 {['Date', 'Type', 'Dir.', 'Note', 'Balance before', 'Amount', 'Balance after'].map(h => (
                   <th key={h} style={{
                     padding: '10px 14px', textAlign: 'left',
@@ -717,10 +717,10 @@ function StatementTab({ customerId }) {
             <tbody>
               {loading
                 ? Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                       {[70, 80, 55, 140, 90, 80, 90].map((w, j) => (
                         <td key={j} style={{ padding: '12px 14px' }}>
-                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'rgba(168,85,247,0.08)' }} />
+                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
                         </td>
                       ))}
                     </tr>
@@ -729,7 +729,7 @@ function StatementTab({ customerId }) {
                   ? (
                     <tr>
                       <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center' }}>
-                        <FileText size={28} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 10px', display: 'block' }} />
+                        <FileText size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 10px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No transactions found</p>
                       </td>
                     </tr>
@@ -738,10 +738,10 @@ function StatementTab({ customerId }) {
                       const isCredit = tx.direction === 'credit';
                       return (
                         <tr key={tx.id} style={{
-                          borderBottom: i === rows.length - 1 ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                          borderBottom: i === rows.length - 1 ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                           transition: 'background 120ms',
                         }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
                           <td style={{ padding: '11px 14px', fontSize: '0.75rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>
@@ -783,9 +783,9 @@ function StatementTab({ customerId }) {
         {/* Pagination */}
         {!loading && rows.length > 0 && meta.last_page > 1 && (
           <div style={{
-            padding: '10px 14px', borderTop: '1px solid rgba(168,85,247,0.08)',
+            padding: '10px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Page {meta.current_page} of {meta.last_page} · {meta.total} transactions
@@ -796,8 +796,8 @@ function StatementTab({ customerId }) {
                 .map(({ icon, page: p, disabled }, i) => (
                   <button key={i} onClick={() => !disabled && setPage(p)} disabled={disabled} style={{
                     width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                    color: '#a855f7', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
+                    borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    color: 'var(--color-primary-500)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
                   }}>{icon}</button>
                 ))
               }
@@ -859,13 +859,13 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-      <Loader2 size={24} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={24} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
     </div>
   );
 
   if (schedules.length === 0) return (
-    <div style={{ ...card, textAlign: 'center', padding: '48px 24px', border: '1.5px dashed rgba(168,85,247,0.2)', background: 'transparent' }}>
-      <Calendar size={28} style={{ color: 'rgba(168,85,247,0.2)', margin: '0 auto 8px', display: 'block' }} />
+    <div style={{ ...card, textAlign: 'center', padding: '48px 24px', border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent' }}>
+      <Calendar size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', margin: '0 auto 8px', display: 'block' }} />
       <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No installment schedules yet</p>
     </div>
   );
@@ -896,7 +896,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
                 </div>
                 {/* Mini progress */}
                 {items.length > 0 && (
-                  <div style={{ marginTop: 10, height: 4, borderRadius: 2, background: 'rgba(168,85,247,0.08)', overflow: 'hidden', maxWidth: 320 }}>
+                  <div style={{ marginTop: 10, height: 4, borderRadius: 2, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', overflow: 'hidden', maxWidth: 320 }}>
                     <div style={{ height: '100%', width: `${(paid / items.length) * 100}%`, background: '#10b981', borderRadius: 2, transition: 'width 0.5s ease' }} />
                   </div>
                 )}
@@ -911,8 +911,8 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
                 )}
                 <button onClick={() => toggle(sched.id)} style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 7, border: '1px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', cursor: 'pointer',
+                  borderRadius: 7, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', cursor: 'pointer',
                 }}>
                   <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
                 </button>
@@ -921,7 +921,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
 
             {/* Items */}
             {isOpen && (
-              <div style={{ marginTop: 16, borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ marginTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map(item => {
                   const is = ITEM_STATUS[item.status] ?? ITEM_STATUS.pending;
                   const acting = actioning[item.id];
@@ -929,7 +929,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
                     <div key={item.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '9px 12px', borderRadius: 9,
-                      background: 'rgba(168,85,247,0.025)', border: '1px solid rgba(168,85,247,0.08)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                       gap: 12, flexWrap: 'wrap',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
@@ -1011,13 +1011,13 @@ function InvoicesTab({ customerId, notify }) {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-      <Loader2 size={24} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={24} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
     </div>
   );
 
   if (invoices.length === 0) return (
-    <div style={{ ...card, textAlign: 'center', padding: '48px 24px', border: '1.5px dashed rgba(168,85,247,0.2)', background: 'transparent' }}>
-      <FileText size={28} style={{ color: 'rgba(168,85,247,0.2)', margin: '0 auto 8px', display: 'block' }} />
+    <div style={{ ...card, textAlign: 'center', padding: '48px 24px', border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent' }}>
+      <FileText size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', margin: '0 auto 8px', display: 'block' }} />
       <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No invoices yet</p>
     </div>
   );
@@ -1034,7 +1034,7 @@ function InvoicesTab({ customerId, notify }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
-                  <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#7c3aed', margin: 0, fontFamily: 'monospace' }}>
+                  <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0, fontFamily: 'monospace' }}>
                     {inv.invoice_number}
                   </p>
                   <Pill color={is.color} bg={is.bg} ring={is.ring}>{inv.status}</Pill>
@@ -1066,9 +1066,9 @@ function InvoicesTab({ customerId, notify }) {
                         +{inv.items.length - 3} more lines
                       </p>
                     )}
-                    <div style={{ borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 6, marginTop: 2, display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                    <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 6, marginTop: 2, display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
                       <span style={{ color: '#9ca3af' }}>Total</span>
-                      <span style={{ fontWeight: 800, color: '#7c3aed' }}>{fmt(inv.total)}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--color-primary-600)' }}>{fmt(inv.total)}</span>
                     </div>
                   </div>
                 )}
@@ -1124,8 +1124,8 @@ function InvoicesTab({ customerId, notify }) {
               .map(({ icon, p, d }, i) => (
                 <button key={i} onClick={() => !d && setPage(p)} disabled={d} style={{
                   width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', cursor: d ? 'not-allowed' : 'pointer', opacity: d ? 0.3 : 1,
+                  borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', cursor: d ? 'not-allowed' : 'pointer', opacity: d ? 0.3 : 1,
                 }}>{icon}</button>
               ))
             }
@@ -1203,7 +1203,7 @@ export default function CustomerCreditDetail() {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: 12, color: '#7c3aed' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: 12, color: 'var(--color-primary-600)' }}>
           <Loader2 className="animate-spin" size={24} />
           <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Syncing ledger profile...</span>
         </div>
@@ -1218,7 +1218,7 @@ export default function CustomerCreditDetail() {
           <AlertTriangle size={40} color="#ef4444" style={{ marginBottom: 12 }} />
           <h3 style={{ margin: '0 0 8px', color: '#991b1b' }}>Ledger Connection Error</h3>
           <p style={{ fontSize: '0.85rem', color: '#b91c1c', margin: 0 }}>{error}</p>
-          <button onClick={loadCustomerProfile} style={{ marginTop: 16, padding: '8px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={loadCustomerProfile} style={{ marginTop: 16, padding: '8px 16px', background: 'var(--color-primary-600)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
             Retry Sync
           </button>
         </div>
@@ -1236,13 +1236,13 @@ export default function CustomerCreditDetail() {
           <span style={{ color: '#d1d5db' }}>/</span>
           <Link to="/admin/credit" style={{ color: '#9ca3af', textDecoration: 'none' }}>Credit Overview</Link>
           <span style={{ color: '#d1d5db' }}>/</span>
-          <span style={{ color: '#a855f7', fontWeight: 600 }}>{displayName}</span>
+          <span style={{ color: 'var(--color-primary-500)', fontWeight: 600 }}>{displayName}</span>
         </div>
 
         {/* ── Customer Info Banner Header ── */}
         <div style={{ ...containerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 10, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+            <div style={{ width: 46, height: 46, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)' }}>
               <User size={22} />
             </div>
             <div>
@@ -1253,13 +1253,13 @@ export default function CustomerCreditDetail() {
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '2px 0 0' }}>
-                Email: <span style={{ fontWeight: 500, color: '#374151' }}>{customer?.email}</span> · Tier: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{customer?.tier || 'Standard'}</span>
+                Email: <span style={{ fontWeight: 500, color: '#374151' }}>{customer?.email}</span> · Tier: <span style={{ color: 'var(--color-primary-600)', fontWeight: 600 }}>{customer?.tier || 'Standard'}</span>
               </p>
             </div>
           </div>
           <button 
             onClick={() => navigate('/admin/credit')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: 'none', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: 'none', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)', cursor: 'pointer' }}
           >
             <ChevronLeft size={14}/> Return to Ledger
           </button>
@@ -1268,7 +1268,7 @@ export default function CustomerCreditDetail() {
         {/* ── Financial Ledger Cards Ribbon ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
           <div style={containerStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Credit Limit</span><CreditCard size={16} color="#7c3aed"/></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Credit Limit</span><CreditCard size={16} color="var(--color-primary-600)"/></div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{summary?.currency || 'KES'} {Number(summary?.credit_limit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
           </div>
           <div style={containerStyle}>
@@ -1294,7 +1294,7 @@ export default function CustomerCreditDetail() {
                 onClick={() => setActiveSubTab(t)}
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, border: 'none', cursor: 'pointer', textTransform: 'capitalize',
-                  background: activeSubTab === t ? '#7c3aed' : '#f3f4f6', color: activeSubTab === t ? 'white' : '#4b5563'
+                  background: activeSubTab === t ? 'var(--color-primary-600)' : '#f3f4f6', color: activeSubTab === t ? 'white' : '#4b5563'
                 }}
               >
                 Account {t}
@@ -1307,9 +1307,9 @@ export default function CustomerCreditDetail() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                 border: 'none', cursor: 'pointer',
-                boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               }}
             >
               <User size={14} /> For more actions 
@@ -1343,7 +1343,7 @@ function LocalStatementTab({ customerId }) {
       .finally(() => setLoading(false));
   }, [customerId]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: '#7c3aed', margin: '0 auto' }}/></div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: 'var(--color-primary-600)', margin: '0 auto' }}/></div>;
   return (
     <div style={{ padding: '0 24px', overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
@@ -1404,7 +1404,7 @@ function LocalSchedulesTab({ customerId, onRefresh, notify }) {
     } catch { notify("Could not complete waive request.", "error"); }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: '#7c3aed', margin: '0 auto' }}/></div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: 'var(--color-primary-600)', margin: '0 auto' }}/></div>;
   return (
     <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {schedules.length === 0 ? (
@@ -1449,7 +1449,7 @@ function LocalInvoicesTab({ customerId, notify }) {
     } catch { notify("Transmission exception occurred.", "error"); }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: '#7c3aed', margin: '0 auto' }}/></div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}><Loader2 className="animate-spin" style={{ color: 'var(--color-primary-600)', margin: '0 auto' }}/></div>;
   return (
     <div style={{ padding: '0 24px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
@@ -1472,7 +1472,7 @@ function LocalInvoicesTab({ customerId, notify }) {
               <td style={{ padding: 12 }}><span style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700 }}>{v.status}</span></td>
               <td style={{ padding: 12, textAlign: 'right', fontWeight: 700 }}>{Number(v.total_amount).toLocaleString()}</td>
               <td style={{ padding: 12, textAlign: 'center' }}>
-                {v.status === 'draft' && <button onClick={() => handleSend(v.id)} style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontSize: '0.75rem' }}>Send Notification</button>}
+                {v.status === 'draft' && <button onClick={() => handleSend(v.id)} style={{ background: 'var(--color-primary-600)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontSize: '0.75rem' }}>Send Notification</button>}
               </td>
             </tr>
           ))}

@@ -9,7 +9,7 @@ export default function Pagination({ currentPage, lastPage, onPageChange }) {
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: currentPage === 1 ? '#333' : '#a855f7', cursor: currentPage === 1 ? 'default' : 'pointer', fontSize: 13 }}
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: currentPage === 1 ? '#333' : 'var(--color-primary-500)', cursor: currentPage === 1 ? 'default' : 'pointer', fontSize: 13 }}
             >
                 ‹
             </button>
@@ -20,7 +20,7 @@ export default function Pagination({ currentPage, lastPage, onPageChange }) {
                     onClick={() => onPageChange(p)}
                     style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                        background: p === currentPage ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'transparent',
+                        background: p === currentPage ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'transparent',
                         color: p === currentPage ? '#fff' : '#666',
                         border: p === currentPage ? 'none' : '1px solid #2a2a2a',
                     }}
@@ -32,7 +32,7 @@ export default function Pagination({ currentPage, lastPage, onPageChange }) {
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === lastPage}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: currentPage === lastPage ? '#333' : '#a855f7', cursor: currentPage === lastPage ? 'default' : 'pointer', fontSize: 13 }}
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: currentPage === lastPage ? '#333' : 'var(--color-primary-500)', cursor: currentPage === lastPage ? 'default' : 'pointer', fontSize: 13 }}
             >
                 ›
             </button>

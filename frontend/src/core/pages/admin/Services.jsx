@@ -369,8 +369,8 @@ const Services = () => {
           <button
             onClick={() => navigate(`/admin/services/${service.id}/edit`)}
             title="Edit"
-            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#7c3aed', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.08)'}
+            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <Edit size={15} />
@@ -467,17 +467,17 @@ const Services = () => {
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
                   fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
-                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                   transition: 'all 150ms',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                 }}
               >
                 <Plus size={16} /> Add Service
@@ -490,17 +490,17 @@ const Services = () => {
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
                   fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
-                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                   transition: 'all 150ms',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                 }}
               >
                 <CalendarClock size={16} /> Bookings
@@ -512,7 +512,7 @@ const Services = () => {
       {statistics && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
           {[
-            { label: 'Total',    value: statistics.total_services    || 0, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',   Icon: BarChart3   },
+            { label: 'Total',    value: statistics.total_services    || 0, color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',   Icon: BarChart3   },
             { label: 'Active',   value: statistics.active_services   || 0, color: '#10b981', bg: 'rgba(16,185,129,0.1)',  Icon: Power       },
             { label: 'Draft',    value: statistics.draft_services    || 0, color: '#6b7280', bg: 'rgba(107,114,128,0.1)', Icon: Archive     },
             { label: 'Featured', value: statistics.featured_services || 0, color: '#eab308', bg: 'rgba(234,179,8,0.1)',   Icon: CheckSquare },
@@ -544,15 +544,15 @@ const Services = () => {
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
         <div style={{
-          background: 'rgba(168,85,247,0.06)',
-          border: '1.5px solid rgba(168,85,247,0.2)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           borderRadius: 10, padding: '12px 16px', marginBottom: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <CheckSquare size={18} style={{ color: '#a855f7' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6b21a8' }}>
+              <CheckSquare size={18} style={{ color: 'var(--color-primary-500)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary-800)' }}>
                 {selectedIds.length} service(s) selected
               </span>
             </div>
@@ -617,8 +617,8 @@ const Services = () => {
       {/* Search + Filter Bar */}
       <div style={{
         borderRadius: 12,
-        border: '1px solid rgba(168,85,247,0.12)',
-        boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+        boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
         padding: 16, marginBottom: 20,
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
@@ -639,17 +639,17 @@ const Services = () => {
                 width: '100%', boxSizing: 'border-box',
                 padding: '8px 12px 8px 34px', /* 34px = 11px icon left + 15px icon + 8px gap */
                 borderRadius: 8, fontSize: '0.82rem', color: '#374151',
-                background: 'rgba(168,85,247,0.03)',
-                border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 outline: 'none', fontFamily: 'inherit',
                 transition: 'border-color 150ms, box-shadow 150ms',
               }}
               onFocus={e => {
-                e.currentTarget.style.borderColor = '#a855f7';
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+                e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
               }}
               onBlur={e => {
-                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
+                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
@@ -661,18 +661,18 @@ const Services = () => {
             onChange={(e) => handleStatusFilter(e.target.value)}
             style={{
               padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-              background: 'rgba(168,85,247,0.03)',
-              border: '1.5px solid rgba(168,85,247,0.18)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
               color: '#374151', outline: 'none',
               fontFamily: 'inherit', cursor: 'pointer',
               transition: 'border-color 150ms, box-shadow 150ms',
             }}
             onFocus={e => {
-              e.currentTarget.style.borderColor = '#a855f7';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+              e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
@@ -742,7 +742,7 @@ const Services = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <p style={{ fontSize: '0.88rem', color: '#111827', margin: 0 }}>
-            Are you sure you want to move <strong style={{ color: '#6b21a8' }}>{selectedIds.length} service(s)</strong> to trash?
+            Are you sure you want to move <strong style={{ color: 'var(--color-primary-800)' }}>{selectedIds.length} service(s)</strong> to trash?
           </p>
           <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
             You can restore them later from the trash.
@@ -819,11 +819,11 @@ const Services = () => {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 14px',
-              background: 'rgba(168,85,247,0.06)',
-              border: '1.5px solid rgba(168,85,247,0.2)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
               borderRadius: 8,
             }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#6b21a8' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-800)' }}>
                 {selectedTrashIds.length} service(s) selected
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -836,20 +836,20 @@ const Services = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '6px 12px', borderRadius: 8,
                     fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
-                    background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                    border: '1.5px solid rgba(168,85,247,0.25)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                     cursor: actionLoading ? 'not-allowed' : 'pointer',
                     opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
                   }}
                   onMouseEnter={e => {
                     if (!actionLoading) {
-                      e.currentTarget.style.background = 'rgba(168,85,247,0.15)';
-                      e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
                     }
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                   }}
                 >
                   <RotateCcw size={14} /> Restore Selected
@@ -891,7 +891,7 @@ const Services = () => {
           {/* Trashed Services List */}
           {loadingTrash ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
+              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid color-mix(in srgb, var(--color-primary-600) 20%, transparent)', borderTopColor: 'var(--color-primary-600)', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
               <p style={{ fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>Loading...</p>
             </div>
           ) : trashedServices.length === 0 ? (
@@ -909,7 +909,7 @@ const Services = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   {selectedTrashIds.length === trashedServices.length
-                    ? <CheckSquare size={18} style={{ color: '#7c3aed' }} />
+                    ? <CheckSquare size={18} style={{ color: 'var(--color-primary-600)' }} />
                     : <Square size={18} style={{ color: 'var(--color-text-tertiary)' }} />
                   }
                   Select All
@@ -926,14 +926,14 @@ const Services = () => {
                       onClick={() => toggleTrashSelection(service.id)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-                        border: `1px solid ${isSelected ? '#7c3aed' : 'var(--color-border-tertiary)'}`,
+                        border: `1px solid ${isSelected ? 'var(--color-primary-600)' : 'var(--color-border-tertiary)'}`,
                         borderRadius: 8, cursor: 'pointer',
-                        background: isSelected ? 'rgba(124,58,237,0.05)' : 'var(--color-background-primary)',
+                        background: isSelected ? 'color-mix(in srgb, var(--color-primary-600) 5%, transparent)' : 'var(--color-background-primary)',
                         transition: 'border-color 150ms, background 150ms',
                       }}
                     >
                       {isSelected
-                        ? <CheckSquare size={18} style={{ color: '#7c3aed', flexShrink: 0 }} />
+                        ? <CheckSquare size={18} style={{ color: 'var(--color-primary-600)', flexShrink: 0 }} />
                         : <Square size={18} style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }} />
                       }
 

@@ -36,7 +36,7 @@ const QuoteRequestCard = ({ request, onView, showCustomer = false }) => {
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-      style={{ border: '1px solid rgba(168,85,247,0.2)' }}
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
     >
       {/* Status accent bar */}
       <div style={{ height: 3, background: statusCfg.color, opacity: 0.7 }} />
@@ -79,16 +79,16 @@ const QuoteRequestCard = ({ request, onView, showCustomer = false }) => {
 
         {/* Meta grid */}
         <div className="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex items-center gap-1.5"><TypeIcon size={12} color="#c084fc" /> {typeCfg.label}</div>
-          <div className="flex items-center gap-1.5"><Calendar size={12} color="#c084fc" /> {formatDate(request.created_at)}</div>
-          {request.budget_range && <div className="flex items-center gap-1.5"><DollarSign size={12} color="#c084fc" /> {request.budget_range}</div>}
-          {request.timeline_needed && <div className="flex items-center gap-1.5"><Clock size={12} color="#c084fc" /> {request.timeline_needed}</div>}
+          <div className="flex items-center gap-1.5"><TypeIcon size={12} color="var(--color-primary-400)" /> {typeCfg.label}</div>
+          <div className="flex items-center gap-1.5"><Calendar size={12} color="var(--color-primary-400)" /> {formatDate(request.created_at)}</div>
+          {request.budget_range && <div className="flex items-center gap-1.5"><DollarSign size={12} color="var(--color-primary-400)" /> {request.budget_range}</div>}
+          {request.timeline_needed && <div className="flex items-center gap-1.5"><Clock size={12} color="var(--color-primary-400)" /> {request.timeline_needed}</div>}
         </div>
 
         {/* Items count */}
         {request.requested_items?.length > 0 && (
           <div className="mb-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 text-xs font-bold text-gray-600 dark:text-gray-400"
-            style={{ border: '1px solid rgba(168,85,247,0.15)' }}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             {request.requested_items.length} {request.requested_items.length === 1 ? 'item' : 'items'} requested
           </div>
         )}
@@ -124,13 +124,13 @@ const QuoteRequestCard = ({ request, onView, showCustomer = false }) => {
           {onView ? (
             <button onClick={() => onView(request)} type="button"
               className="flex-1 py-2 px-3 rounded-xl text-xs font-regular text-center transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)', color: '#f7f7f7' }}>
+              style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: '#f7f7f7' }}>
               View Details
             </button>
           ) : (
             <Link to={`/my-quote-requests/${request.id}`}
               className="flex-1 py-2 px-3 rounded-xl text-xs font-regular text-center transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)', color: '#feffff' }}>
+              style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: '#feffff' }}>
               View Details
             </Link>
           )}

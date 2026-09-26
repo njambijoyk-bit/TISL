@@ -53,7 +53,7 @@ export default function InstallPrompt() {
       style={{
         position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
         zIndex: 9999, borderRadius: 16, padding: '12px 16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(168,85,247,0.15)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 2px 8px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         border: '1px solid #f3f4f6', width: 'min(360px, calc(100vw - 40px))',
         animation: 'slideUp 300ms cubic-bezier(0.34,1.56,0.64,1)',
         background: 'white',
@@ -70,7 +70,7 @@ export default function InstallPrompt() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white', letterSpacing: '-0.03em' }}>T</span>
@@ -112,9 +112,9 @@ export default function InstallPrompt() {
           marginTop: 12, width: '100%',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           padding: '9px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
           color: 'white', fontSize: '0.82rem', fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(168,85,247,0.35)',
+          boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
         }}
       >
         <Download size={14} /> Install App

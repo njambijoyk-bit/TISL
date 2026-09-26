@@ -8,16 +8,16 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: '0.83rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms',
 };
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
-const focus = e => { e.currentTarget.style.borderColor = '#a855f7'; };
-const blur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; };
+const focus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; };
+const blur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; };
 
 const STATUS_FLOW = { draft: 'Draft', submitted: 'Submitted', approved: 'Approved', rejected: 'Rejected' };
 const STATUS_COLOR = { draft: '#9ca3af', submitted: '#2563eb', approved: '#16a34a', rejected: '#dc2626' };
@@ -163,7 +163,7 @@ const AdminWorksheetForm = () => {
   if (loading) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 0', gap: 10, color: '#9ca3af' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </AdminLayout>
@@ -176,13 +176,13 @@ const AdminWorksheetForm = () => {
         {/* Header */}
         <div>
           <button onClick={() => navigate(`/admin/bookings/${id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', fontFamily: 'inherit' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           ><ArrowLeft size={14} /> Back to booking</button>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ClipboardList size={18} color="white" />
               </div>
               <div>
@@ -198,7 +198,7 @@ const AdminWorksheetForm = () => {
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {!isNew && worksheet?.status === 'approved' && (
-                <button onClick={handleExport} style={{ padding: '7px 14px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#7c3aed', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 700 }}>
+                <button onClick={handleExport} style={{ padding: '7px 14px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-600)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 700 }}>
                   <Download size={13} /> Export CSV
                 </button>
               )}
@@ -229,7 +229,7 @@ const AdminWorksheetForm = () => {
               <button onClick={handleReject} disabled={rejecting} style={{ padding: '9px 16px', borderRadius: 9, border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {rejecting ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : null} Reject
               </button>
-              <button onClick={() => setShowReject(false)} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+              <button onClick={() => setShowReject(false)} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
                 Cancel
               </button>
             </div>
@@ -238,12 +238,12 @@ const AdminWorksheetForm = () => {
 
         {/* Currency + summary header */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '14px 18px' }}>
+          <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '14px 18px' }}>
             <label style={labelStyle}>Currency</label>
             <select
               value="KES"
               disabled
-              style={{ ...inputStyle, cursor: 'not-allowed', opacity: 0.6, background: 'rgba(168,85,247,0.02)' }}
+              style={{ ...inputStyle, cursor: 'not-allowed', opacity: 0.6, background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}
             >
               <option value="KES">KES — Kenyan Shilling</option>
             </select>
@@ -261,14 +261,14 @@ const AdminWorksheetForm = () => {
 
           {worksheet && (
             <>
-              <div style={{ background: 'rgba(168,85,247,0.04)', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.12)', padding: '14px 18px' }}>
+              <div style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', padding: '14px 18px' }}>
                 <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', margin: '0 0 4px' }}>Materials total</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>{fmt(worksheet.total_materials)}</p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0 }}>{fmt(worksheet.total_materials)}</p>
                 {form.currency_code !== 'KES' && <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>≈ {fmt(worksheet.total_materials_kes, 'KES')}</p>}
               </div>
-              <div style={{ background: 'rgba(168,85,247,0.04)', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.12)', padding: '14px 18px' }}>
+              <div style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', padding: '14px 18px' }}>
                 <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', margin: '0 0 4px' }}>Grand total</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{fmt(worksheet.grand_total)}</p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{fmt(worksheet.grand_total)}</p>
                 {form.currency_code !== 'KES' && <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>≈ {fmt(worksheet.grand_total_kes, 'KES')}</p>}
               </div>
             </>
@@ -276,7 +276,7 @@ const AdminWorksheetForm = () => {
         </div>
 
         {/* Work summary */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }}>
             <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: 0 }}>Work Summary</p>
             {!isDraft && (
@@ -324,7 +324,7 @@ const AdminWorksheetForm = () => {
         </div>
 
         {/* Items */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px', overflowX: 'scroll', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '18px', overflowX: 'scroll', WebkitOverflowScrolling: 'touch' }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 14px' }}>Materials & Items Used</p>
           {worksheet ? (
             <div style={{ minWidth: 600 }}>
@@ -350,17 +350,17 @@ const AdminWorksheetForm = () => {
         {/* Footer actions */}
         {!isReadOnly && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button onClick={() => navigate(`/admin/bookings/${id}`)} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+            <button onClick={() => navigate(`/admin/bookings/${id}`)} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               Cancel
             </button>
             {isDraft && (
-              <button onClick={handleSave} disabled={saving} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: '1.5px solid #a855f7', background: 'none', color: '#7c3aed', cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: saving ? 0.7 : 1 }}>
+              <button onClick={handleSave} disabled={saving} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: '1.5px solid var(--color-primary-500)', background: 'none', color: 'var(--color-primary-600)', cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: saving ? 0.7 : 1 }}>
                 {saving ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={14} />}
                 {saving ? 'Saving…' : 'Save draft'}
               </button>
             )}
             {isDraft && !isNew && (
-              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
                 {submitting ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
                 {submitting ? 'Submitting…' : 'Submit for approval'}
               </button>

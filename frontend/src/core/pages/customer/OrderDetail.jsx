@@ -29,7 +29,7 @@ const STATUS_ORDER_CFG = {
   pending:    { color: '#f59e0b', label: 'Pending' },
   confirmed:  { color: '#3b82f6', label: 'Confirmed' },
   processing: { color: '#3b82f6', label: 'Processing' },
-  shipped:    { color: '#a855f7', label: 'Shipped' },
+  shipped:    { color: 'var(--color-primary-500)', label: 'Shipped' },
   delivered:  { color: '#10b981', label: 'Delivered' },
   cancelled:  { color: '#ef4444', label: 'Cancelled' },
   failed:     { color: '#ef4444', label: 'Failed' },
@@ -44,11 +44,11 @@ const PAYMENT_CFG = {
 };
 const ORDER_TYPE_CFG = {
   standard: { color: '#07b2be', label: 'Standard' },
-  quotation: { color: '#8b5cf6', label: 'Quotation' },
+  quotation: { color: 'var(--color-primary-400)', label: 'Quotation' },
   bulk: { color: '#f59e0b', label: 'Bulk' },
   b2b: { color: '#3b82f6', label: 'B2B' },
   service: { color: '#10b981', label: 'Service' },
-  mixed: { color: '#a855f7', label: 'Mixed' },
+  mixed: { color: 'var(--color-primary-500)', label: 'Mixed' },
   project: { color: '#f13091', label: 'Project' },
   subscription: { color: '#06b6d4', label: 'Subscription' }
 };
@@ -87,14 +87,14 @@ const Chip = ({ children, color }) => (
 function Section({ title, icon: Icon, accent, children, action }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden mb-5"
-      style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       {accent && <div style={{ height: 3, background: accent }} />}
       <div className="p-5">
         {(title || action) && (
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              {Icon && <Icon size={13} color="#c084fc" />}
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#c084fc' }}>{title}</p>
+              {Icon && <Icon size={13} color="var(--color-primary-400)" />}
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-primary-400)' }}>{title}</p>
             </div>
             {action}
           </div>
@@ -127,7 +127,7 @@ function PurpleBtn({ onClick, disabled, loading, children, type = 'button' }) {
   return (
     <button onClick={onClick} disabled={disabled || loading} type={type}
       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
-      style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+      style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
       {loading ? <LoadingSpinner size="sm" /> : children}
     </button>
   );
@@ -146,7 +146,7 @@ function GoldBtn({ onClick, disabled, loading, children, type = 'button' }) {
 function GhostBtn({ onClick, disabled, children, type = 'button' }) {
   return (
     <button onClick={onClick} disabled={disabled} type={type}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-purple-300 hover:text-purple-500 disabled:opacity-40">
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-primary-300 hover:text-primary-500 disabled:opacity-40">
       {children}
     </button>
   );
@@ -500,7 +500,7 @@ export default function CustomerOrderDetail() {
       let px = M;
       px += pill(px, y, statusCfg.label,  statusCfg.color);
       px += pill(px, y, paymentCfg.label, paymentCfg.color);
-      if (order.invoice_number) chip(px, y, order.invoice_number, '#a855f7');
+      if (order.invoice_number) chip(px, y, order.invoice_number, 'var(--color-primary-500)');
 
       y += 10;
       hline();
@@ -514,7 +514,7 @@ export default function CustomerOrderDetail() {
       items.forEach((item, idx) => {
         const isService = (item.item_type || item.type)?.includes('service');
         const isFee     = (item.item_type || item.type) === 'fee';
-        const typeColor = isService ? '#10b981' : isFee ? '#ec4899' : '#a855f7';
+        const typeColor = isService ? '#10b981' : isFee ? '#ec4899' : 'var(--color-primary-500)';
         const { r: ir, g: ig, b: ib } = rgb(typeColor);
 
         const qty       = parseFloat(item.quantity  || 1);
@@ -704,7 +704,7 @@ export default function CustomerOrderDetail() {
       const summaryRows = [
         { label: 'Subtotal', value: money(order.subtotal) },
         order.discount > 0          && { label: 'Order Discount',    value: `-${money(order.discount)}`,          color: '#10b981' },
-        order.referral_discount > 0 && { label: 'Referral Discount', value: `-${money(order.referral_discount)}`, color: '#a855f7' },
+        order.referral_discount > 0 && { label: 'Referral Discount', value: `-${money(order.referral_discount)}`, color: 'var(--color-primary-500)' },
         order.promo_discount > 0    && {
           label: `Promo${order.promo_code_id ? ` (${order.promo_code || ''})` : ''}`,
           value: `-${money(order.promo_discount)}`,
@@ -720,7 +720,7 @@ export default function CustomerOrderDetail() {
         Number(order.credit_account_deduction) > 0 && {
           label: 'Credit Account',
           value: `-${money(order.credit_account_deduction)}`,
-          color: '#7c3aed',
+          color: 'var(--color-primary-600)',
         },
         { label: 'Total', value: money(order.total), bold: true },
       ].filter(Boolean);
@@ -805,9 +805,9 @@ export default function CustomerOrderDetail() {
       sectionHeading('Timeline');
 
       [
-        { label: 'Created',   val: order.created_at,  color: '#a855f7' },
+        { label: 'Created',   val: order.created_at,  color: 'var(--color-primary-500)' },
         { label: 'Confirmed', val: order.confirmed_at, color: '#3b82f6' },
-        { label: 'Shipped',   val: order.shipped_at,   color: '#a855f7' },
+        { label: 'Shipped',   val: order.shipped_at,   color: 'var(--color-primary-500)' },
         { label: 'Delivered', val: order.delivered_at, color: '#10b981' },
         { label: 'Cancelled', val: order.cancelled_at, color: '#ef4444' },
       ].filter(t => t.val).forEach((ev, i, arr) => {
@@ -883,8 +883,8 @@ export default function CustomerOrderDetail() {
       <Header />
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(168,85,247,0.08)' }}>
-            <Package size={28} color="#c084fc" />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+            <Package size={28} color="var(--color-primary-400)" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Order Not Found</h2>
           <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">This order doesn't exist or you don't have access to it.</p>
@@ -967,7 +967,7 @@ export default function CustomerOrderDetail() {
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 px-6 pt-6 pb-5"
-        style={{ borderBottom: '2px solid rgba(168,85,247,0.2)' }}>
+        style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Top row: back button + actions */}
@@ -975,12 +975,12 @@ export default function CustomerOrderDetail() {
             <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, marginBottom: 20 }}>
               <button onClick={() => navigate('/orders')} type="button"
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                 onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
                 Orders
               </button>
               <span style={{ color: '#d1d5db' }}>/</span>
-              <span style={{ color: '#a855f7' }}>{order.order_number}</span>
+              <span style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</span>
             </nav>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -988,7 +988,7 @@ export default function CustomerOrderDetail() {
   {/* Save Changes */}
   {canEdit && (
     <button onClick={handleSaveChanges} disabled={loading} type="button"
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.5 : 1, boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.5 : 1, boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
       <Save size={14} /> Save Changes
     </button>
   )}
@@ -997,7 +997,7 @@ export default function CustomerOrderDetail() {
   {canEdit && (
     <button onClick={() => setAddItemModal(true)} disabled={isQuotedOrder} type="button"
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '0.875rem', fontWeight: 600, cursor: isQuotedOrder ? 'not-allowed' : 'pointer', opacity: isQuotedOrder ? 0.4 : 1 }}
-      onMouseEnter={e => { if (!isQuotedOrder) { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}}
+      onMouseEnter={e => { if (!isQuotedOrder) { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}}
       onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}>
       <Plus size={14} /> Add Item
     </button>
@@ -1006,7 +1006,7 @@ export default function CustomerOrderDetail() {
   {/* Download PDF */}
   <button onClick={handleDownloadOrder} disabled={loading} type="button"
     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.4 : 1 }}
-    onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}>
     <FileText size={14} /> Download PDF
   </button>
@@ -1037,8 +1037,8 @@ export default function CustomerOrderDetail() {
           {/* Bottom row: order info + total */}
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: '#c084fc' }}>Order</p>
-              <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ color: '#a855f7' }}>{order.order_number}</h1>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--color-primary-400)' }}>Order</p>
+              <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</h1>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill label={statusCfg.label} color={statusCfg.color} />
                 <StatusPill label={paymentCfg.label} color={paymentCfg.color} />
@@ -1047,7 +1047,7 @@ export default function CustomerOrderDetail() {
                 
                 {order.invoice_number && (
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                      {order.invoice_number}
                   </span>
                 )}
@@ -1058,8 +1058,8 @@ export default function CustomerOrderDetail() {
             </div>
 
             <div className="text-right">
-              <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c084fc' }}>Total</p>
-              <p className="text-2xl font-bold" style={{ color: '#a855f7' }}>{money(order.total)}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--color-primary-400)' }}>Total</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-primary-500)' }}>{money(order.total)}</p>
               {showKes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{moneyKes(order.total_kes)}</p>}
             </div>
           </div>
@@ -1085,21 +1085,21 @@ export default function CustomerOrderDetail() {
         )}
         {canEdit && (
           <div className="flex items-start gap-3 p-4 rounded-xl mb-5"
-            style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)', borderLeft: '4px solid #a855f7' }}>
-            <CheckCircle size={15} color="#a855f7" className="flex-shrink-0 mt-0.5" />
+            style={{ background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderLeft: '4px solid var(--color-primary-500)' }}>
+            <CheckCircle size={15} color="var(--color-primary-500)" className="flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold m-0" style={{ color: '#7c3aed' }}>Order Can Be Modified</p>
-              <p className="text-xs mt-0.5 m-0" style={{ color: '#a855f7', opacity: 0.8 }}>This order is pending. Make your changes and click "Save Changes" when done.</p>
+              <p className="text-sm font-semibold m-0" style={{ color: 'var(--color-primary-600)' }}>Order Can Be Modified</p>
+              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--color-primary-500)', opacity: 0.8 }}>This order is pending. Make your changes and click "Save Changes" when done.</p>
             </div>
           </div>
         )}
         {isCreditOrder && (
           <div className="flex items-start gap-3 p-4 rounded-xl mb-5"
-            style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.25)', borderLeft: '4px solid #7c3aed' }}>
-            <CreditCard size={15} color="#7c3aed" className="flex-shrink-0 mt-0.5" />
+            style={{ background: 'color-mix(in srgb, var(--color-primary-600) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-600) 25%, transparent)', borderLeft: '4px solid var(--color-primary-600)' }}>
+            <CreditCard size={15} color="var(--color-primary-600)" className="flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold m-0" style={{ color: '#7c3aed' }}>Credit Account Order</p>
-              <p className="text-xs mt-0.5 m-0" style={{ color: '#7c3aed', opacity: 0.8 }}>
+              <p className="text-sm font-semibold m-0" style={{ color: 'var(--color-primary-600)' }}>Credit Account Order</p>
+              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--color-primary-600)', opacity: 0.8 }}>
                 This order is being charged to your credit account and cannot be modified. Contact support if changes are needed.
               </p>
             </div>
@@ -1111,20 +1111,20 @@ export default function CustomerOrderDetail() {
           {/* ── LEFT ────────────────────────────────────────────────────── */}
           <div>
             {/* Order Items */}
-            <Section title={`Order Items · ${items.length}`} icon={Package} accent="#a855f7">
+            <Section title={`Order Items · ${items.length}`} icon={Package} accent="var(--color-primary-500)">
 
               {/* View toggle */}
               {items.length > 0 && (
-                <div className="flex items-center gap-2 mb-4 p-1 rounded-xl w-fit" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <div className="flex items-center gap-2 mb-4 p-1 rounded-xl w-fit" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                   {['minimal', 'detailed'].map(mode => (
                     <button key={mode} type="button"
                       onClick={() => setItemView(mode)}
                       className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
                       style={itemView === mode ? {
-                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                         color: 'white',
-                        boxShadow: '0 2px 8px rgba(168,85,247,0.35)',
-                      } : { color: '#a78bfa' }}>
+                        boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
+                      } : { color: 'var(--color-primary-400)' }}>
                       {mode}
                     </button>
                   ))}
@@ -1151,8 +1151,8 @@ export default function CustomerOrderDetail() {
 
                   return (
                     <div key={idx} className="rounded-xl overflow-hidden"
-                      style={{ border: '1px solid rgba(168,85,247,0.2)', transition: 'box-shadow 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 16px rgba(168,85,247,0.08)'}
+                      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', transition: 'box-shadow 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 16px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
 
                       <div className="p-4 bg-white dark:bg-gray-800">
@@ -1174,12 +1174,12 @@ export default function CustomerOrderDetail() {
                                   {item.product_sku  && <Chip color="#fd95ef">SKU: {item.product_sku}</Chip>}
                                   {item.brand_name   && <Chip color="#f756e1">{item.brand_name}</Chip>}
                                   {item.is_bulk_pricing     && <Chip color="#3b82f6">Bulk</Chip>}
-                                  {item.is_negotiated_price && <Chip color="#a855f7">Negotiated</Chip>}
+                                  {item.is_negotiated_price && <Chip color="var(--color-primary-500)">Negotiated</Chip>}
                                   {item.is_taxable ? <Chip color="#10b981">Taxable</Chip> : <Chip color="#9ca3af">Non-Taxable</Chip>}
                                   {item.fulfillment_status === 'backorder' && <Chip color="#f59e0b">Backorder</Chip>}
                                   {item.backorder_quantity > 0 && <Chip color="#f97316">{item.backorder_quantity} on backorder</Chip>}
                                 </div>
-                                <p className="text-sm font-extrabold" style={{ color: '#a855f7' }}>
+                                <p className="text-sm font-extrabold" style={{ color: 'var(--color-primary-500)' }}>
                                   {item.product_name || item.service_name || `Item ${idx + 1}`}
                                 </p>
                               </div>
@@ -1187,7 +1187,7 @@ export default function CustomerOrderDetail() {
                               {/* Right: price + remove */}
                               <div className="flex items-start gap-2 flex-shrink-0">
                                 <div className="text-right">
-                                  <p className="text-base font-extrabold" style={{ color: '#a855f7' }}>{money(lineAfterDisc)}</p>
+                                  <p className="text-base font-extrabold" style={{ color: 'var(--color-primary-500)' }}>{money(lineAfterDisc)}</p>
                                   {(hasDiscount || hasMarkup) && (
                                     <div className="flex items-center gap-1.5 justify-end mt-0.5">
                                       <span className="text-xs text-gray-400 dark:text-gray-500 line-through">{money(lineTotal)}</span>
@@ -1233,12 +1233,12 @@ export default function CustomerOrderDetail() {
 
                       {/* ── DETAILED VIEW ── */}
                       {itemView === 'detailed' && (
-                        <div style={{ borderTop: '1px solid rgba(168,85,247,0.15)', background: 'rgba(168,85,247,0.03)' }}>
+                        <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}>
 
                           {/* Pricing table */}
-                          <div className="mx-4 mt-4 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                          <div className="mx-4 mt-4 rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                             <div className="cod-pricing-table px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider"
-                              style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)', color: '#a78bfa' }}>
+                              style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-400)' }}>
                               <span>Unit Price</span>
                               <span className="text-center">Quantity</span>
                               <span className="text-center">{hasMarkup ? 'Markup' : 'Discount'}</span>
@@ -1277,7 +1277,7 @@ export default function CustomerOrderDetail() {
                                 )}
                               </div>
                               <div className="text-right">
-                                <p className="font-extrabold text-sm" style={{ color: '#a855f7' }}>{money(lineAfterDisc)}</p>
+                                <p className="font-extrabold text-sm" style={{ color: 'var(--color-primary-500)' }}>{money(lineAfterDisc)}</p>
                                 {(hasDiscount || hasMarkup) && (
                                   <p className="text-gray-400 dark:text-gray-500 line-through mt-0.5">{money(lineTotal)}</p>
                                 )}
@@ -1287,7 +1287,7 @@ export default function CustomerOrderDetail() {
                             {/* Save/markup footer */}
                             {(hasDiscount || hasMarkup) && (
                               <div className="px-4 py-2 flex items-center justify-between"
-                                style={{ borderTop: '1px solid rgba(168,85,247,0.1)', background: hasDiscount ? 'rgba(16,185,129,0.05)' : 'rgba(249,115,22,0.05)' }}>
+                                style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: hasDiscount ? 'rgba(16,185,129,0.05)' : 'rgba(249,115,22,0.05)' }}>
                                 <span className="text-xs font-bold" style={{ color: hasDiscount ? '#065f46' : '#9a3412' }}>
                                   {hasDiscount ? 'Customer saves on this item' : 'Price includes a markup'}
                                 </span>
@@ -1302,9 +1302,9 @@ export default function CustomerOrderDetail() {
                             {/* Pricing notes inline */}
                             {item.pricing_notes && (
                               <div className="px-4 py-2.5 flex gap-2 items-start"
-                                style={{ borderTop: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.05)' }}>
-                                <Info size={12} color="#a855f7" style={{ flexShrink: 0, marginTop: 1 }} />
-                                <p className="text-xs font-semibold m-0" style={{ color: '#a855f7' }}>{item.pricing_notes}</p>
+                                style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
+                                <Info size={12} color="var(--color-primary-500)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                <p className="text-xs font-semibold m-0" style={{ color: 'var(--color-primary-500)' }}>{item.pricing_notes}</p>
                               </div>
                             )}
                           </div>
@@ -1319,9 +1319,9 @@ export default function CustomerOrderDetail() {
                             }[item.return_status] || null;
 
                             return (
-                              <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                                <div className="px-4 py-2.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                  <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: '#a78bfa' }}>
+                              <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                                <div className="px-4 py-2.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                  <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>
                                     {(item.item_type === 'product' || item.item_type === 'custom_product') ? 'Fulfillment' : ' '}
                                   </p>
                                 </div>
@@ -1336,7 +1336,7 @@ export default function CustomerOrderDetail() {
                                     returnCfg && ['Return Status', returnCfg.label, returnCfg.color, `${returnCfg.color}18`],
                                   ].filter(Boolean).map(([label, val, color, bg], i) => (
                                     <div key={label} className="grid px-4 py-2.5 text-xs items-center"
-                                      style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                                      style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                                       <span className="font-semibold" style={{ color }}>{label}</span>
                                       <span className="font-bold text-gray-800 dark:text-gray-200 capitalize">{val}</span>
                                     </div>
@@ -1366,14 +1366,14 @@ export default function CustomerOrderDetail() {
                                   {[
                                     (item.scheduled_start_date || item.scheduled_end_date) && ['Schedule', '#10b981', 'rgba(16,185,129,0.06)',
                                       `${item.scheduled_start_date ? new Date(item.scheduled_start_date).toLocaleDateString() : '—'}${item.scheduled_end_date ? ` → ${new Date(item.scheduled_end_date).toLocaleDateString()}` : ''}`],
-                                    item.estimated_duration    && ['Duration',      '#a855f7', 'rgba(168,85,247,0.06)', item.estimated_duration],
+                                    item.estimated_duration    && ['Duration',      'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', item.estimated_duration],
                                     item.estimated_hours != null && ['Est. Hours',  '#3b82f6', 'rgba(59,130,246,0.06)', `${parseFloat(item.estimated_hours).toFixed(1)} hrs`],
                                     item.hourly_rate != null   && ['Hourly Rate',   '#f59e0b', 'rgba(245,158,11,0.06)', `${money(item.hourly_rate)} / hr`],
                                     item.labor_cost != null    && ['Labor Cost',    '#ef4444', 'rgba(239,68,68,0.06)',  money(item.labor_cost)],
                                     item.material_cost != null && ['Material Cost', '#06b6d4', 'rgba(6,182,212,0.06)',  money(item.material_cost)],
                                   ].filter(Boolean).map(([label, color, bg, val], i) => (
                                     <div key={label} className="grid px-4 py-2.5 text-xs"
-                                      style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                                      style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                                       <span className="font-semibold" style={{ color }}>{label}</span>
                                       <span className="font-bold text-gray-800 dark:text-gray-200">{val}</span>
                                     </div>
@@ -1385,7 +1385,7 @@ export default function CustomerOrderDetail() {
                                     <Chip color={completionCfg.color}>{completionCfg.label}</Chip>
                                     <span className="text-xs font-extrabold" style={{ color: completionCfg.color }}>{item.completion_percentage || 0}%</span>
                                   </div>
-                                  <div className="rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(168,85,247,0.1)' }}>
+                                  <div className="rounded-full overflow-hidden" style={{ height: 5, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                                     <div style={{ height: '100%', width: `${item.completion_percentage || 0}%`, background: completionCfg.color, borderRadius: 99, transition: 'width 0.4s ease' }} />
                                   </div>
                                 </div>
@@ -1395,9 +1395,9 @@ export default function CustomerOrderDetail() {
 
                           {/* Variant details — editable */}
                           {canEdit && (
-                            <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                              <div className="px-4 py-2.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: '#a78bfa' }}>Variant Details</p>
+                            <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                              <div className="px-4 py-2.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Variant Details</p>
                               </div>
                               <div className="grid grid-cols-2 gap-2 p-4 bg-white dark:bg-gray-800">
                                 {['color', 'size', 'material', 'other'].map(field => (
@@ -1413,14 +1413,14 @@ export default function CustomerOrderDetail() {
 
                           {/* Variant details — read only */}
                           {item.variant_details && Object.keys(item.variant_details).length > 0 && (
-                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid rgba(168,85,247,0.2)` }}>
-                              <div style={{ padding: '8px 14px', background: 'rgba(168,85,247,0.08)', borderBottom: `1px solid rgba(168,85,247,0.15)` }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a78bfa', margin: 0 }}>Saved Variant Details</p>
+                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
+                              <div style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)', margin: 0 }}>Saved Variant Details</p>
                               </div>
                               <div style={{ background: 'var(--panel-bg,white)' }}>
                                 {Object.entries(item.variant_details).map(([key, val], i) => (
-                                  <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: i % 2 === 0 ? 'transparent' : 'rgba(168,85,247,0.03)', borderTop: i > 0 ? `1px solid rgba(168,85,247,0.08)` : 'none' }}>
-                                    <span style={{ color: '#a78bfa', fontWeight: 700, textTransform: 'capitalize' }}>{key}</span>
+                                  <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: i % 2 === 0 ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderTop: i > 0 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none' }}>
+                                    <span style={{ color: 'var(--color-primary-400)', fontWeight: 700, textTransform: 'capitalize' }}>{key}</span>
                                     <span style={{ fontWeight: 800, color: 'var(--text,#111827)' }}>{val || '—'}</span>
                                   </div>
                                 ))}
@@ -1448,18 +1448,18 @@ export default function CustomerOrderDetail() {
 
                           {/* Notes & Info */}
                           {(item.notes || item.prerequisites || item.pricing_notes) && (
-                            <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                              <div className="px-4 py-2.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: '#a78bfa' }}>Notes & Info</p>
+                            <div className="mx-4 mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                              <div className="px-4 py-2.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                <p className="text-xs font-extrabold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Notes & Info</p>
                               </div>
                               <div className="bg-white dark:bg-gray-800">
                                 {[
                                   item.prerequisites && ['Prerequisites', item.prerequisites, '#3b82f6', 'rgba(59,130,246,0.06)'],
-                                  item.notes         && ['Notes',          item.notes,         '#a855f7', 'rgba(168,85,247,0.06)'],
+                                  item.notes         && ['Notes',          item.notes,         'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'],
                                   item.pricing_notes && ['Pricing Notes',  item.pricing_notes, '#f59e0b', 'rgba(245,158,11,0.06)'],
                                 ].filter(Boolean).map(([label, val, color, bg], i) => (
                                   <div key={label} className="grid px-4 py-2.5 text-xs"
-                                    style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                                    style={{ gridTemplateColumns: '130px 1fr', background: bg, borderTop: i > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                                     <span className="font-semibold" style={{ color }}>{label}</span>
                                     <span className="font-bold text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{val}</span>
                                   </div>
@@ -1478,11 +1478,11 @@ export default function CustomerOrderDetail() {
             </Section>
 
             {/* Order Items */}
-            <Section title={`Pricing Summary · ${items.length}`} icon={Package} accent="#a855f7">
+            <Section title={`Pricing Summary · ${items.length}`} icon={Package} accent="var(--color-primary-500)">
               {/* Pricing summary */}
               <div className="mt-5" style={{
-                background: `linear-gradient(135deg, rgba(168,85,247,0.05) 0%, rgba(124,58,237,0.02) 100%)`,
-                border: `1px solid rgba(168,85,247,0.2)`,
+                background: `linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 5%, transparent) 0%, color-mix(in srgb, var(--color-primary-600) 2%, transparent) 100%)`,
+                border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)`,
                 borderRadius: 14,
                 padding: '16px 20px',
                 display: 'flex',
@@ -1498,13 +1498,13 @@ export default function CustomerOrderDetail() {
                       <span className="flex items-center gap-1.5">
                         🎁 Referral Discount
                         <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                          style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-500)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                           Applied
                         </span>
                       </span>
                     ), 
                     value: `−${money(order.referral_discount)}`, 
-                    color: '#a855f7' 
+                    color: 'var(--color-primary-500)' 
                   },
                   order.promo_discount > 0 && { 
                     label: (
@@ -1539,27 +1539,27 @@ export default function CustomerOrderDetail() {
                       </span>
                     ),
                     value: `-${money(order.credit_account_deduction)}`,
-                    color: '#7c3aed',
+                    color: 'var(--color-primary-600)',
                   },
                 ].filter(Boolean).map(({ label, value, color, kes }, i) => (
                   <div key={i} className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
                     <div className="text-right">
-                      <span className="text-sm font-semibold" style={{ color: color || '#a855f7' }}>{value}</span>
+                      <span className="text-sm font-semibold" style={{ color: color || 'var(--color-primary-500)' }}>{value}</span>
                       {kes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{kes}</p>}
                     </div>
                   </div>
                 ))}
 
                 {/* Divider */}
-                <div className="h-px my-2" style={{ background: 'rgba(168,85,247,0.2)' }} />
+                <div className="h-px my-2" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
 
                 {/* Total Row */}
                 <div className="flex justify-between items-center pt-2" style={{
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                   borderRadius: 10,
                   padding: '10px 14px',
-                  boxShadow: '0 4px 12px rgba(168,85,247,0.25)'
+                  boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 25%, transparent)'
                 }}>
                   <span className="text-sm font-bold text-white">Total</span>
                   <div className="text-right">
@@ -1595,12 +1595,12 @@ export default function CustomerOrderDetail() {
                       confirmed:  { color: '#10b981', label: 'Confirmed' },
                       failed:     { color: '#ef4444', label: 'Failed' },
                       cancelled:  { color: '#6b7280', label: 'Cancelled' },
-                      refunded:   { color: '#8b5cf6', label: 'Refunded' },
+                      refunded:   { color: 'var(--color-primary-400)', label: 'Refunded' },
                     }[p.status] || { color: '#9ca3af', label: p.status };
 
                     return (
                       <div key={p.id} className="rounded-xl p-4"
-                        style={{ border: '1px solid rgba(168,85,247,0.15)', background: isConfirmed ? 'rgba(16,185,129,0.04)' : 'transparent' }}>
+                        style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: isConfirmed ? 'rgba(16,185,129,0.04)' : 'transparent' }}>
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                           {/* Left: Icon + Meta */}
                           <div className="flex items-center gap-3">
@@ -1616,8 +1616,8 @@ export default function CustomerOrderDetail() {
                                   <span style={{
                                     fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                                     padding: '1px 7px', borderRadius: 4,
-                                    background: p.method === 'mpesa' ? 'rgba(16, 185, 129, 0.1)' : p.method === 'credit' ? 'rgba(124,58,237,0.1)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
-                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? '#5b21b6'              : p.method === 'refund' ? '#991b1b'              : '#374151',
+                                    background: p.method === 'mpesa' ? 'rgba(16, 185, 129, 0.1)' : p.method === 'credit' ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
+                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? 'var(--color-primary-800)'              : p.method === 'refund' ? '#991b1b'              : '#374151',
                                   }}>
                                     {p.method === 'bank_transfer' ? 'Bank' : p.method === 'cod' ? 'COD' : p.method}
                                   </span>
@@ -1632,7 +1632,7 @@ export default function CustomerOrderDetail() {
                           {/* Right: Status + Amount */}
                           <div className="text-right">
                             <StatusPill label={statusCfg.label} color={statusCfg.color} />
-                            <p className="text-sm font-extrabold mt-1" style={{ color: '#a855f7' }}>
+                            <p className="text-sm font-extrabold mt-1" style={{ color: 'var(--color-primary-500)' }}>
                               {moneyKes(p.amount_expected)}
                             </p>
                             {isConfirmed && p.mpesa_receipt_number && (
@@ -1653,15 +1653,15 @@ export default function CustomerOrderDetail() {
 
                   {/* Summary Footer */}
                   <div className="mt-4 p-4 rounded-xl"
-                    style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                    style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#c084fc' }}>Total Confirmed</span>
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Total Confirmed</span>
                       <span className="text-sm font-extrabold" style={{ color: '#10b981' }}>
                         {moneyKes(orderPayments.total_confirmed_kes)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#c084fc' }}>Balance Remaining</span>
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Balance Remaining</span>
                       <span className="text-sm font-extrabold"
                         style={{ color: orderPayments.balance_remaining > 0 ? '#ef4444' : '#10b981' }}>
                         {moneyKes(orderPayments.balance_remaining)}
@@ -1682,10 +1682,10 @@ export default function CustomerOrderDetail() {
 
                 {/* Payment + Delivery row */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                  <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
-                      <CreditCard size={11} color="#c084fc" />
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Payment</p>
+                      <CreditCard size={11} color="var(--color-primary-400)" />
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Payment</p>
                     </div>
                     {canEdit ? (
                       <Select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
@@ -1698,14 +1698,14 @@ export default function CustomerOrderDetail() {
                           { value: 'credit', label: 'Credit' },
                         ]} />
                     ) : (
-                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{paymentMethod.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-bold capitalize m-0" style={{ color: 'var(--color-primary-600)' }}>{paymentMethod.replace(/_/g, ' ')}</p>
                     )}
                   </div>
 
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                  <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Truck size={11} color="#c084fc" />
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}> Delivery</p>
+                      <Truck size={11} color="var(--color-primary-400)" />
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}> Delivery</p>
                     </div>
                     {canEdit ? (
                       <Select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}
@@ -1714,33 +1714,33 @@ export default function CustomerOrderDetail() {
                           label: `${opt.name}${parseFloat(opt.cost) === 0 ? '' : ` — KES ${Number(opt.cost).toLocaleString()}`}`,
                         }))} />
                     ) : (
-                      <p className="text-sm font-bold capitalize m-0" style={{ color: '#7c3aed' }}>{order.shipping_method_name || deliveryMethod.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-bold capitalize m-0" style={{ color: 'var(--color-primary-600)' }}>{order.shipping_method_name || deliveryMethod.replace(/_/g, ' ')}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Courier company — only when courier selected */}
                 {deliveryMethod === 'courier' && (
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                  <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Truck size={11} color="#c084fc" />
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Courier Details</p>
+                      <Truck size={11} color="var(--color-primary-400)" />
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Courier Details</p>
                     </div>
                     {canEdit
                       ? <Input value={courierCompany} onChange={e => setCourierCompany(e.target.value)} placeholder="Enter courier details (e.g., G4S, Speedball...)" />
-                      : <p className="text-sm font-bold m-0" style={{ color: '#7c3aed' }}>{courierCompany || 'Not specified'}</p>}
+                      : <p className="text-sm font-bold m-0" style={{ color: 'var(--color-primary-600)' }}>{courierCompany || 'Not specified'}</p>}
                   </div>
                 )}
 
                 {/* Order Type */}
-                <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5">
-                      <Package size={11} color="#c084fc" />
-                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Order Type</p>
+                      <Package size={11} color="var(--color-primary-400)" />
+                      <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Order Type</p>
                     </div>
                     {canEdit && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-500)' }}>
                         {totalQty} items
                       </span>
                     )}
@@ -1769,10 +1769,10 @@ export default function CustomerOrderDetail() {
                 </div>
 
                 {/* Shipping Address */}
-                <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <MapPin size={11} color="#c084fc" />
-                    <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Shipping Address</p>
+                    <MapPin size={11} color="var(--color-primary-400)" />
+                    <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Shipping Address</p>
                   </div>
                   {canEdit
                     ? <Textarea value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} placeholder="Enter complete shipping address..." rows={3} />
@@ -1780,10 +1780,10 @@ export default function CustomerOrderDetail() {
                 </div>
 
                 {/* Customer Notes */}
-                <div className="rounded-xl p-3" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <div className="rounded-xl p-3" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <FileText size={11} color="#c084fc" />
-                    <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#c084fc' }}>Customer Notes</p>
+                    <FileText size={11} color="var(--color-primary-400)" />
+                    <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-400)' }}>Customer Notes</p>
                   </div>
                   {canEdit
                     ? <Textarea value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder="Any special instructions or notes..." rows={3} />
@@ -1799,7 +1799,7 @@ export default function CustomerOrderDetail() {
           {/* ── RIGHT SIDEBAR ─────────────────────────────────────────────── */}
           <div className="space-y-4">
             {/* Status card */}
-            <Section title="Status" icon={CheckCircle} accent="#a855f7">
+            <Section title="Status" icon={CheckCircle} accent="var(--color-primary-500)">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400 dark:text-gray-500">Order</span>
@@ -1812,7 +1812,7 @@ export default function CustomerOrderDetail() {
                 {order.invoice_number && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400 dark:text-gray-500">Invoice</span>
-                    <span className="text-xs font-semibold" style={{ color: '#a855f7' }}>{order.invoice_number}</span>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--color-primary-500)' }}>{order.invoice_number}</span>
                   </div>
                 )}
               </div>
@@ -1824,7 +1824,7 @@ export default function CustomerOrderDetail() {
                 <div className="space-y-2 text-sm">
                   <div>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Tracking Number</p>
-                    <p className="font-semibold" style={{ color: '#a855f7' }}>{order.tracking_number}</p>
+                    <p className="font-semibold" style={{ color: 'var(--color-primary-500)' }}>{order.tracking_number}</p>
                   </div>
                   {order.courier_company && (
                     <div>
@@ -1846,19 +1846,19 @@ export default function CustomerOrderDetail() {
             )}
             
             {/* Timeline */}
-            <Section title="Timeline" icon={Clock} accent="#a855f7">
+            <Section title="Timeline" icon={Clock} accent="var(--color-primary-500)">
               <div className="relative" style={{ paddingLeft: 22 }}>
                 {/* Vertical connecting line */}
                 <div className="absolute top-3 bottom-3 left-[9px]" style={{
                   width: 2,
-                  background: 'linear-gradient(180deg, rgba(168,85,247,0.25) 0%, rgba(168,85,247,0.05) 100%)',
+                  background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-primary-500) 25%, transparent) 0%, color-mix(in srgb, var(--color-primary-500) 5%, transparent) 100%)',
                   borderRadius: 2
                 }} />
 
                 {[
-                  { label: 'Created',   val: order.created_at,   color: '#a855f7' },
+                  { label: 'Created',   val: order.created_at,   color: 'var(--color-primary-500)' },
                   { label: 'Confirmed', val: order.confirmed_at,  color: '#3b82f6' },
-                  { label: 'Shipped',   val: order.shipped_at,    color: '#a855f7' },
+                  { label: 'Shipped',   val: order.shipped_at,    color: 'var(--color-primary-500)' },
                   { label: 'Delivered', val: order.delivered_at,  color: '#10b981' },
                   { label: 'Cancelled', val: order.cancelled_at,  color: '#ef4444' },
                 ].filter(t => t.val).map(({ label, val, color }) => (
@@ -1868,12 +1868,12 @@ export default function CustomerOrderDetail() {
                       <div style={{
                         width: 8, height: 8, borderRadius: '50%',
                         background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-                        boxShadow: `0 0 0 3px rgba(168,85,247,0.06)`
+                        boxShadow: `0 0 0 3px color-mix(in srgb, var(--color-primary-500) 6%, transparent)`
                       }} />
                     </div>
                     
                     {/* Event Details */}
-                    <div className="flex-1 pb-1" style={{ borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+                    <div className="flex-1 pb-1" style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                       <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color }}>
                         {label}
                       </p>
@@ -1940,15 +1940,15 @@ export default function CustomerOrderDetail() {
       {cancelModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-            style={{ background: 'white', border: '1px solid rgba(168,85,247,0.2)' }}>
+            style={{ background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
 
             {/* Purple accent bar */}
-            <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+            <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
 
             <div className="p-6">
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#c084fc' }}>Action</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--color-primary-400)' }}>Action</p>
               <h3 className="text-lg font-bold mb-4" style={{ color: '#111827' }}>
-                Cancel <span style={{ color: '#a855f7' }}>{order.order_number}</span>
+                Cancel <span style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</span>
               </h3>
 
               <div className="flex items-start gap-3 p-3 rounded-xl mb-4"
@@ -1977,9 +1977,9 @@ export default function CustomerOrderDetail() {
                 />
               </div>
 
-              <div className="flex gap-3 mt-5 pt-4" style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+              <div className="flex gap-3 mt-5 pt-4" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                 <button onClick={() => setCancelModal(false)} type="button"
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:border-purple-300"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:border-primary-300"
                   style={{ background: 'white', border: '1.5px solid #e5e7eb', color: '#6b7280' }}>
                   Keep Order
                 </button>
@@ -2036,31 +2036,31 @@ export default function CustomerOrderDetail() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="rounded-2xl max-w-md w-full overflow-hidden relative"
             style={{
-              background: 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)',
-              border: '1px solid rgba(168,85,247,0.2)',
-              boxShadow: '0 25px 50px -12px rgba(168,85,247,0.15), 0 0 0 1px rgba(168,85,247,0.1)'
+              background: 'linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)) 100%)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--color-primary-500) 15%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'
             }}>
 
             {/* Top gradient accent */}
-            <div style={{ height: 4, background: 'linear-gradient(90deg,#a855f7,#7c3aed,#a855f7)' }} />
+            <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600),var(--color-primary-500))' }} />
 
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" 
-                  style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                  <Star size={15} color="#a855f7" fill="#a855f7" />
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                  <Star size={15} color="var(--color-primary-500)" fill="var(--color-primary-500)" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest m-0" style={{ color: '#7c3aed' }}>Rate Your Order</p>
+                  <p className="text-xs font-bold uppercase tracking-widest m-0" style={{ color: 'var(--color-primary-600)' }}>Rate Your Order</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Help us improve your experience</p>
                 </div>
               </div>
 
               {/* Rating buttons */}
-                            <div className="rounded-xl overflow-hidden mb-5" style={{ border: '1px solid rgba(168,85,247,0.15)', background: 'rgba(255,255,255,0.7)' }}>
-                <div className="px-4 py-3" style={{ background: 'linear-gradient(90deg, rgba(168,85,247,0.05), rgba(124,58,237,0.02))', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
-                  <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#6b21a8' }}>
+                            <div className="rounded-xl overflow-hidden mb-5" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: 'rgba(255,255,255,0.7)' }}>
+                <div className="px-4 py-3" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 5%, transparent), color-mix(in srgb, var(--color-primary-600) 2%, transparent))', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                  <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-800)' }}>
                     How was your experience? (1–10) *
                   </p>
                 </div>
@@ -2093,7 +2093,7 @@ export default function CustomerOrderDetail() {
                   </div>
                   
                   {rating > 0 && (
-                    <div className="mt-4 flex items-center justify-center gap-3 p-2 rounded-lg" style={{ background: 'rgba(168,85,247,0.04)' }}>
+                    <div className="mt-4 flex items-center justify-center gap-3 p-2 rounded-lg" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                       <span className="px-2.5 py-1 rounded-full text-xs font-bold border"
                         style={{
                           background: `${rating <= 4 ? '#ef4444' : rating <= 7 ? '#f59e0b' : '#10b981'}18`,
@@ -2109,9 +2109,9 @@ export default function CustomerOrderDetail() {
               </div>
 
               {/* Feedback */}
-              <div className="rounded-xl overflow-hidden mb-5" style={{ border: '1px solid rgba(168,85,247,0.15)', background: 'rgba(255,255,255,0.7)' }}>
-                <div className="px-4 py-2.5" style={{ background: 'linear-gradient(90deg, rgba(168,85,247,0.05), rgba(124,58,237,0.02))', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
-                  <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: '#6b21a8' }}>
+              <div className="rounded-xl overflow-hidden mb-5" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: 'rgba(255,255,255,0.7)' }}>
+                <div className="px-4 py-2.5" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 5%, transparent), color-mix(in srgb, var(--color-primary-600) 2%, transparent))', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                  <p className="text-xs font-bold uppercase tracking-wider m-0" style={{ color: 'var(--color-primary-800)' }}>
                     Feedback <span style={{ color: '#9ca3af', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optional</span>
                   </p>
                 </div>
@@ -2129,7 +2129,7 @@ export default function CustomerOrderDetail() {
                       fontWeight: 500, resize: 'vertical', fontFamily: 'inherit',
                       boxSizing: 'border-box', transition: 'all 0.2s ease',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(168,85,247,0.1)'; e.currentTarget.style.background = '#fff'; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 4px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.background = '#fff'; }}
                     onBlur={e =>  { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#fafaf9'; }}
                   />
                   <p className="text-xs mt-2 text-right m-0 font-medium" style={{ color: '#9ca3af' }}>{feedback.length} / 1000</p>
@@ -2137,10 +2137,10 @@ export default function CustomerOrderDetail() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+              <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                 <button type="button" onClick={() => setRatingModal(false)}
                   style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#6b7280'; }}
                 >
                   Cancel
@@ -2148,11 +2148,11 @@ export default function CustomerOrderDetail() {
                 <button type="button" onClick={handleSubmitRating} disabled={rating === 0 || loading}
                   style={{
                     flex: 1, padding: '11px', borderRadius: 10, border: 'none',
-                    background: rating === 0 ? '#d1d5db' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                    background: rating === 0 ? '#d1d5db' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                     color: 'white', fontSize: '0.85rem', fontWeight: 700,
                     cursor: rating === 0 ? 'not-allowed' : 'pointer',
                     opacity: rating === 0 ? 0.6 : 1,
-                    boxShadow: rating === 0 ? 'none' : '0 6px 16px rgba(168,85,247,0.35), 0 0 0 1px rgba(168,85,247,0.2) inset',
+                    boxShadow: rating === 0 ? 'none' : '0 6px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent) inset',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     transition: 'all 0.2s ease',
                   }}

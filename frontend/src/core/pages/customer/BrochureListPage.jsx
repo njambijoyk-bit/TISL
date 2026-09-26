@@ -32,14 +32,14 @@ export default function BrochureListPage() {
                 {/* subtle purple glow */}
                 <div
                     className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 110%, #a855f722, transparent)' }}
+                    style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 110%, var(--color-primary-500)22, transparent)' }}
                 />
 
                 <div className="relative max-w-3xl mx-auto">
                     {/* icon badge */}
                     <div
                         className="w-14 h-14 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 8px 32px rgba(168,85,247,0.4)' }}
+                        style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }}
                     >
                         <BookOpen size={26} color="white" strokeWidth={2} />
                     </div>
@@ -64,7 +64,7 @@ export default function BrochureListPage() {
                                 background: 'rgba(255,255,255,0.07)',
                                 border: '1px solid rgba(255,255,255,0.1)',
                             }}
-                            onFocus={e => e.target.style.borderColor = '#a855f7'}
+                            onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                             placeholder="Search catalogues…"
                             value={searchTerm}
@@ -141,7 +141,7 @@ function BrochureCard({ brochure }) {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)' }}>
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5f3ff, color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary)))' }}>
                         <BookOpen size={64} color="#c4b5fd" strokeWidth={1.5} />
                     </div>
                 )}
@@ -164,7 +164,7 @@ function BrochureCard({ brochure }) {
                 >
                     <span
                         className="px-5 py-2.5 rounded-xl text-sm font-black text-white"
-                        style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 4px 16px rgba(168,85,247,0.5)' }}
+                        style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 4px 16px color-mix(in srgb, var(--color-primary-500) 50%, transparent)' }}
                     >
                         View Brochure
                     </span>
@@ -176,7 +176,7 @@ function BrochureCard({ brochure }) {
                 <div className="flex items-center gap-2 mb-3">
                     <span
                         className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-full"
-                        style={{ background: '#f5f3ff', color: '#7c3aed' }}
+                        style={{ background: '#f5f3ff', color: 'var(--color-primary-600)' }}
                     >
                         Catalogue
                     </span>
@@ -195,7 +195,7 @@ function BrochureCard({ brochure }) {
                 >
                     <span
                         className="flex items-center gap-2 text-sm font-black transition-all duration-200"
-                        style={{ color: '#a855f7' }}
+                        style={{ color: 'var(--color-primary-500)' }}
                     >
                         Read Online
                         <ArrowRight

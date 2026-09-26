@@ -30,7 +30,7 @@ const s = {
     email: { fontSize: 13, color: '#555' },
     headerRight: { display: 'flex', gap: 12, alignItems: 'center' },
     logoutBtn: { padding: '8px 18px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 13, cursor: 'pointer' },
-    browseBtn: { padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' },
+    browseBtn: { padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' },
     body: { maxWidth: 860, margin: '0 auto', padding: '40px 40px 80px' },
     sectionTitle: { fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', fontWeight: 600, marginBottom: 20 },
     emptyBox: { textAlign: 'center', padding: '64px 0', color: '#444', border: '1px dashed #1e1e1e', borderRadius: 12 },
@@ -66,7 +66,7 @@ const s = {
     fileInput: { display: 'none' },
     docType: { padding: '8px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 13, marginBottom: 12, width: '100%', boxSizing: 'border-box' },
     uploadBtn: { padding: '10px 20px', borderRadius: 8, border: '1px dashed #333', background: 'transparent', color: '#888', fontSize: 13, cursor: 'pointer', width: '100%', marginBottom: 10 },
-    uploadSubmit: { padding: '11px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' },
+    uploadSubmit: { padding: '11px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' },
     withdrawBtn: { padding: '10px 0', borderRadius: 8, border: '1px solid #2d1111', background: 'transparent', color: '#f87171', fontSize: 13, cursor: 'pointer', width: '100%', marginTop: 12 },
     docRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #1a1a1a', fontSize: 13 },
     closeBtn: { position: 'absolute', top: 20, right: 24, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 20 },
@@ -157,7 +157,7 @@ export default function ApplicantPortalPage() {
                         {applications.map((app) => (
                             <div key={app.id} style={s.card}
                                 onClick={() => openDetail(app.id)}
-                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#a855f7'}
+                                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
                                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}>
                                 <div style={s.cardTop}>
                                     <div>

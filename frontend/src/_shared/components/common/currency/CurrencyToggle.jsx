@@ -14,7 +14,7 @@ import { colors, radius } from '../../../theme/tokens';
 export default function CurrencyToggle({ onChange, compact = false, dark = false, color }) {
   // Storefront header can be dark; admin is light.
   const pal = dark
-    ? { text: color ?? '#d4d4d8', border: 'rgba(168,85,247,0.3)', bg: 'rgba(168,85,247,0.08)', menu: '#1f1b2e', menuBorder: 'rgba(168,85,247,0.25)', item: '#e4e4e7', faint: '#a1a1aa', hover: 'rgba(168,85,247,0.12)', selected: 'rgba(168,85,247,0.2)' }
+    ? { text: color ?? '#d4d4d8', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', menu: '#1f1b2e', menuBorder: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)', item: '#e4e4e7', faint: '#a1a1aa', hover: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', selected: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }
     : { text: color ?? colors.textBody, border: colors.tint(0.18), bg: colors.tint(0.04), menu: colors.surface, menuBorder: colors.tint(0.12), item: colors.textBody, faint: colors.textFaint, hover: colors.tint(0.04), selected: colors.tint(0.08) };
   const { currencies, fetchCurrencies, setDisplayCurrency, getActive } = useCurrencyStore();
   const invalidateDisplayPrices = useProductStore((s) => s.invalidateDisplayPrices);

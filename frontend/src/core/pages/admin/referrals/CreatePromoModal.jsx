@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { X, Tag, CheckCircle, AlertCircle } from 'lucide-react';
 import usePromoCodeStore from '../../../../_shared/store/promoCodeStore';
 
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.07)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const iBase = {
   width: '100%', padding: '9px 12px', borderRadius: 10,
@@ -153,7 +153,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
           background: purpleLt, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
           <div>
-            <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#c084fc', marginBottom: 3 }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-400)', marginBottom: 3 }}>
               Admin
             </p>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: purple, margin: 0 }}>
@@ -324,7 +324,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
               background: loading ? '#e5e7eb' : `linear-gradient(135deg,${purple},${purpleDk})`,
               color: loading ? '#9ca3af' : 'white', fontSize: '0.85rem', fontWeight: 800,
               cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: loading ? 'none' : '0 4px 14px rgba(168,85,247,0.3)',
+              boxShadow: loading ? 'none' : '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             }}>
             {loading ? 'Creating…' : 'Create Code'}
           </button>

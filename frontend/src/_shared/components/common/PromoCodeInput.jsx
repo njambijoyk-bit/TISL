@@ -74,28 +74,28 @@ export default function PromoCodeInput({
       <div style={{
         padding:      '12px 14px',
         borderRadius: 12,
-        background:   'rgba(168,85,247,0.06)',
-        border:       '1.5px solid rgba(168,85,247,0.25)',
+        background:   'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+        border:       '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
         display:      'flex',
         alignItems:   'flex-start',
         gap:          10,
       }}>
-        <CheckCircle size={16} color="#a855f7" style={{ flexShrink: 0, marginTop: 1 }} />
+        <CheckCircle size={16} color="var(--color-primary-500)" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>
+              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
                 {appliedPromo.code}
               </p>
-              <p style={{ fontSize: '0.72rem', color: '#a855f7', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-500)', margin: '2px 0 0' }}>
                 {appliedPromo.name}
               </p>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <p style={{ fontSize: '0.92rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>
+              <p style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0 }}>
                 -{symbol} {fmt(appliedPromo.discount)}
               </p>
-              <p style={{ fontSize: '0.68rem', color: '#a855f7', margin: '1px 0 0' }}>
+              <p style={{ fontSize: '0.68rem', color: 'var(--color-primary-500)', margin: '1px 0 0' }}>
                 {appliedPromo.reward_type === 'percentage'
                   ? `${appliedPromo.reward_value}% off`
                   : 'Fixed discount'}
@@ -165,8 +165,8 @@ export default function PromoCodeInput({
               fontFamily:   'monospace',
             }}
             onFocus={e => {
-              if (!promoError) e.currentTarget.style.borderColor = '#a855f7';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)';
+              if (!promoError) e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
             }}
             onBlur={e => {
               if (!promoError) e.currentTarget.style.borderColor = '#e5e7eb';
@@ -186,7 +186,7 @@ export default function PromoCodeInput({
             border:       'none',
             background:   (disabled || promoLoading || !input.trim())
                             ? '#e5e7eb'
-                            : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                            : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
             color:        (disabled || promoLoading || !input.trim())
                             ? '#9ca3af'
                             : 'white',
@@ -202,7 +202,7 @@ export default function PromoCodeInput({
             transition:   'all 0.15s',
             boxShadow:    (disabled || promoLoading || !input.trim())
                             ? 'none'
-                            : '0 4px 12px rgba(168,85,247,0.3)',
+                            : '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           }}
         >
           {promoLoading

@@ -106,7 +106,7 @@ const MilestoneCard = ({
 
   return (
     <div className="rounded-xl overflow-hidden"
-      style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
 
       {/* Status accent bar */}
       <div style={{ height: 3, background: cfg.color, opacity: 0.7 }} />
@@ -148,7 +148,7 @@ const MilestoneCard = ({
               {isLong && !expanded && (
                 <button type="button" onClick={() => setExpanded(true)}
                   className="ml-1 hover:underline whitespace-nowrap"
-                  style={{ color: '#a855f7' }}>
+                  style={{ color: 'var(--color-primary-500)' }}>
                   Show more
                 </button>
               )}
@@ -239,12 +239,12 @@ const MilestoneCard = ({
       {/* ── Expanded detail panel ── */}
       {expanded && (
         <div className="bg-white dark:bg-gray-800 px-4 py-4 space-y-4"
-          style={{ borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+          style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
 
           {desc && (
             <div>
               <p className="text-xs font-bold uppercase tracking-wide mb-1"
-                style={{ color: '#c084fc' }}>
+                style={{ color: 'var(--color-primary-400)' }}>
                 Description
               </p>
               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{desc}</p>
@@ -253,10 +253,10 @@ const MilestoneCard = ({
 
           {/* Detail grid */}
           <div className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid rgba(168,85,247,0.15)' }}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             {/* Grid header */}
-            <div style={{ padding: '8px 14px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
-              <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', margin: 0 }}>
+            <div style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
+              <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', margin: 0 }}>
                 Details
               </p>
             </div>
@@ -308,7 +308,7 @@ const MilestoneCard = ({
                     display: 'grid', gridTemplateColumns: '150px 1fr',
                     alignItems: 'center', padding: '9px 14px',
                     background: row.bg,
-                    borderBottom: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none',
+                    borderBottom: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ color: row.color }}>{row.icon}</span>
@@ -325,10 +325,10 @@ const MilestoneCard = ({
             <div className="rounded-lg px-3 py-2.5 text-sm"
               style={isRejected
                 ? { background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', color: '#b91c1c' }
-                : { background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.2)', color: '#6b7280' }
+                : { background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#6b7280' }
               }>
               <p className="text-xs font-bold uppercase tracking-wide mb-1"
-                style={{ color: isRejected ? '#ef4444' : '#a855f7', opacity: 0.85 }}>
+                style={{ color: isRejected ? '#ef4444' : 'var(--color-primary-500)', opacity: 0.85 }}>
                 {isRejected ? 'Rejection Notes' : 'Approval Notes'}
               </p>
               <p className="italic">{milestone.approval_notes}</p>
@@ -375,9 +375,9 @@ const MilestoneCard = ({
                 </button>
                 <button type="button" onClick={() => { setShowRejectInput(false); setRejectNotes(''); }}
                   className="px-3 py-1.5 text-xs rounded-lg transition-colors text-gray-600 dark:text-gray-400"
-                  style={{ border: '1px solid rgba(168,85,247,0.2)' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}>
+                  style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}>
                   Cancel
                 </button>
               </div>

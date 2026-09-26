@@ -5,17 +5,17 @@ import LoadingSpinner from '../../../../_shared/components/layout/LoadingSpinner
 import api from '../../../../_shared/api/axios';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const fIn  = e => { e.currentTarget.style.borderColor = purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${purpleLt}`; };
-const fOut = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.boxShadow = 'none'; };
+const fOut = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button' }) => {
   const v = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
   };
   return (
@@ -113,7 +113,7 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
     <div ref={containerRef} style={{ position: 'relative' }}>
       {/* Input */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <Search style={{ position: 'absolute', left: 12, width: 14, height: 14, color: '#c084fc', pointerEvents: 'none' }} />
+        <Search style={{ position: 'absolute', left: 12, width: 14, height: 14, color: 'var(--color-primary-400)', pointerEvents: 'none' }} />
         <input
           type="text"
           value={query}
@@ -127,15 +127,15 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
           style={{
             width: '100%', paddingLeft: 36, paddingRight: 36, paddingTop: 9, paddingBottom: 9,
             borderRadius: 10, fontSize: '0.83rem',
-            background: 'rgba(168,85,247,0.05)',
-            border: '1.5px solid rgba(168,85,247,0.22)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             color: '#111827', outline: 'none', boxSizing: 'border-box',
             transition: 'border-color 150ms, box-shadow 150ms',
             fontFamily: 'inherit',
           }}
         />
         {searching ? (
-          <Loader2 style={{ position: 'absolute', right: 12, width: 13, height: 13, color: '#c084fc', animation: 'spin 1s linear infinite', pointerEvents: 'none' }} />
+          <Loader2 style={{ position: 'absolute', right: 12, width: 13, height: 13, color: 'var(--color-primary-400)', animation: 'spin 1s linear infinite', pointerEvents: 'none' }} />
         ) : query ? (
           <button type="button" onClick={handleClear} style={{
             position: 'absolute', right: 10, background: 'none', border: 'none',
@@ -153,7 +153,7 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, zIndex: 50,
           borderRadius: 12, overflow: 'hidden', background: 'white',
-          border: '1px solid rgba(168,85,247,0.3)',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
         }}>
           {results.length === 0 ? (
@@ -169,24 +169,24 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
                     <button type="button" onClick={() => handleSelect(admin)} style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 14px', background: 'transparent', border: 'none',
-                      borderBottom: '1px solid rgba(168,85,247,0.07)',
+                      borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
                       cursor: 'pointer', textAlign: 'left', transition: 'background 120ms',
                     }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.07)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       {/* Initials avatar */}
                       <div style={{
                         width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.6rem', fontWeight: 700, color: '#c084fc',
-                        border: '1.5px solid rgba(168,85,247,0.25)',
+                        fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-400)',
+                        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                       }}>
                         {fullName(admin).split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <p style={{ fontSize: '0.83rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fullName(admin)}
-                          {isCurrent && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#a855f7', fontWeight: 700 }}>Currently assigned</span>}
+                          {isCurrent && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>Currently assigned</span>}
                         </p>
                         <p style={{ fontSize: '0.71rem', color: '#6b7280', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {admin.email}
@@ -211,13 +211,13 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
           <div style={{
             width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.6rem', fontWeight: 700, color: '#c084fc',
-            border: '1.5px solid rgba(168,85,247,0.25)',
+            fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-400)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
           }}>
             {fullName(selected).split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ fontSize: '0.83rem', fontWeight: 600, color: '#c084fc', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--color-primary-400)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {fullName(selected)}
             </p>
             <p style={{ fontSize: '0.71rem', color: '#9ca3af', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -21,22 +21,22 @@ const ProjectCard = ({ project }) => {
     <div
       onClick={() => navigate(`/my-projects/${project.id}`)}
       style={{
-        borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)',
+        borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
         padding: '20px 24px', cursor: 'pointer', overflow: 'hidden',
         boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         transition: 'box-shadow 200ms, transform 200ms, border-color 200ms',
         position: 'relative',
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(168,85,247,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; }}
     >
       {/* Status accent bar */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#a855f7', opacity: 0.5 }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--color-primary-500)', opacity: 0.5 }} />
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10, marginTop: 4 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#a855f7', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {project.title}
           </p>
           <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>{project.project_number}</p>
@@ -52,7 +52,7 @@ const ProjectCard = ({ project }) => {
       )}
 
       {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
         <ProjectPriorityBadge priority={project.priority} showDot />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.75rem' }}>
           {project.target_end_date && (

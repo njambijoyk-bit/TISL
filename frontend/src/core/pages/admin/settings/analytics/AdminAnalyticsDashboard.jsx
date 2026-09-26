@@ -34,7 +34,7 @@ function getPresetDates(days) {
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ icon: Icon, label, value, sub, color = '#a855f7', accent }) {
+function StatCard({ icon: Icon, label, value, sub, color = 'var(--color-primary-500)', accent }) {
   return (
     <div style={{
       background: 'white', borderRadius: 14, padding: '18px 20px',
@@ -59,7 +59,7 @@ function Section({ title, icon: Icon, children, action }) {
     <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }} className="dark:bg-gray-800 dark:border-gray-700">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {Icon && <Icon size={15} style={{ color: '#a855f7' }} />}
+          {Icon && <Icon size={15} style={{ color: 'var(--color-primary-500)' }} />}
           <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">{title}</span>
         </div>
         {action}
@@ -70,7 +70,7 @@ function Section({ title, icon: Icon, children, action }) {
 }
 
 // ── Mini bar ──────────────────────────────────────────────────────────────────
-function MiniBar({ value, max, color = '#a855f7' }) {
+function MiniBar({ value, max, color = 'var(--color-primary-500)' }) {
   const w = max > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
     <div style={{ flex: 1, height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
@@ -80,7 +80,7 @@ function MiniBar({ value, max, color = '#a855f7' }) {
 }
 
 // ── Sparkline (simple SVG) ────────────────────────────────────────────────────
-function Sparkline({ data, color = '#a855f7' }) {
+function Sparkline({ data, color = 'var(--color-primary-500)' }) {
   if (!data?.length) return null;
   const vals = data.map(d => Number(d.sessions));
   const max = Math.max(...vals, 1);
@@ -147,7 +147,7 @@ export default function AdminAnalyticsDashboard() {
         {/* ── Page header ──────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a855f7', margin: 0 }} className="dark:text-white">
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }} className="dark:text-white">
               Search Analytics
             </h1>
             <p style={{ color: '#6b7280', fontSize: '0.85rem', marginTop: 4 }}>
@@ -162,7 +162,7 @@ export default function AdminAnalyticsDashboard() {
                 style={{
                   padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                   fontSize: '0.78rem', fontWeight: 600,
-                  background: preset === i ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#f3f4f6',
+                  background: preset === i ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
                   color: preset === i ? 'white' : '#6b7280',
                 }}>
                 {p.label}
@@ -190,7 +190,7 @@ export default function AdminAnalyticsDashboard() {
                 fontWeight: 700, color: '#9ca3af', fontFamily: 'monospace',
                 display: 'flex', alignItems: 'center', gap: 4,
               }}
-              className="dark:bg-gray-800 dark:border-gray-600 hover:border-purple-300 hover:text-purple-500"
+              className="dark:bg-gray-800 dark:border-gray-600 hover:border-primary-300 hover:text-primary-500"
               title="Developer flow diagram">
               // dev
             </button>
@@ -205,7 +205,7 @@ export default function AdminAnalyticsDashboard() {
                 padding: '7px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
                 background: tab === t ? 'white' : 'transparent',
-                color: tab === t ? '#a855f7' : '#9ca3af',
+                color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
                 boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 textTransform: 'capitalize',
               }}>
@@ -225,13 +225,13 @@ export default function AdminAnalyticsDashboard() {
           <>
             {/* ── Stat cards ───────────────────────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
-              <StatCard icon={Activity}     label="Total Sessions"   value={fmt(t?.total_sessions)}   color="#a855f7" />
+              <StatCard icon={Activity}     label="Total Sessions"   value={fmt(t?.total_sessions)}   color="var(--color-primary-500)" />
               <StatCard icon={Search}       label="Searches"         value={fmt(t?.search_events)}    color="#3b82f6" />
               <StatCard icon={AlertTriangle} label="Zero Results"    value={fmt(t?.zero_result_searches)} color="#ef4444" sub="searches with no match" />
               <StatCard icon={Eye}          label="Product Views"    value={fmt(t?.product_views)}    color="#10b981" />
               <StatCard icon={ShoppingCart} label="Cart Adds"        value={fmt(t?.cart_adds)}        color="#f59e0b" />
               <StatCard icon={Heart}        label="Wishlist Adds"    value={fmt(t?.wishlist_adds)}    color="#ec4899" />
-              <StatCard icon={FileText}     label="Quote Adds"       value={fmt(t?.quotelist_adds)}   color="#8b5cf6" />
+              <StatCard icon={FileText}     label="Quote Adds"       value={fmt(t?.quotelist_adds)}   color="var(--color-primary-400)" />
               <StatCard icon={Users}        label="Unique Customers" value={fmt(t?.unique_customers)} color="#06b6d4" sub={`+ ${fmt(t?.guest_sessions)} guest sessions`} />
             </div>
 
@@ -250,7 +250,7 @@ export default function AdminAnalyticsDashboard() {
                             <span style={{ fontSize: '0.7rem', color: '#9ca3af', width: 60, flexShrink: 0 }}>
                               {new Date(d.day).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
                             </span>
-                            <MiniBar value={d.sessions} max={max} color="#a855f7" />
+                            <MiniBar value={d.sessions} max={max} color="var(--color-primary-500)" />
                             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', width: 24, textAlign: 'right' }}>{d.sessions}</span>
                           </div>
                         );
@@ -319,11 +319,11 @@ export default function AdminAnalyticsDashboard() {
                     const max = data.top_filters[0]?.clicks || 1;
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 20px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '2px 6px', borderRadius: 6, flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '2px 6px', borderRadius: 6, flexShrink: 0 }}>
                           {row.filter_type}
                         </span>
                         <span style={{ flex: 1, fontSize: '0.8rem', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="dark:text-gray-300">{row.filter_value}</span>
-                        <MiniBar value={row.clicks} max={max} color="#7c3aed" />
+                        <MiniBar value={row.clicks} max={max} color="var(--color-primary-600)" />
                         <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 28, textAlign: 'right', flexShrink: 0 }}>{row.clicks}</span>
                       </div>
                     );
@@ -340,7 +340,7 @@ export default function AdminAnalyticsDashboard() {
                 <div style={{ padding: '8px 0' }}>
                   {data.trending_products?.slice(0, 10).map((row, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid #f9fafb' }} className="dark:border-gray-700">
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#a855f7', width: 20 }}>#{i + 1}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-500)', width: 20 }}>#{i + 1}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="dark:text-white">
                           {row.entity_name || `Product #${row.entity_id}`}
@@ -365,7 +365,7 @@ export default function AdminAnalyticsDashboard() {
                     <div key={i}
                       onClick={() => navigate(`/admin/settings/analytics/${row.session_id}`)}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid #f9fafb', cursor: 'pointer' }}
-                      className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:border-gray-700">
+                      className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700">
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0 }} className="dark:text-white">"{row.query}"</p>
                         <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{row.session_id.slice(0, 16)}…</p>
@@ -388,7 +388,7 @@ export default function AdminAnalyticsDashboard() {
           <Section title="All Customers" icon={Users}
             action={
               <button type="button" onClick={loadCustomers}
-                style={{ fontSize: '0.72rem', color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                style={{ fontSize: '0.72rem', color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <RefreshCw size={12} /> Refresh
               </button>
             }>
@@ -414,18 +414,18 @@ export default function AdminAnalyticsDashboard() {
                     ))
                   ) : customers?.data?.map((c, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
-                      className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:border-gray-700"
+                      className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700"
                       onClick={() => navigate(`/admin/settings/analytics/${c.customer_id}`)}>
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ fontWeight: 700, color: '#111827' }} className="dark:text-white">{c.name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{c.email}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#c084fc', fontFamily: 'monospace' }}>{c.customer_number}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--color-primary-400)', fontFamily: 'monospace' }}>{c.customer_number}</div>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{
                           padding: '2px 8px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, textTransform: 'capitalize',
-                          background: c.tier === 'gold' ? 'rgba(245,158,11,0.1)' : c.tier === 'silver' ? 'rgba(156,163,175,0.15)' : 'rgba(168,85,247,0.1)',
-                          color: c.tier === 'gold' ? '#d97706' : c.tier === 'silver' ? '#6b7280' : '#a855f7',
+                          background: c.tier === 'gold' ? 'rgba(245,158,11,0.1)' : c.tier === 'silver' ? 'rgba(156,163,175,0.15)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                          color: c.tier === 'gold' ? '#d97706' : c.tier === 'silver' ? '#6b7280' : 'var(--color-primary-500)',
                         }}>{c.tier}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -435,7 +435,7 @@ export default function AdminAnalyticsDashboard() {
                         <span style={{ fontWeight: 700, color: c.wishlist_count > 0 ? '#ec4899' : '#d1d5db' }}>{c.wishlist_count}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 700, color: c.quotelist_items > 0 ? '#8b5cf6' : '#d1d5db' }}>{c.quotelist_items}</span>
+                        <span style={{ fontWeight: 700, color: c.quotelist_items > 0 ? 'var(--color-primary-400)' : '#d1d5db' }}>{c.quotelist_items}</span>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'center' }}>{fmt(c.total_orders)}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: '#111827' }} className="dark:text-white">
@@ -488,7 +488,7 @@ export default function AdminAnalyticsDashboard() {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '3px 8px', borderRadius: 6 }}>
+                <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '3px 8px', borderRadius: 6 }}>
                   // dev
                 </span>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">
@@ -619,9 +619,9 @@ function SessionsTable({ from, to, navigate }) {
                 : 0;
               return (
                 <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
-                  className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:border-gray-700"
+                  className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700"
                   onClick={() => navigate(`/admin/settings/analytics/${s.session_id}`)}>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '0.72rem', color: '#a855f7' }}>
+                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--color-primary-500)' }}>
                     {s.session_id.slice(0, 14)}…
                   </td>
                   <td style={{ padding: '10px 14px' }}>
@@ -654,7 +654,7 @@ function SessionsTable({ from, to, navigate }) {
           {Array.from({ length: Math.min(data.last_page, 10) }, (_, i) => i + 1).map(p => (
             <button key={p} type="button" onClick={() => setPage(p)}
               style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600,
-                background: p === page ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#f3f4f6',
+                background: p === page ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
                 color: p === page ? 'white' : '#6b7280' }}>
               {p}
             </button>

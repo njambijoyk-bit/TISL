@@ -18,14 +18,14 @@ import useLayoutStore from '../../../_shared/store/layoutStore';
 
 // ── Accent palette ────────────────────────────────────────────────────────────
 const ACCENTS = [
-  { text: '#a855f7', bg: 'rgba(168,85,247,0.10)',  border: 'rgba(168,85,247,0.35)', glow: 'rgba(168,85,247,0.20)', dot: '#a855f7' },
+  { text: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)', glow: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', dot: 'var(--color-primary-500)' },
   { text: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.35)', glow: 'rgba(59,130,246,0.20)', dot: '#3b82f6' },
   { text: '#10b981', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.35)', glow: 'rgba(16,185,129,0.20)', dot: '#10b981' },
   { text: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.35)', glow: 'rgba(245,158,11,0.20)', dot: '#f59e0b' },
   { text: '#ef4444', bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.35)',  glow: 'rgba(239,68,68,0.20)',  dot: '#ef4444' },
   { text: '#ec4899', bg: 'rgba(236,72,153,0.10)',  border: 'rgba(236,72,153,0.35)', glow: 'rgba(236,72,153,0.20)', dot: '#ec4899' },
   { text: '#06b6d4', bg: 'rgba(6,182,212,0.10)',   border: 'rgba(6,182,212,0.35)',  glow: 'rgba(6,182,212,0.20)',  dot: '#06b6d4' },
-  { text: '#8b5cf6', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.35)', glow: 'rgba(139,92,246,0.20)', dot: '#8b5cf6' },
+  { text: 'var(--color-primary-400)', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.35)', glow: 'rgba(139,92,246,0.20)', dot: 'var(--color-primary-400)' },
 ];
 
 // ── Reusable browse card ──────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ const PolaroidSkeleton = () => (
 const toggleStyles = {
   wrap:     { display: 'flex', alignItems: 'center', background: '#f3f4f6', borderRadius: 10, padding: 3, gap: 2 },
   btn:      { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 150ms ease' },
-  active:   { background: '#ffffff', color: '#a855f7', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' },
+  active:   { background: '#ffffff', color: 'var(--color-primary-500)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' },
   inactive: { background: 'transparent', color: '#9ca3af' },
 };
 
@@ -251,12 +251,12 @@ export default function Products() {
               onClick={() => setShowCategories(v => !v)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: showCategories ? 10 : 0 }}
             >
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
                 Browse by Category
               </span>
-              <span style={{ fontSize: '0.65rem', color: '#c084fc', transition: 'transform 150ms', display: 'inline-block', transform: showCategories ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--color-primary-400)', transition: 'transform 150ms', display: 'inline-block', transform: showCategories ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
               {activeCategory && (
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
                   1 active
                 </span>
               )}
@@ -267,7 +267,7 @@ export default function Products() {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                   {activeCategory && (
                     <button type="button" onClick={() => handleFilterChange('category_id', '')}
-                      style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
                       Clear selection
                     </button>
                   )}
@@ -296,12 +296,12 @@ export default function Products() {
               onClick={() => setShowBrands(v => !v)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: showBrands ? 10 : 0 }}
             >
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
                 Browse by Brand
               </span>
-              <span style={{ fontSize: '0.65rem', color: '#c084fc', transition: 'transform 150ms', display: 'inline-block', transform: showBrands ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--color-primary-400)', transition: 'transform 150ms', display: 'inline-block', transform: showBrands ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
               {activeBrand && (
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '2px 8px', borderRadius: 99, marginLeft: 4 }}>
                   1 active
                 </span>
               )}
@@ -312,7 +312,7 @@ export default function Products() {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                   {activeBrand && (
                     <button type="button" onClick={() => handleFilterChange('brand_id', '')}
-                      style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}>
                       Clear selection
                     </button>
                   )}
@@ -386,12 +386,12 @@ export default function Products() {
 
       <style>{`
         .pagination-btn { border-color: #d1d5db; color: #374151; background-color: white; }
-        .pagination-btn:hover:not(:disabled) { background-color: #f3f4f6; border-color: #a855f7; color: #a855f7; }
-        .pagination-btn.active { background-color: #a855f7; color: white; border-color: #a855f7; }
+        .pagination-btn:hover:not(:disabled) { background-color: #f3f4f6; border-color: var(--color-primary-500); color: var(--color-primary-500); }
+        .pagination-btn.active { background-color: var(--color-primary-500); color: white; border-color: var(--color-primary-500); }
         .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .dark .pagination-btn { border-color: #4b5563; color: #d1d5db; background-color: #1f2937; }
-        .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: #d8b4fe; color: #d8b4fe; }
-        .dark .pagination-btn.active { background-color: #7e22ce; color: white; border-color: #7e22ce; }
+        .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: var(--color-primary-300); color: var(--color-primary-300); }
+        .dark .pagination-btn.active { background-color: var(--color-primary-700); color: white; border-color: var(--color-primary-700); }
       `}</style>
     </div>
   );

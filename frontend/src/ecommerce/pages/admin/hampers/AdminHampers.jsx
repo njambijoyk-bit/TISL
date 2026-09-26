@@ -80,8 +80,8 @@ function TogglePill({ value, label, icon: Icon }) {
     <span title={label} style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '2px 7px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700,
-      background: value ? 'rgba(168,85,247,0.1)' : 'var(--color-background-secondary)',
-      color: value ? '#7c3aed' : 'var(--color-text-tertiary)',
+      background: value ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'var(--color-background-secondary)',
+      color: value ? 'var(--color-primary-600)' : 'var(--color-text-tertiary)',
       opacity: value ? 1 : 0.4,
     }}>
       <Icon size={10} />
@@ -147,15 +147,15 @@ export default function AdminHampers() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: '#a855f7' }}>Hampers</h1>
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>Hampers</h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage curated bundle deals for eligible customers</p>
           </div>
           <button onClick={() => navigate('/admin/hampers/create')} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '9px 18px', borderRadius: 9, fontSize: '0.875rem', fontWeight: 700,
-            border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+            border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
             color: 'white', cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: '0 4px 14px rgba(168,85,247,0.3)',
+            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           }}>
             <Plus size={16} /> New Hamper
           </button>
@@ -163,7 +163,7 @@ export default function AdminHampers() {
 
         {/* Stat cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 16 }}>
-          <StatCard label="Total Hampers" value={total}   icon={Package}      iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
+          <StatCard label="Total Hampers" value={total}   icon={Package}      iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)"  iconColor="var(--color-primary-600)" />
           <StatCard label="Active"        value={active}  icon={Zap}          iconBg="rgba(34,197,94,0.1)"   iconColor="#22c55e" />
           <StatCard label="Sold Out"      value={soldOut} icon={TrendingDown}  iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
           <StatCard label="Draft"         value={draft} icon={ShoppingBag} iconBg="rgba(107,114,128,0.1)" iconColor="#6b7280" />
@@ -209,7 +209,7 @@ export default function AdminHampers() {
         <div style={{ ...card, overflow: 'hidden' }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64 }}>
-              <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
             </div>
           ) : hampers.length === 0 ? (
@@ -281,7 +281,7 @@ export default function AdminHampers() {
 
                         {/* Eligibility */}
                         <td style={tdStyle}>
-                          <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(168,85,247,0.08)', color: '#7c3aed' }}>
+                          <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
                             {hamper.eligibility_type?.toUpperCase()}
                           </span>
                         </td>
@@ -311,8 +311,8 @@ export default function AdminHampers() {
                           <button
                             onClick={() => navigate(`/admin/hampers/${hamper.id}`)}
                             title="View Detail"
-                            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#7c3aed', cursor: 'pointer', transition: 'background 150ms' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
+                            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer', transition: 'background 150ms' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             <Eye size={15} />

@@ -12,10 +12,10 @@ import { useAiPageAudio } from '../../../extras/pages/admin/ai-analytics/useAiPa
 import { C, MuteButton }  from '../../../extras/pages/admin/ai-analytics/AiPageShared';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const PD = '#7c3aed';
+const PD = 'var(--color-primary-600)';
 const P  = C.purple;
-const PL = 'rgba(168,85,247,0.08)';
-const PB = 'rgba(168,85,247,0.2)';
+const PL = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const PB = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'driver'];
 
@@ -254,7 +254,7 @@ export default function AiPanel() {
           background: `linear-gradient(180deg, ${PD}, ${P})`,
           border: 'none', borderRadius: '10px 0 0 10px',
           cursor: 'pointer',
-          boxShadow: '-2px 0 16px rgba(168,85,247,0.25)',
+          boxShadow: '-2px 0 16px color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
           color: '#fff', writingMode: 'vertical-rl',
           fontFamily: 'inherit',
         }}
@@ -283,7 +283,7 @@ export default function AiPanel() {
           backdropFilter: 'blur(8px)',
           border: 'none', borderLeft: `1px solid ${P}40`,
           cursor: 'pointer',
-          boxShadow: '-2px 0 20px rgba(168,85,247,0.2)',
+          boxShadow: '-2px 0 20px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           color: '#fff', fontFamily: 'inherit',
         }}
       >
@@ -309,7 +309,7 @@ export default function AiPanel() {
       display: 'flex', flexDirection: 'column',
       background: 'var(--bg-secondary, #ffffff)',
       borderLeft: `1px solid ${C.border}`,
-      boxShadow: `-4px 0 24px rgba(168,85,247,0.12)`,
+      boxShadow: `-4px 0 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)`,
       transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
       overflow: 'hidden',
       fontFamily: 'inherit',

@@ -93,7 +93,7 @@ export default function Login() {
       {/* ── MOBILE TOP BAR ───────────────────────────────────────────────── */}
       <div className="tisl-mobile-bar" style={{
         display: 'none',
-        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
         padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -106,7 +106,7 @@ export default function Login() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ background: 'white', color: '#a855f7', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</div>
+          <div style={{ background: 'white', color: 'var(--color-primary-500)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</div>
           <Link to="/register" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sign Up</Link>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function Login() {
         {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
         <div className="tisl-sidebar" style={{
           position: 'relative', overflow: 'hidden',
-          background: 'linear-gradient(145deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%)',
+          background: 'linear-gradient(145deg, var(--color-primary-400) 0%, var(--color-primary-500) 40%, var(--color-primary-600) 100%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '40px 32px', gap: 24,
         }}>
@@ -138,7 +138,7 @@ export default function Login() {
           </div>
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-            <div style={{ background: 'white', color: '#a855f7', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <div style={{ background: 'white', color: 'var(--color-primary-500)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               Login
             </div>
             <Link to="/register" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: '12px 20px', fontSize: '0.88rem', fontWeight: 600, textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase', textDecoration: 'none' }}>
@@ -164,13 +164,13 @@ export default function Login() {
                 Email
               </label>
               <div style={{ position: 'relative' }}>
-                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'email' ? '#a855f7' : '#9ca3af', transition: 'color 150ms' }} />
+                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'email' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms' }} />
                 <input
                   name="email" type="email" value={formData.email}
                   onChange={handleChange}
                   onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                   placeholder="you@example.com"
-                  style={{ width: '100%', padding: '11px 13px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.email ? '#ef4444' : focused === 'email' ? '#a855f7' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '11px 13px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.email ? '#ef4444' : focused === 'email' ? 'var(--color-primary-500)' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
                   className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
               </div>
@@ -183,13 +183,13 @@ export default function Login() {
                 Password
               </label>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'password' ? '#a855f7' : '#9ca3af', transition: 'color 150ms' }} />
+                <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'password' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms' }} />
                 <input
                   name="password" type={showPassword ? 'text' : 'password'} value={formData.password}
                   onChange={handleChange}
                   onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
                   placeholder="Enter your password"
-                  style={{ width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? '#a855f7' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10, border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? 'var(--color-primary-500)' : '#e5e7eb'}`, fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
                   className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <button type="button" onClick={() => setShowPassword(s => !s)}
@@ -202,7 +202,7 @@ export default function Login() {
 
             {/* Forgot password */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
-              <Link to="/forgot-password" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', textDecoration: 'none' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
                 Forgot password?
               </Link>
             </div>
@@ -224,11 +224,11 @@ export default function Login() {
               style={{
                 height: 46, borderRadius: 12, border: 'none',
                 cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
-                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: (loading || !policyAccepted) ? '#e5e7eb' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                 color: (loading || !policyAccepted) ? '#9ca3af' : 'white',
                 fontSize: '0.88rem', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                 transition: 'all 200ms', letterSpacing: '0.04em',
                 opacity: !policyAccepted ? 0.5 : 1,
               }}
@@ -247,7 +247,7 @@ export default function Login() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <button type="button" onClick={() => handleOAuth('google')}
                 style={{ height: 42, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 150ms' }}
-                className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700"
+                className="text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-gray-700"
               >
                 <GoogleIcon /> Google
               </button>
@@ -263,7 +263,7 @@ export default function Login() {
 
           <p style={{ textAlign: 'center', fontSize: '0.82rem', marginTop: 20 }} className="text-gray-500 dark:text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: '#a855f7', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link>
+            <Link to="/register" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link>
           </p>
         </div>
       </div>

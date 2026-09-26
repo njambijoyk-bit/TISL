@@ -41,9 +41,9 @@ const Avatar = ({ name }) => {
       width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: '0.65rem', fontWeight: 700,
-      color: '#c084fc',
+      color: 'var(--color-primary-400)',
       background: 'transparent',
-      border: '1.5px solid rgba(168,85,247,0.25)',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
     }}>
       {initials}
     </div>
@@ -91,7 +91,7 @@ const ParticipantsPanel = ({ project }) => {
       {/* Group label */}
       <p style={{
         fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.1em', color: '#7c3aed', marginBottom: 10,
+        letterSpacing: '0.1em', color: 'var(--color-primary-600)', marginBottom: 10,
       }}>
         {title}
       </p>
@@ -112,17 +112,17 @@ const ParticipantsPanel = ({ project }) => {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   gap: 12, padding: '10px 14px',
                   borderRadius: 12,
-                  border: '1px solid rgba(168,85,247,0.18)',
-                  background: 'rgba(168,85,247,0.03)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                   transition: 'border-color 160ms, background 160ms',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)';
-                  e.currentTarget.style.background  = 'rgba(168,85,247,0.06)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)';
+                  e.currentTarget.style.background  = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
-                  e.currentTarget.style.background  = 'rgba(168,85,247,0.03)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                  e.currentTarget.style.background  = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)';
                 }}>
 
                 {/* Avatar + name/email */}
@@ -144,9 +144,9 @@ const ParticipantsPanel = ({ project }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   {/* Role label */}
                   <span style={{
-                    fontSize: '0.7rem', fontWeight: 600, color: '#c084fc',
-                    background: 'rgba(168,85,247,0.1)',
-                    border: '1px solid rgba(168,85,247,0.22)',
+                    fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-400)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                     padding: '2px 8px', borderRadius: 20,
                     whiteSpace: 'nowrap',
                   }}>
@@ -172,7 +172,7 @@ const ParticipantsPanel = ({ project }) => {
                       cursor: 'pointer', color: '#6b7280', display: 'flex',
                       transition: 'color 120ms',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-400)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
                     <Pencil style={{ width: 13, height: 13 }} />
                   </button>
@@ -209,8 +209,8 @@ const ParticipantsPanel = ({ project }) => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Users style={{ width: 14, height: 14, color: '#a855f7' }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c084fc' }}>
+          <Users style={{ width: 14, height: 14, color: 'var(--color-primary-500)' }} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-400)' }}>
             Participants ({active.length})
           </span>
         </div>
@@ -225,7 +225,7 @@ const ParticipantsPanel = ({ project }) => {
                 border: '1px solid rgba(156,163,175,0.25)',
                 transition: 'border-color 150ms, color 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; e.currentTarget.style.color = '#c084fc'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(156,163,175,0.25)'; e.currentTarget.style.color = '#9ca3af'; }}>
               Removed ({removed.length})
             </button>
@@ -236,13 +236,13 @@ const ParticipantsPanel = ({ project }) => {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', fontSize: '0.72rem', fontWeight: 700,
               borderRadius: 8, cursor: 'pointer', color: '#f1f0ff',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
               border: 'none',
-              boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               transition: 'box-shadow 150ms, opacity 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
             <UserPlus style={{ width: 12, height: 12 }} />
             Add Participant
           </button>
@@ -255,8 +255,8 @@ const ParticipantsPanel = ({ project }) => {
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{
               height: 52, borderRadius: 12,
-              background: 'rgba(168,85,247,0.06)',
-              border: '1px solid rgba(168,85,247,0.1)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               animation: 'pulse 1.5s ease-in-out infinite',
             }} />
           ))}
@@ -264,7 +264,7 @@ const ParticipantsPanel = ({ project }) => {
       ) : (
         <>
           {renderGroup(admins, 'Staff')}
-          <div style={{ borderTop: '1px solid rgba(168,85,247,0.12)', paddingTop: 20 }}>
+          <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', paddingTop: 20 }}>
             {renderGroup(customers, 'Customer Side')}
           </div>
         </>
@@ -295,21 +295,21 @@ const ParticipantsPanel = ({ project }) => {
             display: 'flex', flexDirection: 'column',
             borderRadius: 16, overflow: 'hidden',
             background: '#0f0d1a',
-            border: '1px solid rgba(168,85,247,0.25)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
             {/* Modal header */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: '1px solid rgba(168,85,247,0.12)',
+              borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
             }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#c084fc' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-400)' }}>
                 Removed Participants ({removed.length})
               </span>
               <button onClick={() => setShowRemoved(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 4 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-400)'}
                 onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
                 <X style={{ width: 15, height: 15 }} />
               </button>
@@ -323,8 +323,8 @@ const ParticipantsPanel = ({ project }) => {
                 <div key={p.id} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   gap: 12, padding: '10px 14px', borderRadius: 12,
-                  border: '1px solid rgba(168,85,247,0.15)',
-                  background: 'rgba(168,85,247,0.03)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <Avatar name={getName(p)} />
@@ -383,7 +383,7 @@ const ParticipantsPanel = ({ project }) => {
           <div style={{
             width: '100%', maxWidth: 380, borderRadius: 16, overflow: 'hidden',
             background: '#0f0d1a',
-            border: '1px solid rgba(168,85,247,0.25)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
             {/* Red accent strip */}
@@ -409,18 +409,18 @@ const ParticipantsPanel = ({ project }) => {
 
               <div style={{
                 display: 'flex', justifyContent: 'flex-end', gap: 10,
-                paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.12)',
+                paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
               }}>
                 <button onClick={() => setConfirmRemove(null)}
                   style={{
                     padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600,
                     borderRadius: 8, cursor: 'pointer',
                     color: '#9ca3af', background: 'transparent',
-                    border: '1px solid rgba(168,85,247,0.22)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                     transition: 'border-color 150ms, color 150ms',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
                   Cancel
                 </button>
                 <button onClick={handleRemove} disabled={loading.submitting}

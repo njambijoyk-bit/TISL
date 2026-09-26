@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 9, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms', resize: 'none',
 };
@@ -83,7 +83,7 @@ const DisqualifyModal = ({ booking, isDisqualified, onClose, onSubmit }) => {
           </div>
 
           <div>
-            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 6 }}>
+            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 6 }}>
               {isReactivate ? 'Reactivation notes' : 'Reason for disqualification'}
               {!isReactivate && <span style={{ color: '#ef4444' }}> *</span>}
             </label>
@@ -93,14 +93,14 @@ const DisqualifyModal = ({ booking, isDisqualified, onClose, onSubmit }) => {
               placeholder={isReactivate ? 'Optional notes about this reactivation…' : 'Explain why this customer is being disqualified…'}
               style={inputStyle}
               onFocus={e => e.currentTarget.style.borderColor = accent}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(168,85,247,0.08)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose} style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.2)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving} style={{

@@ -13,7 +13,7 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 
 const card = {
   background: 'white',
-  color: '#9333ea',
+  color: 'var(--color-primary-600)',
   border: '1px solid #dfbeff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
@@ -37,7 +37,7 @@ const labelStyle = {
 
 const sectionTitle = {
   margin: '0 0 20px', fontSize: '0.82rem', fontWeight: 700,
-  color: '#a855f7', paddingBottom: 12,
+  color: 'var(--color-primary-500)', paddingBottom: 12,
   borderBottom: '1px solid #f3ecfa',
 };
 
@@ -60,7 +60,7 @@ function Input({ name, type = 'text', value, onChange, placeholder, error, min, 
       type={type} name={name} value={value} onChange={onChange}
       placeholder={placeholder} min={min} max={max} step={step}
       style={{ ...inputStyle, borderColor: error ? '#ef4444' : '#dfbeff' }}
-      onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
       onBlur={e  => { e.currentTarget.style.borderColor = error ? '#ef4444' : '#dfbeff'; e.currentTarget.style.boxShadow = 'none'; }}
     />
   );
@@ -70,12 +70,12 @@ function ToggleRow({ label, hint, name, value, onChange }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--color-border-tertiary)' }}>
       <div>
-        <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 600, color: '#a855f7' }}>{label}</p>
+        <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>{label}</p>
         {hint && <p style={{ margin: 0, fontSize: '0.72rem', color: '#000' }}>{hint}</p>}
       </div>
       <button type="button" onClick={() => onChange(name, !value)} style={{
         width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
-        background: value ? '#a855f7' : '#dfbeff',
+        background: value ? 'var(--color-primary-500)' : '#dfbeff',
         position: 'relative', transition: 'background 200ms',
       }}>
         <div style={{
@@ -122,7 +122,7 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
         {selected.length === 0 ? (
           <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>{placeholder || 'Select…'}</span>
         ) : selectedLabels.map(name => (
-          <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700, background: 'rgba(168,85,247,0.1)', color: '#7c3aed' }}>
+          <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)' }}>
             {name}
             <span onClick={e => { e.stopPropagation(); toggle(options.find(o => o.name === name)?.slug); }} style={{ cursor: 'pointer', lineHeight: 1 }}>×</span>
           </span>
@@ -140,12 +140,12 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
             ) : filtered.map(opt => {
               const isSel = selected.includes(opt.slug);
               return (
-                <div key={opt.slug} onClick={() => toggle(opt.slug)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', cursor: 'pointer', fontSize: '0.82rem', color: '#111827', background: isSel ? 'rgba(168,85,247,0.06)' : 'transparent', transition: 'background 100ms' }}
+                <div key={opt.slug} onClick={() => toggle(opt.slug)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', cursor: 'pointer', fontSize: '0.82rem', color: '#111827', background: isSel ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent', transition: 'background 100ms' }}
                   onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--color-background-secondary)'; }}
                   onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <span style={{ fontWeight: isSel ? 700 : 400 }}>{opt.name}</span>
-                  {isSel && <Check size={13} style={{ color: '#a855f7', flexShrink: 0 }} />}
+                  {isSel && <Check size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />}
                 </div>
               );
             })}
@@ -171,10 +171,10 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
         </div>
       ) : (
         <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed #dfbeff', borderRadius: 10, height: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', transition: 'border-color 150ms' }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#dfbeff'}
         >
-          <Upload size={24} style={{ color: '#a855f7' }} />
+          <Upload size={24} style={{ color: 'var(--color-primary-500)' }} />
           <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>Click to replace cover image</p>
         </div>
       )}
@@ -216,7 +216,7 @@ export default function AdminHamperEdit() {
       setForm({
         name:                       data.name || '',
         description:                data.description || '',
-        accent_color:               data.accent_color || '#a855f7',
+        accent_color:               data.accent_color || 'var(--color-primary-500)',
         price:                      data.price || '',
         currency_id:                data.currency_id ?? data.currency?.id ?? '',
         status:                     data.status || 'draft',
@@ -315,7 +315,7 @@ export default function AdminHamperEdit() {
   if (loading || !form) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-        <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </AdminLayout>
@@ -340,7 +340,7 @@ export default function AdminHamperEdit() {
             <button type="submit" disabled={saving} style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
               padding: '9px 20px', borderRadius: 9, fontSize: '0.875rem', fontWeight: 700,
-              border: 'none', background: saving ? 'rgba(168,85,247,0.5)' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+              border: 'none', background: saving ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
               color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
             }}>
               <Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}
@@ -360,7 +360,7 @@ export default function AdminHamperEdit() {
                   <Field label="Description">
                     <textarea name="description" value={form.description} onChange={handleChange} placeholder="Describe this hamper…" rows={4}
                       style={{ ...inputStyle, resize: 'vertical' }}
-                      onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                       onBlur={e  => { e.currentTarget.style.borderColor = '#dfbeff'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </Field>
@@ -426,7 +426,7 @@ export default function AdminHamperEdit() {
                     <MultiSelect label="Eligible Customer Types" hint="Customers must have one of these types" options={customerTypes} selected={selectedTypes} onChange={setSelectedTypes} placeholder="Search and select customer types…" />
                   )}
                   {form.eligibility_type === 'manual' && (
-                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)', fontSize: '0.78rem', color: '#7c3aed' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.78rem', color: 'var(--color-primary-600)' }}>
                       Manage individual customers from the <strong>Eligibility tab</strong> on the detail page.
                     </div>
                   )}

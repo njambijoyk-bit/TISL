@@ -19,14 +19,14 @@ export default function BrochureDetail() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-white">
                 <div className="flex flex-col items-center gap-4 text-gray-400">
-                    <div className="w-8 h-8 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-primary-200 border-t-purple-600 rounded-full animate-spin" />
                     <span className="text-sm font-medium">Loading brochure…</span>
                 </div>
             </div>
         );
     }
 
-    const accent = brochure.style_config?.accent || '#a855f7';
+    const accent = brochure.style_config?.accent || 'var(--color-primary-500)';
     const template = brochure.template || 'minimal';
 
     return (

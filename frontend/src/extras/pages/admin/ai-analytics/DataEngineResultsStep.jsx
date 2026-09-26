@@ -221,7 +221,7 @@ export default function DataEngineResultsStep({
         <StatCard label="MATCHED CLEAN" value={summary.matched_clean || 0} color={F.green} unit="rows" />
         <StatCard label="MISMATCHES" value={summary.matched_mismatch || 0} color={F.amber} unit="rows" />
         <StatCard label="ONLY IN TISL" value={summary.only_in_tisl || 0} color={F.teal} unit="rows" />
-        <StatCard label="ONLY IN FILE" value={summary.only_in_file || 0} color="#a855f7" unit="rows" />
+        <StatCard label="ONLY IN FILE" value={summary.only_in_file || 0} color="var(--color-primary-500)" unit="rows" />
       </div>
 
       {/* Variance summary */}
@@ -291,7 +291,7 @@ export default function DataEngineResultsStep({
               clean: F.green,
               mismatch: F.amber,
               only_in_tisl: F.teal,
-              only_in_file: '#a855f7',
+              only_in_file: 'var(--color-primary-500)',
             }[opt];
 
             const isActive = selectedFilter === opt;
@@ -507,12 +507,12 @@ export default function DataEngineResultsStep({
       </div>
 
       {/* ── AI Analysis Panel ── */}
-      <div style={{ ...financialCard, padding: '20px', marginBottom: 20, border: `1px solid #a855f730` }}>
+      <div style={{ ...financialCard, padding: '20px', marginBottom: 20, border: `1px solid var(--color-primary-500)30` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Brain size={18} style={{ color: '#a855f7' }} />
+                  <Brain size={18} style={{ color: 'var(--color-primary-500)' }} />
                   <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#a855f7', fontFamily: F.mono, letterSpacing: '0.06em' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary-500)', fontFamily: F.mono, letterSpacing: '0.06em' }}>
                           AI ANALYSIS
                       </div>
                       <div style={{ fontSize: '0.6rem', color: F.textDim, fontFamily: F.mono }}>
@@ -527,9 +527,9 @@ export default function DataEngineResultsStep({
                   onChange={e => { audio.playTick?.(); setAiOutputType(e.target.value); }}
                   style={{
                       padding: '6px 10px', borderRadius: 6,
-                      border: `1px solid #a855f730`,
+                      border: `1px solid var(--color-primary-500)30`,
                       background: 'rgba(0,0,0,0.3)',
-                      color: '#a855f7', fontFamily: F.mono,
+                      color: 'var(--color-primary-500)', fontFamily: F.mono,
                       fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer',
                   }}
               >
@@ -559,8 +559,8 @@ export default function DataEngineResultsStep({
                   {aiExpanded && (
                       <div style={{
                           padding: '16px', borderRadius: 8,
-                          background: 'rgba(168,85,247,0.05)',
-                          border: `1px solid #a855f720`,
+                          background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                          border: `1px solid var(--color-primary-500)20`,
                           fontSize: '0.78rem', color: F.text,
                           fontFamily: 'system-ui, sans-serif',
                           lineHeight: 1.7, whiteSpace: 'pre-wrap',
@@ -577,9 +577,9 @@ export default function DataEngineResultsStep({
               disabled={aiLoading}
               style={{
                   width: '100%', padding: '12px', borderRadius: 8,
-                  border: `1px solid ${aiLoading ? F.border : '#a855f755'}`,
-                  background: aiLoading ? 'rgba(0,0,0,0.2)' : 'rgba(168,85,247,0.12)',
-                  color: aiLoading ? F.textDim : '#a855f7',
+                  border: `1px solid ${aiLoading ? F.border : 'var(--color-primary-500)55'}`,
+                  background: aiLoading ? 'rgba(0,0,0,0.2)' : 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+                  color: aiLoading ? F.textDim : 'var(--color-primary-500)',
                   fontSize: '0.72rem', fontWeight: 800,
                   fontFamily: F.mono, letterSpacing: '0.1em',
                   cursor: aiLoading ? 'not-allowed' : 'pointer',

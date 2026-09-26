@@ -285,7 +285,7 @@ export default function Reviews() {
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: '#a855f7' }}>
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>
               Reviews
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
@@ -296,7 +296,7 @@ export default function Reviews() {
 
         {/* ── Stat cards ──────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total Reviews"  value={total}      icon={MessageSquare} iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
+          <StatCard label="Total Reviews"  value={total}      icon={MessageSquare} iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)"  iconColor="var(--color-primary-600)" />
           <StatCard label="Approved"       value={approved}   icon={CheckCircle}   iconBg="rgba(34,197,94,0.1)"   iconColor="#22c55e" />
           <StatCard label="Pending"        value={pending}    icon={Clock}         iconBg="rgba(245,158,11,0.1)"  iconColor="#f59e0b" />
           <StatCard label="Avg Rating"     value={avgRating}  icon={Star}          iconBg="rgba(245,158,11,0.08)" iconColor="#f59e0b" />
@@ -445,8 +445,8 @@ export default function Reviews() {
                                     cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s',
                                   }}
                                   onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = '#a855f7';
-                                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(168,85,247,0.15)';
+                                    e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+                                    e.currentTarget.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
                                   }}
                                   onMouseLeave={e => {
                                     e.currentTarget.style.borderColor = 'var(--color-border-tertiary)';
@@ -462,7 +462,7 @@ export default function Reviews() {
                                     fontSize: '0.68rem', color: 'var(--color-text-tertiary)',
                                     alignSelf: 'center', marginLeft: 2, cursor: 'pointer',
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                                  onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                                   onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-tertiary)'}
                                 >
                                   +{review.image_urls.length - 3} more

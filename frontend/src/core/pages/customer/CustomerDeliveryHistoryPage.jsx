@@ -12,9 +12,9 @@ import toast from 'react-hot-toast';
 // ── Theme tokens (inline) ─────────────────────────────────────────────────────
 const D = {
     card: 'var(--color-surface, #ffffff)',
-    purple: '#a855f7',
-    purpleDim: 'rgba(168,85,247,0.08)',
-    purpleBorder: 'rgba(168,85,247,0.15)',
+    purple: 'var(--color-primary-500)',
+    purpleDim: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+    purpleBorder: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     text: '#111827',
     textMid: '#6b7280',
     textDim: '#9ca3af',
@@ -27,7 +27,7 @@ const SEVERITY_COLORS = {
     low:      { bg: 'rgba(16,185,129,0.08)',  color: '#059669', label: 'Low' },
     medium:   { bg: 'rgba(245,158,11,0.08)',  color: '#d97706', label: 'Medium' },
     high:     { bg: 'rgba(239,68,68,0.08)',   color: '#dc2626', label: 'High' },
-    critical: { bg: 'rgba(109,40,217,0.08)',  color: '#7c3aed', label: 'Critical' },
+    critical: { bg: 'rgba(109,40,217,0.08)',  color: 'var(--color-primary-600)', label: 'Critical' },
 };
 
 const STATUS_COLORS = {
@@ -134,7 +134,7 @@ function DriverRatingModal({ driver, orderId, onClose }) {
                 {/* Avatar */}
                 <div style={{
                     width: 56, height: 56, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     margin: '0 auto 12px',
                 }}>
@@ -341,9 +341,9 @@ function IncidentCard({ incident }) {
                         <Label>Description</Label>
                         <div style={{
                             padding: '10px 12px', borderRadius: D.radiusSm, marginTop: 4,
-                            background: 'rgba(168,85,247,0.07)',
-                            border: '1px solid rgba(168,85,247,0.3)',
-                            boxShadow: '0 0 10px rgba(168,85,247,0.2)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                            boxShadow: '0 0 10px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             fontSize: '0.82rem', color: D.purple, lineHeight: 1.5,
                         }}>
                             <Value>
@@ -572,7 +572,7 @@ export default function CustomerDeliveryHistoryPage() {
                 {/* Tab Switcher */}
                 <div style={{
                     display: 'flex', gap: 4, marginBottom: 24,
-                    background: 'rgba(168,85,247,0.06)', borderRadius: 12,
+                    background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 12,
                     padding: 4,
                 }}>
                     {[
@@ -588,7 +588,7 @@ export default function CustomerDeliveryHistoryPage() {
                                 background: activeTab === tab.key ? 'white' : 'transparent',
                                 color: activeTab === tab.key ? D.purple : D.textMid,
                                 fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                                boxShadow: activeTab === tab.key ? '0 2px 8px rgba(168,85,247,0.12)' : 'none',
+                                boxShadow: activeTab === tab.key ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'none',
                                 transition: 'all 0.2s',
                             }}
                         >

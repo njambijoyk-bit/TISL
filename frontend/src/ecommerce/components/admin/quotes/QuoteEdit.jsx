@@ -19,10 +19,10 @@ import currencyAPI from '../../../../_shared/api/currency';
 import toast from 'react-hot-toast';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ─── Input base ───────────────────────────────────────────────────────────────
 const iBase = {
@@ -57,7 +57,7 @@ const Panel = ({ children, style = {}, accent = false }) => (
     border: `1px solid ${accent ? purpleBd : 'var(--border,#f3f4f6)'}`,
     borderRadius: 16, overflow: 'hidden',
     boxShadow: accent
-      ? '0 0 0 1px rgba(168,85,247,0.12), 0 4px 20px rgba(168,85,247,0.08)'
+      ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'
       : '0 1px 4px rgba(0,0,0,0.04)',
     ...style,
   }}>
@@ -79,7 +79,7 @@ const Pill = ({ children, color = purple }) => (
 
 const Btn = ({ children, onClick, disabled, variant = 'primary', icon, size = 'md', fullWidth, type = 'button' }) => {
   const variants = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     success: { background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' },
     danger:  { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' },
     outline: { background: 'transparent', color: 'var(--text-muted,#6b7280)', border: '1.5px solid var(--border,#e5e7eb)', boxShadow: 'none' },
@@ -862,7 +862,7 @@ const QuoteEdit = () => {
                                           </p>
                                         )}
                                       </div>
-                                      <button type="button" onClick={() => setExpandedItems(p => ({ ...p, [index]: !p[index] }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#a855f7' }}>
+                                      <button type="button" onClick={() => setExpandedItems(p => ({ ...p, [index]: !p[index] }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: 'var(--color-primary-500)' }}>
                                         {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={25} />}
                                       </button>
                                       <button type="button" onClick={() => removeItem(index)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#ef4444' }}>

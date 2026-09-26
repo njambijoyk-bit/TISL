@@ -4,10 +4,10 @@ import Modal from '../../../../_shared/components/common/Modal';
 import LoadingSpinner from '../../../../_shared/components/layout/LoadingSpinner';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const taStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 9,
@@ -22,7 +22,7 @@ const fOut = e => { e.currentTarget.style.borderColor = 'var(--border,#e5e7eb)';
 
 const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button' }) => {
   const v = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
   };
   return (
@@ -79,7 +79,7 @@ const ClarificationModal = ({ onClose, onRequest }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title={<span style={{ color: '#a855f7' }}>Request Clarification</span>} size="lg">
+    <Modal isOpen={true} onClose={onClose} title={<span style={{ color: 'var(--color-primary-500)' }}>Request Clarification</span>} size="lg">
       <form onSubmit={handleSubmit}>
         <p style={{ fontSize: '0.83rem', color: '#6b7280', marginBottom: 20, lineHeight: 1.65 }}>
           Request additional information from the customer. They will be notified and can respond directly.

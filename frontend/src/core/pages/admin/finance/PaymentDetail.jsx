@@ -109,7 +109,7 @@ export default function PaymentDetail() {
                 </div>
             </div>
 
-            <div style={{ padding:'0 22px 12px', display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, borderTop:'1px solid rgba(168,85,247,0.1)' }}>
+            <div style={{ padding:'0 22px 12px', display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, borderTop:'1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                 {/* Customer */}
                 <div>
                 <p style={{ margin: 0, fontSize: '0.72rem', color: '#9ca3af' }}>Customer</p>
@@ -151,7 +151,7 @@ export default function PaymentDetail() {
                     <p
                         onClick={() => navigate(`/admin/finance/payments/${payment.previous_payment_id}`)}
                         style={{
-                        margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#a855f7',
+                        margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)',
                         cursor: 'pointer', textDecoration: 'underline',
                         }}
                     >
@@ -354,7 +354,7 @@ export default function PaymentDetail() {
                     <button
                     onClick={() => setShowRaw(v => !v)}
                     style={{
-                        fontSize: '0.78rem', fontWeight: 700, color: '#a855f7',
+                        fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-500)',
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
                     }}
@@ -362,7 +362,7 @@ export default function PaymentDetail() {
                     <span style={{
                         display: 'inline-block', width: 14, height: 14, lineHeight: '14px',
                         textAlign: 'center', borderRadius: 3,
-                        background: 'rgba(168,85,247,0.15)', fontSize: '0.7rem',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.7rem',
                     }}>
                         {showRaw ? '−' : '+'}
                     </span>

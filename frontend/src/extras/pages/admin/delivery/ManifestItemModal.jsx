@@ -77,7 +77,7 @@ function FL({ label, value, accent }) {
 // ─── tier badge ───────────────────────────────────────────────────────────────
 function TierBadge({ tier }) {
     const map = {
-        platinum: { bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.35)', color: '#7c3aed' },
+        platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)', color: 'var(--color-primary-600)' },
         gold:     { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.35)', color: '#b45309' },
         silver:   { bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.35)', color: '#475569' },
         bronze:   { bg: 'rgba(180,83,9,0.1)',   border: 'rgba(180,83,9,0.35)',   color: '#92400e' },
@@ -229,8 +229,8 @@ function TabCustomer({ item }) {
                 {customer.tier_benefits && (
                     <div style={{
                         marginTop: 12, padding: '8px 12px',
-                        background: 'rgba(168,85,247,0.04)',
-                        border: '1px solid rgba(168,85,247,0.15)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                         borderRadius: M.radiusSm,
                         display: 'flex', gap: 16, flexWrap: 'wrap',
                     }}>
@@ -825,8 +825,8 @@ function TabIncidents({ item, manifest }) {
                 <div style={{ display: 'flex', gap: 8, marginLeft: 18, marginBottom: inc.resolution_notes ? 10 : 0, flexWrap: 'wrap' }}>
                     <span style={{
                         fontSize: '0.65rem', fontWeight: 700, padding: '1px 7px', borderRadius: 20,
-                        background: inc.driver_can_see ? 'rgba(168,85,247,0.1)' : 'rgba(148,163,184,0.08)',
-                        border: `1px solid ${inc.driver_can_see ? 'rgba(168,85,247,0.3)' : 'rgba(148,163,184,0.2)'}`,
+                        background: inc.driver_can_see ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'rgba(148,163,184,0.08)',
+                        border: `1px solid ${inc.driver_can_see ? 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'rgba(148,163,184,0.2)'}`,
                         color: inc.driver_can_see ? M.accent : M.textDim,
                     }}>
                         {inc.driver_can_see ? '✓ Driver visible' : '✗ Driver hidden'}

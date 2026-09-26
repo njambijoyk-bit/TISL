@@ -32,17 +32,17 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
     <div
       style={{
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.12)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
         borderRadius: 14,
         padding: '18px 20px',
         transition: 'border-color 0.15s, box-shadow 0.15s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
-        e.currentTarget.style.boxShadow = '0 2px 16px rgba(168,85,247,0.08)';
+        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
+        e.currentTarget.style.boxShadow = '0 2px 16px color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.12)';
+        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
         e.currentTarget.style.boxShadow = 'none';
       }}
     >
@@ -58,13 +58,13 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
               style={{
                 width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                 objectFit: 'cover', background: '#f3f4f6',
-                border: '1.5px solid rgba(168,85,247,0.15)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
               }}
             />
           ) : (
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white', fontSize: '0.82rem', fontWeight: 800,
             }}>
@@ -136,16 +136,16 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
               style={{
                 width: 44, height: 44, objectFit: 'cover',
                 borderRadius: 8,
-                border: '1.5px solid rgba(168,85,247,0.2)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#a855f7';
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)';
+                e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';
+                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
@@ -155,10 +155,10 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
               onClick={() => onImageClick?.(getImageUrl(review.image_urls[5]))}
               style={{
                 width: 44, height: 44, borderRadius: 8,
-                background: 'rgba(168,85,247,0.06)',
-                border: '1.5px solid rgba(168,85,247,0.15)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed',
+                fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-600)',
                 cursor: 'pointer',
               }}
             >
@@ -171,7 +171,7 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
       {/* Footer */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)',
+        paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
       }}>
         <button
           onClick={handleMarkHelpful}
@@ -179,17 +179,17 @@ export default function ReviewCard({ review, onMarkHelpful, onImageClick }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             fontSize: '0.75rem', fontWeight: 600,
-            color: isHelpful ? '#a855f7' : '#9ca3af',
-            background: isHelpful ? 'rgba(168,85,247,0.06)' : 'transparent',
-            border: isHelpful ? '1px solid rgba(168,85,247,0.15)' : '1px solid transparent',
+            color: isHelpful ? 'var(--color-primary-500)' : '#9ca3af',
+            background: isHelpful ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent',
+            border: isHelpful ? '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : '1px solid transparent',
             padding: '5px 10px', borderRadius: 8,
             cursor: isHelpful ? 'default' : 'pointer',
             transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { if (!isHelpful) { e.currentTarget.style.color = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; } }}
+          onMouseEnter={e => { if (!isHelpful) { e.currentTarget.style.color = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; } }}
           onMouseLeave={e => { if (!isHelpful) { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; } }}
         >
-          <ThumbsUp size={12} style={{ fill: isHelpful ? '#a855f7' : 'none' }} />
+          <ThumbsUp size={12} style={{ fill: isHelpful ? 'var(--color-primary-500)' : 'none' }} />
           {isHelpful ? 'Helpful' : 'Helpful'} ({review.helpful_count || 0})
         </button>
 

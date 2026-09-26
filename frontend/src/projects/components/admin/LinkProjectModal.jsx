@@ -14,7 +14,7 @@ const typeLabel  = (t) => t?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUppe
 
 const TAB_META = {
   quote_request: { label: 'Quote Requests', accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',  border: 'rgba(37,99,235,0.25)'  },
-  quote:         { label: 'Quotes',         accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.25)' },
+  quote:         { label: 'Quotes',         accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
   order:         { label: 'Orders',         accent: '#16a34a', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
 };
 
@@ -24,7 +24,7 @@ const STATUS_BADGE = {
   draft:      { bg: 'rgba(107,114,128,0.12)', color: '#4b5563' },
   sent:       { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
   approved:   { bg: 'rgba(34,197,94,0.12)',   color: '#15803d' },
-  quoted:     { bg: 'rgba(168,85,247,0.12)',  color: '#7c3aed' },
+  quoted:     { bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  color: 'var(--color-primary-600)' },
   converted:  { bg: 'rgba(16,185,129,0.12)',  color: '#065f46' },
   rejected:   { bg: 'rgba(239,68,68,0.12)',   color: '#b91c1c' },
   confirmed:  { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
@@ -39,19 +39,19 @@ const STATUS_BADGE = {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -95,8 +95,8 @@ const Checkbox = ({ checked }) => (
   <span style={{
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: 16, height: 16, minWidth: 16, borderRadius: 3, flexShrink: 0,
-    border:      checked ? '2px solid #a855f7' : '2px solid rgba(168,85,247,0.3)',
-    background:  checked ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+    border:      checked ? '2px solid var(--color-primary-500)' : '2px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+    background:  checked ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
     transition: 'all 150ms',
   }}>
     {checked && (
@@ -190,20 +190,20 @@ const LinkProjectModal = ({ project, onClose }) => {
         display: 'flex', flexDirection: 'column', paddingTop: 10,
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <div>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
               Link Documents
             </p>
             <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '2px 0 0' }}>
@@ -217,7 +217,7 @@ const LinkProjectModal = ({ project, onClose }) => {
             color: '#6b7280', display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
             <X style={{ width: 16, height: 16 }} />
           </button>
@@ -254,8 +254,8 @@ const LinkProjectModal = ({ project, onClose }) => {
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 20, width: 180,
                     background: 'white', borderRadius: 10, overflow: 'hidden',
-                    border: '1.5px solid rgba(168,85,247,0.2)',
-                    boxShadow: '0 8px 28px rgba(168,85,247,0.15)',
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                    boxShadow: '0 8px 28px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                   }}>
                     {LINK_TYPES.map((t) => {
                       const cnt = selectionList.filter((s) => s.link_type === t).length;
@@ -267,10 +267,10 @@ const LinkProjectModal = ({ project, onClose }) => {
                           padding: '9px 12px', textAlign: 'left', fontSize: '0.8rem', fontFamily: 'inherit',
                           background: isA ? m.bg : 'none', color: isA ? m.accent : '#374151',
                           fontWeight: isA ? 700 : 400, border: 'none', cursor: 'pointer',
-                          borderBottom: '1px solid rgba(168,85,247,0.07)',
+                          borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
                           transition: 'background 120ms',
                         }}
-                          onMouseEnter={e => { if (!isA) e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; }}
+                          onMouseEnter={e => { if (!isA) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; }}
                           onMouseLeave={e => { if (!isA) e.currentTarget.style.background = 'none'; }}
                         >
                           <span>{m.label}</span>
@@ -280,7 +280,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 width: 16, height: 16, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 700,
-                                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                               }}>{cnt}</span>
                             )}
                             {isA && <Check style={{ width: 12, height: 12 }} />}
@@ -303,7 +303,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                   <button key={t} type="button" onClick={() => handleTabChange(t)} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '4px 10px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-                    border: `1.5px solid ${isA ? m.accent : 'rgba(168,85,247,0.18)'}`,
+                    border: `1.5px solid ${isA ? m.accent : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
                     background: isA ? m.bg : 'transparent',
                     color: isA ? m.accent : '#9ca3af',
                     cursor: 'pointer', transition: 'all 150ms', fontFamily: 'inherit',
@@ -314,7 +314,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         width: 15, height: 15, borderRadius: '50%', fontSize: '0.58rem', fontWeight: 700,
-                        background: isA ? m.accent : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                        background: isA ? m.accent : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                         color: 'white',
                       }}>{cnt}</span>
                     )}
@@ -326,7 +326,7 @@ const LinkProjectModal = ({ project, onClose }) => {
 
           {/* Search */}
           <div style={{ position: 'relative' }}>
-            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 12, height: 12, color: '#a855f7', pointerEvents: 'none' }} />
+            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 12, height: 12, color: 'var(--color-primary-500)', pointerEvents: 'none' }} />
             <input
               type="text"
               value={search}
@@ -339,7 +339,7 @@ const LinkProjectModal = ({ project, onClose }) => {
 
           {/* Document list */}
           <div style={{
-            border: '1.5px solid rgba(168,85,247,0.18)', borderRadius: 10,
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', borderRadius: 10,
             overflow: 'hidden',
           }}>
             {fetching[activeTab] ? (
@@ -360,19 +360,19 @@ const LinkProjectModal = ({ project, onClose }) => {
                     <button key={doc.id} type="button" onClick={() => toggleDoc(doc)} style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 12px', textAlign: 'left',
-                      background: sel ? 'rgba(168,85,247,0.06)' : 'none',
-                      border: 'none', borderBottom: i < visibleDocs.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none',
+                      background: sel ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none',
+                      border: 'none', borderBottom: i < visibleDocs.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
                       cursor: 'pointer', fontFamily: 'inherit',
                       transition: 'background 120ms',
                     }}
-                      onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; }}
+                      onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; }}
                       onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'none'; }}
                     >
                       <Checkbox checked={sel} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span style={{
                           display: 'block', fontSize: '0.82rem', fontWeight: 600,
-                          color: sel ? '#7c3aed' : '#111827',
+                          color: sel ? 'var(--color-primary-600)' : '#111827',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {doc.title || doc.document_number}
@@ -401,15 +401,15 @@ const LinkProjectModal = ({ project, onClose }) => {
           {/* Selection tray */}
           {totalSelected > 0 && (
             <div style={{
-              border: '1.5px solid rgba(168,85,247,0.25)', borderRadius: 10, overflow: 'hidden',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 10, overflow: 'hidden',
             }}>
               {/* Tray header */}
               <div style={{
                 padding: '8px 14px',
-                background: 'rgba(168,85,247,0.06)',
-                borderBottom: '1px solid rgba(168,85,247,0.12)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
               }}>
-                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
                   {totalSelected} selected — set relation &amp; notes for each
                 </p>
               </div>
@@ -421,7 +421,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                   return (
                     <div key={k} style={{
                       padding: '10px 14px',
-                      borderBottom: i < selectionList.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none',
+                      borderBottom: i < selectionList.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
                       display: 'flex', flexDirection: 'column', gap: 8,
                       background: 'white',
                     }}>
@@ -455,9 +455,9 @@ const LinkProjectModal = ({ project, onClose }) => {
                           style={{
                             flexShrink: 0, fontSize: '0.72rem', padding: '4px 8px',
                             borderRadius: 6, fontFamily: 'inherit', cursor: 'pointer',
-                            border: '1.5px solid rgba(168,85,247,0.22)',
-                            background: 'rgba(168,85,247,0.04)',
-                            color: '#7c3aed', fontWeight: 600, outline: 'none',
+                            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                            color: 'var(--color-primary-600)', fontWeight: 600, outline: 'none',
                           }}
                           onFocus={inputFocus} onBlur={inputBlur}
                         >
@@ -487,7 +487,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                         style={{
                           ...inputStyle,
                           resize: 'none', fontSize: '0.75rem',
-                          background: 'rgba(168,85,247,0.03)',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                         }}
                         onFocus={inputFocus} onBlur={inputBlur}
                       />
@@ -507,29 +507,29 @@ const LinkProjectModal = ({ project, onClose }) => {
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: 8,
           padding: '12px 20px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <button type="button" onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
             background: 'transparent', color: '#9ca3af',
-            border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer',
             transition: 'border-color 150ms, color 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
             Cancel
           </button>
           <button type="button" onClick={handleSubmit} disabled={selections.size === 0 || submitting} style={{
             padding: '6px 18px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
             border: 'none', cursor: (selections.size === 0 || submitting) ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: (selections.size === 0 || submitting) ? 0.6 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
             transition: 'box-shadow 150ms, opacity 150ms',
           }}
-            onMouseEnter={e => { if (selections.size > 0 && !submitting) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+            onMouseEnter={e => { if (selections.size > 0 && !submitting) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
             {submitting && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
             {submitting
               ? 'Linking…'

@@ -357,7 +357,7 @@ const styles = `
 
   .vault-tree__badge--confidential { background: #f59e0b; }
   .vault-tree__badge--restricted   { background: #ef4444; }
-  .vault-tree__badge--top_secret   { background: #7c3aed; }
+  .vault-tree__badge--top_secret   { background: var(--color-primary-600); }
 
   /* ── Empty / loading ─────────────────────────────────────────────────────── */
   .vault-tree__empty {

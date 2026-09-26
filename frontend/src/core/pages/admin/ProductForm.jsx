@@ -18,24 +18,24 @@ import {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const inputDisabled = {
   ...inputStyle,
-  background: 'rgba(168,85,247,0.02)',
-  borderColor: 'rgba(168,85,247,0.08)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
   color: '#9ca3af', cursor: 'not-allowed',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 const hintStyle = {
   fontSize: '0.68rem', color: '#9ca3af', marginTop: 4,
@@ -43,14 +43,14 @@ const hintStyle = {
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const sectionHeader = {
-  fontSize: '0.875rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 20px', paddingBottom: 12,
-  borderBottom: '1px solid rgba(168,85,247,0.08)',
+  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 14px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.1)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
         opacity: disabled ? 0.6 : 1, userSelect: 'none',
       }}
     >
@@ -121,7 +121,7 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
-        background: checked ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.15)',
+        background: checked ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         transition: 'background 200ms',
       }}>
         <span style={{
@@ -157,8 +157,8 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-              border: '1px solid rgba(168,85,247,0.2)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
             }}>
               {item.name}
               {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
@@ -177,19 +177,19 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-              border: '1px solid rgba(168,85,247,0.22)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             }}>
               {item.name}
               {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
               <button type="button" onClick={() => onToggle(item.id)} style={{
                 width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, padding: 0, transition: 'background 120ms',
               }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
               >
                 <X size={9} />
               </button>
@@ -213,8 +213,8 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
           <div style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
             background: 'white', borderRadius: 10,
-            border: '1.5px solid rgba(168,85,247,0.2)',
-            boxShadow: '0 8px 24px rgba(168,85,247,0.12)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
             maxHeight: 220, overflowY: 'auto',
           }}>
             {filtered.length === 0 ? (
@@ -228,18 +228,18 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
                   onMouseDown={() => { onToggle(item.id); setQuery(''); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 14px', background: isSel ? 'rgba(168,85,247,0.06)' : 'none',
-                    border: 'none', borderBottom: '1px solid rgba(168,85,247,0.05)',
+                    padding: '9px 14px', background: isSel ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none',
+                    border: 'none', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                     transition: 'background 120ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
-                  onMouseLeave={e => e.currentTarget.style.background = isSel ? 'rgba(168,85,247,0.06)' : 'none'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.background = isSel ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none'}
                 >
                   <span style={{
                     width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                    border: isSel ? '2px solid #a855f7' : '2px solid rgba(168,85,247,0.3)',
-                    background: isSel ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+                    border: isSel ? '2px solid var(--color-primary-500)' : '2px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                    background: isSel ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {isSel && (
@@ -611,12 +611,12 @@ export default function ProductForm() {
                 fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
               }}
-              onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
             >
               <ChevronLeft size={14} /> Products
             </button>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isView ? 'View product' : isEdit ? 'Edit product' : 'New product'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -631,8 +631,8 @@ export default function ProductForm() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 16px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                boxShadow: '0 3px 10px rgba(168,85,247,0.3)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                boxShadow: '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               }}>
                 <Edit2 size={13} /> Edit product
               </button>
@@ -642,11 +642,11 @@ export default function ProductForm() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
                   background: 'transparent', color: '#9ca3af',
-                  border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#a855f7'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
                 >
                   <X size={13} /> Cancel
                 </button>
@@ -654,8 +654,8 @@ export default function ProductForm() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 18px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                   border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                  boxShadow: '0 3px 10px rgba(168,85,247,0.3)', opacity: loading ? 0.7 : 1,
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                  boxShadow: '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: loading ? 0.7 : 1,
                 }}>
                   <Save size={13} /> {loading ? 'Saving…' : isEdit ? 'Update' : 'Create'}
                 </button>
@@ -670,14 +670,14 @@ export default function ProductForm() {
           borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
           borderBottom: 'none',
         }}>
-          <div style={{ display: 'flex', padding: '0 20px', borderBottom: '2px solid rgba(168,85,247,0.1)', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', padding: '0 20px', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflowX: 'auto' }}>
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 padding: '12px 14px', fontSize: '0.8rem',
                 fontWeight: activeTab === tab.id ? 700 : 500,
-                color: activeTab === tab.id ? '#a855f7' : '#9ca3af',
+                color: activeTab === tab.id ? 'var(--color-primary-500)' : '#9ca3af',
                 background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                borderBottom: `2px solid ${activeTab === tab.id ? '#a855f7' : 'transparent'}`,
+                borderBottom: `2px solid ${activeTab === tab.id ? 'var(--color-primary-500)' : 'transparent'}`,
                 marginBottom: -2, whiteSpace: 'nowrap', transition: 'color 150ms',
               }}>
                 {tab.name}
@@ -718,7 +718,7 @@ export default function ProductForm() {
                       <button type="button" onClick={() => window.open('/admin/categories/create', '_blank')} style={{
                         padding: '0 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                       }}>
                         <Plus size={13} />
                       </button>
@@ -735,7 +735,7 @@ export default function ProductForm() {
                       <button type="button" onClick={() => window.open('/admin/brands/create', '_blank')} style={{
                         padding: '0 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                       }}>
                         <Plus size={13} />
                       </button>
@@ -799,7 +799,7 @@ export default function ProductForm() {
                 <label style={labelStyle}>Main image *</label>
                 {mainImagePreview && (
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-                    <img src={mainImagePreview} alt="Main" style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.2)', display: 'block' }} />
+                    <img src={mainImagePreview} alt="Main" style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block' }} />
                     {!isView && (
                       <button type="button" onClick={() => { setMainImage(null); setMainImagePreview(''); setFormData(p => ({ ...p, main_image_url: '' })); }} style={{
                         position: 'absolute', top: -8, right: -8, width: 24, height: 24,
@@ -817,9 +817,9 @@ export default function ProductForm() {
                       <StyledInput type="file" accept="image/*" onChange={handleMainImageChange} style={{ cursor: 'pointer' }} />
                     </Field>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                      <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                       <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
-                      <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                      <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                     </div>
                     <Field label="Image URL">
                       <StyledInput type="url" name="main_image_url" value={formData.main_image_url || ''} placeholder="https://example.com/image.jpg"
@@ -837,7 +837,7 @@ export default function ProductForm() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 14 }}>
                     {additionalPreviews.map((preview, i) => (
                       <div key={i} style={{ position: 'relative' }}>
-                        <img src={preview} alt={`Additional ${i + 1}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.2)', display: 'block' }} />
+                        <img src={preview} alt={`Additional ${i + 1}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block' }} />
                         {!isView && (
                           <button type="button" onClick={() => removeAdditionalImage(i)} style={{
                             position: 'absolute', top: -7, right: -7, width: 22, height: 22,
@@ -857,9 +857,9 @@ export default function ProductForm() {
                       <StyledInput type="file" multiple accept="image/*" onChange={handleAdditionalImagesChange} style={{ cursor: 'pointer' }} />
                     </Field>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                      <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                       <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
-                      <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                      <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                     </div>
                     <Field label="Image URLs" hint="One per line, max 5 total">
                       <StyledTextarea
@@ -902,7 +902,7 @@ export default function ProductForm() {
                   {!isView && (
                     <button type="button" onClick={addSpecification} style={{
                       display: 'flex', alignItems: 'center', gap: 5,
-                      fontSize: '0.75rem', fontWeight: 700, color: '#a855f7',
+                      fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-500)',
                       background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     }}>
                       <Plus size={12} /> Add row
@@ -952,7 +952,7 @@ export default function ProductForm() {
             ) : (
               <div style={{
                 padding: '40px 24px', borderRadius: 10, textAlign: 'center',
-                border: '1.5px dashed rgba(168,85,247,0.2)', color: '#6b7280', fontSize: '0.82rem',
+                border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#6b7280', fontSize: '0.82rem',
               }}>
                 Create the product first — then come back here to add options like size or colour, and a price for each variant.
               </div>
@@ -1002,18 +1002,18 @@ export default function ProductForm() {
                       <span key={p.id} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-                        background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                        border: '1px solid rgba(168,85,247,0.22)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                       }}>
                         {p.name}
                         {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
                         {!isView && (
                           <button type="button" onClick={() => setSelectedRelated(prev => prev.filter(x => x.id !== p.id))}
                             style={{ width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                              background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                           >
                             <X size={9} />
                           </button>
@@ -1031,12 +1031,12 @@ export default function ProductForm() {
                   <button type="button" onClick={() => setShowProductSelector(true)} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-                    background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                    border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                    border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
                     transition: 'background 150ms',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
                   >
                     <Plus size={13} /> Browse products{selectedRelated.length > 0 ? ` (${selectedRelated.length} selected)` : ''}
                   </button>

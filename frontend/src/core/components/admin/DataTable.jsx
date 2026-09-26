@@ -6,7 +6,7 @@ const thStyle = {
   padding: '10px 20px', textAlign: 'left',
   fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af',
   textTransform: 'uppercase', letterSpacing: '0.08em',
-  borderBottom: '1.5px solid rgba(168,85,247,0.12)', whiteSpace: 'nowrap',
+  borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
@@ -17,8 +17,8 @@ const tdStyle = {
 const pageBtn = (disabled) => ({
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 32, height: 32, borderRadius: 8,
-  border: '1.5px solid rgba(168,85,247,0.18)', cursor: disabled ? 'not-allowed' : 'pointer',
-  color: disabled ? '#d1d5db' : '#a855f7', opacity: disabled ? 0.3 : 1,
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: disabled ? 'not-allowed' : 'pointer',
+  color: disabled ? '#d1d5db' : 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1,
   transition: 'all 150ms', background: 'transparent',
 });
 
@@ -42,18 +42,18 @@ export default function DataTable({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Table */}
-      <div style={{ borderRadius: 16, border: '1px solid rgba(168,85,247,0.12)', overflow: 'hidden', boxShadow: '0 2px 16px rgba(168,85,247,0.07)' }}>
+      <div style={{ borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden', boxShadow: '0 2px 16px color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(168,85,247,0.03)' }}>
+              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}>
                 {selectable && (
                   <th style={{ ...thStyle, width: 44 }}>
                     <button onClick={onSelectAll} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
                       {allSelected
-                        ? <CheckSquare size={18} color="#a855f7" />
+                        ? <CheckSquare size={18} color="var(--color-primary-500)" />
                         : someSelected
-                          ? <div style={{ width: 18, height: 18, border: '2px solid #a855f7', borderRadius: 4, background: 'rgba(168,85,247,0.1)' }} />
+                          ? <div style={{ width: 18, height: 18, border: '2px solid var(--color-primary-500)', borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }} />
                           : <Square size={18} color="#d1d5db" />}
                     </button>
                   </th>
@@ -70,14 +70,14 @@ export default function DataTable({
                 return (
                   <tr key={rowIndex}
                     style={{
-                      background: isSelected ? 'rgba(168,85,247,0.05)' : 'transparent',
-                      boxShadow: isSelected ? 'inset 3px 0 0 #a855f7' : 'inset 3px 0 0 transparent',
+                      background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'transparent',
+                      boxShadow: isSelected ? 'inset 3px 0 0 var(--color-primary-500)' : 'inset 3px 0 0 transparent',
                       transition: 'background 200ms ease, box-shadow 200ms ease',
                     }}
                     onMouseEnter={e => {
                       if (!isSelected) {
-                        e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 rgba(168,85,247,0.25)';
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+                        e.currentTarget.style.boxShadow = 'inset 3px 0 0 color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
                       }
                     }}
                     onMouseLeave={e => {
@@ -91,7 +91,7 @@ export default function DataTable({
                       <td style={tdStyle}>
                         <button onClick={() => onSelectRow(row.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
                           {isSelected
-                            ? <CheckSquare size={18} color="#a855f7" />
+                            ? <CheckSquare size={18} color="var(--color-primary-500)" />
                             : <Square size={18} color="#d1d5db" />}
                         </button>
                       </td>
@@ -115,7 +115,7 @@ export default function DataTable({
 
       {/* Pagination */}
       {pagination && pagination.last_page > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(168,85,247,0.12)', boxShadow: '0 2px 12px rgba(168,85,247,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
           <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>
             Showing {((pagination.current_page - 1) * pagination.per_page) + 1}–{Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
           </span>
@@ -138,7 +138,7 @@ export default function DataTable({
                 const isActive = page === pagination.current_page;
                 return (
                   <button key={page} onClick={() => onPageChange(page)}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? '#a855f7' : 'rgba(168,85,247,0.18)'}`, background: isActive ? '#a855f7' : 'transparent', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px rgba(168,85,247,0.15)' : 'none', transition: 'all 150ms' }}>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: isActive ? 'var(--color-primary-500)' : 'transparent', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none', transition: 'all 150ms' }}>
                     {page}
                   </button>
                 );

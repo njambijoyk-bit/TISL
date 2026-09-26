@@ -34,9 +34,9 @@ const ruleTypeMeta = {
   },
   voucher: {
     label: 'Voucher',
-    color: '#7c3aed',
+    color: 'var(--color-primary-600)',
     bg: '#f5f3ff',
-    border: '#ddd6fe',
+    border: 'color-mix(in srgb, var(--color-primary-500) 18%, var(--bg-primary))',
     emoji: '🎟️',
   },
   gift: {
@@ -125,11 +125,11 @@ export default function LoyaltyRedemptionModal({
             gap: 16,
             padding: '18px 20px 16px',
             borderBottom: '2px solid #111827',
-            background: '#faf5ff',
+            background: 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))',
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Redeem points
             </p>
             <h2
@@ -218,7 +218,7 @@ export default function LoyaltyRedemptionModal({
                 }}
               >
                 <div style={{ ...pillStyle, justifyContent: 'center' }}>
-                  <Sparkles size={14} color="#7c3aed" />
+                  <Sparkles size={14} color="var(--color-primary-600)" />
                   Your points: {formatPoints(currentPoints)}
                 </div>
                 <div style={{ ...pillStyle, justifyContent: 'center' }}>
@@ -325,7 +325,7 @@ export default function LoyaltyRedemptionModal({
                     padding: '10px 16px',
                     borderRadius: 12,
                     border: '2px solid #111827',
-                    background: canConfirm ? '#7c3aed' : '#d1d5db',
+                    background: canConfirm ? 'var(--color-primary-600)' : '#d1d5db',
                     color: canConfirm ? 'white' : '#6b7280',
                     fontSize: '0.82rem',
                     fontWeight: 900,
@@ -396,7 +396,7 @@ export default function LoyaltyRedemptionModal({
                     padding: '10px 16px',
                     borderRadius: 12,
                     border: '2px solid #111827',
-                    background: '#7c3aed',
+                    background: 'var(--color-primary-600)',
                     color: 'white',
                     fontSize: '0.82rem',
                     fontWeight: 900,

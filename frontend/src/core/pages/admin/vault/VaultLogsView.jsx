@@ -17,7 +17,7 @@ function formatDateTime(d) {
 // ─────────────────────────────────────────────────────────────────────────────
 const ACTION_STYLES = {
   view:     { color: '#2563eb', bg: '#e7f0ff' },
-  download: { color: '#7c3aed', bg: '#f5f3ff' },
+  download: { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
   upload:   { color: '#16a34a', bg: '#f0fdf4' },
   delete:   { color: '#e03131', bg: '#fff5f5' },
   archive:  { color: '#e67700', bg: '#fff7ed' },

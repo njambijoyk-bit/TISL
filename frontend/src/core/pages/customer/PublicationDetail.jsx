@@ -20,7 +20,7 @@ export default function PublicationDetail() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-white">
                 <div className="flex flex-col items-center gap-4 text-gray-400">
-                    <div className="w-8 h-8 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-primary-300 border-t-purple-600 rounded-full animate-spin" />
                     <span className="text-sm font-medium">Loading publication…</span>
                 </div>
             </div>
@@ -61,7 +61,7 @@ export default function PublicationDetail() {
                     <div className="absolute bottom-0 left-0 right-0 px-6 md:px-16 pb-10 pt-6">
                         <div className="max-w-4xl mx-auto">
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="px-3 py-1 bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                                <span className="px-3 py-1 bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
                                     {publication.type}
                                 </span>
                                 <span className="text-white/60 text-xs flex items-center gap-1.5">
@@ -83,12 +83,12 @@ export default function PublicationDetail() {
                     <div className="max-w-4xl mx-auto">
                         <Link
                             to={isNews ? '/news' : '/blog'}
-                            className="inline-flex items-center gap-1.5 text-gray-500 hover:text-purple-600 font-bold text-sm mb-8 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-gray-500 hover:text-primary-600 font-bold text-sm mb-8 transition-colors"
                         >
                             <ChevronLeft size={18} /> Back to {isNews ? 'News' : 'Blog'}
                         </Link>
                         <div className="flex items-center gap-3 mb-5">
-                            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-[10px] font-black uppercase tracking-widest rounded-full">
+                            <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black uppercase tracking-widest rounded-full">
                                 {publication.type}
                             </span>
                             <span className="text-gray-400 text-xs flex items-center gap-1.5">
@@ -112,7 +112,7 @@ export default function PublicationDetail() {
                     className="flex items-center gap-4 py-5 mb-10"
                     style={{ borderBottom: '1px solid #f1f5f9' }}
                 >
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-black text-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-black text-sm flex-shrink-0">
                         {publication.authors?.[0]?.name?.[0] || 'T'}
                     </div>
                     <div>
@@ -139,7 +139,7 @@ export default function PublicationDetail() {
                             {publication.tags.map(tag => (
                                 <span
                                     key={tag}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-purple-50 hover:text-purple-700 text-gray-500 rounded-xl text-xs font-bold transition-colors cursor-default"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-primary-50 hover:text-primary-700 text-gray-500 rounded-xl text-xs font-bold transition-colors cursor-default"
                                 >
                                     <Tag size={12} /> {tag}
                                 </span>
@@ -150,11 +150,11 @@ export default function PublicationDetail() {
                     {/* Comments CTA */}
                     <div
                         className="rounded-3xl p-8 md:p-12 text-center mb-16"
-                        style={{ background: 'linear-gradient(135deg, #faf5ff, #f0fdf4)' }}
+                        style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)), #f0fdf4)' }}
                     >
                         <div
                             className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
+                            style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}
                         >
                             <MessageSquare size={24} color="white" />
                         </div>
@@ -164,7 +164,7 @@ export default function PublicationDetail() {
                         </p>
                         <button
                             className="px-8 py-3.5 text-white font-black rounded-2xl transition-opacity hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 4px 16px rgba(168,85,247,0.35)' }}
+                            style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}
                         >
                             Leave a Comment
                         </button>
@@ -293,7 +293,7 @@ function BlockRenderer({ block }) {
                     </div>
                     <div>
                         <h4 className="text-base font-black text-gray-900">{c.name}</h4>
-                        <p className="text-purple-600 font-bold text-[10px] uppercase tracking-widest mt-0.5">{c.role}</p>
+                        <p className="text-primary-600 font-bold text-[10px] uppercase tracking-widest mt-0.5">{c.role}</p>
                         <p className="mt-3 text-gray-500 text-sm leading-relaxed line-clamp-4">{c.bio}</p>
                     </div>
                 </div>
@@ -314,7 +314,7 @@ function BlockRenderer({ block }) {
                             {rows.map((r, i) => (
                                 <tr key={i} style={{ borderTop: '1px solid #f8fafc' }}>
                                     <td className="px-5 py-3 text-gray-800 text-sm">{r.item}</td>
-                                    <td className="px-5 py-3 text-purple-600 text-sm font-black text-right">{r.price}</td>
+                                    <td className="px-5 py-3 text-primary-600 text-sm font-black text-right">{r.price}</td>
                                 </tr>
                             ))}
                             {rows.length === 0 && (
@@ -332,11 +332,11 @@ function BlockRenderer({ block }) {
             return (
                 <div
                     className="relative py-8 px-8 rounded-2xl h-full"
-                    style={{ background: 'linear-gradient(135deg, #fdf4ff, #f5f3ff)', borderLeft: '4px solid #a855f7' }}
+                    style={{ background: 'linear-gradient(135deg, #fdf4ff, #f5f3ff)', borderLeft: '4px solid var(--color-primary-500)' }}
                 >
                     {/* decorative large quote mark */}
                     <span
-                        className="absolute top-2 left-5 font-black text-purple-200 select-none"
+                        className="absolute top-2 left-5 font-black text-primary-200 select-none"
                         style={{ fontSize: '4rem', lineHeight: 1 }}
                         aria-hidden
                     >
@@ -346,7 +346,7 @@ function BlockRenderer({ block }) {
                         {c.text}
                     </p>
                     {c.attribution && (
-                        <p className="mt-4 text-purple-500 font-black uppercase tracking-widest text-[10px]">
+                        <p className="mt-4 text-primary-500 font-black uppercase tracking-widest text-[10px]">
                             — {c.attribution}
                         </p>
                     )}
@@ -389,7 +389,7 @@ function BlockRenderer({ block }) {
                     <a
                         href={c.link}
                         className="self-center px-6 py-3 font-black rounded-xl text-sm text-white transition-opacity hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 4px 16px rgba(168,85,247,0.4)' }}
+                        style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 4px 16px color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }}
                     >
                         Learn More
                     </a>

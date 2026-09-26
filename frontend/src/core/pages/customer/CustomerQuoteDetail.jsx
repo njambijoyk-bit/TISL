@@ -32,11 +32,11 @@ const STATUS_CFG = {
   approved:  { color: '#10b981', label: 'Approved' },
   rejected:  { color: '#ef4444', label: 'Rejected' },
   expired:   { color: '#9ca3af', label: 'Expired' },
-  converted: { color: '#a855f7', label: 'Converted' },
+  converted: { color: 'var(--color-primary-500)', label: 'Converted' },
 };
 
 const ITEM_TYPE_MAP = {
-  product:        { label: 'Product',        color: '#a855f7' },
+  product:        { label: 'Product',        color: 'var(--color-primary-500)' },
   custom_product: { label: 'Custom Product', color: '#3b82f6' },
   service:        { label: 'Service',        color: '#10b981' },
   custom_service: { label: 'Custom Service', color: '#f59e0b' },
@@ -53,13 +53,13 @@ const AVAIL_MAP = {
 // ── Primitives ────────────────────────────────────────────────────────────────
 function Section({ title, icon: Icon, accent, children }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden mb-5" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden mb-5" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       {accent && <div style={{ height: 3, background: accent }} />}
       <div className="p-6">
         {title && (
           <div className="flex items-center gap-2 mb-5">
-            {Icon && <Icon size={14} color="#c084fc" />}
-            <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c084fc' }}>{title}</p>
+            {Icon && <Icon size={14} color="var(--color-primary-400)" />}
+            <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: 'var(--color-primary-400)' }}>{title}</p>
           </div>
         )}
         {children}
@@ -126,7 +126,7 @@ function AlertBox({ type, title, body, children }) {
 function GhostBtn({ onClick, disabled, children }) {
   return (
     <button onClick={onClick} disabled={disabled} type="button"
-      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border-none bg-transparent text-secondary text-sm font-bold transition-colors hover:border-purple-400 hover:text-purple-500 disabled:opacity-40">
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border-none bg-transparent text-secondary text-sm font-bold transition-colors hover:border-primary-400 hover:text-primary-500 disabled:opacity-40">
       {children}
     </button>
   );
@@ -136,7 +136,7 @@ function PurpleBtn({ onClick, disabled, children }) {
   return (
     <button onClick={onClick} disabled={disabled} type="button"
       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-extrabold transition-opacity hover:opacity-90 disabled:opacity-40"
-      style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+      style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
       {children}
     </button>
   );
@@ -480,7 +480,7 @@ const CustomerQuoteDetail = () => {
     (quote.items || []).forEach((item, idx) => {
       const isService = item.item_type?.includes('service');
       const isFee     = item.item_type === 'fee';
-      const typeColor = isService ? '#10b981' : isFee ? '#ec4899' : '#a855f7';
+      const typeColor = isService ? '#10b981' : isFee ? '#ec4899' : 'var(--color-primary-500)';
       const { r: ir, g: ig, b: ib } = hexToRgb(typeColor);
 
       const qty       = parseFloat(item.quantity    || 1);
@@ -860,7 +860,7 @@ const CustomerQuoteDetail = () => {
       <Header />
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: '2px solid rgba(168,85,247,0.15)', padding: '28px 24px 24px' }}>
+      <div style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', padding: '28px 24px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Back button */}
@@ -870,12 +870,12 @@ const CustomerQuoteDetail = () => {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '6px 12px', marginBottom: 24, borderRadius: 10,
-              border: '1px solid rgba(168,85,247,0.2)', background: 'transparent',
-              color: '#c084fc', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent',
+              color: 'var(--color-primary-400)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
               transition: 'all 150ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#c084fc'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
           >
             <ArrowLeft size={12} /> Back to My Quotes
           </button>
@@ -885,7 +885,7 @@ const CustomerQuoteDetail = () => {
 
             {/* Left: number + badges */}
             <div>
-              <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#c084fc', marginBottom: 6 }}>Quote</p>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-400)', marginBottom: 6 }}>Quote</p>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary, #111827)' }}>
                 {quote.quote_number}
               </h1>
@@ -902,7 +902,7 @@ const CustomerQuoteDetail = () => {
                 {/* Version */}
                 <span style={{
                   fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999,
-                  background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)',
                 }}>
                   v{quote.version || 1}
                 </span>
@@ -922,7 +922,7 @@ const CustomerQuoteDetail = () => {
             {/* Right: total */}
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 4 }}>Total</p>
-              <p style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#a855f7', margin: 0 }}>
+              <p style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--color-primary-500)', margin: 0 }}>
                 {cc} {fmt(quote.total)}
               </p>
               {showKes && (
@@ -932,7 +932,7 @@ const CustomerQuoteDetail = () => {
           </div>
 
           {/* Actions row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
             <button
               onClick={handleDownloadPDF}
               disabled={actionLoading}
@@ -940,10 +940,10 @@ const CustomerQuoteDetail = () => {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
-                border: '1.5px solid rgba(168,85,247,0.35)', background: 'transparent',
-                color: '#a855f7', fontSize: '0.82rem', fontWeight: 700, transition: 'all 150ms',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', background: 'transparent',
+                color: 'var(--color-primary-500)', fontSize: '0.82rem', fontWeight: 700, transition: 'all 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.15)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <Download size={14} /> Download PDF
@@ -986,17 +986,17 @@ const CustomerQuoteDetail = () => {
           <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
             {/* Team */}
             {(quote.creator || quote.assigned_to || quote.assigned_to_name) && (
-              <Section title="Team" icon={UserCheck} accent="#a855f7">
+              <Section title="Team" icon={UserCheck} accent="var(--color-primary-500)">
                 <div className="flex flex-col gap-4">
                   {quote.creator && (
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(168,85,247,0.1)', border: '2px solid rgba(168,85,247,0.2)' }}>
-                        <User size={15} color="#a855f7" />
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                        <User size={15} color="var(--color-primary-500)" />
                       </div>
                       <div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold">Prepared by</p>
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{quote.creator.name || `${quote.creator.first_name} ${quote.creator.last_name}`}</p>
-                        {quote.creator.email && <a href={`mailto:${quote.creator.email}`} className="text-xs font-semibold" style={{ color: '#a855f7' }}>{quote.creator.email}</a>}
+                        {quote.creator.email && <a href={`mailto:${quote.creator.email}`} className="text-xs font-semibold" style={{ color: 'var(--color-primary-500)' }}>{quote.creator.email}</a>}
                       </div>
                     </div>
                   )}
@@ -1022,7 +1022,7 @@ const CustomerQuoteDetail = () => {
                 <p className="text-xs text-gray-400 dark:text-gray-500">Add delivery preferences, timing, or special instructions.</p>
                 {!editingNotes ? (
                   <button onClick={() => setEditingNotes(true)} type="button"
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors flex-shrink-0">
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors flex-shrink-0">
                     {quote.customer_notes?.trim() ? 'Edit' : 'Add Note'}
                   </button>
                 ) : (
@@ -1042,16 +1042,16 @@ const CustomerQuoteDetail = () => {
             <Section title="Quote Items" icon={Package}>
               {/* View toggle */}
               {quote.items?.length > 0 && (
-                <div className="flex items-center gap-2 mb-4 p-1 rounded-xl w-fit" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <div className="flex items-center gap-2 mb-4 p-1 rounded-xl w-fit" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                   {['minimal', 'detailed'].map(mode => (
                     <button key={mode} type="button"
                       onClick={() => setItemView(mode)}
                       className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
                       style={itemView === mode ? {
-                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                         color: 'white',
-                        boxShadow: '0 2px 8px rgba(168,85,247,0.35)',
-                      } : { color: '#a78bfa' }}>
+                        boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
+                      } : { color: 'var(--color-primary-400)' }}>
                       {mode}
                     </button>
                   ))}
@@ -1066,7 +1066,7 @@ const CustomerQuoteDetail = () => {
                   const ItemIcon = isService ? Wrench : Package;
 
                   return (
-                    <div key={idx} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <div key={idx} className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                       <div className="p-4">
 
                         {/* Item header — always visible */}
@@ -1082,7 +1082,7 @@ const CustomerQuoteDetail = () => {
                               {item.product_sku && <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-semibold">SKU: {item.product_sku}</span>}
                               {item.brand_name && <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-semibold">{item.brand_name}</span>}
                               {item.is_negotiated_price && <Chip color="#3b82f6">Negotiated</Chip>}
-                              {item.is_bulk_pricing && <Chip color="#a855f7">Bulk Pricing</Chip>}
+                              {item.is_bulk_pricing && <Chip color="var(--color-primary-500)">Bulk Pricing</Chip>}
                               {item.is_taxable && <Chip color="#10b981">Taxable</Chip>}
                               {item.requires_site_visit && <Chip color="#f59e0b">Site Visit Required</Chip>}
                             </div>
@@ -1095,9 +1095,9 @@ const CustomerQuoteDetail = () => {
 
                         {/* ── MINIMAL VIEW ── */}
                         {itemView === 'minimal' && (
-                          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                             <div className="grid text-xs font-extrabold uppercase tracking-wider px-4 py-2.5"
-                              style={{ borderBottom: '1px solid rgba(168,85,247,0.2)', gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'rgba(168,85,247,0.08)', color: '#c084fc' }}>
+                              style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-400)' }}>
                               <span>Unit Price</span>
                               <span className="text-center">Quantity</span>
                               <span className="text-center">
@@ -1135,7 +1135,7 @@ const CustomerQuoteDetail = () => {
                                 })()}
                               </div>
                               <div className="text-right">
-                                <p className="font-extrabold text-sm" style={{ color: '#a855f7' }}>
+                                <p className="font-extrabold text-sm" style={{ color: 'var(--color-primary-500)' }}>
                                   {cc} {fmt(item.line_total_after_discount ?? (parseFloat(item.unit_price || 0) * parseFloat(item.quantity || 0)))}
                                 </p>
                               </div>
@@ -1147,9 +1147,9 @@ const CustomerQuoteDetail = () => {
                         {itemView === 'detailed' && (
                           <>
                             {/* Pricing breakdown */}
-                            <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                            <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                               <div className="grid text-xs font-extrabold uppercase tracking-wider px-4 py-2.5"
-                                style={{ borderBottom: '1px solid rgba(168,85,247,0.2)', gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'rgba(168,85,247,0.08)', color: '#c084fc' }}>
+                                style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', gridTemplateColumns: '1fr 1fr 1fr 1fr', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-400)' }}>
                                 <span>Unit Price</span>
                                 <span className="text-center">Quantity</span>
                                 <span className="text-center">
@@ -1188,7 +1188,7 @@ const CustomerQuoteDetail = () => {
                                   })()}
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-extrabold text-sm" style={{ color: '#a855f7' }}>
+                                  <p className="font-extrabold text-sm" style={{ color: 'var(--color-primary-500)' }}>
                                     {cc} {fmt(item.line_total_after_discount ?? (parseFloat(item.unit_price || 0) * parseFloat(item.quantity || 0)))}
                                   </p>
                                   {parseFloat(item.discount_amount || 0) > 0.001 && (
@@ -1204,7 +1204,7 @@ const CustomerQuoteDetail = () => {
                                 if (disc > 0.001 && orig > 0) {
                                   const pct = ((orig - unit) / orig * 100).toFixed(1);
                                   return (
-                                    <div className="px-4 py-2 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20" style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div className="px-4 py-2 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                                       <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Customer saves on this item</span>
                                       <Chip color="#10b981">Save {cc} {fmt(disc)} · {pct}% off</Chip>
                                     </div>
@@ -1214,7 +1214,7 @@ const CustomerQuoteDetail = () => {
                                   const markupAmt = (unit - orig) * qty;
                                   const pct = ((unit - orig) / orig * 100).toFixed(1);
                                   return (
-                                    <div className="px-4 py-2 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20" style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div className="px-4 py-2 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                                       <span className="text-xs font-bold text-orange-700 dark:text-orange-400">Price includes a markup</span>
                                       <Chip color="#f97316">+{cc} {fmt(markupAmt)} · {pct}% up</Chip>
                                     </div>
@@ -1226,22 +1226,22 @@ const CustomerQuoteDetail = () => {
 
                             {/* Service details */}
                             {(item.scheduled_start_date || item.scheduled_end_date || item.material_cost != null || item.labor_cost != null || item.estimated_hours != null || item.hourly_rate != null || item.estimated_duration) && (
-                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                                <div className="px-4 py-2.5 flex items-center gap-1.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                  <Clock size={12} color="#c084fc" />
-                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>Service Details</p>
+                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                                <div className="px-4 py-2.5 flex items-center gap-1.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                  <Clock size={12} color="var(--color-primary-400)" />
+                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Service Details</p>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800">
                                   {[
                                     (item.scheduled_start_date || item.scheduled_end_date) && ['Schedule', '#10b981', 'rgba(16,185,129,0.06)', `${safeDate(item.scheduled_start_date)?.toLocaleDateString() || '—'}${item.scheduled_end_date ? ` -> ${safeDate(item.scheduled_end_date)?.toLocaleDateString()}` : ''}`],
-                                    item.estimated_duration    && ['Duration',     '#a855f7', 'rgba(168,85,247,0.06)', item.estimated_duration],
+                                    item.estimated_duration    && ['Duration',     'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', item.estimated_duration],
                                     item.estimated_hours != null && ['Est. Hours', '#3b82f6', 'rgba(59,130,246,0.06)', `${parseFloat(item.estimated_hours).toFixed(1)} hrs`],
                                     item.hourly_rate != null   && ['Hourly Rate',  '#f59e0b', 'rgba(245,158,11,0.06)', `${cc} ${fmt(item.hourly_rate)} / hr`],
                                     item.labor_cost != null    && ['Labor Cost',   '#ef4444', 'rgba(239,68,68,0.06)',  `${cc} ${fmt(item.labor_cost)}`],
                                     item.material_cost != null && ['Material Cost','#06b6d4', 'rgba(6,182,212,0.06)',  `${cc} ${fmt(item.material_cost)}`],
                                   ].filter(Boolean).map(([label, color, bg, val], i) => (
                                     <div key={label} className="grid px-4 py-2.5 text-xs items-start"
-                                      style={{ gridTemplateColumns: '140px 1fr', background: bg, borderTop: i > 0 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                                      style={{ gridTemplateColumns: '140px 1fr', background: bg, borderTop: i > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                                       <span className="font-semibold mt-0.5" style={{ color }}>{label}</span>
                                       <span className="font-bold text-gray-800 dark:text-gray-200">{val}</span>
                                     </div>
@@ -1252,15 +1252,15 @@ const CustomerQuoteDetail = () => {
 
                             {/* Variant details */}
                             {item.variant_details && Object.keys(item.variant_details).length > 0 && (
-                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                                <div className="px-4 py-2.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>Variant Details</p>
+                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                                <div className="px-4 py-2.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Variant Details</p>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800">
                                   {Object.entries(item.variant_details).map(([key, val], i) => (
                                     <div key={key} className="grid px-4 py-2.5 text-xs"
-                                      style={{ gridTemplateColumns: '140px 1fr', background: i % 2 === 0 ? 'transparent' : 'rgba(168,85,247,0.03)' }}>
-                                      <span className="font-semibold capitalize" style={{ color: '#a78bfa' }}>{key}</span>
+                                      style={{ gridTemplateColumns: '140px 1fr', background: i % 2 === 0 ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}>
+                                      <span className="font-semibold capitalize" style={{ color: 'var(--color-primary-400)' }}>{key}</span>
                                       <span className="font-bold text-gray-800 dark:text-gray-200">{val || '—'}</span>
                                     </div>
                                   ))}
@@ -1270,18 +1270,18 @@ const CustomerQuoteDetail = () => {
 
                             {/* Additional info */}
                             {(item.lead_time || item.notes || item.prerequisites) && (
-                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-                                <div className="px-4 py-2.5" style={{ background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#c084fc' }}>Additional Info</p>
+                              <div className="rounded-xl overflow-hidden mt-3" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                                <div className="px-4 py-2.5" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                                  <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-400)' }}>Additional Info</p>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800">
                                   {[
                                     item.lead_time     && ['Lead Time',     item.lead_time,     '#f59e0b', 'rgba(245,158,11,0.06)'],
                                     item.prerequisites && ['Prerequisites', item.prerequisites, '#3b82f6', 'rgba(59,130,246,0.06)'],
-                                    item.notes         && ['Note',          item.notes,         '#a855f7', 'rgba(168,85,247,0.06)'],
+                                    item.notes         && ['Note',          item.notes,         'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'],
                                   ].filter(Boolean).map(([label, val, color, bg], i) => (
                                     <div key={label} className="grid px-4 py-2.5 text-xs items-start"
-                                      style={{ gridTemplateColumns: '140px 1fr', background: bg, borderTop: i > 0 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                                      style={{ gridTemplateColumns: '140px 1fr', background: bg, borderTop: i > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                                       <span className="font-semibold mt-0.5" style={{ color }}>{label}</span>
                                       <span className="font-bold text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{val}</span>
                                     </div>
@@ -1311,10 +1311,10 @@ const CustomerQuoteDetail = () => {
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" 
-                      style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                    <DollarSign size={16} color="#a855f7" />
+                      style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                    <DollarSign size={16} color="var(--color-primary-500)" />
                   </div>
-                  <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c084fc' }}>Pricing Summary</p>
+                  <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: 'var(--color-primary-400)' }}>Pricing Summary</p>
                 </div>
 
                 {/* Rows */}
@@ -1326,7 +1326,7 @@ const CustomerQuoteDetail = () => {
 
                   {quote.discount > 0 && (
                     <>
-                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary-500) 25%, transparent), transparent)' }} />
                       <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">
                           Quote Discount {quote.discount_percentage > 0 && `(${quote.discount_percentage}%)`}
@@ -1338,7 +1338,7 @@ const CustomerQuoteDetail = () => {
 
                   {quote.tax > 0 && (
                     <>
-                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary-500) 25%, transparent), transparent)' }} />
                       <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">VAT</span>
                         <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.tax)}</span>
@@ -1348,7 +1348,7 @@ const CustomerQuoteDetail = () => {
 
                   {quote.shipping_cost > 0 && (
                     <>
-                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.25), transparent)' }} />
+                      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary-500) 25%, transparent), transparent)' }} />
                       <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Shipping</span>
                         <span className="font-semibold text-gray-800 dark:text-gray-200">{cc} {fmt(quote.shipping_cost)}</span>
@@ -1366,7 +1366,7 @@ const CustomerQuoteDetail = () => {
                     <div className="flex justify-between items-center">
                       <span className="font-extrabold text-gray-900 dark:text-white">Total</span>
                       <div className="text-right">
-                        <p className="font-extrabold text-lg" style={{ color: '#a855f7' }}>{cc} {fmt(quote.total)}</p>
+                        <p className="font-extrabold text-lg" style={{ color: 'var(--color-primary-500)' }}>{cc} {fmt(quote.total)}</p>
                         {showKes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">KES {fmt(quote.total_kes)}</p>}
                       </div>
                     </div>
@@ -1375,7 +1375,7 @@ const CustomerQuoteDetail = () => {
                   {/* Exchange Rate Info */}
                   {showKes && quote.exchange_rate_to_kes && (
                     <div className="flex items-start gap-1.5 pt-2 text-xs text-gray-400 dark:text-gray-500">
-                      <Info size={11} color="#a855f7" className="flex-shrink-0 mt-0.5" />
+                      <Info size={11} color="var(--color-primary-500)" className="flex-shrink-0 mt-0.5" />
                       <span>
                         1 {cc} = {fmt(quote.exchange_rate_to_kes, 6)} KES
                         {quote.converted_currency_at && ` (${new Date(String(quote.converted_currency_at).replace(' ', 'T')).toLocaleDateString()})`}
@@ -1386,7 +1386,7 @@ const CustomerQuoteDetail = () => {
                   {/* Billing Schedule */}
                   {quote.billing_schedule && (
                     <div className="flex items-center gap-1.5 pt-2 mt-1 text-xs text-gray-500 dark:text-gray-400" 
-                        style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+                        style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                       <CreditCard size={11} /> 
                       Billing: <span className="font-bold text-gray-700 dark:text-gray-300">{quote.billing_schedule.replace('_', ' ')}</span>
                     </div>
@@ -1401,7 +1401,7 @@ const CustomerQuoteDetail = () => {
                 <span />
                 {!editingDelivery ? (
                   <button onClick={() => setEditingDelivery(true)} type="button"
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors flex-shrink-0">
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors flex-shrink-0">
                     {(quote.shipping_address || quote.billing_address) ? 'Edit' : 'Add Delivery Info'}
                   </button>
                 ) : (
@@ -1417,11 +1417,11 @@ const CustomerQuoteDetail = () => {
                   : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: '#c084fc' }}><Truck size={11} color="#c084fc" /> Shipping</p>
+                        <p className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: 'var(--color-primary-400)' }}><Truck size={11} color="var(--color-primary-400)" /> Shipping</p>
                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{quote.shipping_address?.trim() || '—'}</p>
                       </div>
                       <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: '#c084fc' }}><CreditCard size={11} color="#c084fc" /> Billing</p>
+                        <p className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: 'var(--color-primary-400)' }}><CreditCard size={11} color="var(--color-primary-400)" /> Billing</p>
                         <p className="text-sm text-gray-700 dark:text-gray-300">{quote.billing_same_as_shipping ? 'Same as shipping' : (quote.billing_address?.trim() || '—')}</p>
                       </div>
                     </div>
@@ -1448,9 +1448,9 @@ const CustomerQuoteDetail = () => {
             </Section>
 
             {/* Validity */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5" style={{ border: '1.5px solid rgba(168,85,247,0.25)', boxShadow: '0 0 0 1px rgba(168,85,247,0.08), 0 4px 16px rgba(168,85,247,0.06)' }}>
-              <p className="text-xs font-extrabold uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: '#c084fc' }}>
-                <Calendar size={12} color="#c084fc" /> Validity
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5" style={{ border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
+              <p className="text-xs font-extrabold uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: 'var(--color-primary-400)' }}>
+                <Calendar size={12} color="var(--color-primary-400)" /> Validity
               </p>
               
               {/* Changed gap-0 to gap-4 for clean spacing without lines */}
@@ -1467,10 +1467,10 @@ const CustomerQuoteDetail = () => {
                       width: 7, 
                       height: 7, 
                       borderRadius: '50%', 
-                      background: '#a855f7', 
+                      background: 'var(--color-primary-500)', 
                       flexShrink: 0, 
                       marginTop: 5, 
-                      boxShadow: '0 0 4px rgba(168,85,247,0.4)' 
+                      boxShadow: '0 0 4px color-mix(in srgb, var(--color-primary-500) 40%, transparent)' 
                     }} />
                     <div>
                       <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold">{label}</p>
@@ -1485,9 +1485,9 @@ const CustomerQuoteDetail = () => {
             {(quote.terms_and_conditions || quote.payment_terms || quote.delivery_terms) && (
               <Section title="Terms & Conditions" icon={FileText}>
                 <div className="flex flex-col gap-4 text-sm">
-                  {quote.terms_and_conditions && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: '#c084fc' }}>General Terms</p><p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap leading-relaxed">{quote.terms_and_conditions}</p></div>}
-                  {quote.payment_terms && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: '#c084fc' }}>Payment Terms</p><p className="text-gray-600 dark:text-gray-400">{quote.payment_terms}</p></div>}
-                  {quote.delivery_terms && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: '#c084fc' }}>Delivery Terms</p><p className="text-gray-600 dark:text-gray-400">{quote.delivery_terms}</p></div>}
+                  {quote.terms_and_conditions && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: 'var(--color-primary-400)' }}>General Terms</p><p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap leading-relaxed">{quote.terms_and_conditions}</p></div>}
+                  {quote.payment_terms && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: 'var(--color-primary-400)' }}>Payment Terms</p><p className="text-gray-600 dark:text-gray-400">{quote.payment_terms}</p></div>}
+                  {quote.delivery_terms && <div><p className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: 'var(--color-primary-400)' }}>Delivery Terms</p><p className="text-gray-600 dark:text-gray-400">{quote.delivery_terms}</p></div>}
                 </div>
               </Section>
             )}

@@ -56,15 +56,15 @@ export default function ThemeSwitcher() {
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '0.82rem', fontWeight: theme === value ? 700 : 500,
-                color: theme === value ? '#a855f7' : '#374151',
+                color: theme === value ? 'var(--color-primary-500)' : '#374151',
                 transition: 'background 120ms',
               }}
-              className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:text-gray-300"
+              className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-300"
             >
-              <Icon size={15} style={{ color: theme === value ? '#a855f7' : '#9ca3af' }} />
+              <Icon size={15} style={{ color: theme === value ? 'var(--color-primary-500)' : '#9ca3af' }} />
               {label}
               {theme === value && (
-                <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />
+                <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)' }} />
               )}
             </button>
           ))}

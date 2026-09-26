@@ -20,7 +20,7 @@ const WEEKDAYS     = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const STATUS_DOT = {
   pending:     '#f59e0b',
   confirmed:   '#3b82f6',
-  in_progress: '#a855f7',
+  in_progress: 'var(--color-primary-500)',
   completed:   '#10b981',
   cancelled:   '#ef4444',
   no_show:     '#9ca3af',
@@ -28,8 +28,8 @@ const STATUS_DOT = {
 
 const navBtn = {
   width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-  color: '#7c3aed', cursor: 'pointer', transition: 'background 120ms', flexShrink: 0,
+  borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+  color: 'var(--color-primary-600)', cursor: 'pointer', transition: 'background 120ms', flexShrink: 0,
 };
 
 // ── BookingChip ───────────────────────────────────────────────────────────────
@@ -42,13 +42,13 @@ function BookingChip({ booking }) {
     <div title={`${booking.booking_number} · ${booking.service?.name}`} style={{
       display: 'flex', alignItems: 'center', gap: 4,
       padding: '2px 6px', borderRadius: 5, fontSize: '0.6rem', fontWeight: 600,
-      background: 'rgba(168,85,247,0.06)', color: '#374151',
-      border: '1px solid rgba(168,85,247,0.12)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: '#374151',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
       overflow: 'hidden', whiteSpace: 'nowrap', cursor: 'pointer',
       transition: 'background 100ms',
     }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.12)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
     >
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: dot, flexShrink: 0 }} />
       {time && <span style={{ color: '#9ca3af', flexShrink: 0 }}>{time}</span>}
@@ -77,7 +77,7 @@ function MonthView({ anchor, bookingsByDate, isToday, onDayClick }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
         {WEEKDAYS.map(d => (
           <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' }}>
             {d}
@@ -85,7 +85,7 @@ function MonthView({ anchor, bookingsByDate, isToday, onDayClick }) {
         ))}
       </div>
       {weeks.map((week, wi) => (
-        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
           {week.map((day, di) => {
             const ymd      = toYMD(day);
             const bookings = bookingsByDate[ymd] ?? [];
@@ -94,23 +94,23 @@ function MonthView({ anchor, bookingsByDate, isToday, onDayClick }) {
             return (
               <div key={di} onClick={() => onDayClick(day)} style={{
                 minHeight: 90, padding: '5px 5px 3px',
-                borderRight: di < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-                background: today ? 'rgba(168,85,247,0.03)' : 'transparent',
+                borderRight: di < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+                background: today ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent',
                 cursor: 'pointer', transition: 'background 100ms',
               }}
-                onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'rgba(168,85,247,0.025)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = today ? 'rgba(168,85,247,0.03)' : 'transparent'; }}
+                onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = today ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent'; }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: '50%',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.7rem', fontWeight: today ? 800 : 500,
-                    background: today ? '#a855f7' : 'transparent',
+                    background: today ? 'var(--color-primary-500)' : 'transparent',
                     color: today ? 'white' : inMonth ? '#374151' : '#d1d5db',
                   }}>{day.getDate()}</span>
                   {bookings.length > 0 && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.08)', borderRadius: 10, padding: '1px 5px' }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderRadius: 10, padding: '1px 5px' }}>
                       {bookings.length}
                     </span>
                   )}
@@ -138,27 +138,27 @@ function WeekView({ anchor, bookingsByDate, isToday, onDayClick }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
         {days.map((day, i) => {
           const today = isToday(day);
           return (
             <div key={i} onClick={() => onDayClick(day)} style={{
               padding: '10px 8px', textAlign: 'center', cursor: 'pointer',
-              borderRight: i < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-              background: today ? 'rgba(168,85,247,0.04)' : 'transparent',
+              borderRight: i < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+              background: today ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent',
               transition: 'background 100ms',
             }}
-              onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'rgba(168,85,247,0.02)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = today ? 'rgba(168,85,247,0.04)' : 'transparent'; }}
+              onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = today ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent'; }}
             >
-              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: today ? '#a855f7' : '#9ca3af', margin: '0 0 4px' }}>
+              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: today ? 'var(--color-primary-500)' : '#9ca3af', margin: '0 0 4px' }}>
                 {WEEKDAYS[i]}
               </p>
               <span style={{
                 width: 28, height: 28, borderRadius: '50%',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.82rem', fontWeight: 800,
-                background: today ? '#a855f7' : 'transparent',
+                background: today ? 'var(--color-primary-500)' : 'transparent',
                 color: today ? 'white' : '#374151',
               }}>{day.getDate()}</span>
             </div>
@@ -173,13 +173,13 @@ function WeekView({ anchor, bookingsByDate, isToday, onDayClick }) {
           return (
             <div key={i} onClick={() => onDayClick(day)} style={{
               padding: '8px 5px', minHeight: 160, cursor: 'pointer',
-              borderRight: i < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-              background: today ? 'rgba(168,85,247,0.015)' : 'transparent',
+              borderRight: i < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+              background: today ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent',
               display: 'flex', flexDirection: 'column', gap: 3,
               transition: 'background 100ms',
             }}
-              onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'rgba(168,85,247,0.025)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = today ? 'rgba(168,85,247,0.015)' : 'transparent'; }}
+              onMouseEnter={e => { if (!today) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = today ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent'; }}
             >
               {bookings.length === 0
                 ? <span style={{ fontSize: '0.6rem', color: '#e5e7eb', textAlign: 'center', marginTop: 12 }}>—</span>
@@ -201,7 +201,7 @@ function DayView({ anchor, bookingsByDate, onBookingClick }) {
   if (bookings.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 24px', gap: 10 }}>
-        <CalendarDays size={32} style={{ color: 'rgba(168,85,247,0.18)' }} />
+        <CalendarDays size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }} />
         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No bookings for this day</p>
       </div>
     );
@@ -217,18 +217,18 @@ function DayView({ anchor, bookingsByDate, onBookingClick }) {
           <div key={i} onClick={() => onBookingClick?.(b)} style={{
             display: 'flex', alignItems: 'center', gap: 14,
             padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
-            background: 'white', border: '1.5px solid rgba(168,85,247,0.12)',
-            boxShadow: '0 1px 4px rgba(168,85,247,0.06)',
+            background: 'white', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+            boxShadow: '0 1px 4px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
             transition: 'box-shadow 120ms, border-color 120ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.12)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(168,85,247,0.06)'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.boxShadow = '0 1px 4px color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
           >
             <div style={{ textAlign: 'center', minWidth: 46, flexShrink: 0 }}>
-              <p style={{ fontSize: '0.78rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{time}</p>
+              <p style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{time}</p>
               <p style={{ fontSize: '0.6rem', color: '#9ca3af', margin: 0 }}>{b.duration_minutes ? `${b.duration_minutes}min` : ''}</p>
             </div>
-            <div style={{ width: 1, height: 36, background: 'rgba(168,85,247,0.12)', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 36, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.service?.name}
@@ -282,7 +282,7 @@ function CustomRangeView({ from, to, bookingsByDate, onDayClick }) {
                   </div>
               }
             </div>
-            {i < days.length - 1 && <div style={{ height: 1, background: 'rgba(168,85,247,0.06)' }} />}
+            {i < days.length - 1 && <div style={{ height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }} />}
           </div>
         );
       })}
@@ -343,21 +343,21 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
   return (
     <div style={{
       background: 'white', borderRadius: 16,
-      border: '1px solid rgba(168,85,247,0.12)',
-      boxShadow: '0 2px 16px rgba(168,85,247,0.06)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+      boxShadow: '0 2px 16px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header */}
-      <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)', flexShrink: 0 }}>
+      <div style={{ padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
 
           {/* View toggle */}
-          <div style={{ display: 'flex', borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.18)', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ display: 'flex', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', overflow: 'hidden', flexShrink: 0 }}>
             {['day', 'week', 'month', 'custom'].map(v => (
               <button key={v} onClick={() => setView(v)} style={{
                 padding: '5px 12px', fontSize: '0.72rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer', border: 'none',
-                background: view === v ? '#a855f7' : 'white',
+                background: view === v ? 'var(--color-primary-500)' : 'white',
                 color: view === v ? 'white' : '#9ca3af',
                 textTransform: 'capitalize', transition: 'all 120ms',
               }}>{v}</button>
@@ -383,8 +383,8 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
               onChange={e => { setJumpDate(e.target.value); if (e.target.value) setAnchor(new Date(e.target.value)); }}
               style={{
                 padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem',
-                border: '1.5px solid rgba(168,85,247,0.18)', color: '#374151',
-                outline: 'none', fontFamily: 'inherit', background: 'rgba(168,85,247,0.03)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#374151',
+                outline: 'none', fontFamily: 'inherit', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
               }}
             />
           </>}
@@ -393,11 +393,11 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
           {view === 'custom' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
               <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
-                style={{ padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem', border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none', fontFamily: 'inherit' }}
+                style={{ padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', outline: 'none', fontFamily: 'inherit' }}
               />
               <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>to</span>
               <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
-                style={{ padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem', border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none', fontFamily: 'inherit' }}
+                style={{ padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', outline: 'none', fontFamily: 'inherit' }}
               />
             </div>
           )}

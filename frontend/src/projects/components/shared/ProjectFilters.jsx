@@ -61,7 +61,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             style={{ width: '100%', padding: '9px 36px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none', color: '#111827', boxSizing: 'border-box', fontWeight: 500 }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
           />
           {searchInput && (
@@ -77,7 +77,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
           value={filters.status}
           onChange={e => handleSelect('status', e.target.value)}
           style={selectStyle}
-          onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
           onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -88,7 +88,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
           value={filters.priority}
           onChange={e => handleSelect('priority', e.target.value)}
           style={selectStyle}
-          onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
           onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -105,7 +105,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
 
         {/* Loading spinner */}
         {loading && (
-          <RefreshCw size={15} color="#a855f7" style={{ animation: 'spin 1s linear infinite' }} />
+          <RefreshCw size={15} color="var(--color-primary-500)" style={{ animation: 'spin 1s linear infinite' }} />
         )}
       </div>
     </div>

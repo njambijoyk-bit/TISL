@@ -125,7 +125,7 @@ const MyProjectDetail = () => {
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800"
-        style={{ borderBottom: '2px solid rgba(168,85,247,0.2)', padding: '24px 24px 0' }}>
+        style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '24px 24px 0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Back button */}
@@ -133,9 +133,9 @@ const MyProjectDetail = () => {
             onClick={() => navigate('/my-projects')}
             type="button"
             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors mb-5"
-            style={{ border: '1px solid rgba(168,85,247,0.2)', color: '#9ca3af' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#9ca3af' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
           >
             <ArrowLeft size={12} /> Back to Projects
           </button>
@@ -143,10 +143,10 @@ const MyProjectDetail = () => {
           {/* Title + badges row */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
             <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#c084fc', marginBottom: 4 }}>
+              <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-400)', marginBottom: 4 }}>
                 Project
               </p>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: 0 }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>
                 {project.title}
               </h1>
               <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 3 }}>{project.project_number}</p>
@@ -161,19 +161,19 @@ const MyProjectDetail = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
             {project.target_end_date && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#9ca3af' }}>
-                <Calendar size={13} color="#c084fc" />
+                <Calendar size={13} color="var(--color-primary-400)" />
                 Target: {formatDate(project.target_end_date)}
               </span>
             )}
             {project.owner_admin?.name && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#9ca3af' }}>
-                <User size={13} color="#c084fc" />
+                <User size={13} color="var(--color-primary-400)" />
                 Manager: {project.owner_admin.name}
               </span>
             )}
             {permissions?.role && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#9ca3af', textTransform: 'capitalize' }}>
-                <Shield size={13} color="#c084fc" />
+                <Shield size={13} color="var(--color-primary-400)" />
                 {permissions.role.replace('customer_', '')}
               </span>
             )}
@@ -193,8 +193,8 @@ const MyProjectDetail = () => {
                     padding: '12px 16px', border: 'none', cursor: 'pointer',
                     background: 'transparent', whiteSpace: 'nowrap',
                     fontSize: '0.82rem', fontWeight: 700,
-                    color: active ? '#a855f7' : '#9ca3af',
-                    borderBottom: active ? '2.5px solid #a855f7' : '2.5px solid transparent',
+                    color: active ? 'var(--color-primary-500)' : '#9ca3af',
+                    borderBottom: active ? '2.5px solid var(--color-primary-500)' : '2.5px solid transparent',
                     transition: 'all 150ms', marginBottom: -1,
                   }}
                 >
@@ -203,8 +203,8 @@ const MyProjectDetail = () => {
                     <span style={{
                       minWidth: 18, padding: '1px 5px', borderRadius: 9999,
                       fontSize: '0.65rem', fontWeight: 800,
-                      background: active ? 'rgba(168,85,247,0.12)' : '#f3f4f6',
-                      color: active ? '#a855f7' : '#9ca3af',
+                      background: active ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '#f3f4f6',
+                      color: active ? 'var(--color-primary-500)' : '#9ca3af',
                       transition: 'all 150ms',
                     }}>{badge}</span>
                   )}
@@ -228,15 +228,15 @@ const MyProjectDetail = () => {
             {/* About this project — purple tint banner */}
             {project.description && (
               <div className="rounded-xl overflow-hidden"
-                style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 {/* Accent bar */}
-                <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
-                <div style={{ padding: '16px 20px', background: 'rgba(168,85,247,0.04)' }}>
+                <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
+                <div style={{ padding: '16px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(168,85,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Info size={14} color="#a855f7" />
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Info size={14} color="var(--color-primary-500)" />
                     </div>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#a855f7', margin: 0 }}>
+                    <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-primary-500)', margin: 0 }}>
                       About this project
                     </p>
                   </div>
@@ -247,10 +247,10 @@ const MyProjectDetail = () => {
 
             {/* Details table */}
             <div className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+              style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
               {/* Header */}
-              <div style={{ padding: '10px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#a855f7', margin: 0 }}>
+              <div style={{ padding: '10px 16px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-primary-500)', margin: 0 }}>
                   Project Details
                 </p>
               </div>
@@ -268,7 +268,7 @@ const MyProjectDetail = () => {
                   },
                   {
                     label: 'Manager', value: project.owner_admin?.name || 'Unassigned',
-                    Icon: User, color: '#a855f7', bg: 'rgba(168,85,247,0.08)',
+                    Icon: User, color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   },
                   {
                     label: 'Currency', value: project.base_currency,
@@ -283,7 +283,7 @@ const MyProjectDetail = () => {
                     style={{
                       display: 'grid', gridTemplateColumns: '160px 1fr',
                       alignItems: 'center', padding: '10px 16px',
-                      borderBottom: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none',
+                      borderBottom: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
                     }}>
                     {/* Label with icon */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -304,7 +304,7 @@ const MyProjectDetail = () => {
         {/* ── ITEMS ── */}
         {activeTab === 'Items' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
             <ProjectItemsTable items={items} loading={loading.items} readOnly />
           </div>
         )}

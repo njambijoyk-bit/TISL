@@ -38,7 +38,7 @@ export default function HamperDetail() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 40, height: 40, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 40, height: 40, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -69,7 +69,7 @@ export default function HamperDetail() {
 
   if (!hamper) return null;
 
-  const accent      = hamper.accent_color || '#a855f7';
+  const accent      = hamper.accent_color || 'var(--color-primary-500)';
   const accentFade  = `${accent}12`;
   const accentMid   = `${accent}30`;
   const soldOut     = hamper.is_sold_out && !hamper.is_backorderable;

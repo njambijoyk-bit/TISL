@@ -4,7 +4,7 @@ import notificationsAPI from '../../api/notifications';
 import toast from 'react-hot-toast';
 
 const TYPE_COLORS = {
-  referral_earned:          '#a855f7',
+  referral_earned:          'var(--color-primary-500)',
   birthday_promo:           '#ec4899',
   win_back_promo:           '#f97316',
   vip_upgrade_promo:        '#f59e0b',
@@ -103,14 +103,14 @@ export default function NotificationsModal({ open, onClose }) {
         {/* Header */}
         <div style={{
           padding: '20px 20px 14px',
-          borderBottom: '1px solid rgba(168,85,247,0.1)',
+          borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Bell size={16} color="white" />
@@ -143,8 +143,8 @@ export default function NotificationsModal({ open, onClose }) {
                 <button key={f} onClick={() => setFilter(f)} style={{
                   padding: '4px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: filter === f ? 'rgba(168,85,247,0.1)' : 'transparent',
-                  color: filter === f ? '#7c3aed' : '#9ca3af',
+                  background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+                  color: filter === f ? 'var(--color-primary-600)' : '#9ca3af',
                   transition: 'all 150ms',
                 }}>
                   {f === 'all' ? 'All' : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
@@ -155,8 +155,8 @@ export default function NotificationsModal({ open, onClose }) {
               <button onClick={handleMarkAllRead} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '4px 10px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
-                border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
-                background: 'rgba(168,85,247,0.04)', color: '#7c3aed',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', color: 'var(--color-primary-600)',
               }}>
                 <Check size={11} strokeWidth={2.5} /> Mark all read
               </button>
@@ -168,7 +168,7 @@ export default function NotificationsModal({ open, onClose }) {
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-              <Loader2 size={24} color="#a855f7" style={{ animation: 'spin 1s linear infinite' }} />
+              <Loader2 size={24} color="var(--color-primary-500)" style={{ animation: 'spin 1s linear infinite' }} />
             </div>
           ) : visible.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px' }}>

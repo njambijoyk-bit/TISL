@@ -43,7 +43,7 @@ const SOURCE_CONFIG = {
   deadline:   { label: 'Deadlines',  color: '#ef4444', bg: 'rgba(239,68,68,0.09)',   icon: CalendarClock  },
   unassigned: { label: 'Unassigned', color: '#f59e0b', bg: 'rgba(245,158,11,0.09)',  icon: AlertTriangle  },
   activity:   { label: 'Activity',   color: '#3b82f6', bg: 'rgba(59,130,246,0.09)',  icon: ActivityIcon   },
-  team_load:  { label: 'Team Load',  color: '#a855f7', bg: 'rgba(168,85,247,0.09)',  icon: Users          },
+  team_load:  { label: 'Team Load',  color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 9%, transparent)',  icon: Users          },
 };
 
 const SUBTYPE_LABELS = {
@@ -115,8 +115,8 @@ function buildEvents(data) {
 
 const navBtn = {
   width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-  color: '#7c3aed', cursor: 'pointer', transition: 'background 120ms', flexShrink: 0,
+  borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+  color: 'var(--color-primary-600)', cursor: 'pointer', transition: 'background 120ms', flexShrink: 0,
 };
 
 // ── EventChip — used in month + week views ────────────────────────────────────
@@ -167,7 +167,7 @@ function MonthView({ anchor, eventsByDate, isToday, onDayClick }) {
   return (
     <div>
       {/* Weekday headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
         {WEEKDAYS.map(d => (
           <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' }}>
             {d}
@@ -177,7 +177,7 @@ function MonthView({ anchor, eventsByDate, isToday, onDayClick }) {
 
       {/* Week rows */}
       {weeks.map((week, wi) => (
-        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
           {week.map((day, di) => {
             const ymd       = toYMD(day);
             const dayEvents = eventsByDate[ymd] ?? [];
@@ -190,12 +190,12 @@ function MonthView({ anchor, eventsByDate, isToday, onDayClick }) {
                 onClick={() => onDayClick(day)}
                 style={{
                   minHeight: 88, padding: '5px 5px 3px',
-                  borderRight: di < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-                  background: todayDay ? 'rgba(168,85,247,0.03)' : 'transparent',
+                  borderRight: di < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+                  background: todayDay ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent',
                   cursor: 'pointer', transition: 'background 100ms',
                 }}
-                onMouseEnter={e => { if (!todayDay) e.currentTarget.style.background = 'rgba(168,85,247,0.025)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = todayDay ? 'rgba(168,85,247,0.03)' : 'transparent'; }}
+                onMouseEnter={e => { if (!todayDay) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = todayDay ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent'; }}
               >
                 {/* Date number */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 3 }}>
@@ -203,7 +203,7 @@ function MonthView({ anchor, eventsByDate, isToday, onDayClick }) {
                     width: 20, height: 20, borderRadius: '50%',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.7rem', fontWeight: todayDay ? 800 : 500,
-                    background: todayDay ? '#a855f7' : 'transparent',
+                    background: todayDay ? 'var(--color-primary-500)' : 'transparent',
                     color: todayDay ? 'white' : inMonth ? '#374151' : '#d1d5db',
                   }}>
                     {day.getDate()}
@@ -237,7 +237,7 @@ function WeekView({ anchor, eventsByDate, isToday, onDayClick }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Day headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
         {days.map((day, i) => {
           const todayDay = isToday(day);
           return (
@@ -246,21 +246,21 @@ function WeekView({ anchor, eventsByDate, isToday, onDayClick }) {
               onClick={() => onDayClick(day)}
               style={{
                 padding: '10px 8px', textAlign: 'center', cursor: 'pointer',
-                borderRight: i < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-                background: todayDay ? 'rgba(168,85,247,0.04)' : 'transparent',
+                borderRight: i < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+                background: todayDay ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent',
                 transition: 'background 100ms',
               }}
-              onMouseEnter={e => { if (!todayDay) e.currentTarget.style.background = 'rgba(168,85,247,0.02)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = todayDay ? 'rgba(168,85,247,0.04)' : 'transparent'; }}
+              onMouseEnter={e => { if (!todayDay) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = todayDay ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent'; }}
             >
-              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: todayDay ? '#a855f7' : '#9ca3af', margin: '0 0 4px' }}>
+              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: todayDay ? 'var(--color-primary-500)' : '#9ca3af', margin: '0 0 4px' }}>
                 {WEEKDAYS[i]}
               </p>
               <span style={{
                 width: 26, height: 26, borderRadius: '50%',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.8rem', fontWeight: 800,
-                background: todayDay ? '#a855f7' : 'transparent',
+                background: todayDay ? 'var(--color-primary-500)' : 'transparent',
                 color: todayDay ? 'white' : '#374151',
               }}>
                 {day.getDate()}
@@ -279,8 +279,8 @@ function WeekView({ anchor, eventsByDate, isToday, onDayClick }) {
           return (
             <div key={i} style={{
               padding: '8px 5px', minHeight: 160,
-              borderRight: i < 6 ? '1px solid rgba(168,85,247,0.05)' : 'none',
-              background: todayDay ? 'rgba(168,85,247,0.015)' : 'transparent',
+              borderRight: i < 6 ? '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'none',
+              background: todayDay ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent',
               display: 'flex', flexDirection: 'column', gap: 3,
             }}>
               {dayEvents.length === 0
@@ -310,7 +310,7 @@ function DayView({ anchor, eventsByDate }) {
   if (dayEvents.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 24px', gap: 10 }}>
-        <CalendarClock size={32} style={{ color: 'rgba(168,85,247,0.18)' }} />
+        <CalendarClock size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }} />
         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No items for this day</p>
       </div>
     );
@@ -420,21 +420,21 @@ export default function WorkTimetable({ data, onClose }) {
     >
       <div style={{
         background: 'white', borderRadius: 16,
-        border: '1px solid rgba(168,85,247,0.1)',
-        boxShadow: '0 8px 40px rgba(168,85,247,0.12)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+        boxShadow: '0 8px 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
         width: '100%', maxWidth: 980, maxHeight: '88vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
 
         {/* ── Header ── */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
 
           {/* Row 1: title + controls + close */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
 
             {/* Title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 'auto' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
                 <CalendarClock size={15} />
               </div>
               <div>
@@ -444,7 +444,7 @@ export default function WorkTimetable({ data, onClose }) {
             </div>
 
             {/* View toggle */}
-            <div style={{ display: 'flex', borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.18)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', overflow: 'hidden' }}>
               {['day', 'week', 'month'].map(v => (
                 <button
                   key={v}
@@ -452,7 +452,7 @@ export default function WorkTimetable({ data, onClose }) {
                   style={{
                     padding: '5px 13px', fontSize: '0.72rem', fontWeight: 700,
                     fontFamily: 'inherit', cursor: 'pointer', border: 'none',
-                    background: view === v ? '#a855f7' : 'white',
+                    background: view === v ? 'var(--color-primary-500)' : 'white',
                     color: view === v ? 'white' : '#9ca3af',
                     textTransform: 'capitalize', transition: 'all 120ms',
                   }}
@@ -466,7 +466,7 @@ export default function WorkTimetable({ data, onClose }) {
             <button onClick={() => navigate(-1)} style={navBtn}><ChevronLeft size={14} /></button>
             <button
               onClick={() => { setAnchor(new Date(today)); setJumpDate(''); }}
-              style={{ ...navBtn, width: 'auto', padding: '0 10px', fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed' }}
+              style={{ ...navBtn, width: 'auto', padding: '0 10px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)' }}
             >
               Today
             </button>
@@ -484,9 +484,9 @@ export default function WorkTimetable({ data, onClose }) {
               onChange={e => { setJumpDate(e.target.value); if (e.target.value) setAnchor(new Date(e.target.value)); }}
               style={{
                 padding: '5px 8px', borderRadius: 8, fontSize: '0.72rem',
-                border: '1.5px solid rgba(168,85,247,0.18)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#374151', outline: 'none', fontFamily: 'inherit',
-                background: 'rgba(168,85,247,0.03)', cursor: 'pointer',
+                background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', cursor: 'pointer',
               }}
             />
 
@@ -494,7 +494,7 @@ export default function WorkTimetable({ data, onClose }) {
             <button
               onClick={onClose}
               style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', flexShrink: 0 }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
               <X size={16} />
@@ -530,8 +530,8 @@ export default function WorkTimetable({ data, onClose }) {
         {/* ── Team Load strip — shown when filter is active ── */}
         {filters.team_load && sortedTeamLoad.length > 0 && (
           <div style={{
-            padding: '7px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)',
-            background: 'rgba(168,85,247,0.015)', flexShrink: 0,
+            padding: '7px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', flexShrink: 0,
             display: 'flex', gap: 6, overflowX: 'auto', alignItems: 'center',
           }}>
             <span style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
@@ -544,11 +544,11 @@ export default function WorkTimetable({ data, onClose }) {
                 <span key={i} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
                   padding: '3px 10px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 600,
-                  background: 'white', border: '1px solid rgba(168,85,247,0.1)', color: '#374151',
+                  background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: '#374151',
                 }}>
                   <span style={{
                     width: 17, height: 17, borderRadius: '50%', flexShrink: 0,
-                    background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.55rem', fontWeight: 800,
                   }}>

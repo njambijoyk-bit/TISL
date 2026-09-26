@@ -442,7 +442,7 @@ function ReturnedItemsPanel({ onHover, navigate, audio }) {
                                                     const stopCount = d.items?.length ?? 0;
                                                     const statusColor = {
                                                         draft:       '#94a3b8',
-                                                        dispatched:  '#a855f7',
+                                                        dispatched:  'var(--color-primary-500)',
                                                         in_progress: '#f59e0b',
                                                         completed:   '#22c55e',
                                                         cancelled:   '#ef4444',
@@ -704,7 +704,7 @@ function FailedItemsPanel({ onHover, navigate, audio }) {
                                                     const stopCount = d.items?.length ?? 0;
                                                     const statusColor = {
                                                         draft:       '#94a3b8',
-                                                        dispatched:  '#a855f7',
+                                                        dispatched:  'var(--color-primary-500)',
                                                         in_progress: '#f59e0b',
                                                         completed:   '#22c55e',
                                                         cancelled:   '#ef4444',

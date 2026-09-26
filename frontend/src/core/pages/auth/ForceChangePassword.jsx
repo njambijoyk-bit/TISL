@@ -67,7 +67,7 @@ export default function ForceChangePassword() {
 
         {/* Mobile bar */}
         <div className="tisl-mobile-bar" style={{
-          display: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          display: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
           padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -91,7 +91,7 @@ export default function ForceChangePassword() {
           {/* Left panel */}
           <div className="tisl-sidebar" style={{
             position: 'relative', overflow: 'hidden',
-            background: 'linear-gradient(145deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%)',
+            background: 'linear-gradient(145deg, var(--color-primary-400) 0%, var(--color-primary-500) 40%, var(--color-primary-600) 100%)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             padding: '40px 32px', gap: 24,
           }}>
@@ -170,7 +170,7 @@ export default function ForceChangePassword() {
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} style={{
                       position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                      color: focused === key ? '#a855f7' : '#9ca3af', transition: 'color 150ms',
+                      color: focused === key ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms',
                     }} />
                     <input
                       name={key}
@@ -182,7 +182,7 @@ export default function ForceChangePassword() {
                       placeholder={placeholder}
                       style={{
                         width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10,
-                        border: `1.5px solid ${errors[key] ? '#ef4444' : focused === key ? '#a855f7' : '#e5e7eb'}`,
+                        border: `1.5px solid ${errors[key] ? '#ef4444' : focused === key ? 'var(--color-primary-500)' : '#e5e7eb'}`,
                         fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box',
                       }}
                       className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -201,11 +201,11 @@ export default function ForceChangePassword() {
                 style={{
                   height: 46, borderRadius: 12, border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  background: loading ? '#e5e7eb' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  background: loading ? '#e5e7eb' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                   color: loading ? '#9ca3af' : 'white',
                   fontSize: '0.88rem', fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: loading ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                  boxShadow: loading ? 'none' : '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                   transition: 'all 200ms', letterSpacing: '0.04em', marginTop: 4,
                 }}
               >

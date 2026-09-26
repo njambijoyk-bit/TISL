@@ -23,9 +23,9 @@ const TYPE_CONFIG = {
     Icon:    Zap,
   },
   featured: {
-    tape:    'rgba(168,85,247,0.72)',
-    accent:  '#a855f7',
-    accentDim: 'rgba(168,85,247,0.18)',
+    tape:    'color-mix(in srgb, var(--color-primary-500) 72%, transparent)',
+    accent:  'var(--color-primary-500)',
+    accentDim: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
     stamp:   'FEATURED',
     Icon:    Award,
   },

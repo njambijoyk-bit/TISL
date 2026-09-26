@@ -61,14 +61,14 @@ function buildMapHtml({ pings, deliveryCoords, stopNumber }) {
     const centerLng = current?.lng ?? (deliveryCoords?.lng ?? 39.6682);
 
     const pathJs = trail.length > 1
-        ? `L.polyline([${trail.map(p => `[${p.lat},${p.lng}]`).join(',')}],{color:'#a855f7',weight:4,opacity:0.75}).addTo(map);`
+        ? `L.polyline([${trail.map(p => `[${p.lat},${p.lng}]`).join(',')}],{color:'var(--color-primary-500)',weight:4,opacity:0.75}).addTo(map);`
         : '';
 
     const truckJs = current
         ? `L.marker([${current.lat},${current.lng}],{icon:L.divIcon({className:'',html:\`
             <div style="position:relative;display:flex;align-items:center;justify-content:center;">
-                <div style="position:absolute;width:44px;height:44px;background:rgba(168,85,247,0.25);border-radius:50%;animation:pulse 2s infinite;"></div>
-                <div style="width:34px;height:34px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(168,85,247,0.5);font-size:17px;z-index:10;">🚚</div>
+                <div style="position:absolute;width:44px;height:44px;background:color-mix(in srgb, var(--color-primary-500) 25%, transparent);border-radius:50%;animation:pulse 2s infinite;"></div>
+                <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600));border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px color-mix(in srgb, var(--color-primary-500) 50%, transparent);font-size:17px;z-index:10;">🚚</div>
             </div>\`,iconSize:[44,44],iconAnchor:[22,22]})}).addTo(map).bindPopup('<b>Driver</b><br/>Speed: ${current.speed ?? 0} km/h');`
         : '';
 
@@ -181,10 +181,10 @@ function DeliveredCard({ shipment, tracking }) {
             {notes && (
                 <div style={{
                     width: '100%', maxWidth: 400,
-                    background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                     borderRadius: 10, padding: '12px 14px', marginBottom: 16,
                 }}>
-                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#a855f7', margin: '0 0 6px' }}>
+                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-primary-500)', margin: '0 0 6px' }}>
                         Delivery Notes
                     </p>
                     <p style={{ fontSize: '0.82rem', color: '#e2e8f0', margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -204,7 +204,7 @@ function DeliveredCard({ shipment, tracking }) {
                         alt="Proof of delivery"
                         style={{
                             width: '100%', borderRadius: 10,
-                            border: '1px solid rgba(168,85,247,0.2)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             objectFit: 'cover', maxHeight: 220,
                             boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                         }}
@@ -300,10 +300,10 @@ function LiveMapView({ state, pings, tracking, shipment }) {
     // Status banner config per state
     const bannerCfg = {
         approaching: {
-            color:   '#a855f7',
-            bg:      'rgba(168,85,247,0.1)',
-            border:  'rgba(168,85,247,0.25)',
-            icon:    <Navigation size={16} color="#a855f7" />,
+            color:   'var(--color-primary-500)',
+            bg:      'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            border:  'color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+            icon:    <Navigation size={16} color="var(--color-primary-500)" />,
             title:   'Driver is heading to you now',
             sub:     'Your stop is next on the route',
         },
@@ -328,8 +328,8 @@ function LiveMapView({ state, pings, tracking, shipment }) {
                 : 'Tracking your driver…',
         },
     }[state] ?? {
-        color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.2)',
-        icon: <Navigation size={16} color="#a855f7" />, title: 'Driver en route', sub: '',
+        color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+        icon: <Navigation size={16} color="var(--color-primary-500)" />, title: 'Driver en route', sub: '',
     };
 
     return (
@@ -390,7 +390,7 @@ function LiveMapView({ state, pings, tracking, shipment }) {
                     flexShrink: 0,
                 }}>
                     {[
-                        { Icon: Zap,   label: 'Speed',     value: `${speedKmh} km/h`,                      color: '#a855f7' },
+                        { Icon: Zap,   label: 'Speed',     value: `${speedKmh} km/h`,                      color: 'var(--color-primary-500)' },
                         { Icon: MapPin, label: 'Stops Away', value: stopsAway != null ? stopsAway : '—',   color: '#14b8a6' },
                         { Icon: Clock, label: 'Last Ping',  value: lastPing ? fmtTime(lastPing) : '—',     color: '#3b82f6' },
                     ].map(({ Icon, label, value, color }) => (
@@ -501,8 +501,8 @@ export default function DriverTrackingModal({ isOpen, onClose, manifest, orderId
                     width: '100%', maxWidth: 680,
                     height: '85vh', maxHeight: 720,
                     borderRadius: 20,
-                    border: '1px solid rgba(168,85,247,0.2)',
-                    boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.08)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                     display: 'flex', flexDirection: 'column',
                     overflow: 'hidden',
                     transform: visible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(16px)',
@@ -514,17 +514,17 @@ export default function DriverTrackingModal({ isOpen, onClose, manifest, orderId
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '14px 18px',
-                    borderBottom: '1px solid rgba(168,85,247,0.12)',
+                    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                     flexShrink: 0,
-                    background: 'rgba(168,85,247,0.04)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{
                             width: 38, height: 38, borderRadius: 10,
-                            background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.2)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            <Navigation size={17} color="#a855f7" />
+                            <Navigation size={17} color="var(--color-primary-500)" />
                         </div>
                         <div>
                             <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#e2e8f0', margin: 0 }}>
@@ -535,7 +535,7 @@ export default function DriverTrackingModal({ isOpen, onClose, manifest, orderId
                             <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '1px 0 0' }}>
                                 {driverName}
                                 {state !== 'delivered' && state !== 'failed' && (
-                                    <span style={{ color: '#a855f7', marginLeft: 8 }}>● Live</span>
+                                    <span style={{ color: 'var(--color-primary-500)', marginLeft: 8 }}>● Live</span>
                                 )}
                             </p>
                         </div>
@@ -547,8 +547,8 @@ export default function DriverTrackingModal({ isOpen, onClose, manifest, orderId
                             <button
                                 onClick={fetchAll}
                                 style={{
-                                    width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(168,85,247,0.2)',
-                                    background: 'rgba(168,85,247,0.08)', color: '#a855f7',
+                                    width: 32, height: 32, borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     cursor: 'pointer',
                                 }}
@@ -574,7 +574,7 @@ export default function DriverTrackingModal({ isOpen, onClose, manifest, orderId
                 {/* ── Body ─────────────────────────────────────────────── */}
                 {loading ? (
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#64748b' }}>
-                        <Loader2 size={20} color="#a855f7" style={{ animation: 'spin 1s linear infinite' }} />
+                        <Loader2 size={20} color="var(--color-primary-500)" style={{ animation: 'spin 1s linear infinite' }} />
                         <span style={{ fontSize: '0.85rem' }}>Loading tracking…</span>
                     </div>
                 ) : state === 'delivered' ? (

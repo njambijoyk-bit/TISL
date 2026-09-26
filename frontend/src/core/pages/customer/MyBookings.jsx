@@ -53,7 +53,7 @@ const MyBookings = () => {
       {/* Header */}
       {/* Back */}
       <button onClick={() => navigate('/home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px', fontFamily: 'inherit' }}
-        onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
       ><ArrowLeft size={14} /> Home</button>
       <div style={{ marginBottom: 24 }}>
@@ -62,13 +62,13 @@ const MyBookings = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(168,85,247,0.1)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingBottom: 0 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => { setTab(t.key); setPage(1); }} style={{
             padding: '8px 14px', fontSize: '0.78rem', fontWeight: 700,
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            color: tab === t.key ? '#7c3aed' : '#9ca3af',
-            borderBottom: `2px solid ${tab === t.key ? '#a855f7' : 'transparent'}`,
+            color: tab === t.key ? 'var(--color-primary-600)' : '#9ca3af',
+            borderBottom: `2px solid ${tab === t.key ? 'var(--color-primary-500)' : 'transparent'}`,
             marginBottom: -1, transition: 'color 120ms, border-color 120ms',
           }}>{t.label}</button>
         ))}
@@ -77,17 +77,17 @@ const MyBookings = () => {
       {/* List */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 10, color: '#9ca3af', fontSize: '0.82rem' }}>
-          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       ) : bookings.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 24px', gap: 12, textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CalendarDays size={24} style={{ color: '#a855f7' }} />
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CalendarDays size={24} style={{ color: 'var(--color-primary-500)' }} />
           </div>
           <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#374151', margin: 0 }}>No bookings yet</p>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Browse our services to make a booking</p>
-          <button onClick={() => navigate('/services')} style={{ marginTop: 8, padding: '9px 20px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/services')} style={{ marginTop: 8, padding: '9px 20px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', cursor: 'pointer' }}>
             Browse services
           </button>
         </div>
@@ -99,13 +99,13 @@ const MyBookings = () => {
             return (
               <div key={b.id} onClick={() => navigate(`/bookings/${b.id}`)} style={{
                 background: 'white', borderRadius: 14, padding: '16px 18px',
-                border: '1.5px solid rgba(168,85,247,0.1)',
-                boxShadow: '0 1px 4px rgba(168,85,247,0.05)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                boxShadow: '0 1px 4px color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                 cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10,
                 transition: 'box-shadow 150ms, border-color 150ms',
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(168,85,247,0.05)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.boxShadow = '0 1px 4px color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,7 +121,7 @@ const MyBookings = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <CalendarDays size={12} style={{ color: '#a855f7', flexShrink: 0 }} />
+                    <CalendarDays size={12} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                     <span style={{ fontSize: '0.75rem', color: '#374151', fontWeight: 600 }}>{time}</span>
                     {timeShort && <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{timeShort}</span>}
                   </div>
@@ -144,14 +144,14 @@ const MyBookings = () => {
           {pagination && pagination.last_page > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#7c3aed', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
+                style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-600)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
                 ← Previous
               </button>
               <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', color: '#9ca3af' }}>
                 {page} / {pagination.last_page}
               </span>
               <button disabled={page === pagination.last_page} onClick={() => setPage(p => p + 1)}
-                style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#7c3aed', cursor: page === pagination.last_page ? 'not-allowed' : 'pointer', opacity: page === pagination.last_page ? 0.4 : 1 }}>
+                style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-600)', cursor: page === pagination.last_page ? 'not-allowed' : 'pointer', opacity: page === pagination.last_page ? 0.4 : 1 }}>
                 Next →
               </button>
             </div>

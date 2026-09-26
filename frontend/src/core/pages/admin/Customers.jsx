@@ -24,7 +24,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -38,7 +38,7 @@ const STAT_META = [
   { key: 'total_customers',  label: 'Total customers',  icon: <Users size={18} />,        accent: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
   { key: 'active_customers', label: 'Active',           icon: <ShieldCheck size={18} />,  accent: '#059669', bg: 'rgba(5,150,105,0.08)'   },
   { key: 'vip_customers',    label: 'VIP (Gold+)',      icon: <Star size={18} />,          accent: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
-  { key: 'with_credit',      label: 'Credit accounts',  icon: <CreditCard size={18} />,   accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)'  },
+  { key: 'with_credit',      label: 'Credit accounts',  icon: <CreditCard size={18} />,   accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'  },
 ];
 
 const TYPE_ICONS = {
@@ -70,20 +70,20 @@ const fmtPts  = (n) => Number(n ?? 0).toLocaleString();
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
-const selectFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
@@ -105,7 +105,7 @@ function StatCard({ icon, label, value, sub, accent, bg }) {
       </div>
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
+        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
         {sub && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{sub}</p>}
       </div>
     </div>
@@ -137,7 +137,7 @@ function SortButton({ field, sortBy, sortOrder, onSort, align = 'left' }) {
         justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
         width: '100%',
         fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-        color: active ? '#a855f7' : '#9ca3af',
+        color: active ? 'var(--color-primary-500)' : '#9ca3af',
         background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         transition: 'color 150ms',
       }}
@@ -155,20 +155,20 @@ function SortButton({ field, sortBy, sortOrder, onSort, align = 'left' }) {
 function SkeletonRow() {
   const widths = [null, 64, 56, 72, 80, 72, 64, 80, 72, 0];
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {/* Customer cell */}
       <td style={{ padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', flexShrink: 0 }} />
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ width: 112, height: 11, borderRadius: 6, background: 'rgba(168,85,247,0.08)' }} />
-            <div style={{ width: 148, height: 9, borderRadius: 6, background: 'rgba(168,85,247,0.05)' }} />
+            <div style={{ width: 112, height: 11, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+            <div style={{ width: 148, height: 9, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }} />
           </div>
         </div>
       </td>
       {widths.map((w, j) => (
         <td key={j} style={{ padding: '12px 16px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'rgba(168,85,247,0.06)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }} />}
         </td>
       ))}
     </tr>
@@ -290,7 +290,7 @@ export default function Customers() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
             Customers
           </h1>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -304,8 +304,8 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(124,58,237,0.15))',
-              border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 10%, transparent), color-mix(in srgb, var(--color-primary-600) 15%, transparent))',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
               transition: 'all 150ms',
             }}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
@@ -319,11 +319,11 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
               transition: 'all 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.11)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 11%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
           >
             <Percent size={14} /> Discounts
           </button>
@@ -333,11 +333,11 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
               transition: 'all 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.11)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 11%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
           >
             <Activity size={14} /> Health
           </button>
@@ -383,13 +383,13 @@ export default function Customers() {
               onChange={e => setSearch(e.target.value)}
               style={{
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'rgba(168,85,247,0.04)',
-                border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#111827', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-              onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+              onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
@@ -399,9 +399,9 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-              background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-              border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-              color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
+              background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+              border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
             }}
           >
             <Filter size={14} />
@@ -410,7 +410,7 @@ export default function Customers() {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               }}>
                 {activeFilterCount}
               </span>
@@ -421,7 +421,7 @@ export default function Customers() {
         {showFilters && (
           <div style={{
             padding: '12px 16px 14px',
-            borderTop: '1px solid rgba(168,85,247,0.1)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
           }}>
             <select value={status} onChange={e => setStatus(e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
@@ -476,7 +476,7 @@ export default function Customers() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
 
                 {/* Customer */}
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
@@ -542,11 +542,11 @@ export default function Customers() {
                   ? (
                     <tr>
                       <td colSpan={11} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                        <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                        <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No customers found</p>
                         {hasFilters && (
                           <button onClick={clearFilters} style={{
-                            fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
+                            fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
                             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                           }}>
                             Clear filters
@@ -566,10 +566,10 @@ export default function Customers() {
                           key={c.id}
                           onClick={() => navigate(`/admin/customers/${c.id}`)}
                           style={{
-                            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                             cursor: 'pointer', transition: 'background 120ms',
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
 
@@ -578,7 +578,7 @@ export default function Customers() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                               <img
                                 src={c.profile_image_url} alt={c.full_name}
-                                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block' }}
+                                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block' }}
                               />
                               <div style={{ minWidth: 0 }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -597,7 +597,7 @@ export default function Customers() {
                           {/* ── Type / Tier ── */}
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                              <Badge bg="rgba(168,85,247,0.07)" color="#7c3aed" ring="rgba(168,85,247,0.18)">
+                              <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 18%, transparent)">
                                 {TYPE_ICONS[c.customer_type]}
                                 {c.customer_type}
                               </Badge>
@@ -644,7 +644,7 @@ export default function Customers() {
                           {/* ── Discount ── */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             {Number(c.discount_percentage) > 0
-                              ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+                              ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
                                   {Number(c.discount_percentage).toFixed(1)}%
                                 </span>
                               : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
@@ -688,7 +688,7 @@ export default function Customers() {
                                 borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
                                 color: '#c4b5fd', transition: 'background 120ms, color 120ms',
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
                             >
                               <Eye size={14} />
@@ -707,9 +707,9 @@ export default function Customers() {
         {!loading && customers.length > 0 && page < meta.last_page && (
           <div style={{
             padding: '14px 20px',
-            borderTop: '1px solid rgba(168,85,247,0.08)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Showing {customers.length.toLocaleString()} of {meta.total.toLocaleString()} customers
@@ -722,14 +722,14 @@ export default function Customers() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
-                  background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)',
-                  color: '#7c3aed', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
+                  background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                  color: 'var(--color-primary-600)', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
-                onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; }}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
               >
                 {loadingMore
-                  ? <><div style={{ width:12, height:12, border:'2px solid rgba(124,58,237,0.3)', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Loading…</>
+                  ? <><div style={{ width:12, height:12, border:'2px solid color-mix(in srgb, var(--color-primary-600) 30%, transparent)', borderTopColor:'var(--color-primary-600)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Loading…</>
                   : `Load ${perPage} more`
                 }
               </button>
@@ -740,10 +740,10 @@ export default function Customers() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
-                  background: 'transparent', border: '1.5px solid rgba(168,85,247,0.15)',
+                  background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                   color: '#9ca3af', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
-                onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'rgba(168,85,247,0.05)'; e.currentTarget.style.color = '#7c3aed'; } }}
+                onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
               >
                 {loadingAll
@@ -755,7 +755,7 @@ export default function Customers() {
           </div>
         )}
         {!loading && customers.length > 0 && page >= meta.last_page && (
-          <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', background: 'rgba(168,85,247,0.02)' }}>
+          <div style={{ padding: '10px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               All {meta.total.toLocaleString()} customers loaded
             </p>
@@ -768,7 +768,7 @@ export default function Customers() {
           <div style={{ ...card, width: '100%', maxWidth: 620, maxHeight: '82vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(217,119,6,0.1)' }}>
                   <Gift size={18} style={{ color: '#d97706' }} />
@@ -779,7 +779,7 @@ export default function Customers() {
                 </div>
               </div>
               <button onClick={() => setShowBirthdaysModal(false)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <X size={16} />
@@ -813,12 +813,12 @@ export default function Customers() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
               {birthdaysLoading ? (
                 <div style={{ padding: '48px 0', textAlign: 'center' }}>
-                  <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                  <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
                   <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
                 </div>
               ) : birthdays.length === 0 ? (
                 <div style={{ padding: '48px 0', textAlign: 'center' }}>
-                  <Gift size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                  <Gift size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                   <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
                     No customer birthdays in the next {birthdayDays} days
                   </p>
@@ -834,8 +834,8 @@ export default function Customers() {
                     const isToday  = c.days_until === 0;
                     const isSoon   = c.days_until <= 7;
                     const tr       = tierStyle(c.tier, tierOptions);
-                    const accent   = isToday ? '#7c3aed' : isSoon ? '#d97706' : '#6b7280';
-                    const accentBg = isToday ? 'rgba(124,58,237,0.08)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
+                    const accent   = isToday ? 'var(--color-primary-600)' : isSoon ? '#d97706' : '#6b7280';
+                    const accentBg = isToday ? 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
 
                     return (
                       <div
@@ -844,12 +844,12 @@ export default function Customers() {
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                           padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
-                          border: `1px solid ${isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'}`,
-                          background: isToday ? 'rgba(124,58,237,0.03)' : 'transparent',
+                          border: `1px solid ${isToday ? 'color-mix(in srgb, var(--color-primary-600) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
+                          background: isToday ? 'color-mix(in srgb, var(--color-primary-600) 3%, transparent)' : 'transparent',
                           transition: 'border-color 150ms, background 150ms',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.background = 'rgba(168,85,247,0.03)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'; e.currentTarget.style.background = isToday ? 'rgba(124,58,237,0.03)' : 'transparent'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = isToday ? 'color-mix(in srgb, var(--color-primary-600) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.background = isToday ? 'color-mix(in srgb, var(--color-primary-600) 3%, transparent)' : 'transparent'; }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                           {/* Avatar */}

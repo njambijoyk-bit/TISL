@@ -178,9 +178,9 @@ const chipStyle = (selected, available) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '7px 14px', borderRadius: 20, fontSize: '0.85rem', fontFamily: 'inherit',
   cursor: 'pointer', transition: 'all 150ms ease', textAlign: 'left',
-  border: selected ? '2px solid #a855f7' : available ? '1.5px solid rgba(168,85,247,0.3)' : '1.5px dashed rgba(156,163,175,0.5)',
-  background: selected ? 'rgba(168,85,247,0.12)' : 'transparent',
-  color: selected ? '#a855f7' : available ? 'inherit' : '#9ca3af',
+  border: selected ? '2px solid var(--color-primary-500)' : available ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : '1.5px dashed rgba(156,163,175,0.5)',
+  background: selected ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+  color: selected ? 'var(--color-primary-500)' : available ? 'inherit' : '#9ca3af',
   fontWeight: selected ? 700 : 500,
   textDecoration: available ? 'none' : 'line-through',
 });

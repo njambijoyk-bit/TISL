@@ -13,17 +13,17 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ── Meta ──────────────────────────────────────────────────────────────────────
 const EVENT_META = {
   birthday:          { label: 'Birthday',          color: '#db2777', bg: '#fdf2f8', icon: '🎂' },
   first_time:        { label: 'First Time',        color: '#0891b2', bg: '#ecfeff', icon: '🎉' },
   vip_upgrade:       { label: 'VIP Upgrade',       color: '#d97706', bg: '#fffbeb', icon: '🏆' },
-  loyalty_milestone: { label: 'Loyalty Milestone', color: '#7c3aed', bg: '#f5f3ff', icon: '🎯' },
+  loyalty_milestone: { label: 'Loyalty Milestone', color: 'var(--color-primary-600)', bg: '#f5f3ff', icon: '🎯' },
   win_back:          { label: 'Win-Back',          color: '#dc2626', bg: '#fef2f2', icon: '👋' },
   seasonal:          { label: 'Seasonal',          color: '#059669', bg: '#f0fdf4', icon: '🌟' },
   flash_sale:        { label: 'Flash Sale',        color: '#f59e0b', bg: '#fffbeb', icon: '⚡' },
@@ -36,7 +36,7 @@ const STATUS_META = {
   active:   { label: 'Active',   color: '#15803d', dot: '#22c55e' },
   paused:   { label: 'Paused',   color: '#d97706', dot: '#f59e0b' },
   expired:  { label: 'Expired',  color: '#dc2626', dot: '#ef4444' },
-  depleted: { label: 'Depleted', color: '#7c3aed', dot: '#a855f7' },
+  depleted: { label: 'Depleted', color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)' },
   archived: { label: 'Archived', color: '#9ca3af', dot: '#d1d5db' },
 };
 
@@ -96,7 +96,7 @@ function CopyCode({ code }) {
 
 const Btn = ({ children, onClick, disabled, variant = 'ghost', icon, size = 'md' }) => {
   const variants = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     success: { background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none' },
     danger:  { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', border: 'none' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}` },

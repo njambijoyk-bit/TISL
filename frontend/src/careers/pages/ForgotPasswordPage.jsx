@@ -7,12 +7,12 @@ const s = {
     page: { minHeight: '100vh', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'DM Sans', sans-serif" },
     card: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 16, padding: '48px 40px', width: '100%', maxWidth: 440 },
     back: { display: 'inline-flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, textDecoration: 'none', marginBottom: 32, transition: 'color 0.15s' },
-    eyebrow: { fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a855f7', marginBottom: 10, fontWeight: 600 },
+    eyebrow: { fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 10, fontWeight: 600 },
     title: { fontSize: 26, fontWeight: 700, color: '#f0f0f0', marginBottom: 6, fontFamily: "'DM Serif Display', serif" },
     sub: { fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.6 },
     label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginBottom: 7, fontWeight: 600 },
     input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #222', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
-    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
+    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
     successBox: { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '16px 18px', color: '#10b981', fontSize: 14, lineHeight: 1.6 },
 };
 
@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
         <div style={s.page}>
             <div style={s.card}>
                 <Link to="/careers/login" style={s.back}
-                    onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#555'}>
                     ← Back to login
                 </Link>
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
                                 placeholder="you@example.com"
                                 required
                                 autoFocus
-                                onFocus={e => e.target.style.borderColor = '#a855f7'}
+                                onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                                 onBlur={e => e.target.style.borderColor = '#222'}
                             />
                         </div>

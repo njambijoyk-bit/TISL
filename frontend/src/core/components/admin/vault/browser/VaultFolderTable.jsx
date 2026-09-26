@@ -31,7 +31,7 @@ const Icons = {
 const SENSITIVITY_COLORS = {
   confidential: '#f59e0b',
   restricted:   '#ef4444',
-  top_secret:   '#7c3aed',
+  top_secret:   'var(--color-primary-600)',
 };
 
 function formatDate(dateStr) {

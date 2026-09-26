@@ -79,8 +79,8 @@ function Lightbox({ url, onClose }) {
         style={{
           maxWidth: '90vw', maxHeight: '88vh',
           borderRadius: 16,
-          border: '2px solid rgba(168,85,247,0.5)',
-          boxShadow: '0 0 40px rgba(168,85,247,0.35), 0 0 80px rgba(124,58,237,0.15)',
+          border: '2px solid color-mix(in srgb, var(--color-primary-500) 50%, transparent)',
+          boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary-500) 35%, transparent), 0 0 80px color-mix(in srgb, var(--color-primary-600) 15%, transparent)',
           objectFit: 'contain',
         }}
       />
@@ -496,7 +496,7 @@ export default function ProductDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '4rem' }}>
             {/* Title + Pills row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+              <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
                 {product?.name}
               </h1>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0, paddingTop: 6 }}>
@@ -509,7 +509,7 @@ export default function ProductDetail() {
             </div>
 
             {/* ── IMAGE GALLERY ── */}
-            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 0 3px rgba(168,85,247,0.08), 0 0 20px rgba(168,85,247,0.15)' }}>
+            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent), 0 0 20px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             
               <div
                 style={{ position: 'relative', background: '#fff', aspectRatio: '16 / 9', overflow: 'hidden', cursor: 'zoom-in' }}
@@ -528,7 +528,7 @@ export default function ProductDetail() {
                     <span style={badgeStyle('#d97706', '#fef3c7')}>+{priceDeltaPct}%</span>
                   )}
                   {isFeatured == 1 && (
-                    <span style={badgeStyle('#7c3aed', '#ede9fe')}><Star size={11} /> Featured</span>
+                    <span style={badgeStyle('var(--color-primary-600)', 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))')}><Star size={11} /> Featured</span>
                   )}
                 </div>
 
@@ -613,7 +613,7 @@ export default function ProductDetail() {
                             opacity: selectedImage === idx ? 1 : 0.65,
                             transform: selectedImage === idx ? 'scale(1.08)' : 'scale(1)',
                             transition: 'all 150ms ease',
-                            boxShadow: selectedImage === idx ? '0 0 0 2px rgba(168,85,247,0.7)' : 'none',
+                            boxShadow: selectedImage === idx ? '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 70%, transparent)' : 'none',
                           }}
                         >
                           <img
@@ -635,7 +635,7 @@ export default function ProductDetail() {
 
               {/* Title + Pills row */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
                   {product?.name}
                 </h1>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0, paddingTop: 6 }}>
@@ -676,12 +676,12 @@ export default function ProductDetail() {
               </div>
 
               {/* ── Pricing + Stock card ── */}
-              <div style={{ borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', overflow: 'hidden' }}>
+              <div style={{ borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', overflow: 'hidden' }}>
 
                 {/* Price row */}
-                <div style={{ padding: '20px 20px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
+                <div style={{ padding: '20px 20px 16px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                       {currentPriceText}
                     </span>
                     {priceDiff && (
@@ -702,7 +702,7 @@ export default function ProductDetail() {
                     </span>
                   ) : isPriceNegotiable && (
                     <button type="button" onClick={handleRequestQuote}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, marginTop: 8 }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, marginTop: 8 }}>
                       {inQL ? 'Price is negotiable — View in Quote List →' : 'Price is negotiable — request a quote'}
                     </button>
                   )}
@@ -924,9 +924,9 @@ export default function ProductDetail() {
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button onClick={handleAddToCart} disabled={!inStock} type="button"
                         style={{
-                          flex: '1 1 130px', height: 50, borderRadius: 12, border: '0.5px solid #a855f7',
-                          background: addedToCart ? '#a855f7' : 'rgba(229, 200, 255, 0.03)',
-                          color: addedToCart ? 'white' : '#a855f7',
+                          flex: '1 1 130px', height: 50, borderRadius: 12, border: '0.5px solid var(--color-primary-500)',
+                          background: addedToCart ? 'var(--color-primary-500)' : 'rgba(229, 200, 255, 0.03)',
+                          color: addedToCart ? 'white' : 'var(--color-primary-500)',
                           fontSize: '0.85rem', fontWeight: 700, cursor: inStock ? 'pointer' : 'not-allowed',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                           transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4, letterSpacing: '0.04em',
@@ -938,11 +938,11 @@ export default function ProductDetail() {
                         <button onClick={handleBuyNow} disabled={!inStock} type="button"
                           style={{
                             flex: '1 1 130px', height: 50, borderRadius: 12, border: 'none',
-                            background: inStock ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#e5e7eb',
+                            background: inStock ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : '#e5e7eb',
                             color: 'white', fontSize: '0.85rem', fontWeight: 700,
                             cursor: inStock ? 'pointer' : 'not-allowed',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            boxShadow: inStock ? '0 4px 15px rgba(168,85,247,0.35)' : 'none',
+                            boxShadow: inStock ? '0 4px 15px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none',
                             transition: 'all 200ms ease', opacity: inStock ? 1 : 0.4, letterSpacing: '0.04em',
                           }}>
                           <ShoppingBag size={16} /> Buy Now
@@ -956,9 +956,9 @@ export default function ProductDetail() {
                           height: 50, borderRadius: 12, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                           fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em',
-                          border: inQL ? '1.5px solid #a855f7' : '1.5px solid rgba(168,85,247,0.35)',
-                          background: inQL ? 'rgba(168,85,247,0.15)' : 'transparent',
-                          color: inQL ? '#7c3aed' : '#a855f7', transition: 'all 150ms ease',
+                          border: inQL ? '1.5px solid var(--color-primary-500)' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
+                          background: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
+                          color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'all 150ms ease',
                         }}>
                         <FileText size={16} />
                         {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Request a Quote') : ''}
@@ -996,8 +996,8 @@ export default function ProductDetail() {
                             animationDelay: `${idx * 60}ms`,
                           }}
                         >
-                          <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                            <Check size={10} style={{ color: '#a855f7' }} />
+                          <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                            <Check size={10} style={{ color: 'var(--color-primary-500)' }} />
                           </span>
                           <span style={{ fontSize: '0.83rem', lineHeight: 1.4 }}>{feature}</span>
                         </div>
@@ -1009,7 +1009,7 @@ export default function ProductDetail() {
                 {/* Variants */}
                 {!hasStructured && hasVariants && Array.isArray(variants) && variants.length > 0 && (
                   <div style={{ flex: '1 1 220px' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
                       Available Options
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -1026,9 +1026,9 @@ export default function ProductDetail() {
                               position: 'relative',
                               display: 'inline-flex', alignItems: 'center', gap: 6,
                               padding: '5px 12px', borderRadius: 20,
-                              border: isSelected ? '1.5px solid #a855f7' : '1.5px dashed #d1d5db',
-                              background: isSelected ? 'rgba(168,85,247,0.07)' : 'transparent',
-                              color: isSelected ? '#a855f7' : '#6b7280',
+                              border: isSelected ? '1.5px solid var(--color-primary-500)' : '1.5px dashed #d1d5db',
+                              background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'transparent',
+                              color: isSelected ? 'var(--color-primary-500)' : '#6b7280',
                               fontSize: '0.83rem', fontWeight: isSelected ? 700 : 500,
                               cursor: 'pointer', transition: 'all 180ms ease',
                               animation: `popIn 200ms ease both`,
@@ -1045,7 +1045,7 @@ export default function ProductDetail() {
                             }}
                           >
                             {isSelected && (
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', flexShrink: 0 }} />
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0 }} />
                             )}
                             {label}
                             {vPrice && (
@@ -1099,9 +1099,9 @@ export default function ProductDetail() {
                     type="button"
                     style={{
                       padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700,
-                      color: activeTab === tab.id ? '#a855f7' : '#6b7280',
+                      color: activeTab === tab.id ? 'var(--color-primary-500)' : '#6b7280',
                       background: 'none', border: 'none', cursor: 'pointer',
-                      borderBottom: activeTab === tab.id ? '2px solid #a855f7' : '2px solid transparent',
+                      borderBottom: activeTab === tab.id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                       marginBottom: -1, transition: 'all 150ms ease', letterSpacing: '0.02em',
                     }}
                   >
@@ -1190,14 +1190,14 @@ export default function ProductDetail() {
                           onClick={() => setShowReviewForm(true)}
                           style={{
                             padding: '10px 24px', borderRadius: 10, border: 'none',
-                            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                            background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                             color: 'white', fontSize: '0.82rem', fontWeight: 700,
                             cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7,
-                            boxShadow: '0 4px 14px rgba(168,85,247,0.3)',
+                            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                             transition: 'transform 150ms ease, box-shadow 150ms ease',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.4)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.3)'; }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
                         >
                           <Star size={14} fill="white" /> Write a Review
                         </button>
@@ -1207,11 +1207,11 @@ export default function ProductDetail() {
                     {!isAuthenticated && (
                       <div style={{
                         marginBottom: 24, textAlign: 'center', padding: '14px 18px',
-                        background: 'rgba(168,85,247,0.04)', borderRadius: 12,
-                        border: '1px solid rgba(168,85,247,0.12)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderRadius: 12,
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                       }}>
                         <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
-                          <a href="/login" style={{ color: '#a855f7', fontWeight: 700, textDecoration: 'none' }}>Log in</a> to write a review
+                          <a href="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Log in</a> to write a review
                         </p>
                       </div>
                     )}
@@ -1230,20 +1230,20 @@ export default function ProductDetail() {
                     {showReviewForm && (
                       <div style={{
                         marginBottom: 28, padding: '22px 24px', borderRadius: 14,
-                        border: '1.5px solid rgba(168,85,247,0.2)',
-                        background: 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)',
-                        boxShadow: '0 4px 20px rgba(168,85,247,0.06)',
+                        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                        background: 'linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)) 100%)',
+                        boxShadow: '0 4px 20px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{
                               width: 28, height: 28, borderRadius: 8,
-                              background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                              <Star size={13} color="#a855f7" />
+                              <Star size={13} color="var(--color-primary-500)" />
                             </div>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>Write Your Review</h3>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0 }}>Write Your Review</h3>
                           </div>
                           <button
                             onClick={() => { setShowReviewForm(false); setReviewError(''); }}
@@ -1259,7 +1259,7 @@ export default function ProductDetail() {
                         {/* Order selector */}
                         {eligibleOrders.length > 1 && (
                           <div style={{ marginBottom: 16 }}>
-                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Select Order *</label>
+                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Select Order *</label>
                             <select
                               value={reviewData.order_id}
                               onChange={e => setReviewData(prev => ({ ...prev, order_id: e.target.value }))}
@@ -1268,7 +1268,7 @@ export default function ProductDetail() {
                                 border: '1.5px solid #e5e7eb', fontSize: '0.82rem', color: '#111827',
                                 background: '#fff', outline: 'none',
                               }}
-                              onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; }}
+                              onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
                               onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                               <option value="">Choose an order...</option>
@@ -1281,7 +1281,7 @@ export default function ProductDetail() {
 
                         {/* Star rating */}
                         <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating *</label>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating *</label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             {[1, 2, 3, 4, 5].map(n => (
                               <button
@@ -1308,7 +1308,7 @@ export default function ProductDetail() {
 
                         {/* Title */}
                         <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Review Title</label>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Review Title</label>
                           <input
                             value={reviewData.title}
                             onChange={e => setReviewData(prev => ({ ...prev, title: e.target.value }))}
@@ -1319,14 +1319,14 @@ export default function ProductDetail() {
                               border: '1.5px solid #e5e7eb', fontSize: '0.82rem', color: '#111827',
                               background: '#fff', boxSizing: 'border-box', outline: 'none',
                             }}
-                            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; }}
+                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
                             onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                           />
                         </div>
 
                         {/* Comment */}
                         <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your Review</label>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your Review</label>
                           <textarea
                             value={reviewData.comment}
                             onChange={e => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
@@ -1338,14 +1338,14 @@ export default function ProductDetail() {
                               background: '#fff', resize: 'vertical', boxSizing: 'border-box',
                               fontFamily: 'inherit', outline: 'none',
                             }}
-                            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; }}
+                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
                             onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                           />
                         </div>
 
                         {/* Image upload */}
                         <div style={{ marginBottom: 20 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             Photos <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 'normal' }}>(optional, max 5)</span>
                           </label>
                           <input
@@ -1368,17 +1368,17 @@ export default function ProductDetail() {
                                   style={{
                                     width: 48, height: 48, objectFit: 'cover',
                                     borderRadius: 8,
-                                    border: '1.5px solid rgba(168,85,247,0.3)',
+                                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                                     cursor: 'pointer',
                                     transition: 'border-color 0.15s, box-shadow 0.15s',
                                   }}
                                   onMouseEnter={e => {
-                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.12)';
-                                    e.currentTarget.style.borderColor = '#a855f7';
+                                    e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
+                                    e.currentTarget.style.borderColor = 'var(--color-primary-500)';
                                   }}
                                   onMouseLeave={e => {
                                     e.currentTarget.style.boxShadow = 'none';
-                                    e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+                                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
                                   }}
                                 />
                               ))}
@@ -1413,12 +1413,12 @@ export default function ProductDetail() {
                             disabled={submittingReview || !reviewData.rating}
                             style={{
                               padding: '9px 22px', borderRadius: 10, border: 'none',
-                              background: !reviewData.rating ? '#d1d5db' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                              background: !reviewData.rating ? '#d1d5db' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                               color: 'white', fontSize: '0.82rem', fontWeight: 700,
                               cursor: !reviewData.rating ? 'not-allowed' : 'pointer',
                               opacity: submittingReview ? 0.6 : 1,
                               display: 'inline-flex', alignItems: 'center', gap: 6,
-                              boxShadow: reviewData.rating ? '0 4px 12px rgba(168,85,247,0.3)' : 'none',
+                              boxShadow: reviewData.rating ? '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                               transition: 'transform 150ms ease, box-shadow 150ms ease',
                             }}
                             onMouseEnter={e => { if (reviewData.rating) { e.currentTarget.style.transform = 'translateY(-1px)'; } }}
@@ -1445,10 +1445,10 @@ export default function ProductDetail() {
                     ) : (
                       <div style={{
                         textAlign: 'center', padding: '48px 24px',
-                        background: 'rgba(168,85,247,0.03)', borderRadius: 14,
-                        border: '1px dashed rgba(168,85,247,0.15)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderRadius: 14,
+                        border: '1px dashed color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                       }}>
-                        <Star size={36} style={{ margin: '0 auto 10px', display: 'block', color: '#c084fc' }} />
+                        <Star size={36} style={{ margin: '0 auto 10px', display: 'block', color: 'var(--color-primary-400)' }} />
                         <p style={{ fontWeight: 700, marginBottom: 4, color: '#374151', fontSize: '0.9rem' }}>No reviews yet</p>
                         <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Be the first to review this product!</p>
                       </div>
@@ -1465,7 +1465,7 @@ export default function ProductDetail() {
                   { icon: <Package size={16} />, label: 'Easy Returns', sub: '30-day policy' },
                 ].map((item, i) => (
                   <div key={i} style={{ textAlign: 'center', padding: '10px 8px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
-                    <div style={{ color: '#a855f7', display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{item.icon}</div>
+                    <div style={{ color: 'var(--color-primary-500)', display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{item.icon}</div>
                     <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', margin: 0 }}>{item.label}</p>
                     <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.sub}</p>
                   </div>
@@ -1478,7 +1478,7 @@ export default function ProductDetail() {
           {relatedProducts.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: 0 }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>
                   You May Also Like
                 </h2>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedProducts.length} items</span>

@@ -243,7 +243,7 @@ export default function ProductBulkPage() {
       {/* ── Page Header ──────────────────────────────────── */}
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#a855f7', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
             Bulk Product Manager
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted, #6b7280)', marginTop: 4 }}>
@@ -286,7 +286,7 @@ export default function ProductBulkPage() {
             style={{
               width: '100%',
               padding: '8px 10px 8px 32px',
-              border: '1px solid var(--accent, #7c3aed)',
+              border: '1px solid var(--accent, var(--color-primary-600))',
               boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
               borderRadius: 7,
               fontSize: 13,
@@ -324,7 +324,7 @@ export default function ProductBulkPage() {
           onChange={e => handleFilter('stock', e.target.value)}
           style={{
             padding: '7px 10px',
-            border: '1px solid var(--accent, #7c3aed)',
+            border: '1px solid var(--accent, var(--color-primary-600))',
             boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
             borderRadius: 7,
             fontSize: 13,
@@ -350,7 +350,7 @@ export default function ProductBulkPage() {
             style={{
               padding: '7px 12px',
               background: 'none',
-              border: '1px solid var(--accent, #7c3aed)',
+              border: '1px solid var(--accent, var(--color-primary-600))',
               boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
               borderRadius: 7,
               fontSize: 12,
@@ -367,7 +367,7 @@ export default function ProductBulkPage() {
           <div style={{
             width: 32, height: 32, borderRadius: '50%',
             border: '3px solid var(--border-color, #e5e7eb)',
-            borderTopColor: 'var(--accent, #7c3aed)',
+            borderTopColor: 'var(--accent, var(--color-primary-600))',
             animation: 'spin 600ms linear infinite',
             margin: '0 auto',
           }} />
@@ -468,12 +468,12 @@ function PageBtn({ label, active, disabled, onClick }) {
       disabled={disabled}
       style={{
         padding: '6px 12px',
-        border: '1px solid var(--accent, #7c3aed)',
+        border: '1px solid var(--accent, var(--color-primary-600))',
         boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
         borderRadius: 6,
         fontSize: 12,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        background: active ? 'var(--accent, #7c3aed)' : 'var(--bg-primary, #fff)',
+        background: active ? 'var(--accent, var(--color-primary-600))' : 'var(--bg-primary, #fff)',
         color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)',
         fontWeight: active ? 700 : 400,
         opacity: disabled ? 0.4 : 1,

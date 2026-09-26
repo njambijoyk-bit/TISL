@@ -13,7 +13,7 @@ const STATUS_CFG = {
   pending:    { color: '#f59e0b' },
   confirmed:  { color: '#3b82f6' },
   processing: { color: '#3b82f6' },
-  shipped:    { color: '#a855f7' },
+  shipped:    { color: 'var(--color-primary-500)' },
   delivered:  { color: '#10b981' },
   cancelled:  { color: '#ef4444' },
   failed:     { color: '#ef4444' },
@@ -47,7 +47,7 @@ function StatusPill({ label, color }) {
 
 function ItemThumb({ item }) {
   const Icon = ITEM_TYPE_ICON[item.type] || Package;
-  const color = item.type?.includes('service') ? '#10b981' : item.type === 'fee' ? '#f59e0b' : '#a855f7';
+  const color = item.type?.includes('service') ? '#10b981' : item.type === 'fee' ? '#f59e0b' : 'var(--color-primary-500)';
   if (item.image_url) {
     return (
       <img src={item.image_url} alt={item.product_name}
@@ -72,16 +72,16 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
 
   return (
     <div className="w-full overflow-x-auto rounded-2xl"
-      style={{ border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 1px 8px rgba(168,85,247,0.06)' }}>
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 1px 8px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
       <table className="w-full text-sm border-collapse" style={{ minWidth: 900 }}>
 
         {/* Head */}
         <thead>
-          <tr style={{ background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+          <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             {['Order', 'Date', 'Status', 'Payment', 'Items', 'Subtotal', 'Total', 'Method', 'Tracking', ''].map((h, i) => (
               <th key={i}
                 className="text-left text-xs font-semibold uppercase tracking-wide px-4 py-3 whitespace-nowrap"
-                style={{ color: '#a855f7' }}>
+                style={{ color: 'var(--color-primary-500)' }}>
                 {h}
               </th>
             ))}
@@ -110,27 +110,27 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                 onClick={() => navigate(`/orders/${order.id}`)}
                 className="cursor-pointer transition-colors"
                 style={{
-                  background: isEven ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.015)',
-                  borderBottom: '1px solid rgba(168,85,247,0.08)',
+                  background: isEven ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   borderLeft: `3px solid ${statusCfg.color}`,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
-                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'rgba(168,85,247,0.015)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
               >
                 {/* Order number + badges */}
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-1">
-                    <span className="font-bold text-sm" style={{ color: '#a855f7' }}>{order.order_number}</span>
+                    <span className="font-bold text-sm" style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</span>
                     <div className="flex flex-wrap gap-1">
                       {order.order_type && (
                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
-                          style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)' }}>
                           {order.order_type}
                         </span>
                       )}
                       {order.referral_code && (
                         <span className="text-xs px-1.5 py-0.5 rounded-full"
-                          style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)' }}>
                           🎁 {order.referral_code}
                         </span>
                       )}
@@ -153,7 +153,7 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                 {/* Date */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <Calendar size={11} color="#c084fc" />
+                    <Calendar size={11} color="var(--color-primary-400)" />
                     {new Date(order.created_at).toLocaleDateString()}
                   </div>
                 </td>
@@ -198,13 +198,13 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                 {/* Total */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div>
-                    <span className="font-bold text-sm" style={{ color: '#a855f7' }}>{money(order.total)}</span>
+                    <span className="font-bold text-sm" style={{ color: 'var(--color-primary-500)' }}>{money(order.total)}</span>
                     {showKes && <p className="text-xs text-gray-400 dark:text-gray-500">{kesMoney(order.total_kes)}</p>}
                     {Number(order.store_credit_deduction) > 0 && (
                       <p className="text-xs font-semibold" style={{ color: '#e48213' }}>💳 −{money(order.store_credit_deduction)}</p>
                     )}
                     {Number(order.credit_account_deduction) > 0 && (
-                      <p className="text-xs font-semibold" style={{ color: '#7c3aed' }}>🏦 −{money(order.credit_account_deduction)}</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--color-primary-600)' }}>🏦 −{money(order.credit_account_deduction)}</p>
                     )}
                   </div>
                 </td>
@@ -213,7 +213,7 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                 <td className="px-4 py-3">
                   {order.payment_method ? (
                     <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                      <CreditCard size={11} color="#c084fc" />
+                      <CreditCard size={11} color="var(--color-primary-400)" />
                       <span className="capitalize">{order.payment_method.replace(/_/g, ' ')}</span>
                     </div>
                   ) : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>}
@@ -224,8 +224,8 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                   {order.tracking_number ? (
                     <div className="text-xs">
                       <div className="flex items-center gap-1">
-                        <Truck size={10} color="#c084fc" />
-                        <span className="font-semibold" style={{ color: '#a855f7' }}>{order.tracking_number}</span>
+                        <Truck size={10} color="var(--color-primary-400)" />
+                        <span className="font-semibold" style={{ color: 'var(--color-primary-500)' }}>{order.tracking_number}</span>
                       </div>
                       {order.courier_company && <p className="text-gray-400 dark:text-gray-500 mt-0.5">via {order.courier_company}</p>}
                       {order.estimated_delivery_date && (
@@ -234,7 +234,7 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                     </div>
                   ) : order.shipping_method_name || order.delivery_method ? (
                     <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                      <Truck size={10} color="#c084fc" />
+                      <Truck size={10} color="var(--color-primary-400)" />
                       <span className="capitalize">{(order.shipping_method_name || order.delivery_method).replace(/_/g, ' ')}</span>
                     </div>
                   ) : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>}
@@ -247,7 +247,7 @@ export default function OrdersTable({ orders = [], onCancel, isAdmin = false }) 
                       onClick={() => navigate(`/orders/${order.id}`)}
                       type="button"
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.25)' }}
+                      style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }}
                     >
                       View <ChevronRight size={12} />
                     </button>

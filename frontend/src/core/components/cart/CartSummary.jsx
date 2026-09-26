@@ -55,11 +55,11 @@ export default function CartSummary() {
       {!freeShipping && toFree > 0 && (
         <div style={{
           padding: '9px 12px', borderRadius: 8, marginBottom: 14,
-          background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <Truck size={13} style={{ color: '#a855f7', flexShrink: 0 }} />
-          <p style={{ fontSize: '0.72rem', color: '#7c3aed', margin: 0 }}>
+          <Truck size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
+          <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', margin: 0 }}>
             Add <strong>{fmt(toFree)}</strong> more for free shipping
           </p>
         </div>
@@ -78,13 +78,13 @@ export default function CartSummary() {
       <button onClick={handleCheckout} style={{
         width: '100%', padding: '12px', borderRadius: 10, fontSize: '0.875rem', fontWeight: 700,
         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-        boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+        boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
         transition: 'box-shadow 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
       >
         <Lock size={14} /> Proceed to checkout
       </button>
@@ -93,13 +93,13 @@ export default function CartSummary() {
       <button onClick={() => navigate('/products')} style={{
         width: '100%', marginTop: 10, padding: '11px',
         borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-        border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
-        background: 'rgba(168,85,247,0.04)', cursor: 'pointer', fontFamily: 'inherit',
+        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
         transition: 'background 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
       >
         <ShoppingBag size={14} /> Continue shopping
       </button>

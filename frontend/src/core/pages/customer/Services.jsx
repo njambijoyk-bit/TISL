@@ -36,7 +36,7 @@ const CollapsedServiceSkeleton = () => (
 const toggleStyles = {
   wrap:     { display: 'flex', alignItems: 'center', background: '#f3f4f6', borderRadius: 10, padding: 3, gap: 2 },
   btn:      { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 150ms ease' },
-  active:   { background: '#ffffff', color: '#a855f7', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' },
+  active:   { background: '#ffffff', color: 'var(--color-primary-500)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' },
   inactive: { background: 'transparent', color: '#9ca3af' },
 };
 
@@ -220,8 +220,8 @@ const Services = () => {
                 Browse by category
               </span>
               {categoryOpen
-                ? <ChevronUp  size={14} style={{ color: '#a855f7', transition: 'transform 200ms' }} />
-                : <ChevronDown size={14} style={{ color: '#a855f7', transition: 'transform 200ms' }} />
+                ? <ChevronUp  size={14} style={{ color: 'var(--color-primary-500)', transition: 'transform 200ms' }} />
+                : <ChevronDown size={14} style={{ color: 'var(--color-primary-500)', transition: 'transform 200ms' }} />
               }
             </button>
 
@@ -232,14 +232,14 @@ const Services = () => {
                 const active = filters.category_id === cat.id;
                 // Cycle through accent colors for visual variety
                 const accents = [
-                  { text: '#a855f7', bg: 'rgba(168,85,247,0.10)', border: 'rgba(168,85,247,0.35)', glow: 'rgba(168,85,247,0.20)', dot: '#a855f7' },
+                  { text: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)', glow: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', dot: 'var(--color-primary-500)' },
                   { text: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.35)',  glow: 'rgba(59,130,246,0.20)',  dot: '#3b82f6' },
                   { text: '#10b981', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.35)',  glow: 'rgba(16,185,129,0.20)',  dot: '#10b981' },
                   { text: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.35)',  glow: 'rgba(245,158,11,0.20)',  dot: '#f59e0b' },
                   { text: '#ef4444', bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.35)',   glow: 'rgba(239,68,68,0.20)',   dot: '#ef4444' },
                   { text: '#ec4899', bg: 'rgba(236,72,153,0.10)',  border: 'rgba(236,72,153,0.35)',  glow: 'rgba(236,72,153,0.20)',  dot: '#ec4899' },
                   { text: '#06b6d4', bg: 'rgba(6,182,212,0.10)',   border: 'rgba(6,182,212,0.35)',   glow: 'rgba(6,182,212,0.20)',   dot: '#06b6d4' },
-                  { text: '#8b5cf6', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.35)',  glow: 'rgba(139,92,246,0.20)',  dot: '#8b5cf6' },
+                  { text: 'var(--color-primary-400)', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.35)',  glow: 'rgba(139,92,246,0.20)',  dot: 'var(--color-primary-400)' },
                 ];
                 const accent = accents[idx % accents.length];
 
@@ -362,7 +362,7 @@ const Services = () => {
         )}
 
         {/* ── CTA ──────────────────────────────────────────────────────────── */}
-        <div className="mt-12 rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(124,58,237,0.05))', border: '1px solid rgba(168,85,247,0.15)' }}>
+        <div className="mt-12 rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 8%, transparent), color-mix(in srgb, var(--color-primary-600) 5%, transparent))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Can't find what you're looking for?</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">Request a custom quote and we'll help you find the perfect solution</p>
           <button
@@ -370,9 +370,9 @@ const Services = () => {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '12px 28px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               color: 'white', fontSize: '0.95rem', fontWeight: 700,
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
               transition: 'opacity 150ms',
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
@@ -387,12 +387,12 @@ const Services = () => {
 
       <style>{`
         .pagination-btn { border-color: #d1d5db; color: #374151; background-color: white; }
-        .pagination-btn:hover:not(:disabled) { background-color: #f3f4f6; border-color: #a855f7; color: #a855f7; }
-        .pagination-btn.active { background-color: #a855f7; color: white; border-color: #a855f7; }
+        .pagination-btn:hover:not(:disabled) { background-color: #f3f4f6; border-color: var(--color-primary-500); color: var(--color-primary-500); }
+        .pagination-btn.active { background-color: var(--color-primary-500); color: white; border-color: var(--color-primary-500); }
         .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .dark .pagination-btn { border-color: #4b5563; color: #d1d5db; background-color: #1f2937; }
-        .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: #d8b4fe; color: #d8b4fe; }
-        .dark .pagination-btn.active { background-color: #7e22ce; color: white; border-color: #7e22ce; }
+        .dark .pagination-btn:hover:not(:disabled) { background-color: #374151; border-color: var(--color-primary-300); color: var(--color-primary-300); }
+        .dark .pagination-btn.active { background-color: var(--color-primary-700); color: white; border-color: var(--color-primary-700); }
       `}</style>
     </div>
   );

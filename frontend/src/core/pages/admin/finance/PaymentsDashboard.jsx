@@ -63,7 +63,7 @@ export default function PaymentsDashboard() {
               {
                 label: 'This Month',
                 value: `KES ${Number(summary.month_collected).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`,
-                color: '#a855f7', bg: purpleLt, border: purpleBd,
+                color: 'var(--color-primary-500)', bg: purpleLt, border: purpleBd,
               },
               {
                 label: 'Pending',
@@ -179,7 +179,7 @@ export default function PaymentsDashboard() {
             ) : (
               payments.map(p => (
                 <tr key={p.id} style={{ borderBottom:'1px solid #f3f4f6', cursor:'pointer' }} onClick={() => navigate(`/admin/finance/payments/${p.id}`)}>
-                  <td style={{ padding:'12px 16px', fontWeight:700, color:'#a855f7' }}>{p.payment_number}</td>
+                  <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--color-primary-500)' }}>{p.payment_number}</td>
                   <td style={{ padding:'12px 16px' }}>
                     {p.customer ? (
                         <button 
@@ -189,7 +189,7 @@ export default function PaymentsDashboard() {
                         }}
                         style={{ 
                             background:'none', border:'none', padding:0, cursor:'pointer',
-                            fontWeight:600, color:'#a855f7', textAlign:'left',
+                            fontWeight:600, color:'var(--color-primary-500)', textAlign:'left',
                             textDecoration:'none', fontSize:'inherit'
                         }}
                         onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}

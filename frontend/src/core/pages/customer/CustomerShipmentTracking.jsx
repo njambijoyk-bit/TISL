@@ -23,7 +23,7 @@ const safeFormat = (d, fmt) => {
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const SHIPMENT_STATUS = {
-  dispatched:  { color: '#a855f7', label: 'Dispatched',  Icon: Package },
+  dispatched:  { color: 'var(--color-primary-500)', label: 'Dispatched',  Icon: Package },
   in_transit:  { color: '#3b82f6', label: 'In Transit',  Icon: Truck },
   delivered:   { color: '#10b981', label: 'Delivered',   Icon: CheckCircle },
   failed:      { color: '#ef4444', label: 'Failed',      Icon: XCircle },
@@ -49,14 +49,14 @@ function StatusPill({ label, color }) {
 function Section({ title, icon: Icon, accent, children, action }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden mb-5"
-      style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       {accent && <div style={{ height: 3, background: accent }} />}
       <div className="p-5">
         {(title || action) && (
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              {Icon && <Icon size={13} color="#c084fc" />}
-              <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: '#c084fc' }}>{title}</p>
+              {Icon && <Icon size={13} color="var(--color-primary-400)" />}
+              <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: 'var(--color-primary-400)' }}>{title}</p>
             </div>
             {action}
           </div>
@@ -71,7 +71,7 @@ function InfoRow({ label, value, mono }) {
   if (!value) return null;
   return (
     <div className="flex items-start justify-between gap-4 py-2.5"
-      style={{ borderBottom: '1px solid rgba(168,85,247,0.07)' }}>
+      style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }}>
       <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 shrink-0">{label}</span>
       <span className={`text-xs font-semibold text-right dark:text-gray-200 ${mono ? 'font-mono' : ''}`}
         style={{ color: '#111827' }}>{value}</span>
@@ -186,7 +186,7 @@ export default function CustomerShipmentTracking() {
   const buildTimeline = (s) => {
     if (!s) return [];
     const steps = [
-      { key: 'dispatched',  label: 'Order Dispatched', color: '#a855f7' },
+      { key: 'dispatched',  label: 'Order Dispatched', color: 'var(--color-primary-500)' },
       { key: 'in_transit',  label: 'In Transit',       color: '#3b82f6' },
       { key: 'delivered',   label: 'Delivered',        color: '#10b981' },
     ];
@@ -214,14 +214,14 @@ export default function CustomerShipmentTracking() {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'rgba(168,85,247,0.08)' }}>
-            <Truck size={28} color="#c084fc" />
+            style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+            <Truck size={28} color="var(--color-primary-400)" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Shipment Found</h2>
           <p className="text-sm text-gray-400 mb-6">We couldn't find shipment details for this order.</p>
           <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold"
-            style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+            style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
             <ArrowLeft size={14} /> Back to Order
           </button>
         </div>
@@ -243,38 +243,38 @@ export default function CustomerShipmentTracking() {
 
       {/* ── Page header ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 px-6 pt-6 pb-5"
-        style={{ borderBottom: '2px solid rgba(168,85,247,0.2)' }}>
+        style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 mb-5" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
             <button onClick={() => navigate('/orders')} type="button"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
               Orders
             </button>
             <span style={{ color: '#d1d5db' }}>/</span>
             <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
               Order Details
             </button>
             <span style={{ color: '#d1d5db' }}>/</span>
-            <span style={{ color: '#a855f7' }}>Track Delivery</span>
+            <span style={{ color: 'var(--color-primary-500)' }}>Track Delivery</span>
           </nav>
 
           {/* Header row */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                <Truck size={18} color="#a855f7" />
+                style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+                <Truck size={18} color="var(--color-primary-500)" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: '#c084fc' }}>Track Delivery</p>
-                <h1 className="text-xl font-bold m-0" style={{ color: '#a855f7' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: 'var(--color-primary-400)' }}>Track Delivery</p>
+                <h1 className="text-xl font-bold m-0" style={{ color: 'var(--color-primary-500)' }}>
                   {WORKFLOW_LABELS[shipment.workflow] || shipment.workflow_label || 'Shipment'}
                 </h1>
               </div>
@@ -286,14 +286,14 @@ export default function CustomerShipmentTracking() {
               {/* ✅ Track Live Button — Only for internal active deliveries */}
               {isInternalActive && (
                 <button onClick={() => setTrackingModal(true)} type="button"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
                   <Navigation size={14} /> Track Live
                 </button>
               )}
 
               {/* Refresh */}
               <button onClick={() => load(true)} disabled={refreshing} type="button"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-purple-300 hover:text-purple-500 disabled:opacity-40">
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-primary-300 hover:text-primary-500 disabled:opacity-40">
                 <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
                 Refresh
               </button>
@@ -343,7 +343,7 @@ export default function CustomerShipmentTracking() {
 
             {/* Timeline */}
             <Section title="Manifest Progress" icon={Clock}
-              accent="linear-gradient(90deg,#a855f7,#7c3aed)">
+              accent="linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))">
               <div className="pt-1">
                 {timeline.map((step, i) => (
                   <TimelineStep
@@ -380,8 +380,8 @@ export default function CustomerShipmentTracking() {
               {/* Delivery Notes */}
               {shipment.delivery_notes && (
                 <div className="mt-3 p-3 rounded-xl"
-                  style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-1" style={{ color: '#c084fc' }}>
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-1" style={{ color: 'var(--color-primary-400)' }}>
                     Delivery Notes
                   </p>
                   <p className="text-xs m-0 leading-relaxed" style={{ color: '#6b7280', fontStyle: 'italic' }}>
@@ -409,14 +409,14 @@ export default function CustomerShipmentTracking() {
               {/* Proof of Delivery */}
               {shipment.proof_of_delivery_url && (
                 <div className="mt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-2" style={{ color: '#c084fc' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-2" style={{ color: 'var(--color-primary-400)' }}>
                     Proof of Delivery
                   </p>
                   <img
                     src={shipment.proof_of_delivery_url}
                     alt="Proof of delivery"
                     className="w-full rounded-xl object-cover"
-                    style={{ maxHeight: 200, border: '1px solid rgba(168,85,247,0.2)' }}
+                    style={{ maxHeight: 200, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
                     onError={e => { e.currentTarget.style.display = 'none'; }}
                   />
                 </div>
@@ -431,9 +431,9 @@ export default function CustomerShipmentTracking() {
 
                 {/* Tracking number row */}
                 <div className="flex items-center justify-between gap-3 p-3 rounded-xl mb-3"
-                  style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-0.5" style={{ color: '#c084fc' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest m-0 mb-0.5" style={{ color: 'var(--color-primary-400)' }}>
                       Tracking Number
                     </p>
                     <p className="text-sm font-bold font-mono m-0" style={{ color: '#111827' }}>
@@ -442,11 +442,11 @@ export default function CustomerShipmentTracking() {
                   </div>
                   <button onClick={handleCopyTracking} type="button"
                     className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}
+                    style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
                     title="Copy tracking number"
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}>
-                    <Copy size={13} color="#a855f7" />
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}>
+                    <Copy size={13} color="var(--color-primary-500)" />
                   </button>
                 </div>
 
@@ -481,7 +481,7 @@ export default function CustomerShipmentTracking() {
 
             {/* Shipment details */}
             <Section title="Shipment Details" icon={Package}
-              accent="linear-gradient(90deg,#a855f7,#7c3aed)">
+              accent="linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))">
               <InfoRow label="Via"       value={WORKFLOW_LABELS[shipment.workflow] || shipment.workflow_label} />
               <InfoRow label="Courier"   value={shipment.courier_name} />
               {shipment.workflow === 'internal' && shipment.driver_name && (
@@ -496,7 +496,7 @@ export default function CustomerShipmentTracking() {
               <div className="flex flex-col gap-2">
 
                 <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
-                  className="w-full inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-purple-300 hover:text-purple-500">
+                  className="w-full inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-primary-300 hover:text-primary-500">
                   <Package size={14} /> View Order Details
                 </button>
 
@@ -504,7 +504,7 @@ export default function CustomerShipmentTracking() {
                 {isInternalActive && (
                   <button onClick={() => setTrackingModal(true)} type="button"
                     className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-white text-sm font-semibold"
-                    style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}>
+                    style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
                     <Navigation size={14} /> Track Driver Live
                   </button>
                 )}

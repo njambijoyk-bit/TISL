@@ -8,9 +8,9 @@ import { logExportAPI } from '../../../_shared/api/index';
 const S = {
     bg:      'var(--bg-primary, #0f0f1a)',
     card:    'rgba(255,255,255,0.03)',
-    border:  'rgba(168,85,247,0.15)',
-    purple:  '#a855f7',
-    purpleDim:'rgba(168,85,247,0.12)',
+    border:  'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+    purple:  'var(--color-primary-500)',
+    purpleDim:'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
     text:    'var(--text-primary, #f1f1f1)',
     textDim: 'rgba(255,255,255,0.4)',
     textMid: 'rgba(255,255,255,0.65)',
@@ -380,7 +380,7 @@ const ghostBtn = {
 const dateInput = (hasValue) => ({
     width: '100%', padding: '9px 12px',
     borderRadius: 7,
-    border: `1px solid ${hasValue ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.1)'}`,
+    border: `1px solid ${hasValue ? 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' : 'rgba(255,255,255,0.1)'}`,
     background: 'rgba(0,0,0,0.3)',
     color: '#f1f1f1', fontFamily: '"JetBrains Mono", monospace',
     fontSize: '0.76rem', outline: 'none',

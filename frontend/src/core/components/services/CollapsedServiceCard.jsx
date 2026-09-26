@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
   social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
-  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: 'var(--color-primary-400)', text: '#fff' },
   urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
   tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
 };
@@ -177,7 +177,7 @@ export default function CollapsedServiceCard({ service }) {
         }
 
         .csc-card:hover {
-          box-shadow: 0 6px 24px rgba(168,85,247,0.13), 0 2px 8px rgba(0,0,0,0.07);
+          box-shadow: 0 6px 24px color-mix(in srgb, var(--color-primary-500) 13%, transparent), 0 2px 8px rgba(0,0,0,0.07);
           transform: translateY(-2px);
         }
 
@@ -214,7 +214,7 @@ export default function CollapsedServiceCard({ service }) {
         .csc-title {
           font-size: 0.95rem;
           font-weight: 700;
-          color: #a855f7;
+          color: var(--color-primary-500);
           line-height: 1.25;
           margin: 0;
           white-space: nowrap;
@@ -223,7 +223,7 @@ export default function CollapsedServiceCard({ service }) {
         }
 
         .dark .csc-title {
-          color: #a855f7;
+          color: var(--color-primary-500);
         }
 
         .csc-desc {
@@ -253,7 +253,7 @@ export default function CollapsedServiceCard({ service }) {
         .csc-price {
           font-size: 0.72rem;
           font-weight: 700;
-          color: #a855f7;
+          color: var(--color-primary-500);
           white-space: nowrap;
         }
 

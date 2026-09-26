@@ -17,7 +17,7 @@ const thStyle = {
   padding: '10px 16px', textAlign: 'left',
   fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af',
   textTransform: 'uppercase', letterSpacing: '0.08em',
-  borderBottom: '1px solid #c084fc', whiteSpace: 'nowrap',
+  borderBottom: '1px solid var(--color-primary-400)', whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
@@ -75,7 +75,7 @@ const ProjectTable = ({ projects, loading, onDelete }) => {
                   >
                     {/* Title + number */}
                     <td style={tdStyle}>
-                      <p style={{ fontWeight: 700, color: '#c084fc', margin: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--color-primary-400)', margin: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {project.title}
                       </p>
                       <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>
@@ -117,9 +117,9 @@ const ProjectTable = ({ projects, loading, onDelete }) => {
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <button
                           onClick={() => navigate(`/admin/projects/${project.id}`)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.3)', color: '#a855f7', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(168,85,247,0.05)', transition: 'all 150ms' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.05)'; }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', transition: 'all 150ms' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; }}
                         >
                           <Eye size={12} /> View
                         </button>

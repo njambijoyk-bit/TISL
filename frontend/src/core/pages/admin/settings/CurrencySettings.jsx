@@ -11,24 +11,24 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
@@ -78,7 +78,7 @@ function InlineEdit({ value, onSave, onCancel, step = '0.00000001', width = 160,
         <X size={13} />
       </button>
     </div>
-    {preview && <p style={{ fontSize: '0.68rem', color: '#7c3aed', margin: '4px 0 0' }}>{preview(val)}</p>}
+    {preview && <p style={{ fontSize: '0.68rem', color: 'var(--color-primary-600)', margin: '4px 0 0' }}>{preview(val)}</p>}
     </div>
   );
 }
@@ -97,10 +97,10 @@ function EditTrigger({ value, onEdit }) {
       <button onClick={onEdit} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-        background: 'rgba(168,85,247,0.07)', color: '#a855f7', transition: 'background 120ms',
+        background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-500)', transition: 'background 120ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.07)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
       >
         <Edit2 size={11} />
       </button>
@@ -118,14 +118,14 @@ function InfoPanel() {
         fontFamily: 'inherit',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Info size={14} style={{ color: '#a855f7' }} />
+          <Info size={14} style={{ color: 'var(--color-primary-500)' }} />
           <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151' }}>How currency rates work</span>
         </div>
         {open ? <ChevronUp size={14} style={{ color: '#9ca3af' }} /> : <ChevronDown size={14} style={{ color: '#9ca3af' }} />}
       </button>
 
       {open && (
-        <div style={{ padding: '0 20px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 16 }}>
+        <div style={{ padding: '0 20px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 16 }}>
           <p style={{ fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.7, margin: '0 0 12px' }}>
             Two values are stored per currency: <strong style={{ color: '#374151' }}>Anchor Rate</strong> and <strong style={{ color: '#374151' }}>Conversion Rate</strong>.
             The anchor rate is the source of truth — it stays fixed to a single reference currency (typically USD).
@@ -143,15 +143,15 @@ function InfoPanel() {
                 def: 'Derived from anchor rates when you change the base: conversion_rate = currency.anchor_rate / base.anchor_rate. The base currency always has conversion_rate = 1.00.',
               },
             ].map(({ term, def }) => (
-              <div key={term} style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.08)' }}>
-                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 3px' }}>{term}</p>
+              <div key={term} style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 3px' }}>{term}</p>
                 <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>{def}</p>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Example</p>
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Example</p>
             <p style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#374151', margin: 0, lineHeight: 1.8 }}>
               Base = KES (anchor = 0.00775), USD (anchor = 1.0)<br />
               USD conversion_rate = 1.0 / 0.00775 = 129.03<br />
@@ -221,14 +221,14 @@ function AddCurrencyModal({ onClose, onSave, baseCurrency, saving }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              background: 'transparent', border: '1.5px solid rgba(168,85,247,0.18)', color: '#9ca3af',
+              background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: saving ? 0.6 : 1,
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: saving ? 0.6 : 1,
             }} disabled={saving}>{saving ? 'Adding…' : 'Add currency'}</button>
           </div>
         </form>
@@ -290,7 +290,7 @@ export default function CurrencySettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'rgba(168,85,247,0.07)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -303,7 +303,7 @@ export default function CurrencySettings() {
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               Currency Settings
             </h1>
             {baseCurrency && (
@@ -317,11 +317,11 @@ export default function CurrencySettings() {
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 4px 14px rgba(168,85,247,0.35)', transition: 'box-shadow 150ms',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'box-shadow 150ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Plus size={15} /> Add currency
           </button>
@@ -332,7 +332,7 @@ export default function CurrencySettings() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                   {[
                     { label: 'Code',            w: 120 },
                     { label: 'Name',            w: 180 },
@@ -357,11 +357,11 @@ export default function CurrencySettings() {
 
                   return (
                     <tr key={c.id} style={{
-                      borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
-                      background: isBase ? 'rgba(168,85,247,0.03)' : 'transparent',
+                      borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                      background: isBase ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent',
                       transition: 'background 120ms',
                     }}
-                      onMouseEnter={e => { if (!isBase) e.currentTarget.style.background = 'rgba(168,85,247,0.02)'; }}
+                      onMouseEnter={e => { if (!isBase) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'; }}
                       onMouseLeave={e => { if (!isBase) e.currentTarget.style.background = 'transparent'; }}
                     >
 
@@ -373,7 +373,7 @@ export default function CurrencySettings() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 3,
                               padding: '2px 7px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 800,
-                              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                               textTransform: 'uppercase', letterSpacing: '0.06em',
                             }}>
                               <Star size={8} /> Base
@@ -454,12 +454,12 @@ export default function CurrencySettings() {
                           {!isBase && (
                             <button onClick={() => handleSetBase(c)} disabled={!c.is_active} title={!c.is_active ? 'Activate it first' : undefined} style={{
                               padding: '4px 10px', borderRadius: 7, fontSize: '0.7rem', fontWeight: 700,
-                              background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
-                              border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
+                              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                               transition: 'background 120ms',
                             }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.07)'}
+                              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
                             >
                               Set base
                             </button>

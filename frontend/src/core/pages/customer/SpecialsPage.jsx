@@ -61,7 +61,7 @@ const CollapsedSkeleton = () => (
   </div>
 );
 
-function ViewToggle({ fun, onToggle, accent = '#a855f7' }) {
+function ViewToggle({ fun, onToggle, accent = 'var(--color-primary-500)' }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 2,
@@ -93,7 +93,7 @@ function ViewToggle({ fun, onToggle, accent = '#a855f7' }) {
   );
 }
 
-function SectionHead({ eyebrow, title, subtitle, cta, ctaLink, accent = '#a855f7', icon: Icon, fun, onToggle }) {
+function SectionHead({ eyebrow, title, subtitle, cta, ctaLink, accent = 'var(--color-primary-500)', icon: Icon, fun, onToggle }) {
   const eyebrowColor = accent + 'cc';
   return (
     <div className="flex items-end justify-between mb-6 gap-4">
@@ -132,30 +132,30 @@ function FlashBanner({ countdown }) {
     <div style={{
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       gap: '16px', marginBottom: '24px', padding: '20px 24px',
-      background: 'linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(139,92,246,0.08) 100%)',
-      border: '1px solid rgba(168,85,247,0.25)', borderRadius: '16px',
+      background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 12%, transparent) 0%, rgba(139,92,246,0.08) 100%)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '16px',
       position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', background: 'radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', background: 'radial-gradient(circle, color-mix(in srgb, var(--color-primary-500) 18%, transparent) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(168,85,247,0.4)' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }}>
           <Clock size={18} color="white" />
         </div>
         <div>
-          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#c084fc', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--color-primary-400)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <Zap size={9} /> Flash Sale
           </p>
           <p style={{ fontSize: '1rem', fontWeight: 900, margin: 0 }}>Limited Time Deals</p>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', position: 'relative' }}>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: '#c084fc', paddingBottom: '18px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Resets in</span>
+        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-primary-400)', paddingBottom: '18px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Resets in</span>
         {[{ v: countdown.h, l: 'HRS' }, { v: countdown.m, l: 'MIN' }, { v: countdown.s, l: 'SEC' }].map(({ v, l }, i) => (
           <div key={l} style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
-            {i > 0 && <span style={{ color: '#a855f7', fontWeight: 900, fontSize: '1.4rem', lineHeight: 1, paddingBottom: '18px' }}>:</span>}
+            {i > 0 && <span style={{ color: 'var(--color-primary-500)', fontWeight: 900, fontSize: '1.4rem', lineHeight: 1, paddingBottom: '18px' }}>:</span>}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ width: '44px', height: '44px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(168,85,247,0.45)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(168,85,247,0.2), inset 0 1px 0 rgba(168,85,247,0.15)' }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#e9d5ff', fontVariantNumeric: 'tabular-nums' }}>{String(v).padStart(2, '0')}</span>
+              <div style={{ width: '44px', height: '44px', background: 'rgba(0,0,0,0.5)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 45%, transparent)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 20%, transparent), inset 0 1px 0 color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', fontVariantNumeric: 'tabular-nums' }}>{String(v).padStart(2, '0')}</span>
               </div>
               <span style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(192,132,252,0.6)', marginTop: '4px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{l}</span>
             </div>
@@ -173,7 +173,7 @@ function Empty({ icon: Icon, message, sub, cta, ctaLink }) {
       <p className="text-sm">{message}</p>
       {sub && <p className="text-xs text-zinc-700 mt-1">{sub}</p>}
       {cta && ctaLink && (
-        <Link to={ctaLink} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors">
+        <Link to={ctaLink} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-primary-400 hover:text-primary-300 transition-colors">
           {cta} <ArrowRight size={12} />
         </Link>
       )}
@@ -270,7 +270,7 @@ function AuctionSection() {
           {loading
             ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>{Array.from({ length: 4 }).map((_, i) => <CollapsedSkeleton key={i} />)}</div>
             : auctions.length > 0
-              ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>{auctions.map((a) => <div key={a.id} className="bg-zinc-900/50 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}><AuctionCard auction={a} /></div>)}</div>
+              ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '8px' }}>{auctions.map((a) => <div key={a.id} className="bg-zinc-900/50 rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}><AuctionCard auction={a} /></div>)}</div>
               : <Empty icon={Gavel} message="No active auctions right now." sub="Check back soon or browse our regular products." cta="Browse Products" ctaLink="/products" />
           }
         </div>
@@ -420,7 +420,7 @@ export default function SpecialsPage() {
             eyebrow="Hand-picked" title="Featured Products"
             subtitle="Top-rated industrial tools selected for quality and value"
             cta="View all" ctaLink="/products?featured=true"
-            accent="#a855f7"
+            accent="var(--color-primary-500)"
             fun={funFeatured} onToggle={setFunFeatured}
           />
           {loadingFeatured
@@ -481,14 +481,14 @@ export default function SpecialsPage() {
         <section className="mt-16 lg:mt-24">
           <div className="relative rounded-2xl overflow-hidden group" style={{ border: '1.5px solid rgba(168, 85, 247, 0.5)', boxShadow: '0 0 24px rgba(168, 85, 247, 0.18)', transition: 'all 0.3s ease-out' }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)'; e.currentTarget.style.boxShadow = '0 0 36px rgba(168, 85, 247, 0.35)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(168, 85, 247, 0.18)'; }}>
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800" />
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 transition-all duration-500" />
-            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-purple-500/15 transition-all duration-500" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-primary-500/20 transition-all duration-500" />
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-primary-500/15 transition-all duration-500" />
             <div className="relative px-8 py-14 lg:px-16 lg:py-20 text-center">
               <h2 className="text-3xl lg:text-5xl font-black text-primary mb-5 leading-[1.05]">Can't find what you're looking for?</h2>
-              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">Send us a quote request and we'll respond within <span className="text-purple-400 font-semibold">24 hours</span>.</p>
+              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">Send us a quote request and we'll respond within <span className="text-primary-400 font-semibold">24 hours</span>.</p>
               <div className="flex flex-wrap gap-4 justify-center">
-                <Link to="/request-quote" className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white font-black rounded-lg text-sm transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">Request a Quote <ArrowRight size={15} /></Link>
-                <Link to="/products" className="inline-flex items-center gap-2 px-8 py-3.5 border border-purple-500/40 hover:border-purple-400/70 text-zinc-300 hover:text-purple-300 font-semibold rounded-lg text-sm transition-all duration-200 bg-zinc-900/50 hover:bg-zinc-900/80 hover:-translate-y-0.5">Browse Catalogue</Link>
+                <Link to="/request-quote" className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-black rounded-lg text-sm transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">Request a Quote <ArrowRight size={15} /></Link>
+                <Link to="/products" className="inline-flex items-center gap-2 px-8 py-3.5 border border-primary-500/40 hover:border-primary-400/70 text-zinc-300 hover:text-primary-300 font-semibold rounded-lg text-sm transition-all duration-200 bg-zinc-900/50 hover:bg-zinc-900/80 hover:-translate-y-0.5">Browse Catalogue</Link>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-6 mt-10 pt-8">
                 {[{ icon: Truck, text: 'Nationwide Delivery' }, { icon: BadgePercent, text: 'Price Match Guarantee' }, { icon: Award, text: 'Verified Suppliers' }].map(({ icon: Icon, text }) => (

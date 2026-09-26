@@ -566,7 +566,7 @@ export const SOURCE_META = {
     orders:                       { label: 'Orders',              color: F.amber,  emoji: '🛒' },
     payments:                     { label: 'Payments',            color: F.green,  emoji: '💳' },
     auction_orders:               { label: 'Auction Orders',      color: F.teal,   emoji: '🔨' },
-    hamper_orders:                { label: 'Hamper Orders',       color: '#a855f7',emoji: '🎁' },
+    hamper_orders:                { label: 'Hamper Orders',       color: 'var(--color-primary-500)',emoji: '🎁' },
     customer_credit_transactions: { label: 'Credit Transactions', color: F.gold,   emoji: '💰' },
 };
 
@@ -593,7 +593,7 @@ export function StatusPill({ status }) {
         clean:        { color: F.green,  label: 'CLEAN'        },
         mismatch:     { color: F.amber,  label: 'MISMATCH'     },
         only_in_tisl: { color: F.teal,   label: 'TISL ONLY'    },
-        only_in_file: { color: '#a855f7',label: 'FILE ONLY'    },
+        only_in_file: { color: 'var(--color-primary-500)',label: 'FILE ONLY'    },
         pending:      { color: F.amber,  label: 'PENDING'      },
         resolved:     { color: F.green,  label: 'RESOLVED'     },
     };

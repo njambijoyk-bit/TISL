@@ -52,19 +52,19 @@ export default function ContactCareersPage() {
                     }}>
                         <span style={{
                             width: 36, height: 36, borderRadius: 8, flexShrink: 0, marginTop: 2,
-                            background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.15)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            <Icon size={16} color="#a855f7" strokeWidth={1.8} />
+                            <Icon size={16} color="var(--color-primary-500)" strokeWidth={1.8} />
                         </span>
                         <div>
                             <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555' }}>
                                 {label}
                             </p>
                             {href ? (
-                                <a href={href} style={{ fontSize: 15, fontWeight: 600, color: '#c084fc', textDecoration: 'none' }}
-                                    onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
-                                    onMouseLeave={e => e.currentTarget.style.color = '#c084fc'}
+                                <a href={href} style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-primary-400)', textDecoration: 'none' }}
+                                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
+                                    onMouseLeave={e => e.currentTarget.style.color = 'var(--color-primary-400)'}
                                 >
                                     {value}
                                 </a>
@@ -95,7 +95,7 @@ export default function ContactCareersPage() {
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
-                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                         color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
                     }}
                 >

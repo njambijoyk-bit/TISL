@@ -17,10 +17,10 @@ const s = {
     pageTitle: { fontSize: 22, fontWeight: 700, fontFamily: "'DM Serif Display', serif", marginBottom: 2 },
     pageSub: { fontSize: 13, color: '#555' },
     toolbar: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' },
-    filterBtn: (active) => ({ padding: '6px 14px', borderRadius: 20, border: `1px solid ${active ? '#a855f7' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? '#c084fc' : '#666', fontSize: 12, cursor: 'pointer' }),
+    filterBtn: (active) => ({ padding: '6px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? 'var(--color-primary-400)' : '#666', fontSize: 12, cursor: 'pointer' }),
     search: { padding: '7px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#161616', color: '#f0f0f0', fontSize: 13, outline: 'none', flex: 1, minWidth: 160 },
     row: { padding: '14px 16px', borderRadius: 10, border: '1px solid transparent', marginBottom: 6, cursor: 'pointer', transition: 'all 0.15s', background: '#161616' },
-    rowActive: { border: '1px solid #a855f7', background: '#1e1230' },
+    rowActive: { border: '1px solid var(--color-primary-500)', background: '#1e1230' },
     rowTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
     appName: { fontSize: 14, fontWeight: 600, color: '#f0f0f0', marginBottom: 2 },
     appJob: { fontSize: 12, color: '#555' },
@@ -33,7 +33,7 @@ const s = {
     recChip: (rec) => ({ fontSize: 11, color: REC_COLORS[rec] ?? '#555' }),
     date: { fontSize: 11, color: '#444' },
     emptyMsg: { textAlign: 'center', padding: '48px 0', color: '#444' },
-    batchBtn: { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#2d1b4e', color: '#c084fc', fontSize: 13, cursor: 'pointer', fontWeight: 600 },
+    batchBtn: { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#2d1b4e', color: 'var(--color-primary-400)', fontSize: 13, cursor: 'pointer', fontWeight: 600 },
 };
 
 const STATUSES = ['submitted','under_review','shortlisted','interviewed','rejected','hired'];

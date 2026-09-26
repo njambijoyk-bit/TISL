@@ -38,8 +38,8 @@ const StatusBadge = ({ status, size = 'md' }) => {
 
 const SectionLabel = ({ children, icon: Icon }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-    {Icon && <Icon size={14} color="#a855f7" />}
-    <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#a855f7', margin: 0 }}>
+    {Icon && <Icon size={14} color="var(--color-primary-500)" />}
+    <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-500)', margin: 0 }}>
       {children}
     </p>
   </div>
@@ -48,16 +48,16 @@ const SectionLabel = ({ children, icon: Icon }) => (
 const Panel = ({ children, style = {}, accent = false }) => (
   <div style={{
     background: 'white', borderRadius: 16,
-    border: `1px solid ${accent ? 'rgba(168,85,247,0.2)' : '#f3f4f6'}`,
+    border: `1px solid ${accent ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : '#f3f4f6'}`,
     overflow: 'hidden',
-    boxShadow: accent ? '0 0 0 1px rgba(168,85,247,0.12), 0 4px 20px rgba(168,85,247,0.08)' : '0 1px 4px rgba(0,0,0,0.04)',
+    boxShadow: accent ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 1px 4px rgba(0,0,0,0.04)',
     ...style,
   }}>{children}</div>
 );
 
 const ActionBtn = ({ children, onClick, variant = 'primary', icon: Icon, disabled }) => {
   const variants = {
-    primary: { background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', border: 'none' },
+    primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', border: 'none' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
     success: { background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1.5px solid rgba(16,185,129,0.2)' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)' },
@@ -258,7 +258,7 @@ export default function AdminAuctionOrderPayments() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 12 }}>
-      <RefreshCw size={36} style={{ color: '#a855f7', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
+      <RefreshCw size={36} style={{ color: 'var(--color-primary-500)', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
       <p style={{ color: '#9ca3af', fontWeight: 600 }}>Loading...</p>
     </div>
   );
@@ -275,7 +275,7 @@ export default function AdminAuctionOrderPayments() {
               display: 'flex', alignItems: 'center', gap: 6, background: 'none',
               border: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem'
             }}
-              onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
               onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
             >
               <ArrowLeft size={16} /> Back to Order
@@ -296,7 +296,7 @@ export default function AdminAuctionOrderPayments() {
           <div style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{
               width: 52, height: 52, borderRadius: 14,
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <CreditCard size={24} color="white" />
@@ -312,7 +312,7 @@ export default function AdminAuctionOrderPayments() {
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Order Total</p>
-                <p style={{ fontSize: '1.2rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{formatPrice(paymentSummary?.order_total_kes)}</p>
+                <p style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{formatPrice(paymentSummary?.order_total_kes)}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Paid</p>
@@ -333,7 +333,7 @@ export default function AdminAuctionOrderPayments() {
           <div style={{ padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }}>Payment Progress</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a855f7' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>
                 {paymentSummary?.order_total_kes > 0
                   ? Math.round(((paymentSummary?.total_confirmed_kes || 0) / paymentSummary?.order_total_kes) * 100)
                   : 0}%
@@ -345,7 +345,7 @@ export default function AdminAuctionOrderPayments() {
                   ? Math.min(100, ((paymentSummary?.total_confirmed_kes || 0) / paymentSummary?.order_total_kes) * 100)
                   : 0}%`,
                 height: '100%',
-                background: outstanding <= 0 ? '#059669' : '#a855f7',
+                background: outstanding <= 0 ? '#059669' : 'var(--color-primary-500)',
                 borderRadius: 99,
                 transition: 'width 500ms ease'
               }} />
@@ -388,7 +388,7 @@ export default function AdminAuctionOrderPayments() {
                         </p>
                         </div>
                         {payment.is_retry && (
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#7c3aed', background: 'rgba(139,92,246,0.08)', padding: '2px 8px', borderRadius: 99 }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-600)', background: 'rgba(139,92,246,0.08)', padding: '2px 8px', borderRadius: 99 }}>
                             RETRY
                           </span>
                         )}
@@ -418,7 +418,7 @@ export default function AdminAuctionOrderPayments() {
                       <div>
                         <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>Phone</p>
                         <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Phone size={12} style={{ color: '#a855f7' }} />
+                          <Phone size={12} style={{ color: 'var(--color-primary-500)' }} />
                           {payment.phone_number}
                           {payment.phone_overridden && <span style={{ fontSize: '0.6rem', color: '#d97706', fontWeight: 700 }}>(overridden)</span>}
                         </p>
@@ -513,7 +513,7 @@ export default function AdminAuctionOrderPayments() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Amount (KSh)
             </label>
             <input
@@ -530,7 +530,7 @@ export default function AdminAuctionOrderPayments() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Phone Override (Optional)
             </label>
             <input
@@ -548,7 +548,7 @@ export default function AdminAuctionOrderPayments() {
 
           {modalData.phone_override && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
                 Override Reason *
               </label>
               <input
@@ -566,7 +566,7 @@ export default function AdminAuctionOrderPayments() {
           )}
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Notes (Optional)
             </label>
             <textarea
@@ -606,7 +606,7 @@ export default function AdminAuctionOrderPayments() {
             </p>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Cancellation Reason *
             </label>
             <textarea
@@ -640,7 +640,7 @@ export default function AdminAuctionOrderPayments() {
             </p>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Notes (Optional)
             </label>
             <textarea
@@ -674,7 +674,7 @@ export default function AdminAuctionOrderPayments() {
             </p>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Dispute Reason *
             </label>
             <textarea

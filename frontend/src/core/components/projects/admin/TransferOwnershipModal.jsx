@@ -7,19 +7,19 @@ import useProjectStore from '../../../../_shared/store/projectStore';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -56,20 +56,20 @@ const TransferOwnershipModal = ({ project, onClose }) => {
         display: 'flex', flexDirection: 'column',
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
 
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.12)',
+          padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
         }}>
           <div>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
               Transfer Ownership
             </p>
             <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
@@ -81,7 +81,7 @@ const TransferOwnershipModal = ({ project, onClose }) => {
             color: '#6b7280', display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
             <X style={{ width: 16, height: 16 }} />
           </button>
@@ -94,12 +94,12 @@ const TransferOwnershipModal = ({ project, onClose }) => {
           <p style={{
             fontSize: '0.8rem', color: '#4b5563', margin: 0,
             padding: '10px 14px', borderRadius: 10,
-            background: 'rgba(168,85,247,0.05)',
-            border: '1px solid rgba(168,85,247,0.15)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             lineHeight: 1.6,
           }}>
             The current owner will be downgraded to{' '}
-            <strong style={{ color: '#7c3aed' }}>Admin Manager</strong>. The new owner
+            <strong style={{ color: 'var(--color-primary-600)' }}>Admin Manager</strong>. The new owner
             will have full control over this project.
           </p>
 
@@ -125,7 +125,7 @@ const TransferOwnershipModal = ({ project, onClose }) => {
               <p style={{
                 fontSize: '0.78rem', color: '#9ca3af', fontStyle: 'italic',
                 padding: '10px 14px', borderRadius: 8, margin: 0,
-                border: '1.5px dashed rgba(168,85,247,0.2)',
+                border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
               }}>
                 No other active staff participants found. Add a staff participant first.
               </p>
@@ -158,29 +158,29 @@ const TransferOwnershipModal = ({ project, onClose }) => {
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: 8,
           padding: '12px 20px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.12)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
         }}>
           <button type="button" onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
             background: 'transparent', color: '#9ca3af',
-            border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer',
             transition: 'border-color 150ms, color 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
             Cancel
           </button>
           <button type="button" onClick={handleSubmit} disabled={isDisabled} style={{
             padding: '6px 18px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
             border: 'none', cursor: isDisabled ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: isDisabled ? 0.6 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
             transition: 'box-shadow 150ms, opacity 150ms',
           }}
-            onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+            onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
             {isBusy && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
             {isBusy ? 'Transferring…' : 'Transfer Ownership'}
           </button>

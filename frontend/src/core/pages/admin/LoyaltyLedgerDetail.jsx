@@ -12,8 +12,8 @@ import { useAuthStore } from '../../../_shared/store/index';
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const btn = (variant = 'primary', size = 'md') => {
@@ -25,9 +25,9 @@ const btn = (variant = 'primary', size = 'md') => {
     fontSize: size === 'sm' ? '0.75rem' : '0.82rem',
   };
   const variants = {
-    primary: { background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white' },
+    primary: { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.18)' },
-    ghost:   { background: 'rgba(168,85,247,0.06)', color: '#7c3aed', border: '1.5px solid rgba(168,85,247,0.18)' },
+    ghost:   { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' },
     success: { background: 'rgba(5,150,105,0.08)', color: '#059669', border: '1.5px solid rgba(5,150,105,0.18)' },
   };
   return { ...base, ...variants[variant] };
@@ -35,7 +35,7 @@ const btn = (variant = 'primary', size = 'md') => {
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.15)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
@@ -43,7 +43,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -55,10 +55,10 @@ function tierStyle(slug, tierOptions = []) {
 }
 
 const TYPE_COLORS = {
-  order_earn: '#059669', admin_grant: '#7c3aed', admin_deduct: '#dc2626',
-  referral_bonus: '#a855f7', birthday_bonus: '#ec4899', review_bonus: '#0891b2',
+  order_earn: '#059669', admin_grant: 'var(--color-primary-600)', admin_deduct: '#dc2626',
+  referral_bonus: 'var(--color-primary-500)', birthday_bonus: '#ec4899', review_bonus: '#0891b2',
   redemption: '#d97706', expiry: '#6b7280', adjustment: '#ca8a04',
-  referral_reward: '#a855f7', points_redemption: '#059669',
+  referral_reward: 'var(--color-primary-500)', points_redemption: '#059669',
   order_refund: '#0891b2', order_spend: '#d97706',
 };
 
@@ -76,7 +76,7 @@ function Modal({ title, onClose, children, width = 420 }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div style={{ ...card, width: '100%', maxWidth: width, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: 0 }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
             <X size={16} />
@@ -132,9 +132,9 @@ function GrantPointsModal({ customerId, onClose, onSuccess }) {
             <button key={t} onClick={() => setForm(p => ({ ...p, point_type: t }))} style={{
               flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize',
-              background: form.point_type === t ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.05)',
-              color: form.point_type === t ? 'white' : '#7c3aed',
-              border: form.point_type === t ? 'none' : '1.5px solid rgba(168,85,247,0.15)',
+              background: form.point_type === t ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+              color: form.point_type === t ? 'white' : 'var(--color-primary-600)',
+              border: form.point_type === t ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             }}>{t}</button>
           ))}
         </div>
@@ -178,7 +178,7 @@ function DeductPointsModal({ customerId, currentPoints, onClose, onSuccess }) {
 
   return (
     <Modal title="Deduct Loyalty Points" onClose={onClose}>
-      <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 14px' }}>Current balance: <strong style={{ color: '#7c3aed' }}>{fmtPts(currentPoints)} pts</strong></p>
+      <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 14px' }}>Current balance: <strong style={{ color: 'var(--color-primary-600)' }}>{fmtPts(currentPoints)} pts</strong></p>
       <Field label="Points to deduct" required>
         <input type="number" min="1" max={currentPoints} value={form.points} onChange={e => setForm(p => ({ ...p, points: e.target.value }))} style={inputStyle} />
       </Field>
@@ -301,8 +301,8 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
               onClick={() => setSelected(r.id)}
               style={{
                 padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
-                border: `2px solid ${selected === r.id ? '#a855f7' : 'rgba(168,85,247,0.1)'}`,
-                background: selected === r.id ? 'rgba(168,85,247,0.04)' : 'white',
+                border: `2px solid ${selected === r.id ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
+                background: selected === r.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
                 transition: 'all 150ms',
               }}
             >
@@ -312,7 +312,7 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>{r.type}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 2px' }}>{fmtPts(r.points_required)} pts</p>
+                  <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 2px' }}>{fmtPts(r.points_required)} pts</p>
                   {r.value_kes > 0 && <p style={{ fontSize: '0.7rem', color: '#059669', margin: 0 }}>{fmtKes(r.value_kes)}</p>}
                 </div>
               </div>
@@ -348,8 +348,8 @@ function TxRow({ tx, ledger }) {
   const positive = Number(value) > 0;
 
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)', transition: 'background 100ms' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)', transition: 'background 100ms' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
       {/* Type */}
       <td style={{ padding: '10px 16px' }}>
@@ -518,11 +518,11 @@ export default function LoyaltyLedgerDetail() {
         {/* Avatar + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 220px' }}>
           {customer.profile_image_url ? (
-            <img src={customer.profile_image_url} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(168,85,247,0.2)', flexShrink: 0 }} />
+            <img src={customer.profile_image_url} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', flexShrink: 0 }} />
           ) : (
             <div style={{
               width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '0.95rem', fontWeight: 800, color: 'white',
             }}>{initials}</div>
@@ -544,13 +544,13 @@ export default function LoyaltyLedgerDetail() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '1 1 300px' }}>
           <div style={{
             flex: 1, minWidth: 130, padding: '12px 16px', borderRadius: 10,
-            background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.1)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <Coins size={14} style={{ color: '#a855f7' }} />
+              <Coins size={14} style={{ color: 'var(--color-primary-500)' }} />
               <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Points</p>
             </div>
-            <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7c3aed', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+            <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary-600)', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
               {fmtPts(customer.loyalty_points)}
             </p>
           </div>
@@ -583,7 +583,7 @@ export default function LoyaltyLedgerDetail() {
       {/* Ledger tabs + table */}
       <div style={card}>
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
           {[
             { key: 'points', label: 'Loyalty Points', icon: <Coins size={14} /> },
             { key: 'credit', label: 'Store Credit',   icon: <CreditCard size={14} /> },
@@ -592,15 +592,15 @@ export default function LoyaltyLedgerDetail() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '12px 20px', fontSize: '0.82rem', fontWeight: 700,
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              color: ledger === tab.key ? '#7c3aed' : '#9ca3af',
-              borderBottom: `2.5px solid ${ledger === tab.key ? '#a855f7' : 'transparent'}`,
+              color: ledger === tab.key ? 'var(--color-primary-600)' : '#9ca3af',
+              borderBottom: `2.5px solid ${ledger === tab.key ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -1, transition: 'all 150ms',
             }}>
               {tab.icon}{tab.label}
               <span style={{
                 fontSize: '0.65rem', fontWeight: 700,
-                background: ledger === tab.key ? 'rgba(168,85,247,0.1)' : 'transparent',
-                color: ledger === tab.key ? '#7c3aed' : '#d1d5db',
+                background: ledger === tab.key ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+                color: ledger === tab.key ? 'var(--color-primary-600)' : '#d1d5db',
                 padding: '1px 7px', borderRadius: 20,
               }}>
                 {ledger === tab.key && txData ? meta.total : ''}
@@ -613,13 +613,13 @@ export default function LoyaltyLedgerDetail() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                 {['Type','Amount','Balance After','Note','By','When'].map((h, i) => (
                   <th key={h} style={{
                     padding: '9px 16px', fontSize: '0.63rem', fontWeight: 700,
-                    color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.07em',
                     textAlign: i >= 1 && i <= 2 ? 'right' : i === 5 ? 'right' : 'left',
-                    borderBottom: '1px solid rgba(168,85,247,0.08)',
+                    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   }}>{h}</th>
                 ))}
               </tr>
@@ -643,15 +643,15 @@ export default function LoyaltyLedgerDetail() {
         {/* Pagination */}
         {!txLoading && transactions.length > 0 && meta.last_page > 1 && (
           <div style={{
-            padding: '12px 16px', borderTop: '1px solid rgba(168,85,247,0.08)',
+            padding: '12px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(168,85,247,0.02)', gap: 4,
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', gap: 4,
         }}>
             {/* Prev */}
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={meta.current_page <= 1} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-            color: '#a855f7', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
+            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            color: 'var(--color-primary-500)', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
             opacity: meta.current_page <= 1 ? 0.3 : 1,
             }}>
             <ChevronLeft size={13} />
@@ -672,8 +672,8 @@ export default function LoyaltyLedgerDetail() {
                 width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: 7, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
                 fontFamily: 'inherit', border: 'none',
-                background: meta.current_page === p ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.06)',
-                color: meta.current_page === p ? 'white' : '#7c3aed',
+                background: meta.current_page === p ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                color: meta.current_page === p ? 'white' : 'var(--color-primary-600)',
                 }}>
                 {p}
                 </button>
@@ -683,8 +683,8 @@ export default function LoyaltyLedgerDetail() {
             {/* Next */}
             <button onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={meta.current_page >= meta.last_page} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-            color: '#a855f7', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
+            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            color: 'var(--color-primary-500)', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
             opacity: meta.current_page >= meta.last_page ? 0.3 : 1,
             }}>
             <ChevronRight size={13} />

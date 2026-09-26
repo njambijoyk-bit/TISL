@@ -80,7 +80,7 @@ export default function BulkActionsBar({
 
       {/* ── Count ──────────────────────────────────────────────────────── */}
       <span style={{
-        background: 'var(--accent, #7c3aed)',
+        background: 'var(--accent, var(--color-primary-600))',
         borderRadius: 99,
         padding: '2px 10px',
         color: '#270330',
@@ -94,7 +94,7 @@ export default function BulkActionsBar({
 
       {/* ── Set price ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ color: '#7c3aed', fontSize: 15, fontWeight: 700 }}>Set price:</span>
+        <span style={{ color: 'var(--color-primary-600)', fontSize: 15, fontWeight: 700 }}>Set price:</span>
         <input
           type="number"
           min="0"
@@ -106,7 +106,7 @@ export default function BulkActionsBar({
             width: 80,
             padding: '5px 8px',
             borderRadius: 6,
-            border: '1px solid #7c3aed',
+            border: '1px solid var(--color-primary-600)',
             background: 'rgb(255,255,255)',
             color: '#270330',
             fontSize: 15,
@@ -119,7 +119,7 @@ export default function BulkActionsBar({
           disabled={!bulkPrice}
           style={{
             padding: '5px 12px',
-            background: bulkPrice ? 'var(--accent, #7c3aed)' : 'rgba(255,255,255,0.15)',
+            background: bulkPrice ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)',
             border: 'none',
             borderRadius: 6,
             fontSize: 12,
@@ -267,5 +267,5 @@ function FlagToggle({ label, onColor, offColor, onEnable, onDisable }) {
 
 // ─── Divider ─────────────────────────────────────────────────────────────────
 function Divider() {
-  return <div style={{ width: 1, height: 24, background: '#7c3aed', flexShrink: 0 }} />;
+  return <div style={{ width: 1, height: 24, background: 'var(--color-primary-600)', flexShrink: 0 }} />;
 }

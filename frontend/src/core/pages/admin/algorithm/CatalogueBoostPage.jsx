@@ -22,7 +22,7 @@ const PER_PAGE = 50;
 const BADGE_OPTIONS = [
   { value: 'promo',        label: 'Promo',        color: '#f97316' },
   { value: 'social_proof', label: 'Social Proof', color: '#3b82f6' },
-  { value: 'bundle',       label: 'Bundle',       color: '#8b5cf6' },
+  { value: 'bundle',       label: 'Bundle',       color: 'var(--color-primary-400)' },
   { value: 'urgency',      label: 'Urgency',      color: '#ef4444' },
   { value: 'tip',          label: 'Tip',          color: '#10b981' },
 ];
@@ -40,9 +40,9 @@ function PageBtn({ label, icon: Icon, active, disabled, onClick }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: disabled ? 'not-allowed' : 'pointer',
-      border: '1px solid rgba(168,85,247,0.3)',
-      boxShadow: '0 0 6px rgba(124,58,237,0.2)',
-      background: active ? '#7c3aed' : 'var(--bg-primary,#fff)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+      boxShadow: '0 0 6px color-mix(in srgb, var(--color-primary-600) 20%, transparent)',
+      background: active ? 'var(--color-primary-600)' : 'var(--bg-primary,#fff)',
       color: active ? '#fff' : disabled ? '#9ca3af' : 'var(--text-primary,#111)',
       fontWeight: active ? 700 : 400, opacity: disabled ? 0.45 : 1,
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -56,7 +56,7 @@ function Spinner({ size = 18 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      border: '2px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7',
+      border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)',
       animation: 'cbSpin 600ms linear infinite', display: 'inline-block', flexShrink: 0,
     }} />
   );
@@ -78,23 +78,23 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
 
   const inputBase = {
     padding: '6px 10px', borderRadius: 7, fontSize: 12,
-    border: `1px solid ${isDirty ? 'rgba(168,85,247,0.5)' : 'rgba(168,85,247,0.2)'}`,
-    background: isDirty ? 'rgba(168,85,247,0.04)' : 'var(--bg-primary,#fff)',
+    border: `1px solid ${isDirty ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
+    background: isDirty ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'var(--bg-primary,#fff)',
     color: 'var(--text-primary,#111)', outline: 'none',
     transition: 'border-color 0.15s',
   };
 
   return (
-    <tr style={{ background: isDirty ? 'rgba(168,85,247,0.04)' : 'transparent', transition: 'background 0.2s' }}
+    <tr style={{ background: isDirty ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent', transition: 'background 0.2s' }}
         className="cb-row">
       {/* Entity */}
       <td style={td}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {row.main_image ? (
-            <img src={row.main_image} alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(168,85,247,0.15)' }} />
+            <img src={row.main_image} alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', flexShrink: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} />
           ) : (
-            <div style={{ width: 36, height: 36, borderRadius: 7, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {row.entity_type === 'service' ? <Wrench size={14} color="#a855f7" /> : <Package size={14} color="#a855f7" />}
+            <div style={{ width: 36, height: 36, borderRadius: 7, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {row.entity_type === 'service' ? <Wrench size={14} color="var(--color-primary-500)" /> : <Package size={14} color="var(--color-primary-500)" />}
             </div>
           )}
           <div>
@@ -130,8 +130,8 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
             onClick={() => onEdit(row.id, row.entity_type, 'boost_message', '')}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '5px 12px', borderRadius: 7, border: '1px dashed rgba(168,85,247,0.35)',
-              background: 'transparent', color: '#a855f7', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 7, border: '1px dashed color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
+              background: 'transparent', color: 'var(--color-primary-500)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}>
             <Plus size={12} /> Add Boost
           </button>
@@ -163,7 +163,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
             onClick={() => onEdit(row.id, row.entity_type, 'boost_active', !isActive)}
             style={{
               width: 38, height: 22, borderRadius: 11, margin: '0 auto',
-              background: isActive ? '#a855f7' : 'rgba(168,85,247,0.15)',
+              background: isActive ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
               cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
             }}
           >
@@ -188,7 +188,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '5px 12px', borderRadius: 7, border: 'none',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                 color: '#fff', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
                 opacity: saving ? 0.7 : 1,
               }}>
@@ -395,17 +395,17 @@ export default function CatalogueBoostPage() {
   const th = {
     padding: '9px 14px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.07em', color: 'var(--text-secondary,#6b7280)', textAlign: 'left',
-    borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.04)',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   };
   const td = {
     padding: '10px 14px', fontSize: 13, color: 'var(--text-primary,#111)',
-    borderBottom: '1px solid rgba(168,85,247,0.06)', verticalAlign: 'middle',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)', verticalAlign: 'middle',
   };
 
   const inputStyle = {
     padding: '7px 10px', borderRadius: 7, fontSize: 13,
-    border: '1px solid rgba(168,85,247,0.3)',
-    boxShadow: '0 0 6px rgba(124,58,237,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+    boxShadow: '0 0 6px color-mix(in srgb, var(--color-primary-600) 20%, transparent)',
     background: 'var(--bg-primary,#fff)', color: 'var(--text-primary,#111)',
     outline: 'none', boxSizing: 'border-box',
   };
@@ -417,7 +417,7 @@ export default function CatalogueBoostPage() {
       <div style={{ padding: 24, minHeight: '100vh', background: 'var(--bg-primary,#f9fafb)', fontFamily: 'var(--font-body,system-ui,sans-serif)' }}>
         <style>{`
           @keyframes cbSpin { to { transform: rotate(360deg) } }
-          .cb-row:hover td { background: rgba(168,85,247,0.025) !important; }
+          .cb-row:hover td { background: color-mix(in srgb, var(--color-primary-500) 3%, transparent) !important; }
         `}</style>
 
         {/* ── Page header ── */}
@@ -427,7 +427,7 @@ export default function CatalogueBoostPage() {
               to="/admin/algorithm"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: '0.82rem', fontWeight: 600, color: '#a855f7',
+                fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-500)',
                 textDecoration: 'none', marginBottom: 12, transition: 'opacity 0.2s'
               }}
               onMouseEnter={e => e.currentTarget.style.opacity = 0.8}
@@ -435,7 +435,7 @@ export default function CatalogueBoostPage() {
             >
               <ChevronLeft size={16} /> Back to Algorithm
             </Link>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#a855f7' }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--color-primary-500)' }}>
               Catalogue Boosts
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary,#6b7280)' }}>
@@ -449,7 +449,7 @@ export default function CatalogueBoostPage() {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '9px 20px', borderRadius: 10, border: 'none',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                 color: '#fff', fontSize: 13, fontWeight: 700, cursor: bulkSaving ? 'not-allowed' : 'pointer',
                 opacity: bulkSaving ? 0.7 : 1,
               }}>
@@ -460,7 +460,7 @@ export default function CatalogueBoostPage() {
         </div>
 
         {/* ── Entity type tabs ── */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 6, background: 'rgba(168,85,247,0.06)', borderRadius: 12, width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 12, width: 'fit-content' }}>
           {[
             { key: 'product', label: 'Products', Icon: Package },
             { key: 'service', label: 'Services', Icon: Wrench  },
@@ -470,7 +470,7 @@ export default function CatalogueBoostPage() {
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '9px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600,
-                background: entityType === key ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+                background: entityType === key ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
                 color: entityType === key ? '#fff' : 'var(--text-secondary,#6b7280)',
                 transition: 'all 0.2s',
               }}>
@@ -483,7 +483,7 @@ export default function CatalogueBoostPage() {
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Search */}
           <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 320 }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a855f7', pointerEvents: 'none' }} />
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-500)', pointerEvents: 'none' }} />
             <input
               value={search}
               onChange={e => handleSearch(e.target.value)}
@@ -524,8 +524,8 @@ export default function CatalogueBoostPage() {
         {/* ── Table ── */}
         <div style={{
           background: 'var(--bg-secondary,#fff)', borderRadius: 16,
-          border: '1px solid rgba(168,85,247,0.12)',
-          boxShadow: '0 2px 12px rgba(168,85,247,0.06)', overflow: 'hidden',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+          boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)', overflow: 'hidden',
         }}>
           {loading ? (
             <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -598,7 +598,7 @@ export default function CatalogueBoostPage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
             background: 'var(--bg-primary,#fff)', padding: '28px 40px', borderRadius: 16,
             boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-            border: '1px solid rgba(168,85,247,0.2)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           }}>
             <Spinner size={32} />
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary,#111)' }}>Saving boosts…</span>

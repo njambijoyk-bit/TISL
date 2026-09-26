@@ -23,7 +23,7 @@ function formatSize(bytes) {
 const SENSITIVITY_COLORS = {
   confidential: '#f59e0b',
   restricted:   '#ef4444',
-  top_secret:   '#7c3aed',
+  top_secret:   'var(--color-primary-600)',
 };
 
 // Extension → color + label
@@ -36,11 +36,11 @@ const EXT_META = {
   csv:  { color: '#16a34a', bg: '#f0fdf4' },
   ppt:  { color: '#ea580c', bg: '#fff7ed' },
   pptx: { color: '#ea580c', bg: '#fff7ed' },
-  png:  { color: '#7c3aed', bg: '#f5f3ff' },
-  jpg:  { color: '#7c3aed', bg: '#f5f3ff' },
-  jpeg: { color: '#7c3aed', bg: '#f5f3ff' },
-  gif:  { color: '#7c3aed', bg: '#f5f3ff' },
-  webp: { color: '#7c3aed', bg: '#f5f3ff' },
+  png:  { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
+  jpg:  { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
+  jpeg: { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
+  gif:  { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
+  webp: { color: 'var(--color-primary-600)', bg: '#f5f3ff' },
   json: { color: '#0891b2', bg: '#ecfeff' },
   md:   { color: '#475569', bg: '#f8fafc' },
   zip:  { color: '#92400e', bg: '#fffbeb' },

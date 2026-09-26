@@ -21,7 +21,7 @@ const LOOK = {
   '/admin/settings/shipping':         { icon: Truck,          bg: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fb923c' },
   '/admin/settings/content/about':    { icon: FileText,       bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6' },
   '/admin/settings/content/contact':  { icon: Phone,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316' },
-  '/admin/settings/content/manual':   { icon: BookOpen,       bg: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#a855f7' },
+  '/admin/settings/content/manual':   { icon: BookOpen,       bg: 'linear-gradient(135deg,var(--color-primary-700),var(--color-primary-500))', color: 'var(--color-primary-500)' },
   '/admin/settings/content/homepage': { icon: Home,           bg: 'linear-gradient(135deg,#15803d,#22c55e)', color: '#22c55e' },
   '/admin/settings/content/footer':   { icon: FootprintsIcon, bg: 'linear-gradient(135deg,#b45309,#f59e0b)', color: '#f59e0b' },
   '/admin/settings/policy':           { icon: Gavel,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316' },
@@ -29,7 +29,7 @@ const LOOK = {
   '/admin/algorithm':                 { icon: BrainCircuit,   bg: 'linear-gradient(135deg,#1d4ed8,#60a5fa)', color: '#60a5fa' },
   '/admin/vault':                     { icon: Vault,          bg: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#ef4444' },
   '/admin/logs':                      { icon: Network,        bg: 'linear-gradient(135deg,#1e40af,#3b82f6)', color: '#3b82f6' },
-  '/admin/appearance':                { icon: Palette,        bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa' },
+  '/admin/appearance':                { icon: Palette,        bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-400))', color: 'var(--color-primary-400)' },
   '/admin/settings/navigation':       { icon: Compass,        bg: 'linear-gradient(135deg,#0f766e,#14b8a6)', color: '#14b8a6' },
   '/admin/settings/modules':          { icon: Blocks,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899' },
 };
@@ -71,7 +71,7 @@ const SettingRow = ({ item, onClick, isLast }) => {
         textAlign: 'left',
       }}
       onMouseEnter={e => {
-        if (item.active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+        if (item.active) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.background = 'transparent';
@@ -121,7 +121,7 @@ const GroupCard = ({ group, onNavigate }) => (
     <p style={{
       fontSize: '0.6rem', fontWeight: 700,
       letterSpacing: '0.1em', textTransform: 'uppercase',
-      color: '#a855f7',
+      color: 'var(--color-primary-500)',
       padding: '0 2px 8px',
       margin: 0, userSelect: 'none',
     }}>
@@ -148,16 +148,16 @@ const GroupCard = ({ group, onNavigate }) => (
 
 // ─── 1. Order Pricing Model ──────────────────────────────────────────────────
 function OrderPricingAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
   const DEDUCTIONS = [
     { step: 1, name: 'Customer Discount', field: '− customer_discount', color: '#f97316', note: 'From customer tier / type discount DB rules' },
     { step: 2, name: 'Referral Discount', field: '− referral_discount', color: '#ec4899', note: 'Applied when a referral code is used' },
-    { step: 3, name: 'Promo Discount',    field: '− promo_discount',    color: '#8b5cf6', note: 'Validated and applied via PromoCodeService' },
+    { step: 3, name: 'Promo Discount',    field: '− promo_discount',    color: 'var(--color-primary-400)', note: 'Validated and applied via PromoCodeService' },
     { step: 4, name: 'Tax (16%)',         field: '+ tax',               color: '#ef4444', note: 'Computed on taxable_amount after all discounts' },
     { step: 5, name: 'Shipping',          field: '+ shipping_cost',     color: '#3b82f6', note: 'From the active shipping option record' },
     { step: 6, name: 'Store Credit',      field: '− store_credit',      color: '#10b981', note: 'Cap: KES 500 for hamper orders' },
@@ -187,18 +187,18 @@ line_total               = line_total_after_discount + discount_amount
  
       {h('Final Total — 6 Deduction / Addition Layers')}
       <div style={{ ...box, padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ padding: '10px 18px 8px', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+        <div style={{ padding: '10px 18px 8px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
           <span style={label}>Applied in this exact order, starting from subtotal</span>
         </div>
         {DEDUCTIONS.map((d, i) => (
           <div key={d.step} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: i < DEDUCTIONS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', background: `${d.color}22`, border: `1px solid ${d.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 800, color: d.color, flexShrink: 0 }}>{d.step}</span>
             <span style={{ width: 140, fontWeight: 700, color: d.color, fontSize: '0.78rem', flexShrink: 0 }}>{d.name}</span>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#e9d5ff', width: 170, flexShrink: 0 }}>{d.field}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', width: 170, flexShrink: 0 }}>{d.field}</span>
             <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{d.note}</span>
           </div>
         ))}
-        <div style={{ padding: '0 18px 14px', background: 'rgba(168,85,247,0.05)', borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+        <div style={{ padding: '0 18px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
           <div style={formulaBox}>{`taxable_amount = subtotal − customer_discount − referral_discount − promo_discount
 tax            = taxable_amount × 0.16
 total          = taxable_amount + tax + shipping_cost − store_credit
@@ -213,17 +213,17 @@ net_total      = max(0, total − refunded_amount)   ← used in reporting`}</di
  
 // ─── 2. Order Creation Flow ──────────────────────────────────────────────────
 function OrderCreationFlowAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
   const STEPS = [
     { n: 'A', title: 'Validate Input',           color: '#6366f1', detail: 'Customer identity, contact, shipping address, delivery method, payment method, line items, optional promo and store credit fields' },
-    { n: 'B', title: 'Resolve Customer',         color: '#8b5cf6', detail: 'Uses authenticated customer or finds/creates a guest by email. Order always ends up attached to a customers.id — no anonymous orders' },
-    { n: 'C', title: 'Inspect Each Item',        color: '#a855f7', detail: 'Each item is classified: custom (no IDs), service (service_id only), or product (product_id present). Item type determines what DB tables are read and whether stock is touched' },
-    { n: 'D', title: 'Build Line Totals',        color: '#c084fc', detail: 'calcPricing() runs per item. line_total_after_discount and line_total computed. Subtotal = Σ line_total_after_discount across all items' },
+    { n: 'B', title: 'Resolve Customer',         color: 'var(--color-primary-400)', detail: 'Uses authenticated customer or finds/creates a guest by email. Order always ends up attached to a customers.id — no anonymous orders' },
+    { n: 'C', title: 'Inspect Each Item',        color: 'var(--color-primary-500)', detail: 'Each item is classified: custom (no IDs), service (service_id only), or product (product_id present). Item type determines what DB tables are read and whether stock is touched' },
+    { n: 'D', title: 'Build Line Totals',        color: 'var(--color-primary-400)', detail: 'calcPricing() runs per item. line_total_after_discount and line_total computed. Subtotal = Σ line_total_after_discount across all items' },
     { n: 'E', title: 'Apply Order-Level Math',   color: '#ec4899', detail: 'Sequential deductions: customer discount → referral discount → promo discount → tax (16%) → shipping → store credit. Produces the final payable total' },
     { n: 'F', title: 'Generate Order Number',    color: '#f97316', detail: 'Unique order reference number generated before the row is saved. Used as the human-readable identifier across all communications' },
     { n: 'G', title: 'Save Order Row',           color: '#f59e0b', detail: 'orders row created with all financial fields, shipping snapshot, status = pending, payment_status = unpaid' },
@@ -260,7 +260,7 @@ function OrderCreationFlowAppendix() {
       <div style={{ overflowX: 'auto', marginBottom: 16 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
+            <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
               {['Item Type', 'Detected When', 'Stock Reserved', 'Inventory Effect', 'Price Source'].map(col => (
                 <th key={col} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.07em' }}>{col}</th>
               ))}
@@ -298,9 +298,9 @@ referral_code_usage        ← if a referral or promo code was used`}</div>
  
 // ─── 3. Inventory Reservation System ────────────────────────────────────────
 function InventoryReservationAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
@@ -348,7 +348,7 @@ in_stock_qty   = min(requestedQty, currentStock)
         {STATUS_RULES.map(r => (
           <div key={r.status} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderRadius: 8, background: `${r.color}0d`, border: `1px solid ${r.color}25` }}>
             <span style={{ fontWeight: 800, color: r.color, fontSize: '0.78rem', width: 90, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{r.status}</span>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#e9d5ff' }}>{r.rule}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))' }}>{r.rule}</span>
           </div>
         ))}
       </div>
@@ -369,7 +369,7 @@ stock_status         ← snapshot of stock state at reservation time`}</div>
       <div style={{ overflowX: 'auto', marginBottom: 16 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
+            <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
               {['Event', 'Stock Effect', 'Notes'].map(col => (
                 <th key={col} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.07em' }}>{col}</th>
               ))}
@@ -424,9 +424,9 @@ Hamper model methods:
  
 // ─── 4. Transaction Ledgers ──────────────────────────────────────────────────
 function TransactionLedgersAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
@@ -441,7 +441,7 @@ function TransactionLedgersAppendix() {
     ['order_earned',    'Points awarded on order payment',         '#10b981'],
     ['order_cancelled', 'Points reversed when order is cancelled', '#ef4444'],
     ['order_restored',  'Points re-awarded when order is restored','#3b82f6'],
-    ['admin_grant',     'Manual admin grant',                      '#a855f7'],
+    ['admin_grant',     'Manual admin grant',                      'var(--color-primary-500)'],
     ['admin_deduct',    'Manual admin deduction',                  '#f97316'],
     ['redemption',      'Customer redeems points',                 '#f59e0b'],
     ['expiry',          'Points expired by the system',            '#6b7280'],
@@ -451,7 +451,7 @@ function TransactionLedgersAppendix() {
     ['referral_reward', 'Referrer earns credit when a referral completes', '#ec4899'],
     ['order_refund',    'Credit returned on order cancellation',           '#10b981'],
     ['order_spend',     'Credit deducted when applied to an order',        '#ef4444'],
-    ['admin_grant',     'Manual admin credit grant',                       '#a855f7'],
+    ['admin_grant',     'Manual admin credit grant',                       'var(--color-primary-500)'],
     ['admin_deduct',    'Manual admin deduction',                          '#f97316'],
     ['redemption',      'Customer redeems their store credit balance',     '#f59e0b'],
   ];
@@ -477,12 +477,12 @@ function TransactionLedgersAppendix() {
  
       {h('Payment Status Derivation')}
       <div style={{ ...box, padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ padding: '10px 18px 8px', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+        <div style={{ padding: '10px 18px 8px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
           <span style={label}>Payment::syncOrderPaymentStatus() — derived from ledger, never guessed</span>
         </div>
         {PAYMENT_STATUS.map((row, i) => (
           <div key={row.status} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: i < PAYMENT_STATUS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#e9d5ff', flex: 1 }}>{row.condition}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', flex: 1 }}>{row.condition}</span>
             <span style={{ fontWeight: 800, color: row.color, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>→ {row.status}</span>
           </div>
         ))}
@@ -528,9 +528,9 @@ function TransactionLedgersAppendix() {
  
 // ─── 5. Referral & Promo Code Flow ───────────────────────────────────────────
 function ReferralPromoAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
@@ -598,16 +598,16 @@ On cancellation:
  
 // ─── 6. Table Relationships & Data Flow ─────────────────────────────────────
 function TableRelationshipsAppendix() {
-  const box = { background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
-  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e9d5ff', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
-  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', marginBottom: 8, display: 'block' };
+  const box = { background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 };
+  const formulaBox = { background: 'rgba(0,0,0,0.35)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: 8, padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9, marginTop: 10, marginBottom: 4, whiteSpace: 'pre-wrap' };
+  const label = { fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', marginBottom: 8, display: 'block' };
   const h = (text) => <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>;
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
   const CHAINS = [
     {
       title: 'Standard Order Chain',
-      color: '#a855f7',
+      color: 'var(--color-primary-500)',
       chain: 'customers  →  orders  →  order_items',
       note: 'Core sales chain. One customer, one header row, N line item rows.',
     },
@@ -649,7 +649,7 @@ function TableRelationshipsAppendix() {
     },
     {
       title: 'Customer Statistics Chain',
-      color: '#8b5cf6',
+      color: 'var(--color-primary-400)',
       chain: 'orders (confirmed / paid)  →  recalculateStatistics()  →  customers.*',
       note: 'customers.total_orders, total_spent, avg_order_value, last_order_date, tier are all derived aggregates. Cancelled and failed orders are excluded.',
     },
@@ -667,7 +667,7 @@ function TableRelationshipsAppendix() {
               <span style={{ fontWeight: 800, color: chain.color, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{chain.title}</span>
             </div>
             <div style={{ padding: '10px 14px' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#e9d5ff', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{chain.chain}</div>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{chain.chain}</div>
               <p style={{ margin: 0, fontSize: '0.74rem', color: '#6b7280' }}>{chain.note}</p>
             </div>
           </div>
@@ -695,22 +695,22 @@ quotes / quote_items        ← pre-order planning layer (converted → orders)`
 
 function AlgorithmAppendix() {
   const box = {
-    background: 'rgba(168,85,247,0.07)',
-    border: '1px solid rgba(168,85,247,0.2)',
+    background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: 10, padding: '14px 18px', marginBottom: 16,
   };
   const formulaBox = {
     background: 'rgba(0,0,0,0.35)',
-    border: '1px solid rgba(168,85,247,0.25)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
     borderRadius: 8, padding: '12px 16px',
     fontFamily: 'monospace', fontSize: '0.78rem',
-    color: '#e9d5ff', lineHeight: 1.9,
+    color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', lineHeight: 1.9,
     marginTop: 10, marginBottom: 4,
   };
   const label = {
     fontSize: '0.6rem', fontWeight: 800,
     textTransform: 'uppercase', letterSpacing: '0.1em',
-    color: '#a855f7', marginBottom: 8, display: 'block',
+    color: 'var(--color-primary-500)', marginBottom: 8, display: 'block',
   };
   const h = (text) => (
     <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: '20px 0 8px' }}>{text}</p>
@@ -732,14 +732,14 @@ function AlgorithmAppendix() {
     { key: 'frequency',  label: 'Frequency',  weight: 20, color: '#3b82f6', formula: 'min(100, log(total_orders + 1) / log(50) × 100)',       source: 'customers.total_orders' },
     { key: 'monetary',   label: 'Monetary',   weight: 20, color: '#10b981', formula: 'PERCENT_RANK() OVER (ORDER BY total_spent) × 100',      source: 'customers.total_spent' },
     { key: 'loyalty',    label: 'Loyalty',    weight: 15, color: '#f59e0b', formula: 'min(100, loyalty_points / 100)',                        source: 'customers.loyalty_points' },
-    { key: 'engagement', label: 'Engagement', weight: 10, color: '#8b5cf6', formula: 'min(100, reviews×20 + bids×10 + quote_requests×15)',    source: 'product_reviews, auction_bids, quote_requests' },
+    { key: 'engagement', label: 'Engagement', weight: 10, color: 'var(--color-primary-400)', formula: 'min(100, reviews×20 + bids×10 + quote_requests×15)',    source: 'product_reviews, auction_bids, quote_requests' },
     { key: 'service',    label: 'Service',    weight:  5, color: '#06b6d4', formula: 'min(100, bookings×25 + service_order_items×15)',         source: 'bookings, order_items (type=service)' },
     { key: 'referral',   label: 'Referral',   weight:  5, color: '#ec4899', formula: 'min(100, completed_referrals × 20)',                    source: 'referral_code_usage (status=completed)' },
   ];
 
   const SEGMENTS = [
     { label: 'champion', icon: '🏆', color: '#f59e0b', threshold: 'score ≥ 68',        sees: 'Recognition message, loyalty points bar, tier progress' },
-    { label: 'loyal',    icon: '⭐', color: '#a855f7', threshold: 'score ≥ 48',        sees: 'Points balance, redemption progress, tier next step' },
+    { label: 'loyal',    icon: '⭐', color: 'var(--color-primary-500)', threshold: 'score ≥ 48',        sees: 'Points balance, redemption progress, tier next step' },
     { label: 'at_risk',  icon: '⚡', color: '#f97316', threshold: 'last order > 90d',  sees: '"It\'s been N days" nudge + Shop Now CTA' },
     { label: 'dormant',  icon: '🌙', color: '#6b7280', threshold: 'score < 25',        sees: 'Come back nudge + New Arrivals CTA' },
     { label: 'new',      icon: '✨', color: '#10b981', threshold: 'total_orders = 0',  sees: 'Welcome message, double points promo hint' },
@@ -770,7 +770,7 @@ function AlgorithmAppendix() {
       <div style={{ overflowX: 'auto', marginBottom: 16 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
+            <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
               {['Signal', 'Default Weight', 'Formula (raw 0–100)', 'DB Source'].map(h => (
                 <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.07em' }}>{h}</th>
               ))}
@@ -785,7 +785,7 @@ function AlgorithmAppendix() {
                 <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                   <span style={{ fontWeight: 800, color: sig.color }}>{sig.weight}</span>
                 </td>
-                <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#e9d5ff', fontSize: '0.72rem' }}>
+                <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', fontSize: '0.72rem' }}>
                   {sig.formula}
                 </td>
                 <td style={{ padding: '8px 10px', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.7rem' }}>
@@ -842,9 +842,9 @@ function AlgorithmAppendix() {
         {[
           ['Places an order',           'Recency ↑  Frequency ↑  Monetary ↑', '#10b981'],
           ['Earns loyalty points',       'Loyalty ↑',                          '#f59e0b'],
-          ['Writes a product review',    'Engagement ↑ (+20 raw)',             '#8b5cf6'],
-          ['Places an auction bid',      'Engagement ↑ (+10 raw)',             '#8b5cf6'],
-          ['Submits a quote request',    'Engagement ↑ (+15 raw)',             '#8b5cf6'],
+          ['Writes a product review',    'Engagement ↑ (+20 raw)',             'var(--color-primary-400)'],
+          ['Places an auction bid',      'Engagement ↑ (+10 raw)',             'var(--color-primary-400)'],
+          ['Submits a quote request',    'Engagement ↑ (+15 raw)',             'var(--color-primary-400)'],
           ['Books a service',            'Service ↑ (+25 raw)',                '#06b6d4'],
           ['Completes a referral',       'Referral ↑ (+20 raw per referral)',  '#ec4899'],
           ['Goes 90+ days without order','Recency ↓ → at_risk segment',       '#f97316'],
@@ -914,8 +914,8 @@ function RouteMapAppendix() {
   };
 
   const th = { 
-    padding: '10px', textAlign: 'left', borderBottom: '2px solid rgba(168,85,247,0.3)', 
-    color: '#a855f7', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
+    padding: '10px', textAlign: 'left', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', 
+    color: 'var(--color-primary-500)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
     letterSpacing: '0.05em'
   };
   const td = { 
@@ -936,7 +936,7 @@ function RouteMapAppendix() {
             borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none',
             transition: 'background 150ms',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.2)'; }}
         >
           <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c4b5fd', margin: 0 }}>{title}</h4>
@@ -955,7 +955,7 @@ function RouteMapAppendix() {
               <tbody>
                 {routes.map((r, i) => (
                   <tr key={i}>
-                    <td style={{ ...td, fontFamily: 'monospace', color: '#e9d5ff' }}>{r.path}</td>
+                    <td style={{ ...td, fontFamily: 'monospace', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))' }}>{r.path}</td>
                     <td style={td}>{r.comp}</td>
                     <td style={{ ...td, textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -963,7 +963,7 @@ function RouteMapAppendix() {
                           <Copy size={13} />
                         </button>
                         {!r.path.includes(':') && (
-                          <button onClick={() => navigate(r.path)} title="Navigate" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7', padding: 4, display: 'flex' }}>
+                          <button onClick={() => navigate(r.path)} title="Navigate" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)', padding: 4, display: 'flex' }}>
                             <ArrowRight size={13} />
                           </button>
                         )}
@@ -980,7 +980,7 @@ function RouteMapAppendix() {
   };
 
   const ROLE_STYLES = {
-    SUPER_ADMIN: { color: '#a855f7', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.25)' },
+    SUPER_ADMIN: { color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)' },
     ADMIN:       { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)'  },
     FINANCE:     { color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)'  },
     LOGISTICS:   { color: '#f97316', bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.25)'  },
@@ -1028,7 +1028,7 @@ function RouteMapAppendix() {
                 borderBottom: i < pages.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
               }}>
-                <code style={{ fontSize: '0.74rem', color: '#e9d5ff', fontFamily: 'monospace', flexShrink: 0, minWidth: 220 }}>
+                <code style={{ fontSize: '0.74rem', color: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))', fontFamily: 'monospace', flexShrink: 0, minWidth: 220 }}>
                   {page.path}
                 </code>
                 <span style={{ fontSize: '0.78rem', color: '#9ca3af', flex: 1 }}>{page.label}</span>
@@ -1038,7 +1038,7 @@ function RouteMapAppendix() {
                   </span>
                 )}
                 {page.exclusive && (
-                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', padding: '1px 7px', borderRadius: 99, flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '1px 7px', borderRadius: 99, flexShrink: 0 }}>
                     EXCLUSIVE
                   </span>
                 )}
@@ -1059,7 +1059,7 @@ function RouteMapAppendix() {
   return (
     <div>
       <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#9ca3af', marginBottom: 20 }}>
-        Technical overview of the system routing architecture. This map tracks the relationship between URL paths and their respective React components as defined in <code style={{color: '#a855f7'}}>App.jsx</code>.
+        Technical overview of the system routing architecture. This map tracks the relationship between URL paths and their respective React components as defined in <code style={{color: 'var(--color-primary-500)'}}>App.jsx</code>.
       </p>
 
       <RouteGroup title="1. Public Pages" routes={[
@@ -1350,17 +1350,17 @@ function RouteMapAppendix() {
       />
 
       <div style={{ 
-        padding: '14px 18px', borderRadius: 12, background: 'rgba(168,85,247,0.04)', 
-        border: '1px solid rgba(168,85,247,0.15)', marginTop: 10 
+        padding: '14px 18px', borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', 
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', marginTop: 10 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <AlertCircle size={15} style={{ color: '#a855f7' }} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Notes</span>
+          <AlertCircle size={15} style={{ color: 'var(--color-primary-500)' }} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Notes</span>
         </div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <li><strong>Profile Routing:</strong> The <code style={{color:'#e9d5ff'}}>/profile</code> path auto-switches between Admin and Customer views via <code style={{color:'#e9d5ff'}}>RoleBasedProfile</code>.</li>
-          <li><strong>Admin Access:</strong> All <code style={{color:'#e9d5ff'}}>/admin/*</code> routes are role-gated to staff (Admin, Manager, Finance, Logistics, Sales Rep).</li>
-          <li><strong>Ship View:</strong> <code style={{color:'#e9d5ff'}}>/admin/orders/:id/ship</code> uses <code style={{color:'#e9d5ff'}}>OrderDetail</code> with a specialised context mode.</li>
+          <li><strong>Profile Routing:</strong> The <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/profile</code> path auto-switches between Admin and Customer views via <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>RoleBasedProfile</code>.</li>
+          <li><strong>Admin Access:</strong> All <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/*</code> routes are role-gated to staff (Admin, Manager, Finance, Logistics, Sales Rep).</li>
+          <li><strong>Ship View:</strong> <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/orders/:id/ship</code> uses <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>OrderDetail</code> with a specialised context mode.</li>
           <li><strong>Hamper Checkout:</strong> Store credit is capped at KES 500 and financials are locked post-conversion.</li>
           <li><strong>Careers Portal:</strong> Applicant auth is separate from the main customer auth system.</li>
         </ul>
@@ -1377,7 +1377,7 @@ function NavigationLinksSection() {
       <p style={{
         fontSize: '0.6rem', fontWeight: 700,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: '#a855f7',
+        color: 'var(--color-primary-500)',
         padding: '0 2px 8px',
         margin: 0, userSelect: 'none',
       }}>
@@ -1399,7 +1399,7 @@ function NavigationLinksSection() {
             cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
             transition: 'background 150ms',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
           <div style={{
@@ -1443,13 +1443,13 @@ export default function Settings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 9,
-            background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+            background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+            boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           }}>
             <SettingsIcon size={16} color="white" strokeWidth={2} />
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#a855f7' }}>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-primary-500)' }}>
             Settings
           </h1>
         </div>
@@ -1563,7 +1563,7 @@ function AppendixSection() {
       <p style={{
         fontSize: '0.6rem', fontWeight: 700,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: '#a855f7',
+        color: 'var(--color-primary-500)',
         padding: '0 2px 10px',
         margin: 0, userSelect: 'none',
       }}>
@@ -1589,7 +1589,7 @@ function AppendixSection() {
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   transition: 'background 150ms',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <div style={{

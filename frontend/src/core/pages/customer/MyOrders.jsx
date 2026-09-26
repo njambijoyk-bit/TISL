@@ -107,13 +107,13 @@ export default function MyOrders() {
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 pt-8 pb-4"
-        style={{ borderBottom: '2px solid rgba(168,85,247,0.2)' }}>
+        style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
           {/* Title row */}
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: '#c084fc' }}>Account</p>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--color-primary-400)' }}>Account</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">My Orders</h1>
               <p className="mt-1.5 text-sm text-gray-400 dark:text-gray-500">
                 {allOrders.length} order{allOrders.length !== 1 ? 's' : ''} total
@@ -122,7 +122,7 @@ export default function MyOrders() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginTop: 4 }}>
               {/* View toggle */}
-              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 <button
                   type="button"
                   onClick={() => setOrdersView('card')}
@@ -130,8 +130,8 @@ export default function MyOrders() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 40, height: 40, cursor: 'pointer', border: 'none', transition: 'all 150ms',
-                    background: ordersView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                    color: ordersView === 'card' ? '#a855f7' : '#c084fc',
+                    background: ordersView === 'card' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                    color: ordersView === 'card' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                   }}
                 >
                   <LayoutGrid size={17} />
@@ -143,9 +143,9 @@ export default function MyOrders() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 40, height: 40, cursor: 'pointer', border: 'none',
-                    borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
-                    background: ordersView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                    color: ordersView === 'table' ? '#a855f7' : '#c084fc',
+                    borderLeft: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', transition: 'all 150ms',
+                    background: ordersView === 'table' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                    color: ordersView === 'table' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                   }}
                 >
                   <List size={17} />
@@ -163,7 +163,7 @@ export default function MyOrders() {
                     fontSize: '0.78rem', fontWeight: 700, transition: 'all 150ms',
                     ...(showCancelled
                       ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }
-                      : { background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }),
+                      : { background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-400)' }),
                   }}
                 >
                   {showCancelled
@@ -177,7 +177,7 @@ export default function MyOrders() {
           {/* ── Search bar (always visible) ───────────────────────────── */}
           <div className="mb-4">
             <div style={{ flex: 1, position: 'relative' }}>
-              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#c084fc', pointerEvents: 'none' }} />
+              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-400)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 value={searchQuery}
@@ -185,21 +185,21 @@ export default function MyOrders() {
                 placeholder="Search by order number, status, or product…"
                 style={{
                   width: '100%', padding: '10px 40px', borderRadius: 10,
-                  border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', fontSize: '0.85rem',
                   outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               {searchQuery && (
                 <button type="button" onClick={clearSearch}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#c084fc', display: 'flex' }}>
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-400)', display: 'flex' }}>
                   <X size={15} />
                 </button>
               )}
             </div>
             {searchQuery && (
-              <p style={{ marginTop: 6, fontSize: '0.75rem', color: '#c084fc' }}>
+              <p style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--color-primary-400)' }}>
                 {displayOrders.length} result{displayOrders.length !== 1 ? 's' : ''} for "{searchQuery}"
               </p>
             )}
@@ -210,7 +210,7 @@ export default function MyOrders() {
             {STATUS_TABS.map(({ id, label, color }) => {
               const active      = statusFilter === id;
               const count       = id === 'all' ? allOrders.length : allOrders.filter(o => o.status === id).length;
-              const activeColor = color || '#a855f7';
+              const activeColor = color || 'var(--color-primary-500)';
               return (
                 <button
                   key={id}
@@ -269,10 +269,10 @@ export default function MyOrders() {
         {/* Empty — no orders at all */}
         {allOrders.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'rgba(168,85,247,0.08)' }}>
-              <Package size={28} color="#c084fc" />
+              style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+              <Package size={28} color="var(--color-primary-400)" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Orders Yet</h3>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">You haven't placed any orders yet. Start shopping to see them here.</p>
@@ -282,10 +282,10 @@ export default function MyOrders() {
         /* Empty — search/filter mismatch */
         ) : displayOrders.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'rgba(168,85,247,0.08)' }}>
-              {searchQuery ? <Search size={28} color="#c084fc" /> : <Filter size={28} color="#c084fc" />}
+              style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+              {searchQuery ? <Search size={28} color="var(--color-primary-400)" /> : <Filter size={28} color="var(--color-primary-400)" />}
             </div>
             <h3 className="text-lg font-bold text-secondary mb-2">
               {searchQuery ? 'No Results Found' : 'No Orders Found'}
@@ -375,15 +375,15 @@ export default function MyOrders() {
       {cancelModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-            style={{ background: 'white', border: '1px solid rgba(168,85,247,0.2)' }}>
+            style={{ background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
 
             {/* Purple accent bar — matches detail page */}
-            <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+            <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
 
             <div className="p-6">
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#c084fc' }}>Action</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--color-primary-400)' }}>Action</p>
               <h3 className="text-lg font-bold mb-4" style={{ color: '#111827' }}>
-                Cancel <span style={{ color: '#a855f7' }}>{cancelModal.order_number}</span>
+                Cancel <span style={{ color: 'var(--color-primary-500)' }}>{cancelModal.order_number}</span>
               </h3>
 
               <div className="flex items-start gap-3 p-3 rounded-xl mb-4"
@@ -404,23 +404,23 @@ export default function MyOrders() {
                 rows={3}
                 style={{
                   width: '100%', padding: '9px 12px', borderRadius: 10,
-                  border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.82rem',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', fontSize: '0.82rem',
                   outline: 'none', color: '#111827', background: 'white',
                   fontWeight: 500, resize: 'vertical', fontFamily: 'inherit',
                   boxSizing: 'border-box',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; }}
-                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
 
-              <div className="flex gap-3 mt-5 pt-4" style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+              <div className="flex gap-3 mt-5 pt-4" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
                 <button
                   onClick={() => { setCancelModal(null); setCancelReason(''); }}
                   type="button"
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                  style={{ background: 'white', border: '1.5px solid rgba(168,85,247,0.2)', color: '#6b7280' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
+                  style={{ background: 'white', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#6b7280' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
                 >
                   Keep Order
                 </button>

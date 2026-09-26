@@ -2,7 +2,7 @@ const STATUS_CONFIG = {
   pending:          { label: 'Pending',         color: '#9ca3af', bg: 'rgba(156,163,175,0.1)', border: 'rgba(156,163,175,0.25)' },
   ready_for_review: { label: 'Ready for Review', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)'  },
   approved:         { label: 'Approved',         color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)'  },
-  completed:        { label: 'Completed',        color: '#a855f7', bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.25)'  },
+  completed:        { label: 'Completed',        color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   rejected:         { label: 'Rejected',         color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)'   },
 };
 

@@ -108,8 +108,8 @@ const RelationChip = ({ relation }) => {
     <span style={{
       display: 'flex', alignItems: 'center', gap: 5,
       fontSize: '0.7rem', fontWeight: 500, letterSpacing: '0.01em',
-      color: '#c084fc', background: 'rgba(168,85,247,0.08)',
-      border: '1px solid rgba(168,85,247,0.2)',
+      color: 'var(--color-primary-400)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
       padding: '2px 8px', borderRadius: 20,
     }}>
       <Link2 style={{ width: 10, height: 10, flexShrink: 0 }} />
@@ -136,7 +136,7 @@ const STATUS_TEXT = {
   draft:            '#9ca3af',
   sent:             '#60a5fa',
   approved:         '#34d399',
-  quoted:           '#c084fc',
+  quoted:           'var(--color-primary-400)',
   converted:        '#34d399',
   rejected:         '#f87171',
   confirmed:        '#60a5fa',
@@ -158,7 +158,7 @@ const RelationDetail = ({ relation }) => {
       {route ? (
         <a href={route} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
           style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', fontWeight: 600,
-            color: '#c084fc', textDecoration: 'none' }}>
+            color: 'var(--color-primary-400)', textDecoration: 'none' }}>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{primaryText}</span>
           <ExternalLink style={{ width: 11, height: 11, flexShrink: 0, opacity: 0.7 }} />
         </a>
@@ -225,8 +225,8 @@ const InlineSelect = ({ options, current, saving, onSelect, renderOption, render
             position: 'absolute', left: 0, top: '100%', marginTop: 6, zIndex: 40,
             minWidth: 148, borderRadius: 10, overflow: 'hidden',
             background: '#1e1b2e',
-            border: '1px solid rgba(168,85,247,0.3)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(168,85,247,0.08)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           }}>
           {options.map((opt) => (
             <button key={opt.value} type="button" onClick={() => handleSelect(opt.value)}
@@ -236,13 +236,13 @@ const InlineSelect = ({ options, current, saving, onSelect, renderOption, render
                 cursor: 'pointer', fontSize: '0.8rem', color: '#e2e8f0', textAlign: 'left',
                 transition: 'background 120ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; e.currentTarget.style.color = '#f1f5f9'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.color = '#f1f5f9'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e2e8f0'; }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {renderOption(opt.value, opt.label)}
               </span>
               {opt.value === current && (
-                <Check style={{ width: 12, height: 12, color: '#a855f7', flexShrink: 0 }} />
+                <Check style={{ width: 12, height: 12, color: 'var(--color-primary-500)', flexShrink: 0 }} />
               )}
             </button>
           ))}
@@ -299,15 +299,15 @@ const TaskCard = ({
 
   // Card border: glows on hover, stronger for active tasks
   const borderColor = hovered
-    ? 'rgba(168,85,247,0.5)'
+    ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'
     : isDone
-    ? 'rgba(168,85,247,0.1)'
-    : 'rgba(168,85,247,0.22)';
+    ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'
+    : 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)';
 
   const cardBg = isDone
-    ? 'rgba(168,85,247,0.02)'
+    ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'
     : hovered
-    ? 'rgba(168,85,247,0.04)'
+    ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'
     : 'transparent';
 
   return (
@@ -319,7 +319,7 @@ const TaskCard = ({
         border: `1px solid ${borderColor}`,
         background: cardBg,
         boxShadow: hovered && !isDone
-          ? '0 0 0 3px rgba(168,85,247,0.07), 0 4px 20px rgba(168,85,247,0.08)'
+          ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 7%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'
           : 'none',
         transition: 'border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
         overflow: 'hidden',
@@ -344,7 +344,7 @@ const TaskCard = ({
             style={{
               marginTop: 2, flexShrink: 0, background: 'none', border: 'none',
               cursor: readOnly || !onStatusChange ? 'default' : 'pointer',
-              color: isDone ? '#34d399' : hovered ? '#c084fc' : '#4b5563',
+              color: isDone ? '#34d399' : hovered ? 'var(--color-primary-400)' : '#4b5563',
               opacity: readOnly || !onStatusChange ? 0.4 : 1,
               transition: 'color 150ms',
               padding: 0,
@@ -465,7 +465,7 @@ const TaskCard = ({
           {!readOnly && onEdit && (
             <button type="button" onClick={() => onEdit(task)} title="Edit"
               style={actionBtnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-400)'}
               onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
               <Pencil style={{ width: 13, height: 13 }} />
             </button>
@@ -480,9 +480,9 @@ const TaskCard = ({
           )}
           <button type="button" onClick={() => setExpanded((v) => !v)}
             title={expanded ? 'Collapse' : 'Expand'}
-            style={{ ...actionBtnStyle, opacity: 1, color: expanded ? '#a855f7' : '#6b7280' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
-            onMouseLeave={e => e.currentTarget.style.color = expanded ? '#a855f7' : '#6b7280'}>
+            style={{ ...actionBtnStyle, opacity: 1, color: expanded ? 'var(--color-primary-500)' : '#6b7280' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
+            onMouseLeave={e => e.currentTarget.style.color = expanded ? 'var(--color-primary-500)' : '#6b7280'}>
             {expanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
           </button>
         </div>
@@ -492,20 +492,20 @@ const TaskCard = ({
       {expanded && (
         <div style={{
           padding: '16px 20px 18px',
-          borderTop: '1px solid rgba(168,85,247,0.12)',
-          background: 'rgba(168,85,247,0.03)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
         }}>
           {desc && (
             <div style={{ marginBottom: 16 }}>
               <p style={{
                 fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', color: '#7c3aed', marginBottom: 6,
+                letterSpacing: '0.1em', color: 'var(--color-primary-600)', marginBottom: 6,
               }}>Description</p>
               <p style={{
                 fontSize: '0.83rem', color: 'var(--color-text-primary)', lineHeight: 1.65,
                 padding: '10px 14px',
-                background: 'rgba(168,85,247,0.06)',
-                border: '1px solid rgba(168,85,247,0.12)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                 borderRadius: 9,
               }}>{desc}</p>
             </div>
@@ -613,9 +613,9 @@ const TaskCard = ({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: '50%',
-                    background: 'rgba(168,85,247,0.15)',
-                    border: '1px solid rgba(168,85,247,0.3)',
-                    color: '#c084fc', fontSize: '0.7rem', fontWeight: 700,
+                    background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                    color: 'var(--color-primary-400)', fontSize: '0.7rem', fontWeight: 700,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     {assigneeName.charAt(0)}
@@ -653,7 +653,7 @@ const DetailRow = ({ icon, label, children, valueColor }) => (
     <span style={{
       display: 'flex', alignItems: 'center', gap: 5,
       fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-      letterSpacing: '0.08em', color: '#7c3aed',
+      letterSpacing: '0.08em', color: 'var(--color-primary-600)',
     }}>
       {icon} {label}
     </span>

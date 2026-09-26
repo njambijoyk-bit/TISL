@@ -24,7 +24,7 @@ const card = {
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
   fontSize: '0.68rem', fontWeight: 700,
-  color: '#a855f7',
+  color: 'var(--color-primary-500)',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   borderBottom: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-secondary)',
@@ -78,7 +78,7 @@ function PrimaryBtn({ onClick, disabled, loading, children, style }) {
     <button onClick={onClick} disabled={disabled || loading} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-      border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+      border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
       color: 'white', cursor: disabled || loading ? 'not-allowed' : 'pointer',
       opacity: disabled || loading ? 0.6 : 1, fontFamily: 'inherit', ...style,
     }}>{children}</button>
@@ -89,7 +89,7 @@ function StatusBadge({ status }) {
   const map = {
     pending:     { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b' },
     confirmed:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
-    processing:  { bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
+    processing:  { bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  color: 'var(--color-primary-600)' },
     shipped:     { bg: 'rgba(59,130,246,0.1)',  color: '#3b82f6' },
     delivered:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
     cancelled:   { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444' },
@@ -105,7 +105,7 @@ function StatusBadge({ status }) {
 
 function SectionLabel({ children }) {
   return (
-    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
+    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
       {children}
     </p>
   );
@@ -180,7 +180,7 @@ export default function AdminHamperOrderDetail() {
   if (loading) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-        <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </AdminLayout>
@@ -204,8 +204,8 @@ export default function AdminHamperOrderDetail() {
         {/* Header */}
         <div style={{ ...card, padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShoppingBag size={30} style={{ color: '#a855f7' }} />
+            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShoppingBag size={30} style={{ color: 'var(--color-primary-500)' }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -223,7 +223,7 @@ export default function AdminHamperOrderDetail() {
                 </PrimaryBtn>
               )}
               {order.order_id && (
-                <Btn onClick={() => navigate(`/admin/orders/${order.order_id}`)} style={{ borderColor: '#a855f7', color: '#a855f7' }}>
+                <Btn onClick={() => navigate(`/admin/orders/${order.order_id}`)} style={{ borderColor: 'var(--color-primary-500)', color: 'var(--color-primary-500)' }}>
                   <ExternalLink size={14} /> View Standard Order
                 </Btn>
               )}
@@ -244,7 +244,7 @@ export default function AdminHamperOrderDetail() {
             {/* Hamper Items */}
             <div style={{ ...card, overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border-tertiary)', background: 'var(--color-background-secondary)' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Package size={16} /> BUNDLE CONTENTS
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default function AdminHamperOrderDetail() {
                             </div>
                           )}
                           <div>
-                            <p style={{ margin: 0, fontWeight: 700, color: '#a855f7' }}>{item.name}</p>
+                            <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary-500)' }}>{item.name}</p>
                             <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{item.sku}</p>
                           </div>
                         </div>
@@ -321,22 +321,22 @@ export default function AdminHamperOrderDetail() {
                   <span style={{ fontWeight: 600 }}>{fmt(order.shipping_cost)}</span>
                 </div>
                 {Number(order.store_credit_used) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: '#7c3aed' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--color-primary-600)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Wallet size={14} /> Store Credit</span>
                     <span style={{ fontWeight: 600 }}>−{fmt(order.store_credit_used)}</span>
                   </div>
                 )}
                 <div style={{ margin: '10px 0', height: 1, background: 'var(--color-border-tertiary)' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 900, color: '#a855f7' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-primary-500)' }}>
                   <span>Total</span>
                   <span>{fmt(order.total)}</span>
                 </div>
                 {order.loyalty_points_earned > 0 && (
-                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Star size={12} fill="#7c3aed" /> POINTS EARNED
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Star size={12} fill="var(--color-primary-600)" /> POINTS EARNED
                     </span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#7c3aed' }}>+{order.loyalty_points_earned}</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-primary-600)' }}>+{order.loyalty_points_earned}</span>
                   </div>
                 )}
               </div>
@@ -348,20 +348,20 @@ export default function AdminHamperOrderDetail() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <User size={18} style={{ color: '#a855f7' }} />
+                    <User size={18} style={{ color: 'var(--color-primary-500)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#a855f7' }}>{order.customer?.first_name} {order.customer?.last_name}</p>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary-500)' }}>{order.customer?.first_name} {order.customer?.last_name}</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer?.email}</p>
                   </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <MapPin size={18} style={{ color: '#a855f7' }} />
+                    <MapPin size={18} style={{ color: 'var(--color-primary-500)' }} />
                   </div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                    <p style={{ margin: 0, fontWeight: 700, color: '#a855f7', marginBottom: 2 }}>Shipping Address</p>
+                    <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 2 }}>Shipping Address</p>
                     {order.shipping_address?.line1}<br />
                     {order.shipping_address?.city}, {order.shipping_address?.country}
                   </div>
@@ -370,8 +370,8 @@ export default function AdminHamperOrderDetail() {
                 {/* Shipping Method Details */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--color-border-tertiary)', background: 'var(--color-background-secondary)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Method</p>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#a855f7' }}>{order.shipping_method_name || 'N/A'}</p>
+                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Method</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>{order.shipping_method_name || 'N/A'}</p>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Method ID</p>
@@ -390,7 +390,7 @@ export default function AdminHamperOrderDetail() {
                     <button
                       onClick={() => setShowShippingSnapshot(v => !v)}
                       style={{
-                        fontSize: '0.75rem', fontWeight: 700, color: '#a855f7',
+                        fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-500)',
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
                       }}
@@ -398,7 +398,7 @@ export default function AdminHamperOrderDetail() {
                       <span style={{
                         display: 'inline-block', width: 14, height: 14, lineHeight: '14px',
                         textAlign: 'center', borderRadius: 3,
-                        background: 'rgba(168,85,247,0.15)', fontSize: '0.7rem',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.7rem',
                       }}>
                         {showShippingSnapshot ? '−' : '+'}
                       </span>
@@ -420,10 +420,10 @@ export default function AdminHamperOrderDetail() {
                 )}
 
                 {order.promo_code && (
-                  <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed #a855f7', background: 'rgba(168,85,247,0.03)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Tag size={14} style={{ color: '#a855f7' }} />
+                  <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Tag size={14} style={{ color: 'var(--color-primary-500)' }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase' }}>Promo Code Used</p>
+                      <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase' }}>Promo Code Used</p>
                       <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>{order.promo_code}</p>
                     </div>
                   </div>
@@ -438,7 +438,7 @@ export default function AdminHamperOrderDetail() {
         {showStatusModal && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }}>
             <div style={{ ...card, width: '100%', maxWidth: 440, padding: 24 }} onClick={e => e.stopPropagation()}>
-              <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 800, color: '#a855f7' }}>Update Order Status</h3>
+              <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>Update Order Status</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -485,7 +485,7 @@ export default function AdminHamperOrderDetail() {
 
           {logsLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-              <div style={{ width: 24, height: 24, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 24, height: 24, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : !logs.length ? (
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '20px 0' }}>No activity recorded yet.</p>
@@ -512,7 +512,7 @@ export default function AdminHamperOrderDetail() {
                         <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{format(new Date(log.created_at), 'dd MMM yyyy, HH:mm')}</span>
                         {log.metadata && (
                           <details style={{ fontSize: '0.7rem' }}>
-                            <summary style={{ cursor: 'pointer', color: '#a855f7' }}>metadata</summary>
+                            <summary style={{ cursor: 'pointer', color: 'var(--color-primary-500)' }}>metadata</summary>
                             <pre style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: 6, background: 'var(--color-background-secondary)', fontSize: '0.68rem', overflowX: 'auto' }}>
                               {JSON.stringify(log.metadata, null, 2)}
                             </pre>

@@ -15,6 +15,7 @@ import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
+import { useTheme } from '../../theme';
 
 // ── tiny helpers ──────────────────────────────────────────────────────────────
 const useFlyout = () => {
@@ -33,11 +34,11 @@ function NavItem({ label, to, icon: Icon, flyout, active }) {
         <Link to={to} style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          color: active ? '#a855f7' : '#374151', textDecoration: 'none',
-          background: active ? 'rgba(168,85,247,0.08)' : 'transparent',
+          color: active ? 'var(--color-primary-500)' : '#374151', textDecoration: 'none',
+          background: active ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
           transition: 'all 150ms ease',
         }}
-          className="dark:text-gray-200 hover:text-purple-600"
+          className="dark:text-gray-200 hover:text-primary-600"
         >
           {Icon && <Icon size={14} />} {label}
         </Link>
@@ -45,8 +46,8 @@ function NavItem({ label, to, icon: Icon, flyout, active }) {
         <button type="button" style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          color: flyout?.open ? '#a855f7' : '#374151',
-          background: flyout?.open ? 'rgba(168,85,247,0.08)' : 'transparent',
+          color: flyout?.open ? 'var(--color-primary-500)' : '#374151',
+          background: flyout?.open ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
           border: 'none', cursor: 'pointer', transition: 'all 150ms ease',
         }}
           className="dark:text-gray-200"
@@ -101,7 +102,7 @@ function CategoryNode({ cat, onNavigate, depth = 0 }) {
             borderRadius: 8, transition: 'all 120ms ease',
             display: 'flex', alignItems: 'center', gap: 6,
           }}
-          className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:text-gray-200"
+          className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-200"
         >
           {depth > 0 && <span style={{ width: 12, height: 1, background: '#d1d5db', flexShrink: 0 }} />}
           {cat.name}
@@ -145,18 +146,18 @@ function FloatingShapes() {
 
 
         /* ── Light mode shapes ── */
-        .hs { background: rgba(168,85,247,0.03); border: 1.5px solid rgba(168,85,247,0.06); transform-origin: center; }
+        .hs { background: color-mix(in srgb, var(--color-primary-500) 3%, transparent); border: 1.5px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent); transform-origin: center; }
         .hs-soft { background: rgba(192,132,252,0.03); border: 1.5px solid rgba(192,132,252,0.06); transform-origin: center; }
-        .hs-dark { background: rgba(124,58,237,0.04); border: 1.5px solid rgba(124,58,237,0.08); transform-origin: center; }
-        .hs-dot  { background: rgba(168,85,247,0.08); transform-origin: center; }
+        .hs-dark { background: color-mix(in srgb, var(--color-primary-600) 4%, transparent); border: 1.5px solid color-mix(in srgb, var(--color-primary-600) 8%, transparent); transform-origin: center; }
+        .hs-dot  { background: color-mix(in srgb, var(--color-primary-500) 8%, transparent); transform-origin: center; }
         .hs-dot2 { background: rgba(192,132,252,0.06); transform-origin: center; }
 
 
         /* ── Dark mode overrides ── */
-        .dark .hs      { background: rgba(168,85,247,0.05); border-color: rgba(168,85,247,0.1); }
+        .dark .hs      { background: color-mix(in srgb, var(--color-primary-500) 5%, transparent); border-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent); }
         .dark .hs-soft { background: rgba(192,132,252,0.04);  border-color: rgba(192,132,252,0.1); }
-        .dark .hs-dark { background: rgba(124,58,237,0.05); border-color: rgba(124,58,237,0.12); }
-        .dark .hs-dot  { background: rgba(168,85,247,0.15); }
+        .dark .hs-dark { background: color-mix(in srgb, var(--color-primary-600) 5%, transparent); border-color: color-mix(in srgb, var(--color-primary-600) 12%, transparent); }
+        .dark .hs-dot  { background: color-mix(in srgb, var(--color-primary-500) 15%, transparent); }
         .dark .hs-dot2 { background: rgba(192,132,252,0.12); }
 
 
@@ -204,6 +205,9 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { activeLayoutMap = {} } = useTheme();
+  // navbar layout: 'fixed' (default floating) or 'sticky' (scrolls with page, stays at top when reached)
+  const navPosition = activeLayoutMap['navbar'] ?? 'fixed';
   const { items: cartItems } = useCartStore();
   const { items: wishlistItems } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
@@ -290,7 +294,7 @@ export default function Header() {
   // Then define your text colors
   const navColor = isDark ? '#aaabac' : '#374151';
   const hasCurrencyChoice = useCurrencyStore(st => st.currencies.length > 1);
-  const navActiveBg = isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.08)';
+  const navActiveBg = isDark ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -409,14 +413,15 @@ export default function Header() {
 
       <header
         style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          transform: visible ? 'translateY(0)' : 'translateY(-110%)',
+          position: navPosition === 'sticky' ? 'sticky' : 'fixed',
+          top: 0, left: 0, right: 0, zIndex: 100,
+          transform: navPosition === 'sticky' ? 'none' : (visible ? 'translateY(0)' : 'translateY(-110%)'),
           transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1), background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease',
           // ← background REMOVED from here
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: scrolled ? '1px solid rgba(168,85,247,0.22)' : '1px solid rgba(168,85,247,0.15)',
-          boxShadow: scrolled ? '0 4px 24px rgba(168,85,247,0.12), 0 1px 0 rgba(168,85,247,0.08)' : '0 2px 12px rgba(168,85,247,0.07)',
+          borderBottom: scrolled ? '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)' : '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+          boxShadow: scrolled ? '0 4px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 1px 0 color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 2px 12px color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
         }}
         className={`site-header header-animated-bg dark:border-gray-700 ${scrolled ? 'scrolled' : ''}`}
       >
@@ -434,7 +439,7 @@ export default function Header() {
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1 }} className="hidden-mobile">
 
-            <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? '#a855f7' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
+            <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? 'var(--color-primary-500)' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
               Home
             </Link>
 
@@ -443,8 +448,8 @@ export default function Header() {
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                color: isActive('/products') ? '#a855f7' : navColor,
-                background: isActive('/products') ? 'rgba(168,85,247,0.08)' : 'transparent',
+                color: isActive('/products') ? 'var(--color-primary-500)' : navColor,
+                background: isActive('/products') ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
                 border: 'none', cursor: 'pointer',
               }} className="dark:text-gray-200">
                 <Package size={14} /> Products
@@ -453,8 +458,8 @@ export default function Header() {
 
               <MegaPanel open={products.open} onEnter={products.enter} onLeave={products.leave} width={520}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Product Categories</span>
-                  <Link to="/products" onClick={() => products.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textDecoration: 'none' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Product Categories</span>
+                  <Link to="/products" onClick={() => products.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
                     All Products →
                   </Link>
                 </div>
@@ -478,7 +483,7 @@ export default function Header() {
                         type="button"
                         onClick={() => { navigate(`/products?brand=${brand.id}`); products.setOpen(false); }}
                         style={{ width: '100%', textAlign: 'left', padding: '5px 8px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-                        className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:text-gray-300"
+                        className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-300"
                       >
                         {brand.logo ? (
                           <img src={brand.logo} alt={brand.name} style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
@@ -494,7 +499,7 @@ export default function Header() {
                 <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 6 }}>
                   {[{ label: '🔥 Specials', to: '/specials' }, { label: '⭐ Featured', to: '/products?featured=true' }].map(l => (
                     <Link key={l.to} to={l.to} onClick={() => products.setOpen(false)} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', background: '#f9fafb', padding: '5px 10px', borderRadius: 20, textDecoration: 'none', transition: 'all 120ms' }}
-                      className="hover:bg-purple-100 hover:text-purple-700">
+                      className="hover:bg-primary-100 hover:text-primary-700">
                       {l.label}
                     </Link>
                   ))}
@@ -507,8 +512,8 @@ export default function Header() {
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
                 borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                color: isActive('/services') ? '#a855f7' : navColor,
-                background: isActive('/services') ? 'rgba(168,85,247,0.08)' : 'transparent',
+                color: isActive('/services') ? 'var(--color-primary-500)' : navColor,
+                background: isActive('/services') ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
                 border: 'none', cursor: 'pointer',
               }} className="dark:text-gray-200">
                 <Wrench size={14} /> Services
@@ -517,8 +522,8 @@ export default function Header() {
 
               <MegaPanel open={services.open} onEnter={services.enter} onLeave={services.leave} width={340}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Service Categories</span>
-                  <Link to="/services" onClick={() => services.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textDecoration: 'none' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Service Categories</span>
+                  <Link to="/services" onClick={() => services.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
                     All Services →
                   </Link>
                 </div>
@@ -534,21 +539,21 @@ export default function Header() {
                   ))}
                 </div>
                 <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6' }}>
-                  <Link to="/request-quote" onClick={() => services.setOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: '#a855f7', textDecoration: 'none', padding: '6px 8px', borderRadius: 8, background: 'rgba(168,85,247,0.06)' }}>
+                  <Link to="/request-quote" onClick={() => services.setOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none', padding: '6px 8px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
                     <FileText size={13} /> Request a Custom Quote
                   </Link>
                 </div>
               </MegaPanel>
             </div>
 
-            <Link to="/specials" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/specials') ? '#a855f7' : '#ef4444', textDecoration: 'none' }}>
+            <Link to="/specials" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/specials') ? 'var(--color-primary-500)' : '#ef4444', textDecoration: 'none' }}>
               🔥 Specials
             </Link>
 
             <Link to="/about" style={{ 
               padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
               textDecoration: 'none', transition: 'all 150ms',
-              color: isActive('/about') ? '#a855f7' : navColor,
+              color: isActive('/about') ? 'var(--color-primary-500)' : navColor,
               background: isActive('/about') ? navActiveBg : 'transparent',
             }}>
               About
@@ -556,7 +561,7 @@ export default function Header() {
             <Link to="/contact" style={{ 
               padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
               textDecoration: 'none', transition: 'all 150ms',
-              color: isActive('/contact') ? '#a855f7' : navColor,
+              color: isActive('/contact') ? 'var(--color-primary-500)' : navColor,
               background: isActive('/contact') ? navActiveBg : 'transparent',
             }}>
               Contact
@@ -588,7 +593,7 @@ export default function Header() {
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Quote List">
               <ClipboardList size={17} />
-              {quoteListCount > 0 && <Badge count={quoteListCount} color="#7c3aed" />}
+              {quoteListCount > 0 && <Badge count={quoteListCount} color="var(--color-primary-600)" />}
             </Link>
 
             {/* Cart */}
@@ -618,9 +623,9 @@ export default function Header() {
                     border: '1.5px solid #e5e7eb', background: 'white',
                     cursor: 'pointer', transition: 'all 150ms',
                   }}
-                  className="dark:bg-gray-800 dark:border-gray-600 hover:border-purple-400"
+                  className="dark:bg-gray-800 dark:border-gray-600 hover:border-primary-400"
                 >
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'white' }}>
                       {(user?.name || user?.email || 'U')[0].toUpperCase()}
                     </span>
@@ -647,7 +652,7 @@ export default function Header() {
                           <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }} className="dark:text-white">{user?.name}</p>
                           <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0' }}>{user?.email}</p>
                           {isAdmin && (
-                            <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))', padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                               {user?.role}
                             </span>
                           )}
@@ -660,10 +665,10 @@ export default function Header() {
                             flexShrink: 0, marginTop: 2,
                             width: 28, height: 28, borderRadius: 7,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: audio.muted ? 'rgba(168,85,247,0.08)' : 'rgba(0,0,0,0.04)',
-                            border: `1px solid ${audio.muted ? 'rgba(168,85,247,0.2)' : 'rgba(0,0,0,0.08)'}`,
+                            background: audio.muted ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'rgba(0,0,0,0.04)',
+                            border: `1px solid ${audio.muted ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'rgba(0,0,0,0.08)'}`,
                             cursor: 'pointer',
-                            color: audio.muted ? '#a855f7' : '#9ca3af',
+                            color: audio.muted ? 'var(--color-primary-500)' : '#9ca3af',
                             transition: 'all 150ms',
                           }}
                           className="dark:bg-gray-700 dark:border-gray-600"
@@ -680,7 +685,7 @@ export default function Header() {
                         .map(link => (
                         <Link key={link.to} to={link.to} onClick={() => setUserMenuOpen(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-                          className="dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700 hover:text-purple-700">
+                          className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
                           <link.icon size={15} style={{ color: '#9ca3af' }} />
                           {link.label}
                         </Link>
@@ -693,19 +698,19 @@ export default function Header() {
                         <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>
                         <Link to="/admin/profile" onClick={() => setUserMenuOpen(false)}
       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-      className="dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700 hover:text-purple-700">
-      <User size={14} style={{ color: '#a855f7' }} />
+      className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
+      <User size={14} style={{ color: 'var(--color-primary-500)' }} />
       My Admin Profile
     </Link>
     
                         {adminGroups.map(group => (
                           <div key={group.label}>
-                            <p style={{ fontSize: '0.6rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 2px' }}>{group.label}</p>
+                            <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 2px' }}>{group.label}</p>
                             {group.items.map(item => (
                               <Link key={item.to} to={item.to} onClick={() => setUserMenuOpen(false)}
                                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-                                className="dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700 hover:text-purple-700">
-                                <item.icon size={14} style={{ color: '#a855f7' }} />
+                                className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
+                                <item.icon size={14} style={{ color: 'var(--color-primary-500)' }} />
                                 {item.label}
                               </Link>
                             ))}
@@ -734,14 +739,14 @@ export default function Header() {
                   Sign In
                 </Link>
                 <Link to="/register"
-                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}
+                  style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}
                   className="hidden-mobile">
                   Register
                 </Link>
 
                 {/* Sign In icon - mobile only */}
                 <Link to="/login"
-                  style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', color: '#a855f7', textDecoration: 'none', border: '1.5px solid transparent', background: 'transparent' }}
+                  style={{ width: 36, height: 36, borderRadius: 9, display: 'none', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-500)', textDecoration: 'none', border: '1.5px solid transparent', background: 'transparent' }}
                   className="show-mobile">
                   <LogInIcon size={18} />
                 </Link>
@@ -777,7 +782,7 @@ export default function Header() {
                 { label: 'Manual', to: '/manual' },
               ].map(l => (
                 <Link key={l.to} to={l.to}
-                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, color: isActive(l.to) ? '#a855f7' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'rgba(168,85,247,0.08)' : 'transparent' }}
+                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, color: isActive(l.to) ? 'var(--color-primary-500)' : '#374151', textDecoration: 'none', background: isActive(l.to) ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent' }}
                   className="dark:text-gray-200">
                   {l.label}
                 </Link>
@@ -799,7 +804,7 @@ export default function Header() {
                     <Link key={l.to} to={l.to}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
                       className="dark:text-gray-300">
-                      <l.icon size={15} style={{ color: '#a855f7' }} /> {l.label}
+                      <l.icon size={15} style={{ color: 'var(--color-primary-500)' }} /> {l.label}
                     </Link>
                   ))}
                 </>
@@ -808,12 +813,12 @@ export default function Header() {
               {isAdmin && (
                 <>
                   <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>
                   {adminGroups.flatMap(g => g.items).map(item => (
                     <Link key={item.to} to={item.to}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.83rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
                       className="dark:text-gray-300">
-                      <item.icon size={14} style={{ color: '#a855f7' }} /> {item.label}
+                      <item.icon size={14} style={{ color: 'var(--color-primary-500)' }} /> {item.label}
                     </Link>
                   ))}
                 </>
@@ -827,7 +832,7 @@ export default function Header() {
               ) : (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <Link to="/login" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb' }}>Sign In</Link>
-                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)' }}>Register</Link>
+                  <Link to="/register" style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' }}>Register</Link>
                 </div>
               )}
             </div>
@@ -854,7 +859,7 @@ function Badge({ count }) {
     <span style={{
       position: 'absolute', top: 2, right: 2,
       minWidth: 16, height: 16, borderRadius: 8,
-      background: '#a855f7', color: 'white',
+      background: 'var(--color-primary-500)', color: 'white',
       fontSize: '0.6rem', fontWeight: 800,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '0 4px', lineHeight: 1,

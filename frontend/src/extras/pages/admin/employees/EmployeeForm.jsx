@@ -89,13 +89,13 @@ const EMPTY_FORM = {
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const baseInput = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -105,8 +105,8 @@ const errorInput = {
   borderColor: 'rgba(239,68,68,0.5)', background: 'rgba(239,68,68,0.02)',
 };
 
-const iFocus = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const iBlur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const iFocus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const iBlur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 const eFocus = e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.08)'; };
 const eBlur  = e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.boxShadow = 'none'; };
 
@@ -114,8 +114,8 @@ const eBlur  = e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
 function SectionCard({ title, icon: Icon, children }) {
   return (
     <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)' }}>
           <Icon size={14} />
         </div>
         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>{title}</span>
@@ -314,7 +314,7 @@ export default function EmployeeForm() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-      <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -328,14 +328,14 @@ export default function EmployeeForm() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button 
             onClick={() => navigate('/admin/employees')} 
-            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
           >
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
               {isEditing ? 'Edit Employee' : 'New Employee'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -346,18 +346,18 @@ export default function EmployeeForm() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button 
             onClick={() => navigate('/admin/employees')} 
-            style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
+            style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
           >
             Cancel
           </button>
           <button 
             onClick={handleSubmit} 
             disabled={saving} 
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1, transition: 'box-shadow 150ms' }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'; }}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', opacity: saving ? 0.7 : 1, transition: 'box-shadow 150ms' }}
+            onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Save size={14} />
             {saving ? 'Saving…' : isEditing ? 'Update Employee' : 'Create Employee'}
@@ -436,8 +436,8 @@ export default function EmployeeForm() {
               {form.manager_id && (() => {
                 const m = managers.find(m => String(m.id) === String(form.manager_id));
                 return m ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 7, background: 'rgba(168,85,247,0.07)', border: '1.5px solid rgba(168,85,247,0.25)' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 7, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
                       {m.name}{m.job_title ? ` · ${m.job_title}` : ''}
                     </span>
                     <button 
@@ -621,14 +621,14 @@ export default function EmployeeForm() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
         <button 
           onClick={() => navigate('/admin/employees')} 
-          style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Cancel
         </button>
         <button 
           onClick={handleSubmit} 
           disabled={saving} 
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: saving ? 0.7 : 1 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', opacity: saving ? 0.7 : 1 }}
         >
           <Save size={14} />
           {saving ? 'Saving…' : isEditing ? 'Update Employee' : 'Create Employee'}

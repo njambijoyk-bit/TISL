@@ -131,7 +131,7 @@ function HeroSlide({ section, pageType }) {
                     {section.subtitle}
                 </p>
                 )}
-                <h1 className="text-3xl lg:text-4xl font-bold text-white leading-[1.15]"style={{ color: '#c084fc' }}>
+                <h1 className="text-3xl lg:text-4xl font-bold text-white leading-[1.15]"style={{ color: 'var(--color-primary-400)' }}>
                 {section.title}
                 </h1>
             </div>
@@ -149,7 +149,7 @@ function HeroSlide({ section, pageType }) {
                     to={section.button_link}
                     className="inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors text-[14px] shadow-md"
                     style={{
-                        background: '#a855f7',
+                        background: 'var(--color-primary-500)',
                         border: '1px solid rgba(255,255,255,0.4)',
                         color: '#ffffff',
                     }}
@@ -323,7 +323,7 @@ export function FeaturesSection({ section }) {
                 alignItems: 'center',
                 gap: '16px',
                 padding: '16px 0',
-                borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
+                borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               }}
             >
               {/* Icon */}
@@ -342,13 +342,13 @@ export function FeaturesSection({ section }) {
                 {item.icon_url ? (
                   <img src={item.icon_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
                 ) : (
-                  <span style={{ fontSize: '25px', fontWeight: 'bold', color: '#a855f7' }}>✦</span>
+                  <span style={{ fontSize: '25px', fontWeight: 'bold', color: 'var(--color-primary-500)' }}>✦</span>
                 )}
               </div>
 
               {/* Text */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#a855f7', lineHeight: '1.3' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary-500)', lineHeight: '1.3' }}>
                   {item.title}
                 </span>
                 <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
@@ -567,8 +567,8 @@ export function CtaSection({ section }) {
                 className="inline-flex items-center gap-2 px-8 py-4 font-semibold rounded-xl transition-colors text-[15px] shadow-lg"
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                  border: '1px solid #a855f7',
-                  color: '#a855f7',
+                  border: '1px solid var(--color-primary-500)',
+                  color: 'var(--color-primary-500)',
                   backdropFilter: 'blur(4px)',
                 }}
               >
@@ -668,7 +668,7 @@ export function MissionVisionSection({ section }) {
   ];
 
   const TAPE_COLORS = [
-    'rgba(168,85,247,0.72)',  // purple
+    'color-mix(in srgb, var(--color-primary-500) 72%, transparent)',  // purple
     'rgba(255,200,80,0.75)',  // yellow
     'rgba(160,210,140,0.75)', // green
     'rgba(255,160,120,0.75)', // orange
@@ -890,7 +890,7 @@ export function MissionVisionSection({ section }) {
             const tapeColor   = TAPE_COLORS[sectionIdx % TAPE_COLORS.length];
             const cardRot     = ROTATIONS[sectionIdx % ROTATIONS.length];
             const imgRot      = IMG_ROTATIONS[sectionIdx % IMG_ROTATIONS.length];
-            const accentColor = ['#a855f7', '#16a34a', '#2563eb', '#d97706'][sectionIdx % 4];
+            const accentColor = ['var(--color-primary-500)', '#16a34a', '#2563eb', '#d97706'][sectionIdx % 4];
             const pinColor    = accentColor;
             const CornerIcon  = CORNER_ICONS[sectionIdx % CORNER_ICONS.length];
 
@@ -1048,7 +1048,7 @@ export function ValuesSection({ section }) {
                 alignItems: 'center',
                 gap: '16px',
                 padding: '16px 0',
-                borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
+                borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               }}
             >
               <div
@@ -1066,12 +1066,12 @@ export function ValuesSection({ section }) {
                 {item.icon_url || item.icon ? (
                   <img src={item.icon_url ?? item.icon} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
                 ) : (
-                  <span style={{ fontSize: '25px', fontWeight: 'bold', color: '#a855f7' }}>✦</span>
+                  <span style={{ fontSize: '25px', fontWeight: 'bold', color: 'var(--color-primary-500)' }}>✦</span>
                 )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#a855f7', lineHeight: '1.3' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary-500)', lineHeight: '1.3' }}>
                   {item.title}
                 </span>
                 <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
@@ -1095,9 +1095,9 @@ export function ValuesSection({ section }) {
 function TeamCard({ item }) {
   return (
     <div className="flex items-center gap-5 p-5 rounded-2xl bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5 transition-all duration-200"
-      style={{ border: '1.5px solid rgba(168,85,247,0.35)', boxShadow: '0 0 0 0px #c084fc' }}
+      style={{ border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', boxShadow: '0 0 0 0px var(--color-primary-400)' }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 16px 2px rgba(192,132,252,0.35)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 0px #c084fc'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 0px var(--color-primary-400)'}
     >
 
       {/* Text LEFT */}
@@ -1112,7 +1112,7 @@ function TeamCard({ item }) {
 
       {/* Circle photo RIGHT — fixed size, center-crop */}
       <div style={{ flexShrink: 0, width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', ring: 'none' }}
-        className="ring-2 ring-purple-400/50 bg-gray-100 dark:bg-gray-800">
+        className="ring-2 ring-primary-400/50 bg-gray-100 dark:bg-gray-800">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -1216,7 +1216,7 @@ export function ContactInfoSection({ section }) {
                   alignItems: 'center',
                   gap: '16px',
                   padding: '16px 0',
-                  borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                 }}
               >
                 <div
@@ -1231,11 +1231,11 @@ export function ContactInfoSection({ section }) {
                     backgroundColor: '#f3f4f6',
                   }}
                 >
-                  <IconComp size={20} style={{ color: '#a855f7' }} />
+                  <IconComp size={20} style={{ color: 'var(--color-primary-500)' }} />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#a855f7', lineHeight: '1.3' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary-500)', lineHeight: '1.3' }}>
                     {item.value}
                   </span>
                   <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
@@ -1286,8 +1286,8 @@ export function FaqSection({ section }) {
               key={i}
               className="rounded-lg border overflow-hidden"
               style={{
-                borderColor: open === i ? '#a855f7' : 'rgba(168,85,247,0.3)',
-                background: open === i ? 'rgba(168,85,247,0.15)' : 'rgba(192,132,252,0.07)',
+                borderColor: open === i ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                background: open === i ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'rgba(192,132,252,0.07)',
                 boxShadow: open === i ? '0 0 16px rgba(192,132,252,0.2)' : '0 0 8px rgba(192,132,252,0.1)',
                 transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
               }}
@@ -1300,7 +1300,7 @@ export function FaqSection({ section }) {
                 <span className="text-[14px] font-medium text-gray-800 dark:text-gray-200">
                   {item.question}
                 </span>
-                <span style={{ fontSize: '20px', color: '#a855f7', flexShrink: 0, lineHeight: 1 }}>
+                <span style={{ fontSize: '20px', color: 'var(--color-primary-500)', flexShrink: 0, lineHeight: 1 }}>
                   {open === i ? '−' : '+'}
                 </span>
               </button>

@@ -29,8 +29,8 @@ export default function BugReportPage() {
               <div className="bug-icon-box bug-icon-box-md bug-icon-box-blue">
                 <Bug size={18} />
               </div>
-              <h1 className="bug-text-2xl bug-font-bold bug-text" style ={{color: '#7c3aed'}}>Report a Bug</h1>
-              <button className="bug-btn" onClick={() => navigate('/track-bug')} style={{ marginLeft: '12px', bordercolor: '#7c3aed', color: '#7c3aed' }}>
+              <h1 className="bug-text-2xl bug-font-bold bug-text" style ={{color: 'var(--color-primary-600)'}}>Report a Bug</h1>
+              <button className="bug-btn" onClick={() => navigate('/track-bug')} style={{ marginLeft: '12px', bordercolor: 'var(--color-primary-600)', color: 'var(--color-primary-600)' }}>
                 Track a Bug
               </button>
             </div>

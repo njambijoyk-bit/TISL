@@ -14,7 +14,7 @@ export default function PageHeader({ title, subtitle, actions, children }) {
             fontSize: 28,
             fontWeight: 700,
             margin: 0,
-            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -26,7 +26,7 @@ export default function PageHeader({ title, subtitle, actions, children }) {
               marginTop: 6,
               marginBottom: 0,
               fontSize: 14,
-              color: 'rgba(168,85,247,0.7)',
+              color: 'color-mix(in srgb, var(--color-primary-500) 70%, transparent)',
             }}>
               {subtitle}
             </p>

@@ -47,7 +47,7 @@ const STATUS_COLOR = {
     delivered:        '#14b8a6',
     failed:           '#ef4444',
     returned:         '#f59e0b',
-    out_for_delivery: '#a855f7',
+    out_for_delivery: 'var(--color-primary-500)',
     pending:          '#64748b',
 };
 
@@ -75,15 +75,15 @@ function buildMapHtml({ pings, stops = [], deliveryCoords, stopNumber }) {
 
     // ── GPS trail (purple, driver path) ──────────────────────────────────────
     const trailJs = trail.length > 1
-        ? `L.polyline([${trail.map(p => `[${p.lat},${p.lng}]`).join(',')}],{color:'#a855f7',weight:3,opacity:0.65,dashArray:'6,4'}).addTo(map);`
+        ? `L.polyline([${trail.map(p => `[${p.lat},${p.lng}]`).join(',')}],{color:'var(--color-primary-500)',weight:3,opacity:0.65,dashArray:'6,4'}).addTo(map);`
         : '';
 
     // ── Driver truck marker ───────────────────────────────────────────────────
     const truckJs = current ? `
 L.marker([${current.lat},${current.lng}],{icon:L.divIcon({className:'',html:\`
 <div style="position:relative;display:flex;align-items:center;justify-content:center;">
-  <div style="position:absolute;width:44px;height:44px;background:rgba(168,85,247,0.25);border-radius:50%;animation:pulse 2s infinite;"></div>
-  <div style="width:34px;height:34px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(168,85,247,0.5);font-size:17px;z-index:10;">🚚</div>
+  <div style="position:absolute;width:44px;height:44px;background:color-mix(in srgb, var(--color-primary-500) 25%, transparent);border-radius:50%;animation:pulse 2s infinite;"></div>
+  <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600));border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px color-mix(in srgb, var(--color-primary-500) 50%, transparent);font-size:17px;z-index:10;">🚚</div>
 </div>\`,iconSize:[44,44],iconAnchor:[22,22]})})
 .addTo(map).bindPopup('<b>Driver</b><br/>Speed: ${current.speed ?? 0} km/h<br/>${current.time ? 'Last ping: ' + new Date('${current.time}').toLocaleTimeString() : ''}');`
     : '';
@@ -116,7 +116,7 @@ iconSize:[28,28],iconAnchor:[14,14]})})
     // Dashed line from driver to next pending stop
     const nextPending = stopsWithCoords.find(s => !['delivered','failed','returned'].includes(s.status));
     const driverToNextJs = (current && nextPending)
-        ? `L.polyline([[${current.lat},${current.lng}],[${nextPending.lat},${nextPending.lng}]],{color:'#a855f7',weight:2,opacity:0.5,dashArray:'5,5'}).addTo(map);`
+        ? `L.polyline([[${current.lat},${current.lng}],[${nextPending.lat},${nextPending.lng}]],{color:'var(--color-primary-500)',weight:2,opacity:0.5,dashArray:'5,5'}).addTo(map);`
         : '';
 
     // ── CUSTOMER MODE: single delivery address pin ────────────────────────────
@@ -181,15 +181,15 @@ function DeliveredCard({ shipment, tracking }) {
                 </p>
             </div>
             {notes && (
-                <div style={{ width: '100%', maxWidth: 400, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
-                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#a855f7', margin: '0 0 6px' }}>Delivery Notes</p>
+                <div style={{ width: '100%', maxWidth: 400, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-primary-500)', margin: '0 0 6px' }}>Delivery Notes</p>
                     <p style={{ fontSize: '0.82rem', color: '#e2e8f0', margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>"{notes}"</p>
                 </div>
             )}
             {proof && (
                 <div style={{ width: '100%', maxWidth: 400 }}>
                     <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#94a3b8', margin: '0 0 8px' }}>Proof of Delivery</p>
-                    <img src={proof} alt="Proof of delivery" style={{ width: '100%', borderRadius: 10, border: '1px solid rgba(168,85,247,0.2)', objectFit: 'cover', maxHeight: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={proof} alt="Proof of delivery" style={{ width: '100%', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', objectFit: 'cover', maxHeight: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                 </div>
             )}
         </div>
@@ -230,9 +230,9 @@ function AdminLegend({ stops }) {
     }, {});
 
     const items = [
-        { color: '#a855f7', label: 'Driver' },
+        { color: 'var(--color-primary-500)', label: 'Driver' },
         { color: '#6366f1', label: 'Route order' },
-        { color: '#a855f7', label: 'GPS trail', dashed: true },
+        { color: 'var(--color-primary-500)', label: 'GPS trail', dashed: true },
         ...Object.entries(counts).map(([status, count]) => ({
             color: STATUS_COLOR[status] ?? '#64748b',
             label: `${status.replace(/_/g, ' ')} (${count})`,
@@ -240,7 +240,7 @@ function AdminLegend({ stops }) {
     ];
 
     return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', padding: '7px 14px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', padding: '7px 14px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
             {items.map(({ color, label, dashed }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', color: '#94a3b8' }}>
                     {dashed
@@ -277,10 +277,10 @@ function LiveMapView({ state, pings, tracking, shipment }) {
     const mapHtml = pingKey && buildMapHtml({ pings, deliveryCoords, stopNumber: yourStop });
 
     const bannerCfg = {
-        approaching: { color: '#a855f7', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.25)', icon: <Navigation size={16} color="#a855f7" />, title: 'Driver is heading to you now', sub: 'Your stop is next on the route' },
+        approaching: { color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)', icon: <Navigation size={16} color="var(--color-primary-500)" />, title: 'Driver is heading to you now', sub: 'Your stop is next on the route' },
         next_up:     { color: '#14b8a6', bg: 'rgba(20,184,166,0.1)',  border: 'rgba(20,184,166,0.25)',  icon: <Target size={16} color="#14b8a6" />,    title: "You're next!", sub: 'Driver is 1 stop away from you' },
         en_route:    { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)',   icon: <Package size={16} color="#3b82f6" />,   title: stopsAway != null ? `${stopsAway} stop${stopsAway !== 1 ? 's' : ''} away` : 'Driver en route', sub: (yourStop != null && totalStops != null) ? `Your stop is #${yourStop} of ${totalStops} on this route` : 'Tracking your driver…' },
-    }[state] ?? { color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.2)', icon: <Navigation size={16} color="#a855f7" />, title: 'Driver en route', sub: '' };
+    }[state] ?? { color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', icon: <Navigation size={16} color="var(--color-primary-500)" />, title: 'Driver en route', sub: '' };
 
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -313,7 +313,7 @@ function LiveMapView({ state, pings, tracking, shipment }) {
             {current && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
                     {[
-                        { Icon: Zap,    label: 'Speed',      value: `${speedKmh} km/h`,                     color: '#a855f7' },
+                        { Icon: Zap,    label: 'Speed',      value: `${speedKmh} km/h`,                     color: 'var(--color-primary-500)' },
                         { Icon: MapPin, label: 'Stops Away', value: stopsAway != null ? stopsAway : '—',    color: '#14b8a6' },
                         { Icon: Clock,  label: 'Last Ping',  value: lastPing ? fmtTime(lastPing) : '—',     color: '#3b82f6' },
                     ].map(({ Icon, label, value, color }) => (
@@ -368,7 +368,7 @@ function AdminMapView({ pings, manifestItems }) {
             <AdminLegend stops={stops} />
 
             {/* progress strip */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '7px 14px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '7px 14px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#14b8a6', fontWeight: 600 }}>
                     <CheckCircle size={11} /> {delivered} delivered
                 </div>
@@ -381,7 +381,7 @@ function AdminMapView({ pings, manifestItems }) {
                     <Package size={11} /> {pending} pending
                 </div>
                 {current && (
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#a855f7', fontWeight: 600 }}>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: 'var(--color-primary-500)', fontWeight: 600 }}>
                         <Zap size={10} /> {speedKmh} km/h · Last ping {fmtTime(lastPing)}
                     </div>
                 )}
@@ -522,7 +522,7 @@ export default function DriverTrackingModal({
                     width: '100%', maxWidth: isAdminMode ? 860 : 680,
                     height: '88vh', maxHeight: isAdminMode ? 800 : 720,
                     borderRadius: 20,
-                    border: '1px solid rgba(168,85,247,0.2)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                     boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
                     display: 'flex', flexDirection: 'column',
                     overflow: 'hidden',
@@ -532,24 +532,24 @@ export default function DriverTrackingModal({
                 }}
             >
                 {/* header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid rgba(168,85,247,0.12)', flexShrink: 0, background: 'rgba(168,85,247,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Navigation size={17} color="#a855f7" />
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Navigation size={17} color="var(--color-primary-500)" />
                         </div>
                         <div>
                             <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#e2e8f0', margin: 0 }}>{title}</p>
                             <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '1px 0 0' }}>
                                 {driverName}
                                 {(isAdminMode || (customerState !== 'delivered' && customerState !== 'failed')) && (
-                                    <span style={{ color: '#a855f7', marginLeft: 8 }}>● Live</span>
+                                    <span style={{ color: 'var(--color-primary-500)', marginLeft: 8 }}>● Live</span>
                                 )}
                             </p>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {(isAdminMode || (customerState !== 'delivered' && customerState !== 'failed')) && (
-                            <button onClick={fetchAll} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.08)', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Refresh">
+                            <button onClick={fetchAll} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Refresh">
                                 <RefreshCw size={13} />
                             </button>
                         )}
@@ -562,7 +562,7 @@ export default function DriverTrackingModal({
                 {/* body */}
                 {loading ? (
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#64748b' }}>
-                        <Loader2 size={20} color="#a855f7" style={{ animation: 'spin 1s linear infinite' }} />
+                        <Loader2 size={20} color="var(--color-primary-500)" style={{ animation: 'spin 1s linear infinite' }} />
                         <span style={{ fontSize: '0.85rem' }}>Loading tracking…</span>
                     </div>
                 ) : isAdminMode ? (

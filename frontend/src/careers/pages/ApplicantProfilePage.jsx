@@ -101,7 +101,7 @@ export default function ApplicantProfilePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
                 <div style={{
                     width: 48, height: 48, borderRadius: '50%',
-                    background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                    background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0,
                 }}>
@@ -161,7 +161,7 @@ export default function ApplicantProfilePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: 7,
                             padding: '10px 22px', borderRadius: 8,
-                            background: saved ? '#10b981' : '#a855f7',
+                            background: saved ? '#10b981' : 'var(--color-primary-500)',
                             border: 'none', color: '#fff', fontSize: 14, fontWeight: 600,
                             cursor: saving ? 'default' : 'pointer',
                             opacity: saving ? 0.7 : 1,
@@ -288,7 +288,7 @@ function PwField({ label, value, onChange, show, onToggle, error, placeholder })
                         fontFamily: "'DM Sans', sans-serif",
                         transition: 'border-color 0.15s',
                     }}
-                    onFocus={e => e.target.style.borderColor = '#a855f7'}
+                    onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                     onBlur={e => e.target.style.borderColor = error ? '#5a1d1d' : '#222'}
                 />
                 <button

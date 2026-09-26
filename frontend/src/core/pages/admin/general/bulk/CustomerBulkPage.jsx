@@ -6,8 +6,8 @@ import GeneralLayout from '../../../../../_shared/components/layout/GeneralLayou
 import { customersAPI, customerTiersAPI } from '../../../../../_shared/api/index';
 
 const glowBorder = {
-  border: '1px solid var(--accent, #7c3aed)',
-  boxShadow: '0 0 8px rgba(124,58,237,0.35), inset 0 0 2px rgba(124,58,237,0.1)',
+  border: '1px solid var(--accent, var(--color-primary-600))',
+  boxShadow: '0 0 8px color-mix(in srgb, var(--color-primary-600) 35%, transparent), inset 0 0 2px color-mix(in srgb, var(--color-primary-600) 10%, transparent)',
 };
 
 export default function CustomerBulkPage() {
@@ -97,7 +97,7 @@ export default function CustomerBulkPage() {
           >
             <ArrowLeft size={14} /> Back to General Settings
           </button>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#7c3aed', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
             Bulk Customer Import
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -121,13 +121,13 @@ export default function CustomerBulkPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 8,
-              background: 'rgba(124,58,237,0.1)',
+              background: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <FileText size={18} color="var(--accent, #7c3aed)" />
+              <FileText size={18} color="var(--accent, var(--color-primary-600))" />
             </div>
             <div>
-              <strong style={{ fontSize: 14, color: '#7c3aed' }}>Need a template?</strong>
+              <strong style={{ fontSize: 14, color: 'var(--color-primary-600)' }}>Need a template?</strong>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
                 Download a pre-formatted CSV with all required columns
               </p>
@@ -138,9 +138,9 @@ export default function CustomerBulkPage() {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 16px', borderRadius: 8, border: 'none',
-              background: 'var(--accent, #7c3aed)', color: '#fff',
+              background: 'var(--accent, var(--color-primary-600))', color: '#fff',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+              boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
             }}
           >
             <Download size={14} /> Download Template
@@ -153,12 +153,12 @@ export default function CustomerBulkPage() {
           onDragOver={handleDrag} onDrop={handleDrop}
           onClick={() => document.getElementById('file-input')?.click()}
           style={{
-            border: `2px dashed ${dragActive ? 'var(--accent, #7c3aed)' : 'rgba(124,58,237,0.35)'}`,
+            border: `2px dashed ${dragActive ? 'var(--accent, var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-600) 35%, transparent)'}`,
             borderRadius: 12,
             padding: '40px 24px',
             textAlign: 'center',
-            background: dragActive ? 'rgba(124,58,237,0.05)' : 'var(--bg-primary)',
-            boxShadow: dragActive ? '0 0 16px rgba(124,58,237,0.2)' : '0 0 8px rgba(124,58,237,0.1)',
+            background: dragActive ? 'color-mix(in srgb, var(--color-primary-600) 5%, transparent)' : 'var(--bg-primary)',
+            boxShadow: dragActive ? '0 0 16px color-mix(in srgb, var(--color-primary-600) 20%, transparent)' : '0 0 8px color-mix(in srgb, var(--color-primary-600) 10%, transparent)',
             transition: 'all 0.15s',
             cursor: 'pointer',
             marginBottom: 20,
@@ -167,11 +167,11 @@ export default function CustomerBulkPage() {
           <input id="file-input" type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} style={{ display: 'none' }} />
           <div style={{
             width: 52, height: 52, borderRadius: 12,
-            background: 'rgba(124,58,237,0.1)',
+            background: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
           }}>
-            <Upload size={24} color="var(--accent, #7c3aed)" />
+            <Upload size={24} color="var(--accent, var(--color-primary-600))" />
           </div>
           <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px' }}>
             {file ? file.name : 'Drag & drop your file here'}
@@ -192,11 +192,11 @@ export default function CustomerBulkPage() {
               disabled={uploading}
               style={{
                 padding: '8px 20px', borderRadius: 8, border: 'none',
-                background: uploading ? '#9ca3af' : 'var(--accent, #7c3aed)',
+                background: uploading ? '#9ca3af' : 'var(--accent, var(--color-primary-600))',
                 color: '#fff', fontSize: 13, fontWeight: 600,
                 cursor: uploading ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: uploading ? 'none' : '0 2px 8px rgba(124,58,237,0.3)',
+                boxShadow: uploading ? 'none' : '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
               }}
             >
               <Rocket size={14} />
@@ -255,7 +255,7 @@ export default function CustomerBulkPage() {
           background: 'var(--bg-secondary)',
           ...glowBorder,
         }}>
-          <strong style={{ fontSize: 13, color: '#7c3aed' }}>Tips</strong>
+          <strong style={{ fontSize: 13, color: 'var(--color-primary-600)' }}>Tips</strong>
           <ul style={{ margin: '10px 0 0', paddingLeft: 20, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
             <li><strong>email</strong> is required and must be unique</li>
             <li>Use <code>customer_type</code>: slug from Settings → Customer Tiers → Types tab</li>

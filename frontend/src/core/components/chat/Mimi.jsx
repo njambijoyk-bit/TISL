@@ -5,7 +5,7 @@ import api from '../../../_shared/api/axios';
 import useAuthStore from '../../../_shared/store/authStore';
 
 
-const PURPLE_TEXT = '#a855f7';
+const PURPLE_TEXT = 'var(--color-primary-500)';
 
 const SUGGESTED = [
   'What products do you have?',
@@ -20,7 +20,7 @@ function TypingIndicator() {
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'white', borderRadius: '18px 18px 18px 4px', border: '1px solid #f3f4f6', width: 'fit-content' }}>
       {[0, 1, 2].map(i => (
         <div key={i} style={{
-          width: 7, height: 7, borderRadius: '50%', background: '#a855f7',
+          width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary-500)',
           animation: 'mimiBounce 1.2s ease-in-out infinite',
           animationDelay: `${i * 0.2}s`,
         }} />
@@ -111,7 +111,7 @@ function inlineFormat(text) {
       return (
         <code key={i} style={{
           fontFamily: 'monospace', fontSize: '0.8rem',
-          background: 'rgba(168,85,247,0.12)', color: '#7c3aed',
+          background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', color: 'var(--color-primary-600)',
           padding: '1px 5px', borderRadius: 4,
         }}>
           {part.slice(1, -1)}
@@ -129,7 +129,7 @@ function Message({ msg }) {
       {!isUser && (
         <div style={{
           width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, marginTop: 2,
-          background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '0.65rem', fontWeight: 900, color: 'white',
         }}>M</div>
@@ -137,10 +137,9 @@ function Message({ msg }) {
       <div style={{
         maxWidth: '75%', padding: '10px 14px',
         borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-        background: isUser ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'white',
-        
-        color: isUser ? 'white' : '#111827',
-        border: isUser ? 'none' : '1px solid #f3f4f6',
+        background: isUser ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'var(--bg-card)',
+        color: isUser ? 'white' : 'var(--text-primary)',
+        border: isUser ? 'none' : '1px solid var(--border-primary)',
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
         {isUser
@@ -329,8 +328,8 @@ export default function Mimi({ embedded = false }) {
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes mimiBubblePulse {
-          0%, 100% { box-shadow: 0 4px 20px rgba(168,85,247,0.4); }
-          50%       { box-shadow: 0 4px 32px rgba(168,85,247,0.7); }
+          0%, 100% { box-shadow: 0 4px 20px color-mix(in srgb, var(--color-primary-500) 40%, transparent); }
+          50%       { box-shadow: 0 4px 32px color-mix(in srgb, var(--color-primary-500) 70%, transparent); }
         }
       `}</style>
 
@@ -344,14 +343,14 @@ export default function Mimi({ embedded = false }) {
           animation: 'mimiPop 250ms cubic-bezier(0.34,1.56,0.64,1)',
           display: 'flex', flexDirection: 'column',
           borderRadius: 20, overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(168,85,247,0.15)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.18), 0 4px 16px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         }}>
           {/* Draggable header */}
           <div
             ref={dragHeaderRef}
             onMouseDown={onDragMouseDown}
             style={{
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
               cursor: 'grab', userSelect: 'none',
             }}
@@ -409,7 +408,7 @@ export default function Mimi({ embedded = false }) {
           position: 'fixed', bottom: pos.y, right: pos.x, zIndex: 10000,
           width: 48, height: 48, borderRadius: '50%', border: 'none',
           cursor: dragging.current ? 'grabbing' : 'grab',
-          background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
           animation: 'mimiBubblePulse 2.5s ease-in-out infinite',
           transition: 'transform 150ms ease',
@@ -447,7 +446,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
         {messages.map((msg, i) => <Message key={i} msg={msg} />)}
         {loading && (
           <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900, color: 'white' }}>M</div>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900, color: 'white' }}>M</div>
             <TypingIndicator />
           </div>
         )}
@@ -455,7 +454,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
         {/* Suggested questions */}
         {showSuggested && messages.length === 1 && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
               <Sparkles size={10} style={{ display: 'inline', marginRight: 4 }} />
               Suggested
             </p>
@@ -463,12 +462,12 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
               <button key={q} type="button" onClick={() => sendMessage(q)}
                 style={{
                   textAlign: 'left', padding: '8px 12px', borderRadius: 10,
-                  border: '1px solid rgba(168,85,247,0.2)', background: 'white',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white',
                   fontSize: '0.78rem', fontWeight: 500, color: '#374151',
                   cursor: 'pointer', transition: 'all 120ms ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#374151'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#374151'; }}
               >
                 {q}
               </button>
@@ -493,7 +492,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
             lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
             transition: 'border-color 150ms',
           }}
-          onFocus={e => e.target.style.borderColor = '#a855f7'}
+          onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
           onBlur={e =>  e.target.style.borderColor = '#e5e7eb'}
         />
         <button
@@ -502,7 +501,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
           disabled={!input.trim() || loading}
           style={{
             width: 38, height: 38, borderRadius: 10, border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-            background: input.trim() && !loading ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#e5e7eb',
+            background: input.trim() && !loading ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : '#e5e7eb',
             color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'all 150ms ease',
           }}
@@ -535,7 +534,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
             gap: 4,
             padding: 0,
           }}
-          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

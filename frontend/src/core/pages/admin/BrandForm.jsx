@@ -10,38 +10,38 @@ import { ChevronLeft, Save, Edit2, X, Trash2, AlertTriangle } from 'lucide-react
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const inputDisabled = {
   ...inputStyle,
-  background: 'rgba(168,85,247,0.02)',
-  borderColor: 'rgba(168,85,247,0.08)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
   color: '#9ca3af', cursor: 'not-allowed',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 const hintStyle = { fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 24,
 };
 
 const sectionHeader = {
-  fontSize: '0.875rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 16px', paddingBottom: 12,
-  borderBottom: '1px solid rgba(168,85,247,0.08)',
+  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
     <div onClick={() => !disabled && onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-      background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.1)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
       opacity: disabled ? 0.6 : 1, userSelect: 'none',
     }}>
       <div>
@@ -90,7 +90,7 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
-        background: checked ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.15)',
+        background: checked ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         transition: 'background 200ms',
       }}>
         <span style={{
@@ -250,12 +250,12 @@ export default function BrandForm() {
               fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
             }}
-              onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
             >
               <ChevronLeft size={14} /> Brands
             </button>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isView ? 'View brand' : isEdit ? 'Edit brand' : 'New brand'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -269,8 +269,8 @@ export default function BrandForm() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 16px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                boxShadow: '0 3px 10px rgba(168,85,247,0.3)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                boxShadow: '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               }}>
                 <Edit2 size={13} /> Edit
               </button>
@@ -280,11 +280,11 @@ export default function BrandForm() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
                   background: 'transparent', color: '#9ca3af',
-                  border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#a855f7'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';  e.currentTarget.style.color = '#9ca3af'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';  e.currentTarget.style.color = '#9ca3af'; }}
                 >
                   <X size={13} /> Cancel
                 </button>
@@ -292,12 +292,12 @@ export default function BrandForm() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 18px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                   border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                  boxShadow: '0 3px 10px rgba(168,85,247,0.3)', opacity: loading ? 0.7 : 1,
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                  boxShadow: '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: loading ? 0.7 : 1,
                   transition: 'box-shadow 150ms',
                 }}
-                  onMouseEnter={e => { if (!loading) e.currentTarget.style.boxShadow = '0 5px 18px rgba(168,85,247,0.45)'; }}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 3px 10px rgba(168,85,247,0.3)'}
+                  onMouseEnter={e => { if (!loading) e.currentTarget.style.boxShadow = '0 5px 18px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 3px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}
                 >
                   <Save size={13} /> {loading ? 'Saving…' : isEdit ? 'Update' : 'Create'}
                 </button>
@@ -367,7 +367,7 @@ export default function BrandForm() {
               <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
                 <img src={imagePreview} alt="Logo preview" style={{
                   width: 120, height: 120, objectFit: 'cover', borderRadius: 10,
-                  border: '1.5px solid rgba(168,85,247,0.2)', display: 'block',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block',
                 }} />
                 {!isView && (
                   <button type="button" onClick={handleRemoveImage} style={{
@@ -392,9 +392,9 @@ export default function BrandForm() {
                 </Field>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                  <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                   <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(168,85,247,0.12)' }} />
+                  <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                 </div>
 
                 <Field label="Logo URL">

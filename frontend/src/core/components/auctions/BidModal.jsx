@@ -75,7 +75,7 @@ export default function BidModal({ auction, onClose, onSuccess }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={`Min: ${money(minBid)}`}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 outline-none transition"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none transition"
               />
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function BidModal({ auction, onClose, onSuccess }) {
           <button 
             onClick={handleBid} 
             disabled={loading}
-            className="flex-1 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
+            className="flex-1 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition"
           >
             {loading ? 'Placing...' : 'Place Bid'}
           </button>

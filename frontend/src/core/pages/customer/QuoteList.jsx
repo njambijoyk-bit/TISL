@@ -6,10 +6,10 @@ import Footer from '../../../_shared/components/layout/Footer';
 import useQuoteListStore from '../../../_shared/store/quoteListStore';
 import toast from 'react-hot-toast';
 
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 export default function QuoteList() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function QuoteList() {
               background: `linear-gradient(135deg,${purple},${purpleDk})`,
               color: 'white', border: 'none', cursor: 'pointer',
               fontSize: '0.9rem', fontWeight: 700,
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
               display: 'inline-flex', alignItems: 'center', gap: 8,
             }}
           >
@@ -125,7 +125,7 @@ export default function QuoteList() {
         <div style={{
           background: 'white', borderRadius: 16, padding: 24,
           border: `1px solid ${purpleBd}`,
-          boxShadow: '0 4px 24px rgba(168,85,247,0.08)',
+          boxShadow: '0 4px 24px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           position: 'sticky', top: 80,
         }} className="dark:bg-gray-800">
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#111827', marginBottom: 20 }} className="dark:text-white">
@@ -156,7 +156,7 @@ export default function QuoteList() {
               background: `linear-gradient(135deg,${purple},${purpleDk})`,
               color: 'white', border: 'none', cursor: 'pointer',
               fontSize: '0.9rem', fontWeight: 800,
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'opacity 150ms',
             }}

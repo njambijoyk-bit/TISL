@@ -65,7 +65,7 @@ function DisagreeModal({ policy, onClose, onConfirm, loading }) {
               border: '1.5px solid #e5e7eb', outline: 'none', resize: 'vertical',
               fontFamily: 'inherit', color: '#111827', boxSizing: 'border-box',
             }}
-            onFocus={e  => { e.currentTarget.style.borderColor = '#a855f7'; }}
+            onFocus={e  => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; }}
             onBlur={e   => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
           />
         </div>
@@ -165,7 +165,7 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
           <div style={{
             padding: '24px 28px 20px',
             borderBottom: '1px solid #f3f4f6',
-            background: 'linear-gradient(135deg,rgba(168,85,247,0.03),rgba(124,58,237,0.02))',
+            background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 3%, transparent),color-mix(in srgb, var(--color-primary-600) 2%, transparent))',
             flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -183,7 +183,7 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
                   {policy.title}
                 </h2>
                 <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '6px 0 0' }}>
-                  Version <strong style={{ color: '#7c3aed' }}>v{policy.major_version}.{policy.minor_version}</strong>
+                  Version <strong style={{ color: 'var(--color-primary-600)' }}>v{policy.major_version}.{policy.minor_version}</strong>
                 </p>
               </div>
               <button onClick={onClose} style={{
@@ -316,7 +316,7 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
   // Render policy links: "Terms of Service and Privacy Policy"
   const renderLinks = () => {
     if (loadingKeys || !policies.length) {
-      return <span style={{ color: '#a855f7' }}>Terms of Service and Privacy Policy</span>;
+      return <span style={{ color: 'var(--color-primary-500)' }}>Terms of Service and Privacy Policy</span>;
     }
     return policies.map((p, i) => (
       <span key={p.key}>
@@ -324,7 +324,7 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
         <a
           href="#"
           onClick={e => handleLinkClick(e, p)}
-          style={{ color: '#a855f7', textDecoration: 'none', fontWeight: 600 }}
+          style={{ color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600 }}
           onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
           onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
         >
@@ -343,7 +343,7 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
           checked={checked}
           onChange={handleCheck}
           disabled={disabled || loadingKeys}
-          style={{ marginTop: 3, accentColor: '#a855f7', cursor: disabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+          style={{ marginTop: 3, accentColor: 'var(--color-primary-500)', cursor: disabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}
         />
         <label
           htmlFor="policy-consent-checkbox"

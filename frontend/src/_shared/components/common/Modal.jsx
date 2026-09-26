@@ -53,8 +53,8 @@ const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
             position: 'relative', width: '100%',
             maxWidth: sizeMap[size] ?? sizeMap.md,
             background: 'white', borderRadius: 14,
-            border: '1px solid rgba(168,85,247,0.15)',
-            boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            boxShadow: '0 8px 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
 
@@ -62,7 +62,7 @@ const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 20px',
-            borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+            borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
             <h3 style={{
               fontSize: '0.95rem', fontWeight: 700,
@@ -82,8 +82,8 @@ const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
                 transition: 'all 150ms',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
-                e.currentTarget.style.color = '#7c3aed';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+                e.currentTarget.style.color = 'var(--color-primary-600)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none';

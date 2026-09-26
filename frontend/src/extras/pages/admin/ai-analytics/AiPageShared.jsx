@@ -8,7 +8,7 @@ export const C = {
     bgInput:  'var(--color-background-secondary)',
     blue:     '#3b82f6',
     cyan:     '#06b6d4',
-    purple:   '#a855f7',
+    purple:   'var(--color-primary-500)',
     green:    '#10b981',
     red:      '#ef4444',
     amber:    '#f59e0b',
@@ -229,8 +229,8 @@ export function NeuralPageShell({ audio, ambientOn, setAmbientOn, children }) {
                     to   { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes flashBorder {
-                    0%   { box-shadow: 0 0 0 0 rgba(168,85,247,0.4); }
-                    50%  { box-shadow: 0 0 0 4px rgba(168,85,247,0.15); }
+                    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary-500) 40%, transparent); }
+                    50%  { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary-500) 15%, transparent); }
                     100% { box-shadow: none; }
                 }
             `}</style>

@@ -17,7 +17,7 @@ const STATUS_BADGE = {
   draft:           { bg: 'rgba(107,114,128,0.12)', color: '#4b5563' },
   sent:            { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
   approved:        { bg: 'rgba(34,197,94,0.12)',   color: '#15803d' },
-  quoted:          { bg: 'rgba(168,85,247,0.12)',  color: '#7c3aed' },
+  quoted:          { bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  color: 'var(--color-primary-600)' },
   converted:       { bg: 'rgba(16,185,129,0.12)',  color: '#065f46' },
   rejected:        { bg: 'rgba(239,68,68,0.12)',   color: '#b91c1c' },
   confirmed:       { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
@@ -35,19 +35,19 @@ const STATUS_BADGE = {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
         <span style={{ color: value ? '#111827' : '#9ca3af', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value ? renderSelected(value) : placeholder}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#a855f7', flexShrink: 0, marginLeft: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-primary-500)', flexShrink: 0, marginLeft: 8 }}>
           {loading && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
           {open
             ? <ChevronUp  style={{ width: 14, height: 14 }} />
@@ -157,15 +157,15 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
         <div style={{
           position: 'absolute', zIndex: 30, top: 'calc(100% + 4px)', left: 0, right: 0,
           background: 'white',
-          border: '1.5px solid rgba(168,85,247,0.22)',
+          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
           borderRadius: 10,
-          boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+          boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           overflow: 'hidden',
         }}>
           {/* Search */}
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
             <div style={{ position: 'relative' }}>
-              <Search style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 12, height: 12, color: '#a855f7', pointerEvents: 'none' }} />
+              <Search style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 12, height: 12, color: 'var(--color-primary-500)', pointerEvents: 'none' }} />
               <input
                 autoFocus
                 type="text"
@@ -190,11 +190,11 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
               style={{
                 width: '100%', padding: '7px 12px', textAlign: 'left',
                 fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic',
-                background: 'none', border: 'none', borderBottom: '1px solid rgba(168,85,247,0.08)',
+                background: 'none', border: 'none', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                 cursor: 'pointer',
                 transition: 'background 120ms',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
               — None —
@@ -214,11 +214,11 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
                   {group.label !== null && (
                     <div style={{
                       padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'rgba(168,85,247,0.05)',
-                      borderTop: gi > 0 ? '1px solid rgba(168,85,247,0.1)' : 'none',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                      borderTop: gi > 0 ? '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'none',
                       position: 'sticky', top: 0,
                     }}>
-                      <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a855f7' }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-500)' }}>
                         {group.label}
                       </span>
                       <span style={{ fontSize: '0.65rem', color: '#c4b5fd' }}>({group.items.length})</span>
@@ -235,10 +235,10 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
                         type="button"
                         onClick={() => { onChange(item); setOpen(false); setSearch(''); }}
                         style={{
-                          width: '100%', textAlign: 'left', background: value?.id === item.id ? 'rgba(168,85,247,0.07)' : 'none',
+                          width: '100%', textAlign: 'left', background: value?.id === item.id ? 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none',
                           border: 'none', cursor: 'pointer', transition: 'background 120ms',
                         }}
-                        onMouseEnter={e => { if (value?.id !== item.id) e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; }}
+                        onMouseEnter={e => { if (value?.id !== item.id) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; }}
                         onMouseLeave={e => { if (value?.id !== item.id) e.currentTarget.style.background = 'none'; }}
                       >
                         {renderItem(item)}
@@ -353,19 +353,19 @@ const CreateTaskModal = ({ project, onClose }) => {
         display: 'flex', flexDirection: 'column',
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
-          <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+          <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
             Create Task
           </p>
           <button onClick={onClose} style={{
@@ -373,7 +373,7 @@ const CreateTaskModal = ({ project, onClose }) => {
             color: '#6b7280', display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
             <X style={{ width: 16, height: 16 }} />
           </button>
@@ -454,7 +454,7 @@ const CreateTaskModal = ({ project, onClose }) => {
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
                     width: 20, height: 20, borderRadius: '50%',
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                     color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
                   }}>
@@ -467,7 +467,7 @@ const CreateTaskModal = ({ project, onClose }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
                   <span style={{
                     width: 26, height: 26, borderRadius: '50%',
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                     color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.65rem', fontWeight: 700, flexShrink: 0,
                   }}>
@@ -543,13 +543,13 @@ const CreateTaskModal = ({ project, onClose }) => {
               <div style={{
                 marginTop: 8, display: 'flex', alignItems: 'center', gap: 8,
                 padding: '7px 12px', borderRadius: 8,
-                background: 'rgba(168,85,247,0.06)',
-                border: '1px solid rgba(168,85,247,0.2)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
               }}>
-                <span style={{ fontSize: '0.68rem', color: '#7c3aed', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-primary-600)', fontWeight: 700 }}>
                   {TYPE_LABEL[relatedType]}:
                 </span>
-                <span style={{ fontSize: '0.72rem', color: '#a855f7', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-primary-500)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                   {relatedDoc.label}
                 </span>
                 <button type="button" onClick={() => setRelatedDoc(null)} style={{
@@ -570,29 +570,29 @@ const CreateTaskModal = ({ project, onClose }) => {
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: 8,
           padding: '12px 20px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <button type="button" onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
             background: 'transparent', color: '#9ca3af',
-            border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer',
             transition: 'border-color 150ms, color 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
             Cancel
           </button>
           <button type="button" onClick={handleSubmit} disabled={isBusy} style={{
             padding: '6px 18px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
             border: 'none', cursor: isBusy ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: isBusy ? 0.6 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
             transition: 'box-shadow 150ms, opacity 150ms',
           }}
-            onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+            onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
             {isBusy && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
             {isBusy ? 'Creating…' : 'Create Task'}
           </button>

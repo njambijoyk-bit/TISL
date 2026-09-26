@@ -29,11 +29,11 @@ function SectionTitle({ eyebrow, title, cta, ctaPath }) {
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32, gap: 16 }}>
       <div>
         {eyebrow && (
-          <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#c084fc', margin: '0 0 6px' }}>
+          <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-primary-400)', margin: '0 0 6px' }}>
             {eyebrow}
           </p>
         )}
-        <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, letterSpacing: '-0.02em', color: '#a855f7', margin: 0, lineHeight: 1.2 }}>
+        <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-primary-500)', margin: 0, lineHeight: 1.2 }}>
           {title}
         </h2>
       </div>
@@ -43,21 +43,21 @@ function SectionTitle({ eyebrow, title, cta, ctaPath }) {
           style={{
             flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '9px 20px', borderRadius: 99,
-            border: '1.5px solid rgba(168,85,247,0.4)',
-            boxShadow: '0 0 12px rgba(168,85,247,0.15)',
-            background: 'transparent', color: '#a855f7',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
+            boxShadow: '0 0 12px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            background: 'transparent', color: 'var(--color-primary-500)',
             fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
             transition: 'all 150ms ease', whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = '#a855f7';
+            e.currentTarget.style.background = 'var(--color-primary-500)';
             e.currentTarget.style.color = 'white';
-            e.currentTarget.style.boxShadow = '0 0 22px rgba(168,85,247,0.4)';
+            e.currentTarget.style.boxShadow = '0 0 22px color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#a855f7';
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(168,85,247,0.15)';
+            e.currentTarget.style.color = 'var(--color-primary-500)';
+            e.currentTarget.style.boxShadow = '0 0 12px color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
           }}
         >
           {cta} <ChevronRight size={13} />
@@ -70,8 +70,8 @@ function SectionTitle({ eyebrow, title, cta, ctaPath }) {
 // ── Skeletons — pulsating glowy purple, no hardcoded bg ───────────────────────
 const PULSE_CSS = `
   @keyframes skel-pulse {
-    0%, 100% { opacity: 1;    box-shadow: 0 0 10px rgba(168,85,247,0.10); }
-    50%       { opacity: 0.4; box-shadow: 0 0 26px rgba(168,85,247,0.30); }
+    0%, 100% { opacity: 1;    box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary-500) 10%, transparent); }
+    50%       { opacity: 0.4; box-shadow: 0 0 26px color-mix(in srgb, var(--color-primary-500) 30%, transparent); }
   }
 `;
 const ANIM_CSS = `
@@ -85,8 +85,8 @@ function Skeleton({ h = 60, r = 12, w = '100%', delay = 0, style = {} }) {
   return (
     <div style={{
       height: h, borderRadius: r, width: w,
-      background: 'rgba(168,85,247,0.07)',
-      border: '1px solid rgba(168,85,247,0.2)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
       animation: `skel-pulse 1.8s ease-in-out ${delay}ms infinite`,
       ...style,
     }} />
@@ -101,15 +101,15 @@ function PageSkeleton() {
       {/* Hero — full bleed with TISL watermark */}
       <div style={{
         height: 460,
-        background: 'rgba(168,85,247,0.05)',
-        borderBottom: '1px solid rgba(168,85,247,0.22)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
         animation: 'skel-pulse 1.8s ease-in-out infinite',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <span style={{
           fontSize: 'clamp(5rem, 18vw, 11rem)',
           fontWeight: 900,
-          color: 'rgba(168,85,247,0.08)',
+          color: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           letterSpacing: '-0.04em',
           userSelect: 'none',
           lineHeight: 1,
@@ -247,7 +247,7 @@ export default function Home() {
       {/* ── Shop by Category ── */}
       {categories.length > 0 && (() => {
         const COLORS = [
-  { color: '#7c3aed', glow: 'rgba(124,58,237,0.25)' }, // deep violet
+  { color: 'var(--color-primary-600)', glow: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' }, // deep violet
   { color: '#0891b2', glow: 'rgba(8,145,178,0.22)'  }, // deep cyan
   { color: '#c026d3', glow: 'rgba(192,38,211,0.22)' }, // deep fuchsia
   { color: '#059669', glow: 'rgba(5,150,105,0.22)'  }, // deep emerald
@@ -282,7 +282,7 @@ export default function Home() {
                   style={{
                     width: di === catPage ? 20 : 6,
                     height: 6, borderRadius: 99, border: 'none', padding: 0,
-                    background: di === catPage ? '#a855f7' : 'rgba(168,85,247,0.25)',
+                    background: di === catPage ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                     cursor: 'pointer',
                     transition: 'all 400ms ease',
                   }}
@@ -357,9 +357,9 @@ export default function Home() {
       {brands.length > 0 && (
         <section style={{
           padding: '40px 0', overflow: 'hidden',
-          borderTop: '1px solid rgba(168,85,247,0.18)',
-          borderBottom: '1px solid rgba(168,85,247,0.18)',
-          boxShadow: '0 0 40px rgba(168,85,247,0.06)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+          borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+          boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
         }}>
           <style>{`
             @keyframes marquee-scroll {
@@ -373,7 +373,7 @@ export default function Home() {
             }
             .brands-track:hover { animation-play-state: paused; }
           `}</style>
-          <p style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#c084fc', marginBottom: 20 }}>
+          <p style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-primary-400)', marginBottom: 20 }}>
             Brands
           </p>
           <div style={{ overflow: 'hidden' }}>
@@ -386,18 +386,18 @@ export default function Home() {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 8,
                       padding: '8px 18px', background: 'transparent',
-                      border: '1px solid rgba(168,85,247,0.2)',
-                      boxShadow: '0 0 8px rgba(168,85,247,0.07)',
+                      border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                      boxShadow: '0 0 8px color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
                       borderRadius: 10, cursor: 'pointer', flexShrink: 0,
-                      transition: 'all 150ms ease',color: '#c084fc',
+                      transition: 'all 150ms ease',color: 'var(--color-primary-400)',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = '#a855f7';
-                      e.currentTarget.style.boxShadow = '0 0 20px rgba(168,85,247,0.28)';
+                      e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+                      e.currentTarget.style.boxShadow = '0 0 20px color-mix(in srgb, var(--color-primary-500) 28%, transparent)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';
-                      e.currentTarget.style.boxShadow = '0 0 8px rgba(168,85,247,0.07)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
+                      e.currentTarget.style.boxShadow = '0 0 8px color-mix(in srgb, var(--color-primary-500) 7%, transparent)';
                     }}
                   >
                     {brand.logo_url ? (

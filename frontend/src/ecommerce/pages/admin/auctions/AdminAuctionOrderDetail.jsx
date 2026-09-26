@@ -21,13 +21,13 @@ const inputStyle = {
 
 const labelStyle = {
   display: 'block', fontSize: '0.72rem', fontWeight: 700,
-  color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+  color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
 };
 
 const statusConfig = {
   pending:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
   confirmed:  { color: '#2563eb', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6' },
-  processing: { color: '#7c3aed', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', dot: '#8b5cf6' },
+  processing: { color: 'var(--color-primary-600)', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', dot: 'var(--color-primary-400)' },
   delivered:  { color: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
   failed:     { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
   cancelled:  { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
@@ -36,7 +36,7 @@ const statusConfig = {
 const paymentStatusConfig = {
   pending:        { color: '#d97706', label: 'Pending' },
   confirmed:      { color: '#2563eb', label: 'Confirmed' },
-  partially_paid: { color: '#7c3aed', label: 'Partial' },
+  partially_paid: { color: 'var(--color-primary-600)', label: 'Partial' },
   paid:           { color: '#059669', label: 'Paid' },
   overpayment:    { color: '#0891b2', label: 'Overpaid' },
   refunded:       { color: '#6b7280', label: 'Refunded' },
@@ -63,24 +63,24 @@ const StatusBadge = ({ status, type = 'order' }) => {
 
 const SectionLabel = ({ children, icon: Icon }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-    {Icon && <Icon size={14} color="#a855f7" />}
-    <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#a855f7', margin: 0 }}>{children}</p>
+    {Icon && <Icon size={14} color="var(--color-primary-500)" />}
+    <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-500)', margin: 0 }}>{children}</p>
   </div>
 );
 
 const Panel = ({ children, style = {}, accent = false }) => (
   <div style={{
     background: 'white',
-    border: `1px solid ${accent ? 'rgba(168,85,247,0.2)' : '#f3f4f6'}`,
+    border: `1px solid ${accent ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : '#f3f4f6'}`,
     borderRadius: 16, overflow: 'hidden',
-    boxShadow: accent ? '0 0 0 1px rgba(168,85,247,0.12), 0 4px 20px rgba(168,85,247,0.08)' : '0 1px 4px rgba(0,0,0,0.04)',
+    boxShadow: accent ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 1px 4px rgba(0,0,0,0.04)',
     ...style,
   }}>{children}</div>
 );
 
 const ActionBtn = ({ children, onClick, variant = 'primary', icon: Icon, disabled }) => {
   const variants = {
-    primary: { background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', border: 'none' },
+    primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', border: 'none' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
     success: { background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1.5px solid rgba(16,185,129,0.2)' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)' },
@@ -123,7 +123,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = 560 }) => {
   );
 };
 
-const TimelineItem = ({ icon: Icon, title, description, time, color = '#a855f7', isLast = false }) => (
+const TimelineItem = ({ icon: Icon, title, description, time, color = 'var(--color-primary-500)', isLast = false }) => (
   <div style={{ display: 'flex', gap: 14, position: 'relative' }}>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%', background: color + '12', border: `2px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 }}>
@@ -332,9 +332,9 @@ const fetchOrder = async () => {
   const buildTimeline = () => {
     const items = [];
     if (!order) return items;
-    items.push({ icon: FileText, title: 'Order Created', description: `Auction order ${order.order_number} was created from winning bid.`, time: formatDate(order.created_at), color: '#a855f7' });
+    items.push({ icon: FileText, title: 'Order Created', description: `Auction order ${order.order_number} was created from winning bid.`, time: formatDate(order.created_at), color: 'var(--color-primary-500)' });
     if (order.confirmed_at) items.push({ icon: CheckCircle, title: 'Order Confirmed', description: 'Order was confirmed and is ready for processing.', time: formatDate(order.confirmed_at), color: '#2563eb' });
-    if (order.shipped_at) items.push({ icon: Truck, title: 'Order Shipped', description: order.courier_company ? `Shipped via ${order.courier_company}${order.tracking_number ? ` (Tracking: ${order.tracking_number})` : ''}` : 'Order has been shipped.', time: formatDate(order.shipped_at), color: '#7c3aed' });
+    if (order.shipped_at) items.push({ icon: Truck, title: 'Order Shipped', description: order.courier_company ? `Shipped via ${order.courier_company}${order.tracking_number ? ` (Tracking: ${order.tracking_number})` : ''}` : 'Order has been shipped.', time: formatDate(order.shipped_at), color: 'var(--color-primary-600)' });
     if (order.delivered_at) items.push({ icon: Shield, title: 'Order Delivered', description: 'Order was successfully delivered to the customer.', time: formatDate(order.delivered_at), color: '#059669' });
     if (order.cancelled_at) items.push({ icon: Ban, title: 'Order Cancelled', description: order.cancellation_reason || 'Order was cancelled.', time: formatDate(order.cancelled_at), color: '#dc2626' });
     if (order.paid_at) items.push({ icon: CreditCard, title: 'Payment Received', description: `Payment of ${formatPrice(order.total)} marked as paid.`, time: formatDate(order.paid_at), color: '#059669' });
@@ -345,7 +345,7 @@ const fetchOrder = async () => {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 12 }}>
-      <RefreshCw size={36} style={{ color: '#a855f7', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
+      <RefreshCw size={36} style={{ color: 'var(--color-primary-500)', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
       <p style={{ color: '#9ca3af', fontWeight: 600 }}>Loading order...</p>
     </div>
   );
@@ -354,7 +354,7 @@ const fetchOrder = async () => {
     <div style={{ textAlign: 'center', padding: '60px 24px' }}>
       <AlertTriangle size={48} style={{ color: '#f59e0b', margin: '0 auto 16px' }} />
       <p style={{ color: '#6b7280', fontWeight: 600, marginBottom: 12 }}>Order not found</p>
-      <button onClick={() => navigate('/admin/auction-orders')} style={{ color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
+      <button onClick={() => navigate('/admin/auction-orders')} style={{ color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
         ← Back to orders
       </button>
     </div>
@@ -374,7 +374,7 @@ const fetchOrder = async () => {
             background: 'none', border: 'none', cursor: 'pointer',
             color: '#9ca3af', fontWeight: 600, fontSize: '0.875rem', padding: 0,
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
             >
             <ArrowLeft size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
@@ -387,7 +387,7 @@ const fetchOrder = async () => {
                 onClick={() => navigate(`/admin/auctions/${order.auction_id}`)}
                 style={{
                     background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                    color: '#a855f7', fontWeight: 700, fontSize: '0.875rem',
+                    color: 'var(--color-primary-500)', fontWeight: 700, fontSize: '0.875rem',
                     textDecoration: 'underline', textUnderlineOffset: 3,
                 }}
                 >
@@ -443,7 +443,7 @@ const fetchOrder = async () => {
           padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Package size={22} color="white" />
             </div>
             <div>
@@ -459,7 +459,7 @@ const fetchOrder = async () => {
             <StatusBadge status={order.status} />
             <StatusBadge status={order.payment_status} type="payment" />
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{formatPrice(order.total)}</p>
+              <p style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{formatPrice(order.total)}</p>
               <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0', fontWeight: 600 }}>{order.quantity || 1} item(s)</p>
             </div>
           </div>
@@ -469,7 +469,7 @@ const fetchOrder = async () => {
         {paymentSummary && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             {[
-              { label: 'Order Total', value: formatPrice(order.total), color: '#a855f7', icon: DollarSign },
+              { label: 'Order Total', value: formatPrice(order.total), color: 'var(--color-primary-500)', icon: DollarSign },
                 { 
                 label: 'Amount Paid', 
                 // If order is cancelled/refunded, paid is 0 — refunds mean money went back
@@ -495,7 +495,7 @@ const fetchOrder = async () => {
                     ? Shield 
                     : paymentSummary.balance_remaining > 0 ? AlertTriangle : Shield 
                 },
-              { label: 'Payment Status', value: paymentSummary.order_payment_status, color: '#7c3aed', icon: CreditCard },
+              { label: 'Payment Status', value: paymentSummary.order_payment_status, color: 'var(--color-primary-600)', icon: CreditCard },
             ].map((s, i) => (
               <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: s.color + '12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -523,8 +523,8 @@ const fetchOrder = async () => {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '10px 20px', border: 'none', background: 'none',
                 fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                color: activeTab === tab.key ? '#a855f7' : '#9ca3af',
-                borderBottom: activeTab === tab.key ? '2px solid #a855f7' : '2px solid transparent',
+                color: activeTab === tab.key ? 'var(--color-primary-500)' : '#9ca3af',
+                borderBottom: activeTab === tab.key ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                 marginBottom: -2, transition: 'all 150ms'
               }}
             >
@@ -536,9 +536,9 @@ const fetchOrder = async () => {
             onClick={() => navigate(`/admin/auction-orders/${id}/payments`)}
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              padding: '8px 14px', border: '1.5px solid rgba(168,85,247,0.2)',
-              borderRadius: 10, background: 'rgba(168,85,247,0.06)',
-              color: '#a855f7', fontSize: '0.75rem', fontWeight: 700,
+              padding: '8px 14px', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              color: 'var(--color-primary-500)', fontSize: '0.75rem', fontWeight: 700,
               cursor: 'pointer', marginBottom: 8
             }}
           >
@@ -567,7 +567,7 @@ const fetchOrder = async () => {
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{order.product_name || order.auction?.product?.name || 'Unknown Product'}</p>
                       <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 8px' }}>SKU: {order.product_sku || order.auction?.product?.sku || '—'}{order.brand_name ? ` • ${order.brand_name}` : ''}</p>
-                      <button onClick={() => navigate(`/admin/auctions/${order.auction_id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: '#a855f7', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      <button onClick={() => navigate(`/admin/auctions/${order.auction_id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--color-primary-500)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                         View Auction <ChevronRight size={12} />
                       </button>
                     </div>
@@ -580,7 +580,7 @@ const fetchOrder = async () => {
                 <div style={{ padding: 20 }}>
                   <SectionLabel icon={User}>Customer</SectionLabel>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 800, color: '#a855f7' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>
                       {(order.customer?.first_name?.[0] || order.customer?.name?.[0] || 'U').toUpperCase()}
                     </div>
                     <div>
@@ -591,8 +591,8 @@ const fetchOrder = async () => {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {order.customer?.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: '#6b7280' }}><Mail size={14} style={{ color: '#a855f7' }} />{order.customer.email}</div>}
-                    {order.customer?.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: '#6b7280' }}><Phone size={14} style={{ color: '#a855f7' }} />{order.customer.phone}</div>}
+                    {order.customer?.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: '#6b7280' }}><Mail size={14} style={{ color: 'var(--color-primary-500)' }} />{order.customer.email}</div>}
+                    {order.customer?.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: '#6b7280' }}><Phone size={14} style={{ color: 'var(--color-primary-500)' }} />{order.customer.phone}</div>}
                   </div>
                 </div>
               </Panel>
@@ -604,7 +604,7 @@ const fetchOrder = async () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[
                       { label: 'Winning Bid', value: formatPrice(order.winning_bid_amount), color: '#6b7280' },
-                      { label: 'Charged Amount', value: formatPrice(order.charged_amount), color: '#a855f7', bold: true },
+                      { label: 'Charged Amount', value: formatPrice(order.charged_amount), color: 'var(--color-primary-500)', bold: true },
                       { label: 'Quantity', value: order.quantity || 1, color: '#6b7280' },
                       { label: 'Subtotal', value: formatPrice(order.subtotal), color: '#6b7280' },
                       { label: 'VAT (16%)', value: formatPrice(order.tax), color: '#6b7280' },
@@ -626,16 +626,16 @@ const fetchOrder = async () => {
                   <SectionLabel icon={MapPin}>Shipping</SectionLabel>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div>
-                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Delivery Address</p>
+                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Delivery Address</p>
                       <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, lineHeight: 1.6, fontWeight: 500 }}>{order.shipping_address || 'No address provided'}</p>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                       <div>
-                        <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Method</p>
+                        <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Method</p>
                         <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 600 }}>{order.shipping_method_name || order.delivery_method || '—'}</p>
                       </div>
                       <div>
-                        <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Payment</p>
+                        <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Payment</p>
                         <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>{order.payment_method || '—'}</p>
                       </div>
                     </div>
@@ -659,7 +659,7 @@ const fetchOrder = async () => {
                   <SectionLabel icon={Activity}>Winning Bid</SectionLabel>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[
-                      { label: 'Bid Amount', value: formatPrice(order.winning_bid_amount), color: '#a855f7' },
+                      { label: 'Bid Amount', value: formatPrice(order.winning_bid_amount), color: 'var(--color-primary-500)' },
                       { label: 'Max Bid', value: formatPrice(order.bid?.max_bid || order.winning_bid_amount), color: '#374151' },
                       { label: 'Bidder', value: order.bid?.bidder?.name || order.customer?.name || 'Unknown', color: '#374151' },
                       { label: 'Placed By', value: order.placed_by?.name || `Admin #${order.placed_by_id}` || 'System', color: '#374151' },
@@ -679,13 +679,13 @@ const fetchOrder = async () => {
                   <SectionLabel icon={FileText}>Notes</SectionLabel>
                   {order.admin_notes && (
                     <div style={{ marginBottom: 14 }}>
-                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Admin Notes</p>
+                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Admin Notes</p>
                       <div style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 10, fontSize: '0.78rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{order.admin_notes}</div>
                     </div>
                   )}
                   {order.customer_notes && (
                     <div>
-                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Customer Notes</p>
+                      <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Customer Notes</p>
                       <div style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 10, fontSize: '0.78rem', color: '#374151', lineHeight: 1.6 }}>{order.customer_notes}</div>
                     </div>
                   )}
@@ -718,7 +718,7 @@ const fetchOrder = async () => {
                       <thead>
                         <tr style={{ background: '#f9fafb' }}>
                           {['Action', 'Description', 'Severity', 'By', 'Date'].map(h => (
-                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
+                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -765,10 +765,10 @@ const fetchOrder = async () => {
                 {/* Payment Summary Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
                   {[
-                    { label: 'Order Total', value: formatPrice(order.total), color: '#a855f7' },
+                    { label: 'Order Total', value: formatPrice(order.total), color: 'var(--color-primary-500)' },
                     { label: 'Amount Paid', value: formatPrice(paymentSummary?.total_confirmed_kes), color: '#059669' },
                     { label: 'Balance Due', value: formatPrice(paymentSummary?.balance_remaining), color: (paymentSummary?.balance_remaining || 0) > 0 ? '#dc2626' : '#059669' },
-                    { label: 'Payment Status', value: paymentSummary?.order_payment_status || order.payment_status, color: '#7c3aed' },
+                    { label: 'Payment Status', value: paymentSummary?.order_payment_status || order.payment_status, color: 'var(--color-primary-600)' },
                   ].map((s, i) => (
                     <div key={i} style={{ background: '#f9fafb', borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
                       <p style={{ fontSize: '1.1rem', fontWeight: 800, color: s.color, margin: '0 0 4px' }}>{s.value}</p>
@@ -795,7 +795,7 @@ const fetchOrder = async () => {
                 <div style={{ padding: 20 }}>
                   <SectionLabel icon={CreditCard}>Recent Payment Attempts</SectionLabel>
                   <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '-10px 0 16px' }}>
-                    View full history and manage disputes on the <button onClick={() => navigate(`/admin/auction-orders/${id}/payments`)} style={{ color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}>payments page</button>.
+                    View full history and manage disputes on the <button onClick={() => navigate(`/admin/auction-orders/${id}/payments`)} style={{ color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}>payments page</button>.
                   </p>
                 </div>
               </Panel>
@@ -812,19 +812,19 @@ const fetchOrder = async () => {
       <Modal isOpen={activeModal === 'status'} onClose={() => setActiveModal(null)} title="Update Order Status">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>New Status</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>New Status</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {allowedTransitions.map(s => (
                 <button key={s} onClick={() => setModalData(prev => ({ ...prev, status: s }))} style={{
-                  padding: '8px 16px', borderRadius: 10, border: modalData.status === s ? '2px solid #a855f7' : '1.5px solid #e5e7eb',
-                  background: modalData.status === s ? 'rgba(168,85,247,0.08)' : 'white', color: modalData.status === s ? '#a855f7' : '#374151',
+                  padding: '8px 16px', borderRadius: 10, border: modalData.status === s ? '2px solid var(--color-primary-500)' : '1.5px solid #e5e7eb',
+                  background: modalData.status === s ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: modalData.status === s ? 'var(--color-primary-500)' : '#374151',
                   fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize'
                 }}>{s}</button>
               ))}
             </div>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Admin Notes (Optional)</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Admin Notes (Optional)</label>
             <textarea value={modalData.admin_notes || ''} onChange={e => setModalData(prev => ({ ...prev, admin_notes: e.target.value }))} placeholder="Add a note about this status change..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -842,7 +842,7 @@ const fetchOrder = async () => {
         {paymentSummary && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-            { label: 'Order Total', value: formatPrice(order.total), color: '#a855f7' },
+            { label: 'Order Total', value: formatPrice(order.total), color: 'var(--color-primary-500)' },
             { label: 'Already Paid', value: formatPrice(paymentSummary.total_confirmed_kes), color: '#059669' },
             { label: 'Balance Due', value: formatPrice(paymentSummary.balance_remaining), color: paymentSummary.balance_remaining > 0 ? '#dc2626' : '#059669' },
             { label: 'Current Status', value: order.payment_status?.replace('_', ' '), color: '#6b7280' },
@@ -863,10 +863,10 @@ const fetchOrder = async () => {
         ].map(m => (
             <button key={m.key} onClick={() => setModalData(prev => ({ ...prev, mode: m.key }))} style={{
             flex: 1, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-            border: modalData.mode === m.key ? '2px solid #a855f7' : '1.5px solid #e5e7eb',
-            background: modalData.mode === m.key ? 'rgba(168,85,247,0.06)' : 'white',
+            border: modalData.mode === m.key ? '2px solid var(--color-primary-500)' : '1.5px solid #e5e7eb',
+            background: modalData.mode === m.key ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'white',
             }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: modalData.mode === m.key ? '#a855f7' : '#374151', margin: '0 0 2px' }}>{m.label}</p>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: modalData.mode === m.key ? 'var(--color-primary-500)' : '#374151', margin: '0 0 2px' }}>{m.label}</p>
             <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{m.desc}</p>
             </button>
         ))}
@@ -936,15 +936,15 @@ const fetchOrder = async () => {
       <Modal isOpen={activeModal === 'ship'} onClose={() => setActiveModal(null)} title="Mark Order as Shipped">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Tracking Number *</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Tracking Number *</label>
             <input type="text" value={modalData.tracking_number || ''} onChange={e => setModalData(prev => ({ ...prev, tracking_number: e.target.value }))} placeholder="e.g. TRK-123456789" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Courier Company *</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Courier Company *</label>
             <input type="text" value={modalData.courier_company || ''} onChange={e => setModalData(prev => ({ ...prev, courier_company: e.target.value }))} placeholder="e.g. G4S, Fargo Courier, etc." style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Estimated Delivery Date</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Estimated Delivery Date</label>
             <input type="date" value={modalData.estimated_delivery_date || ''} onChange={e => setModalData(prev => ({ ...prev, estimated_delivery_date: e.target.value }))} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -965,7 +965,7 @@ const fetchOrder = async () => {
             <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>Cancelling this order will restore stock. This action cannot be undone from the cancel state without restoring.</p>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Cancellation Reason *</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Cancellation Reason *</label>
             <textarea value={modalData.reason || ''} onChange={e => setModalData(prev => ({ ...prev, reason: e.target.value }))} placeholder="Why is this order being cancelled?" rows={3} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -986,7 +986,7 @@ const fetchOrder = async () => {
             <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>This will restore the order to "Pending" status and re-deduct stock. Ensure stock is available.</p>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Reason (Optional)</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Reason (Optional)</label>
             <textarea value={modalData.reason || ''} onChange={e => setModalData(prev => ({ ...prev, reason: e.target.value }))} placeholder="Why is this order being restored?" rows={2} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: '0.85rem', color: '#111827', background: 'white', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>

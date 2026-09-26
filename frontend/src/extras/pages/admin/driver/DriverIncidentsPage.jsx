@@ -156,9 +156,9 @@ function IncidentRow({ incident, expanded, onToggle, onHover }) {
                         <Label>Description</Label>
                         <div style={{
                             padding: '10px 12px', borderRadius: D.radiusSm, marginTop: 4,
-                            background: 'rgba(168,85,247,0.07)',
-                            border: '1px solid rgba(168,85,247,0.3)',
-                            boxShadow: '0 0 10px rgba(168,85,247,0.2)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                            boxShadow: '0 0 10px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             fontSize: '0.82rem', color: D.purple, lineHeight: 1.5,
                         }}>
                             <Value>

@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
   social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
-  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: 'var(--color-primary-400)', text: '#fff' },
   urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
   tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
 };
@@ -165,7 +165,7 @@ export default function CollapsedProductCard({ product }) {
           <>
             <div className="collapsed-btn-row">
               <button type="button" onClick={handleToggleWishlist} className="collapsed-wand-btn" aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
-                <Heart size={13} style={{ color: '#a855f7', fill: wished ? '#a855f7' : 'none', transition: 'fill 150ms ease' }} />
+                <Heart size={13} style={{ color: 'var(--color-primary-500)', fill: wished ? 'var(--color-primary-500)' : 'none', transition: 'fill 150ms ease' }} />
               </button>
               <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : isPriceNegotiable ? 'negotiable' : 'quote'}`} title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}>
                 <FileText size={13} /> {isPriceNegotiable ? (inQL ? 'In List →' : 'Quote') : ''}
@@ -188,7 +188,7 @@ export default function CollapsedProductCard({ product }) {
         }
         .collapsed-hover-name {
           position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
-          background: #a855f7; color: white;
+          background: var(--color-primary-500); color: white;
           font-size: 0.78rem; font-weight: 600; line-height: 1.4;
           padding: 6px 12px; border-radius: 8px;
           opacity: 0; pointer-events: none;
@@ -205,36 +205,36 @@ export default function CollapsedProductCard({ product }) {
         .collapsed-card:hover .collapsed-hover-name {
           opacity: 1; transform: translateY(0);
         }
-        .collapsed-card:hover { box-shadow: 0 4px 12px rgba(168,85,247,0.12); transform: translateY(-1px); }
+        .collapsed-card:hover { box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary-500) 12%, transparent); transform: translateY(-1px); }
         .dark .collapsed-card { background: #1f2937; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .collapsed-thumb { flex-shrink:0; width:52px; height:52px; border-radius:10px; overflow:hidden; background:#f3f4f6; }
         .dark .collapsed-thumb { background:#374151; }
         .collapsed-thumb-img { width:100%; height:100%; object-fit:cover; }
         .collapsed-thumb-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
         .collapsed-info { flex:1; min-width:0; }
-        .collapsed-name { font-size:0.825rem; font-weight:600; color:#a855f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
+        .collapsed-name { font-size:0.825rem; font-weight:600; color:var(--color-primary-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
         .collapsed-desc { font-size:0.72rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.4; }
         .dark .collapsed-desc { color:#9ca3af; }
         .collapsed-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
         .collapsed-btn-row { display:flex; align-items:center; gap:5px; }
         .collapsed-wand-btn { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; border:none; background:transparent; cursor:pointer; transition:background 150ms ease, transform 150ms ease; padding:0; }
-        .collapsed-wand-btn:hover { background:#faf5ff; transform:scale(1.12); }
+        .collapsed-wand-btn:hover { background:color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)); transform:scale(1.12); }
         .dark .collapsed-wand-btn:hover { background:#374151; }
         .collapsed-price-group { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
-        .collapsed-price { font-size:0.78rem; font-weight:700; color:#a855f7; white-space:nowrap; }
+        .collapsed-price { font-size:0.78rem; font-weight:700; color:var(--color-primary-500); white-space:nowrap; }
         .collapsed-price.out-of-stock { color:#ef4444; font-weight:500; font-size:0.72rem; }
         .collapsed-original-price { font-size:0.68rem; color:#9ca3af; text-decoration:line-through; white-space:nowrap; }
         .collapsed-action-btn { display:flex; align-items:center; gap:4px; padding:5px 11px; border-radius:20px; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 150ms ease; white-space:nowrap; border:none; }
-        .collapsed-action-btn.primary { background:#a855f7; color:white; }
-        .collapsed-action-btn.primary:hover:not(:disabled) { background:#9333ea; transform:scale(1.04); }
+        .collapsed-action-btn.primary { background:var(--color-primary-500); color:white; }
+        .collapsed-action-btn.primary:hover:not(:disabled) { background:var(--color-primary-600); transform:scale(1.04); }
         .collapsed-action-btn.primary:disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
         .dark .collapsed-action-btn.primary:disabled { background:#374151; color:#6b7280; }
         .collapsed-action-btn.negotiable { background:#eff6ff; color:#3b82f6; border:1px solid #bfdbfe; }
         .collapsed-action-btn.negotiable:hover { background:#3b82f6; color:white; }
-        .collapsed-action-btn.quote { background:rgba(168,85,247,0.08); color:#a855f7; border:1px solid rgba(168,85,247,0.25); padding:5px 8px; }
-        .collapsed-action-btn.quote:hover { background:#a855f7; color:white; }
-        .collapsed-action-btn.in-quote-list { background:rgba(168,85,247,0.15); color:#7c3aed; border:1px solid #a855f7; font-weight:700; }
-        .collapsed-action-btn.in-quote-list:hover { background:#7c3aed; color:white; }
+        .collapsed-action-btn.quote { background:color-mix(in srgb, var(--color-primary-500) 8%, transparent); color:var(--color-primary-500); border:1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent); padding:5px 8px; }
+        .collapsed-action-btn.quote:hover { background:var(--color-primary-500); color:white; }
+        .collapsed-action-btn.in-quote-list { background:color-mix(in srgb, var(--color-primary-500) 15%, transparent); color:var(--color-primary-600); border:1px solid var(--color-primary-500); font-weight:700; }
+        .collapsed-action-btn.in-quote-list:hover { background:var(--color-primary-600); color:white; }
         .dark .collapsed-action-btn.negotiable { background:#1e3a8a; color:#93c5fd; border-color:#1e40af; }
         .collapsed-action-btn.auction { background-color: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.4); font-weight: 700; }
         .collapsed-action-btn.auction:hover { background-color: #dc2626; color: white; }

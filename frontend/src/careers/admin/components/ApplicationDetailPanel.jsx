@@ -47,9 +47,9 @@ const s = {
     aiBody: { flex: 1 },
     aiSummary: { fontSize: 14, color: '#ccc', lineHeight: 1.65, marginBottom: 14 },
     aiTag: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${color}22`, color, marginRight: 6, marginBottom: 6 }),
-    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
     rescreenBtn: { width: '100%', padding: '10px 0', borderRadius: 9, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 },
-    pollingMsg: { fontSize: 13, color: '#a855f7', textAlign: 'center', padding: '12px 0' },
+    pollingMsg: { fontSize: 13, color: 'var(--color-primary-500)', textAlign: 'center', padding: '12px 0' },
 
     // Documents
     docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #111', fontSize: 13 },
@@ -58,7 +58,7 @@ const s = {
 
     // Notes
     noteArea: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 13, resize: 'vertical', minHeight: 90, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
-    saveNoteBtn: (saving) => ({ padding: '9px 20px', borderRadius: 8, border: 'none', background: saving ? '#1e1535' : '#2d1b4e', color: saving ? '#7c3aed' : '#c084fc', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 10, transition: 'all 0.15s' }),
+    saveNoteBtn: (saving) => ({ padding: '9px 20px', borderRadius: 8, border: 'none', background: saving ? '#1e1535' : '#2d1b4e', color: saving ? 'var(--color-primary-600)' : 'var(--color-primary-400)', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 10, transition: 'all 0.15s' }),
     noteErr: { fontSize: 12, color: '#f87171', marginTop: 6 },
 
     // Timeline
@@ -184,7 +184,7 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                     </div>
                     {applicant?.linkedin_url && (
                         <a href={applicant.linkedin_url} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: 13, color: '#a855f7', textDecoration: 'none', display: 'block', marginTop: 10 }}>
+                            style={{ fontSize: 13, color: 'var(--color-primary-500)', textDecoration: 'none', display: 'block', marginTop: 10 }}>
                             LinkedIn Profile →
                         </a>
                     )}
@@ -272,7 +272,7 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                                 </div>
                                 {doc.download_url && (
                                     <a href={doc.download_url} target="_blank" rel="noopener noreferrer"
-                                        style={{ fontSize: 12, color: '#a855f7', textDecoration: 'none' }}>
+                                        style={{ fontSize: 12, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
                                         Download
                                     </a>
                                 )}

@@ -18,7 +18,7 @@ const TYPE_META = {
   general:           { label: 'General',      color: '#4338ca', bg: 'rgba(99,102,241,0.1)',  ring: 'rgba(99,102,241,0.25)'  },
   customer_referral: { label: 'Referral',     color: '#065f46', bg: 'rgba(16,185,129,0.1)',  ring: 'rgba(16,185,129,0.25)'  },
   first_time:        { label: 'First Time',   color: '#0e7490', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'   },
-  bulk_order:        { label: 'Bulk Order',   color: '#7c3aed', bg: 'rgba(168,85,247,0.1)',  ring: 'rgba(168,85,247,0.25)'  },
+  bulk_order:        { label: 'Bulk Order',   color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   vip:               { label: 'VIP',          color: '#b45309', bg: 'rgba(234,179,8,0.1)',   ring: 'rgba(234,179,8,0.25)'   },
   birthday:          { label: 'Birthday',     color: '#be185d', bg: 'rgba(236,72,153,0.1)',  ring: 'rgba(236,72,153,0.25)'  },
   event:             { label: 'Event',        color: '#b91c1c', bg: 'rgba(239,68,68,0.1)',   ring: 'rgba(239,68,68,0.25)'   },
@@ -29,7 +29,7 @@ const STATUS_STYLES = {
   active:   { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   paused:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
   expired:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
-  depleted: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', dot: '#a855f7', ring: 'rgba(168,85,247,0.25)'  },
+  depleted: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   archived: { bg: 'rgba(107,114,128,0.08)',color: '#9ca3af', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
 };
 
@@ -56,7 +56,7 @@ const REFERRAL_ACTION_META = {
 };
 
 const STAT_META = [
-  { key: 'total',   label: 'Total codes',  icon: <Gift size={18} />,        accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)',  val: (s) => s.counts?.total ?? 0         },
+  { key: 'total',   label: 'Total codes',  icon: <Gift size={18} />,        accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',  val: (s) => s.counts?.total ?? 0         },
   { key: 'active',  label: 'Active',       icon: <Zap size={18} />,         accent: '#059669', bg: 'rgba(5,150,105,0.08)',   val: (s) => s.counts?.active ?? 0        },
   { key: 'revenue', label: 'Total revenue',icon: <DollarSign size={18} />,  accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue), raw: true },
   { key: 'uses',    label: 'Total uses',   icon: <Users size={18} />,       accent: '#0891b2', bg: 'rgba(8,145,178,0.08)',   val: (s) => (s.totals?.total_uses ?? 0).toLocaleString() },
@@ -70,20 +70,20 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
-const selectFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
@@ -105,7 +105,7 @@ function StatCard({ icon, label, value, accent, bg }) {
       </div>
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
+        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
       </div>
     </div>
   );
@@ -137,12 +137,12 @@ function CopyCode({ code }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 9px', borderRadius: 7,
       fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700,
-      background: 'rgba(168,85,247,0.06)', color: '#6d28d9',
-      border: '1px solid rgba(168,85,247,0.18)', cursor: 'pointer',
+      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-700)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: 'pointer',
       transition: 'background 120ms, border-color 120ms',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; }}
     >
       {code}
       {copied
@@ -175,7 +175,7 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
           borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
           color: '#c4b5fd', transition: 'background 120ms, color 120ms',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
       >
         <MoreHorizontal size={14} />
@@ -187,13 +187,13 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 180, zIndex: 20,
             background: 'white', borderRadius: 12, padding: '6px 0',
-            border: '1.5px solid rgba(168,85,247,0.15)',
-            boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
             onClick={e => e.stopPropagation()}
           >
             {items.map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid rgba(168,85,247,0.08)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
@@ -202,7 +202,7 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
                 color: item.danger ? '#ef4444' : '#374151',
                 transition: 'background 120ms',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'rgba(168,85,247,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <item.icon size={13} style={{ flexShrink: 0 }} />
@@ -218,10 +218,10 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
 
 function SkeletonRow() {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {[180, 80, 90, 70, 50, 80, 70, 0].map((w, j) => (
         <td key={j} style={{ padding: '14px 20px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'rgba(168,85,247,0.07)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }} />}
         </td>
       ))}
     </tr>
@@ -250,7 +250,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
         return (
           <div key={a.id} style={{
             display: 'flex', gap: 10, padding: '10px 20px',
-            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.06)',
+            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
           }}>
             {/* Icon */}
             <div style={{
@@ -274,10 +274,10 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
                 {a.metadata?.code && (
                   <span style={{
                     marginLeft: 6, fontFamily: 'monospace', fontSize: '0.72rem',
-                    fontWeight: 700, color: '#7c3aed',
-                    background: 'rgba(168,85,247,0.08)',
+                    fontWeight: 700, color: 'var(--color-primary-600)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                     padding: '1px 6px', borderRadius: 5,
-                    border: '1px solid rgba(168,85,247,0.18)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                   }}>
                     {a.metadata.code}
                   </span>
@@ -311,7 +311,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
               {/* Order link if present */}
               {a.order_id && a.metadata?.order_number && (
                 <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>
-                  Order: <span style={{ color: '#7c3aed', fontWeight: 600 }}>{a.metadata.order_number}</span>
+                  Order: <span style={{ color: 'var(--color-primary-600)', fontWeight: 600 }}>{a.metadata.order_number}</span>
                 </p>
               )}
 
@@ -325,7 +325,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
                   <span style={{
                     marginLeft: 6, fontSize: '0.6rem', fontWeight: 700,
                     textTransform: 'uppercase', letterSpacing: '0.06em',
-                    color: a.actor_type === 'admin' ? '#7c3aed' : a.actor_type === 'customer' ? '#0e7490' : '#9ca3af',
+                    color: a.actor_type === 'admin' ? 'var(--color-primary-600)' : a.actor_type === 'customer' ? '#0e7490' : '#9ca3af',
                   }}>
                     · {a.actor_type}
                   </span>
@@ -340,8 +340,8 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
       {pag && pag.current_page < pag.last_page && (
         <button onClick={() => onLoadMore(pag.current_page + 1)} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: '#7c3aed',
-          background: 'rgba(168,85,247,0.04)', border: 'none', cursor: 'pointer',
+          padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-600)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none', cursor: 'pointer',
           fontFamily: 'inherit',
         }}>
           <RefreshCw size={12} /> Load more
@@ -479,8 +479,8 @@ const REFERRAL_DEV_NOTES = {
   ],
 };
 
-const RSEV = { critical: "#ef4444", warning: "#f59e0b", low: "#a855f7" };
-const RHOR = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+const RSEV = { critical: "#ef4444", warning: "#f59e0b", low: "var(--color-primary-500)" };
+const RHOR = { near: "#06b6d4", medium: "#f59e0b", long: "var(--color-primary-500)" };
 
 function ReferralDevNotesModal({ onClose }) {
   const [tab, setTab] = useState("pitfalls");
@@ -491,13 +491,13 @@ function ReferralDevNotesModal({ onClose }) {
       onClick={onClose}
     >
       <div
-        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(168,85,247,0.2), 0 4px 20px rgba(0,0,0,0.15)" }}
+        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px color-mix(in srgb, var(--color-primary-500) 20%, transparent), 0 4px 20px rgba(0,0,0,0.15)" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f3f4f6" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-            <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#a855f7" }}>
+            <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — referral &amp; promo code system
             </span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af", lineHeight: 1 }}>✕</button>
@@ -509,8 +509,8 @@ function ReferralDevNotesModal({ onClose }) {
             {["pitfalls", "strengths", "future"].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 20px", background: "none", border: "none",
-                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
-                color: tab === t ? "#a855f7" : "#6b7280",
+                borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
+                color: tab === t ? "var(--color-primary-500)" : "#6b7280",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1, transition: "all 0.15s",
               }}>{t}</button>
@@ -534,8 +534,8 @@ function ReferralDevNotesModal({ onClose }) {
           ))}
 
           {tab === "strengths" && REFERRAL_DEV_NOTES.strengths.map((n, i) => (
-            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid #a855f722", background: "#a855f705" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)05" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
               <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
@@ -630,7 +630,7 @@ export default function Referrals() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
             Referral Codes
           </h1>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -643,8 +643,8 @@ export default function Referrals() {
             onClick={() => setDevNotesOpen(true)}
             style={{
               padding: '9px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
-              border: '1.5px solid rgba(168,85,247,0.3)', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'transparent', color: '#a855f7', fontFamily: 'monospace',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
+              background: 'transparent', color: 'var(--color-primary-500)', fontFamily: 'monospace',
             }}
           >
             // dev
@@ -659,12 +659,12 @@ export default function Referrals() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
               transition: 'box-shadow 150ms',
             }}
-            onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Plus size={15} /> New code
           </button>
@@ -673,14 +673,14 @@ export default function Referrals() {
             <div style={{
               position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
               background: 'white', borderRadius: 12, padding: 16,
-              border: '1.5px solid rgba(168,85,247,0.2)',
-              boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             }}
               onMouseEnter={() => setShowInfo(true)}
               onMouseLeave={() => setShowInfo(false)}
             >
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <Info size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
+                <Info size={16} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
                 <div>
                   <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
                     Referral codes are automated
@@ -690,7 +690,7 @@ export default function Referrals() {
                   </p>
                 </div>
               </div>
-              <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 12 }}>
+              <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingTop: 12 }}>
                 <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
                   Looking to create a discount or campaign code?
                 </p>
@@ -700,8 +700,8 @@ export default function Referrals() {
                     width: '100%', padding: '8px', borderRadius: 8,
                     fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                    boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                    boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                   }}
                 >
                   Go to Promo Codes <ExternalLink size={12} />
@@ -753,13 +753,13 @@ export default function Referrals() {
               onChange={e => setFilter('search', e.target.value)}
               style={{
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'rgba(168,85,247,0.04)',
-                border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#111827', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-              onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+              onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
@@ -769,9 +769,9 @@ export default function Referrals() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-              background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-              border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-              color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
+              background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+              border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
             }}
           >
             <Filter size={14} />
@@ -780,7 +780,7 @@ export default function Referrals() {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               }}>
                 {activeFilterCount}
               </span>
@@ -791,7 +791,7 @@ export default function Referrals() {
         {showFilters && (
           <div style={{
             padding: '12px 16px 14px',
-            borderTop: '1px solid rgba(168,85,247,0.1)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
           }}>
             <select value={filters.type ?? ''} onChange={e => setFilter('type', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
@@ -814,9 +814,9 @@ export default function Referrals() {
             <button onClick={() => setFilter('expiring', !filters.expiring)} style={{
               padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-              background: filters.expiring ? 'rgba(168,85,247,0.1)' : 'transparent',
-              border: `1.5px solid ${filters.expiring ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-              color: filters.expiring ? '#7c3aed' : '#9ca3af',
+              background: filters.expiring ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+              border: `1.5px solid ${filters.expiring ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              color: filters.expiring ? 'var(--color-primary-600)' : '#9ca3af',
             }}>
               Expiring soon
             </button>
@@ -842,7 +842,7 @@ export default function Referrals() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 200 }}><TH_LABEL>Code / Name</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 100 }}><TH_LABEL>Type</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 120 }}><TH_LABEL>Reward</TH_LABEL></th>
@@ -862,11 +862,11 @@ export default function Referrals() {
                   ? (
                     <tr>
                       <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                        <Gift size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                        <Gift size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No referral codes found</p>
                         {hasFilters && (
                           <button onClick={resetFilters} style={{
-                            fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
+                            fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
                             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                           }}>
                             Clear filters
@@ -886,10 +886,10 @@ export default function Referrals() {
                           key={code.id}
                           onClick={() => navigate(`/admin/referrals/${code.id}`)}
                           style={{
-                            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                             cursor: 'pointer', transition: 'background 120ms',
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
 
@@ -977,9 +977,9 @@ export default function Referrals() {
         {!loading && codes.length > 0 && pagination.last_page > 1 && (
           <div style={{
             padding: '12px 20px',
-            borderTop: '1px solid rgba(168,85,247,0.08)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} codes
@@ -992,10 +992,10 @@ export default function Referrals() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
                 }}
-                onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <ChevronLeft size={14} />
@@ -1015,12 +1015,12 @@ export default function Referrals() {
                     style={{
                       width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                      background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                      border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
+                      background: isActive ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
+                      border: isActive ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                       color: isActive ? 'white' : '#9ca3af',
-                      boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                      boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
                   >
                     {p}
@@ -1034,10 +1034,10 @@ export default function Referrals() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
                 }}
-                onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <ChevronRight size={14} />
@@ -1053,16 +1053,16 @@ export default function Referrals() {
           style={{
             width: '100%', display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', padding: '14px 20px',
-            background: 'rgba(168,85,247,0.04)', border: 'none',
+            background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none',
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
             Activity Log
           </span>
           {showLog
-            ? <ChevronUp size={14} color="#7c3aed" />
-            : <ChevronDown size={14} color="#7c3aed" />
+            ? <ChevronUp size={14} color="var(--color-primary-600)" />
+            : <ChevronDown size={14} color="var(--color-primary-600)" />
           }
         </button>
         {showLog && (

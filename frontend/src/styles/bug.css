@@ -62,11 +62,11 @@
   --bug-emerald-text: #047857;
   --bug-emerald-text-dark: #34d399;
 
-  --bug-purple: #7c3aed;
+  --bug-purple: var(--color-primary-600);
   --bug-purple-light: #f5f3ff;
   --bug-purple-light-dark: rgba(124, 58, 237, 0.15);
-  --bug-purple-text: #6d28d9;
-  --bug-purple-text-dark: #a78bfa;
+  --bug-purple-text: var(--color-primary-700);
+  --bug-purple-text-dark: var(--color-primary-400);
 
   --bug-slate: #475569;
   --bug-slate-light: #f8fafc;
@@ -1273,7 +1273,7 @@
 .bug-dn-status-cosmetic {
   background-color: var(--bug-purple-light);
   color: var(--bug-purple-text);
-  border-color: #ddd6fe;
+  border-color: color-mix(in srgb, var(--color-primary-500) 18%, var(--bg-primary));
 }
 
 @media (prefers-color-scheme: dark) {

@@ -8,7 +8,7 @@ const VISIBILITY_OPTIONS = [
 ];
 
 const VISIBILITY_ACTIVE = {
-  customer: { color: '#c084fc', bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.4)'  },
+  customer: { color: 'var(--color-primary-400)', bg: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'  },
   admin:    { color: '#60a5fa', bg: 'rgba(59,130,246,0.15)',  border: 'rgba(59,130,246,0.4)'  },
   internal: { color: '#fcd34d', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.4)'  },
 };
@@ -55,7 +55,7 @@ const MessageComposer = ({
 
   return (
     <div style={{
-      borderTop: '1px solid rgba(168,85,247,0.15)',
+      borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
       background: 'var(--color-background-primary)',
       padding: '10px 14px 12px',
       display: 'flex',
@@ -104,13 +104,13 @@ const MessageComposer = ({
             width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'transparent',
-            border: '1.5px solid rgba(168,85,247,0.22)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             color: '#9ca3af', cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.4 : 1,
             transition: 'border-color 150ms, color 150ms, background 150ms',
           }}
-          onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#c084fc'; e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}>
+          onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}>
           <Paperclip style={{ width: 13, height: 13 }} />
         </button>
 
@@ -131,8 +131,8 @@ const MessageComposer = ({
             padding: '8px 14px',
             borderRadius: 20,
             fontSize: '0.83rem', lineHeight: 1.5,
-            background: 'rgba(168,85,247,0.06)',
-            border: '1.5px solid rgba(168,85,247,0.18)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
             color: 'var(--color-text-primary)',
             outline: 'none',
             opacity: disabled ? 0.5 : 1,
@@ -140,8 +140,8 @@ const MessageComposer = ({
             transition: 'border-color 150ms, box-shadow 150ms',
             fontFamily: 'inherit',
           }}
-          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; }}
-          onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
+          onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
 
         {/* Send */}
@@ -153,15 +153,15 @@ const MessageComposer = ({
           style={{
             width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: canSend ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
-            border: canSend ? 'none' : '1.5px solid rgba(168,85,247,0.22)',
+            background: canSend ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
+            border: canSend ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             color: canSend ? 'white' : '#6b7280',
             cursor: canSend ? 'pointer' : 'not-allowed',
-            boxShadow: canSend ? '0 2px 10px rgba(168,85,247,0.35)' : 'none',
+            boxShadow: canSend ? '0 2px 10px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none',
             transition: 'all 150ms',
           }}
-          onMouseEnter={e => { if (canSend) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.5)'; }}
-          onMouseLeave={e => { if (canSend) e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.35)'; }}>
+          onMouseEnter={e => { if (canSend) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+          onMouseLeave={e => { if (canSend) e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}>
           <SendHorizonal style={{ width: 13, height: 13 }} />
         </button>
       </div>
@@ -170,12 +170,12 @@ const MessageComposer = ({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '6px 12px', borderRadius: 20,
-        background: 'rgba(168,85,247,0.04)',
-        border: '1.5px solid rgba(168,85,247,0.14)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 14%, transparent)',
         transition: 'border-color 150ms, box-shadow 150ms',
       }}
-        onFocusCapture={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.07)'; }}
-        onBlurCapture={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.14)'; e.currentTarget.style.boxShadow = 'none'; }}>
+        onFocusCapture={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 7%, transparent)'; }}
+        onBlurCapture={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}>
         <Link style={{ width: 12, height: 12, flexShrink: 0, color: '#9ca3af' }} />
         <input
           type="text"
@@ -207,8 +207,8 @@ const MessageComposer = ({
             <span key={i} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: '0.7rem', fontWeight: 500,
-              color: '#c084fc', background: 'rgba(168,85,247,0.1)',
-              border: '1px solid rgba(168,85,247,0.25)',
+              color: 'var(--color-primary-400)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
               padding: '3px 10px', borderRadius: 20,
             }}>
               <Paperclip style={{ width: 10, height: 10, flexShrink: 0 }} />

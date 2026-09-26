@@ -425,7 +425,7 @@ export default function Orders() {
     };
 
     const STATUS_COLORS = {
-      pending: '#f59e0b', confirmed: '#3b82f6', processing: '#8b5cf6',
+      pending: '#f59e0b', confirmed: '#3b82f6', processing: 'var(--color-primary-400)',
       shipped: '#06b6d4', delivered: '#10b981', cancelled: '#ef4444', failed: '#6b7280',
     };
     const PAYMENT_COLORS = {
@@ -453,7 +453,7 @@ export default function Orders() {
     );
 
     y += 8;
-    hline('#7c3aed', 0.3);
+    hline('var(--color-primary-600)', 0.3);
     y += 6;
 
     // ══════════════════════════════════════════
@@ -463,7 +463,7 @@ export default function Orders() {
       need(28);
 
       const cards = [
-        { label: 'Total Orders',   value: statistics.total_orders || 0,                                            color: '#7c3aed' },
+        { label: 'Total Orders',   value: statistics.total_orders || 0,                                            color: 'var(--color-primary-600)' },
         { label: 'Pending',        value: statistics.pending || 0,       sub: `${statistics.confirmed || 0} confirmed`, color: '#f59e0b' },
         { label: "Today's Orders", value: statistics.today || 0,         sub: `KSh ${Number(statistics.today_revenue || 0).toLocaleString()}`, color: '#3b82f6' },
         { label: 'Total Revenue',  value: `KSh ${(Number(statistics.total_revenue || 0) / 1000).toFixed(1)}K`, sub: `${statistics.delivered || 0} delivered`, color: '#10b981' },
@@ -557,7 +557,7 @@ export default function Orders() {
     pdf.setTextColor(124, 58, 237);
     pdf.text('Order Details', M, y);
     y += 5;
-    hline('#7c3aed', 0.25);
+    hline('var(--color-primary-600)', 0.25);
     y += 4;
 
     // Column definitions — landscape A4 = 273mm content width
@@ -906,21 +906,21 @@ export default function Orders() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 12px', borderRadius: 20,
-              background: 'rgba(168,85,247,0.06)',
-              border: '1.5px solid rgba(168,85,247,0.15)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
               color: '#ff91f2', fontSize: '0.8rem', fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
               transition: 'all 150ms ease-out',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.12)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 3px 8px rgba(168,85,247,0.15)';
+              e.currentTarget.style.boxShadow = '0 3px 8px color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
               e.currentTarget.style.transform = 'none';
               e.currentTarget.style.boxShadow = 'none';
             }}
@@ -1024,7 +1024,7 @@ export default function Orders() {
             )}
 
             {Number(order.credit_account_deduction) > 0 && (
-              <p className="text-xs font-bold" style={{ color: '#7c3aed' }}>
+              <p className="text-xs font-bold" style={{ color: 'var(--color-primary-600)' }}>
                 🏦 −{money(order.credit_account_deduction, ccy)}
               </p>
             )}
@@ -1122,17 +1122,17 @@ export default function Orders() {
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
                 fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
-                background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
-                border: '1.5px solid rgba(168,85,247,0.25)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                 transition: 'all 150ms',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(168,85,247,0.18)';
-                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(168,85,247,0.1)';
-                e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
               }}
             >
               <Truck size={13} /> Ship
@@ -1231,7 +1231,7 @@ export default function Orders() {
               variant="primary"
               icon={<Plus size={18} />}
               onClick={() => setCreateOrderModal(true)}
-              style={{ borderColor: '#7c3aed', color: '#7c3aed', background: 'rgba(124,58,237,0.08)' }}
+              style={{ borderColor: 'var(--color-primary-600)', color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)' }}
             >
               Create Order
             </Button>
@@ -1257,7 +1257,7 @@ export default function Orders() {
             <Button
               variant={autoRefresh ? 'success' : 'outline'}
               onClick={() => setAutoRefresh(!autoRefresh)}
-              style={!autoRefresh ? { borderColor: '#8b5cf6', color: '#8b5cf6', background: 'rgba(139,92,246,0.08)' } : {}}
+              style={!autoRefresh ? { borderColor: 'var(--color-primary-400)', color: 'var(--color-primary-400)', background: 'rgba(139,92,246,0.08)' } : {}}
             >
               {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
             </Button>
@@ -1275,8 +1275,8 @@ export default function Orders() {
               type="button"
               onClick={() => setDevModal(true)}
               style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, 
-              color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '3px 8px', 
-              borderRadius: 6, border: '1px solid #a855f7' }}
+              color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '3px 8px', 
+              borderRadius: 6, border: '1px solid var(--color-primary-500)' }}
               title="Developer flow diagram">
               // dev
             </button>
@@ -1331,9 +1331,9 @@ export default function Orders() {
               label: 'Total Orders',
               value: statistics.total_orders || 0,
               sub: null,
-              bg: 'rgba(124,58,237,0.08)',
-              border: 'rgba(124,58,237,0.2)',
-              color: '#7c3aed',
+              bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',
+              border: 'color-mix(in srgb, var(--color-primary-600) 20%, transparent)',
+              color: 'var(--color-primary-600)',
             },
             {
               label: 'Pending Orders',
@@ -1725,7 +1725,7 @@ export default function Orders() {
             maxHeight: 'calc(100vh - 48px)', // ← add this
             overflowY: 'auto',               // ← and this
             background: '#fff',
-            color: '#a855f7',
+            color: 'var(--color-primary-500)',
             border: '1px solid var(--color-border-tertiary)',
             borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           }}>
@@ -1863,8 +1863,8 @@ export default function Orders() {
           <div style={{
             width: '100%', maxWidth: 900,
             background: 'white', borderRadius: 14,
-            border: '1px solid rgba(168,85,247,0.15)',
-            boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            boxShadow: '0 8px 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)',
             overflow: 'hidden',
           }}>
 
@@ -1872,7 +1872,7 @@ export default function Orders() {
             <div style={{
               display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+              borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             }}>
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>
@@ -1891,7 +1891,7 @@ export default function Orders() {
                   border: 'none', background: 'none',
                   color: '#9ca3af', cursor: 'pointer', transition: 'all 150ms',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#7c3aed'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
               >
                 <X size={16} />
@@ -1931,8 +1931,8 @@ export default function Orders() {
                     <div style={{
                       display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
                       padding: 14, borderRadius: 10,
-                      background: 'rgba(168,85,247,0.04)',
-                      border: '1px solid rgba(168,85,247,0.1)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                     }}>
                       {[
                         { label: 'Customer ID', value: `#${selectedCustomer.id}` },
@@ -1965,14 +1965,14 @@ export default function Orders() {
                         )}
                       </div>
 
-                      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                      <div style={{ padding: 14, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                         <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avg Order (KES)</p>
-                        <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7c3aed', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
+                        <p style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
                       </div>
                     </div>
 
                     {/* Status breakdown */}
-                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                    <div style={{ padding: 14, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                       <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Status Breakdown</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                         {Object.keys(byStatus).length === 0 ? (
@@ -1982,8 +1982,8 @@ export default function Orders() {
                             <span key={status} style={{
                               padding: '3px 10px', borderRadius: 20,
                               fontSize: '0.72rem', fontWeight: 700,
-                              background: 'rgba(168,85,247,0.08)', color: '#6b21a8',
-                              boxShadow: '0 0 0 1px rgba(168,85,247,0.2)',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-800)',
+                              boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             }}>
                               {status}: {count}
                             </span>
@@ -2011,15 +2011,15 @@ export default function Orders() {
                                 style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                   padding: '10px 13px', borderRadius: 10, cursor: 'pointer',
-                                  background: 'white', border: '1px solid rgba(168,85,247,0.1)',
+                                  background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                                   transition: 'border-color 150ms, background 150ms',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                               >
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 3 }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>{o.order_number}</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-800)' }}>{o.order_number}</span>
                                     <OrderStatusBadge status={o.status} />
                                     <PaymentStatusBadge status={o.payment_status} />
                                     <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(107,114,128,0.08)', color: '#4b5563', boxShadow: '0 0 0 1px rgba(107,114,128,0.15)' }}>
@@ -2074,8 +2074,8 @@ export default function Orders() {
                             style={{
                               padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
                               fontFamily: 'inherit', cursor: (customerOrdersLoading || !(customerOrdersPagination?.current_page > 1)) ? 'not-allowed' : 'pointer',
-                              background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
-                              border: '1.5px solid rgba(168,85,247,0.18)',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)',
+                              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                               opacity: (customerOrdersLoading || !(customerOrdersPagination?.current_page > 1)) ? 0.4 : 1,
                               transition: 'all 150ms',
                             }}
@@ -2088,8 +2088,8 @@ export default function Orders() {
                             style={{
                               padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
                               fontFamily: 'inherit', cursor: 'pointer',
-                              background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
-                              border: '1.5px solid rgba(168,85,247,0.25)',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
+                              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                               opacity: (customerOrdersLoading || !customerOrdersPagination?.last_page || (customerOrdersPagination?.current_page || 1) >= customerOrdersPagination.last_page) ? 0.4 : 1,
                               transition: 'all 150ms',
                             }}
@@ -2108,7 +2108,7 @@ export default function Orders() {
             {/* Footer */}
             <div style={{
               padding: '12px 20px', display: 'flex', justifyContent: 'flex-end',
-              borderTop: '1.5px solid rgba(168,85,247,0.1)',
+              borderTop: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             }}>
               <button
                 onClick={() => setCustomerHistoryModal(false)}
@@ -2150,7 +2150,7 @@ export default function Orders() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.1)', padding: '3px 8px', borderRadius: 6 }}>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '3px 8px', borderRadius: 6 }}>
                 // dev
               </span>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">
@@ -2196,7 +2196,7 @@ export default function Orders() {
                   }} />
                   <div style={{
                     position: 'absolute', bottom: 8, left: 10,
-                    background: 'rgba(168,85,247,0.85)', color: 'white',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 85%, transparent)', color: 'white',
                     fontSize: '0.6rem', fontWeight: 700, padding: '2px 8px',
                     borderRadius: 6, backdropFilter: 'blur(4px)',
                   }}>
@@ -2241,7 +2241,7 @@ export default function Orders() {
             type="button"
             onClick={e => { e.stopPropagation(); setDevFullscreen(devFullscreen === 1 ? 2 : 1); }}
             style={{
-              background: 'rgba(168,85,247,0.7)', border: 'none', color: 'white',
+              background: 'color-mix(in srgb, var(--color-primary-500) 70%, transparent)', border: 'none', color: 'white',
               fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
               borderRadius: 8, padding: '6px 12px',
             }}>
@@ -2261,7 +2261,7 @@ export default function Orders() {
         </div>
         <div style={{
           position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(168,85,247,0.8)', color: 'white',
+          background: 'color-mix(in srgb, var(--color-primary-500) 80%, transparent)', color: 'white',
           fontSize: '0.72rem', fontWeight: 700, padding: '4px 14px',
           borderRadius: 20, backdropFilter: 'blur(4px)',
         }}>

@@ -10,7 +10,7 @@ import { useAiPageAudio } from './useAiPageAudio';
 import { C, NeuralPageShell, NeuralBreadcrumb, NeuralDivider, neuralCard } from './AiPageShared';
 
 const PROVIDERS = {
-    anthropic: '#a855f7',
+    anthropic: 'var(--color-primary-500)',
     gemini:    '#3b82f6',
     openai:    '#10b981',
     mistral:   '#f59e0b',
@@ -18,7 +18,7 @@ const PROVIDERS = {
 };
 
 const NAV_CARDS = [
-    { key: 'keys',     label: 'API KEY MANAGEMENT',   description: 'Add, activate and manage provider keys across Anthropic, Gemini and OpenAI', icon: Key,         color: '#a855f7', to: '/admin/ai-analytics/keys'    },
+    { key: 'keys',     label: 'API KEY MANAGEMENT',   description: 'Add, activate and manage provider keys across Anthropic, Gemini and OpenAI', icon: Key,         color: 'var(--color-primary-500)', to: '/admin/ai-analytics/keys'    },
     { key: 'modules',  label: 'ANALYTICS MODULES',    description: 'Enable or disable AI analytics per module — projects, bookings, work and more', icon: Puzzle,      color: '#3b82f6', to: '/admin/ai-analytics/modules' },
     { key: 'sessions', label: 'SESSION LOGS',         description: 'Full accountability trail — who ran what, which key, tokens used and cost',     icon: ClipboardList, color: '#10b981', to: '/admin/ai-analytics/sessions' },
 ];

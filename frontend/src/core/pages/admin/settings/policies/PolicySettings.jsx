@@ -16,24 +16,24 @@ import { format } from 'date-fns';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
@@ -57,7 +57,7 @@ function Field({ label, children, hint }) {
 function SensitivityBadge({ sensitivity }) {
   const map = {
     critical: { bg: 'rgba(239,68,68,0.1)',   color: '#dc2626', label: 'Critical' },
-    standard: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', label: 'Standard' },
+    standard: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', label: 'Standard' },
     soft:     { bg: 'rgba(107,114,128,0.1)', color: '#6b7280', label: 'Soft'     },
   };
   const s = map[sensitivity] || map.standard;
@@ -107,8 +107,8 @@ function EditPolicyModal({ policy, onClose, onSave }) {
               Edit policy — {policy.title}
             </p>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-              Current version: <strong style={{ color: '#7c3aed' }}>v{policy.major_version}.{policy.minor_version}</strong>
-              &nbsp;·&nbsp;key: <code style={{ fontSize: '0.68rem', background: 'rgba(168,85,247,0.08)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
+              Current version: <strong style={{ color: 'var(--color-primary-600)' }}>v{policy.major_version}.{policy.minor_version}</strong>
+              &nbsp;·&nbsp;key: <code style={{ fontSize: '0.68rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
             </p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
@@ -133,13 +133,13 @@ function EditPolicyModal({ policy, onClose, onSave }) {
           {/* Content */}
           <Field label="Policy content" hint="Use {{cancellation_fee}}, {{cancellation_window_hours}} for booking policy placeholders.">
             <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? '#a855f7' : 'rgba(168,85,247,0.18)'}`, background: !preview ? 'rgba(168,85,247,0.08)' : 'white', color: !preview ? '#7c3aed' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
-              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? '#a855f7' : 'rgba(168,85,247,0.18)'}`, background: preview ? 'rgba(168,85,247,0.08)' : 'white', color: preview ? '#7c3aed' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: !preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: !preview ? 'var(--color-primary-600)' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: preview ? 'var(--color-primary-600)' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Eye size={11} style={{ display: 'inline', marginRight: 4 }} />Preview
               </button>
             </div>
             {preview ? (
-              <div style={{ ...inputStyle, minHeight: 200, padding: '12px', background: 'rgba(168,85,247,0.02)', whiteSpace: 'pre-wrap', fontSize: '0.82rem', lineHeight: 1.7 }}>
+              <div style={{ ...inputStyle, minHeight: 200, padding: '12px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', whiteSpace: 'pre-wrap', fontSize: '0.82rem', lineHeight: 1.7 }}>
                 {form.content || <span style={{ color: '#9ca3af' }}>Nothing to preview</span>}
               </div>
             ) : (
@@ -200,8 +200,8 @@ function EditPolicyModal({ policy, onClose, onSave }) {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 8px rgba(168,85,247,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Save size={13} /> Save policy
             </button>
           </div>
@@ -232,9 +232,9 @@ function AcceptancesPanel({ policyId }) {
         {['all', 'accepted', 'disagreed'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '4px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-            border: `1.5px solid ${filter === f ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-            background: filter === f ? 'rgba(168,85,247,0.08)' : 'white',
-            color: filter === f ? '#7c3aed' : '#9ca3af',
+            border: `1.5px solid ${filter === f ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+            background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+            color: filter === f ? 'var(--color-primary-600)' : '#9ca3af',
             cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize',
           }}>{f}</button>
         ))}
@@ -245,9 +245,9 @@ function AcceptancesPanel({ policyId }) {
       ) : !data.length ? (
         <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 0' }}>No records found</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid rgba(168,85,247,0.1)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
           {data.map((row, i) => (
-            <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < data.length - 1 ? '1px solid rgba(168,85,247,0.06)' : 'none', background: row.response === 'disagreed' ? 'rgba(239,68,68,0.02)' : 'white' }}>
+            <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < data.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none', background: row.response === 'disagreed' ? 'rgba(239,68,68,0.02)' : 'white' }}>
               <div style={{ marginTop: 2, flexShrink: 0 }}>
                 {row.response === 'accepted'
                   ? <CheckCircle size={14} style={{ color: '#16a34a' }} />
@@ -259,7 +259,7 @@ function AcceptancesPanel({ policyId }) {
                     {row.customer ? `${row.customer.first_name} ${row.customer.last_name}` : row.customer_number || 'Unknown'}
                   </span>
                   <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{row.customer?.email}</span>
-                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'rgba(168,85,247,0.08)', color: '#7c3aed' }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
                     v{row.policy_version}
                   </span>
                   <span style={{ fontSize: '0.62rem', color: '#9ca3af', background: 'rgba(107,114,128,0.08)', padding: '1px 6px', borderRadius: 99 }}>
@@ -307,9 +307,9 @@ function ChangeLogPanel({ policyId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {logs.map(log => (
-        <div key={log.id} style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid ${log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'rgba(168,85,247,0.1)'}`, background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'white' }}>
+        <div key={log.id} style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid ${log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`, background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'white' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
               v{log.previous_version} → v{log.new_version}
             </span>
             {log.is_major_bump && (
@@ -347,7 +347,7 @@ function ReportsTab() {
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-      <div style={{ width: 28, height: 28, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 28, height: 28, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
@@ -398,7 +398,7 @@ function ReportsTab() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.disagreements.map(row => (
-              <div key={row.policy_key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(168,85,247,0.08)', background: 'white' }}>
+              <div key={row.policy_key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'white' }}>
                 <span style={{ fontSize: '0.82rem', color: '#374151' }}>{row.policy_key.replace(/_/g, ' ')}</span>
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#dc2626' }}>{row.total}</span>
               </div>
@@ -413,9 +413,9 @@ function ReportsTab() {
           <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Shield size={14} style={{ color: '#ef4444' }} /> Flagged customers
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid rgba(168,85,247,0.1)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
             {data.flagged_customers.map((c, i) => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < data.flagged_customers.length - 1 ? '1px solid rgba(168,85,247,0.06)' : 'none' }}>
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < data.flagged_customers.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>{c.first_name} {c.last_name}</span>
                   <span style={{ fontSize: '0.68rem', color: '#9ca3af', marginLeft: 8 }}>{c.customer_number}</span>
@@ -443,16 +443,16 @@ function PolicyRow({ policy, onEdit, index }) {
 
   return (
     <>
-      <tr style={{ borderTop: index ? '1px solid rgba(168,85,247,0.07)' : 'none' }}>
+      <tr style={{ borderTop: index ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none' }}>
         <td style={{ padding: '12px 16px' }}>
           <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>{policy.title}</p>
-          <code style={{ fontSize: '0.65rem', color: '#9ca3af', background: 'rgba(168,85,247,0.06)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
+          <code style={{ fontSize: '0.65rem', color: '#9ca3af', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
         </td>
         <td style={{ padding: '12px 16px' }}>
           <SensitivityBadge sensitivity={policy.sensitivity} />
         </td>
         <td style={{ padding: '12px 16px' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
             v{policy.major_version}.{policy.minor_version}
           </span>
         </td>
@@ -470,7 +470,7 @@ function PolicyRow({ policy, onEdit, index }) {
           <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
             <button
               onClick={() => { setExpanded(e => !e); }}
-              style={{ background: 'rgba(168,85,247,0.08)', color: '#7c3aed', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', display: 'flex' }}
+              style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', display: 'flex' }}
               title="View acceptances & history"
             >
               {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -490,7 +490,7 @@ function PolicyRow({ policy, onEdit, index }) {
       {expanded && (
         <tr>
           <td colSpan={6} style={{ padding: 0 }}>
-            <div style={{ padding: '16px 20px', background: 'rgba(168,85,247,0.02)', borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+            <div style={{ padding: '16px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
 
               {/* Sub-tab switcher */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -501,9 +501,9 @@ function PolicyRow({ policy, onEdit, index }) {
                   <button key={t.key} onClick={() => setActivePanel(t.key)} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-                    border: `1.5px solid ${activePanel === t.key ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-                    background: activePanel === t.key ? 'rgba(168,85,247,0.08)' : 'white',
-                    color: activePanel === t.key ? '#7c3aed' : '#9ca3af',
+                    border: `1.5px solid ${activePanel === t.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+                    background: activePanel === t.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+                    color: activePanel === t.key ? 'var(--color-primary-600)' : '#9ca3af',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     {t.icon} {t.label}
@@ -572,26 +572,26 @@ export default function PolicySettings() {
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Shield size={18} style={{ color: '#a855f7' }} /> Policy Management
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Shield size={18} style={{ color: 'var(--color-primary-500)' }} /> Policy Management
           </h2>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
             Manage platform policies, track customer acceptances and disagreements
           </p>
         </div>
-        <button onClick={loadPolicies} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#7c3aed', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={loadPolicies} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit' }}>
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(168,85,247,0.1)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingBottom: 0 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700,
-            border: 'none', borderBottom: `2px solid ${tab === t.key ? '#a855f7' : 'transparent'}`,
-            background: 'none', color: tab === t.key ? '#7c3aed' : '#9ca3af',
+            border: 'none', borderBottom: `2px solid ${tab === t.key ? 'var(--color-primary-500)' : 'transparent'}`,
+            background: 'none', color: tab === t.key ? 'var(--color-primary-600)' : '#9ca3af',
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: -1,
             transition: 'color 150ms',
           }}>
@@ -604,14 +604,14 @@ export default function PolicySettings() {
       {tab === 'policies' && (
         loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-            <div style={{ width: 28, height: 28, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 28, height: 28, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : (
           <div style={{ ...card, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(168,85,247,0.04)' }}>
+                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                     {['Policy', 'Sensitivity', 'Version', 'Accepted / Disagreed', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 4 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 4}>{h}</TH_LABEL>
