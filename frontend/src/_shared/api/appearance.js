@@ -22,7 +22,4 @@ export const appearanceAPI = {
   adminGetIconStyles: ()        => api.get('/admin/appearance/icon-styles'),
   adminUpdateIconStyle: (id, d) => api.patch(`/admin/appearance/icon-styles/${id}`, d),
 
-  // Admin — component layouts
-  adminGetLayouts: ()           => api.get('/admin/appearance/layouts'),
-  adminUpdateLayout: (id, d)    => api.patch(`/admin/appearance/layouts/${id}`, d),
 };

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AppearanceFont;
 use App\Models\Colouring;
-use App\Models\ComponentLayout;
 use App\Models\IconStyle;
 use App\Models\UserAppearancePreference;
 use Illuminate\Http\JsonResponse;
@@ -30,16 +29,10 @@ class AppearanceController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name', 'slug', 'description', 'is_default']);
 
-        $componentLayouts = ComponentLayout::active()
-            ->orderBy('component_type')
-            ->orderBy('sort_order')
-            ->get(['id', 'component_type', 'variant_key', 'label', 'thumbnail_url', 'is_default']);
-
         return response()->json([
-            'colourings'        => $colourings,
-            'fonts'             => $fonts,
-            'icon_styles'       => $iconStyles,
-            'component_layouts' => $componentLayouts,
+            'colourings'  => $colourings,
+            'fonts'       => $fonts,
+            'icon_styles' => $iconStyles,
         ]);
     }
 
@@ -191,31 +184,4 @@ class AppearanceController extends Controller
         return response()->json(['icon_style' => $style]);
     }
 
-    // ── Admin: component layouts ──────────────────────────────────────────────
-
-    public function adminLayouts(): JsonResponse
-    {
-        $layouts = ComponentLayout::orderBy('component_type')->orderBy('sort_order')->get();
-        return response()->json(['layouts' => $layouts]);
-    }
-
-    public function adminUpdateLayout(Request $request, int $id): JsonResponse
-    {
-        $layout = ComponentLayout::findOrFail($id);
-
-        $validated = $request->validate([
-            'is_active'  => 'boolean',
-            'is_default' => 'boolean',
-            'sort_order' => 'integer',
-        ]);
-
-        if (!empty($validated['is_default'])) {
-            ComponentLayout::where('component_type', $layout->component_type)
-                ->where('id', '!=', $id)
-                ->update(['is_default' => false]);
-        }
-
-        $layout->update($validated);
-        return response()->json(['layout' => $layout]);
-    }
 }

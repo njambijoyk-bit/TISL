@@ -5,8 +5,6 @@ export const ThemeContext = createContext({
   colourings:      [],
   fonts:           [],
   iconStyles:      [],
-  componentLayouts:[],
-  activeLayoutMap:  {},
 
   // User's current selections
   activeColouringId: null,

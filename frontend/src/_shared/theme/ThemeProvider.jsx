@@ -29,7 +29,6 @@ export function ThemeProvider({ children }) {
   const [colourings,       setColourings]       = useState([]);
   const [fonts,            setFonts]            = useState([]);
   const [iconStyles,       setIconStyles]        = useState([]);
-  const [componentLayouts, setComponentLayouts] = useState([]);
   const [loading,          setLoading]          = useState(true);
 
   // User's current selections (IDs)
@@ -49,7 +48,6 @@ export function ThemeProvider({ children }) {
         setColourings(data.colourings       ?? []);
         setFonts(data.fonts                 ?? []);
         setIconStyles(data.icon_styles      ?? []);
-        setComponentLayouts(data.component_layouts ?? []);
 
         // Defaults from API
         const defaultColouring  = data.colourings?.find(c => c.is_default)   ?? data.colourings?.[0];
@@ -153,24 +151,13 @@ export function ThemeProvider({ children }) {
   const setBodyFont    = useCallback((id) => { setBodyFontId(id);        persistPref({ body_font_id:     id }); }, [persistPref]);
   const setIconStyle   = useCallback((id) => { setIconStyleId(id);       persistPref({ icon_style_id:    id }); }, [persistPref]);
 
-  // Derive a map of component_type → variant_key from the default layout per type
-  const activeLayoutMap = useMemo(() => {
-    const map = {};
-    componentLayouts.forEach(l => {
-      if (l.is_default && l.component_type) {
-        map[l.component_type] = l.variant_key;
-      }
-    });
-    return map;
-  }, [componentLayouts]);
-
   const value = useMemo(() => ({
-    colourings, fonts, iconStyles, componentLayouts, activeLayoutMap,
+    colourings, fonts, iconStyles,
     activeColouringId, mode, headingFontId, bodyFontId, iconStyleId,
     setColouring, setMode, setHeadingFont, setBodyFont, setIconStyle,
     loading,
   }), [
-    colourings, fonts, iconStyles, componentLayouts, activeLayoutMap,
+    colourings, fonts, iconStyles,
     activeColouringId, mode, headingFontId, bodyFontId, iconStyleId,
     setColouring, setMode, setHeadingFont, setBodyFont, setIconStyle,
     loading,

@@ -1931,8 +1931,6 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/admin/appearance/icon-styles', [AppearanceController::class, 'adminIconStyles']);
     Route::patch('/admin/appearance/icon-styles/{id}', [AppearanceController::class, 'adminUpdateIconStyle']);
 
-    Route::get('/admin/appearance/layouts', [AppearanceController::class, 'adminLayouts']);
-    Route::patch('/admin/appearance/layouts/{id}', [AppearanceController::class, 'adminUpdateLayout']);
 });
 
 // ============================================
