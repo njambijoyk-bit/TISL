@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import { ThemePicker } from '../common/ThemePicker';
 import CurrencyToggle from '../common/currency/CurrencyToggle';
 import useCurrencyStore from '../../store/currencyStore';
 import SmartSearchBox from '../common/SmartSearchBox';
@@ -597,6 +598,8 @@ export default function Header() {
             <span className="hidden-mobile" style={{ display: 'flex' }}>
               <CurrencyToggle dark={isDark} color={navColor} compact />
             </span>
+
+            <ThemePicker />
 
             <ThemeSwitcher />
 
