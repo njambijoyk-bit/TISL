@@ -46,9 +46,8 @@ export function ThemePicker() {
           transition: 'background 0.15s',
         }}
       >
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: swatch, flexShrink: 0 }} />
+        <span style={{ width: 9, height: 9, borderRadius: '50%', background: swatch, flexShrink: 0 }} />
         <ModeIcon size={13} />
-        <span style={{ maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
         <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
       </button>
 
@@ -56,13 +55,14 @@ export function ThemePicker() {
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
           minWidth: 190,
-          background: 'var(--bg-card)',
+          background: 'var(--bg-primary)',
           border: '1px solid var(--border-primary)',
           borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.28)',
           zIndex: 9999,
           overflow: 'hidden',
           padding: '6px 0',
+          isolation: 'isolate',
         }}>
           {/* Mode section */}
           <div style={{ padding: '6px 14px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
