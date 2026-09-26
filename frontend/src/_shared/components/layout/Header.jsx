@@ -71,12 +71,13 @@ function MegaPanel({ open, onEnter, onLeave, children, align = 'left', width = 4
       onMouseLeave={onLeave}
       style={{
         position: 'absolute', top: '100%', [align]: 0, zIndex: 999,
-        width, background: 'white', borderRadius: 14,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)',
-        border: '1px solid #f3f4f6', marginTop: 8,
+        width, background: 'var(--bg-primary)', borderRadius: 14,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10)',
+        border: '1px solid var(--border-primary)', marginTop: 8,
         animation: 'fadeInDown 150ms ease',
+        isolation: 'isolate',
       }}
-      className="dark:bg-gray-800 dark:border-gray-700"
+      className=""
     >
       {children}
     </div>
@@ -97,17 +98,18 @@ function CategoryNode({ cat, onNavigate, depth = 0 }) {
           style={{
             flex: 1, textAlign: 'left', padding: `6px ${8 + depth * 12}px`,
             fontSize: '0.82rem', fontWeight: depth === 0 ? 700 : 500,
-            color: depth === 0 ? '#111827' : '#374151',
+            color: depth === 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontFamily: depth === 0 ? 'var(--font-heading)' : 'var(--font-body)',
             background: 'none', border: 'none', cursor: 'pointer',
             borderRadius: 8, transition: 'all 120ms ease',
             display: 'flex', alignItems: 'center', gap: 6,
           }}
-          className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-200"
+          className="hover:bg-primary-50 dark:hover:bg-gray-700"
         >
-          {depth > 0 && <span style={{ width: 12, height: 1, background: '#d1d5db', flexShrink: 0 }} />}
+          {depth > 0 && <span style={{ width: 12, height: 1, background: 'var(--border-primary)', flexShrink: 0 }} />}
           {cat.name}
           {cat.products_count != null && (
-            <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600, marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
               {cat.products_count}
             </span>
           )}
@@ -116,7 +118,7 @@ function CategoryNode({ cat, onNavigate, depth = 0 }) {
           <button
             type="button"
             onClick={() => setExpanded(e => !e)}
-            style={{ padding: '4px 6px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', borderRadius: 4 }}
+            style={{ padding: '4px 6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', borderRadius: 4 }}
           >
             <ChevronRight size={12} style={{ transition: 'transform 150ms', transform: expanded ? 'rotate(90deg)' : 'none' }} />
           </button>
@@ -457,18 +459,18 @@ export default function Header() {
               </button>
 
               <MegaPanel open={products.open} onEnter={products.enter} onLeave={products.leave} width={520}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Product Categories</span>
-                  <Link to="/products" onClick={() => products.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-heading)' }}>Product Categories</span>
+                  <Link to="/products" onClick={() => products.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none', fontFamily: 'var(--font-body)' }}>
                     All Products →
                   </Link>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, maxHeight: 360, overflowY: 'auto' }}>
                   {/* Category tree */}
-                  <div style={{ padding: '10px 8px', borderRight: '1px solid #f9fafb' }}>
+                  <div style={{ padding: '10px 8px', borderRight: '1px solid var(--border-primary)' }}>
                     {productCategories.length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: '#9ca3af', padding: '8px 12px' }}>Loading…</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '8px 12px', fontFamily: 'var(--font-body)' }}>Loading…</p>
                     ) : productCategories.map(cat => (
                       <CategoryNode key={cat.id} cat={cat} onNavigate={(path) => { navigate(path); products.setOpen(false); }} />
                     ))}
@@ -476,19 +478,19 @@ export default function Header() {
 
                   {/* Brands column */}
                   <div style={{ padding: '10px 8px' }}>
-                    <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 8px 8px' }}>Brands</p>
+                    <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 8px 8px', fontFamily: 'var(--font-heading)' }}>Brands</p>
                     {brands.map(brand => (
                       <button
                         key={brand.id}
                         type="button"
                         onClick={() => { navigate(`/products?brand=${brand.id}`); products.setOpen(false); }}
-                        style={{ width: '100%', textAlign: 'left', padding: '5px 8px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-                        className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-300"
+                        style={{ width: '100%', textAlign: 'left', padding: '5px 8px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-body)' }}
+                        className="hover:bg-primary-50 dark:hover:bg-gray-700"
                       >
                         {brand.logo ? (
                           <img src={brand.logo} alt={brand.name} style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
                         ) : (
-                          <Award size={13} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                          <Award size={13} style={{ color: 'var(--border-primary)', flexShrink: 0 }} />
                         )}
                         {brand.name}
                       </button>
@@ -496,9 +498,9 @@ export default function Header() {
                   </div>
                 </div>
 
-                <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 6 }}>
+                <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border-primary)', display: 'flex', gap: 6 }}>
                   {[{ label: '🔥 Specials', to: '/specials' }, { label: '⭐ Featured', to: '/products?featured=true' }].map(l => (
-                    <Link key={l.to} to={l.to} onClick={() => products.setOpen(false)} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', background: '#f9fafb', padding: '5px 10px', borderRadius: 20, textDecoration: 'none', transition: 'all 120ms' }}
+                    <Link key={l.to} to={l.to} onClick={() => products.setOpen(false)} style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '5px 10px', borderRadius: 20, textDecoration: 'none', transition: 'all 120ms', fontFamily: 'var(--font-body)' }}
                       className="hover:bg-primary-100 hover:text-primary-700">
                       {l.label}
                     </Link>
@@ -521,15 +523,15 @@ export default function Header() {
               </button>
 
               <MegaPanel open={services.open} onEnter={services.enter} onLeave={services.leave} width={340}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Service Categories</span>
-                  <Link to="/services" onClick={() => services.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-heading)' }}>Service Categories</span>
+                  <Link to="/services" onClick={() => services.setOpen(false)} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none', fontFamily: 'var(--font-body)' }}>
                     All Services →
                   </Link>
                 </div>
                 <div style={{ padding: '10px 8px', maxHeight: 320, overflowY: 'auto' }}>
                   {serviceCategories.length === 0 ? (
-                    <Link to="/services" onClick={() => services.setOpen(false)} style={{ display: 'block', padding: '8px 12px', fontSize: '0.83rem', color: '#6b7280', textDecoration: 'none' }}>
+                    <Link to="/services" onClick={() => services.setOpen(false)} style={{ display: 'block', padding: '8px 12px', fontSize: '0.83rem', color: 'var(--text-secondary)', textDecoration: 'none', fontFamily: 'var(--font-body)' }}>
                       Browse all services →
                     </Link>
                   ) : serviceCategories.map(cat => (
@@ -538,7 +540,7 @@ export default function Header() {
                     }} />
                   ))}
                 </div>
-                <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border-primary)' }}>
                   <Link to="/request-quote" onClick={() => services.setOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none', padding: '6px 8px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
                     <FileText size={13} /> Request a Custom Quote
                   </Link>
