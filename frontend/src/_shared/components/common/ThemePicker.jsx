@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { useTheme } from '../../theme';
 import useCurrencyStore from '../../store/currencyStore';
 
@@ -211,6 +213,27 @@ export function ThemePicker() {
               ))}
             </>
           )}
+
+          {/* Appearance settings page link */}
+          <div style={{ borderTop: '1px solid var(--border-primary, var(--border-light))', padding: '6px 8px', marginTop: 4 }}>
+            <Link
+              to="/settings/appearance"
+              onClick={close}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 8px', borderRadius: 8, textDecoration: 'none',
+                fontSize: 13, fontWeight: 500,
+                color: 'var(--color-primary-600, var(--color-primary-500))',
+                background: 'transparent',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary, #f9fafb)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <Settings size={14} />
+              All appearance settings
+            </Link>
+          </div>
         </>
       )}
     </Dropdown>
