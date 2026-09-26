@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
-import ProjectCard from '../../components/projects/customer/ProjectCard';
+import ProjectCard from '../../components/storefront/ProjectCard';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import useProjectStore from '../../../_shared/store/projectStore';
 

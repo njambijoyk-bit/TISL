@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { X, Loader2 } from 'lucide-react';
-import useProjectStore from '../../../../_shared/store/projectStore';
+import useProjectStore from '../../../_shared/store/projectStore';
 
 const STATUS_OPTIONS   = ['planning', 'active', 'on_hold', 'completed', 'cancelled'];
 const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'];

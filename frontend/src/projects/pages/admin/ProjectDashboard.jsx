@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import PageHeader from '../../../_shared/components/layout/PageHeader';
-import ProjectStatsBar from '../../components/admin/ProjectStatsBar';
-import ProjectStatusBadge from '../../components/admin/ProjectStatusBadge';
-import ProjectPriorityBadge from '../../components/admin/ProjectPriorityBadge';
+import ProjectStatsBar from '../../components/shared/ProjectStatsBar';
+import ProjectStatusBadge from '../../components/shared/ProjectStatusBadge';
+import ProjectPriorityBadge from '../../components/shared/ProjectPriorityBadge';
 import useProjectStore from '../../../_shared/store/projectStore';
 
 const customerName = (customer) => {

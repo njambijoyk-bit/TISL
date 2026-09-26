@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { ExternalLink, Link2, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
-import useProjectStore from '../../../../_shared/store/projectStore';
+import useProjectStore from '../../../_shared/store/projectStore';
 import LinkProjectModal from './LinkProjectModal';
 
 const TYPE_LABELS = {
