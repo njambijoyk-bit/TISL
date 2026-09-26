@@ -74,6 +74,7 @@ use App\Http\Controllers\Api\UnitOfMeasureController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\WithholdingController;
 use App\Http\Controllers\Api\TaxLegitimacyCertificateController;
+use App\Http\Controllers\Api\AppearanceController;
 
 use App\Http\Controllers\Api\Careers\PublicJobController;
 use App\Http\Controllers\Api\Careers\ApplicantAuthController;
@@ -1908,6 +1909,29 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/force', [TicketController::class, 'forceDelete']);  // permanent delete
         });
     });
+});
+
+// ── Appearance / Theme ─────────────────────────────────────────────────────
+Route::get('/appearance/options', [AppearanceController::class, 'options']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/appearance/preferences', [AppearanceController::class, 'getUserPreferences']);
+    Route::post('/appearance/preferences', [AppearanceController::class, 'saveUserPreferences']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function () {
+    Route::get('/admin/appearance/colourings', [AppearanceController::class, 'adminColourings']);
+    Route::post('/admin/appearance/colourings', [AppearanceController::class, 'adminStoreColouring']);
+    Route::patch('/admin/appearance/colourings/{id}', [AppearanceController::class, 'adminUpdateColouring']);
+
+    Route::get('/admin/appearance/fonts', [AppearanceController::class, 'adminFonts']);
+    Route::patch('/admin/appearance/fonts/{id}', [AppearanceController::class, 'adminUpdateFont']);
+
+    Route::get('/admin/appearance/icon-styles', [AppearanceController::class, 'adminIconStyles']);
+    Route::patch('/admin/appearance/icon-styles/{id}', [AppearanceController::class, 'adminUpdateIconStyle']);
+
+    Route::get('/admin/appearance/layouts', [AppearanceController::class, 'adminLayouts']);
+    Route::patch('/admin/appearance/layouts/{id}', [AppearanceController::class, 'adminUpdateLayout']);
 });
 
 // ============================================
