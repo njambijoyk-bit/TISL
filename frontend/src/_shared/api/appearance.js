@@ -12,6 +12,7 @@ export const appearanceAPI = {
   adminGetColourings: ()        => api.get('/admin/appearance/colourings'),
   adminCreateColouring: (data)  => api.post('/admin/appearance/colourings', data),
   adminUpdateColouring: (id, d) => api.patch(`/admin/appearance/colourings/${id}`, d),
+  adminDeleteColouring: (id)    => api.delete(`/admin/appearance/colourings/${id}`),
 
   // Admin — fonts
   adminGetFonts: ()             => api.get('/admin/appearance/fonts'),
