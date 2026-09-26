@@ -81,8 +81,8 @@ Update it whenever a decision changes.
 
 | # | Module | Contains | Exists today |
 |---|---|---|---|
-| 0 | **Core** (always on) | customers, users & roles, team (employees, leave), currency, units, tax & withholding, payments, orders & invoices, checkout, quotes & quote requests, loyalty, referral & promo codes, store credit, credit accounts, reconciliation, financial notes, reports, help desk (tickets), publications (blog, news, brochures), content pages & policies, reviews, notifications, vault, Mimi AI assistant (switchable), activity logs, themes, navigation, Module Center | yes |
-| 1 | **E-commerce** | products (variants, categories, brands, bulk edit), services (categories), specials, wishlist; switchable sub-features: **hampers**, **auctions**, **service bookings** | yes |
+| 0 | **Core** (always on) | customers, users & roles, team (employees, leave), currency, units, tax & withholding, payments, orders & invoices, checkout, quotes & quote requests, loyalty, referral & promo codes, store credit, credit accounts, reconciliation, financial notes, reports, help desk (tickets), publications (blog, news, brochures), content pages & policies, notifications, vault, Mimi AI assistant (switchable), activity logs, themes, navigation, Module Center, **bookings** (shared capability used by multiple modules) | yes |
+| 1 | **E-commerce** | products (variants, categories, brands, bulk edit), **services** (categories), specials, wishlist, reviews; switchable sub-features: **hampers**, **auctions** | yes |
 | 2 | **Listings** | property, vehicles, rentals; enquiries; bookable paid viewings and test drives | new |
 | 3 | **Campaigns** | fundraising and crowdfunding (goal, progress, donations); marketing and awareness campaigns without payments | new |
 | 4 | **Courses** | courses, books, teaching materials, enrolment, progress | new |
@@ -116,12 +116,453 @@ Each module declares, in one place, its admin sidebar group, storefront nav link
 ### 5.5 Code layout (target)
 
 - Backend: `app/Modules/<Module>/` (models, controllers, routes, service provider).
-- Frontend: `src/modules/<module>/` with a manifest; pages are lazy-loaded only when the module is active.
-- Core stays where it is.
+- Frontend: `src/<module>/` with a manifest; pages are lazy-loaded only when the module is active.
+- Core stays at `src/core/` and `src/_shared/`.
+
+### 5.6 Frontend folder convention (per module)
+
+```
+src/<module>/
+  manifest.js          ← sidebar groups, nav links, account-menu links, settings tabs, dependencies
+  pages/
+    admin/             ← admin screens
+    customer/          ← storefront pages (if module has a public face)
+  components/
+    admin/
+    storefront/
+```
 
 ---
 
-## 6. Admin navigation (done)
+### 5.7 Module-by-module frontend breakdown
+
+> **Key:** ✅ exists and in place · 🔀 exists but in wrong location · ❌ not built yet  
+> Bookings is a **Core** capability (used by E-commerce, Menus, Accommodations, Extras).  
+> Vendors are deferred — separate middleware, separate planning session.
+
+---
+
+#### Module 0 — Core (`src/core/`)
+
+Always on. No manifest, no license key.
+
+**Admin pages** (`src/core/pages/admin/`)
+
+| Page | Status |
+|---|---|
+| Dashboard | ✅ |
+| Customers (list, detail, credit tab, discount, health, algorithm panel) | ✅ |
+| Orders (list, detail) | ✅ |
+| Quotes (list, create, detail) | ✅ |
+| Quote requests (list, detail) | ✅ |
+| Payments | 🔀 in finance/ |
+| Credit accounts (dashboard, detail, credit tab) | ✅ |
+| Reconciliation | 🔀 in finance/ |
+| Financial notes | 🔀 in finance/ |
+| Loyalty (ledger, ledger detail, settings) | ✅ |
+| Referral & promo codes | 🔀 in referrals/ |
+| Tickets (list, detail) | ✅ |
+| Publications (list) | ✅ |
+| Content pages | 🔀 in settings/ |
+| Policies | 🔀 in settings/ |
+| Reports | ✅ |
+| Activity logs + log export | ✅ |
+| Appearance (themes, fonts, icon styles) | ✅ |
+| Settings (general, currency, units, tiers, shipping, navigation, modules, users & roles, vault, algorithm) | 🔀 scattered in settings/, general/, users/, vault/ |
+| Notifications | ❌ |
+| Bookings — admin list + detail + settings | ✅ (AdminBookings, AdminBookingDetail, BookingSettings) |
+
+**Customer pages** (`src/core/pages/customer/`)
+
+| Page | Status |
+|---|---|
+| Home | ✅ |
+| About | ✅ |
+| Contact | ✅ |
+| Profile | ✅ |
+| My Orders (list, detail) | ✅ |
+| My Quotes (list) + My Quote Requests (list, detail) + Quote detail | ✅ |
+| My Tickets (list, detail) | ✅ |
+| Checkout | ✅ |
+| Cart | ✅ |
+| Customer delivery history | ✅ |
+| Customer shipment tracking | ✅ |
+| Appearance settings | ✅ |
+| My Bug Reports | ✅ |
+| Manual | ✅ |
+| My Bookings (list, detail) | ✅ |
+
+**Shared components** (`src/_shared/`)
+
+API clients, stores, hooks, common UI (Button, SmartSearchBox, Pagination, Header, Footer, Breadcrumb, etc.), layout, legal.
+
+---
+
+#### Module 1 — E-commerce (`src/ecommerce/`)
+
+**Admin pages**
+
+| Page | Status |
+|---|---|
+| Products (list) | 🔀 in core/pages/admin/ |
+| Product form (create/edit) | 🔀 in core/pages/admin/ |
+| Product variants | 🔀 in core/pages/admin/ |
+| Services (list) | 🔀 in core/pages/admin/ |
+| Service form | 🔀 in core/pages/admin/ |
+| Service categories | 🔀 in core/pages/admin/ |
+| Categories (list, form) | 🔀 in core/pages/admin/ |
+| Brands (list, form) | 🔀 in core/pages/admin/ |
+| Reviews | 🔀 in core/pages/admin/ |
+| Specials | ❌ |
+| Hampers (list, detail, orders) | ✅ in ecommerce/pages/admin/hampers/ |
+| Auctions (list, detail, orders) | ✅ in ecommerce/pages/admin/auctions/ |
+| Wishlists (admin view) | ❌ |
+
+**Customer pages**
+
+| Page | Status |
+|---|---|
+| Products (list) | 🔀 in core/pages/customer/ |
+| Product detail | 🔀 in core/pages/customer/ |
+| Services (list) | 🔀 in core/pages/customer/ |
+| Service detail + Book service | 🔀 in core/pages/customer/ |
+| Specials | 🔀 in core/pages/customer/ |
+| Wishlist | 🔀 in core/pages/customer/ |
+| Hamper list + detail + checkout + my hamper orders | 🔀 in core/pages/customer/ |
+| Auction list + detail | ✅ in ecommerce/pages/customer/ |
+
+**Components**
+
+| Area | Status |
+|---|---|
+| Product card, grid, filters | 🔀 in core/components/ |
+| Service card, grid, filters | 🔀 in core/components/ |
+| Cart components | 🔀 in _shared/components/cart/ |
+| Hamper components | 🔀 in core/components/ |
+| Auction components | ✅ in ecommerce/components/ |
+| Wishlists, reviews | 🔀 in _shared/components/ or core/ |
+
+---
+
+#### Module 2 — Listings (`src/listings/`)
+
+For anything listed, discovered, viewed, rented, sold or enquired about — properties, vehicles, equipment, venues, directories.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Listings list | |
+| Listing form (create/edit) | Attributes differ by listing type |
+| Listing categories | |
+| Enquiries list + detail | |
+| Viewing/test-drive requests | |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Listings browse | Search, filters, map, sort |
+| Listing detail | Gallery, specs, contact/enquire, location |
+| Enquiry form | |
+| Request viewing / test drive | Plugs into Core Bookings |
+| My Enquiries | In customer account |
+
+**Components** ❌ all new
+
+Listing card, listing grid, listing filters, map view, enquiry modal, image gallery.
+
+---
+
+#### Module 3 — Campaigns (`src/campaigns/`)
+
+Fundraising, crowdfunding, awareness and marketing campaigns.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Campaigns list | |
+| Campaign form | Type: fundraising / crowdfunding / awareness / marketing |
+| Donors / backers list | For money campaigns |
+| Campaign updates | |
+| Donations list | |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Campaigns browse | |
+| Campaign detail | Goal, progress bar, donate/back CTA, updates |
+| Donate / back form | Plugs into Core payments |
+| My Donations / My Backed Campaigns | In customer account |
+
+**Components** ❌ all new
+
+Campaign card, progress bar, donor list, update feed, donation form.
+
+---
+
+#### Module 4 — Courses (`src/courses/`)
+
+Education, training, structured learning.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Courses list | |
+| Course form | |
+| Curriculum builder | Modules → lessons → topics |
+| Enrolments list | |
+| Student progress | |
+| Assessments | Quizzes, assignments |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Course catalogue | Browse, filter by category/level/price |
+| Course detail | Curriculum preview, instructor, enrol/buy CTA |
+| Enrol / pay | Plugs into Core checkout |
+| My Courses | Progress, resume lesson |
+| Lesson player | Video / PDF / text |
+| Quiz / assessment | |
+| My Certificates | |
+
+**Components** ❌ all new
+
+Course card, curriculum tree, lesson player, progress tracker, quiz component, certificate viewer.
+
+---
+
+#### Module 5 — Accommodations (`src/accommodations/`)
+
+Hotels, lodges, guesthouses, serviced apartments, rooms.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Properties list + form | |
+| Room types list + form | |
+| Rooms list + form | |
+| Availability / rate calendar | |
+| Reservations list + detail | |
+| Room board | Live view: open / occupied / reserved / dirty |
+| Guest folios | Charges, payments, checkout |
+| Housekeeping | Cleaning status |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Property browse | |
+| Property detail | Rooms, amenities, availability |
+| Room detail + booking form | Plugs into Core Bookings + checkout |
+| My Reservations | |
+
+**Components** ❌ all new
+
+Room card, availability calendar, room board grid, folio summary, housekeeping status badge.
+
+---
+
+#### Module 6 — Menus (`src/menus/`)
+
+Restaurants, cafés, catering, food ordering.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Menus list + form | Multiple menus (breakfast, lunch, dinner, happy hour) |
+| Menu sections + items | |
+| Item options / modifiers | Sizes, add-ons, allergens |
+| Tables + floor plan | |
+| Table reservations | Plugs into Core Bookings |
+| Kitchen orders | KDS view |
+| Menu orders list | |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Menu browse | By section, filter by allergen/diet |
+| Item detail | Options, add-ons |
+| Cart + order (table / takeaway / delivery) | Plugs into Core cart + checkout |
+| Table reservation form | Plugs into Core Bookings |
+| My Menu Orders | Order status, reorder |
+
+**Components** ❌ all new
+
+Menu section, item card, modifier picker, cart (menu variant), kitchen display row, floor plan grid, table badge.
+
+---
+
+#### Module 7 — Events (`src/events/`)
+
+Events, tickets, registration, attendance.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Events list + form | |
+| Ticket types + pricing | |
+| Attendees list | |
+| Check-in | QR scanner or manual |
+| Seating (optional) | |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Events browse | Filter by date, category, location |
+| Event detail | Schedule, speakers, tickets |
+| Ticket purchase | Plugs into Core checkout |
+| My Tickets | QR code, event details |
+| Check-in page | QR display |
+
+**Components** ❌ all new
+
+Event card, ticket type selector, attendee badge, QR code viewer, seating map (optional).
+
+---
+
+#### Module 8 — Memberships (`src/memberships/`)
+
+Membership orgs, clubs, gyms, co-working, subscriptions.
+
+**Admin pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Membership types + plans | Benefits, pricing, billing cycle |
+| Members list + detail | Status, expiry, renewal |
+| Member check-in | Attendance log |
+| Billing / renewals | Recurring payments via Core payments |
+| Access permissions | Member-only content gates |
+
+**Customer pages** ❌ all new
+
+| Page | Notes |
+|---|---|
+| Membership plans browse | |
+| Plan detail + join | Plugs into Core checkout / recurring billing |
+| My Membership | Status, expiry, benefits, renewal |
+| Member portal | Member-only content |
+| Member directory (optional) | |
+
+**Components** ❌ all new
+
+Plan card, membership status badge, renewal countdown, check-in button, member-only gate wrapper.
+
+---
+
+#### Module 9 — Careers (`src/careers/`)
+
+Job board, applicant portal, ATS.
+
+**Admin pages**
+
+| Page | Status |
+|---|---|
+| Job vacancies list + form | ✅ in careers/admin/ |
+| Applications list + detail | ✅ |
+| ATS pipeline | ✅ |
+| Interview scheduling | ✅ plugs into Core Bookings |
+| Hiring decisions + offers | ✅ |
+
+**Customer / applicant pages**
+
+| Page | Status |
+|---|---|
+| Careers page (public job board) | ✅ |
+| Job detail | ✅ |
+| Apply form | ✅ |
+| Applicant portal (login, profile, my applications) | ✅ |
+
+---
+
+#### Module 10 — Projects (`src/projects/`)
+
+Project portfolios and project-based collaboration.
+
+**Admin pages**
+
+| Page | Status |
+|---|---|
+| Projects list | ✅ |
+| Project detail (milestones, tasks, messages, participants, links) | ✅ |
+| Project create | ✅ |
+| AI analytics | ✅ in extras/pages/admin/ai-analytics/ |
+| Work board | ✅ in core/pages/admin/Work.jsx — needs to move |
+
+**Customer pages**
+
+| Page | Status |
+|---|---|
+| My Projects list | ✅ |
+| My Project detail | ✅ |
+
+---
+
+#### Module 11 — TISL Extras (`src/extras/`)
+
+Operational toolbox — not all visible to customers.
+
+**Admin pages**
+
+| Page | Status |
+|---|---|
+| Inventory | ✅ |
+| Delivery manifests + routes + incidents + ratings | ✅ |
+| Driver management | ✅ in extras/pages/admin/delivery/ |
+| Employees + timetable | ✅ in extras/pages/admin/employees/ |
+| Worksheets + worksheet form | ✅ |
+| Algorithm / search analytics | ✅ in extras/pages/admin/ai-analytics/ |
+
+**Driver portal** (separate role, own pages)
+
+| Page | Status |
+|---|---|
+| Driver manifest | ✅ in extras/pages/driver/ |
+
+---
+
+### 5.8 Pages that need to move (relocation backlog)
+
+These exist but are in the wrong folder. No code changes — just file moves and import updates.
+
+| File | From | To |
+|---|---|---|
+| Products.jsx, ProductDetail.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
+| Services.jsx, ServiceDetail.jsx, BookService.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
+| SpecialsPage.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
+| Wishlist.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
+| HamperListPage.jsx, HamperDetail.jsx, HamperCheckout.jsx, MyHamperOrders.jsx, MyHamperOrderDetail.jsx | core/pages/customer/ | ecommerce/pages/customer/ |
+| Products.jsx (admin), ProductForm.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
+| Services.jsx (admin), ServiceForm.jsx, ServiceCategories.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
+| Categories.jsx, CategoryForm.jsx, Brands.jsx, BrandForm.jsx, Reviews.jsx | core/pages/admin/ | ecommerce/pages/admin/ |
+| Work.jsx (admin) | core/pages/admin/ | projects/pages/admin/ |
+| Product/service components | core/components/services/, core/components/ | ecommerce/components/ |
+
+---
+
+### 5.9 Build order for new modules
+
+Build one module at a time, backend + frontend together, in this order:
+
+1. **Listings** — most universally useful; no recurring billing complexity
+2. **Events** — straightforward; tickets plug into existing checkout
+3. **Campaigns** — donations plug into existing payments
+4. **Courses** — needs lesson player and progress tracking
+5. **Memberships** — needs recurring billing (most complex)
+6. **Accommodations** — needs room board, folios, availability calendar
+7. **Menus** — needs kitchen display, table management
+
+---
 
 **One sidebar replaces four places** (main sidebar, Settings sidebar, Settings card page, General sidebar).
 
