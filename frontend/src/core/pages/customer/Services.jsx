@@ -47,7 +47,7 @@ const Services = () => {
 
   const {
     services, categories, mainCategories, types,
-    pagination, loading, error, filters,
+    pagination, loading, error, filters, fuzzyResults,
     fetchServices, fetchFeaturedServices, fetchCategories,
     fetchMainCategories, fetchTypes,
     setFilters, resetFilters, setPage,
@@ -63,7 +63,7 @@ const Services = () => {
     mainCategories?.find((c) => c.id === filters?.category_id) || null,
     [mainCategories, filters?.category_id]);
 
-  const [categoryOpen, setCategoryOpen] = useState(true);
+  const [categoryOpen, setCategoryOpen] = useState(false);
 
   useEffect(() => {
     fetchFeaturedServices();
@@ -188,6 +188,29 @@ const Services = () => {
             onSearch={handleSearch}
           />
         </div>
+
+        {/* ── Fuzzy suggestions ────────────────────────────────────────────── */}
+        {!loading && filters.search?.trim() && totalCount === 0 && fuzzyResults?.length > 0 && (
+          <div style={{ margin: '10px 0 4px', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, var(--bg-secondary))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
+              No exact match — are you looking for:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {fuzzyResults.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSearch(s.name)}
+                  style={{ fontSize: '0.78rem', padding: '4px 12px', borderRadius: 99, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500, transition: 'all 120ms' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-500)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
         <ServiceFilters

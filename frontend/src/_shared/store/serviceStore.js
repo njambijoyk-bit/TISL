@@ -34,6 +34,7 @@ const useServiceStore = create((set, get) => ({
   categories: [],
   mainCategories: [],
   types: [],
+  fuzzyResults: [],
   
   // Pagination
   pagination: {
@@ -94,7 +95,7 @@ const useServiceStore = create((set, get) => ({
     try {
       const params = buildServiceQueryParams(get().filters);
       const response = await getServices(params);
-      
+
       set({
         services: response.data || response,
         pagination: {
@@ -103,6 +104,7 @@ const useServiceStore = create((set, get) => ({
           per_page: response.per_page || 20,
           total: response.total || response.length || 0,
         },
+        fuzzyResults: response.fuzzy_results ?? [],
         loading: false,
       });
     } catch (error) {
