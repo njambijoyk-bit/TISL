@@ -22,6 +22,112 @@ class ProductVariantController extends Controller
     // OPTIONS
     // ========================================
 
+    // ========================================
+    // PUBLIC (storefront, read-only)
+    // ========================================
+
+    /**
+     * Everything the product page needs to let a shopper pick a variant and a
+     * selling unit: options that are actually in use, active variants with
+     * their sellable units and prices, and variant images.
+     *
+     * Prices come back twice: `price` in the product's own currency and
+     * `display_price` in the shopper's chosen one (?currency= / X-Currency).
+     * No cost or purchasing data is exposed.
+     */
+    public function publicShow($productId)
+    {
+        $product = Product::with('currency:id,code,symbol')
+            ->where('is_visible', true)
+            ->findOrFail($productId);
+
+        $variants = $product->productVariants()
+            ->active()
+            ->with([
+                'units' => fn ($q) => $q->active()->orderBy('position'),
+                'units.unit:id,code,name,dimension',
+                // no column list: the pivot join would make 'id' ambiguous
+                'optionValues',
+                'contentUnit:id,code,name',
+            ])
+            ->get();
+
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $display = $money->getDisplayCurrency();
+        $convert = fn (?float $amount) => $amount === null
+            ? null
+            : $money->convertForDisplay($amount, $product->currency_id, $display->id)['amount'];
+
+        // Only options/values that at least one live variant uses
+        $usedValueIds = $variants->flatMap(fn ($v) => $v->optionValues->pluck('id'))->unique()->all();
+        $options = $product->options()
+            ->with(['values' => fn ($q) => $q->whereIn('id', $usedValueIds)->orderBy('position')])
+            ->orderBy('position')
+            ->get()
+            ->filter(fn ($o) => $o->values->isNotEmpty())
+            ->map(fn ($o) => [
+                'id'     => $o->id,
+                'name'   => $o->name,
+                'values' => $o->values->map(fn ($v) => [
+                    'id' => $v->id, 'value' => $v->value, 'meta' => $v->meta,
+                ])->values(),
+            ])
+            ->values();
+
+        $variantsOut = $variants->map(function (ProductVariant $v) use ($convert) {
+            $units = $v->units
+                ->filter(fn ($u) => $u->is_sellable)
+                ->map(function (ProductVariantUnit $u) use ($v, $convert) {
+                    $u->setRelation('variant', $v); // lets effectivePrice() use the loaded base unit
+                    $price = $u->effectivePrice();
+                    $compare = $u->compare_at_price !== null ? (float) $u->compare_at_price : null;
+
+                    return [
+                        'id'                 => $u->id,
+                        'role'               => $u->role,
+                        'unit'               => $u->unit,
+                        'base_factor'        => (float) $u->base_factor,
+                        'contains_qty'       => $u->contains_qty !== null ? (float) $u->contains_qty : null,
+                        'price'              => $price,
+                        'display_price'      => $convert($price),
+                        'compare_at_price'   => $compare,
+                        'display_compare_at' => $convert($compare),
+                        'available_quantity' => $u->availableQuantity(),
+                        'is_default_sale'    => (bool) $u->is_default_sale,
+                    ];
+                })
+                ->values();
+
+            return [
+                'id'               => $v->id,
+                'name'             => $v->name,
+                'sku'              => $v->sku,
+                'is_default'       => (bool) $v->is_default,
+                'combination_key'  => $v->combination_key,
+                // { option_id: option_value_id }
+                'selection'        => $v->optionValues->mapWithKeys(fn ($ov) => [$ov->option_id => $ov->id]),
+                'net_content_qty'  => $v->net_content_qty !== null ? (float) $v->net_content_qty : null,
+                'net_content_unit' => $v->contentUnit,
+                'in_stock'         => $v->inStock(),
+                'units'            => $units,
+            ];
+        })
+        // A variant with nothing sellable can't be bought — hide it
+        ->filter(fn ($v) => $v['units']->isNotEmpty())
+        ->values();
+
+        $images = $product->productImages()
+            ->get(['id', 'path', 'alt_text', 'option_value_id', 'variant_id', 'is_primary', 'position']);
+
+        return response()->json([
+            'currency'         => $product->currency,
+            'display_currency' => $display->code,
+            'options'          => $options,
+            'variants'         => $variantsOut,
+            'images'           => $images,
+        ], 200);
+    }
+
     public function adminIndexOptions($productId)
     {
         $product = Product::findOrFail($productId);

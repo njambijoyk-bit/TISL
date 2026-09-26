@@ -1,5 +1,5 @@
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import useCartStore from '../../store/cartStore';
+import useCartStore, { lineKey } from '../../store/cartStore';
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 
@@ -7,8 +7,8 @@ export default function CartItem({ item }) {
   const { updateQuantity, removeItem } = useCartStore();
 
   const handleQuantityChange = (newQty) => {
-    if (newQty < 1) removeItem(item.id);
-    else updateQuantity(item.id, newQty);
+    if (newQty < 1) removeItem(lineKey(item));
+    else updateQuantity(lineKey(item), newQty);
   };
 
   const hasDiscount = item.original_price && parseFloat(item.original_price) > parseFloat(item.price);
@@ -41,6 +41,13 @@ export default function CartItem({ item }) {
         <p style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.name}
         </p>
+
+        {/* Chosen variant / unit */}
+        {item.selectedVariant?.name && (
+          <p style={{ fontSize: '0.75rem', color: '#a855f7', fontWeight: 600, margin: '0 0 4px' }}>
+            {item.selectedVariant.name}{item.selectedVariant.unit ? ` · ${item.selectedVariant.unit}` : ''}
+          </p>
+        )}
 
         {/* Brand + SKU */}
         {(item.brand || item.sku) && (
@@ -100,7 +107,7 @@ export default function CartItem({ item }) {
           </button>
 
           <button
-            onClick={() => removeItem(item.id)}
+            onClick={() => removeItem(lineKey(item))}
             aria-label="Remove item"
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -36,6 +36,8 @@ import { productsAPI } from '../../api';
 import { useCartStore, useProductStore, useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
 import useMoney from '../../hooks/useMoney';
+import VariantPicker from '../../components/products/VariantPicker';
+import { storageUrl } from '../../lib/storageUrl';
 
 function Lightbox({ url, onClose }) {
   useEffect(() => {
@@ -99,6 +101,9 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  // Structured variants: { variant, unit, image } from <VariantPicker>
+  const [choice, setChoice] = useState(null);
+  const [hasStructured, setHasStructured] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
   
   const [addedToCart, setAddedToCart] = useState(false);
@@ -255,18 +260,46 @@ export default function ProductDetail() {
   };
 
   const handleAddToCart = () => {
-    const inStock = product?.in_stock ?? product?.instock ?? false;
-    if (!inStock) { toast.error('Product is out of stock'); return; }
-    addItem({ ...product, selectedVariant }, quantity);
+    const inStock = choice
+      ? choice.variant.in_stock && choice.unit.available_quantity >= 1
+      : (product?.in_stock ?? product?.instock ?? false);
+    if (!inStock) { toast.error(choice ? 'That option is out of stock' : 'Product is out of stock'); return; }
+    if (hasStructured && !choice) { toast.error('Please choose from the available options'); return; }
+    if (choice && choice.unit.available_quantity < quantity) {
+      toast.error(`Only ${Math.floor(choice.unit.available_quantity)} available`); return;
+    }
+    addItem(cartLine(), quantity);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
     toast.success(`${product?.name} added to cart!`);
   };
 
+  /** The product as a cart / quote line — with the chosen variant and unit if any. */
+  const cartLine = () => {
+    if (!choice) return { ...product, selectedVariant };
+    const { variant, unit } = choice;
+    return {
+      ...product,
+      // Price in the product's own currency, like product.price
+      price: unit.price ?? product.price,
+      original_price: unit.compare_at_price ?? null,
+      line_key: `${product.id}:${variant.id}:${unit.id}`,   // separate cart line per variant + unit
+      variant_id: variant.id,
+      variant_unit_id: unit.id,
+      selectedVariant: {
+        id: variant.id,
+        name: variantLabel,
+        sku: variant.sku,
+        unit: unit.unit?.name,
+        unit_code: unit.unit?.code,
+      },
+    };
+  };
+
   const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
   const handleRequestQuote = () => {
     if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList({ ...product, selectedVariant }, quantity);
+    addToQuoteList(cartLine(), quantity);
     toast.success(`${product?.name} added to quote list`);
   };
   const handleToggleWishlist = (e) => {
@@ -352,28 +385,36 @@ export default function ProductDetail() {
   const isFeatured = product?.is_featured ?? product?.isfeatured ?? 0;
   const averageRating = parseFloat(product?.average_rating ?? product?.averagerating ?? 0);
   const totalReviews = product?.total_reviews ?? product?.totalreviews ?? 0;
-  const inStock = product?.in_stock ?? product?.instock ?? false;
+  const inStock = choice
+    ? choice.variant.in_stock && choice.unit.available_quantity >= 1
+    : (product?.in_stock ?? product?.instock ?? false);
+  const variantLabel = choice ? (choice.variant.name || choice.label) : null;
   const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
   const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
   const hasAuction = product?.active_auction && product.active_auction.status === 'active';
   const auction = product?.active_auction || null;
   const additionalImages = product?.additional_images ?? product?.additionalimages ?? [];
   const productImages = [
+    ...(choice?.image?.path ? [storageUrl(choice.image.path)] : []),
     product?.main_image_url, product?.mainimageurl, product?.main_image, product?.mainimage,
     ...(Array.isArray(additionalImages) ? additionalImages : []),
     ...(Array.isArray(product?.images) ? product.images : []),
   ].filter(Boolean);
-  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
-  const originalPrice = selectedVariant?.original_price ?? selectedVariant?.originalprice ?? product?.original_price ?? product?.originalprice ?? null;
+  const currentPrice = choice ? (choice.unit.price ?? 0) : (selectedVariant?.price ?? product?.price ?? 0);
+  const originalPrice = choice
+    ? choice.unit.compare_at_price
+    : selectedVariant?.original_price ?? selectedVariant?.originalprice ?? product?.original_price ?? product?.originalprice ?? null;
   
   const priceDiff = originalPrice && Number(originalPrice) !== Number(currentPrice);
   const isMarkdown = priceDiff && Number(originalPrice) > Number(currentPrice);
 
   // Shown in the shopper's chosen currency. A (legacy) variant's own price is
   // in the product's currency, so it's converted the same way.
-  const currentPriceText = selectedVariant?.price != null
-    ? money.itemAmount(selectedVariant.price, product)
-    : money.price(product);
+  const currentPriceText = choice
+    ? (choice.unit.price != null ? money.itemAmount(choice.unit.price, product) : 'Price on request')
+    : selectedVariant?.price != null
+      ? money.itemAmount(selectedVariant.price, product)
+      : money.price(product);
   const originalPriceText = originalPrice != null ? money.itemAmount(originalPrice, product) : null;
   const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
   const priceDeltaPct = priceDiff
@@ -676,6 +717,13 @@ export default function ProductDetail() {
                 </div>
               </div>
 
+              {/* ── Variant & unit choice (renders nothing without structured variants) ── */}
+              <VariantPicker
+                product={product}
+                onLoaded={setHasStructured}
+                onChange={(c) => { setChoice(c); if (c?.image) setSelectedImage(0); }}
+              />
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* ── Quantity Wheel ── */}
                 {(() => {
@@ -959,7 +1007,7 @@ export default function ProductDetail() {
                 )}
 
                 {/* Variants */}
-                {hasVariants && Array.isArray(variants) && variants.length > 0 && (
+                {!hasStructured && hasVariants && Array.isArray(variants) && variants.length > 0 && (
                   <div style={{ flex: '1 1 220px' }}>
                     <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
                       Available Options

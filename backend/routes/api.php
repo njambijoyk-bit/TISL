@@ -213,6 +213,7 @@ Route::get('/products/new-arrivals', [ProductController::class, 'newArrivals']);
 Route::get('/products/on-sale', [ProductController::class, 'onSale']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
+Route::get('/products/{id}/variants', [ProductVariantController::class, 'publicShow'])->whereNumber('id');
 Route::get('/products/{id}/reviews', [ProductReviewController::class, 'index']);
 Route::post('/reviews/{id}/helpful', [ProductReviewController::class, 'markHelpful']);
 

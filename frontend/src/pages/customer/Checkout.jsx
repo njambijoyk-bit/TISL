@@ -453,7 +453,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                     const stock     = item.stock_quantity || 0;
                     const backorder = item.quantity > stock ? item.quantity - stock : 0;
                     return (
-                      <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div key={item.line_key ?? item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                         {item.image_url && (
                           <img src={item.image_url} alt={item.name}
                             style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', background: '#f3f4f6', flexShrink: 0 }}

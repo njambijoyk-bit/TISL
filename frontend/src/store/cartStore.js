@@ -17,6 +17,13 @@ const syncCartToServer = (items) => {
   }, DEBOUNCE_MS);
 };
 
+/**
+ * A cart line's identity. Lines for different variants / units of the same
+ * product must stay separate, so they carry a line_key; older lines (and
+ * products without variants) fall back to the product id.
+ */
+export const lineKey = (item) => item?.line_key ?? item?.id;
+
 const useCartStore = create(
   persist(
     (set, get) => ({
@@ -26,24 +33,26 @@ const useCartStore = create(
 
       addItem: (product, quantity = 1) => {
         const items = get().items;
-        const existing = items.find(i => i.id === product.id);
+        const key = lineKey(product);
+        const existing = items.find(i => lineKey(i) === key);
         const next = existing
-          ? items.map(i => i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
+          ? items.map(i => lineKey(i) === key ? { ...i, quantity: i.quantity + quantity } : i)
           : [...items, { ...product, quantity }];
         set({ items: next });
         syncCartToServer(next);
         searchEvents.addToCart(product);
       },
 
-      removeItem: (productId) => {
-        const next = get().items.filter(i => i.id !== productId);
+      /** @param key  lineKey(item) — the product id for lines without a variant */
+      removeItem: (key) => {
+        const next = get().items.filter(i => lineKey(i) !== key);
         set({ items: next });
         syncCartToServer(next);
       },
 
-      updateQuantity: (productId, quantity) => {
-        if (quantity <= 0) { get().removeItem(productId); return; }
-        const next = get().items.map(i => i.id === productId ? { ...i, quantity } : i);
+      updateQuantity: (key, quantity) => {
+        if (quantity <= 0) { get().removeItem(key); return; }
+        const next = get().items.map(i => lineKey(i) === key ? { ...i, quantity } : i);
         set({ items: next });
         syncCartToServer(next);
       },
@@ -72,7 +81,7 @@ const useCartStore = create(
           const localItems = get().items;
           const merged = [...serverItems.map(i => ({ ...i }))];
           localItems.forEach(localItem => {
-            const idx = merged.findIndex(i => i.id === localItem.id);
+            const idx = merged.findIndex(i => lineKey(i) === lineKey(localItem));
             if (idx !== -1) {
               merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + localItem.quantity };
             } else {

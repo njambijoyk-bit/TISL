@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Lock } from 'lucide-react';
-import useCartStore from '../../store/cartStore';
+import useCartStore, { lineKey } from '../../store/cartStore';
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 
@@ -70,7 +70,7 @@ export default function MiniCart({ isOpen, onClose }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {items.map(item => (
-                <div key={item.id} style={{
+                <div key={lineKey(item)} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '10px 12px', borderRadius: 10,
                   background: '#fafafa', border: '1px solid #f3f4f6',
@@ -84,6 +84,11 @@ export default function MiniCart({ isOpen, onClose }) {
                     <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.name}
                     </p>
+                    {item.selectedVariant?.name && (
+                      <p style={{ fontSize: '0.7rem', color: '#a855f7', fontWeight: 600, margin: '0 0 2px' }}>
+                        {item.selectedVariant.name}{item.selectedVariant.unit ? ` · ${item.selectedVariant.unit}` : ''}
+                      </p>
+                    )}
                     <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 2px' }}>
                       Qty: {item.quantity}
                     </p>
@@ -92,7 +97,7 @@ export default function MiniCart({ isOpen, onClose }) {
                     </p>
                   </div>
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(lineKey(item))}
                     style={{
                       width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRadius: 7, border: 'none', cursor: 'pointer', flexShrink: 0,
