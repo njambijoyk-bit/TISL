@@ -162,7 +162,7 @@ export default function HamperDetail() {
                       </div>
                       <div style={{ flexShrink: 0, textAlign: 'right' }}>
                         <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: accent }}>x{item.quantity}</span>
-                        {snap.price && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{fmt(snap.price, snap.currency)} each</span>}
+                        {snap.price && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{fmt(snap.price, snap.currency ?? item.product?.currency)} each</span>}
                       </div>
                     </div>
                   );

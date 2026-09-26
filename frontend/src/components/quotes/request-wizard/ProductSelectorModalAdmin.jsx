@@ -3,6 +3,7 @@ import { Search, Package, Check, X } from 'lucide-react';
 import AdminPagination from '../../common/AdminPagination';
 import useProductStore from '../../../store/productStore';
 import { productsAPI } from '../../../api';
+import { formatMoney } from '../../../lib/money';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = '#a855f7';
@@ -63,7 +64,9 @@ const StyledSelect = ({ children, ...props }) => (
   </select>
 );
 
-const fmt = (amount) => `KES ${parseFloat(amount || 0).toLocaleString()}`;
+// The item's stored price in its own currency — no conversion in selectors
+const fmt = (amount, item) =>
+  formatMoney(parseFloat(amount || 0), item?.currency?.symbol || item?.currency?.code || 'KSh', { decimals: 'auto' });
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] }) => {
@@ -237,7 +240,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                           <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: '#f3f4f6', color: '#6b7280', width: 'fit-content' }}>{product.brand.name}</span>
                         )}
                         {product.category?.name && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{product.category.name}</p>}
-                        {product.price && <p style={{ fontSize: '0.82rem', fontWeight: 800, color: purple, margin: 0 }}>{fmt(product.price)}</p>}
+                        {product.price && <p style={{ fontSize: '0.82rem', fontWeight: 800, color: purple, margin: 0 }}>{fmt(product.price, product)}</p>}
                         {product.stock_quantity !== undefined && (
                           <p style={{ fontSize: '0.7rem', fontWeight: 600, color: product.stock_quantity > 0 ? '#10b981' : '#ef4444', margin: 0 }}>
                             {product.stock_quantity > 0 ? `In Stock (${product.stock_quantity})` : 'Out of Stock'}

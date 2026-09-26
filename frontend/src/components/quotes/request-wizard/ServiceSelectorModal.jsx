@@ -3,6 +3,7 @@ import { Search, Wrench, Check, Star, Clock, X } from 'lucide-react';
 import AdminPagination from '../../common/AdminPagination';
 import useServiceStore from '../../../store/serviceStore';
 import { servicesAPI } from '../../../api';
+import { formatMoney } from '../../../lib/money';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = '#a855f7';
@@ -66,16 +67,18 @@ const Pill = ({ children, color = '#6b7280', bg = '#f3f4f6' }) => (
   <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: bg, color, whiteSpace: 'nowrap' }}>{children}</span>
 );
 
-const fmt = (amount) => `KES ${parseFloat(amount || 0).toLocaleString()}`;
+// The item's stored price in its own currency — no conversion in selectors
+const fmt = (amount, item) =>
+  formatMoney(parseFloat(amount || 0), item?.currency?.symbol || item?.currency?.code || 'KSh', { decimals: 'auto' });
 
 const getPricingDisplay = (service) => {
   if (service.price_is_negotiable) return 'Negotiable';
   switch (service.pricing_model) {
-    case 'hourly':       return service.hourly_rate  ? `${fmt(service.hourly_rate)}/hr`   : 'Contact for pricing';
-    case 'daily':        return service.daily_rate   ? `${fmt(service.daily_rate)}/day`   : 'Contact for pricing';
-    case 'subscription': return service.base_price   ? `${fmt(service.base_price)}/mo`    : 'Contact for pricing';
+    case 'hourly':       return service.hourly_rate  ? `${fmt(service.hourly_rate, service)}/hr`   : 'Contact for pricing';
+    case 'daily':        return service.daily_rate   ? `${fmt(service.daily_rate, service)}/day`   : 'Contact for pricing';
+    case 'subscription': return service.base_price   ? `${fmt(service.base_price, service)}/mo`    : 'Contact for pricing';
     case 'fixed':
-    case 'project_based':return service.base_price   ? `From ${fmt(service.base_price)}`  : 'Contact for pricing';
+    case 'project_based':return service.base_price   ? `From ${fmt(service.base_price, service)}`  : 'Contact for pricing';
     default:             return 'Contact for pricing';
   }
 };
@@ -261,7 +264,7 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <p style={{ fontSize: '0.88rem', fontWeight: 800, color: purple, margin: '0 0 2px' }}>{getPricingDisplay(service)}</p>
-                          {service.minimum_charge && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Min: {fmt(service.minimum_charge)}</p>}
+                          {service.minimum_charge && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Min: {fmt(service.minimum_charge, service)}</p>}
                         </div>
                       </div>
 
