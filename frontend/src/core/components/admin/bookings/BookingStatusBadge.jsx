@@ -3,7 +3,7 @@ import React from 'react';
 const STATUS_CONFIG = {
   pending:     { label: 'Pending',     bg: 'rgba(245,158,11,0.1)',  color: '#b45309',  border: 'rgba(245,158,11,0.25)'  },
   confirmed:   { label: 'Confirmed',   bg: 'rgba(59,130,246,0.1)',  color: '#1d4ed8',  border: 'rgba(59,130,246,0.25)'  },
-  in_progress: { label: 'In Progress', bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed',  border: 'rgba(168,85,247,0.25)'  },
+  in_progress: { label: 'In Progress', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)',  border: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   completed:   { label: 'Completed',   bg: 'rgba(16,185,129,0.1)',  color: '#065f46',  border: 'rgba(16,185,129,0.25)'  },
   cancelled:   { label: 'Cancelled',   bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c',  border: 'rgba(239,68,68,0.25)'   },
   no_show:     { label: 'No Show',     bg: 'rgba(107,114,128,0.1)', color: '#374151',  border: 'rgba(107,114,128,0.25)' },

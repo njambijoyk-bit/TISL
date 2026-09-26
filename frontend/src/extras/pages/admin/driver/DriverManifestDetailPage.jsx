@@ -394,8 +394,8 @@ function StopDetailModal({ item, onClose }) {
                                 <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 5,
                                     padding: '2px 9px', borderRadius: 20,
-                                    background: '#ede9fe', border: '1px solid #c4b5fd',
-                                    fontSize: '0.75rem', fontWeight: 700, color: '#5b21b6',
+                                    background: 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))', border: '1px solid #c4b5fd',
+                                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-800)',
                                     textTransform: 'capitalize',
                                 }}>
                                     {customer.tier}
@@ -530,7 +530,7 @@ function StopDetailModal({ item, onClose }) {
                                         </span>
                                     </div>
                                     <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7F77DD', background: '#ede9fe', border: '1px solid #c4b5fd', borderRadius: 20, padding: '2px 10px' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7F77DD', background: 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))', border: '1px solid #c4b5fd', borderRadius: 20, padding: '2px 10px' }}>
                                             ×{parseFloat(oi.quantity)}
                                         </span>
                                         <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151' }}>
@@ -1108,7 +1108,7 @@ function ReportIncidentModal({ manifest, onClose, onSuccess }) {
                         </label>
                         <div style={{ display: 'flex', gap: 8 }}>
                             {INCIDENT_SEVERITIES.map(s => {
-                                const colors = { low: '#059669', medium: '#d97706', high: '#dc2626', critical: '#7c3aed' };
+                                const colors = { low: '#059669', medium: '#d97706', high: '#dc2626', critical: 'var(--color-primary-600)' };
                                 const active = severity === s.value;
                                 const color = colors[s.value];
                                 return (

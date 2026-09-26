@@ -15,7 +15,7 @@ import useAuthStore from '../../../_shared/store/authStore'; // ✅ correct impo
 const statusConfig = {
   pending:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
   confirmed:  { color: '#2563eb', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6' },
-  processing: { color: '#7c3aed', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', dot: '#8b5cf6' },
+  processing: { color: 'var(--color-primary-600)', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', dot: 'var(--color-primary-400)' },
   delivered:  { color: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
   failed:     { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
   cancelled:  { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
@@ -24,7 +24,7 @@ const statusConfig = {
 const paymentConfig = {
   pending:        { color: '#d97706', label: 'Pending' },
   confirmed:      { color: '#2563eb', label: 'Confirmed' },
-  partially_paid: { color: '#7c3aed', label: 'Partial' },
+  partially_paid: { color: 'var(--color-primary-600)', label: 'Partial' },
   paid:           { color: '#059669', label: 'Paid' },
   overpayment:    { color: '#0891b2', label: 'Overpaid' },
   refunded:       { color: '#6b7280', label: 'Refunded' },
@@ -63,7 +63,7 @@ const StatusBadge = ({ status, type = 'order' }) => {
 const FilterChip = ({ label, active, onClick, count }) => (
   <button onClick={onClick} style={{
     padding: '6px 14px', borderRadius: 99, border: 'none',
-    background: active ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#f3f4f6',
+    background: active ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : '#f3f4f6',
     color: active ? 'white' : '#6b7280', fontSize: '0.78rem', fontWeight: 700,
     cursor: 'pointer', transition: 'all 150ms', whiteSpace: 'nowrap',
     display: 'inline-flex', alignItems: 'center', gap: 6
@@ -80,7 +80,7 @@ const FilterChip = ({ label, active, onClick, count }) => (
 
 const ActionBtn = ({ children, onClick, variant = 'primary', icon: Icon, disabled }) => {
   const variants = {
-    primary: { background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', border: 'none' },
+    primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', border: 'none' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
     success: { background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1.5px solid rgba(16,185,129,0.2)' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)' },
@@ -240,7 +240,7 @@ function TrashedOrdersModal({ isOpen, onClose, isSuperAdmin, onRestored }) {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', flexDirection: 'column', gap: 10 }}>
-              <RefreshCw size={28} style={{ color: '#a855f7', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
+              <RefreshCw size={28} style={{ color: 'var(--color-primary-500)', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
               <p style={{ color: '#9ca3af', fontWeight: 600, fontSize: '0.85rem' }}>Loading...</p>
             </div>
           ) : trashed.length === 0 ? (
@@ -256,7 +256,7 @@ function TrashedOrdersModal({ isOpen, onClose, isSuperAdmin, onRestored }) {
                   {['Order #', 'Product', 'Customer', 'Total', 'Deleted On', 'Actions'].map(h => (
                     <th key={h} style={{
                       padding: '10px 16px', textAlign: 'left',
-                      fontSize: '0.65rem', fontWeight: 800, color: '#a855f7',
+                      fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)',
                       textTransform: 'uppercase', letterSpacing: '0.08em',
                       borderBottom: '1px solid #f3f4f6', whiteSpace: 'nowrap'
                     }}>{h}</th>
@@ -468,7 +468,7 @@ export default function AdminAuctionOrders() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <button
                 onClick={() => navigate('/admin/auctions')}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7', fontSize: '0.8rem', fontWeight: 600, padding: 0 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)', fontSize: '0.8rem', fontWeight: 600, padding: 0 }}
                 onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                 onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
             >
@@ -504,10 +504,10 @@ export default function AdminAuctionOrders() {
         {/* Stats Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
           {[
-            { label: 'Total Orders', value: pagination.total, color: '#a855f7', icon: Package },
+            { label: 'Total Orders', value: pagination.total, color: 'var(--color-primary-500)', icon: Package },
             { label: 'Pending',      value: stats.pending || 0, color: '#d97706', icon: Clock },
             { label: 'Confirmed',    value: stats.confirmed || 0, color: '#2563eb', icon: CheckCircle },
-            { label: 'Processing',   value: stats.processing || 0, color: '#7c3aed', icon: Truck },
+            { label: 'Processing',   value: stats.processing || 0, color: 'var(--color-primary-600)', icon: Truck },
             { label: 'Delivered',    value: stats.delivered || 0, color: '#059669', icon: Shield },
             { label: 'Failed/Cancelled', value: (stats.failed || 0) + (stats.cancelled || 0), color: '#dc2626', icon: XCircle },
           ].map((s, i) => (
@@ -553,7 +553,7 @@ export default function AdminAuctionOrders() {
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, flexDirection: 'column', gap: 12 }}>
-              <RefreshCw size={32} style={{ color: '#a855f7', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
+              <RefreshCw size={32} style={{ color: 'var(--color-primary-500)', opacity: 0.4, animation: 'spin 1s linear infinite' }} />
               <p style={{ color: '#9ca3af', fontWeight: 600 }}>Loading orders...</p>
             </div>
           ) : orders.length === 0 ? (
@@ -569,7 +569,7 @@ export default function AdminAuctionOrders() {
                   <thead>
                     <tr style={{ background: '#f9fafb' }}>
                       {['Order #', 'Product', 'Customer', 'Total', 'Status', 'Payment', 'Date', 'Actions'].map(h => (
-                        <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', borderBottom: '1px solid #f3f4f6' }}>{h}</th>
+                        <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', borderBottom: '1px solid #f3f4f6' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -577,11 +577,11 @@ export default function AdminAuctionOrders() {
                     {orders.map((order) => (
                       <tr key={order.id} onClick={() => navigate(`/admin/auction-orders/${order.id}`)}
                         style={{ borderTop: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 150ms' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#a855f7' }}>#{order.order_number}</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>#{order.order_number}</span>
                           <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>Auction #{order.auction_id}</p>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
@@ -600,7 +600,7 @@ export default function AdminAuctionOrders() {
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: '#a855f7', flexShrink: 0 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-500)', flexShrink: 0 }}>
                               {(order.customer?.first_name?.[0] || 'U').toUpperCase()}
                             </div>
                             <div>
@@ -630,7 +630,7 @@ export default function AdminAuctionOrders() {
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                             <button onClick={() => navigate(`/admin/auction-orders/${order.id}`)}
-                              style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.06)', color: '#a855f7', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                              style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-500)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                               title="View Details">
                               <Eye size={14} />
                             </button>

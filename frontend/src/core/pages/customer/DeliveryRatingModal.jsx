@@ -19,12 +19,12 @@ function ModalShell({ onClose, children }) {
         onClick={e => e.stopPropagation()}
         style={{
           background: 'white', borderRadius: 20, width: '100%', maxWidth: 440,
-          boxShadow: '0 24px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(168,85,247,0.12)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.18), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
           overflow: 'hidden',
         }}
       >
         {/* Purple accent top bar */}
-        <div style={{ height: 4, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+        <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
         {children}
       </div>
     </div>
@@ -111,9 +111,9 @@ export default function DeliveryRatingModal({ orderId, deliveryItemId, onClose, 
         </div>
         <button
           type="button" onClick={onClose}
-          style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)', borderRadius: 10, padding: 6, cursor: 'pointer', lineHeight: 0 }}
+          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 10, padding: 6, cursor: 'pointer', lineHeight: 0 }}
         >
-          <X size={15} color="#a855f7" />
+          <X size={15} color="var(--color-primary-500)" />
         </button>
       </div>
 
@@ -130,7 +130,7 @@ export default function DeliveryRatingModal({ orderId, deliveryItemId, onClose, 
 
         {/* Comment */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#c084fc', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-primary-400)', marginBottom: 6 }}>
             Comment <span style={{ color: '#9ca3af', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(optional)</span>
           </label>
           <textarea
@@ -141,12 +141,12 @@ export default function DeliveryRatingModal({ orderId, deliveryItemId, onClose, 
             placeholder="Anything you'd like to share about this delivery…"
             style={{
               width: '100%', resize: 'vertical', boxSizing: 'border-box',
-              border: '1px solid rgba(168,85,247,0.2)', borderRadius: 12,
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 12,
               padding: '10px 12px', fontSize: 13, color: '#111827',
               outline: 'none', fontFamily: 'inherit', lineHeight: 1.5,
             }}
-            onFocus={e => e.target.style.borderColor = '#a855f7'}
-            onBlur={e => e.target.style.borderColor = 'rgba(168,85,247,0.2)'}
+            onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
+            onBlur={e => e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
           />
           <p style={{ textAlign: 'right', fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>
             {comment.length}/1000

@@ -307,21 +307,21 @@ export default function Quotes() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 12px', borderRadius: 20,
-              background: 'rgba(168,85,247,0.06)',
-              border: '1.5px solid rgba(168,85,247,0.15)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
               color: '#ff91f2', fontSize: '0.8rem', fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
               transition: 'all 150ms ease-out',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.12)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 3px 8px rgba(168,85,247,0.15)';
+              e.currentTarget.style.boxShadow = '0 3px 8px color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
               e.currentTarget.style.transform = 'none';
               e.currentTarget.style.boxShadow = 'none';
             }}
@@ -442,17 +442,17 @@ export default function Quotes() {
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
-              background: 'rgba(168,85,247,0.06)',
-              border: '1.5px solid rgba(168,85,247,0.15)',
-              color: '#7c3aed', transition: 'all 150ms',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+              color: 'var(--color-primary-600)', transition: 'all 150ms',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.14)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)';
             }}
           >
             <Eye size={15} />
@@ -495,7 +495,7 @@ export default function Quotes() {
   {/* Buttons */}
   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
     {[
-      { label: 'Create Quote', icon: <Plus size={15} />, onClick: () => navigate('/admin/quotes/create'), color: '#7c3aed', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.3)' },
+      { label: 'Create Quote', icon: <Plus size={15} />, onClick: () => navigate('/admin/quotes/create'), color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
       { label: 'Trash', icon: <RotateCcw size={15} />, onClick: openTrashModal, color: '#d73333', bg: 'rgba(215, 51, 51, 0.1)', border: 'rgba(215, 51, 51, 0.3)' },
     ].map(({ label, icon, onClick, color, bg, border }) => (
       <button key={label} onClick={onClick} style={{
@@ -635,8 +635,8 @@ export default function Quotes() {
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
               padding: 14, borderRadius: 10,
-              background: 'rgba(168,85,247,0.04)',
-              border: '1px solid rgba(168,85,247,0.1)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             }}>
               {[
                 { label: 'Customer ID', value: `#${selectedCustomer.id}` },
@@ -696,14 +696,14 @@ export default function Quotes() {
                     </div>
 
                     {/* Avg Quote */}
-                    <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                    <div style={{ padding: 14, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                       <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avg Quote (KES)</p>
-                      <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7c3aed', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
+                      <p style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0, lineHeight: 1 }}>{kesMoney(avgKes)}</p>
                     </div>
                   </div>
 
                   {/* Status breakdown */}
-                  <div style={{ padding: 14, borderRadius: 10, background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                  <div style={{ padding: 14, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                     <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 10px' }}>Status Breakdown</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                       {Object.keys(byStatus).length === 0 ? (
@@ -714,8 +714,8 @@ export default function Quotes() {
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '3px 10px', borderRadius: 20,
                             fontSize: '0.72rem', fontWeight: 700,
-                            background: 'rgba(168,85,247,0.08)', color: '#6b21a8',
-                            boxShadow: '0 0 0 1px rgba(168,85,247,0.2)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-800)',
+                            boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                           }}>
                             {status}: {count}
                           </span>
@@ -743,15 +743,15 @@ export default function Quotes() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 padding: '10px 13px', borderRadius: 10, cursor: 'pointer',
                                 background: 'white',
-                                border: '1px solid rgba(168,85,247,0.1)',
+                                border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                                 transition: 'border-color 150ms, background 150ms',
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                             >
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>{q.quote_number}</span>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-800)' }}>{q.quote_number}</span>
                                   <QuoteStatusBadge status={q.status} />
                                   <span style={{
                                     padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
@@ -810,8 +810,8 @@ export default function Quotes() {
                 <div style={{
                   width: '100%', maxWidth: 1000,
                   background: 'white', borderRadius: 14,
-                  border: '1px solid rgba(168,85,247,0.15)',
-                  boxShadow: '0 8px 40px rgba(168,85,247,0.12), 0 2px 12px rgba(0,0,0,0.08)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                  boxShadow: '0 8px 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)',
                   overflow: 'hidden',
                 }}>
 
@@ -819,7 +819,7 @@ export default function Quotes() {
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '14px 20px',
-                    borderBottom: '1.5px solid rgba(168,85,247,0.1)',
+                    borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                   }}>
                     <div>
                       <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
@@ -837,7 +837,7 @@ export default function Quotes() {
                         border: 'none', background: 'none',
                         color: '#9ca3af', cursor: 'pointer', transition: 'all 150ms',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#7c3aed'; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
                     >
                       <X size={16} />
@@ -849,7 +849,7 @@ export default function Quotes() {
                     padding: '14px 20px',
                     display: 'flex', flexWrap: 'wrap', alignItems: 'center',
                     justifyContent: 'space-between', gap: 10,
-                    borderBottom: '1.5px solid rgba(168,85,247,0.08)',
+                    borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   }}>
 
                     {/* Left: search + status + refresh */}
@@ -861,12 +861,12 @@ export default function Quotes() {
                         style={{
                           width: 240, padding: '7px 12px', borderRadius: 8,
                           fontSize: '0.82rem', color: '#111827', fontFamily: 'inherit',
-                          background: 'rgba(168,85,247,0.03)',
-                          border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', outline: 'none',
                           transition: 'border-color 150ms, box-shadow 150ms',
                         }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
                       />
                       <select
                         value={trashFilters.status}
@@ -874,12 +874,12 @@ export default function Quotes() {
                         style={{
                           padding: '7px 12px', borderRadius: 8, fontSize: '0.82rem',
                           color: '#111827', fontFamily: 'inherit', cursor: 'pointer',
-                          background: 'rgba(168,85,247,0.03)',
-                          border: '1.5px solid rgba(168,85,247,0.18)', outline: 'none',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', outline: 'none',
                           transition: 'border-color 150ms, box-shadow 150ms',
                         }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
                       >
                         <option value="">All Statuses</option>
                         <option value="draft">Draft</option>
@@ -896,11 +896,11 @@ export default function Quotes() {
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '7px 13px', borderRadius: 8, cursor: 'pointer',
                           fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                          background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
-                          border: '1.5px solid rgba(168,85,247,0.18)', transition: 'all 150ms',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', transition: 'all 150ms',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; }}
                       >
                         Refresh
                       </button>
@@ -915,12 +915,12 @@ export default function Quotes() {
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '7px 13px', borderRadius: 8, fontFamily: 'inherit',
                           fontSize: '0.82rem', fontWeight: 600, cursor: selectedIds.length ? 'pointer' : 'not-allowed',
-                          background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                          border: '1.5px solid rgba(168,85,247,0.22)',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                           opacity: selectedIds.length ? 1 : 0.4, transition: 'all 150ms',
                         }}
-                        onMouseEnter={e => { if (selectedIds.length) { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; }}
+                        onMouseEnter={e => { if (selectedIds.length) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; }}
                       >
                         <RotateCcw size={14} /> Restore Selected
                       </button>
@@ -984,7 +984,7 @@ export default function Quotes() {
                                   return Array.from(new Set([...prev, ...ids]));
                                 });
                               }}
-                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#a855f7' }}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--color-primary-500)' }}
                             />
                           ),
                           render: (q) => (
@@ -992,7 +992,7 @@ export default function Quotes() {
                               type="checkbox"
                               checked={selectedIds.includes(q.id)}
                               onChange={(e) => { e.stopPropagation(); toggleSelect(q.id); }}
-                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#a855f7' }}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--color-primary-500)' }}
                             />
                           ),
                         },
@@ -1028,11 +1028,11 @@ export default function Quotes() {
                                 display: 'inline-flex', alignItems: 'center', gap: 5,
                                 padding: '5px 11px', borderRadius: 8, cursor: 'pointer',
                                 fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit',
-                                background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
-                                border: '1.5px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
+                                background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
+                                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', transition: 'all 150ms',
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.14)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.07)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; }}
                             >
                               <RotateCcw size={12} /> Restore
                             </button>

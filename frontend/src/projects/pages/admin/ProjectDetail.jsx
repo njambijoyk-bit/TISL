@@ -27,10 +27,10 @@ import useProjectStore        from '../../../_shared/store/projectStore';
 import { useAuthStore }       from '../../../_shared/store/index';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const POLL_INTERVAL = 45000;
 
@@ -55,7 +55,7 @@ const formatDate = (d) => {
 
 const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'md', type = 'button' }) => {
   const variants = {
-    primary:     { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary:     { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     danger:      { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(239,68,68,0.25)' },
     outline:     { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--border,#e5e7eb)', boxShadow: 'none' },
     ghost:       { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}`, boxShadow: 'none' },
@@ -86,7 +86,7 @@ const Panel = ({ children, style = {}, accent = false, className = '' }) => (
     border: `1px solid ${accent ? purpleBd : 'var(--border,#f3f4f6)'}`,
     borderRadius: 16, overflow: 'hidden',
     boxShadow: accent
-      ? '0 0 0 1px rgba(168,85,247,0.1), 0 4px 20px rgba(168,85,247,0.07)'
+      ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 10%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 7%, transparent)'
       : '0 1px 4px rgba(0,0,0,0.04)',
     ...style,
   }}>
@@ -142,7 +142,7 @@ const ConfirmModal = ({ title, subtitle, body, confirmLabel = 'Delete', onConfir
           <Trash2 size={18} color="#ef4444" />
         </div>
         <div>
-          <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#a855f7', margin: '0 0 3px' }}>{title}</p>
+          <p style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 3px' }}>{title}</p>
           {subtitle && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
         </div>
       </div>
@@ -344,7 +344,7 @@ const ProjectDetail = () => {
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#a855f7', margin: '0 0 5px' }}>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--color-primary-500)', margin: '0 0 5px' }}>
               {project.title}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>

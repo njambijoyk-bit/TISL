@@ -8,16 +8,16 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: 11, fontSize: '0.85rem',
-  background: 'white', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'white', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 const labelStyle = {
   fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.07em', color: '#7c3aed', display: 'block', marginBottom: 6,
+  letterSpacing: '0.07em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 6,
 };
-const focus = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; };
-const blur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const focus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; };
+const blur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const BookService = () => {
   const { id } = useParams();
@@ -95,7 +95,7 @@ const BookService = () => {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 16px', gap: 10, color: '#9ca3af', fontSize: '0.82rem' }}>
-      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -117,7 +117,7 @@ const BookService = () => {
 
       {/* Back */}
       <button onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px', fontFamily: 'inherit' }}
-        onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
       ><ArrowLeft size={14} /> Back</button>
 
@@ -134,7 +134,7 @@ const BookService = () => {
       {/* Service header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <CalendarDays size={20} color="white" />
           </div>
           <div>
@@ -150,7 +150,7 @@ const BookService = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Scheduling type */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '18px' }}>
           <label style={labelStyle}>When would you like this?</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
@@ -158,11 +158,11 @@ const BookService = () => {
               ['next_available', <><Clock size={14} /> Next available slot</>],
               ['before_eod',     <><Clock size={14} /> Before end of business today</>],
             ].map(([val, lbl]) => (
-              <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, cursor: 'pointer', border: `1.5px solid ${form.scheduled_type === val ? '#a855f7' : 'rgba(168,85,247,0.1)'}`, background: form.scheduled_type === val ? 'rgba(168,85,247,0.04)' : 'white', transition: 'all 150ms' }}>
+              <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, cursor: 'pointer', border: `1.5px solid ${form.scheduled_type === val ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`, background: form.scheduled_type === val ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white', transition: 'all 150ms' }}>
                 <input type="radio" name="scheduled_type" value={val} checked={form.scheduled_type === val}
-                  onChange={() => set('scheduled_type', val)} style={{ accentColor: '#a855f7' }}
+                  onChange={() => set('scheduled_type', val)} style={{ accentColor: 'var(--color-primary-500)' }}
                 />
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: form.scheduled_type === val ? '#7c3aed' : '#374151', display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: form.scheduled_type === val ? 'var(--color-primary-600)' : '#374151', display: 'flex', alignItems: 'center', gap: 7 }}>
                   {lbl}
                 </span>
               </label>
@@ -196,9 +196,9 @@ const BookService = () => {
                         <button key={s.start} type="button" onClick={() => set('scheduled_slot', s.start)} style={{
                           padding: '9px 0', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
                           cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                          border: `1.5px solid ${form.scheduled_slot === s.start ? '#a855f7' : 'rgba(168,85,247,0.15)'}`,
-                          background: form.scheduled_slot === s.start ? 'rgba(168,85,247,0.08)' : 'white',
-                          color: form.scheduled_slot === s.start ? '#7c3aed' : '#374151',
+                          border: `1.5px solid ${form.scheduled_slot === s.start ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
+                          background: form.scheduled_slot === s.start ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+                          color: form.scheduled_slot === s.start ? 'var(--color-primary-600)' : '#374151',
                         }}>{s.start}</button>
                       ))}
                     </div>
@@ -210,16 +210,16 @@ const BookService = () => {
         </div>
 
         {/* Location */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '18px' }}>
           <label style={labelStyle}>Location</label>
           <div style={{ display: 'flex', gap: 8, marginBottom: (form.location_type !== 'instore') ? 12 : 0 }}>
             {['instore','onsite','remote'].map(t => (
               <button key={t} type="button" onClick={() => set('location_type', t)} style={{
                 flex: 1, padding: '9px 0', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms', textTransform: 'capitalize',
-                border: `1.5px solid ${form.location_type === t ? '#a855f7' : 'rgba(168,85,247,0.15)'}`,
-                background: form.location_type === t ? 'rgba(168,85,247,0.08)' : 'transparent',
-                color: form.location_type === t ? '#7c3aed' : '#9ca3af',
+                border: `1.5px solid ${form.location_type === t ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
+                background: form.location_type === t ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+                color: form.location_type === t ? 'var(--color-primary-600)' : '#9ca3af',
               }}>{t}</button>
             ))}
           </div>
@@ -232,7 +232,7 @@ const BookService = () => {
         </div>
 
         {/* Notes */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '18px' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '18px' }}>
           <label style={labelStyle}>Notes <span style={{ color: '#d1d5db', fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
           <textarea rows={3} value={form.customer_notes} onChange={e => set('customer_notes', e.target.value)}
             placeholder="Any special requirements, instructions, or context…"
@@ -258,8 +258,8 @@ const BookService = () => {
           style={{
             width: '100%', padding: '13px 0', borderRadius: 12, fontSize: '0.9rem', fontWeight: 800,
             border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 4px 16px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 4px 16px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: (saving || (settings && !settings.bookings_open) || !policyAccepted) ? 0.6 : 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             transition: 'opacity 150ms',

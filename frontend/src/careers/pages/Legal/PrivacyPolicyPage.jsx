@@ -63,13 +63,13 @@ export default function PrivacyPolicyPage() {
             <H2>7. Cookies</H2>
             <P>
                 The Careers portal uses essential cookies for authentication and session management.
-                See our <a href="/careers/cookies" style={{ color: '#a855f7' }}>Cookie Policy</a> for details.
+                See our <a href="/careers/cookies" style={{ color: 'var(--color-primary-500)' }}>Cookie Policy</a> for details.
             </P>
 
             <H2>8. Contact</H2>
             <P>
                 For privacy-related enquiries, contact us at <Highlight>web@targetisl.co.ke</Highlight> or
-                visit our <a href="/careers/contact" style={{ color: '#a855f7' }}>Contact page</a>.
+                visit our <a href="/careers/contact" style={{ color: 'var(--color-primary-500)' }}>Contact page</a>.
             </P>
         </LegalLayout>
     );

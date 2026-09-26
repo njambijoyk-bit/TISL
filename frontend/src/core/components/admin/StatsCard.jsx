@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const COLOR_MAP = {
-  primary: '#a855f7',
+  primary: 'var(--color-primary-500)',
   success: '#10b981',
   warning: '#f59e0b',
   danger:  '#ef4444',
@@ -34,7 +34,7 @@ export default function StatsCard({
           {loading ? (
             <div style={{ height: 32, width: 80, borderRadius: 8, background: '#f3f4f6' }} />
           ) : (
-            <p style={{ fontSize: '1.9rem', fontWeight: 800, color: '#c084fc', margin: 0, letterSpacing: '-0.03em', lineHeight: 1 }}>
+            <p style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--color-primary-400)', margin: 0, letterSpacing: '-0.03em', lineHeight: 1 }}>
               {value}
             </p>
           )}

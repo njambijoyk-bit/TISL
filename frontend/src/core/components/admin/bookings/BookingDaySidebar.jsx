@@ -39,8 +39,8 @@ const BookingDaySidebar = ({ day, bookings = [], loading = false, onClose }) => 
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 50,
         width: 380, maxWidth: '95vw',
         background: 'white',
-        borderLeft: '1px solid rgba(168,85,247,0.15)',
-        boxShadow: '-8px 0 40px rgba(168,85,247,0.1)',
+        borderLeft: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+        boxShadow: '-8px 0 40px color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
         display: 'flex', flexDirection: 'column',
         animation: 'slideInRight 200ms ease-out',
       }}>
@@ -52,19 +52,19 @@ const BookingDaySidebar = ({ day, bookings = [], loading = false, onClose }) => 
         `}</style>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           padding: '16px 20px',
-          borderBottom: '1px solid rgba(168,85,247,0.1)',
+          borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           flexShrink: 0,
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <CalendarDays size={16} color="white" />
@@ -84,7 +84,7 @@ const BookingDaySidebar = ({ day, bookings = [], loading = false, onClose }) => 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'color 120ms, background 120ms', flexShrink: 0,
           }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'none'; }}
           >
             <X size={16} />
@@ -101,7 +101,7 @@ const BookingDaySidebar = ({ day, bookings = [], loading = false, onClose }) => 
             </div>
           ) : dayBookings.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: 10, textAlign: 'center' }}>
-              <CalendarDays size={32} style={{ color: 'rgba(168,85,247,0.2)' }} />
+              <CalendarDays size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No bookings for this day</p>
               <p style={{ fontSize: '0.72rem', color: '#d1d5db', margin: 0 }}>Click another day to explore</p>
             </div>
@@ -122,28 +122,28 @@ const BookingDaySidebar = ({ day, bookings = [], loading = false, onClose }) => 
                     onClick={() => navigate(`/admin/bookings/${booking.id}`)}
                     style={{
                       padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
-                      border: '1.5px solid rgba(168,85,247,0.1)',
+                      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                       background: 'white',
-                      boxShadow: '0 1px 4px rgba(168,85,247,0.05)',
+                      boxShadow: '0 1px 4px color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                       transition: 'border-color 150ms, box-shadow 150ms, transform 150ms',
                       display: 'flex', flexDirection: 'column', gap: 8,
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.1)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
                       e.currentTarget.style.transform = 'translateX(-2px)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)';
-                      e.currentTarget.style.boxShadow = '0 1px 4px rgba(168,85,247,0.05)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+                      e.currentTarget.style.boxShadow = '0 1px 4px color-mix(in srgb, var(--color-primary-500) 5%, transparent)';
                       e.currentTarget.style.transform = 'translateX(0)';
                     }}
                   >
                     {/* Row 1: time + status + arrow */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Clock size={12} style={{ color: '#a855f7', flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#a855f7' }}>
+                        <Clock size={12} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
                           {time}{endTime ? ` – ${endTime}` : booking.duration_minutes ? ` (${booking.duration_minutes}min)` : ''}
                         </span>
                       </div>

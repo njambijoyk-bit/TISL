@@ -13,10 +13,10 @@ import { bookingsAPI, usersAPI } from '../../../_shared/api/index';
 import toast from 'react-hot-toast';
 
 const Section = ({ title, icon: Icon, children, action }) => (
-  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', overflow: 'hidden' }}>
-    <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
+    <div style={{ padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Icon size={15} style={{ color: '#a855f7' }} />
+        <Icon size={15} style={{ color: 'var(--color-primary-500)' }} />
         <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>{title}</span>
       </div>
       {action}
@@ -34,7 +34,7 @@ const Field = ({ label, value, mono = false }) => (
 
 const STATUSES = ['pending', 'confirmed', 'in_progress', 'completed', 'no_show'];
 const ROLE_META = {
-  lead:     { color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
+  lead:     { color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)' },
   support:  { color: '#2563eb', bg: 'rgba(37,99,235,0.08)'  },
   observer: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)'},
 };
@@ -122,7 +122,7 @@ const AdminBookingDetail = () => {
   if (loading) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 0', gap: 10, color: '#9ca3af', fontSize: '0.82rem' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
         Loading booking…
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -142,7 +142,7 @@ const AdminBookingDetail = () => {
         {/* Back + header */}
         <div>
           <button onClick={() => navigate('/admin/bookings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', fontFamily: 'inherit' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           >
             <ArrowLeft size={14} /> Back to bookings
@@ -163,7 +163,7 @@ const AdminBookingDetail = () => {
 
             {/* Quick actions */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={fetchBooking} style={{ padding: '7px 12px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 600 }}>
+              <button onClick={fetchBooking} style={{ padding: '7px 12px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', fontWeight: 600 }}>
                 <RefreshCw size={12} /> Refresh
               </button>
               {!booking.isCancelled && booking.status !== 'cancelled' && booking.status !== 'completed' && (
@@ -188,7 +188,7 @@ const AdminBookingDetail = () => {
                 {cancelling ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : null}
                 Confirm Cancel
               </button>
-              <button onClick={() => setShowCancelForm(false)} style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+              <button onClick={() => setShowCancelForm(false)} style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
                 Dismiss
               </button>
             </div>
@@ -196,22 +196,22 @@ const AdminBookingDetail = () => {
         </div>
 
         {/* Status stepper */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', marginRight: 4 }}>Set status:</span>
           {STATUSES.map(s => (
             <button key={s} onClick={() => handleStatusChange(s)} disabled={updatingStatus || booking.status === s}
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
                 cursor: (updatingStatus || booking.status === s) ? 'not-allowed' : 'pointer',
-                border: `1.5px solid ${booking.status === s ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-                background: booking.status === s ? 'rgba(168,85,247,0.08)' : 'none',
-                color: booking.status === s ? '#7c3aed' : '#9ca3af', fontFamily: 'inherit',
+                border: `1.5px solid ${booking.status === s ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+                background: booking.status === s ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
+                color: booking.status === s ? 'var(--color-primary-600)' : '#9ca3af', fontFamily: 'inherit',
                 transition: 'all 120ms', opacity: updatingStatus ? 0.6 : 1,
               }}>
               {s.replace(/_/g, ' ')}
             </button>
           ))}
-          {updatingStatus && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />}
+          {updatingStatus && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />}
         </div>
 
         {/* Main grid */}
@@ -237,7 +237,7 @@ const AdminBookingDetail = () => {
 
             {/* Staff */}
             <Section title="Assigned Staff" icon={Users} action={
-              <button onClick={() => setShowStaff(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, border: '1.5px dashed rgba(168,85,247,0.3)', background: 'rgba(168,85,247,0.05)', color: '#7c3aed', cursor: 'pointer' }}>
+              <button onClick={() => setShowStaff(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', color: 'var(--color-primary-600)', cursor: 'pointer' }}>
                 <Plus size={11} /> Assign
               </button>
             }>
@@ -248,8 +248,8 @@ const AdminBookingDetail = () => {
                   {booking.staff.map(s => {
                     const m = ROLE_META[s.role] ?? ROLE_META.support;
                     return (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(168,85,247,0.1)', background: 'white' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'white' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
                           {s.user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -270,7 +270,7 @@ const AdminBookingDetail = () => {
 
             {/* Worksheets */}
             <Section title="Worksheets" icon={ClipboardList} action={
-              <button onClick={() => navigate(`/admin/bookings/${id}/worksheets/new`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, border: '1.5px dashed rgba(168,85,247,0.3)', background: 'rgba(168,85,247,0.05)', color: '#7c3aed', cursor: 'pointer' }}>
+              <button onClick={() => navigate(`/admin/bookings/${id}/worksheets/new`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', color: 'var(--color-primary-600)', cursor: 'pointer' }}>
                 <Plus size={11} /> New worksheet
               </button>
             }>
@@ -280,11 +280,11 @@ const AdminBookingDetail = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {booking.worksheets.map(ws => (
                     <div key={ws.id} onClick={() => navigate(`/admin/bookings/${id}/worksheets/${ws.id}`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(168,85,247,0.1)', cursor: 'pointer', transition: 'border-color 150ms, box-shadow 150ms' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(168,85,247,0.08)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', cursor: 'pointer', transition: 'border-color 150ms, box-shadow 150ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.boxShadow = '0 2px 8px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
                     >
-                      <FileText size={14} style={{ color: '#a855f7', flexShrink: 0 }} />
+                      <FileText size={14} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', margin: 0 }}>
                           Worksheet #{ws.id} · {ws.currency_code}
@@ -294,7 +294,7 @@ const AdminBookingDetail = () => {
                         </p>
                       </div>
                       {ws.grand_total && (
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
                           {ws.currency_code} {parseFloat(ws.grand_total).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                         </span>
                       )}
@@ -311,9 +311,9 @@ const AdminBookingDetail = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {booking.orders.map(o => (
                     <div key={o.id} onClick={() => navigate(`/admin/orders/${o.id}`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, border: '1px solid rgba(168,85,247,0.1)', cursor: 'pointer', transition: 'border-color 120ms' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', cursor: 'pointer', transition: 'border-color 120ms' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
                     >
                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', flex: 1 }}>{o.order_number}</span>
                       <ExternalLink size={12} style={{ color: '#c4b5fd' }} />
@@ -355,7 +355,7 @@ const AdminBookingDetail = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {booking.activity_logs.slice(0, 10).map((log, i) => (
                     <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', flexShrink: 0, marginTop: 6 }} />
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0, marginTop: 6 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '0.72rem', fontWeight: 600, color: '#374151', margin: 0 }}>
                           {log.action?.replace(/_/g, ' ')}

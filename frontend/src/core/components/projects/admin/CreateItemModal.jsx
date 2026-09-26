@@ -76,18 +76,18 @@ const calcTotals = (item, currencyMap) => {
 // ── Shared input styles ───────────────────────────────────────────────────────
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 // ── ItemRow ───────────────────────────────────────────────────────────────────
@@ -162,13 +162,13 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
   return (
     <div style={{
       borderRadius: 14, padding: 16,
-      background: 'rgba(168,85,247,0.03)',
-      border: '1px solid rgba(168,85,247,0.18)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       display: 'flex', flexDirection: 'column', gap: 14,
     }}>
       {/* Row header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#a855f7' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-primary-500)' }}>
           Item {index + 1}
         </span>
         {!isOnly && (
@@ -220,7 +220,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
                 style={{ ...inputStyle, paddingRight: 32 }}
               />
               {item._searching && (
-                <Loader2 style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#c084fc', animation: 'spin 1s linear infinite', pointerEvents: 'none' }} />
+                <Loader2 style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'var(--color-primary-400)', animation: 'spin 1s linear infinite', pointerEvents: 'none' }} />
               )}
               {item._selected && !item._searching && (
                 <button type="button" onClick={clearSelection} style={{
@@ -232,7 +232,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
               )}
             </div>
             {item._selected && (
-              <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600 }}>
+              <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
                 <Check style={{ width: 11, height: 11 }} />
                 {item._selected.name}{item._selected.sku ? ` · ${item._selected.sku}` : ''}
               </div>
@@ -242,7 +242,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
                 position: 'absolute', zIndex: 50, top: '100%', left: 0, right: 0, marginTop: 4,
                 borderRadius: 10, overflow: 'hidden',
                 background: 'white',
-                border: '1px solid rgba(168,85,247,0.25)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                 maxHeight: 200, overflowY: 'auto',
               }}>
@@ -255,17 +255,17 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
                   <button key={r.id} type="button" onClick={() => selectResult(r)} style={{
                     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '9px 14px', background: 'transparent', border: 'none',
-                    borderBottom: '1px solid rgba(168,85,247,0.08)',
+                    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                     cursor: 'pointer', textAlign: 'left', transition: 'background 120ms',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div>
                       <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{r.name || r.title}</span>
                       {r.sku && <span style={{ marginLeft: 8, fontSize: '0.7rem', color: '#9ca3af' }}>{r.sku}</span>}
                     </div>
                     {(r.price || r.base_price) && (
-                      <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600, flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 600, flexShrink: 0 }}>
                         KES {parseFloat(r.price || r.base_price).toFixed(2)}
                       </span>
                     )}
@@ -325,9 +325,9 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
           <span style={labelStyle}>Line Total</span>
           <div style={{
             padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-            background: 'rgba(168,85,247,0.06)',
-            border: '1px solid rgba(168,85,247,0.18)',
-            color: '#7c3aed', fontWeight: 700,
+            background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+            color: 'var(--color-primary-600)', fontWeight: 700,
           }}>
             {item.currency} {money(totals.line_total)}
           </div>
@@ -374,7 +374,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
             cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af',
             padding: 0, transition: 'color 120ms',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
           {item._showVariants
             ? <ChevronUp style={{ width: 13, height: 13 }} />
@@ -383,9 +383,9 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
           {item._variants.filter(v => v.key.trim()).length > 0 && (
             <span style={{
               marginLeft: 2, padding: '1px 7px', borderRadius: 20,
-              background: 'rgba(168,85,247,0.12)',
-              border: '1px solid rgba(168,85,247,0.25)',
-              color: '#a855f7', fontSize: '0.65rem', fontWeight: 700,
+              background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+              color: 'var(--color-primary-500)', fontSize: '0.65rem', fontWeight: 700,
             }}>
               {item._variants.filter(v => v.key.trim()).length}
             </span>
@@ -416,7 +416,7 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
             <button type="button" onClick={addVariant} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '0.75rem', fontWeight: 600, color: '#a855f7', padding: 0,
+              fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)', padding: 0,
             }}>
               <Plus style={{ width: 12, height: 12 }} /> Add variant
             </button>
@@ -527,20 +527,20 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
         display: 'flex', flexDirection: 'column',
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <div>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
               {isEditMode ? 'Edit Item' : 'Add Project Items'}
             </p>
             <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '2px 0 0' }}>
@@ -554,7 +554,7 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
             color: '#6b7280', display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
             <X style={{ width: 16, height: 16 }} />
           </button>
@@ -574,14 +574,14 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
           {!isEditMode && (
             <button type="button" onClick={addRow} style={{
               width: '100%', padding: '10px 0',
-              borderRadius: 12, border: '2px dashed rgba(168,85,247,0.25)',
+              borderRadius: 12, border: '2px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af',
               transition: 'border-color 150ms, color 150ms',
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#a855f7'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; e.currentTarget.style.color = '#9ca3af'; }}>
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
               <Plus style={{ width: 14, height: 14 }} /> Add Another Item
             </button>
           )}
@@ -590,13 +590,13 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
         {/* Footer */}
         <div style={{
           padding: '12px 20px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           {!isEditMode && (
             !mixedCurrencies ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#7c3aed' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary-600)' }}>
                   {items[0]?.currency} {money(grandTotal)}
                 </span>
               </div>
@@ -611,24 +611,24 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
             <button type="button" onClick={onClose} style={{
               padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
               background: 'transparent', color: '#9ca3af',
-              border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer',
               transition: 'border-color 150ms, color 150ms',
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
               Cancel
             </button>
             <button type="button" onClick={handleSubmit} disabled={isBusy} style={{
               padding: '6px 18px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
               border: 'none', cursor: isBusy ? 'not-allowed' : 'pointer',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               opacity: isBusy ? 0.6 : 1,
               display: 'flex', alignItems: 'center', gap: 7,
               transition: 'box-shadow 150ms, opacity 150ms',
             }}
-              onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+              onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
               {isBusy && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
               {isBusy ? 'Saving…' : isEditMode ? 'Save Changes' : `Save ${items.length} Item${items.length > 1 ? 's' : ''}`}
             </button>

@@ -25,7 +25,7 @@ const s = {
     barCount: { width: 32, fontSize: 12, color: '#555', textAlign: 'right' },
     topJobRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #111', fontSize: 13 },
     topJobName: { color: '#ccc', flex: 1 },
-    topJobCount: { fontWeight: 700, color: '#a855f7' },
+    topJobCount: { fontWeight: 700, color: 'var(--color-primary-500)' },
     badge: (color) => ({ display: 'inline-block', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: `${color}22`, color }),
     conversionBox: { background: '#0f2318', border: '1px solid #1a4a2a', borderRadius: 12, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20 },
     convPct: { fontSize: 48, fontWeight: 700, color: '#4ade80', lineHeight: 1 },
@@ -86,7 +86,7 @@ export default function AdminCareersStatsPage() {
                     <p style={s.statLabel}>Total Applications</p>
                 </div>
                 <div style={s.statCard}>
-                    <p style={{ ...s.statVal, color: '#a855f7' }}>{stats.screened ?? 0}</p>
+                    <p style={{ ...s.statVal, color: 'var(--color-primary-500)' }}>{stats.screened ?? 0}</p>
                     <p style={s.statLabel}>AI Screened</p>
                 </div>
                 <div style={s.statCard}>

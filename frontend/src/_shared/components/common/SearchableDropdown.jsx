@@ -69,7 +69,7 @@ export default function SearchableDropdown({
     gap: 6,
     padding: isSmall ? '4px 8px' : '7px 10px',
     background: disabled ? 'var(--bg-secondary, #f9f9f9)' : 'var(--bg-primary, #fff)',
-    border: '1px solid var(--accent, #7c3aed)',
+    border: '1px solid var(--accent, var(--color-primary-600))',
     boxShadow: '0 0 8px rgba(124, 58, 237, 0.35), inset 0 0 2px rgba(124, 58, 237, 0.1)',
     borderRadius: 6,
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -157,7 +157,7 @@ export default function SearchableDropdown({
                     cursor: 'pointer',
                     color: 'var(--text-primary, #111)',
                     background: String(opt.id) === String(value)
-                      ? 'var(--accent-light, #f3e8ff)'
+                      ? 'var(--accent-light, color-mix(in srgb, var(--color-primary-500) 8%, var(--bg-primary)))'
                       : 'transparent',
                     fontWeight: String(opt.id) === String(value) ? 600 : 400,
                     transition: 'background 0.1s',

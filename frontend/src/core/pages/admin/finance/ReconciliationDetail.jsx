@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 const LEDGER_META = {
   payments:       { label: 'Payments',       color: '#10b981', icon: '💳', amountLabel: 'KES' },
   store_credit:   { label: 'Store Credit',   color: '#3b82f6', icon: '🎟', amountLabel: 'KES' },
-  loyalty_points: { label: 'Loyalty Points', color: '#a855f7', icon: '⭐', amountLabel: 'PTS' },
+  loyalty_points: { label: 'Loyalty Points', color: 'var(--color-primary-500)', icon: '⭐', amountLabel: 'PTS' },
   credit_account: { label: 'Credit Account', color: '#f59e0b', icon: '🏦', amountLabel: 'KES' },
   vat:            { label: 'VAT',            color: '#ef4444', icon: '🧾', amountLabel: 'KES' },
 };
@@ -105,7 +105,7 @@ const S = {
   },
   filterSelect: {
     background: '#0f0f1a',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '8px',
     color: '#e2e8f0',
     fontSize: '12px',
@@ -138,7 +138,7 @@ const S = {
 
   tableWrap: {
     background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)',
-    border: '1px solid rgba(168,85,247,0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '14px',
     overflow: 'hidden',
   },
@@ -151,15 +151,15 @@ const S = {
     fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    borderBottom: '1px solid rgba(168,85,247,0.15)',
-    background: 'rgba(168,85,247,0.04)',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
     fontFamily: 'monospace',
   },
   thCheck: {
     padding: '12px 12px 12px 16px',
     width: '36px',
-    borderBottom: '1px solid rgba(168,85,247,0.15)',
-    background: 'rgba(168,85,247,0.04)',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   },
   td: {
     padding: '14px 16px',
@@ -175,7 +175,7 @@ const S = {
   tr: (hover, selected) => ({
     background: selected
       ? 'rgba(16,185,129,0.05)'
-      : hover ? 'rgba(168,85,247,0.03)' : 'transparent',
+      : hover ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'transparent',
     transition: 'background 0.15s',
     outline: selected ? '1px solid rgba(16,185,129,0.15)' : 'none',
     outlineOffset: '-1px',
@@ -219,8 +219,8 @@ const S = {
   }),
 
   noteBox: {
-    background: 'rgba(168,85,247,0.06)',
-    border: '1px solid rgba(168,85,247,0.2)',
+    background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     borderRadius: '6px',
     padding: '6px 10px',
     marginTop: '6px',
@@ -272,19 +272,19 @@ const S = {
   },
   modalBox: {
     background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)',
-    border: '1px solid rgba(168,85,247,0.4)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
     borderRadius: '16px',
     padding: '28px',
     width: '420px',
     fontFamily: 'monospace',
-    boxShadow: '0 0 60px rgba(168,85,247,0.15)',
+    boxShadow: '0 0 60px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
   },
   modalTitle: { color: '#e2e8f0', fontSize: '15px', fontWeight: 800, marginBottom: '16px' },
   modalLabel: { color: '#94a3b8', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' },
-  modalInput: { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' },
-  modalTextarea: { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px' },
+  modalInput: { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' },
+  modalTextarea: { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px' },
   modalFooter: { display: 'flex', gap: '10px', marginTop: '20px' },
-  btnCancel: { flex: 1, padding: '10px', background: 'transparent', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' },
+  btnCancel: { flex: 1, padding: '10px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' },
   btnConfirm: (color) => ({ flex: 2, padding: '10px', background: `linear-gradient(135deg, ${color}, ${color}cc)`, border: 'none', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' }),
 
   checkbox: {
@@ -300,7 +300,7 @@ const S = {
 const STORE_CREDIT_TYPE_COLORS = {
   admin_grant:       '#10b981',
   admin_deduct:      '#ef4444',
-  referral_reward:   '#a855f7',
+  referral_reward:   'var(--color-primary-500)',
   points_redemption: '#3b82f6',
   order_refund:      '#06b6d4',
   order_spend:       '#f59e0b',
@@ -311,7 +311,7 @@ const STORE_CREDIT_TYPE_COLORS = {
 const LOYALTY_TYPE_COLORS = {
   order_earn:     '#10b981',
   admin_grant:    '#10b981',
-  referral_bonus: '#a855f7',
+  referral_bonus: 'var(--color-primary-500)',
   birthday_bonus: '#ec4899',
   review_bonus:   '#06b6d4',
   redemption:     '#f59e0b',
@@ -363,7 +363,7 @@ function PaymentMeta({ meta }) {
         <span style={S.metaTag('#f59e0b')}>PARTIAL</span>
       )}
       {meta.order_number && (
-        <span style={S.metaTag('#a855f7')}>{meta.order_number}</span>
+        <span style={S.metaTag('var(--color-primary-500)')}>{meta.order_number}</span>
       )}
       {meta.customer_name && (
         <span style={S.metaTag('#64748b')}>👤 {meta.customer_name}</span>
@@ -391,7 +391,7 @@ function StoreCreditMeta({ meta }) {
         </span>
       )}
       {meta.order_number
-        ? <span style={S.metaTag('#a855f7')}>{meta.order_number}</span>
+        ? <span style={S.metaTag('var(--color-primary-500)')}>{meta.order_number}</span>
         : <RefTrace type={meta.reference_type} id={meta.reference_id} />
       }
       {meta.customer_name && (
@@ -404,7 +404,7 @@ function StoreCreditMeta({ meta }) {
 function LoyaltyMeta({ meta }) {
   if (!meta) return null;
   const typeColor      = LOYALTY_TYPE_COLORS[meta.type] ?? '#64748b';
-  const pointTypeColor = meta.point_type === 'expiring' ? '#f59e0b' : '#a855f7';
+  const pointTypeColor = meta.point_type === 'expiring' ? '#f59e0b' : 'var(--color-primary-500)';
   return (
     <div style={{ marginTop: '5px' }}>
       {meta.type && (
@@ -422,7 +422,7 @@ function LoyaltyMeta({ meta }) {
         </span>
       )}
       {meta.order_number
-        ? <span style={S.metaTag('#a855f7')}>{meta.order_number}</span>
+        ? <span style={S.metaTag('var(--color-primary-500)')}>{meta.order_number}</span>
         : <RefTrace type={meta.reference_type} id={meta.reference_id} />
       }
       {meta.customer_name && (
@@ -452,7 +452,7 @@ function CreditAccountMeta({ meta }) {
         </span>
       )}
       {meta.order_number
-        ? <span style={S.metaTag('#a855f7')}>{meta.order_number}</span>
+        ? <span style={S.metaTag('var(--color-primary-500)')}>{meta.order_number}</span>
         : <RefTrace type={meta.reference_type} id={meta.reference_id} />
       }
       {meta.customer_name && (
@@ -559,12 +559,12 @@ function ActionModal({ line, action, ledger, onClose, onDone }) {
         <div style={S.modalTitle}>{titles[action]}</div>
         <div style={{ color: '#475569', fontSize: '11px', marginBottom: '16px' }}>
           {line.subject_table} #{line.subject_id}
-          {line.note && <span style={{ color: '#a855f7', marginLeft: '8px' }}>📓 has note</span>}
+          {line.note && <span style={{ color: 'var(--color-primary-500)', marginLeft: '8px' }}>📓 has note</span>}
           {line.meta?.payment_number && (
             <span style={{ color: '#10b981', marginLeft: '8px' }}>{line.meta.payment_number}</span>
           )}
           {line.meta?.order_number && (
-            <span style={{ color: '#a855f7', marginLeft: '8px' }}>{line.meta.order_number}</span>
+            <span style={{ color: 'var(--color-primary-500)', marginLeft: '8px' }}>{line.meta.order_number}</span>
           )}
           {line.meta?.customer_name && (
             <span style={{ color: '#64748b', marginLeft: '8px' }}>· {line.meta.customer_name}</span>
@@ -668,7 +668,7 @@ function SessionMetaModal({ session, onClose }) {
     session_created:    '#10b981',
     session_closed:     '#64748b',
     session_reopened:   '#f59e0b',
-    line_status_change: '#a855f7',
+    line_status_change: 'var(--color-primary-500)',
   };
 
   return (
@@ -724,7 +724,7 @@ function SessionMetaModal({ session, onClose }) {
                       <span style={S.metaTag('#f59e0b')}>{ev.from}</span>
                       <span style={{ color: '#475569', fontSize: '10px', alignSelf: 'center' }}>→</span>
                       <span style={S.metaTag(color)}>{ev.to}</span>
-                      {ev.line_meta?.order_number   && <span style={S.metaTag('#a855f7')}>{ev.line_meta.order_number}</span>}
+                      {ev.line_meta?.order_number   && <span style={S.metaTag('var(--color-primary-500)')}>{ev.line_meta.order_number}</span>}
                       {ev.line_meta?.customer_name  && <span style={S.metaTag('#64748b')}>👤 {ev.line_meta.customer_name}</span>}
                       {ev.line_meta?.payment_number && <span style={S.metaTag('#10b981')}>{ev.line_meta.payment_number}</span>}
                       {ev.dispute_note    && <div style={{ ...S.noteBox, marginTop: '6px', width: '100%' }}>🚩 {ev.dispute_note}</div>}
@@ -780,7 +780,7 @@ const NOTE_TYPE_COLORS = {
   refund:             '#ef4444',
   overpayment:        '#f59e0b',
   credit_adjustment:  '#3b82f6',
-  loyalty_adjustment: '#a855f7',
+  loyalty_adjustment: 'var(--color-primary-500)',
   manual_payment:     '#10b981',
   reversal:           '#f97316',
   other:              '#64748b',
@@ -832,9 +832,9 @@ function SessionNotesModal({ session, onClose }) {
       width: '480px',
       maxHeight: 'calc(100vh - 48px)',
       background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)',
-      border: '1px solid rgba(168,85,247,0.4)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
       borderRadius: '16px',
-      boxShadow: '0 0 40px rgba(168,85,247,0.12), 0 20px 60px rgba(0,0,0,0.5)',
+      boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 20px 60px rgba(0,0,0,0.5)',
       fontFamily: 'monospace',
       display: 'flex',
       flexDirection: 'column',
@@ -845,8 +845,8 @@ function SessionNotesModal({ session, onClose }) {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 18px',
-        borderBottom: '1px solid rgba(168,85,247,0.2)',
-        background: 'rgba(168,85,247,0.05)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -873,7 +873,7 @@ function SessionNotesModal({ session, onClose }) {
       {/* Tabs */}
       <div style={{
         display: 'flex', gap: '0',
-        borderBottom: '1px solid rgba(168,85,247,0.15)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         flexShrink: 0,
       }}>
         {[
@@ -886,10 +886,10 @@ function SessionNotesModal({ session, onClose }) {
             style={{
               flex: 1,
               padding: '10px',
-              background: tab === t.key ? 'rgba(168,85,247,0.1)' : 'transparent',
+              background: tab === t.key ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
               border: 'none',
-              borderBottom: tab === t.key ? '2px solid #a855f7' : '2px solid transparent',
-              color: tab === t.key ? '#a855f7' : '#475569',
+              borderBottom: tab === t.key ? '2px solid var(--color-primary-500)' : '2px solid transparent',
+              color: tab === t.key ? 'var(--color-primary-500)' : '#475569',
               fontSize: '10px',
               fontWeight: 700,
               fontFamily: 'monospace',
@@ -916,7 +916,7 @@ function SessionNotesModal({ session, onClose }) {
           return (
             <div key={note.id} style={{
               background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(168,85,247,0.12)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '8px',
@@ -924,7 +924,7 @@ function SessionNotesModal({ session, onClose }) {
               {/* top row */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ color: '#a855f7', fontSize: '11px', fontWeight: 700 }}>
+                  <span style={{ color: 'var(--color-primary-500)', fontSize: '11px', fontWeight: 700 }}>
                     {note.note_number}
                   </span>
                   <span style={{
@@ -983,7 +983,7 @@ function SessionNotesModal({ session, onClose }) {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.1)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           flexShrink: 0,
         }}>
           <span style={{ color: '#475569', fontSize: '10px' }}>
@@ -993,12 +993,12 @@ function SessionNotesModal({ session, onClose }) {
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              style={{ ...S.lineBtn(page === 1 ? '#334155' : '#a855f7'), cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+              style={{ ...S.lineBtn(page === 1 ? '#334155' : 'var(--color-primary-500)'), cursor: page === 1 ? 'not-allowed' : 'pointer' }}
             >← PREV</button>
             <button
               disabled={page === meta.last_page}
               onClick={() => setPage(p => p + 1)}
-              style={{ ...S.lineBtn(page === meta.last_page ? '#334155' : '#a855f7'), cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
+              style={{ ...S.lineBtn(page === meta.last_page ? '#334155' : 'var(--color-primary-500)'), cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
             >NEXT →</button>
           </div>
         </div>
@@ -1007,17 +1007,17 @@ function SessionNotesModal({ session, onClose }) {
       {/* Footer */}
       <div style={{
         padding: '12px 14px',
-        borderTop: '1px solid rgba(168,85,247,0.15)',
+        borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         flexShrink: 0,
       }}>
         <button
           onClick={() => navigate('/admin/financial-notes')}
           style={{
             width: '100%', padding: '9px',
-            background: 'rgba(168,85,247,0.08)',
-            border: '1px solid rgba(168,85,247,0.3)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             borderRadius: '8px',
-            color: '#a855f7', fontSize: '11px', fontWeight: 700,
+            color: 'var(--color-primary-500)', fontSize: '11px', fontWeight: 700,
             fontFamily: 'monospace', cursor: 'pointer', letterSpacing: '0.05em',
           }}
         >→ OPEN NOTES PAGE</button>
@@ -1282,7 +1282,7 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
           <div style={S.title}>
             {ledger?.icon} {session.session_number}
             {session.meta && (
-                <button style={{ ...S.lineBtn('#a855f7'), marginLeft: '10px', verticalAlign: 'middle' }} onClick={() => setSessionMetaModal(true)}>
+                <button style={{ ...S.lineBtn('var(--color-primary-500)'), marginLeft: '10px', verticalAlign: 'middle' }} onClick={() => setSessionMetaModal(true)}>
                 META
                 </button>
             )}
@@ -1404,7 +1404,7 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
             <option value="voided">Voided</option>
         </select>
         <button
-          style={{ ...S.filterSelect, background: varianceOnly ? 'rgba(245,158,11,0.15)' : '#0f0f1a', borderColor: varianceOnly ? '#f59e0b' : 'rgba(168,85,247,0.2)', color: varianceOnly ? '#f59e0b' : '#e2e8f0', cursor: 'pointer' }}
+          style={{ ...S.filterSelect, background: varianceOnly ? 'rgba(245,158,11,0.15)' : '#0f0f1a', borderColor: varianceOnly ? '#f59e0b' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: varianceOnly ? '#f59e0b' : '#e2e8f0', cursor: 'pointer' }}
           onClick={() => { setVarianceOnly(v => !v); setPage(1); }}
         >
           {varianceOnly ? '⚠ Variance Only' : 'All Lines'}
@@ -1629,7 +1629,7 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
                             </button>
                             )}
                             {line.meta && (
-                            <button style={S.lineBtn('#a855f7')} onClick={() => setMetaModal(line)}>
+                            <button style={S.lineBtn('var(--color-primary-500)')} onClick={() => setMetaModal(line)}>
                                 META
                             </button>
                         )}
@@ -1644,15 +1644,15 @@ const pct = total ? Math.round((confirmed + writtenOff) / total * 100) : 0;
 
         {/* Pagination */}
         {meta && meta.last_page > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
             <span style={S.meta}>{meta.from}–{meta.to} of {meta.total} lines</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '6px', color: page === 1 ? '#334155' : '#a855f7', fontSize: '11px', fontFamily: 'monospace', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '6px', color: page === 1 ? '#334155' : 'var(--color-primary-500)', fontSize: '11px', fontFamily: 'monospace', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
                 disabled={page === 1} onClick={() => setPage(p => p - 1)}
               >← PREV</button>
               <button
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '6px', color: page === meta.last_page ? '#334155' : '#a855f7', fontSize: '11px', fontFamily: 'monospace', cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '6px', color: page === meta.last_page ? '#334155' : 'var(--color-primary-500)', fontSize: '11px', fontFamily: 'monospace', cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
                 disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}
               >NEXT →</button>
             </div>

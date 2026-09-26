@@ -35,7 +35,7 @@ const SUBJECT_TABLES = [
 const S = {
   input: {
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(168,85,247,0.25)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
     borderRadius: '8px',
     color: '#e2e8f0',
     fontSize: '12px',
@@ -47,7 +47,7 @@ const S = {
   },
   select: {
     background: '#0f0f1a',
-    border: '1px solid rgba(168,85,247,0.25)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
     borderRadius: '8px',
     color: '#e2e8f0',
     fontSize: '12px',
@@ -76,7 +76,7 @@ const S = {
     flex: 1,
     padding: '7px',
     borderRadius: '8px',
-    border: `1px solid ${active ? (dir === 'in' ? '#10b981' : '#ef4444') : 'rgba(168,85,247,0.2)'}`,
+    border: `1px solid ${active ? (dir === 'in' ? '#10b981' : '#ef4444') : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
     background: active ? (dir === 'in' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)') : 'transparent',
     color: active ? (dir === 'in' ? '#10b981' : '#ef4444') : '#64748b',
     fontSize: '11px',
@@ -303,8 +303,8 @@ function FloatingMemoModalInner() {
       <>
         <style>{`
           @keyframes memoPulse {
-            0%,100% { box-shadow: -2px 0 12px rgba(168,85,247,0.25); }
-            50%      { box-shadow: -5px 0 24px rgba(168,85,247,0.5); }
+            0%,100% { box-shadow: -2px 0 12px color-mix(in srgb, var(--color-primary-500) 25%, transparent); }
+            50%      { box-shadow: -5px 0 24px color-mix(in srgb, var(--color-primary-500) 50%, transparent); }
           }
         `}</style>
         <button
@@ -326,7 +326,7 @@ function FloatingMemoModalInner() {
             width: '36px',
             height: '96px',
             borderRadius: '10px 0 0 10px',
-            border: '1px solid rgba(168,85,247,0.4)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
             borderRight: 'none',
             background: 'var(--bg-secondary, #1a1a2e)',
             cursor: dragging.current ? 'grabbing' : 'grab',
@@ -343,7 +343,7 @@ function FloatingMemoModalInner() {
           onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}
           title="Open financial memo"
         >
-          <NotebookPen size={14} color="#a855f7" strokeWidth={2} />
+          <NotebookPen size={14} color="var(--color-primary-500)" strokeWidth={2} />
           <span style={{
             writingMode: 'vertical-rl',
             textOrientation: 'mixed',
@@ -352,7 +352,7 @@ function FloatingMemoModalInner() {
             fontWeight: 700,
             fontFamily: 'monospace',
             letterSpacing: '0.1em',
-            color: '#a855f7',
+            color: 'var(--color-primary-500)',
             textTransform: 'uppercase',
             lineHeight: 1,
           }}>
@@ -363,7 +363,7 @@ function FloatingMemoModalInner() {
               position: 'absolute',
               top: '-4px',
               right: '4px',
-              background: '#a855f7',
+              background: 'var(--color-primary-500)',
               color: '#fff',
               borderRadius: '50%',
               width: '13px',
@@ -401,9 +401,9 @@ function FloatingMemoModalInner() {
         width: 'min(420px, calc(100vw - 16px))',
         maxHeight: 'calc(100dvh - 48px)', 
         background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)',
-        border: '1px solid rgba(168,85,247,0.4)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
         borderRadius: '16px',
-        boxShadow: '0 0 40px rgba(168,85,247,0.15), 0 20px 60px rgba(0,0,0,0.6)',
+        boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary-500) 15%, transparent), 0 20px 60px rgba(0,0,0,0.6)',
         fontFamily: 'monospace',
         overflow: 'hidden',
         animation: 'memoPop 250ms cubic-bezier(0.34,1.56,0.64,1)',
@@ -420,8 +420,8 @@ function FloatingMemoModalInner() {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 16px',
-            borderBottom: '1px solid rgba(168,85,247,0.2)',
-            background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+            borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 15%, transparent), color-mix(in srgb, var(--color-primary-600) 10%, transparent))',
             cursor: 'grab',
             userSelect: 'none',
             flexShrink: 0,
@@ -432,7 +432,7 @@ function FloatingMemoModalInner() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -621,7 +621,7 @@ function FloatingMemoModalInner() {
               {subjectResults.length > 0 && !draft.subject_id && (
                 <div style={{
                   background: '#0f0f1a',
-                  border: '1px solid rgba(168,85,247,0.3)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                   borderRadius: '8px',
                   marginTop: '4px',
                   overflow: 'hidden',
@@ -644,10 +644,10 @@ function FloatingMemoModalInner() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '12px' }}>{r.label}</span>
+                      <span style={{ color: 'var(--color-primary-500)', fontWeight: 700, fontSize: '12px' }}>{r.label}</span>
                       <span style={{ color: '#475569', fontSize: '10px' }}>#{r.id}</span>
                     </div>
                   ))}
@@ -675,8 +675,8 @@ function FloatingMemoModalInner() {
           {/* Subject preview */}
           {isLoadingPreview && (
             <div style={{
-              background: 'rgba(168,85,247,0.06)',
-              border: '1px solid rgba(168,85,247,0.2)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
               borderRadius: '8px',
               padding: '8px 10px',
               marginBottom: '10px',
@@ -686,13 +686,13 @@ function FloatingMemoModalInner() {
           )}
           {subjectPreview && !isLoadingPreview && (
             <div style={{
-              background: 'rgba(168,85,247,0.06)',
-              border: '1px solid rgba(168,85,247,0.2)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
               borderRadius: '8px',
               padding: '8px 10px',
               marginBottom: '10px',
             }}>
-              <div style={{ color: '#a855f7', fontSize: '11px', fontWeight: 700, marginBottom: '3px' }}>
+              <div style={{ color: 'var(--color-primary-500)', fontSize: '11px', fontWeight: 700, marginBottom: '3px' }}>
                 🔗 {subjectPreview.label}
               </div>
               {subjectPreview.existingNotes?.length > 0 && (
@@ -723,7 +723,7 @@ function FloatingMemoModalInner() {
             <textarea
               style={{
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(168,85,247,0.25)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                 borderRadius: '8px',
                 color: '#e2e8f0',
                 fontSize: '12px',
@@ -763,7 +763,7 @@ function FloatingMemoModalInner() {
           display: 'flex',
           gap: '8px',
           padding: '10px 16px',
-          borderTop: '1px solid rgba(168,85,247,0.15)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           flexShrink: 0,
         }}>
           <button
@@ -773,7 +773,7 @@ function FloatingMemoModalInner() {
               flex: 1,
               padding: '9px',
               background: 'transparent',
-              border: '1px solid rgba(168,85,247,0.25)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
               borderRadius: '8px',
               color: '#94a3b8',
               fontSize: '12px',
@@ -791,8 +791,8 @@ function FloatingMemoModalInner() {
               flex: 2,
               padding: '9px',
               background: !draft.body?.trim()
-                ? 'rgba(168,85,247,0.2)'
-                : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
+                : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               border: 'none',
               borderRadius: '8px',
               color: !draft.body?.trim() ? '#64748b' : '#fff',

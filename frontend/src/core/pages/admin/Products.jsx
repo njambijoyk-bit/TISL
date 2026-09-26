@@ -130,11 +130,11 @@ function PrimaryBtn({ onClick, disabled, children, style }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-        border: 'none', background: '#7c3aed', color: 'white',
+        border: 'none', background: 'var(--color-primary-600)', color: 'white',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         fontFamily: 'inherit',
-        boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+        boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
         ...style,
       }}
     >
@@ -331,8 +331,8 @@ export default function Products() {
         {/* ── Page heading ───────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Package size={24} style={{ color: '#a855f7' }} /> Products
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Package size={24} style={{ color: 'var(--color-primary-500)' }} /> Products
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage your product catalogue</p>
           </div>
@@ -348,7 +348,7 @@ export default function Products() {
 
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total Products" value={pagination.total}                                  icon={Package}      iconBg="rgba(124,58,237,0.1)"  iconColor="#7c3aed" />
+          <StatCard label="Total Products" value={pagination.total}                                  icon={Package}      iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)"  iconColor="var(--color-primary-600)" />
           <StatCard label="Active"         value={products.filter(p => p.status === 'active').length} icon={CheckCircle}  iconBg="rgba(16,185,129,0.1)"  iconColor="#10b981" />
           <StatCard label="Out of Stock"   value={products.filter(p => !p.in_stock).length}           icon={AlertCircle}  iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
           <StatCard label="Featured"       value={products.filter(p => p.is_featured).length}         icon={TrendingUp}   iconBg="rgba(245,158,11,0.1)"  iconColor="#f59e0b" />
@@ -372,9 +372,9 @@ export default function Products() {
             {/* Filter toggle */}
             <Btn
               onClick={() => setShowFilters(v => !v)}
-              style={showFilters ? { background: 'rgba(124,58,237,0.08)', borderColor: '#7c3aed', color: '#7c3aed' } : {}}
+              style={showFilters ? { background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', borderColor: 'var(--color-primary-600)', color: 'var(--color-primary-600)' } : {}}
             >
-              <Filter size={15} /> Filters {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed', display: 'inline-block' }} />}
+              <Filter size={15} /> Filters {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-600)', display: 'inline-block' }} />}
             </Btn>
 
             {/* Clear */}
@@ -507,7 +507,7 @@ export default function Products() {
                             <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                               <Eye size={15} />
                             </IconBtn>
-                            <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit`)} title="Edit" color="#7c3aed">
+                            <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                               <Edit2 size={15} />
                             </IconBtn>
                             <IconBtn onClick={() => setDeleteModal({ isOpen: true, product, loading: false })} title="Delete" color="var(--color-text-danger)">
@@ -588,7 +588,7 @@ export default function Products() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: '0.82rem', fontWeight: n === current ? 700 : 500,
                                 cursor: 'pointer', fontFamily: 'inherit',
-                                background: n === current ? '#7c3aed' : 'transparent',
+                                background: n === current ? 'var(--color-primary-600)' : 'transparent',
                                 color: n === current ? 'white' : 'var(--color-text-secondary)',
                                 transition: 'all 150ms',
                               }}
@@ -706,7 +706,7 @@ export default function Products() {
                       type="checkbox"
                       checked={trashModal.selectedIds.length === trashModal.products.length && trashModal.products.length > 0}
                       onChange={toggleSelectAll}
-                      style={{ accentColor: '#7c3aed' }}
+                      style={{ accentColor: 'var(--color-primary-600)' }}
                     />
                     Select page
                     {trashModal.selectedIds.length > 0 && (
@@ -742,7 +742,7 @@ export default function Products() {
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
                           <td style={{ ...tdStyle, textAlign: 'center' }}>
-                            <input type="checkbox" checked={trashModal.selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} style={{ accentColor: '#7c3aed' }} />
+                            <input type="checkbox" checked={trashModal.selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} style={{ accentColor: 'var(--color-primary-600)' }} />
                           </td>
                           <td style={tdStyle}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -17,9 +17,9 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const SectionLabel = ({ children, icon: Icon }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>

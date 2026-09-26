@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const TYPES = [
   { value: 'general',    label: 'General',    color: '#6366f1' },
   { value: 'first_time', label: 'First Time', color: '#0891b2' },
-  { value: 'bulk_order', label: 'Bulk Order', color: '#7c3aed' },
+  { value: 'bulk_order', label: 'Bulk Order', color: 'var(--color-primary-600)' },
   { value: 'vip',        label: 'VIP',        color: '#d97706' },
   { value: 'birthday',   label: 'Birthday',   color: '#db2777' },
   { value: 'event',      label: 'Event',      color: '#dc2626' },
@@ -85,10 +85,10 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
-        style={{ boxShadow: '0 32px 80px rgba(124,58,237,0.2), 0 8px 32px rgba(0,0,0,0.25)', maxHeight: '92vh' }}>
+        style={{ boxShadow: '0 32px 80px color-mix(in srgb, var(--color-primary-600) 20%, transparent), 0 8px 32px rgba(0,0,0,0.25)', maxHeight: '92vh' }}>
 
         {/* Top accent */}
-        <div className="h-1.5 flex-shrink-0" style={{ background: `linear-gradient(90deg, ${selectedType.color}, #7c3aed)` }} />
+        <div className="h-1.5 flex-shrink-0" style={{ background: `linear-gradient(90deg, ${selectedType.color}, var(--color-primary-600))` }} />
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
@@ -237,7 +237,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
                   : { background: '#f9fafb', borderColor: '#f3f4f6' }
                 }>
                 <div className="mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                  style={{ background: form[key] ? '#7c3aed' : '#e5e7eb' }}>
+                  style={{ background: form[key] ? 'var(--color-primary-600)' : '#e5e7eb' }}>
                   {form[key] && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                       <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -269,7 +269,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
           </button>
           <button onClick={handleSubmit} disabled={actionLoading}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>
             {actionLoading
               ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating…</>
               : <><Gift size={14} /> Create Code</>
@@ -303,5 +303,5 @@ const cls = (error) =>
   `w-full px-3 py-2.5 rounded-xl text-sm border outline-none transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
     error
       ? 'border-red-400 bg-red-50/30 focus:border-red-400 focus:ring-2 focus:ring-red-100'
-      : 'border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+      : 'border-gray-200 dark:border-gray-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
   }`;

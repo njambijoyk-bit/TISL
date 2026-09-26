@@ -13,9 +13,9 @@ const Field = ({ label, value }) => (
 );
 
 const Card = ({ title, icon: Icon, children }) => (
-  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', overflow: 'hidden' }}>
-    <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Icon size={14} style={{ color: '#a855f7' }} />
+  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
+    <div style={{ padding: '13px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Icon size={14} style={{ color: 'var(--color-primary-500)' }} />
       <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>{title}</span>
     </div>
     <div style={{ padding: '16px 18px' }}>{children}</div>
@@ -52,7 +52,7 @@ const MyBookingDetail = () => {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 16px', gap: 10, color: '#9ca3af', fontSize: '0.82rem' }}>
-      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -67,7 +67,7 @@ const MyBookingDetail = () => {
 
       {/* Back */}
       <button onClick={() => navigate('/bookings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px', fontFamily: 'inherit' }}
-        onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
       ><ArrowLeft size={14} /> My bookings</button>
 
@@ -104,22 +104,22 @@ const MyBookingDetail = () => {
         <Card title="Booking Details" icon={Calendar}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <Calendar size={13} style={{ color: '#a855f7', flexShrink: 0, marginTop: 2 }} />
+              <Calendar size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 2 }} />
               <Field label="Scheduled" value={time} />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <MapPin size={13} style={{ color: '#a855f7', flexShrink: 0, marginTop: 2 }} />
+              <MapPin size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 2 }} />
               <Field label="Location" value={`${booking.location_type}${booking.location_address ? ` — ${booking.location_address}` : ''}`} />
             </div>
             {booking.duration_minutes && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <Clock size={13} style={{ color: '#a855f7', flexShrink: 0, marginTop: 2 }} />
+                <Clock size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 2 }} />
                 <Field label="Duration" value={`${booking.duration_minutes} minutes`} />
               </div>
             )}
           </div>
           {booking.customer_notes && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
               <Field label="Your notes" value={booking.customer_notes} />
             </div>
           )}
@@ -131,7 +131,7 @@ const MyBookingDetail = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {booking.staff.filter(s => s.status !== 'declined').map(s => (
                 <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
                     {s.user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -157,19 +157,19 @@ const MyBookingDetail = () => {
               {approvedWs.items?.length > 0 && (
                 <div>
                   <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', margin: '0 0 8px' }}>Materials used</p>
-                  <div style={{ border: '1px solid rgba(168,85,247,0.1)', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
                     {approvedWs.items.map((item, i) => (
-                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: i < approvedWs.items.length - 1 ? '1px solid rgba(168,85,247,0.06)' : 'none' }}>
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: i < approvedWs.items.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none' }}>
                         <div>
                           <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#111827', margin: 0 }}>{item.name}</p>
                           <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>{item.quantity} {item.unit_of_measure}</p>
                         </div>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed' }}>{fmt(item.line_total, approvedWs.currency_code)}</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>{fmt(item.line_total, approvedWs.currency_code)}</span>
                       </div>
                     ))}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: 'rgba(168,85,247,0.04)', borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af' }}>Total</span>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7c3aed' }}>{fmt(approvedWs.grand_total, approvedWs.currency_code)}</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-primary-600)' }}>{fmt(approvedWs.grand_total, approvedWs.currency_code)}</span>
                     </div>
                   </div>
                 </div>
@@ -204,7 +204,7 @@ const MyBookingDetail = () => {
                     {cancelling && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
                     Confirm cancel
                   </button>
-                  <button onClick={() => setShowCancel(false)} style={{ padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                  <button onClick={() => setShowCancel(false)} style={{ padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
                     Keep booking
                   </button>
                 </div>

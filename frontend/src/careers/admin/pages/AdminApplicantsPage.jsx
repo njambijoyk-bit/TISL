@@ -99,9 +99,9 @@ export default function AdminApplicantsPage() {
                                 style={{
                                     padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                                     border: '1px solid',
-                                    borderColor: status === s ? '#a855f7' : '#2a2a2a',
-                                    background:  status === s ? 'rgba(168,85,247,0.15)' : 'transparent',
-                                    color:       status === s ? '#c084fc' : '#666',
+                                    borderColor: status === s ? 'var(--color-primary-500)' : '#2a2a2a',
+                                    background:  status === s ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
+                                    color:       status === s ? 'var(--color-primary-400)' : '#666',
                                     cursor: 'pointer', transition: 'all 0.15s',
                                 }}
                             >
@@ -134,13 +134,13 @@ export default function AdminApplicantsPage() {
                                         textDecoration: 'none', color: 'inherit',
                                         transition: 'border-color 0.15s',
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
                                     onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e1e'}
                                 >
                                     {/* Avatar */}
                                     <div style={{
                                         width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                                        background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                                        background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: 15, fontWeight: 700, color: '#fff',
                                     }}>
@@ -171,7 +171,7 @@ export default function AdminApplicantsPage() {
                                     {/* Stats */}
                                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0 }}>
                                         <div style={{ textAlign: 'right' }}>
-                                            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#a855f7' }}>{a.applications_count}</p>
+                                            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--color-primary-500)' }}>{a.applications_count}</p>
                                             <p style={{ margin: 0, fontSize: 10, color: '#444' }}>applications</p>
                                         </div>
                                         <ChevronRight size={14} color="#333" />

@@ -4,10 +4,10 @@ import Modal from '../../../../_shared/components/common/Modal';
 import LoadingSpinner from '../../../../_shared/components/layout/LoadingSpinner';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const taStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 9,

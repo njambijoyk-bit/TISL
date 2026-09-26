@@ -4,14 +4,14 @@ import toast from 'react-hot-toast';
 
 const ROLES = ['lead', 'support', 'observer'];
 const ROLE_META = {
-  lead:     { label: 'Lead',     color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
+  lead:     { label: 'Lead',     color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)' },
   support:  { label: 'Support',  color: '#2563eb', bg: 'rgba(37,99,235,0.08)'  },
   observer: { label: 'Observer', color: '#6b7280', bg: 'rgba(107,114,128,0.08)'},
 };
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 9, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms',
 };
@@ -65,16 +65,16 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
       <div style={{
         width: '100%', maxWidth: 460,
         background: 'white', borderRadius: 18,
-        border: '1px solid rgba(168,85,247,0.25)',
-        boxShadow: '0 20px 60px rgba(168,85,247,0.15)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+        boxShadow: '0 20px 60px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <UserPlus size={15} color="white" />
             </div>
             <div>
@@ -83,7 +83,7 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4, borderRadius: 6 }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           ><X size={16} /></button>
         </div>
@@ -93,24 +93,24 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
 
           {/* Search */}
           <div>
-            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 6 }}>
+            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 6 }}>
               Search staff
             </label>
             <div style={{ position: 'relative' }}>
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a855f7', pointerEvents: 'none' }} />
+              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-500)', pointerEvents: 'none' }} />
               <input
                 type="text" value={search}
                 onChange={e => { setSearch(e.target.value); setSelected(null); }}
                 placeholder="Type name or email…"
                 style={{ ...inputStyle, paddingLeft: 30 }}
-                onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}
               />
             </div>
 
             {/* Results */}
             {(users.length > 0 || loading) && (
-              <div style={{ marginTop: 6, border: '1.5px solid rgba(168,85,247,0.15)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ marginTop: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
                 {loading ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '14px 0', fontSize: '0.75rem', color: '#9ca3af' }}>
                     <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
@@ -121,12 +121,12 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
                   <div key={u.id} onClick={() => { setSelected(u); setSearch(u.name); setUsers([]); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                      cursor: 'pointer', borderBottom: i < users.length - 1 ? '1px solid rgba(168,85,247,0.07)' : 'none',
-                      background: selected?.id === u.id ? 'rgba(168,85,247,0.06)' : 'white',
+                      cursor: 'pointer', borderBottom: i < users.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none',
+                      background: selected?.id === u.id ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'white',
                       transition: 'background 100ms',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = selected?.id === u.id ? 'rgba(168,85,247,0.06)' : 'white'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = selected?.id === u.id ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'white'}
                   >
                     {u.profile_picture_url ? (
                       <img
@@ -135,7 +135,7 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
                         style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                       />
                     ) : (
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>
                         {u.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -152,7 +152,7 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
 
           {/* Role */}
           <div>
-            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 6 }}>Role</label>
+            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 6 }}>Role</label>
             <div style={{ display: 'flex', gap: 6 }}>
               {ROLES.map(r => {
                 const m = ROLE_META[r];
@@ -161,7 +161,7 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
                   <button key={r} type="button" onClick={() => setRole(r)} style={{
                     flex: 1, padding: '7px 0', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                     fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                    border: `1.5px solid ${active ? m.color : 'rgba(168,85,247,0.15)'}`,
+                    border: `1.5px solid ${active ? m.color : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
                     background: active ? m.bg : 'transparent',
                     color: active ? m.color : '#9ca3af',
                   }}>{m.label}</button>
@@ -172,27 +172,27 @@ const StaffAssignModal = ({ bookingId, existingStaff = [], onClose, onAssigned, 
 
           {/* Task */}
           <div>
-            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 6 }}>
+            <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 6 }}>
               Task description <span style={{ color: '#d1d5db', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
             </label>
             <textarea rows={2} value={task} onChange={e => setTask(e.target.value)}
               placeholder="What is this person responsible for?"
               style={{ ...inputStyle, resize: 'none', fontSize: '0.78rem' }}
-              onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(168,85,247,0.08)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose} style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.2)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} style={{ padding: '7px 16px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={handleAssign} disabled={!selected || saving} style={{
             padding: '7px 18px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 700,
             border: 'none', cursor: (!selected || saving) ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
             opacity: (!selected || saving) ? 0.6 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
           }}>

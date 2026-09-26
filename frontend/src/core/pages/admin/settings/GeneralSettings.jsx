@@ -17,8 +17,8 @@ const CATALOG_GROUP = {
     {
       name: 'Products',
       icon: Package,
-      bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-      color: '#a855f7',
+      bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
+      color: 'var(--color-primary-500)',
       path: '/admin/settings/general/bulk/products',
       active: true,
     },
@@ -47,8 +47,8 @@ const DELIVERY_ADMIN_GROUP = {
     {
       name: 'Overview',
       icon: Truck,
-      bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-      color: '#a855f7',
+      bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
+      color: 'var(--color-primary-500)',
       path: '/admin/delivery',
       active: true,
     },
@@ -153,8 +153,8 @@ const AI_GROUP = {
     {
       name: 'AI Analytics',
       icon: BrainCircuit,
-      bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-      color: '#a855f7',
+      bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
+      color: 'var(--color-primary-500)',
       path: '/admin/ai-analytics',
       active: true,
     },
@@ -245,8 +245,8 @@ const SYSTEM_BUGS_GROUP = {
     {
       name: 'Dev Keys',
       icon: FolderCog,
-      bg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-      color: '#a855f7',
+      bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
+      color: 'var(--color-primary-500)',
       path: '/admin/dev-keys',
       active: true,
     },
@@ -285,7 +285,7 @@ const SettingRow = ({ item, onClick, isLast }) => {
         textAlign: 'left',
       }}
       onMouseEnter={(e) => {
-        if (item.active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
+        if (item.active) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'transparent';
@@ -353,7 +353,7 @@ const GroupCard = ({ group, onNavigate }) => (
         fontWeight: 700,
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
-        color: '#a855f7',
+        color: 'var(--color-primary-500)',
         padding: '0 2px 8px',
         margin: 0,
         userSelect: 'none',
@@ -407,11 +407,11 @@ export default function GeneralLayout() {
                   width: 36,
                   height: 36,
                   borderRadius: 9,
-                  background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                  background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                 }}
               >
                 <LayoutGrid size={16} color="white" strokeWidth={2} />
@@ -422,7 +422,7 @@ export default function GeneralLayout() {
                   fontSize: '1.6rem',
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
-                  color: '#a855f7',
+                  color: 'var(--color-primary-500)',
                 }}
               >
                 General

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 const inputStyle = (width = '100%') => ({
   width, padding: '5px 8px', borderRadius: 7, fontSize: '0.78rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.15)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms',
 });
@@ -141,8 +141,8 @@ const WorksheetItemsTable = ({
             <button type="button" onClick={() => setAddMode('system')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
               borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-              border: '1.5px dashed rgba(168,85,247,0.3)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             }}><Package size={12} /> From products</button>
             <button type="button" onClick={() => setAddMode('manual')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
@@ -159,8 +159,8 @@ const WorksheetItemsTable = ({
 
       {/* Add item form */}
       {addMode && (
-        <div style={{ padding: '14px 16px', borderRadius: 12, border: '1.5px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.02)', marginBottom: 10 }}>
-          <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ padding: '14px 16px', borderRadius: 12, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', marginBottom: 10 }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {addMode === 'system' ? '📦 Add from products catalogue' : '✏️ Manual item entry'}
           </p>
 
@@ -170,31 +170,31 @@ const WorksheetItemsTable = ({
               {addMode === 'system' ? (
                 <>
                   <div style={{ position: 'relative' }}>
-                    <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#a855f7' }} />
+                    <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-500)' }} />
                     <input value={productSearch} onChange={e => searchProducts(e.target.value)}
                       placeholder="Search products…"
                       style={{ ...inputStyle(), paddingLeft: 28 }}
-                      onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                      onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                      onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                     />
                   </div>
                   {(productResults.length > 0 || searching) && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 10, background: 'white', border: '1.5px solid rgba(168,85,247,0.15)', borderRadius: 9, marginTop: 3, overflow: 'hidden', boxShadow: '0 6px 20px rgba(168,85,247,0.1)' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 10, background: 'white', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 9, marginTop: 3, overflow: 'hidden', boxShadow: '0 6px 20px color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                       {searching ? (
                         <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 6, color: '#9ca3af', fontSize: '0.75rem', justifyContent: 'center' }}>
                           <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Searching…
                           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                         </div>
                       ) : productResults.map(p => (
-                        <div key={p.id} onClick={() => selectProduct(p)} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(168,85,247,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 100ms' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
+                        <div key={p.id} onClick={() => selectProduct(p)} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 100ms' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'white'}
                         >
                           <div>
                             <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', margin: 0 }}>{p.name}</p>
                             <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>{p.sku}</p>
                           </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>{fmt(p.price)}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>{fmt(p.price)}</span>
                         </div>
                       ))}
                     </div>
@@ -204,8 +204,8 @@ const WorksheetItemsTable = ({
                 <input value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))}
                   placeholder="Item name *"
                   style={inputStyle()}
-                  onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                  onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                 />
               )}
             </div>
@@ -213,50 +213,50 @@ const WorksheetItemsTable = ({
             {/* SKU */}
             <input value={newItem.sku} onChange={e => setNewItem(p => ({ ...p, sku: e.target.value }))}
               placeholder="SKU (optional)" style={inputStyle()}
-              onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
             />
 
             {/* UoM */}
             <input value={newItem.unit_of_measure} onChange={e => setNewItem(p => ({ ...p, unit_of_measure: e.target.value }))}
               placeholder="Unit (each, kg, hr…)" style={inputStyle()}
-              onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
             />
 
             {/* Qty */}
             <input type="number" value={newItem.quantity} onChange={e => setNewItem(p => ({ ...p, quantity: e.target.value }))}
               placeholder="Qty *" min="0.01" step="0.01" style={inputStyle()}
-              onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
             />
 
             {/* Unit price */}
             <input type="number" value={newItem.unit_price} onChange={e => setNewItem(p => ({ ...p, unit_price: e.target.value }))}
               placeholder={`Unit price (${currencyCode}) *`} min="0" step="0.01" style={inputStyle()}
-              onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+              onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
             />
 
             {/* Notes */}
             <div style={{ gridColumn: '1 / -1' }}>
               <input value={newItem.notes} onChange={e => setNewItem(p => ({ ...p, notes: e.target.value }))}
                 placeholder="Notes (optional)" style={inputStyle()}
-                onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
               />
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
             <button onClick={() => { setAddMode(null); setProductSearch(''); setProductResults([]); setSelectedProduct(null); setNewItem({ name: '', sku: '', quantity: 1, unit_of_measure: 'each', unit_price: '', notes: '' }); }}
-              style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(168,85,247,0.18)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+              style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               Cancel
             </button>
             <button onClick={handleAdd} disabled={saving} style={{
               padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
               border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               display: 'flex', alignItems: 'center', gap: 6, opacity: saving ? 0.7 : 1,
             }}>
               {saving ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Adding…</> : <><Plus size={12} /> Add item</>}
@@ -267,13 +267,13 @@ const WorksheetItemsTable = ({
 
       {/* Table */}
       {sorted.length === 0 ? (
-        <div style={{ padding: '32px 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.78rem', border: '1.5px dashed rgba(168,85,247,0.15)', borderRadius: 12 }}>
+        <div style={{ padding: '32px 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.78rem', border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 12 }}>
           No items yet — add from the catalogue or enter manually.
         </div>
       ) : (
-        <div style={{ border: '1.5px solid rgba(168,85,247,0.12)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', borderRadius: 12, overflow: 'hidden' }}>
           {/* Header row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 70px 80px 90px 100px 36px', gap: 8, padding: '8px 12px', background: 'rgba(168,85,247,0.04)', borderBottom: '1px solid rgba(168,85,247,0.1)', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 70px 80px 90px 100px 36px', gap: 8, padding: '8px 12px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' }}>
             <span />
             <span>Item</span>
             <span>Qty</span>
@@ -294,8 +294,8 @@ const WorksheetItemsTable = ({
                 style={{
                   display: 'grid', gridTemplateColumns: '20px 1fr 70px 80px 90px 100px 36px',
                   gap: 8, padding: '9px 12px', alignItems: 'center',
-                  borderBottom: idx < sorted.length - 1 ? '1px solid rgba(168,85,247,0.06)' : 'none',
-                  background: dragOver === idx ? 'rgba(168,85,247,0.04)' : isEditing ? 'rgba(168,85,247,0.02)' : 'white',
+                  borderBottom: idx < sorted.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none',
+                  background: dragOver === idx ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : isEditing ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'white',
                   transition: 'background 100ms',
                 }}
               >
@@ -309,8 +309,8 @@ const WorksheetItemsTable = ({
                   {isEditing ? (
                     <input value={editVals.name} onChange={e => setEditVals(p => ({ ...p, name: e.target.value }))}
                       style={{ ...inputStyle(), fontSize: '0.75rem' }}
-                      onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                      onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                      onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                     />
                   ) : (
                     <div>
@@ -327,8 +327,8 @@ const WorksheetItemsTable = ({
                 {isEditing ? (
                   <input type="number" value={editVals.quantity} onChange={e => setEditVals(p => ({ ...p, quantity: e.target.value }))} min="0.01" step="0.01"
                     style={{ ...inputStyle(), fontSize: '0.75rem' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                   />
                 ) : (
                   <span style={{ fontSize: '0.78rem', color: '#374151', fontWeight: 600 }}>{item.quantity}</span>
@@ -338,8 +338,8 @@ const WorksheetItemsTable = ({
                 {isEditing ? (
                   <input value={editVals.unit_of_measure} onChange={e => setEditVals(p => ({ ...p, unit_of_measure: e.target.value }))}
                     style={{ ...inputStyle(), fontSize: '0.75rem' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                   />
                 ) : (
                   <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{item.unit_of_measure}</span>
@@ -349,15 +349,15 @@ const WorksheetItemsTable = ({
                 {isEditing ? (
                   <input type="number" value={editVals.unit_price} onChange={e => setEditVals(p => ({ ...p, unit_price: e.target.value }))} min="0" step="0.01"
                     style={{ ...inputStyle(), fontSize: '0.75rem' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#a855f7'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                   />
                 ) : (
                   <span style={{ fontSize: '0.75rem', color: '#374151' }}>{fmt(item.unit_price)}</span>
                 )}
 
                 {/* Line total */}
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed', textAlign: 'right' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)', textAlign: 'right' }}>
                   {fmt(item.line_total)}
                 </span>
 
@@ -376,7 +376,7 @@ const WorksheetItemsTable = ({
                     ) : (
                       <>
                         <button onClick={() => startEdit(item)} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'none', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 100ms, background 100ms' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#7c3aed'; e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-600)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
                           onMouseLeave={e => { e.currentTarget.style.color = '#c4b5fd'; e.currentTarget.style.background = 'none'; }}
                         ><Edit2 size={11} /></button>
                         <button onClick={() => onRemove(item.id)} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 100ms, background 100ms' }}
@@ -392,9 +392,9 @@ const WorksheetItemsTable = ({
           })}
 
           {/* Total footer */}
-          <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 70px 80px 90px 100px 36px', gap: 8, padding: '9px 12px', background: 'rgba(168,85,247,0.04)', borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 70px 80px 90px 100px 36px', gap: 8, padding: '9px 12px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
             <span /><span /><span /><span /><span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af' }}>Total</span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7c3aed', textAlign: 'right' }}>{fmt(totalMaterials)}</span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-primary-600)', textAlign: 'right' }}>{fmt(totalMaterials)}</span>
             <span />
           </div>
         </div>

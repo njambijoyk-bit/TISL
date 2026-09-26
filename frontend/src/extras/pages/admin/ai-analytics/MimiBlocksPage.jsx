@@ -113,7 +113,7 @@ function SearchableDropdown({ type, value, onSelect, inputSt, labelSt, audio }) 
                     {results.map(r => (
                         <div key={r.id} onMouseDown={() => pick(r)}
                             style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: `1px solid rgba(255,255,255,0.04)` }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; audio?.playHover(); }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; audio?.playHover(); }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                             <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{r.label}</div>
                             <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace', marginTop: 2 }}>{r.sub}</div>

@@ -22,7 +22,7 @@ const card = {
 const thStyle = {
   padding: '10px 14px', textAlign: 'left',
   fontSize: '0.65rem', fontWeight: 700,
-  color: '#a855f7',
+  color: 'var(--color-primary-500)',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   borderBottom: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-secondary)',
@@ -51,10 +51,10 @@ function GuideSection({ title, defaultOpen = false, children }) {
           fontFamily: 'inherit',
         }}
       >
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           {title}
         </span>
-        {open ? <ChevronUp size={14} style={{ color: '#a855f7' }} /> : <ChevronDown size={14} style={{ color: '#a855f7' }} />}
+        {open ? <ChevronUp size={14} style={{ color: 'var(--color-primary-500)' }} /> : <ChevronDown size={14} style={{ color: 'var(--color-primary-500)' }} />}
       </button>
       {open && <div style={{ padding: '0 20px 16px' }}>{children}</div>}
     </div>
@@ -72,7 +72,7 @@ function Dot({ color }) {
 const STATUS_TRANSITIONS = [
   { status: 'pending',    label: 'Pending',    color: '#f59e0b', canConvert: false, canCancel: true,  financialNote: 'No financial side-effects on entry' },
   { status: 'confirmed',  label: 'Confirmed',  color: '#22c55e', canConvert: true,  canCancel: true,  financialNote: 'Eligible for conversion to standard order' },
-  { status: 'processing', label: 'Processing', color: '#7c3aed', canConvert: true,  canCancel: true,  financialNote: 'Eligible for conversion to standard order' },
+  { status: 'processing', label: 'Processing', color: 'var(--color-primary-600)', canConvert: true,  canCancel: true,  financialNote: 'Eligible for conversion to standard order' },
   { status: 'shipped',    label: 'Shipped',    color: '#3b82f6', canConvert: false, canCancel: true,  financialNote: 'In transit — conversion blocked' },
   { status: 'delivered',  label: 'Delivered',  color: '#22c55e', canConvert: false, canCancel: true,  financialNote: 'Fulfillment complete — conversion blocked' },
   { status: 'cancelled',  label: 'Cancelled',  color: '#ef4444', canConvert: false, canCancel: false, financialNote: 'Financials reversed (credit, points, promo, stock)' },
@@ -129,12 +129,12 @@ export default function HamperOrderGuide({ order }) {
       {/* Header */}
       <div style={{
         padding: '14px 20px',
-        background: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(124,58,237,0.04))',
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 8%, transparent), color-mix(in srgb, var(--color-primary-600) 4%, transparent))',
         borderBottom: '1px solid var(--color-border-tertiary)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <Info size={16} style={{ color: '#a855f7' }} />
-        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <Info size={16} style={{ color: 'var(--color-primary-500)' }} />
+        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Order Lifecycle Guide
         </span>
       </div>
@@ -154,7 +154,7 @@ export default function HamperOrderGuide({ order }) {
             {STATUS_TRANSITIONS.map((row) => {
               const isActive = row.status === currentStatus;
               return (
-                <tr key={row.status} style={isActive ? { background: 'rgba(168,85,247,0.06)' } : {}}>
+                <tr key={row.status} style={isActive ? { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' } : {}}>
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <Dot color={row.color} />
@@ -162,7 +162,7 @@ export default function HamperOrderGuide({ order }) {
                       {isActive && (
                         <span style={{
                           marginLeft: 6, fontSize: '0.55rem', fontWeight: 800, padding: '1px 6px',
-                          borderRadius: 4, background: '#a855f7', color: 'white', textTransform: 'uppercase',
+                          borderRadius: 4, background: 'var(--color-primary-500)', color: 'white', textTransform: 'uppercase',
                         }}>Current</span>
                       )}
                     </div>

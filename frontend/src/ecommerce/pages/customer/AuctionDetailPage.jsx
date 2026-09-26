@@ -25,7 +25,7 @@ function useWindowWidth() {
 const ORDER_STATUS_COLORS = {
   pending:    { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
   confirmed:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
-  processing: { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  processing: { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
   shipped:    { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
   delivered:  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.4)', text: '#047857' },
   cancelled:  { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
@@ -36,7 +36,7 @@ const PAYMENT_STATUS_COLORS = {
   unpaid:          { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
   partially_paid:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
   paid:            { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  refunded:        { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  refunded:        { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
   failed:          { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
 };
 
@@ -64,10 +64,10 @@ function CustomerOrderPanel({ order, auctionCurrency }) {
   const hasTacking = order.tracking_number;
 
   return (
-    <div style={{ background: 'white', borderRadius: 16, border: '1.5px solid rgba(168,85,247,0.25)', overflow: 'hidden', marginTop: 8 }}>
+    <div style={{ background: 'white', borderRadius: 16, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', overflow: 'hidden', marginTop: 8 }}>
       {/* header */}
-      <div style={{ padding: '14px 18px', background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Receipt size={16} style={{ color: '#a855f7' }} />
+      <div style={{ padding: '14px 18px', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Receipt size={16} style={{ color: 'var(--color-primary-500)' }} />
         <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#374151', flex: 1 }}>Your Order</span>
         <StatusBadge status={order.status} map={ORDER_STATUS_COLORS} />
       </div>
@@ -77,7 +77,7 @@ function CustomerOrderPanel({ order, auctionCurrency }) {
         {/* order number + date */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>Order Number</p>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>Order Number</p>
             <p style={{ fontSize: '0.92rem', fontWeight: 700, color: '#111827', margin: 0 }}>{order.order_number}</p>
           </div>
           {order.created_at && (
@@ -95,7 +95,7 @@ function CustomerOrderPanel({ order, auctionCurrency }) {
             { label: 'Balance',     value: money(balance), color: balance > 0 ? '#dc2626' : '#059669' },
           ].map((item, i) => (
             <div key={i} style={{ textAlign: 'center', padding: '10px 6px', background: '#f9fafb', borderRadius: 10 }}>
-              <p style={{ fontSize: '0.62rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 3px' }}>{item.label}</p>
+              <p style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 3px' }}>{item.label}</p>
               <p style={{ fontSize: '0.8rem', fontWeight: 700, color: item.color, margin: 0 }}>{item.value}</p>
             </div>
           ))}
@@ -149,7 +149,7 @@ function CustomerOrderPanel({ order, auctionCurrency }) {
         {/* payment history */}
         {order.payments?.length > 0 && (
           <div>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Payment History</p>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Payment History</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {order.payments.map((pmt, i) => {
                 const isRefund = pmt.method === 'refund';
@@ -175,7 +175,7 @@ function CustomerOrderPanel({ order, auctionCurrency }) {
                       </div>
                       {ref && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '1px 0 0' }}>{ref}</p>}
                       {pmt.method && !isRefund && (
-                        <p style={{ fontSize: '0.65rem', color: '#a855f7', margin: '1px 0 0', textTransform: 'capitalize' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--color-primary-500)', margin: '1px 0 0', textTransform: 'capitalize' }}>
                           {pmt.method.replace(/_/g, ' ')}
                         </p>
                       )}
@@ -298,7 +298,7 @@ export default function AuctionDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
             <button
               onClick={() => navigate('/auctions')}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7', fontSize: '0.82rem', fontWeight: 600, padding: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)', fontSize: '0.82rem', fontWeight: 600, padding: 0 }}
               onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
               onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
             >
@@ -353,7 +353,7 @@ export default function AuctionDetailPage() {
                   { label: 'Total Bids', value: totalBids, icon: <Users size={12} /> },
                 ].map((item, i) => (
                   <div key={i} style={{ textAlign: 'center', padding: '10px 8px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>{item.label}</p>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>{item.label}</p>
                     <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                       {item.icon}{item.value}
                     </p>
@@ -367,7 +367,7 @@ export default function AuctionDetailPage() {
 
               {/* Name + description */}
               <div>
-                <h1 style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.2, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                <h1 style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.2, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
                   {product?.name}
                 </h1>
                 {product?.short_description && (
@@ -386,7 +386,7 @@ export default function AuctionDetailPage() {
                   </p>
                 </div>
                 <div style={{ padding: '16px 20px', borderRadius: 14, border: 'none', background: 'none' }}>
-                  <p style={{ fontSize: '0.68rem', fontWeight: 700, color: isUrgent ? '#dc2626' : '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 700, color: isUrgent ? '#dc2626' : 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Clock size={11} /> Time Remaining
                   </p>
                   {isEnded ? (
@@ -455,14 +455,14 @@ export default function AuctionDetailPage() {
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <History size={16} style={{ color: '#a855f7' }} />
+                  <History size={16} style={{ color: 'var(--color-primary-500)' }} />
                   <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>Recent Bids</span>
                   <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>{totalBids} total</span>
                 </div>
                 <div style={{ padding: '8px 0' }}>
                   {auction.top_bids?.length > 0 ? auction.top_bids.slice(0, 5).map((bid, idx) => (
                     <div key={bid.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 18px', borderBottom: idx < 4 ? '1px solid #f9fafb' : 'none' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: idx === 0 ? 'rgba(220,38,38,0.1)' : 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: idx === 0 ? '#dc2626' : '#a855f7', flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: idx === 0 ? 'rgba(220,38,38,0.1)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: idx === 0 ? '#dc2626' : 'var(--color-primary-500)', flexShrink: 0 }}>
                         {bid.bidder?.name?.charAt(0) ?? 'U'}
                       </div>
                       <span style={{ flex: 1, fontSize: '0.82rem', color: '#374151', fontWeight: idx === 0 ? 700 : 400 }}>

@@ -15,10 +15,10 @@ import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { format } from 'date-fns';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ── Severity config (shared across tabs that use it) ──────────────────────────
 const SEVERITY = {
@@ -686,7 +686,7 @@ function ReferralLogsTab() {
 
           // Actor type badge color
           const actorTypeColor = a.actor_type === 'admin'
-            ? '#7c3aed'
+            ? 'var(--color-primary-600)'
             : a.actor_type === 'customer'
             ? '#0e7490'
             : '#9ca3af';
@@ -1018,7 +1018,7 @@ function TierLogsTab() {
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: cfg.color, padding: '3px 8px', borderRadius: 6, background: cfg.bg, display: 'inline-block', marginTop: 4, width: 'fit-content' }}>
                   {a.action}
                 </span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: 6, display: 'inline-block', marginTop: 4, width: 'fit-content', background: isTier ? 'rgba(168,85,247,0.1)' : 'rgba(99,102,241,0.1)', color: isTier ? '#7c3aed' : '#4f46e5' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: 6, display: 'inline-block', marginTop: 4, width: 'fit-content', background: isTier ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'rgba(99,102,241,0.1)', color: isTier ? 'var(--color-primary-600)' : '#4f46e5' }}>
                   {isTier ? 'Tier' : 'Type'}
                 </span>
                 <div style={{ paddingTop: 2 }}>
@@ -1076,7 +1076,7 @@ export default function ActivityLogs() {
         @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin   { to { transform:rotate(360deg); } }
         .al-row { transition: background 0.12s; }
-        .al-row:hover { background: rgba(168,85,247,0.03) !important; }
+        .al-row:hover { background: color-mix(in srgb, var(--color-primary-500) 3%, transparent) !important; }
       `}</style>
 
       {/* ── Page header ── */}
@@ -1085,7 +1085,7 @@ export default function ActivityLogs() {
           <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: purple, marginBottom: 4 }}>
             System
           </p>
-          <h1 style={{ fontSize: '1.7rem', fontWeight: 900, color: '#a855f7', letterSpacing: '-0.03em', margin: '0 0 4px' }}>
+          <h1 style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', margin: '0 0 4px' }}>
             Activity Logs
           </h1>
           <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>

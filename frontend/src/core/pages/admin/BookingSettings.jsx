@@ -6,21 +6,21 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: '0.83rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms',
 };
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
-const focus = e => { e.currentTarget.style.borderColor = '#a855f7'; };
-const blur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; };
+const focus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; };
+const blur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; };
 
 const Section = ({ title, icon: Icon, children }) => (
-  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', overflow: 'hidden' }}>
-    <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Icon size={15} style={{ color: '#a855f7' }} />
+  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
+    <div style={{ padding: '13px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Icon size={15} style={{ color: 'var(--color-primary-500)' }} />
       <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: 0 }}>{title}</p>
     </div>
     <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 16 }}>{children}</div>
@@ -37,7 +37,7 @@ const Toggle = ({ label, hint, checked, onChange, disabled }) => (
       onClick={() => !disabled && onChange(!checked)}
       style={{
         width: 44, height: 24, borderRadius: 12, flexShrink: 0, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: checked ? '#a855f7' : '#e5e7eb',
+        background: checked ? 'var(--color-primary-500)' : '#e5e7eb',
         position: 'relative', transition: 'background 200ms',
         opacity: disabled ? 0.5 : 1,
       }}
@@ -95,7 +95,7 @@ const BookingSettings = () => {
   if (loading) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 0', gap: 10, color: '#9ca3af' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#a855f7' }} />
+        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary-500)' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </AdminLayout>
@@ -108,7 +108,7 @@ const BookingSettings = () => {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Settings size={18} color="white" />
             </div>
             <div>
@@ -119,8 +119,8 @@ const BookingSettings = () => {
           <button onClick={handleSave} disabled={saving} style={{
             padding: '9px 20px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none',
             cursor: saving ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: saving ? 0.7 : 1,
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: saving ? 0.7 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
           }}>
             {saving ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={14} />}
@@ -166,7 +166,7 @@ const BookingSettings = () => {
             {DAYS.map(day => {
               const dh = settings.working_hours?.[day] ?? { open: '08:00', close: '17:00', enabled: false };
               return (
-                <div key={day} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 80px', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 10, background: dh.enabled ? 'rgba(168,85,247,0.03)' : 'rgba(107,114,128,0.03)', border: `1px solid ${dh.enabled ? 'rgba(168,85,247,0.12)' : 'rgba(107,114,128,0.1)'}` }}>
+                <div key={day} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 80px', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 10, background: dh.enabled ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'rgba(107,114,128,0.03)', border: `1px solid ${dh.enabled ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'rgba(107,114,128,0.1)'}` }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 600, color: dh.enabled ? '#374151' : '#9ca3af' }}>{DAY_LABELS[day]}</span>
                   <div>
                     <input type="time" value={dh.open} onChange={e => setWorkingHours(day, 'open', e.target.value)}
@@ -245,8 +245,8 @@ const BookingSettings = () => {
           <button onClick={handleSave} disabled={saving} style={{
             padding: '9px 24px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, border: 'none',
             cursor: saving ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: saving ? 0.7 : 1,
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: saving ? 0.7 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
           }}>
             {saving ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={14} />}

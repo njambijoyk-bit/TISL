@@ -16,7 +16,7 @@ import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ROLE_META = {
-  super_admin: { label: 'Super Admin', color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },
+  super_admin: { label: 'Super Admin', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
   admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
   manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
   finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
@@ -36,7 +36,7 @@ const STATUS_STYLES = {
 
 const STAT_META = [
   { key: 'total',     label: 'Total users',  icon: <Users size={18} />,       accent: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
-  { key: 'staff',     label: 'Staff',        icon: <Shield size={18} />,      accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)'  },
+  { key: 'staff',     label: 'Staff',        icon: <Shield size={18} />,      accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'  },
   { key: 'active',    label: 'Active',       icon: <CheckCircle size={18} />, accent: '#059669', bg: 'rgba(5,150,105,0.08)'   },
   { key: 'suspended', label: 'Suspended',    icon: <ShieldAlert size={18} />, accent: '#dc2626', bg: 'rgba(220,38,38,0.08)'   },
   { key: 'locked',    label: 'Locked',       icon: <Lock size={18} />,        accent: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
@@ -65,21 +65,21 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numer
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 
-const selectFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
@@ -100,7 +100,7 @@ function StatCard({ icon, label, value, accent, bg }) {
       </div>
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
+        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
       </div>
     </div>
   );
@@ -121,22 +121,22 @@ function Badge({ bg, color, ring, children }) {
 
 function SkeletonRow({ cols }) {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       <td style={{ padding: '12px 16px', width: 44 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(168,85,247,0.08)' }} />
+        <div style={{ width: 16, height: 16, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
       </td>
       <td style={{ padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(168,85,247,0.08)', flexShrink: 0 }} />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ width: 120, height: 11, borderRadius: 6, background: 'rgba(168,85,247,0.08)' }} />
-            <div style={{ width: 160, height: 9, borderRadius: 6, background: 'rgba(168,85,247,0.05)' }} />
+            <div style={{ width: 120, height: 11, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+            <div style={{ width: 160, height: 9, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }} />
           </div>
         </div>
       </td>
       {[80, 70, 64, 90, 60, 0].map((w, j) => (
         <td key={j} style={{ padding: '12px 16px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'rgba(168,85,247,0.06)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }} />}
         </td>
       ))}
     </tr>
@@ -171,7 +171,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
           borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
           color: '#c4b5fd', transition: 'background 120ms, color 120ms',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
       >
         <MoreHorizontal size={14} />
@@ -183,13 +183,13 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 200, zIndex: 20,
             background: 'white', borderRadius: 12, padding: '6px 0',
-            border: '1.5px solid rgba(168,85,247,0.15)',
-            boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
             onClick={e => e.stopPropagation()}
           >
             {items.map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid rgba(168,85,247,0.08)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
@@ -198,7 +198,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
                 color: item.danger ? '#ef4444' : '#374151',
                 transition: 'background 120ms',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'rgba(168,85,247,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <item.icon size={13} style={{ flexShrink: 0 }} />
@@ -328,8 +328,8 @@ const USERS_DEV_NOTES = {
   ],
 };
 
-const USEV = { critical: "#ef4444", warning: "#f59e0b", low: "#a855f7" };
-const UHOV = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+const USEV = { critical: "#ef4444", warning: "#f59e0b", low: "var(--color-primary-500)" };
+const UHOV = { near: "#06b6d4", medium: "#f59e0b", long: "var(--color-primary-500)" };
 
 function UsersDevNotesModal({ onClose }) {
   const [tab, setTab] = useState("pitfalls");
@@ -340,12 +340,12 @@ function UsersDevNotesModal({ onClose }) {
       onClick={onClose}
     >
       <div
-        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(168,85,247,0.18), 0 4px 20px rgba(0,0,0,0.12)" }}
+        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px color-mix(in srgb, var(--color-primary-500) 18%, transparent), 0 4px 20px rgba(0,0,0,0.12)" }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f3f4f6" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-            <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#a855f7" }}>
+            <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — users system
             </span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af", lineHeight: 1 }}>✕</button>
@@ -357,8 +357,8 @@ function UsersDevNotesModal({ onClose }) {
             {["pitfalls", "strengths", "future"].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 20px", background: "none", border: "none",
-                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
-                color: tab === t ? "#a855f7" : "#6b7280",
+                borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
+                color: tab === t ? "var(--color-primary-500)" : "#6b7280",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1, transition: "all 0.15s",
               }}>{t}</button>
@@ -381,8 +381,8 @@ function UsersDevNotesModal({ onClose }) {
           ))}
 
           {tab === "strengths" && USERS_DEV_NOTES.strengths.map((n, i) => (
-            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid #a855f722", background: "#a855f705" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)05" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
               <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
@@ -524,7 +524,7 @@ export default function UsersPage() {
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
               Users
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -538,8 +538,8 @@ export default function UsersPage() {
                 onClick={() => setDevNotesOpen(true)}
                 style={{
                   padding: '9px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
-                  border: '1.5px solid rgba(168,85,247,0.3)', cursor: 'pointer',
-                  background: 'transparent', color: '#a855f7', fontFamily: 'monospace',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
+                  background: 'transparent', color: 'var(--color-primary-500)', fontFamily: 'monospace',
                 }}
               >
                 // dev
@@ -553,12 +553,12 @@ export default function UsersPage() {
                     display: 'flex', alignItems: 'center', gap: 7,
                     padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
                     border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                    boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                    boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                     transition: 'box-shadow 150ms',
                   }}
-                  onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-                  onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+                  onMouseEnterCapture={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+                  onMouseLeaveCapture={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
                 >
                   <UserPlus size={15} /> New user
                 </button>
@@ -570,12 +570,12 @@ export default function UsersPage() {
                     style={{
                       position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
                       background: 'white', borderRadius: 12, padding: 16,
-                      border: '1.5px solid rgba(168,85,247,0.2)',
-                      boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+                      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                      boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                     }}
                   >
                     <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                      <Info size={16} style={{ color: '#a855f7', flexShrink: 0, marginTop: 1 }} />
+                      <Info size={16} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
                       <div>
                         <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
                           Customers can't be created by admins
@@ -589,17 +589,17 @@ export default function UsersPage() {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 10px', borderRadius: 8, marginBottom: 12,
-                      background: 'rgba(168,85,247,0.04)',
-                      border: '1px solid rgba(168,85,247,0.12)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                     }}>
-                      <Upload size={13} style={{ color: '#a855f7', flexShrink: 0 }} />
+                      <Upload size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                       <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
                         Need to add many customers at once?{' '}
-                        <span style={{ color: '#7c3aed', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
+                        <span style={{ color: 'var(--color-primary-600)', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
                       </p>
                     </div>
 
-                    <div style={{ borderTop: '1px solid rgba(168,85,247,0.1)', paddingTop: 12 }}>
+                    <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingTop: 12 }}>
                       <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
                         Looking to add a staff member instead?
                       </p>
@@ -609,8 +609,8 @@ export default function UsersPage() {
                           width: '100%', padding: '8px', borderRadius: 8,
                           fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
                           fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                          boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                          boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                         }}
                       >
                         Create new employee <ExternalLink size={12} />
@@ -638,7 +638,7 @@ export default function UsersPage() {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 16px',
-            borderBottom: '1px solid rgba(168,85,247,0.1)',
+            borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
             <div style={{ display: 'flex' }}>
               {['staff', 'finance', 'logistics', 'drivers', 'customers', 'vendors'].map(tab => {
@@ -663,9 +663,9 @@ export default function UsersPage() {
                 return (
                   <button key={tab} onClick={() => setTab(tab)} style={{
                     padding: '12px 18px', fontSize: '0.82rem', fontWeight: filters.tab === tab ? 700 : 500,
-                    color: filters.tab === tab ? '#a855f7' : '#9ca3af',
+                    color: filters.tab === tab ? 'var(--color-primary-500)' : '#9ca3af',
                     background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    borderBottom: `2px solid ${filters.tab === tab ? '#a855f7' : 'transparent'}`,
+                    borderBottom: `2px solid ${filters.tab === tab ? 'var(--color-primary-500)' : 'transparent'}`,
                     marginBottom: -1, textTransform: 'capitalize', transition: 'color 150ms',
                   }}>
                     {tabLabels[tab]}
@@ -673,8 +673,8 @@ export default function UsersPage() {
                       <span style={{
                         marginLeft: 7, padding: '1px 7px', borderRadius: 99,
                         fontSize: '0.65rem', fontWeight: 700,
-                        background: filters.tab === tab ? 'rgba(168,85,247,0.12)' : 'rgba(107,114,128,0.1)',
-                        color: filters.tab === tab ? '#7c3aed' : '#9ca3af',
+                        background: filters.tab === tab ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'rgba(107,114,128,0.1)',
+                        color: filters.tab === tab ? 'var(--color-primary-600)' : '#9ca3af',
                       }}>
                         {tabStats[tab]}
                       </span>
@@ -749,13 +749,13 @@ export default function UsersPage() {
                 onChange={e => setFilter('search', e.target.value)}
                 style={{
                   width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                  background: 'rgba(168,85,247,0.04)',
-                  border: '1.5px solid rgba(168,85,247,0.18)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                   color: '#111827', outline: 'none', fontFamily: 'inherit',
                   boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
@@ -765,9 +765,9 @@ export default function UsersPage() {
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-                border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-                color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
+                background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+                border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+                color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
               }}
             >
               <Filter size={14} />
@@ -776,7 +776,7 @@ export default function UsersPage() {
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                 }}>
                   {activeFilterCount}
                 </span>
@@ -788,7 +788,7 @@ export default function UsersPage() {
           {showFilters && (
             <div style={{
               padding: '12px 16px 14px',
-              borderTop: '1px solid rgba(168,85,247,0.1)',
+              borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
             }}>
               {(showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab) && (
@@ -820,9 +820,9 @@ export default function UsersPage() {
                 <button key={key} onClick={() => setFilter(key, !filters[key])} style={{
                   padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                  background: filters[key] ? 'rgba(168,85,247,0.1)' : 'transparent',
-                  border: `1.5px solid ${filters[key] ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-                  color: filters[key] ? '#7c3aed' : '#9ca3af',
+                  background: filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+                  border: `1.5px solid ${filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+                  color: filters[key] ? 'var(--color-primary-600)' : '#9ca3af',
                 }}>
                   {label}
                 </button>
@@ -849,13 +849,13 @@ export default function UsersPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                   <th style={{ padding: '10px 16px', width: 44 }}>
                     <input
                       type="checkbox"
                       checked={selectedIds.length === users.length && users.length > 0}
                       onChange={toggleSelectAll}
-                      style={{ accentColor: '#a855f7', width: 15, height: 15, cursor: 'pointer' }}
+                      style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </th>
                   <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
@@ -888,11 +888,11 @@ export default function UsersPage() {
                     ? (
                       <tr>
                         <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                          <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                          <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                           <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No users found</p>
                           {hasFilters && (
                             <button onClick={resetFilters} style={{
-                              fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
+                              fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
                               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                             }}>
                               Clear filters
@@ -912,11 +912,11 @@ export default function UsersPage() {
                         <tr
                           key={user.id}
                           style={{
-                            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                             transition: 'background 120ms',
                             opacity: user.deleted_at ? 0.6 : 1,
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
@@ -924,7 +924,7 @@ export default function UsersPage() {
                               type="checkbox"
                               checked={selectedIds.includes(user.id)}
                               onChange={() => toggleSelect(user.id)}
-                              style={{ accentColor: '#a855f7', width: 15, height: 15, cursor: 'pointer' }}
+                              style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
                             />
                           </td>
 
@@ -939,7 +939,7 @@ export default function UsersPage() {
                                 alt={user.name}
                                 style={{ 
                                   width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
-                                  flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block',
+                                  flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block',
                                 }}
                               />
                               <div style={{ minWidth: 0 }}>
@@ -1059,9 +1059,9 @@ export default function UsersPage() {
           {!loading && users.length > 0 && pagination.last_page > 1 && (
             <div style={{
               padding: '12px 20px',
-              borderTop: '1px solid rgba(168,85,247,0.08)',
+              borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'rgba(168,85,247,0.02)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
             }}>
               <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
                 Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} users
@@ -1074,10 +1074,10 @@ export default function UsersPage() {
                   style={{
                     width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                    border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                    color: '#a855f7', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    color: 'var(--color-primary-500)', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
                   }}
-                  onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                  onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   <ChevronLeft size={14} />
@@ -1097,12 +1097,12 @@ export default function UsersPage() {
                       style={{
                         width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
                         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                        background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                        border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
+                        background: isActive ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
+                        border: isActive ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                         color: isActive ? 'white' : '#9ca3af',
-                        boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                        boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                       }}
-                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
                     >
                       {p}
@@ -1116,10 +1116,10 @@ export default function UsersPage() {
                   style={{
                     width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                    border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                    color: '#a855f7', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    color: 'var(--color-primary-500)', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
                   }}
-                  onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                  onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   <ChevronRight size={14} />

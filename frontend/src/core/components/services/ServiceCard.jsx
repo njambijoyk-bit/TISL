@@ -29,7 +29,7 @@ import useMoney from '../../../_shared/hooks/useMoney';
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
   social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
-  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: 'var(--color-primary-400)', text: '#fff' },
   urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
   tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
 };
@@ -105,7 +105,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             <button
               onClick={handleNext}
               className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full z-10 transition-colors"
-              style={{ background: 'none', border: 'none', color: '#a855f7' }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary-500)' }}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -167,13 +167,13 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             style={{
               padding: '0.4rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
               transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: inQL ? 'rgba(168,85,247,0.15)' : 'white',
-              boxShadow: inQL ? '0 0 0 1.5px rgba(124,58,237,0.5)' : 'none',
+              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white',
+              boxShadow: inQL ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-600) 50%, transparent)' : 'none',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'rgba(124,58,237,0.25)' : '#faf5ff'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'rgba(168,85,247,0.15)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <FileText size={16} style={{ color: inQL ? '#7c3aed' : '#a855f7', transition: 'color 150ms ease' }} />
+            <FileText size={16} style={{ color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'color 150ms ease' }} />
           </button>
         </div>
         {/* Boost badge strip */}
@@ -242,19 +242,19 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, fontSize: '0.72rem', color: '#6b7280' }}>
           {service.estimated_duration && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Clock size={11} style={{ color: '#a855f7' }} />
+              <Clock size={11} style={{ color: 'var(--color-primary-500)' }} />
               <span>{service.estimated_duration}</span>
             </div>
           )}
           {service.lead_time && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Calendar size={11} style={{ color: '#a855f7' }} />
+              <Calendar size={11} style={{ color: 'var(--color-primary-500)' }} />
               <span>{service.lead_time}</span>
             </div>
           )}
           {service.service_area && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <MapPin size={11} style={{ color: '#a855f7' }} />
+              <MapPin size={11} style={{ color: 'var(--color-primary-500)' }} />
               <span>{service.service_area}</span>
             </div>
           )}
@@ -271,7 +271,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
           )}
           {service.order_count > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#6b7280' }}>
-              <TrendingUp size={12} style={{ color: '#a855f7' }} />
+              <TrendingUp size={12} style={{ color: 'var(--color-primary-500)' }} />
               <span>{service.order_count}</span>
             </div>
           )}
@@ -289,7 +289,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
               ))}
             </ul>
             {service.features.length > 2 && (
-              <span style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
                 +{service.features.length - 2} more
               </span>
             )}
@@ -302,9 +302,9 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             <button
               onClick={() => onClick(service)}
               className="flex-1 font-regular py-1.5 px-3 rounded-lg text-s transition-all duration-200 text-center"
-              style={{ backgroundColor: '#a855f7', color: '#ffffff', border: '1.5px solid #a855f7' }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#a855f7'; }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#a855f7'; e.currentTarget.style.color = '#ffffff'; }}
+              style={{ backgroundColor: 'var(--color-primary-500)', color: '#ffffff', border: '1.5px solid var(--color-primary-500)' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--color-primary-500)'; e.currentTarget.style.color = '#ffffff'; }}
             >
               View Details
             </button>
@@ -312,9 +312,9 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             <Link
               to={`/services/${service.id}`}
               className="flex-1 font-regular py-1.5 px-3 rounded-lg text-lg transition-all duration-200 text-center"
-              style={{ backgroundColor: '#a855f7', color: '#ffffff', border: '1.5px solid #a855f7' }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#a855f7'; }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#a855f7'; e.currentTarget.style.color = '#ffffff'; }}
+              style={{ backgroundColor: 'var(--color-primary-500)', color: '#ffffff', border: '1.5px solid var(--color-primary-500)' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--color-primary-500)'; e.currentTarget.style.color = '#ffffff'; }}
             >
               View Details
             </Link>
@@ -326,13 +326,13 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             style={{
               padding: '0.375rem 0.625rem', borderRadius: '0.5rem', cursor: 'pointer',
               transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem',
-              backgroundColor: inQL ? 'rgba(124,58,237,0.15)' : 'rgba(168,85,247,0.08)',
-              color: inQL ? '#7c3aed' : '#a855f7',
-              border: `1px solid ${inQL ? '#7c3aed' : 'rgba(168,85,247,0.25)'}`,
+              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-600) 15%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+              color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)',
+              border: `1px solid ${inQL ? 'var(--color-primary-600)' : 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'}`,
               fontWeight: inQL ? 700 : 500, fontSize: '0.75rem',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? '#7c3aed' : '#a855f7'; e.currentTarget.style.color = 'white'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'rgba(124,58,237,0.15)' : 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = inQL ? '#7c3aed' : '#a855f7'; }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)'; e.currentTarget.style.color = 'white'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 15%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)'; }}
           >
             <FileText size={14} />
             {inQL ? '✓' : ''}

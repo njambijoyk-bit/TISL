@@ -26,7 +26,7 @@ const APP_STATUS_COLORS = {
     submitted:    { bg: '#1a1a2e', color: '#818cf8' },
     under_review: { bg: '#1c1a10', color: '#fbbf24' },  // was 'reviewing'
     shortlisted:  { bg: '#0d2618', color: '#34d399' },
-    interviewed:  { bg: '#1a1028', color: '#c084fc' },  // was 'interview'
+    interviewed:  { bg: '#1a1028', color: 'var(--color-primary-400)' },  // was 'interview'
     rejected:     { bg: '#2a0f0f', color: '#f87171' },
     hired:        { bg: '#0d2020', color: '#2dd4bf' },
     withdrawn:    { bg: '#1a1a1a', color: '#555' },
@@ -46,7 +46,7 @@ const s = {
     main:      {},
     sidebar:   { position: 'sticky', top: 24, display: 'flex', flexDirection: 'column', gap: 16 },
 
-    eyebrow:   { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#a855f7', marginBottom: 10, fontWeight: 600 },
+    eyebrow:   { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 10, fontWeight: 600 },
     titleRow:  { display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 },
     title:     { fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: 700, lineHeight: 1.2, fontFamily: "'DM Serif Display', serif", flex: 1 },
     statusPill: (status) => ({
@@ -56,14 +56,14 @@ const s = {
     }),
     metaRow:   { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 },
     pill:      { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#1a1a1a', color: '#aaa', fontWeight: 500 },
-    pillPurple:{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: '#c084fc', fontWeight: 500 },
+    pillPurple:{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: 'var(--color-primary-400)', fontWeight: 500 },
 
     section:      { marginBottom: 32 },
     sectionTitle: { fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', fontWeight: 600, marginBottom: 14 },
     body:         { fontSize: 15, lineHeight: 1.75, color: '#bbb' },
     list:         { listStyle: 'none', padding: 0, margin: 0 },
     listItem:     { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 14, color: '#bbb', lineHeight: 1.6 },
-    dot:          { width: 5, height: 5, borderRadius: '50%', background: '#a855f7', flexShrink: 0, marginTop: 8 },
+    dot:          { width: 5, height: 5, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0, marginTop: 8 },
 
     divider:   { border: 'none', borderTop: '1px solid #1a1a1a', margin: '32px 0' },
 
@@ -76,7 +76,7 @@ const s = {
 
     btn: (variant) => {
         const map = {
-            primary: { background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff' },
+            primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff' },
             danger:  { background: '#2a0f0f', color: '#f87171', border: '1px solid #3d1515' },
             ghost:   { background: '#161616', color: '#888', border: '1px solid #222' },
             green:   { background: '#0d2618', color: '#34d399', border: '1px solid #1a3d28' },
@@ -98,7 +98,7 @@ const s = {
         background: APP_STATUS_COLORS[status]?.bg ?? '#1e1e1e',
         color:      APP_STATUS_COLORS[status]?.color ?? '#888',
     }),
-    aiScore:   { fontSize: 12, fontWeight: 700, color: '#a855f7', minWidth: 36, textAlign: 'right' },
+    aiScore:   { fontSize: 12, fontWeight: 700, color: 'var(--color-primary-500)', minWidth: 36, textAlign: 'right' },
 
     loader:    { textAlign: 'center', padding: '100px 0', color: '#444' },
     empty:     { padding: '32px 0', textAlign: 'center', color: '#444', fontSize: 14 },
@@ -111,7 +111,7 @@ const s = {
     cancelBtn: { flex: 1, padding: '11px 0', borderRadius: 8, border: '1px solid #222', background: 'transparent', color: '#666', fontSize: 13, cursor: 'pointer' },
     confirmBtn:(danger) => ({
         flex: 2, padding: '11px 0', borderRadius: 8, border: 'none',
-        background: danger ? '#c0392b' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+        background: danger ? '#c0392b' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
         color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
     }),
 };
@@ -238,7 +238,7 @@ export default function AdminJobDetailPage() {
                 <Link
                     to="/admin/careers/jobs"
                     style={s.back}
-                    onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#555'}
                 >
                     ← All Jobs
@@ -356,7 +356,7 @@ export default function AdminJobDetailPage() {
                                             width: 36, height: 36, borderRadius: '50%',
                                             background: '#1e1e1e', display: 'flex', alignItems: 'center',
                                             justifyContent: 'center', fontSize: 14, fontWeight: 700,
-                                            color: '#a855f7', flexShrink: 0,
+                                            color: 'var(--color-primary-500)', flexShrink: 0,
                                         }}>
                                             {(app.applicant?.first_name ?? '?').charAt(0).toUpperCase()}
                                         </div>
@@ -511,7 +511,7 @@ export default function AdminJobDetailPage() {
                                 href={`/careers/${job.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                style={{ fontSize: 13, color: '#a855f7', textDecoration: 'none', wordBreak: 'break-all' }}
+                                style={{ fontSize: 13, color: 'var(--color-primary-500)', textDecoration: 'none', wordBreak: 'break-all' }}
                             >
                                 /careers/{job.slug} ↗
                             </a>

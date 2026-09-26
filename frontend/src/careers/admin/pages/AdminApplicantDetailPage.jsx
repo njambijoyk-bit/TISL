@@ -14,7 +14,7 @@ const STATUS_STYLES = {
 const APP_STATUS_STYLES = {
     submitted:   { color: '#60a5fa', label: 'Submitted' },
     reviewing:   { color: '#f59e0b', label: 'Reviewing' },
-    shortlisted: { color: '#a855f7', label: 'Shortlisted' },
+    shortlisted: { color: 'var(--color-primary-500)', label: 'Shortlisted' },
     interview:   { color: '#06b6d4', label: 'Interview' },
     offered:     { color: '#10b981', label: 'Offered' },
     rejected:    { color: '#ef4444', label: 'Rejected' },
@@ -99,7 +99,7 @@ export default function AdminApplicantDetailPage() {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     fontSize: 13, color: '#555', textDecoration: 'none', marginBottom: 24,
                 }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#555'}
                 >
                     <ArrowLeft size={14} /> All Applicants
@@ -112,7 +112,7 @@ export default function AdminApplicantDetailPage() {
                         {/* Avatar */}
                         <div style={{
                             width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                            background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                            background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 22, fontWeight: 700, color: '#fff',
                         }}>
@@ -388,7 +388,7 @@ function Detail({ icon, label, value }) {
 function Stat({ label, value, accent }) {
     return (
         <div>
-            <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: accent ? '#a855f7' : '#f0f0f0' }}>{value}</p>
+            <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: accent ? 'var(--color-primary-500)' : '#f0f0f0' }}>{value}</p>
             <p style={{ margin: '2px 0 0', fontSize: 11, color: '#555' }}>{label}</p>
         </div>
     );

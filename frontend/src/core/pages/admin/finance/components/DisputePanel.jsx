@@ -100,7 +100,7 @@ function EvidenceInput({ value, onChange }) {
             <li key={i} style={{
               display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8,
               padding: '6px 10px', borderRadius: 7,
-              background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--color-text, #374151)', flex: 1 }}>{line}</span>
               <button
@@ -127,7 +127,7 @@ function EvidenceInput({ value, onChange }) {
           onClick={add}
           disabled={!draft.trim()}
           style={{
-            ...btn('rgba(168,85,247,0.15)', '#a855f7'),
+            ...btn('color-mix(in srgb, var(--color-primary-500) 15%, transparent)', 'var(--color-primary-500)'),
             padding: '8px 12px', flexShrink: 0,
             opacity: draft.trim() ? 1 : 0.4,
           }}
@@ -297,9 +297,9 @@ function RaisedView({ payment, user, onUpdate }) {
               <li key={i} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 8,
                 padding: '6px 10px', borderRadius: 7,
-                background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
               }}>
-                <span style={{ color: '#a855f7', fontSize: '0.75rem', marginTop: 2, flexShrink: 0 }}>•</span>
+                <span style={{ color: 'var(--color-primary-500)', fontSize: '0.75rem', marginTop: 2, flexShrink: 0 }}>•</span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--color-text, #374151)' }}>{line}</span>
               </li>
             ))}
@@ -315,7 +315,7 @@ function RaisedView({ payment, user, onUpdate }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#a855f7', fontSize: '0.8rem', fontWeight: 700,
+              color: 'var(--color-primary-500)', fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', padding: 0,
             }}
           >
@@ -435,9 +435,9 @@ function ClosedView({ payment }) {
             {evidence.map((line, i) => (
               <li key={i} style={{
                 display: 'flex', gap: 8, padding: '5px 10px', borderRadius: 7,
-                background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               }}>
-                <span style={{ color: '#a855f7', fontSize: '0.75rem', marginTop: 2 }}>•</span>
+                <span style={{ color: 'var(--color-primary-500)', fontSize: '0.75rem', marginTop: 2 }}>•</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--color-text, #374151)' }}>{line}</span>
               </li>
             ))}

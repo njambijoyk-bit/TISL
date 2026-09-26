@@ -2210,7 +2210,7 @@ const LINKED_BADGE = {
   display: "inline-flex", alignItems: "center", gap: 4,
   padding: "2px 7px", borderRadius: 4,
   background: "rgba(139, 92, 246, 0.18)", border: "1px solid rgba(139, 92, 246, 0.45)",
-  color: "#a78bfa", fontFamily: mono, fontSize: 9, fontWeight: 700,
+  color: "var(--color-primary-400)", fontFamily: mono, fontSize: 9, fontWeight: 700,
   letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap",
 };
 const LOCKED_INPUT  = { ...inputStyle,  opacity: 0.45, cursor: "not-allowed", background: "rgba(255,255,255,0.03)" };
@@ -2221,7 +2221,7 @@ function ReadOnlyField({ label, value }) {
     <Field label={
       <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
         {label}
-        <span style={{ fontSize: 9, color: "#a78bfa", fontWeight: 700 }}>⊘ PRODUCT</span>
+        <span style={{ fontSize: 9, color: "var(--color-primary-400)", fontWeight: 700 }}>⊘ PRODUCT</span>
       </span>
     }>
       <input style={LOCKED_INPUT} value={value ?? "—"} readOnly disabled />
@@ -2279,7 +2279,7 @@ function EditItemModal({ item, categories, locations, onClose, onSuccess, toast 
       {isLinked && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 18, background: LINKED_BG, border: "1px solid rgba(139,92,246,0.3)", borderRadius: 6 }}>
           <span style={LINKED_BADGE}>⬡ linked</span>
-          <span style={{ fontFamily: mono, fontSize: 11, color: "#a78bfa" }}>Synced from product #{item.product_id}. Name, brand, price and UOM are managed by the product catalogue.</span>
+          <span style={{ fontFamily: mono, fontSize: 11, color: "var(--color-primary-400)" }}>Synced from product #{item.product_id}. Name, brand, price and UOM are managed by the product catalogue.</span>
         </div>
       )}
       {isLinked ? <ReadOnlyField label="Name" value={product.name ?? item.name} /> : <Field label="Name"><input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} /></Field>}
@@ -2420,12 +2420,12 @@ function CatalogueTab({ onItemClick, toast }) {
     <div>
       {syncing && syncProgress && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 11, color: "#a78bfa", marginBottom: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 11, color: "var(--color-primary-400)", marginBottom: 4 }}>
             <span>⬡ syncing products…</span>
             <span>{syncProgress.processed} / {syncProgress.total} ({syncProgress.pct}%)</span>
           </div>
           <div style={{ height: 3, background: "#1a1a1a", borderRadius: 2 }}>
-            <div style={{ height: "100%", width: `${syncProgress.pct}%`, background: "linear-gradient(90deg, #7c3aed, #a78bfa)", borderRadius: 2, transition: "width 0.3s ease" }} />
+            <div style={{ height: "100%", width: `${syncProgress.pct}%`, background: "linear-gradient(90deg, var(--color-primary-600), var(--color-primary-400))", borderRadius: 2, transition: "width 0.3s ease" }} />
           </div>
         </div>
       )}
@@ -2441,7 +2441,7 @@ function CatalogueTab({ onItemClick, toast }) {
           <option value="unlinked">Unlinked only</option>
         </select>
         <ActionBtn color={C.green} onClick={() => setModal("new-item")}>+ New Item</ActionBtn>
-        <ActionBtn color="#a78bfa" onClick={handleSync} disabled={syncing}>{syncing ? "⟳ Syncing…" : "⬡ Sync Products"}</ActionBtn>
+        <ActionBtn color="var(--color-primary-400)" onClick={handleSync} disabled={syncing}>{syncing ? "⟳ Syncing…" : "⬡ Sync Products"}</ActionBtn>
       </div>
 
       <Panel style={{ padding: 0 }}>
@@ -2468,7 +2468,7 @@ function CatalogueTab({ onItemClick, toast }) {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {isLinked && <span style={LINKED_BADGE}>⬡ linked</span>}
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span style={{ color: isLinked ? "#a78bfa" : C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
+                        <span style={{ color: isLinked ? "var(--color-primary-400)" : C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
                         {row.is_serialized && <span style={{ fontFamily: mono, fontSize: 9, color: C.amber, letterSpacing: "0.06em" }}>◉ serialized</span>}
                       </div>
                     </div>
@@ -2477,7 +2477,7 @@ function CatalogueTab({ onItemClick, toast }) {
                   <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.category?.name ?? "—"}</td>
                   <td style={{ padding: "10px 14px" }}><Chip label={row.type} /></td>
                   <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.brand ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", color: isLinked ? "#a78bfa" : "#aaa", whiteSpace: "nowrap" }}>{price ? `KES ${parseFloat(price).toLocaleString()}` : "—"}</td>
+                  <td style={{ padding: "10px 14px", color: isLinked ? "var(--color-primary-400)" : "#aaa", whiteSpace: "nowrap" }}>{price ? `KES ${parseFloat(price).toLocaleString()}` : "—"}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <span style={{ color: (row.low_stock_threshold && row.available_qty <= row.low_stock_threshold) ? C.amber : C.green, fontWeight: 700 }}>{row.available_qty ?? "—"}</span>
                   </td>
@@ -2485,8 +2485,8 @@ function CatalogueTab({ onItemClick, toast }) {
                   <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.total_qty ?? "—"}</td>
                   <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <ActionBtn color={isLinked ? "#a78bfa" : C.cyan} outline small onClick={() => onItemClick(row.id)}>View ›</ActionBtn>
-                      <ActionBtn color={isLinked ? "#a78bfa" : C.cyan} outline small onClick={() => setModal({ type: "edit", item: row })}>Edit</ActionBtn>
+                      <ActionBtn color={isLinked ? "var(--color-primary-400)" : C.cyan} outline small onClick={() => onItemClick(row.id)}>View ›</ActionBtn>
+                      <ActionBtn color={isLinked ? "var(--color-primary-400)" : C.cyan} outline small onClick={() => setModal({ type: "edit", item: row })}>Edit</ActionBtn>
                     </div>
                   </td>
                 </tr>

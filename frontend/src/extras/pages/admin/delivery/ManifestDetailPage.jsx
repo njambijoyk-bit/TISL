@@ -297,7 +297,7 @@ function StopCard({ item, index, expanded, onToggle, onHover, onInfo, onOverride
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 5,
                                     padding: '5px 12px',
-                                    background: 'rgba(168,85,247,0.08)',
+                                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                                     border: `1px solid ${D.purpleBorder}`,
                                     borderRadius: D.radiusSm,
                                     color: D.purple, fontSize: '0.75rem', fontWeight: 600,
@@ -382,7 +382,7 @@ function ActivityEntry({ log }) {
                 {hasNewOrder && (
                     <div style={{
                         marginTop: 4, padding: '4px 8px',
-                        background: 'rgba(168,85,247,0.05)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                         borderRadius: D.radiusSm,
                         fontSize: '0.68rem', color: D.textDim, fontFamily: 'monospace',
                     }}>
@@ -398,7 +398,7 @@ function ActivityEntry({ log }) {
                 {!hasSafetyWarning && !hasNewOrder && cleanPayload && (
                     <div style={{
                         marginTop: 4, padding: '4px 8px',
-                        background: 'rgba(168,85,247,0.05)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                         borderRadius: D.radiusSm,
                         fontSize: '0.68rem', color: D.textDim,
                         fontFamily: 'monospace', wordBreak: 'break-all',

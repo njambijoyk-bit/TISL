@@ -308,9 +308,9 @@ export default function PaymentReportsModal({ onClose }) {
                 label="Credit Payments"
                 value={data.creditCount}
                 sub={fmt(data.creditTotal) + ' charged to accounts'}
-                color="#7c3aed"
-                bg="rgba(124,58,237,0.07)"
-                border="rgba(124,58,237,0.2)"
+                color="var(--color-primary-600)"
+                bg="color-mix(in srgb, var(--color-primary-600) 7%, transparent)"
+                border="color-mix(in srgb, var(--color-primary-600) 20%, transparent)"
               />
               <StatCard
                 label="Refunds Issued"

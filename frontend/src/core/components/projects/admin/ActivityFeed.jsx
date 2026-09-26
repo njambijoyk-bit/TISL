@@ -9,7 +9,7 @@ import useProjectStore from '../../../../_shared/store/projectStore';
 
 // ── Action config — icon + colour per action type ─────────────────────────────
 const ACTION_CFG = {
-  PROJECT_CREATED:          { Icon: PartyPopper,   color: '#a855f7', bg: 'rgba(168,85,247,0.12)'  },
+  PROJECT_CREATED:          { Icon: PartyPopper,   color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'  },
   PROJECT_UPDATED:          { Icon: Pencil,         color: '#3b82f6', bg: 'rgba(59,130,246,0.12)'  },
   STATUS_CHANGED:           { Icon: RefreshCw,      color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
   PARTICIPANT_ADDED:        { Icon: UserPlus,        color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
@@ -19,10 +19,10 @@ const ACTION_CFG = {
   TASK_CREATED:             { Icon: CheckSquare,     color: '#3b82f6', bg: 'rgba(59,130,246,0.12)'  },
   TASK_UPDATED:             { Icon: CheckSquare,     color: '#6366f1', bg: 'rgba(99,102,241,0.12)'  },
   TASK_STATUS_CHANGED:      { Icon: CheckSquare,     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
-  MILESTONE_CREATED:        { Icon: Flag,            color: '#a855f7', bg: 'rgba(168,85,247,0.12)'  },
+  MILESTONE_CREATED:        { Icon: Flag,            color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'  },
   MILESTONE_APPROVED:       { Icon: ThumbsUp,        color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
   MILESTONE_REJECTED:       { Icon: XCircle,         color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
-  MESSAGE_POSTED:           { Icon: MessageSquare,   color: '#a855f7', bg: 'rgba(168,85,247,0.12)'  },
+  MESSAGE_POSTED:           { Icon: MessageSquare,   color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'  },
   QUOTE_CREATED:            { Icon: FileText,        color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
   ORDER_CREATED_FROM_QUOTE: { Icon: Package,         color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
   REQUEST_LINKED:           { Icon: Plug,            color: '#06b6d4', bg: 'rgba(6,182,212,0.12)'   },
@@ -61,12 +61,12 @@ const ActivityFeed = ({ project, limit }) => {
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex gap-3">
             <div className="w-7 h-7 rounded-full animate-pulse shrink-0"
-              style={{ background: 'rgba(168,85,247,0.12)' }} />
+              style={{ background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
             <div className="flex-1 space-y-1.5 pt-1">
               <div className="h-3 rounded animate-pulse w-2/3"
-                style={{ background: 'rgba(168,85,247,0.08)' }} />
+                style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
               <div className="h-3 rounded animate-pulse w-1/3"
-                style={{ background: 'rgba(168,85,247,0.05)' }} />
+                style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }} />
             </div>
           </div>
         ))}
@@ -102,7 +102,7 @@ const ActivityFeed = ({ project, limit }) => {
               {/* Connector line */}
               {!isLast && (
                 <div className="flex-1 my-1"
-                  style={{ width: 1.5, background: 'rgba(168,85,247,0.15)', minHeight: 16 }} />
+                  style={{ width: 1.5, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', minHeight: 16 }} />
               )}
             </div>
 
@@ -151,9 +151,9 @@ const ActivityFeed = ({ project, limit }) => {
       {activityPagination?.current_page < activityPagination?.last_page && (
         <button onClick={loadMore} disabled={loading.activity}
           className="text-xs font-semibold mt-2 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
-          style={{ color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)', background: 'transparent' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}>
+          style={{ color: 'var(--color-primary-500)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; }}>
           Load more activity
         </button>
       )}

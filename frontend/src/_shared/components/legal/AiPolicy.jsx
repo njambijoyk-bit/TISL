@@ -13,10 +13,10 @@ function Section({ icon: Icon, title, children }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <div style={{
           width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: 'rgba(168,85,247,0.08)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={15} style={{ color: '#7c3aed' }} />
+          <Icon size={15} style={{ color: 'var(--color-primary-600)' }} />
         </div>
         <h2 style={{
           margin: 0, fontSize: '1rem', fontWeight: 800, color: '#111827',
@@ -64,7 +64,7 @@ export default function AiPolicy() {
             padding: 0, marginBottom: 32, fontFamily: 'inherit',
             transition: 'color 150ms',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
         >
           <ChevronLeft size={15} /> Back
@@ -98,13 +98,13 @@ export default function AiPolicy() {
             <div style={{
               padding: '32px 40px 28px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, rgba(168,85,247,0.03), rgba(124,58,237,0.02))',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 3%, transparent), color-mix(in srgb, var(--color-primary-600) 2%, transparent))',
             }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '3px 10px', borderRadius: 99, marginBottom: 14,
-                background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
-                border: '1px solid rgba(168,85,247,0.2)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                 fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
               }}>
                 <Bot size={10} /> AI Assistant Policy
@@ -119,7 +119,7 @@ export default function AiPolicy() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                  Version <strong style={{ color: '#7c3aed' }}>{VERSION}</strong>
+                  Version <strong style={{ color: 'var(--color-primary-600)' }}>{VERSION}</strong>
                 </span>
                 <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
                   Last updated: {LAST_UPDATED}
@@ -191,7 +191,7 @@ export default function AiPolicy() {
                 </P>
                 <P style={{ marginBottom: 12 }}>
                   Mimi is not a substitute for human support. For complex issues — disputed payments, account suspension, legal matters, or anything requiring a firm commitment from TISL — please contact our support team directly at{' '}
-                  <a href="mailto:web@targetisl.co.ke" style={{ color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}>web@targetisl.co.ke</a>.
+                  <a href="mailto:web@targetisl.co.ke" style={{ color: 'var(--color-primary-600)', textDecoration: 'none', fontWeight: 600 }}>web@targetisl.co.ke</a>.
                 </P>
                 <P>
                   TISL Store accepts no liability for actions taken based solely on Mimi's responses without verification from official channels.

@@ -25,10 +25,10 @@ import Step3AdditionalDetails from '../../../ecommerce/components/admin/quotes/r
 import Step4Review from '../../../ecommerce/components/admin/quotes/request-wizard/Step4Review';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 const green    = '#10b981';
 const greenLt  = 'rgba(16,185,129,0.1)';
 const greenBd  = 'rgba(16,185,129,0.25)';
@@ -39,7 +39,7 @@ const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'm
     primary: {
       background: `linear-gradient(135deg,${purple},${purpleDk})`,
       color: 'white', border: 'none',
-      boxShadow: '0 4px 12px rgba(168,85,247,0.3)',
+      boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
     },
     outline: {
       background: purpleLt,
@@ -77,8 +77,8 @@ const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'm
         transition: 'transform 0.12s, box-shadow 0.12s',
         minWidth: size === 'sm' ? 'unset' : 120,
       }}
-      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.transform = 'translateY(-1px)'; if (variant === 'primary') e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.4)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; if (variant === 'primary') e.currentTarget.style.boxShadow = '0 4px 12px rgba(168,85,247,0.3)'; }}
+      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.transform = 'translateY(-1px)'; if (variant === 'primary') e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; } }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; if (variant === 'primary') e.currentTarget.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
     >
       {icon}{children}
     </button>
@@ -435,7 +435,7 @@ const RequestQuote = () => {
       {/* ── Page Header ───────────────────────────────────────────────── */}
       <div style={{
         position: 'relative', overflow: 'hidden',
-        borderBottom: '1px solid var(--border,#a855f7)',
+        borderBottom: '1px solid var(--border,var(--color-primary-500))',
         padding: '36px 32px 32px',
       }}>
         {/* Abstract background shapes */}
@@ -443,9 +443,9 @@ const RequestQuote = () => {
           {/* Large circle top-right */}
           <div style={{ position:'absolute', top:-60, right:-60, width:260, height:260, borderRadius:'50%', background: purpleLt, border: `1.5px solid ${purpleBd}` }} />
           {/* Small circle mid-right */}
-          <div style={{ position:'absolute', top:20, right:160, width:80, height:80, borderRadius:'50%', background:'rgba(168,85,247,0.04)', border:`1px solid ${purpleBd}` }} />
+          <div style={{ position:'absolute', top:20, right:160, width:80, height:80, borderRadius:'50%', background:'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border:`1px solid ${purpleBd}` }} />
           {/* Rectangle bottom-left */}
-          <div style={{ position:'absolute', bottom:-24, left:40, width:120, height:120, borderRadius:24, background:'rgba(168,85,247,0.04)', border:`1px solid ${purpleBd}`, transform:'rotate(18deg)' }} />
+          <div style={{ position:'absolute', bottom:-24, left:40, width:120, height:120, borderRadius:24, background:'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border:`1px solid ${purpleBd}`, transform:'rotate(18deg)' }} />
           {/* Tiny dot cluster */}
           <div style={{ position:'absolute', top:18, left:'42%', width:8, height:8, borderRadius:'50%', background: purpleBd }} />
           <div style={{ position:'absolute', top:32, left:'44%', width:5, height:5, borderRadius:'50%', background: purpleBd }} />
@@ -456,7 +456,7 @@ const RequestQuote = () => {
         <div style={{ position:'relative', display:'flex', alignItems:'center', gap:18, maxWidth:1280, margin:'0 auto' }}>
           <div style={{
             width:56, height:56, borderRadius:16, flexShrink:0,
-            background: `linear-gradient(135deg,${purpleLt},rgba(124,58,237,0.12))`,
+            background: `linear-gradient(135deg,${purpleLt},color-mix(in srgb, var(--color-primary-600) 12%, transparent))`,
             border: `1.5px solid ${purpleBd}`,
             display:'flex', alignItems:'center', justifyContent:'center',
             boxShadow: `0 4px 16px ${purpleBd}`,
@@ -464,7 +464,7 @@ const RequestQuote = () => {
             <FileText size={26} color={purple} />
           </div>
           <div>
-            <h1 style={{ fontSize:'1.5rem', fontWeight:900, color:'#a855f7', margin:'0 0 4px', letterSpacing:'-0.025em' }}>
+            <h1 style={{ fontSize:'1.5rem', fontWeight:900, color:'var(--color-primary-500)', margin:'0 0 4px', letterSpacing:'-0.025em' }}>
               Request a Quote
             </h1>
             <p style={{ fontSize:'0.875rem', color:'#6b7280', margin:0 }}>

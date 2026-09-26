@@ -12,18 +12,18 @@ import { C, NeuralPageShell, NeuralBreadcrumb, NeuralDivider, neuralCard } from 
 
 // ── Module icon map ───────────────────────────────────────────────────────────
 const MODULE_ICONS = {
-    orders:    { icon: ShoppingCart, color: '#a855f7' },
+    orders:    { icon: ShoppingCart, color: 'var(--color-primary-500)' },
     projects:  { icon: FolderKanban, color: '#3b82f6' },
     bookings:  { icon: Calendar,     color: '#10b981' },
     reports:   { icon: BarChart3,    color: '#f59e0b' },
     customers: { icon: Users,        color: '#06b6d4' },
-    inventory: { icon: Package,      color: '#8b5cf6' },
+    inventory: { icon: Package,      color: 'var(--color-primary-400)' },
     work:      { icon: Zap,          color: '#ec4899' },
 };
 
 const AUTO_COLORS = [
-    '#a855f7', '#3b82f6', '#10b981', '#f59e0b',
-    '#06b6d4', '#8b5cf6', '#ec4899', '#f97316',
+    'var(--color-primary-500)', '#3b82f6', '#10b981', '#f59e0b',
+    '#06b6d4', 'var(--color-primary-400)', '#ec4899', '#f97316',
     '#14b8a6', '#84cc16', '#e879f9', '#38bdf8',
 ];
 

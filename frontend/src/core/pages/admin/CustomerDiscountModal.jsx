@@ -21,7 +21,7 @@ const TIER_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -58,13 +58,13 @@ const TAB2_SORT_FIELDS = [
 function Spinner({ size = 30 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12 }}>
-      <div style={{ width: size, height: size, border: '3px solid rgba(168,85,247,0.15)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'dm-spin 0.8s linear infinite' }} />
+      <div style={{ width: size, height: size, border: '3px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'dm-spin 0.8s linear infinite' }} />
       <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Loading…</p>
     </div>
   );
 }
 
-function SectionHeading({ icon, label, color = '#a855f7' }) {
+function SectionHeading({ icon, label, color = 'var(--color-primary-500)' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
       <div style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}18`, color, flexShrink: 0 }}>
@@ -86,7 +86,7 @@ function StatPill({ label, value, accent, bg }) {
 
 function DiscountRow({ label, sub, value, highlight, color = '#374151' }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: highlight ? 'rgba(168,85,247,0.04)' : 'transparent', border: highlight ? '1px solid rgba(168,85,247,0.12)' : '1px solid transparent' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: highlight ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent', border: highlight ? '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '1px solid transparent' }}>
       <div>
         <p style={{ fontSize: '0.8rem', color: '#374151', margin: 0, fontWeight: highlight ? 600 : 400 }}>{label}</p>
         {sub && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>{sub}</p>}
@@ -219,7 +219,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* search bar */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)', flexShrink: 0 }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }}>
         <div ref={dropRef} style={{ position: 'relative' }}>
           <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
           <input
@@ -227,9 +227,9 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
             placeholder="Search customer by name or email…"
             value={query}
             onChange={e => { setQuery(e.target.value); if (!e.target.value) clearCustomer(); }}
-            style={{ width: '100%', padding: '8px 34px 8px 34px', borderRadius: 9, fontSize: '0.82rem', background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.18)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; if (results.length) setShowDrop(true); }}
-            onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+            style={{ width: '100%', padding: '8px 34px 8px 34px', borderRadius: 9, fontSize: '0.82rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; if (results.length) setShowDrop(true); }}
+            onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
           {selected && (
             <button onClick={clearCustomer} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 0 }}>
@@ -238,7 +238,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
           )}
 
           {showDrop && !selected && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 10, background: 'white', borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.18)', boxShadow: '0 8px 24px rgba(168,85,247,0.12)', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 10, background: 'white', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden' }}>
               {searching ? (
                 <div style={{ padding: '14px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>Searching…</div>
               ) : results.length === 0 ? (
@@ -247,8 +247,8 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                 const ts2 = tierStyle(c.tier, tierOptions);
                 return (
                   <div key={c.id} onMouseDown={() => pickCustomer(c)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(168,85,247,0.06)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{ minWidth: 0 }}>
@@ -271,7 +271,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
         {!selected && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 24px' }}>
-            <Search size={36} style={{ color: 'rgba(168,85,247,0.2)' }} />
+            <Search size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
             <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0, textAlign: 'center' }}>Search for a customer above to see their full discount &amp; wallet breakdown</p>
           </div>
         )}
@@ -287,7 +287,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
         {selected && !loading && (<>
 
           {/* customer chip */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.12)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ts.bg, color: ts.color, fontSize: '0.82rem', fontWeight: 800 }}>
               {`${selected.first_name?.[0] ?? ''}${selected.last_name?.[0] ?? ''}`.toUpperCase()}
             </div>
@@ -307,8 +307,8 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
             <div style={{ display: 'flex', gap: 8 }}>
               <StatPill label="Store credit"   value={fmt(storeCredit)}                                               accent="#059669" bg="rgba(5,150,105,0.06)"   />
               <StatPill label="Loyalty points" value={fmtPts(loyaltyPoints) + ' pts'}                                 accent="#d97706" bg="rgba(217,119,6,0.06)"   />
-              <StatPill label="Points → KES"   value={redemptionRate > 0 ? fmt(pointsKesValue) : '—'}                accent="#7c3aed" bg="rgba(124,58,237,0.06)"  />
-              <StatPill label="Discount"       value={pct(effectiveDiscount)}                                         accent="#a855f7" bg="rgba(168,85,247,0.06)"  />
+              <StatPill label="Points → KES"   value={redemptionRate > 0 ? fmt(pointsKesValue) : '—'}                accent="var(--color-primary-600)" bg="color-mix(in srgb, var(--color-primary-600) 6%, transparent)"  />
+              <StatPill label="Discount"       value={pct(effectiveDiscount)}                                         accent="var(--color-primary-500)" bg="color-mix(in srgb, var(--color-primary-500) 6%, transparent)"  />
             </div>
             <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(217,119,6,0.05)', border: '1px solid rgba(217,119,6,0.12)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <TrendingUp size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
@@ -328,7 +328,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
 
           {/* ── redemption rules ── */}
           <div>
-            <SectionHeading icon={<Gift size={13} />} label="Redemption Options" color="#7c3aed" />
+            <SectionHeading icon={<Gift size={13} />} label="Redemption Options" color="var(--color-primary-600)" />
             {redemptionRules.length === 0 ? (
               <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, padding: '8px 0' }}>No active redemption rules configured.</p>
             ) : (
@@ -340,12 +340,12 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                     <div key={rule.id ?? rule.name} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '10px 12px', borderRadius: 9,
-                      background: affordable ? 'rgba(124,58,237,0.04)' : 'rgba(156,163,175,0.05)',
-                      border: `1px solid ${affordable ? 'rgba(124,58,237,0.15)' : 'rgba(156,163,175,0.15)'}`,
+                      background: affordable ? 'color-mix(in srgb, var(--color-primary-600) 4%, transparent)' : 'rgba(156,163,175,0.05)',
+                      border: `1px solid ${affordable ? 'color-mix(in srgb, var(--color-primary-600) 15%, transparent)' : 'rgba(156,163,175,0.15)'}`,
                       opacity: affordable ? 1 : 0.7,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: affordable ? 'rgba(124,58,237,0.1)' : 'rgba(156,163,175,0.1)', color: affordable ? '#7c3aed' : '#9ca3af' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: affordable ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : 'rgba(156,163,175,0.1)', color: affordable ? 'var(--color-primary-600)' : '#9ca3af' }}>
                           {rule.type === 'cashback' ? <Zap size={13} /> : rule.type === 'gift' ? <Gift size={13} /> : <Package size={13} />}
                         </div>
                         <div>
@@ -360,7 +360,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 10 }}>
-                        <p style={{ fontSize: '0.88rem', fontWeight: 800, color: affordable ? '#7c3aed' : '#9ca3af', margin: '0 0 1px', letterSpacing: '-0.02em' }}>{fmt(rule.value_kes)}</p>
+                        <p style={{ fontSize: '0.88rem', fontWeight: 800, color: affordable ? 'var(--color-primary-600)' : '#9ca3af', margin: '0 0 1px', letterSpacing: '-0.02em' }}>{fmt(rule.value_kes)}</p>
                         <p style={{ fontSize: '0.62rem', color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>{rule.type}</p>
                       </div>
                     </div>
@@ -381,16 +381,16 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
 
           {/* ── discounts ── */}
           <div>
-            <SectionHeading icon={<Percent size={13} />} label="Discounts" color="#a855f7" />
+            <SectionHeading icon={<Percent size={13} />} label="Discounts" color="var(--color-primary-500)" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <DiscountRow label="Personal discount"                          sub="Custom rate set on this customer"                    value={pct(personalDiscount)} color={personalDiscount > 0 ? '#7c3aed' : '#9ca3af'} />
-              <DiscountRow label={`Tier · ${tierObj?.name ?? selected.tier}`} sub={`${selected.tier} tier benefit`}                    value={pct(tierPct)}          color={tierPct > 0 ? '#7c3aed' : '#9ca3af'} />
-              <DiscountRow label={`Type · ${typeObj?.name ?? selected.customer_type}`} sub={`${selected.customer_type} type benefit`}  value={pct(typePct)}          color={typePct > 0 ? '#7c3aed' : '#9ca3af'} />
-              <div style={{ height: 1, background: 'rgba(168,85,247,0.1)', margin: '4px 0' }} />
+              <DiscountRow label="Personal discount"                          sub="Custom rate set on this customer"                    value={pct(personalDiscount)} color={personalDiscount > 0 ? 'var(--color-primary-600)' : '#9ca3af'} />
+              <DiscountRow label={`Tier · ${tierObj?.name ?? selected.tier}`} sub={`${selected.tier} tier benefit`}                    value={pct(tierPct)}          color={tierPct > 0 ? 'var(--color-primary-600)' : '#9ca3af'} />
+              <DiscountRow label={`Type · ${typeObj?.name ?? selected.customer_type}`} sub={`${selected.customer_type} type benefit`}  value={pct(typePct)}          color={typePct > 0 ? 'var(--color-primary-600)' : '#9ca3af'} />
+              <div style={{ height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', margin: '4px 0' }} />
                 <DiscountRow
                 label="Effective discount" highlight
                 sub={`Personal (${pct(personalDiscount)}) + Tier (${pct(tierPct)}) + Type (${pct(typePct)}) = ${pct(stackedDiscount)} stacked`}
-                value={pct(effectiveDiscount)} color="#7c3aed"
+                value={pct(effectiveDiscount)} color="var(--color-primary-600)"
                 />
                 {personalDiscount + tierPct + typePct > 30 && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', marginTop: 2 }}>
@@ -610,7 +610,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
           width: '100%', background: 'none', border: 'none', cursor: 'pointer',
           fontFamily: 'inherit', padding: 0,
           fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase',
-          letterSpacing: '0.07em', color: active ? '#a855f7' : '#9ca3af',
+          letterSpacing: '0.07em', color: active ? 'var(--color-primary-500)' : '#9ca3af',
           transition: 'color 150ms',
         }}
       >
@@ -627,10 +627,10 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* stats strip + search */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)', flexShrink: 0 }}>
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <StatPill label="Avg discount"       value={pct(avgEffective)}                accent="#a855f7" bg="rgba(168,85,247,0.06)" />
-          <StatPill label="With any discount"  value={customersWithDiscount + ' cust.'} accent="#7c3aed" bg="rgba(124,58,237,0.06)" />
+          <StatPill label="Avg discount"       value={pct(avgEffective)}                accent="var(--color-primary-500)" bg="color-mix(in srgb, var(--color-primary-500) 6%, transparent)" />
+          <StatPill label="With any discount"  value={customersWithDiscount + ' cust.'} accent="var(--color-primary-600)" bg="color-mix(in srgb, var(--color-primary-600) 6%, transparent)" />
           <StatPill label="Total store credit" value={fmt(totalStoreCredit)}            accent="#059669" bg="rgba(5,150,105,0.06)"  />
           <StatPill label="Total pts (loaded)" value={fmtPts(totalLoyaltyPoints)}       accent="#d97706" bg="rgba(217,119,6,0.06)"  />
         </div>
@@ -639,9 +639,9 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
           <input
             type="text" placeholder="Filter customers…" value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '7px 12px 7px 30px', borderRadius: 8, fontSize: '0.78rem', background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.15)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-            onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.15)'; e.currentTarget.style.boxShadow = 'none'; }}
+            style={{ width: '100%', padding: '7px 12px 7px 30px', borderRadius: 8, fontSize: '0.78rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+            onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
         </div>
       </div>
@@ -650,13 +650,13 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {loading ? <Spinner /> : customers.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 24px' }}>
-            <Users size={36} style={{ color: 'rgba(168,85,247,0.2)' }} />
+            <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
             <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>No customers found</p>
           </div>
         ) : (<>
 
           {/* sortable header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 70px 70px', padding: '8px 20px', background: 'rgba(168,85,247,0.03)', borderBottom: '1px solid rgba(168,85,247,0.08)', position: 'sticky', top: 0, zIndex: 2 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 70px 70px', padding: '8px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', position: 'sticky', top: 0, zIndex: 2 }}>
             <SortBtn field={TAB2_SORT_FIELDS[0]} />
             <SortBtn field={TAB2_SORT_FIELDS[1]} />
             <SortBtn field={TAB2_SORT_FIELDS[2]} />
@@ -673,8 +673,8 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                 : `Personal: ${pct(disc.personal)}  ·  Tier: ${pct(disc.tierPct)}  ·  Type: ${pct(disc.typePct)}`;
             return (
               <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 70px 70px', padding: '10px 20px', borderBottom: '1px solid rgba(168,85,247,0.06)', alignItems: 'center' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.025)'}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 70px 70px', padding: '10px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)', alignItems: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 {/* name + email */}
@@ -689,9 +689,9 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                     <span style={{
                       display: 'inline-block', padding: '3px 8px', borderRadius: 20,
                       fontSize: '0.72rem', fontWeight: 700, cursor: 'default',
-                      background: disc.effective > 0 ? 'rgba(124,58,237,0.1)' : 'rgba(156,163,175,0.1)',
-                      color: disc.effective > 0 ? '#7c3aed' : '#9ca3af',
-                      borderBottom: disc.effective > 0 ? '1.5px dashed rgba(124,58,237,0.3)' : 'none',
+                      background: disc.effective > 0 ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : 'rgba(156,163,175,0.1)',
+                      color: disc.effective > 0 ? 'var(--color-primary-600)' : '#9ca3af',
+                      borderBottom: disc.effective > 0 ? '1.5px dashed color-mix(in srgb, var(--color-primary-600) 30%, transparent)' : 'none',
                     }}>
                       {pct(disc.effective)}
                     </span>
@@ -717,9 +717,9 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                 <div style={{ textAlign: 'center' }}>
                   <button
                     onClick={() => onViewCustomer(c)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(168,85,247,0.25)', background: 'rgba(168,85,247,0.06)', color: '#7c3aed', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 120ms', whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.12)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 7, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 120ms', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
                   >
                     View <ArrowRight size={10} />
                   </button>
@@ -734,9 +734,9 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
       {/* ── Load More / Load All footer ── */}
       {!loading && customers.length > 0 && page < meta.last_page && (
         <div style={{
-          padding: '10px 20px', borderTop: '1px solid rgba(168,85,247,0.08)',
+          padding: '10px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'rgba(168,85,247,0.02)', flexShrink: 0,
+          background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', flexShrink: 0,
         }}>
           <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
             {customers.length.toLocaleString()} of {meta.total.toLocaleString()} loaded
@@ -745,20 +745,20 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
             <button
               onClick={handleLoadMore}
               disabled={loadingMore || loadingAll}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'rgba(168,85,247,0.06)', border: '1.5px solid rgba(168,85,247,0.2)', color: '#7c3aed', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
-              onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; }}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
+              onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; }}
+              onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             >
               {loadingMore
-                ? <><div style={{ width: 10, height: 10, border: '2px solid rgba(124,58,237,0.3)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'dm-spin 0.7s linear infinite' }} /> Loading…</>
+                ? <><div style={{ width: 10, height: 10, border: '2px solid color-mix(in srgb, var(--color-primary-600) 30%, transparent)', borderTopColor: 'var(--color-primary-600)', borderRadius: '50%', animation: 'dm-spin 0.7s linear infinite' }} /> Loading…</>
                 : 'Load 15 more'
               }
             </button>
             <button
               onClick={handleLoadAll}
               disabled={loadingMore || loadingAll}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'transparent', border: '1.5px solid rgba(168,85,247,0.15)', color: '#9ca3af', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
-              onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'rgba(168,85,247,0.05)'; e.currentTarget.style.color = '#7c3aed'; } }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: '#9ca3af', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
+              onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
             >
               {loadingAll
@@ -770,7 +770,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
         </div>
       )}
       {!loading && customers.length > 0 && page >= meta.last_page && (
-        <div style={{ padding: '8px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', background: 'rgba(168,85,247,0.02)', flexShrink: 0 }}>
+        <div style={{ padding: '8px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', flexShrink: 0 }}>
           <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>All {meta.total.toLocaleString()} customers loaded</p>
         </div>
       )}
@@ -815,18 +815,18 @@ export default function CustomerDiscountModal({ onClose }) {
 
       <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'none' }}>
         <div style={{
-          background: 'white', borderRadius: 14, border: '1px solid rgba(168,85,247,0.12)',
-          boxShadow: '0 4px 32px rgba(168,85,247,0.1)',
+          background: 'white', borderRadius: 14, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+          boxShadow: '0 4px 32px color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           width: '100%', maxWidth: 680, height: '88vh', maxHeight: 720,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           pointerEvents: 'all', animation: 'dm-in 200ms ease',
         }}>
 
           {/* header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(168,85,247,0.1)' }}>
-                <Percent size={15} style={{ color: '#a855f7' }} />
+              <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                <Percent size={15} style={{ color: 'var(--color-primary-500)' }} />
               </div>
               <div>
                 <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Discount Overview</p>
@@ -835,15 +835,15 @@ export default function CustomerDiscountModal({ onClose }) {
             </div>
 
             {/* tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 9, padding: 3 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 9, padding: 3 }}>
               {TABS.map((t, i) => (
                 <button key={i} onClick={() => setActiveTab(i)}
                   style={{
                     padding: '5px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     fontSize: '0.75rem', fontWeight: 600, transition: 'all 150ms',
                     background: activeTab === i ? 'white' : 'transparent',
-                    color:      activeTab === i ? '#7c3aed' : '#9ca3af',
-                    boxShadow:  activeTab === i ? '0 1px 4px rgba(168,85,247,0.15)' : 'none',
+                    color:      activeTab === i ? 'var(--color-primary-600)' : '#9ca3af',
+                    boxShadow:  activeTab === i ? '0 1px 4px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none',
                   }}
                 >{t}</button>
               ))}
@@ -851,7 +851,7 @@ export default function CustomerDiscountModal({ onClose }) {
 
             <button onClick={onClose}
               style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
               <X size={16} />

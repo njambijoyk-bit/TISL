@@ -20,8 +20,8 @@ const CUSTOMER_GROUPS = [
   {
     label: 'Shop',
     items: [
-      { name: 'Home',           icon: LayoutGrid,      bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/',              active: true },
-      { name: 'Products',       icon: Package,         bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/products',      active: true },
+      { name: 'Home',           icon: LayoutGrid,      bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/',              active: true },
+      { name: 'Products',       icon: Package,         bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/products',      active: true },
       { name: 'Services',       icon: Wrench,          bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/services',      active: true },
       { name: 'Specials',       icon: Zap,             bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/specials',      active: true },
       { name: 'Auctions',       icon: Gavel,           bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/auctions',      active: true },
@@ -32,16 +32,16 @@ const CUSTOMER_GROUPS = [
   {
     label: 'My Account',
     items: [
-      { name: 'My Profile',      icon: User,          bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/profile',           active: true },
+      { name: 'My Profile',      icon: User,          bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/profile',           active: true },
       { name: 'My Orders',       icon: ShoppingBag,   bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/orders',            active: true },
       { name: 'Cart',            icon: ShoppingCart,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/cart',              active: true },
       { name: 'Wishlist',        icon: Heart,         bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/wishlist',          active: true },
-      { name: 'Quote List',      icon: ClipboardList, bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)', path: '/quote-list',        active: true },
+      { name: 'Quote List',      icon: ClipboardList, bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/quote-list',        active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
       { name: 'Quote Requests',  icon: FileQuestion,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/my-quote-requests', active: true },
       { name: 'My Projects',     icon: FolderOpen,    bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/my-projects',       active: true },
       { name: 'My Bookings',     icon: Calendar,      bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/bookings',          active: true },
-      { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)', path: '/my-tickets',        active: true },
+      { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
       { name: 'My Hampers',      icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers/my-orders', active: true },
       { name: 'Delivery History',icon: Truck,         bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/delivery-history',  active: true },
       { name: 'Bug Reports',     icon: Bug,           bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/account/bug-reports', active: true },
@@ -54,7 +54,7 @@ const CUSTOMER_GROUPS = [
       { name: 'Checkout',        icon: CreditCard,      bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/checkout',          active: true },
       { name: 'Report a Bug',    icon: Bug,             bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/report-bug',        active: true },
       { name: 'Track Bug',       icon: MapPin,          bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/track-bug',         active: true },
-      { name: 'Dev Portal',      icon: Monitor,         bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/dev/portal',        active: true },
+      { name: 'Dev Portal',      icon: Monitor,         bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/dev/portal',        active: true },
     ],
   },
   {
@@ -68,13 +68,13 @@ const CUSTOMER_GROUPS = [
   {
     label: 'Legal',
     items: [
-      { name: 'Privacy Policy',     icon: Shield,     bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', path: '/privacy',        active: true },
+      { name: 'Privacy Policy',     icon: Shield,     bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/privacy',        active: true },
       { name: 'Terms of Service',   icon: FileText,   bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/terms',          active: true },
       { name: 'Cookie Policy',      icon: Cookie,     bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/cookies',        active: true },
       { name: 'Website Policy',     icon: Globe,      bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/website-policy', active: true },
       { name: 'Hamper Policy',      icon: Gift,         bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hamper-policy',  active: true },
       { name: 'Order Policy',       icon: Receipt,      bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/order-policy',   active: true },
-      { name: 'Booking Policy',     icon: Calendar,     bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)', path: '/booking-policy', active: true },
+      { name: 'Booking Policy',     icon: Calendar,     bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/booking-policy', active: true },
       { name: 'AI Policy',          icon: Zap,          bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/ai-policy',      active: true },
     ],
   },
@@ -114,7 +114,7 @@ export default function CustomerLayout({ children }) {
   const groupLabelStyle = {
     fontSize: '0.6rem', fontWeight: 700,
     letterSpacing: '0.1em', textTransform: 'uppercase',
-    color: '#a855f7',
+    color: 'var(--color-primary-500)',
     padding: collapsed ? '14px 0 4px' : '14px 8px 4px',
     textAlign: collapsed ? 'center' : 'left',
     userSelect: 'none',
@@ -201,7 +201,7 @@ export default function CustomerLayout({ children }) {
                     onClick={audio.toggleMute}
                     onMouseEnter={audio.playHover}
                     title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
-                    style={{ ...collapseBtn, color: audio.muted ? '#a855f7' : undefined }}
+                    style={{ ...collapseBtn, color: audio.muted ? 'var(--color-primary-500)' : undefined }}
                   >
                     {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
                   </button>
@@ -222,7 +222,7 @@ export default function CustomerLayout({ children }) {
                 to="/"
                 style={{
                   width: 28, height: 28, borderRadius: 7,
-                  background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                  background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   textDecoration: 'none',
                 }}
@@ -264,8 +264,8 @@ export default function CustomerLayout({ children }) {
                       onMouseEnter={e => {
                         audio.playHover();
                         if (!isActive && item.active) {
-                          e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
-                          e.currentTarget.style.color = '#d8b4fe';
+                          e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+                          e.currentTarget.style.color = 'var(--color-primary-300)';
                         }
                       }}
                       onMouseLeave={e => {
@@ -278,7 +278,7 @@ export default function CustomerLayout({ children }) {
                       disabled={!item.active}
                       style={{
                         ...btnBase,
-                        background: isActive ? 'rgba(168,85,247,0.15)' : 'transparent',
+                        background: isActive ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
                         color: isActive
                           ? '#5a4c69'
                           : 'var(--color-text-secondary, var(--color-text-muted, var(--color-text)))',
@@ -315,7 +315,7 @@ export default function CustomerLayout({ children }) {
                 onClick={() => audio.playNav()}
                 style={{
                   width: 32, height: 32, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   textDecoration: 'none',
                   flexShrink: 0,
@@ -348,8 +348,8 @@ export default function CustomerLayout({ children }) {
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 10px',
                 borderRadius: 10,
-                background: 'rgba(168,85,247,0.06)',
-                border: '1px solid rgba(168,85,247,0.1)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                 marginBottom: 8,
               }}>
                 <Link
@@ -357,7 +357,7 @@ export default function CustomerLayout({ children }) {
                   onClick={() => audio.playNav()}
                   style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     textDecoration: 'none',
                     flexShrink: 0,
@@ -389,9 +389,9 @@ export default function CustomerLayout({ children }) {
                     padding: '6px 0',
                     borderRadius: 6,
                     fontSize: '0.72rem', fontWeight: 600,
-                    color: '#a855f7',
-                    background: 'rgba(168,85,247,0.08)',
-                    border: '1px solid rgba(168,85,247,0.15)',
+                    color: 'var(--color-primary-500)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                     textDecoration: 'none',
                     cursor: 'pointer',
                     transition: 'background 150ms',

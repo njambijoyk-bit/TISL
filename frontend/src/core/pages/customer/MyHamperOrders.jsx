@@ -13,7 +13,7 @@ function StatusBadge({ status }) {
   const map = {
     pending:     { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b' },
     confirmed:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
-    processing:  { bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
+    processing:  { bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  color: 'var(--color-primary-600)' },
     shipped:     { bg: 'rgba(59,130,246,0.1)',  color: '#3b82f6' },
     delivered:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
     cancelled:   { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444' },
@@ -53,13 +53,13 @@ export default function MyHamperOrders() {
     <Header />
       <div style={{ marginBottom: 32, maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
         <div></div>
-        <h1 style={{ margin: '0 0 8px', fontSize: '1.8rem', fontWeight: 900, color: '#a855f7', marginTop: 8 }}>My Hamper Orders</h1>
+        <h1 style={{ margin: '0 0 8px', fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary-500)', marginTop: 8 }}>My Hamper Orders</h1>
         <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem', marginBottom: 4 }}>Track your exclusive bundle orders and status</p>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.1)', borderTopColor: '#7c3aed', animation: 'spin 0.6s linear infinite' }} />
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid color-mix(in srgb, var(--color-primary-600) 10%, transparent)', borderTopColor: 'var(--color-primary-600)', animation: 'spin 0.6s linear infinite' }} />
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       ) : orders.length === 0 ? (
@@ -67,7 +67,7 @@ export default function MyHamperOrders() {
           <ShoppingBag size={48} style={{ color: '#d1d5db', margin: '0 auto 16px' }} />
           <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>No orders found</h3>
           <p style={{ margin: '0 0 24px', color: '#6b7280' }}>You haven't placed any hamper orders yet.</p>
-          <button onClick={() => navigate('/hampers')} style={{ padding: '10px 24px', borderRadius: 12, background: '#7c3aed', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/hampers')} style={{ padding: '10px 24px', borderRadius: 12, background: 'var(--color-primary-600)', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
             Browse Hampers
           </button>
         </div>
@@ -75,7 +75,7 @@ export default function MyHamperOrders() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
           {orders.map(order => {
             const snapshot = order.hamper_snapshot || {};
-            const accent   = snapshot.accent_color || '#a855f7';
+            const accent   = snapshot.accent_color || 'var(--color-primary-500)';
             const image    = snapshot.cover_image  || order.hamper?.cover_image;
 
             return (

@@ -51,12 +51,12 @@ export default function FlowchartPage() {
         color: '#8a9ab0', whiteSpace: 'nowrap',
         boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
       }}>
-        <Home size={12} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+        <Home size={12} style={{ color: 'var(--color-primary-400)', flexShrink: 0 }} />
         <button
           onClick={() => navigate('/admin/settings/general')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#8b5cf6', fontWeight: 700, fontSize: '0.78rem',
+            color: 'var(--color-primary-400)', fontWeight: 700, fontSize: '0.78rem',
             fontFamily: 'inherit', padding: 0,
           }}
         >

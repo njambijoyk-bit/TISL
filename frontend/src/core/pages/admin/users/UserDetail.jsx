@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ROLE_META = {
-  super_admin: { label: 'Super Admin', color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },
+  super_admin: { label: 'Super Admin', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
   admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
   manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
   finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
@@ -50,29 +50,29 @@ const LEVELS = {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
 
 const sectionHeader = {
-  fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)',
   display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
 };
 
@@ -122,27 +122,27 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
       fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
       opacity: loading ? 0.6 : 1, transition: 'all 150ms',
       ...(primary ? {
-        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-        border: 'none', boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+        border: 'none', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
       } : danger ? {
         background: 'rgba(239,68,68,0.06)', color: '#b91c1c',
         border: '1.5px solid rgba(239,68,68,0.2)',
       } : {
         background: 'transparent', color: '#6b7280',
-        border: '1.5px solid rgba(168,85,247,0.18)',
+        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       }),
     }}
       onMouseEnter={e => {
         if (!loading) {
-          if (primary) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)';
+          if (primary) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)';
           else if (danger) e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
-          else { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; }
+          else { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }
         }
       }}
       onMouseLeave={e => {
-        if (primary) e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)';
+        if (primary) e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
         else if (danger) e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
-        else { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = '#6b7280'; }
+        else { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = '#6b7280'; }
       }}
     >
       {Icon && <Icon size={12} />}
@@ -152,7 +152,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
 }
 
 function SkeletonBlock({ height }) {
-  return <div style={{ height, borderRadius: 12, background: 'rgba(168,85,247,0.07)', marginBottom: 16 }} />;
+  return <div style={{ height, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />;
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ function Modal({ title, subtitle, onClose, children }) {
             {subtitle && <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
             <X size={16} />
           </button>
@@ -190,7 +190,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
           type={show ? 'text' : 'password'} value={password}
           onChange={e => { setPassword(e.target.value); setError(''); }}
           placeholder="New temporary password"
-          style={{ ...inputStyle, paddingRight: 36, borderColor: error ? '#ef4444' : 'rgba(168,85,247,0.18)' }}
+          style={{ ...inputStyle, paddingRight: 36, borderColor: error ? '#ef4444' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }}
           onFocus={inputFocus} onBlur={inputBlur}
         />
         <button type="button" onClick={() => setShow(s => !s)} style={{
@@ -204,7 +204,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid rgba(168,85,247,0.18)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => {
           if (password.length < 8) { setError('At least 8 characters required.'); return; }
@@ -212,7 +212,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
         }} disabled={loading} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
           border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
           opacity: loading ? 0.6 : 1,
         }}>
           {loading ? 'Resetting…' : 'Reset password'}
@@ -239,9 +239,9 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
           <button key={p.value} onClick={() => setDuration(p.value)} style={{
             padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-            background: duration === p.value ? 'rgba(168,85,247,0.1)' : 'transparent',
-            border: `1.5px solid ${duration === p.value ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.18)'}`,
-            color: duration === p.value ? '#7c3aed' : '#9ca3af',
+            background: duration === p.value ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+            border: `1.5px solid ${duration === p.value ? 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+            color: duration === p.value ? 'var(--color-primary-600)' : '#9ca3af',
           }}>
             {p.label}
           </button>
@@ -256,7 +256,7 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid rgba(168,85,247,0.18)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => onConfirm(duration)} disabled={loading} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
@@ -368,7 +368,7 @@ export default function UserDetail() {
         fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
         cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', transition: 'color 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
       >
         <ChevronLeft size={16} /> Users
@@ -377,7 +377,7 @@ export default function UserDetail() {
       {/* ── Profile hero ── */}
       <div style={{ ...card, padding: 24, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
         {/* accent strip */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${rm.color},#7c3aed)` }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${rm.color},var(--color-primary-600))` }} />
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', paddingTop: 4 }}>
 
@@ -391,7 +391,7 @@ export default function UserDetail() {
             alt={user.name}
             style={{
               width: 64, height: 64, borderRadius: '50%', objectFit: 'cover',
-              flexShrink: 0, background: 'rgba(168,85,247,0.08)', display: 'block',
+              flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block',
             }}
           />
 
@@ -466,13 +466,13 @@ export default function UserDetail() {
 
       {/* ── Tab bar + content ── */}
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '2px solid rgba(168,85,247,0.1)', padding: '0 20px' }}>
+        <div style={{ display: 'flex', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 20px' }}>
           {['profile', 'security'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? '#a855f7' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              borderBottom: `2px solid ${tab === t ? '#a855f7' : 'transparent'}`,
+              borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
             }}>
               {t}
@@ -577,7 +577,7 @@ export default function UserDetail() {
                     ].map(({ key, label }) => (
                       <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', color: '#6b7280', userSelect: 'none' }}>
                         <input type="checkbox" checked={formData[key]} onChange={e => setF(key)(e.target.checked)}
-                          style={{ accentColor: '#a855f7', width: 15, height: 15, cursor: 'pointer' }}
+                          style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
                         />
                         {label}
                       </label>
@@ -634,7 +634,7 @@ export default function UserDetail() {
                   {user.phone_otp_expires_at && new Date(user.phone_otp_expires_at) > new Date() && (
                     <InfoRow label="Pending phone OTP" icon={<Phone size={11} />}
                       value={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#7c3aed', background: 'rgba(168,85,247,0.08)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.15em' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.15em' }}>
                           {user.phone_otp ?? '••••••'}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>expires {fmtDT(user.phone_otp_expires_at)}</span>
@@ -664,8 +664,8 @@ export default function UserDetail() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{
                     padding: '5px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                    background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
-                    border: '1px solid rgba(168,85,247,0.18)', textTransform: 'capitalize',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', textTransform: 'capitalize',
                   }}>
                     {user.oauth_provider || 'email'}
                   </span>

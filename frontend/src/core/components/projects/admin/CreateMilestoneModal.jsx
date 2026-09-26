@@ -12,19 +12,19 @@ const money       = (n) => parseFloat(n || 0).toLocaleString('en-US', { minimumF
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -112,20 +112,20 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
         display: 'flex', flexDirection: 'column',
         borderRadius: 18, overflow: 'hidden',
         background: 'white',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Accent strip */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#a855f7,#7c3aed)', flexShrink: 0 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <div>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
               {isEditMode ? 'Edit Milestone' : 'Create Milestone'}
             </p>
             {isEditMode && (
@@ -139,7 +139,7 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
             color: '#6b7280', display: 'flex', padding: 4, borderRadius: 6,
             transition: 'color 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}>
             <X style={{ width: 16, height: 16 }} />
           </button>
@@ -237,29 +237,29 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: 8,
           padding: '12px 20px 14px',
-          borderTop: '1px solid rgba(168,85,247,0.12)', flexShrink: 0,
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0,
         }}>
           <button type="button" onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
             background: 'transparent', color: '#9ca3af',
-            border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer',
             transition: 'border-color 150ms, color 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
             Cancel
           </button>
           <button type="button" onClick={handleSubmit} disabled={isBusy} style={{
             padding: '6px 18px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
             border: 'none', cursor: isBusy ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: isBusy ? 0.6 : 1,
             display: 'flex', alignItems: 'center', gap: 7,
             transition: 'box-shadow 150ms, opacity 150ms',
           }}
-            onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+            onMouseEnter={e => { if (!isBusy) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
             {isBusy && <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />}
             {isBusy ? 'Saving…' : isEditMode ? 'Save Changes' : 'Create Milestone'}
           </button>

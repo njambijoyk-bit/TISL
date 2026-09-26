@@ -22,35 +22,35 @@ import AssignModal from '../../../ecommerce/components/admin/quotes/AssignModal'
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const inputDisabledStyle = {
   ...inputStyle,
-  background: 'rgba(168,85,247,0.02)',
-  borderColor: 'rgba(168,85,247,0.08)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
   color: '#9ca3af', cursor: 'not-allowed',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
 
 const sectionHeader = {
-  fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)',
   display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
 };
 
@@ -67,7 +67,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.3)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.25)' },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.3)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.3)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -110,7 +110,7 @@ function StatBlock({ icon, label, value, sub }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px',
-      borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)',
+      borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
       <div style={{ marginTop: 2, color: '#c4b5fd', flexShrink: 0 }}>{icon}</div>
       <div style={{ minWidth: 0 }}>
@@ -166,15 +166,15 @@ function QuickAddPanel({ type, onSubmit, onClose }) {
     <div style={{
       position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 272, zIndex: 30,
       background: 'white', borderRadius: 12, padding: 16,
-      border: '1.5px solid rgba(168,85,247,0.22)',
-      boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
+      boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>
+        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
           Add {type === 'credit' ? 'store credit' : 'loyalty points'}
         </p>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
-          onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
           <X style={{ width: 14, height: 14 }} />
         </button>
@@ -194,11 +194,11 @@ function QuickAddPanel({ type, onSubmit, onClose }) {
           style={{
             width: '100%', padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           }}
-          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'}
-          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}
         >
           Add {type === 'credit' ? 'credit' : 'points'}
         </button>
@@ -224,11 +224,11 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
     <div style={{
       position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 252, zIndex: 30,
       background: 'white', borderRadius: 12, padding: 16,
-      border: '1.5px solid rgba(168,85,247,0.22)',
-      boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
+      boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed', margin: 0 }}>Change status</p>
+        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>Change status</p>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}>
           <X style={{ width: 14, height: 14 }} />
         </button>
@@ -242,7 +242,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
               background: 'none', border: 'none', cursor: 'pointer', color: a.color,
               fontFamily: 'inherit', transition: 'background 120ms',
             }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
               {a.icon} {a.label}
@@ -251,7 +251,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
         ) : (
           <>
             <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 6px' }}>
-              Reason for setting to <strong style={{ color: '#7c3aed', textTransform: 'capitalize' }}>{target}</strong>:
+              Reason for setting to <strong style={{ color: 'var(--color-primary-600)', textTransform: 'capitalize' }}>{target}</strong>:
             </p>
             <textarea
               rows={2} value={reason} onChange={e => setReason(e.target.value)}
@@ -262,7 +262,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button onClick={() => setTarget('')} style={{
                 flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-                background: 'transparent', border: '1px solid rgba(168,85,247,0.22)',
+                background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                 color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Back
@@ -270,7 +270,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
               <button onClick={() => onStatusChange(target, reason)} style={{
                 flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               }}>
                 Confirm
               </button>
@@ -299,8 +299,8 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
   return (
     <div style={{
       borderRadius: 12, padding: 16,
-      border: '1.5px dashed rgba(168,85,247,0.3)',
-      background: 'rgba(168,85,247,0.02)',
+      border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -354,8 +354,8 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
               onClick={tog(key)}
               style={{
                 width: 16, height: 16, borderRadius: 4, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                border: form[key] ? '2px solid #a855f7' : '2px solid rgba(168,85,247,0.3)',
-                background: form[key] ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+                border: form[key] ? '2px solid var(--color-primary-500)' : '2px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                background: form[key] ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
                 transition: 'all 150ms', cursor: 'pointer',
               }}
             >
@@ -370,15 +370,15 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
         <button onClick={onCancel} style={{
           padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
           background: 'transparent', color: '#9ca3af',
-          border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer', fontFamily: 'inherit',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           Cancel
         </button>
         <button onClick={() => onSave(form)} style={{
           padding: '7px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
           border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-          boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+          boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
         }}>
           Save address
         </button>
@@ -651,8 +651,8 @@ export default function CustomerDetail() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{
         width: 32, height: 32, borderRadius: '50%',
-        border: '3px solid rgba(168,85,247,0.2)',
-        borderTopColor: '#a855f7',
+        border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+        borderTopColor: 'var(--color-primary-500)',
         animation: 'spin 0.8s linear infinite',
       }} />
     </div>
@@ -676,7 +676,7 @@ export default function CustomerDetail() {
           padding: '10px 16px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
           background: toastMsg.type === 'error'
             ? 'linear-gradient(135deg,#ef4444,#dc2626)'
-            : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+            : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
           color: 'white', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
         }}>
           {toastMsg.type === 'error' ? <X size={14} /> : <Check size={14} />}
@@ -695,7 +695,7 @@ export default function CustomerDetail() {
               fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', transition: 'color 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           >
             <ChevronLeft size={16} /> Customers
@@ -708,23 +708,23 @@ export default function CustomerDetail() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
                   background: 'transparent', color: '#9ca3af',
-                  border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer', fontFamily: 'inherit',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
                   <X size={14} /> Discard
                 </button>
                 <button onClick={handleSave} disabled={saving} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
                   border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                  boxShadow: '0 2px 10px rgba(168,85,247,0.3)', opacity: saving ? 0.7 : 1,
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                  boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: saving ? 0.7 : 1,
                   transition: 'box-shadow 150ms',
                 }}
-                  onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+                  onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
                   <Save size={14} /> {saving ? 'Saving…' : 'Save changes'}
                 </button>
               </>
@@ -733,11 +733,11 @@ export default function CustomerDetail() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
                 background: 'transparent', color: '#9ca3af',
-                border: '1px solid rgba(168,85,247,0.22)', cursor: 'pointer', fontFamily: 'inherit',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'border-color 150ms, color 150ms',
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
                 <Edit2 size={14} /> Edit
               </button>
             )}
@@ -752,20 +752,20 @@ export default function CustomerDetail() {
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <img
                 src={customer.profile_image_url} alt={customer.full_name}
-                style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: 'rgba(168,85,247,0.08)', display: 'block' }}
+                style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block' }}
               />
               <button
                 onClick={() => imgInputRef.current?.click()}
                 style={{
                   position: 'absolute', bottom: -4, right: -4, width: 26, height: 26,
                   borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1.5px solid rgba(168,85,247,0.2)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   cursor: 'pointer', transition: 'border-color 150ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
               >
-                <Camera size={11} style={{ color: '#a855f7' }} />
+                <Camera size={11} style={{ color: 'var(--color-primary-500)' }} />
               </button>
               <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
             </div>
@@ -792,7 +792,7 @@ export default function CustomerDetail() {
                   <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>
                     <Star size={9} /> {customer.tier}
                   </Badge>
-                  <Badge bg="rgba(168,85,247,0.07)" color="#7c3aed" ring="rgba(168,85,247,0.2)">
+                  <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 20%, transparent)">
                     {customer.customer_type}
                   </Badge>
 
@@ -804,11 +804,11 @@ export default function CustomerDetail() {
                         display: 'flex', alignItems: 'center', gap: 5,
                         padding: '4px 10px', borderRadius: 8, fontSize: '0.68rem', fontWeight: 700,
                         background: 'transparent', color: '#9ca3af',
-                        border: '1px solid rgba(168,85,247,0.18)', cursor: 'pointer', fontFamily: 'inherit',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                         transition: 'border-color 150ms, color 150ms',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = '#9ca3af'; }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
                     >
                       <Settings size={11} /> Status
                     </button>
@@ -825,7 +825,7 @@ export default function CustomerDetail() {
                   display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem',
                   color: '#9ca3af', textDecoration: 'none', transition: 'color 150ms',
                 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                   onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
                   <Mail size={12} style={{ color: '#c4b5fd' }} /> {customer.email}
                 </a>
@@ -845,13 +845,13 @@ export default function CustomerDetail() {
         </div>
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, borderBottom: '2px solid rgba(168,85,247,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
           {['overview', 'addresses', 'orders', 'credit', ...(showTaxTab ? ['tax'] : [])].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '10px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? '#a855f7' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              borderBottom: `2px solid ${tab === t ? '#a855f7' : 'transparent'}`,
+              borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
             }}>
               {t}
@@ -913,7 +913,7 @@ export default function CustomerDetail() {
                     <Field label="Tier (auto-calculated)">
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px',
-                        borderRadius: 8, background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.08)',
+                        borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                       }}>
                         <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{customer.tier}</Badge>
                         <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>based on orders & spend</span>
@@ -935,7 +935,7 @@ export default function CustomerDetail() {
                       ) : (
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px',
-                          borderRadius: 8, background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.08)',
+                          borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                         }}>
                           <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{customer.tier}</Badge>
                           <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>manual override</span>
@@ -952,7 +952,7 @@ export default function CustomerDetail() {
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '10px 14px', borderRadius: 10,
-                        background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.1)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                         cursor: editing ? 'pointer' : 'default',
                       }}
                         onClick={() => editing && setForm(f => ({ ...f, has_credit_account: !f.has_credit_account }))}
@@ -964,7 +964,7 @@ export default function CustomerDetail() {
                         <div style={{
                           width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
                           cursor: editing ? 'pointer' : 'not-allowed', opacity: editing ? 1 : 0.6,
-                          background: form.has_credit_account ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.15)',
+                          background: form.has_credit_account ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                           transition: 'background 200ms',
                         }}>
                           <span style={{
@@ -987,15 +987,15 @@ export default function CustomerDetail() {
                       {customer?.sales_rep ? (
                         <div style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                          padding: '7px 11px', borderRadius: 8, background: 'rgba(168,85,247,0.04)',
-                          border: '1.5px solid rgba(168,85,247,0.18)',
+                          padding: '7px 11px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                             <div style={{
                               width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '0.58rem', fontWeight: 700, color: '#c084fc',
-                              border: '1.5px solid rgba(168,85,247,0.25)',
+                              fontSize: '0.58rem', fontWeight: 700, color: 'var(--color-primary-400)',
+                              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                             }}>
                               {`${customer.sales_rep.first_name ?? ''} ${customer.sales_rep.last_name ?? ''}`.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
                             </div>
@@ -1011,12 +1011,12 @@ export default function CustomerDetail() {
                           {editing && (
                             <button type="button" onClick={() => setShowAssignModal(true)} style={{
                               padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700,
-                              background: 'rgba(168,85,247,0.08)', color: '#a855f7',
-                              border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)',
+                              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer',
                               transition: 'background 150ms',
                             }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
                             >Reassign</button>
                           )}
                         </div>
@@ -1024,14 +1024,14 @@ export default function CustomerDetail() {
                         <button type="button" onClick={() => setShowAssignModal(true)} disabled={!editing} style={{
                           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                           padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                          background: editing ? 'rgba(168,85,247,0.06)' : 'rgba(168,85,247,0.03)',
-                          border: '1.5px dashed rgba(168,85,247,0.25)',
-                          color: editing ? '#a855f7' : '#c4b5fd',
+                          background: editing ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                          border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+                          color: editing ? 'var(--color-primary-500)' : '#c4b5fd',
                           cursor: editing ? 'pointer' : 'not-allowed',
                           transition: 'background 150ms, border-color 150ms',
                         }}
-                          onMouseEnter={e => { if (editing) { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; } }}
-                          onMouseLeave={e => { e.currentTarget.style.background = editing ? 'rgba(168,85,247,0.06)' : 'rgba(168,85,247,0.03)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
+                          onMouseEnter={e => { if (editing) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; } }}
+                          onMouseLeave={e => { e.currentTarget.style.background = editing ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; }}
                         >
                           <UserCheck size={14} /> Assign Sales Rep
                         </button>
@@ -1076,8 +1076,8 @@ export default function CustomerDetail() {
                     return (
                       <div style={{
                         padding: '12px 14px', borderRadius: 10,
-                        background: isOver ? 'rgba(239,68,68,0.04)' : 'rgba(168,85,247,0.03)',
-                        border: `1px solid ${isOver ? 'rgba(239,68,68,0.2)' : isHigh ? 'rgba(245,158,11,0.2)' : 'rgba(168,85,247,0.1)'}`,
+                        background: isOver ? 'rgba(239,68,68,0.04)' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                        border: `1px solid ${isOver ? 'rgba(239,68,68,0.2)' : isHigh ? 'rgba(245,158,11,0.2)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
                       }}>
                         {/* Header row */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -1099,7 +1099,7 @@ export default function CustomerDetail() {
                         {/* Progress bar */}
                         {limit > 0 && (
                           <div style={{ marginBottom: 10 }}>
-                            <div style={{ height: 6, borderRadius: 3, background: 'rgba(168,85,247,0.08)', overflow: 'hidden' }}>
+                            <div style={{ height: 6, borderRadius: 3, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', overflow: 'hidden' }}>
                               <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width 0.6s ease' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -1185,13 +1185,13 @@ export default function CustomerDetail() {
                   </div>
                   <Link to={`/admin/orders?customer=${id}`} style={{
                     marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    fontSize: '0.75rem', color: '#a855f7', textDecoration: 'none', fontWeight: 600,
+                    fontSize: '0.75rem', color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600,
                     padding: '8px', borderRadius: 8,
-                    border: '1px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.03)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                     transition: 'background 150ms',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                   >
                     View all orders →
                   </Link>
@@ -1212,7 +1212,7 @@ export default function CustomerDetail() {
                         onClick={() => { setShowCredit(v => !v); setShowPoints(false); setShowStatus(false); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700,
-                          color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                          color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         }}
                       >
                         <Plus size={13} /> Add
@@ -1244,7 +1244,7 @@ export default function CustomerDetail() {
                         onClick={() => { setShowPoints(v => !v); setShowCredit(false); setShowStatus(false); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700,
-                          color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                          color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         }}
                       >
                         <Plus size={13} /> Add
@@ -1257,7 +1257,7 @@ export default function CustomerDetail() {
                     <span style={{ fontSize: '0.9rem', fontWeight: 400, color: '#9ca3af', marginLeft: 4 }}>pts</span>
                   </p>
                   <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
-                    Tier multiplier: <strong style={{ color: '#a855f7' }}>×{customer.tier_benefits?.loyalty_points_multiplier ?? 1}</strong>
+                    Tier multiplier: <strong style={{ color: 'var(--color-primary-500)' }}>×{customer.tier_benefits?.loyalty_points_multiplier ?? 1}</strong>
                   </p>
                 </div>
 
@@ -1271,8 +1271,8 @@ export default function CustomerDetail() {
                           <span key={tag} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 5,
                             padding: '4px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600,
-                            background: 'rgba(168,85,247,0.07)', color: '#7c3aed',
-                            border: '1px solid rgba(168,85,247,0.18)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                           }}>
                             {tag}
                             <button onClick={() => handleRemoveTag(tag)} style={{
@@ -1298,9 +1298,9 @@ export default function CustomerDetail() {
                     />
                     <button onClick={handleAddTag} style={{
                       padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                      background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+                      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                     }}>
                       <Plus size={14} />
                     </button>
@@ -1437,17 +1437,17 @@ export default function CustomerDetail() {
                   {customer.default_billing_address && (
                     <div style={{
                       ...card, padding: '14px 16px',
-                      background: 'rgba(168,85,247,0.02)', border: '1px solid rgba(168,85,247,0.12)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <CreditCard size={12} style={{ color: '#a855f7' }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <CreditCard size={12} style={{ color: 'var(--color-primary-500)' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Default billing
                         </span>
                         <span style={{
                           fontSize: '0.6rem', fontWeight: 700, padding: '2px 6px', borderRadius: 99,
-                          background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                          border: '1px solid rgba(168,85,247,0.2)',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                          border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                         }}>
                           Customer entered
                         </span>
@@ -1457,7 +1457,7 @@ export default function CustomerDetail() {
                       </p>
                     </div>
                   )}
-                  <div style={{ borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 12 }}>
+                  <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 12 }}>
                     <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: 0 }}>
                       Saved address book
                     </p>
@@ -1473,8 +1473,8 @@ export default function CustomerDetail() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                  boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+                  background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                  boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                 }}>
                   <Plus size={14} /> Add address
                 </button>
@@ -1487,7 +1487,7 @@ export default function CustomerDetail() {
               ? [1, 2].map(i => (
                   <div key={i} style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[32, 64, 48].map((w, j) => (
-                      <div key={j} style={{ height: 12, width: `${w}%`, borderRadius: 6, background: 'rgba(168,85,247,0.08)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                      <div key={j} style={{ height: 12, width: `${w}%`, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', animation: 'pulse 1.5s ease-in-out infinite' }} />
                     ))}
                   </div>
                 ))
@@ -1495,9 +1495,9 @@ export default function CustomerDetail() {
                 ? (
                   <div style={{
                     ...card, textAlign: 'center', padding: '48px 24px',
-                    border: '1.5px dashed rgba(168,85,247,0.2)', background: 'transparent',
+                    border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent',
                   }}>
-                    <MapPin size={28} style={{ color: 'rgba(168,85,247,0.2)', margin: '0 auto 8px', display: 'block' }} />
+                    <MapPin size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', margin: '0 auto 8px', display: 'block' }} />
                     <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No addresses saved by admin</p>
                   </div>
                 )
@@ -1521,7 +1521,7 @@ export default function CustomerDetail() {
                                       <Badge bg="rgba(59,130,246,0.08)" color="#1d4ed8" ring="rgba(59,130,246,0.2)">Default shipping</Badge>
                                     )}
                                     {addr.is_default_billing && (
-                                      <Badge bg="rgba(168,85,247,0.08)" color="#7c3aed" ring="rgba(168,85,247,0.2)">Default billing</Badge>
+                                      <Badge bg="color-mix(in srgb, var(--color-primary-500) 8%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 20%, transparent)">Default billing</Badge>
                                     )}
                                     {addr.verified && (
                                       <Badge bg="rgba(16,185,129,0.08)" color="#065f46" ring="rgba(16,185,129,0.2)">
@@ -1561,12 +1561,12 @@ export default function CustomerDetail() {
                                 {!addr.is_default_billing && (
                                   <button onClick={() => handleSetDefault(addr.id, 'billing')} style={{
                                     fontSize: '0.68rem', padding: '3px 8px', borderRadius: 6, fontWeight: 600,
-                                    background: 'rgba(168,85,247,0.06)', color: '#7c3aed',
-                                    border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
+                                    background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)',
+                                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                                     transition: 'background 120ms',
                                   }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.12)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}>
+                                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}>
                                     Set billing
                                   </button>
                                 )}
@@ -1575,7 +1575,7 @@ export default function CustomerDetail() {
                                   borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer',
                                   color: '#9ca3af', transition: 'background 120ms, color 120ms',
                                 }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}>
                                   <Edit2 size={13} />
                                 </button>
@@ -1612,12 +1612,12 @@ export default function CustomerDetail() {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                 textDecoration: 'none',
-                border: '1px solid rgba(168,85,247,0.22)', color: '#a855f7',
-                background: 'rgba(168,85,247,0.04)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', color: 'var(--color-primary-500)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
                 transition: 'background 150ms',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
               >
                 Open in Orders →
               </Link>
@@ -1628,7 +1628,7 @@ export default function CustomerDetail() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                       {['Order', 'Status', 'Payment', 'Items', 'Total', 'Date'].map(h => (
                         <th key={h} style={{
                           padding: '10px 16px', textAlign: h === 'Total' || h === 'Items' ? 'right' : 'left',
@@ -1643,10 +1643,10 @@ export default function CustomerDetail() {
                   <tbody>
                     {ordersLoading
                       ? Array.from({ length: 6 }).map((_, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+                          <tr key={i} style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                             {[140, 80, 80, 40, 90, 80].map((w, j) => (
                               <td key={j} style={{ padding: '12px 16px' }}>
-                                <div style={{ height: 11, width: w, borderRadius: 6, background: 'rgba(168,85,247,0.08)' }} />
+                                <div style={{ height: 11, width: w, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
                               </td>
                             ))}
                           </tr>
@@ -1655,7 +1655,7 @@ export default function CustomerDetail() {
                         ? (
                           <tr>
                             <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center' }}>
-                              <Package size={28} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 10px', display: 'block' }} />
+                              <Package size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 10px', display: 'block' }} />
                               <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No orders yet</p>
                             </td>
                           </tr>
@@ -1690,15 +1690,15 @@ export default function CustomerDetail() {
                                 key={o.id}
                                 onClick={() => navigate(`/admin/orders/${o.id}`)}
                                 style={{
-                                  borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                                  borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                                   cursor: 'pointer', transition: 'background 120ms',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                               >
                                 {/* Order number */}
                                 <td style={{ padding: '11px 16px' }}>
-                                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 1px', fontFamily: 'monospace' }}>
+                                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 1px', fontFamily: 'monospace' }}>
                                     {o.order_number}
                                   </p>
                                   {o.title && (
@@ -1766,9 +1766,9 @@ export default function CustomerDetail() {
               {/* Pagination */}
               {!ordersLoading && orders.length > 0 && ordersMeta.last_page > 1 && (
                 <div style={{
-                  padding: '10px 16px', borderTop: '1px solid rgba(168,85,247,0.08)',
+                  padding: '10px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: 'rgba(168,85,247,0.02)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
                 }}>
                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
                     Page {ordersMeta.current_page} of {ordersMeta.last_page}
@@ -1779,8 +1779,8 @@ export default function CustomerDetail() {
                       disabled={ordersMeta.current_page <= 1}
                       style={{
                         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                        color: '#a855f7', cursor: ordersMeta.current_page <= 1 ? 'not-allowed' : 'pointer',
+                        borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                        color: 'var(--color-primary-500)', cursor: ordersMeta.current_page <= 1 ? 'not-allowed' : 'pointer',
                         opacity: ordersMeta.current_page <= 1 ? 0.3 : 1,
                       }}
                     >
@@ -1791,8 +1791,8 @@ export default function CustomerDetail() {
                       disabled={ordersMeta.current_page >= ordersMeta.last_page}
                       style={{
                         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderRadius: 7, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                        color: '#a855f7', cursor: ordersMeta.current_page >= ordersMeta.last_page ? 'not-allowed' : 'pointer',
+                        borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                        color: 'var(--color-primary-500)', cursor: ordersMeta.current_page >= ordersMeta.last_page ? 'not-allowed' : 'pointer',
                         opacity: ordersMeta.current_page >= ordersMeta.last_page ? 0.3 : 1,
                       }}
                     >

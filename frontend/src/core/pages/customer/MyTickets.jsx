@@ -15,9 +15,9 @@ import useTicketStore from '../../../_shared/store/ticketStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const purple   = '#a855f7';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 const openBd   = 'rgba(255, 119, 0, 0.43)';
 
 const STATUS_COLORS = {
@@ -143,11 +143,11 @@ export default function MyTickets() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '8px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600,
-              background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)',
-              color: '#a855f7', cursor: 'pointer', transition: 'all 150ms ease',
+              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+              color: 'var(--color-primary-500)', cursor: 'pointer', transition: 'all 150ms ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.18)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
           >
             <Plus size={15} /> New Ticket
           </button>
@@ -185,14 +185,14 @@ export default function MyTickets() {
                 borderRadius: 10,
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                background: 'rgba(168,85,247,0.1)',
-                border: '1px solid rgba(168,85,247,0.3)',
-                color: '#a855f7',
+                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                color: 'var(--color-primary-500)',
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
             >
               Open a Ticket
             </button>

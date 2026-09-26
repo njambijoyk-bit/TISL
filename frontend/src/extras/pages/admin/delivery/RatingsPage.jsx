@@ -191,7 +191,7 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                 background: 'white', borderRadius: 20, width: '100%', maxWidth: 420,
                 boxShadow: '0 24px 60px rgba(0,0,0,0.18)', overflow: 'hidden',
             }}>
-                <div style={{ height: 4, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+                <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
                 <div style={{ padding: 20 }}>
                     <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#111827' }}>
                         Adjust Rating
@@ -202,7 +202,7 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                     </p>
 
                     <div style={{ marginBottom: 16 }}>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#c084fc', marginBottom: 8 }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-400)', marginBottom: 8 }}>
                             Adjustment value
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
@@ -222,7 +222,7 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                     </div>
 
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#c084fc', marginBottom: 6 }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-400)', marginBottom: 6 }}>
                             Reason <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         <textarea
@@ -232,7 +232,7 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                             rows={3}
                             style={{
                                 width: '100%', resize: 'vertical', boxSizing: 'border-box',
-                                border: '1px solid rgba(168,85,247,0.2)', borderRadius: 12,
+                                border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 12,
                                 padding: '10px 12px', fontSize: 13, color: '#111827',
                                 outline: 'none', fontFamily: 'inherit',
                             }}
@@ -247,8 +247,8 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                         }}>Cancel</button>
                         <button onClick={handleSubmit} disabled={!canSubmit} style={{
                             flex: 2, padding: '10px 16px', borderRadius: 12, border: 'none',
-                            background: canSubmit ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.2)',
-                            color: canSubmit ? 'white' : '#a855f7',
+                            background: canSubmit ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                            color: canSubmit ? 'white' : 'var(--color-primary-500)',
                             fontSize: 13, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'not-allowed',
                         }}>
                             {loading ? 'Applying…' : 'Apply adjustment'}

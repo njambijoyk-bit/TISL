@@ -22,7 +22,7 @@ export default function WishlistItem({ item }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
-      padding: '16px 0', borderBottom: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 1px 0 rgba(168,85,247,0.1)',
+      padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
 
       {/* Product image */}
@@ -45,12 +45,12 @@ export default function WishlistItem({ item }) {
           }}
         >
           <p style={{
-            fontSize: '0.875rem', fontWeight: 600, color: '#a855f7', margin: '0 0 4px',
+            fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)', margin: '0 0 4px',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             transition: 'color 150ms',
           }}
             onMouseEnter={e => e.currentTarget.style.color = '#34065f'}
-            onMouseLeave={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           >
             {item.name}
           </p>
@@ -70,7 +70,7 @@ export default function WishlistItem({ item }) {
           {/* Price */}
           {item.price != null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a855f7' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>
                 {fmt(item.price)}
               </span>
               {hasPriceDiff && (() => {
@@ -105,12 +105,12 @@ export default function WishlistItem({ item }) {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-            border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
-            background: 'rgba(168,85,247,0.05)', cursor: 'pointer', fontFamily: 'inherit',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
             transition: 'background 150ms, border-color 150ms',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.05)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; }}
         >
           <ShoppingCart size={14} /> Add to cart
         </button>

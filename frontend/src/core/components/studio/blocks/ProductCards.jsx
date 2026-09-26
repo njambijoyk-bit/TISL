@@ -5,7 +5,7 @@ import { ArrowRight, ShoppingCart, Info, CheckCircle } from 'lucide-react';
  * Variant A: Apple-style / Modern White
  * Image top, name and price below, minimal.
  */
-export function ProductCardA({ product, accentColor = '#a855f7' }) {
+export function ProductCardA({ product, accentColor = 'var(--color-primary-500)' }) {
     return (
         <div style={{
             background: 'white',
@@ -46,7 +46,7 @@ export function ProductCardA({ product, accentColor = '#a855f7' }) {
  * Variant B: List / Horizontal Layout
  * Image left, details right.
  */
-export function ProductCardB({ product, accentColor = '#a855f7' }) {
+export function ProductCardB({ product, accentColor = 'var(--color-primary-500)' }) {
     return (
         <div style={{
             background: 'white',
@@ -89,7 +89,7 @@ export function ProductCardB({ product, accentColor = '#a855f7' }) {
  * Variant C: TISL Industrial / Mission-Vision Inspired
  * Dark theme, overlay text, scrapbook feel.
  */
-export function ProductCardC({ product, accentColor = '#a855f7' }) {
+export function ProductCardC({ product, accentColor = 'var(--color-primary-500)' }) {
     return (
         <div style={{
             background: '#0f172a',

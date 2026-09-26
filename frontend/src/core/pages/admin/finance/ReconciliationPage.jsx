@@ -10,7 +10,7 @@ const FINANCE_ROLES = ['super_admin', 'finance', 'admin'];
 const LEDGER_META = {
   payments:       { label: 'Payments',       color: '#10b981', icon: '💳' },
   store_credit:   { label: 'Store Credit',   color: '#3b82f6', icon: '🎟' },
-  loyalty_points: { label: 'Loyalty Points', color: '#a855f7', icon: '⭐' },
+  loyalty_points: { label: 'Loyalty Points', color: 'var(--color-primary-500)', icon: '⭐' },
   credit_account: { label: 'Credit Account', color: '#f59e0b', icon: '🏦' },
   vat:            { label: 'VAT',            color: '#ef4444', icon: '🧾' },
 };
@@ -22,40 +22,40 @@ const STATUS_COLORS = {
 
 const S = {
   page:      { minHeight: '100vh', background: 'var(--bg-primary, #0f0f1a)', padding: '32px', fontFamily: 'monospace' },
-  back:      { display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#a855f7', fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', marginBottom: '20px', opacity: 0.75, userSelect: 'none' },
+  back:      { display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-primary-500)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', marginBottom: '20px', opacity: 0.75, userSelect: 'none' },
   header:    { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' },
   title:     { color: '#e2e8f0', fontSize: '22px', fontWeight: 800, letterSpacing: '0.04em', marginBottom: '4px' },
   subtitle:  { color: '#475569', fontSize: '12px', letterSpacing: '0.06em' },
-  newBtn:    { padding: '10px 20px', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer', letterSpacing: '0.05em' },
+  newBtn:    { padding: '10px 20px', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer', letterSpacing: '0.05em' },
   ledgerGrid:{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '28px' },
   ledgerCard:(color, active) => ({ background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)', border: `1px solid ${active ? color : color + '40'}`, borderRadius: '12px', padding: '16px', cursor: 'pointer', boxShadow: active ? `0 0 12px ${color}30` : 'none', transition: 'all 0.2s' }),
   ledgerIcon:{ fontSize: '22px', marginBottom: '8px' },
   ledgerLabel:(color) => ({ color, fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }),
   ledgerCount:{ color: '#475569', fontSize: '11px' },
   filters:   { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
-  filterSelect: { background: '#0f0f1a', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '8px 12px', fontFamily: 'monospace', outline: 'none', cursor: 'pointer' },
-  tableWrap: { background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '14px', overflow: 'hidden' },
+  filterSelect: { background: '#0f0f1a', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '8px 12px', fontFamily: 'monospace', outline: 'none', cursor: 'pointer' },
+  tableWrap: { background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 100%)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '14px', overflow: 'hidden' },
   table:     { width: '100%', borderCollapse: 'collapse' },
-  th:        { padding: '12px 16px', textAlign: 'left', color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', borderBottom: '1px solid rgba(168,85,247,0.15)', background: 'rgba(168,85,247,0.04)', fontFamily: 'monospace' },
+  th:        { padding: '12px 16px', textAlign: 'left', color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', fontFamily: 'monospace' },
   td:        { padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' },
-  tr:        (hover) => ({ background: hover ? 'rgba(168,85,247,0.04)' : 'transparent', cursor: 'pointer', transition: 'background 0.15s' }),
+  tr:        (hover) => ({ background: hover ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.15s' }),
   pill:      (c) => ({ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', background: c.bg, border: `1px solid ${c.border}`, color: c.text, fontFamily: 'monospace', textTransform: 'uppercase' }),
-  sessionNum:{ color: '#a855f7', fontSize: '12px', fontWeight: 700 },
+  sessionNum:{ color: 'var(--color-primary-500)', fontSize: '12px', fontWeight: 700 },
   meta:      { color: '#475569', fontSize: '10px', lineHeight: 1.6, fontFamily: 'monospace' },
   statChip:  (color) => ({ display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, color, background: `${color}18`, marginRight: '4px', fontFamily: 'monospace' }),
   progressWrap: { height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)', marginTop: '6px', overflow: 'hidden' },
   progressFill: (pct, color) => ({ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.4s ease' }),
   empty:     { padding: '60px 20px', textAlign: 'center', color: '#475569', fontSize: '13px' },
   overlay:   { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  modalBox:  { background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: '16px', padding: '28px', width: '460px', fontFamily: 'monospace', boxShadow: '0 0 60px rgba(168,85,247,0.15)' },
+  modalBox:  { background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)', borderRadius: '16px', padding: '28px', width: '460px', fontFamily: 'monospace', boxShadow: '0 0 60px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' },
   modalTitle:{ color: '#e2e8f0', fontSize: '16px', fontWeight: 800, marginBottom: '20px', letterSpacing: '0.04em' },
   modalField:{ marginBottom: '14px' },
   modalLabel:{ color: '#94a3b8', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' },
-  modalInput:{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' },
-  modalSelect:{ width: '100%', background: '#0f0f1a', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' },
+  modalInput:{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' },
+  modalSelect:{ width: '100%', background: '#0f0f1a', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' },
   modalFooter:{ display: 'flex', gap: '10px', marginTop: '24px' },
-  btnCancel: { flex: 1, padding: '10px', background: 'transparent', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' },
-  btnCreate: (disabled) => ({ flex: 2, padding: '10px', background: disabled ? 'rgba(168,85,247,0.15)' : 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', borderRadius: '8px', color: disabled ? '#475569' : '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: disabled ? 'not-allowed' : 'pointer' }),
+  btnCancel: { flex: 1, padding: '10px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' },
+  btnCreate: (disabled) => ({ flex: 2, padding: '10px', background: disabled ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', border: 'none', borderRadius: '8px', color: disabled ? '#475569' : '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: disabled ? 'not-allowed' : 'pointer' }),
 };
 
 function CreateSessionModal({ onClose, onCreate }) {
@@ -182,13 +182,13 @@ export default function ReconciliationPage() {
             <button style={S.newBtn} onClick={() => setShowCreate(true)}>+ NEW SESSION</button>
             )}
             <button
-                style={{ ...S.newBtn, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}
+                style={{ ...S.newBtn, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)' }}
                 onClick={() => navigate('/admin/financial-notes')}
             >
                 📓 NOTES
             </button>
             <button 
-                style={{ ...S.newBtn, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}
+                style={{ ...S.newBtn, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)' }}
                 onClick={() => navigate('/admin/data-engine')}
             >
                 Data Engine
@@ -302,16 +302,16 @@ export default function ReconciliationPage() {
         </table>
 
         {meta && meta.last_page > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
             <span style={S.meta}>{meta.from}–{meta.to} of {meta.total}</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '6px', color: page === 1 ? '#334155' : '#a855f7', fontSize: '11px', fontFamily: 'monospace', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '6px', color: page === 1 ? '#334155' : 'var(--color-primary-500)', fontSize: '11px', fontFamily: 'monospace', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
                 disabled={page === 1}
                 onClick={() => setPage(p => p - 1)}
               >← PREV</button>
               <button
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '6px', color: page === meta.last_page ? '#334155' : '#a855f7', fontSize: '11px', fontFamily: 'monospace', cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: '6px', color: page === meta.last_page ? '#334155' : 'var(--color-primary-500)', fontSize: '11px', fontFamily: 'monospace', cursor: page === meta.last_page ? 'not-allowed' : 'pointer' }}
                 disabled={page === meta.last_page}
                 onClick={() => setPage(p => p + 1)}
               >NEXT →</button>

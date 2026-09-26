@@ -2,10 +2,10 @@ import React from 'react';
 import { Edit2, Package, Wrench, MapPin, DollarSign, Clock, FileText, Paperclip } from 'lucide-react';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ─── Atoms ────────────────────────────────────────────────────────────────────
 const Btn = ({ children, onClick, size = 'sm', type = 'button' }) => (
@@ -58,7 +58,7 @@ const ItemCard = ({ name, isCustom, badge, meta, note, right }) => (
       {meta  && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>{meta}</p>}
       {note  && <p style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic', margin: '2px 0 0' }}>Note: {note}</p>}
     </div>
-    {right && <div style={{ textAlign: 'right', flexShrink: 0 }}><p style={{ fontSize: '0.82rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>{right}</p></div>}
+    {right && <div style={{ textAlign: 'right', flexShrink: 0 }}><p style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{right}</p></div>}
   </div>
 );
 

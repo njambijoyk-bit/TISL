@@ -18,8 +18,8 @@ const EVENT_META = {
   service_view:      { icon: Eye,          color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',    label: 'Service View' },
   add_to_cart:       { icon: ShoppingCart, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',   label: 'Add to Cart'  },
   add_to_wishlist:   { icon: Heart,        color: '#ec4899', bg: 'rgba(236,72,153,0.1)',   label: 'Wishlist'     },
-  add_to_quotelist:  { icon: FileText,     color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',   label: 'Quote List'   },
-  filter:            { icon: Filter,       color: '#a855f7', bg: 'rgba(168,85,247,0.1)',   label: 'Filter'       },
+  add_to_quotelist:  { icon: FileText,     color: 'var(--color-primary-400)', bg: 'rgba(139,92,246,0.1)',   label: 'Quote List'   },
+  filter:            { icon: Filter,       color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',   label: 'Filter'       },
 };
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ function EventRow({ event, index, startTime }) {
           {/* Filter info */}
           {event.filter_type && (
             <>
-              <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 6, background: 'rgba(168,85,247,0.1)', color: '#a855f7', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-500)', fontWeight: 700 }}>
                 {event.filter_type}
               </span>
               <span style={{ fontSize: '0.78rem', color: '#374151' }} className="dark:text-gray-300">{event.filter_value}</span>
@@ -119,7 +119,7 @@ function EventRow({ event, index, startTime }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center' }}>
           <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{fmtMin(event.occurred_at)}</span>
           {startTime && index > 0 && (
-            <span style={{ fontSize: '0.65rem', color: '#c084fc', fontWeight: 600 }}>{offsetLabel}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--color-primary-400)', fontWeight: 600 }}>{offsetLabel}</span>
           )}
         </div>
       </div>
@@ -191,20 +191,20 @@ export default function AdminSessionDetail({ sessionId }) {
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
           {/* Icon */}
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(168,85,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Activity size={20} style={{ color: '#a855f7' }} />
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Activity size={20} style={{ color: 'var(--color-primary-500)' }} />
           </div>
 
           {/* Info */}
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#a855f7', fontWeight: 700, background: 'rgba(168,85,247,0.08)', padding: '2px 8px', borderRadius: 6 }}>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--color-primary-500)', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '2px 8px', borderRadius: 6 }}>
                 {sessionId}
               </span>
               {s?.customer_name ? (
                 <span style={{ fontSize: '0.75rem', color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }} className="dark:text-gray-300">
                   <User size={11} style={{ color: '#9ca3af' }} /> {s.customer_name}
-                  {s.customer_number && <span style={{ fontSize: '0.65rem', color: '#c084fc', fontFamily: 'monospace' }}>({s.customer_number})</span>}
+                  {s.customer_number && <span style={{ fontSize: '0.65rem', color: 'var(--color-primary-400)', fontFamily: 'monospace' }}>({s.customer_number})</span>}
                 </span>
               ) : (
                 <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic' }}>Guest session</span>
@@ -223,7 +223,7 @@ export default function AdminSessionDetail({ sessionId }) {
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 20, flexShrink: 0, flexWrap: 'wrap' }}>
             {[
-              { label: 'Events',    value: fmt(s?.total_events),   color: '#a855f7' },
+              { label: 'Events',    value: fmt(s?.total_events),   color: 'var(--color-primary-500)' },
               { label: 'Searches',  value: fmt(s?.searches),        color: '#3b82f6' },
               { label: 'Views',     value: fmt(s?.product_views),   color: '#10b981' },
               { label: 'Cart Adds', value: fmt(s?.cart_adds),       color: '#f59e0b' },
@@ -243,7 +243,7 @@ export default function AdminSessionDetail({ sessionId }) {
         {/* Header + filter pills */}
         <div style={{ padding: '13px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }} className="dark:border-gray-700">
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <Zap size={14} style={{ color: '#a855f7' }} />
+            <Zap size={14} style={{ color: 'var(--color-primary-500)' }} />
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">
               Event Timeline
             </span>
@@ -264,9 +264,9 @@ export default function AdminSessionDetail({ sessionId }) {
                     padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
                     fontSize: '0.68rem', fontWeight: 700, transition: 'all 120ms',
                     background: isActive
-                      ? (meta?.bg || 'rgba(168,85,247,0.12)')
+                      ? (meta?.bg || 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)')
                       : '#f3f4f6',
-                    color: isActive ? (meta?.color || '#a855f7') : '#9ca3af',
+                    color: isActive ? (meta?.color || 'var(--color-primary-500)') : '#9ca3af',
                   }}>
                   {type === 'all' ? 'All' : (meta?.label || type)}
                   <span style={{ marginLeft: 4, opacity: 0.7 }}>

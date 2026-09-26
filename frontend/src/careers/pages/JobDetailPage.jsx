@@ -21,25 +21,25 @@ const s = {
     layout: { maxWidth: 1000, margin: '0 auto', background: '#0f0f0f', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 48, alignItems: 'start' },
     main: {},
     sidebar: { position: 'sticky', top: 24 },
-    eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#a855f7', marginBottom: 12, fontWeight: 600 },
-    title: { fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, lineHeight: 1.15, color: '#a855f7', marginBottom: 20, fontFamily: "'DM Serif Display', serif" },
+    eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 12, fontWeight: 600 },
+    title: { fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, lineHeight: 1.15, color: 'var(--color-primary-500)', marginBottom: 20, fontFamily: "'DM Serif Display', serif" },
     metaRow: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 },
     pill: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#1e1e1e', color: '#aaa', fontWeight: 500 },
-    pillPurple: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: '#c084fc', fontWeight: 500 },
+    pillPurple: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: 'var(--color-primary-400)', fontWeight: 500 },
     section: { marginBottom: 36 },
     sectionTitle: { fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', fontWeight: 600, marginBottom: 14 },
     body: { fontSize: 15, lineHeight: 1.7, color: '#ccc' },
     list: { listStyle: 'none', padding: 0, margin: 0 },
     listItem: { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 15, color: '#ccc', lineHeight: 1.6 },
-    dot: { width: 6, height: 6, borderRadius: '50%', background: '#a855f7', flexShrink: 0, marginTop: 8 },
+    dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0, marginTop: 8 },
 
     // Sidebar card
     card: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 14, padding: 28 },
-    salary: { fontSize: 20, fontWeight: 700, color: '#a855f7', marginBottom: 4 },
+    salary: { fontSize: 20, fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 4 },
     salaryLabel: { fontSize: 12, color: '#555', marginBottom: 24 },
     applyBtn: {
         display: 'block', width: '100%', padding: '14px 0', textAlign: 'center',
-        background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff',
+        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff',
         borderRadius: 10, fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer',
         textDecoration: 'none', transition: 'opacity 0.2s',
     },
@@ -67,7 +67,7 @@ const s = {
     cancelBtn: { flex: 1, padding: '12px 0', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 14, cursor: 'pointer' },
     submitBtn: (disabled) => ({
         flex: 2, padding: '12px 0', borderRadius: 8, border: 'none',
-        background: disabled ? '#2a2a2a' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        background: disabled ? '#2a2a2a' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
         color: disabled ? '#555' : '#fff', fontSize: 14, fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
     }),
@@ -91,7 +91,7 @@ const s = {
 
     // Progress bar
     progressWrap: { marginTop: 20, background: '#1a1a1a', borderRadius: 8, overflow: 'hidden', height: 6 },
-    progressBar: (pct) => ({ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #a855f7, #7c3aed)', transition: 'width 0.3s ease', borderRadius: 8 }),
+    progressBar: (pct) => ({ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--color-primary-500), var(--color-primary-600))', transition: 'width 0.3s ease', borderRadius: 8 }),
     progressLabel: { fontSize: 12, color: '#555', marginTop: 8, textAlign: 'center' },
 };
 
@@ -226,7 +226,7 @@ export default function JobDetailPage() {
                 }
             `}</style>
             <Link to="/careers" style={s.back} className="job-back"
-                onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary-500)'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#555'}>
                 ← All Roles
             </Link>
@@ -302,7 +302,7 @@ export default function JobDetailPage() {
                             <div style={s.disabledBtn}>Application Submitted ✓</div>
                             <Link
                                 to="/careers/portal"
-                                style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#a855f7', marginTop: 10, textDecoration: 'none' }}>
+                                style={{ display: 'block', textAlign: 'center', fontSize: 12, color: 'var(--color-primary-500)', marginTop: 10, textDecoration: 'none' }}>
                                 View my applications →
                             </Link>
                         </div>

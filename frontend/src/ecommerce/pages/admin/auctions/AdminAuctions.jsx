@@ -36,7 +36,7 @@ const labelStyle = {
 
 const thStyle = {
   padding: '10px 16px', textAlign: 'left', fontSize: '0.68rem',
-  fontWeight: 700, color: '#a855f7',
+  fontWeight: 700, color: 'var(--color-primary-500)',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   borderBottom: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-secondary)', whiteSpace: 'nowrap',
@@ -79,7 +79,7 @@ function Btn({ onClick, disabled, style, children, title }) {
 function PrimaryBtn({ onClick, disabled, children, style }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(124,58,237,0.3)', ...style }}>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, fontFamily: 'inherit', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)', ...style }}>
       {children}
     </button>
   );
@@ -193,8 +193,8 @@ export default function AdminAuctions() {
         {/* ── Page heading ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Gavel size={24} style={{ color: '#a855f7' }} /> Auctions
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Gavel size={24} style={{ color: 'var(--color-primary-500)' }} /> Auctions
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Create, monitor and manage product auctions</p>
           </div>
@@ -213,7 +213,7 @@ export default function AdminAuctions() {
 
         {/* ── Stat cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total Auctions" value={pagination.total}  icon={Gavel}       iconBg="rgba(168,85,247,0.1)"  iconColor="#a855f7" />
+          <StatCard label="Total Auctions" value={pagination.total}  icon={Gavel}       iconBg="color-mix(in srgb, var(--color-primary-500) 10%, transparent)"  iconColor="var(--color-primary-500)" />
           <StatCard label="Active"         value={active}            icon={CheckCircle} iconBg="rgba(16,185,129,0.1)"  iconColor="#10b981" />
           <StatCard label="Scheduled"      value={scheduled}         icon={Clock}       iconBg="rgba(59,130,246,0.1)"  iconColor="#3b82f6" />
           <StatCard label="Ended"          value={ended}             icon={XCircle}     iconBg="rgba(107,114,128,0.1)" iconColor="#9ca3af" />
@@ -229,9 +229,9 @@ export default function AdminAuctions() {
                 style={{ ...inputStyle, paddingLeft: 32 }} />
             </div>
             <Btn onClick={() => setShowFilters(v => !v)}
-              style={showFilters ? { background: 'rgba(168,85,247,0.08)', borderColor: '#a855f7', color: '#a855f7' } : {}}>
+              style={showFilters ? { background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderColor: 'var(--color-primary-500)', color: 'var(--color-primary-500)' } : {}}>
               <Filter size={15} /> Filters
-              {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', display: 'inline-block' }} />}
+              {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', display: 'inline-block' }} />}
             </Btn>
             <Btn onClick={() => fetchAuctions(1)} disabled={loading} title="Refresh">
               <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
@@ -247,7 +247,7 @@ export default function AdminAuctions() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-tertiary)' }}>
               <div>
                 <label style={labelStyle}>Status</label>
-                <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)} style={{ ...inputStyle, cursor: 'pointer', color: '#a855f7' }}>
+                <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--color-primary-500)' }}>
                   <option value="" style={{ color: '#111827' }}>All Statuses</option>
                   <option value="active" style={{ color: '#111827' }}>Active</option>
                   <option value="scheduled" style={{ color: '#111827' }}>Scheduled</option>
@@ -259,7 +259,7 @@ export default function AdminAuctions() {
                 <label style={labelStyle}>Sort By</label>
                 <select value={`${filters.sort_by}:${filters.sort_dir}`}
                   onChange={e => { const [by, dir] = e.target.value.split(':'); handleFilterChange('sort_by', by); handleFilterChange('sort_dir', dir); }}
-                  style={{ ...inputStyle, cursor: 'pointer', color: '#a855f7' }}>
+                  style={{ ...inputStyle, cursor: 'pointer', color: 'var(--color-primary-500)' }}>
                   <option value="end_time:asc" style={{ color: '#111827' }}>End Time ↑</option>
                   <option value="end_time:desc" style={{ color: '#111827' }}>End Time ↓</option>
                   <option value="current_price:desc" style={{ color: '#111827' }}>Price ↓</option>
@@ -345,7 +345,7 @@ export default function AdminAuctions() {
                         {/* Bids */}
                         <td style={tdStyle}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                            <Users size={13} style={{ color: '#a855f7' }} />
+                            <Users size={13} style={{ color: 'var(--color-primary-500)' }} />
                             {auction.bids_count ?? 0}
                           </span>
                         </td>
@@ -353,7 +353,7 @@ export default function AdminAuctions() {
                         {/* End time */}
                         <td style={tdStyle}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                            <Clock size={12} style={{ color: '#a855f7', flexShrink: 0 }} />
+                            <Clock size={12} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                             {formatDate(auction.end_time)}
                           </span>
                         </td>
@@ -361,7 +361,7 @@ export default function AdminAuctions() {
                         {/* Actions */}
                         <td style={{ ...tdStyle, textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
-                            <IconBtn onClick={() => navigate(`/admin/auctions/${auction.id}`)} title="View / Edit" color="#7c3aed">
+                            <IconBtn onClick={() => navigate(`/admin/auctions/${auction.id}`)} title="View / Edit" color="var(--color-primary-600)">
                               <Edit size={15} />
                             </IconBtn>
                           </div>
@@ -398,7 +398,7 @@ export default function AdminAuctions() {
               <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Trash2 size={18} style={{ color: '#dc2626' }} />
-                  <span style={{ fontWeight: 800, fontSize: '1rem', color: '#a855f7' }}>Deleted Auctions</span>
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--color-primary-500)' }}>Deleted Auctions</span>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, background: 'rgba(220,38,38,0.1)', color: '#dc2626', padding: '2px 8px', borderRadius: 99 }}>{trashed.length}</span>
                 </div>
                 <IconBtn onClick={() => setShowTrash(false)} title="Close" color="#dc2626">
@@ -409,7 +409,7 @@ export default function AdminAuctions() {
               {/* Search */}
               <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--color-border-tertiary)' }}>
                 <div style={{ position: 'relative' }}>
-                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a855f7', pointerEvents: 'none' }} />
+                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-500)', pointerEvents: 'none' }} />
                   <input type="text" placeholder="Search deleted auctions…" value={trashSearch}
                     onChange={e => setTrashSearch(e.target.value)}
                     style={{ ...inputStyle, paddingLeft: 32 }} />
@@ -437,7 +437,7 @@ export default function AdminAuctions() {
                     <tbody>
                       {trashed.map(auction => (
                         <tr key={auction.id}
-                          onMouseEnter={e => e.currentTarget.style.background = '#a855f7' + '20'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-500)' + '20'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           style={{ transition: 'background 120ms' }}>
                           <td style={tdStyle}>
@@ -446,11 +446,11 @@ export default function AdminAuctions() {
                                 <img src={auction.product.main_image_url} alt={auction.product.name} style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', flexShrink: 0, opacity: 0.6 }} />
                               ) : (
                                 <div style={{ width: 36, height: 36, borderRadius: 7, background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <Package size={16} style={{ color: '#a855f7' }} />
+                                  <Package size={16} style={{ color: 'var(--color-primary-500)' }} />
                                 </div>
                               )}
                               <div>
-                                <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.825rem', color: '#a855f7', opacity: 0.7 }}>{auction.product?.name ?? 'Unknown'}</p>
+                                <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-primary-500)', opacity: 0.7 }}>{auction.product?.name ?? 'Unknown'}</p>
                                 <p style={{ margin: 0, fontSize: '0.7rem', color: '#777', fontFamily: 'monospace' }}>{auction.product?.sku ?? '—'}</p>
                               </div>
                             </div>

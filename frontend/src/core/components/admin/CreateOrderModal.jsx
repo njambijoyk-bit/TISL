@@ -19,10 +19,10 @@ import api from '../../../_shared/api/axios';
 import toast from 'react-hot-toast';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.07)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ── Input base ────────────────────────────────────────────────────────────────
 const iBase = {
@@ -846,7 +846,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
           {/* ── Header ───────────────────────────────────────────────────── */}
           <div style={{ padding: '20px 28px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0, background: purpleLt }}>
             <div>
-              <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#c084fc', marginBottom: 3 }}>Admin</p>
+              <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-primary-400)', marginBottom: 3 }}>Admin</p>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: purple, margin: 0 }}>
                 {editMode ? `Edit Order` : 'Create Order'}
               </h2>
@@ -1479,7 +1479,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                       return (
                         <div style={{
                           padding: '10px 12px', borderRadius: 10,
-                          background: 'rgba(168,85,247,0.05)', border: `1px solid ${purpleBd}`,
+                          background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid ${purpleBd}`,
                         }}>
                           <p style={{ fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase',
                             letterSpacing: '0.1em', color: purple, margin: '0 0 8px' }}>
@@ -1884,7 +1884,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     { label: 'Item Discounts',       value: `-${money(totalItemDisc)}`,              show: totalItemDisc > 0, color: '#10b981' },
                     { label: 'After Item Discounts', value: money(itemsSubtotal),                    show: totalItemDisc > 0, divider: true },
                     { label: 'Order Discount',       value: `-${money(parseFloat(orderDiscount)||0)}`, show: parseFloat(orderDiscount) > 0, color: '#10b981' },
-                    { label: 'Promo Discount',  value: `-${money(promoDiscountAmt)}`,              show: promoDiscountAmt > 0, color: '#a855f7' },
+                    { label: 'Promo Discount',  value: `-${money(promoDiscountAmt)}`,              show: promoDiscountAmt > 0, color: 'var(--color-primary-500)' },
                     { label: 'Store Credit',    value: `-KSh ${fmt(creditDeductionKes)}`,           show: creditDeductionKes > 0, color: '#059669' },
                     { label: 'Credit Account', value: `-${money(creditAccountDeduction)}`, show: creditAccountDeduction > 0, color: purpleDk },
                     { label: 'VAT (16%)',            value: money(taxAmount),                        show: applyTax },
@@ -1916,7 +1916,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   {/* Referral discount note — shown if customer has a pending referral */}
                   <div style={{
                     marginTop: 10, padding: '8px 10px', borderRadius: 8,
-                    background: 'rgba(168,85,247,0.06)', border: `1px solid ${purpleBd}`,
+                    background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: `1px solid ${purpleBd}`,
                     fontSize: '0.72rem', color: purple, lineHeight: 1.5,
                   }}>
                     <strong>Note:</strong> If this customer was referred and hasn't placed an order yet, a referral discount will be automatically applied by the backend and shown in the saved order.
@@ -1943,7 +1943,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                   Cancel
                 </button>
                 <button onClick={handleSubmit} disabled={loading || validItemCount === 0} type="button"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10, border: 'none', cursor: (loading || validItemCount === 0) ? 'not-allowed' : 'pointer', background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', fontSize: '0.85rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(168,85,247,0.3)', opacity: (loading || validItemCount === 0) ? 0.6 : 1 }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10, border: 'none', cursor: (loading || validItemCount === 0) ? 'not-allowed' : 'pointer', background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', fontSize: '0.85rem', fontWeight: 800, boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)', opacity: (loading || validItemCount === 0) ? 0.6 : 1 }}>
                   <Plus size={16} />
                   {loading ? (editMode ? 'Saving…' : 'Creating…') : (editMode ? 'Save Changes' : 'Create Order')}
                 </button>

@@ -18,8 +18,8 @@ const ABOUT_SECTION_ORDER = [
 
 const PULSE_CSS = `
   @keyframes skel-pulse {
-    0%, 100% { opacity: 1;    box-shadow: 0 0 10px rgba(168,85,247,0.10); }
-    50%       { opacity: 0.4; box-shadow: 0 0 26px rgba(168,85,247,0.30); }
+    0%, 100% { opacity: 1;    box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary-500) 10%, transparent); }
+    50%       { opacity: 0.4; box-shadow: 0 0 26px color-mix(in srgb, var(--color-primary-500) 30%, transparent); }
   }
 `;
 
@@ -27,8 +27,8 @@ function Skel({ h = 16, w = '100%', r = 8, delay = 0, style = {} }) {
   return (
     <div style={{
       height: h, width: w, borderRadius: r,
-      background: 'rgba(168,85,247,0.07)',
-      border: '1px solid rgba(168,85,247,0.18)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       animation: `skel-pulse 1.8s ease-in-out ${delay}ms infinite`,
       ...style,
     }} />
@@ -43,14 +43,14 @@ function AboutSkeleton() {
       {/* Hero */}
       <div style={{
         height: 380,
-        background: 'rgba(168,85,247,0.05)',
-        borderBottom: '1px solid rgba(168,85,247,0.22)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
         animation: 'skel-pulse 1.8s ease-in-out infinite',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <span style={{
           fontSize: 'clamp(5rem, 18vw, 11rem)', fontWeight: 900,
-          color: 'rgba(168,85,247,0.08)', letterSpacing: '-0.04em',
+          color: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', letterSpacing: '-0.04em',
           userSelect: 'none', lineHeight: 1,
         }}>
           TISL
@@ -81,8 +81,8 @@ function AboutSkeleton() {
               <div style={{ display: 'flex', justifyContent: 'center', direction: 'ltr' }}>
                 <div style={{
                   width: 220, padding: '10px 10px 40px',
-                  background: 'rgba(168,85,247,0.07)',
-                  border: '1px solid rgba(168,85,247,0.18)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                   borderRadius: 4,
                   transform: `rotate(${row % 2 === 0 ? 3 : -2}deg)`,
                   animation: `skel-pulse 1.8s ease-in-out ${row * 200}ms infinite`,
@@ -111,7 +111,7 @@ function AboutSkeleton() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 40px' }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                 <Skel h={48} w={48} r={12} delay={i * 70} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Skel h={13} w="65%" r={6} delay={i * 70} />
@@ -132,8 +132,8 @@ function AboutSkeleton() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: 20, padding: 20,
-                borderRadius: 16, border: '1px solid rgba(168,85,247,0.18)',
-                background: 'rgba(168,85,247,0.04)',
+                borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
               }}>
                 {/* text lines left */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -153,8 +153,8 @@ function AboutSkeleton() {
         {/* stats — dark band with 4 rings */}
         <div style={{
           borderRadius: 20, padding: '48px 24px', marginBottom: 80,
-          background: 'rgba(168,85,247,0.04)',
-          border: '1px solid rgba(168,85,247,0.15)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32,
           justifyItems: 'center',
         }}>

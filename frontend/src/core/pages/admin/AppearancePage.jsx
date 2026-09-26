@@ -149,8 +149,8 @@ function ColouringsTab() {
     try {
       await appearanceAPI.adminCreateColouring({
         name: newName, slug: newSlug,
-        light_tokens: { '--color-primary-500': '#a855f7', '--bg-primary': '#ffffff', '--text-primary': '#111827' },
-        dark_tokens:  { '--color-primary-500': '#a855f7', '--bg-primary': '#111827', '--text-primary': '#f9fafb' },
+        light_tokens: { '--color-primary-500': 'var(--color-primary-500)', '--bg-primary': '#ffffff', '--text-primary': '#111827' },
+        dark_tokens:  { '--color-primary-500': 'var(--color-primary-500)', '--bg-primary': '#111827', '--text-primary': '#f9fafb' },
       });
       setNewName(''); setNewSlug(''); setShowNew(false);
       await load();

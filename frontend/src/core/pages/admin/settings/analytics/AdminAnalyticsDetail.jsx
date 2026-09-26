@@ -139,7 +139,7 @@ export default function AdminAnalyticsDetail() {
                   style={{
                     padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     fontSize: '0.75rem', fontWeight: 600,
-                    background: preset === i ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#f3f4f6',
+                    background: preset === i ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
                     color: preset === i ? 'white' : '#6b7280',
                   }}>
                   {p.label}
@@ -172,7 +172,7 @@ export default function AdminAnalyticsDetail() {
               cursor: hasCustomer || resolving ? 'pointer' : 'not-allowed',
               fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
               background: tab === 'customer' ? 'white' : 'transparent',
-              color:      tab === 'customer' ? '#a855f7' : (!hasCustomer ? '#d1d5db' : '#9ca3af'),
+              color:      tab === 'customer' ? 'var(--color-primary-500)' : (!hasCustomer ? '#d1d5db' : '#9ca3af'),
               boxShadow:  tab === 'customer' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
               opacity:    !hasCustomer && !resolving ? 0.5 : 1,
             }}>
@@ -194,7 +194,7 @@ export default function AdminAnalyticsDetail() {
               cursor: activeSessionId ? 'pointer' : 'not-allowed',
               fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
               background: tab === 'session' ? 'white' : 'transparent',
-              color:      tab === 'session' ? '#a855f7' : (!activeSessionId ? '#d1d5db' : '#9ca3af'),
+              color:      tab === 'session' ? 'var(--color-primary-500)' : (!activeSessionId ? '#d1d5db' : '#9ca3af'),
               boxShadow:  tab === 'session' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
               opacity:    !activeSessionId ? 0.5 : 1,
             }}>

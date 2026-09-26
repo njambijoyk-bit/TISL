@@ -76,10 +76,10 @@ function PrimaryBtn({ onClick, disabled, children, style }) {
     <button onClick={onClick} disabled={disabled} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-      border: 'none', background: '#7c3aed', color: 'white',
+      border: 'none', background: 'var(--color-primary-600)', color: 'white',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.6 : 1, fontFamily: 'inherit',
-      boxShadow: '0 2px 8px rgba(124,58,237,0.3)', ...style,
+      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)', ...style,
     }}>
       {children}
     </button>
@@ -234,8 +234,8 @@ export default function Categories() {
         {/* ── Page heading ───────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Layers size={24} style={{ color: '#a855f7' }} /> Categories
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Layers size={24} style={{ color: 'var(--color-primary-500)' }} /> Categories
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem' }}>Manage product categories and subcategories</p>
           </div>
@@ -246,7 +246,7 @@ export default function Categories() {
 
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total"          value={categories.length}                            icon={Layers}      iconBg="rgba(124,58,237,0.1)" iconColor="#7c3aed" />
+          <StatCard label="Total"          value={categories.length}                            icon={Layers}      iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)" iconColor="var(--color-primary-600)" />
           <StatCard label="Active"         value={categories.filter(isActive).length}            icon={CheckCircle} iconBg="rgba(16,185,129,0.1)" iconColor="#10b981" />
           <StatCard label="Inactive"       value={categories.filter(c => !isActive(c)).length}   icon={XCircle}     iconBg="rgba(239,68,68,0.1)"  iconColor="#ef4444" />
           <StatCard label="Subcategories"  value={categories.filter(c => c.parent_id).length}    icon={GitBranch}   iconBg="rgba(59,130,246,0.1)"  iconColor="#3b82f6" />
@@ -364,7 +364,7 @@ export default function Categories() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '2px 7px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                              background: 'rgba(124,58,237,0.08)', color: '#7c3aed',
+                              background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', color: 'var(--color-primary-600)',
                             }}>
                               Root
                             </span>
@@ -385,7 +385,7 @@ export default function Categories() {
                             <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                               <Eye size={15} />
                             </IconBtn>
-                            <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="#7c3aed">
+                            <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                               <Edit2 size={15} />
                             </IconBtn>
                             <IconBtn

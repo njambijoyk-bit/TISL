@@ -102,7 +102,7 @@ export default function AuctionCard({ auction }) {
         .collapsed-thumb-img { width:100%; height:100%; object-fit:cover; }
         .collapsed-thumb-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
         .collapsed-info { flex:1; min-width:0; }
-        .collapsed-name { font-size:0.825rem; font-weight:600; color:#a855f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
+        .collapsed-name { font-size:0.825rem; font-weight:600; color:var(--color-primary-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
         .collapsed-desc { font-size:0.72rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.4; }
         .dark .collapsed-desc { color:#9ca3af; }
         .collapsed-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:5px; }

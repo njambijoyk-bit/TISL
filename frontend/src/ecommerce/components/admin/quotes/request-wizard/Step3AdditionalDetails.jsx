@@ -3,8 +3,8 @@ import { Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = '#f59e0b';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ─── Atoms ────────────────────────────────────────────────────────────────────
 const Field = ({ label, hint, children }) => (

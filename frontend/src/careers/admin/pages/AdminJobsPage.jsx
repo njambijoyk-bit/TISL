@@ -17,9 +17,9 @@ const s = {
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 },
     pageTitle: { fontSize: 26, fontWeight: 700, fontFamily: "'DM Serif Display', serif", marginBottom: 4 },
     pageSub: { fontSize: 14, color: '#555' },
-    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     toolbar: { display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' },
-    filterBtn: (active) => ({ padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? '#a855f7' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? '#c084fc' : '#666', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }),
+    filterBtn: (active) => ({ padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? 'var(--color-primary-400)' : '#666', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }),
     search: { padding: '8px 14px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#161616', color: '#f0f0f0', fontSize: 13, outline: 'none', width: 240 },
     table: { width: '100%', borderCollapse: 'collapse' },
     th: { textAlign: 'left', padding: '10px 16px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', fontWeight: 600, borderBottom: '1px solid #1e1e1e' },
@@ -144,7 +144,7 @@ export default function AdminJobsPage() {
                             </td>
                             <td style={s.td}>
                                 <div style={s.actionRow}>
-                                    <button style={s.actionBtn('#a855f7')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
+                                    <button style={s.actionBtn('var(--color-primary-500)')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
                                     {job.status === 'draft' && (
                                         <button style={s.actionBtn('#4ade80')} onClick={() => handlePublish(job.id)}>Publish</button>
                                     )}
@@ -176,7 +176,7 @@ export default function AdminJobsPage() {
                 </div>
 
                 <div style={s.actionRow}>
-                    <button style={s.actionBtn('#a855f7')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
+                    <button style={s.actionBtn('var(--color-primary-500)')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
                     {job.status === 'draft'     && <button style={s.actionBtn('#4ade80')} onClick={() => handlePublish(job.id)}>Publish</button>}
                     {job.status === 'published' && <button style={s.actionBtn('#f87171')} onClick={() => handleClose(job.id)}>Close</button>}
                 </div>

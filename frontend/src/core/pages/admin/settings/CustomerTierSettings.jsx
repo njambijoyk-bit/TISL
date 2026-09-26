@@ -14,24 +14,24 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
@@ -105,8 +105,8 @@ function AddTierModal({ onClose, onSave }) {
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 8px rgba(168,85,247,0.35)' }}>Add tier</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Add tier</button>
           </div>
         </form>
       </div>
@@ -166,8 +166,8 @@ function EditTierModal({ tier, onClose, onSave }) {
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 8px rgba(168,85,247,0.35)' }}>Save changes</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Save changes</button>
           </div>
         </form>
       </div>
@@ -204,8 +204,8 @@ function AddTypeModal({ onClose, onSave }) {
             <Field label="Sort order"><input type="number" value={form.sort_order} onChange={set('sort_order')} placeholder="0" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 8px rgba(168,85,247,0.35)' }}>Add type</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Add type</button>
           </div>
         </form>
       </div>
@@ -245,8 +245,8 @@ function EditTypeModal({ type, onClose, onSave }) {
             <Field label="Sort order"><input type="number" value={form.sort_order} onChange={set('sort_order')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', boxShadow: '0 2px 8px rgba(168,85,247,0.35)' }}>Save changes</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Save changes</button>
           </div>
         </form>
       </div>
@@ -284,7 +284,7 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
           ?? `#${a.entity_id}`; // last resort
 
         return (
-          <div key={a.id} style={{ display: 'flex', gap: 10, padding: '10px 20px', borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.06)' }}>
+          <div key={a.id} style={{ display: 'flex', gap: 10, padding: '10px 20px', borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
             <div style={{ width: 24, height: 24, borderRadius: 7, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, flexShrink: 0, marginTop: 1 }}>
               {meta.icon}
             </div>
@@ -296,8 +296,8 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   fontSize: '0.65rem', fontWeight: 700,
                   padding: '1px 6px', borderRadius: 99,
-                  background: a.entity_type === 'tier' ? 'rgba(168,85,247,0.1)' : 'rgba(99,102,241,0.1)',
-                  color: a.entity_type === 'tier' ? '#7c3aed' : '#4f46e5',
+                  background: a.entity_type === 'tier' ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'rgba(99,102,241,0.1)',
+                  color: a.entity_type === 'tier' ? 'var(--color-primary-600)' : '#4f46e5',
                   marginRight: 4,
                 }}>
                   {entityLabel}
@@ -327,8 +327,8 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
       {pag && pag.current_page < pag.last_page && (
         <button onClick={() => onLoadMore(pag.current_page + 1)} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: '#7c3aed',
-          background: 'rgba(168,85,247,0.04)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-600)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <RefreshCw size={12} /> Load more
         </button>
@@ -473,7 +473,7 @@ export default function CustomerTierSettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'rgba(168,85,247,0.07)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -488,7 +488,7 @@ export default function CustomerTierSettings() {
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               Customer Tiers & Types
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -501,18 +501,18 @@ export default function CustomerTierSettings() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)', transition: 'box-shadow 150ms',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'box-shadow 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Plus size={15} /> {tab === 'tiers' ? 'Add tier' : 'Add type'}
           </button>
         </div>
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'rgba(168,85,247,0.05)', borderRadius: 10, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderRadius: 10, padding: 3 }}>
           {[
             { key: 'tiers', label: 'Tiers', icon: <Crown size={13} /> },
             { key: 'types', label: 'Customer Types', icon: <Users size={13} /> },
@@ -522,7 +522,7 @@ export default function CustomerTierSettings() {
               padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               background: tab === t.key ? 'white' : 'transparent',
-              color: tab === t.key ? '#7c3aed' : '#9ca3af',
+              color: tab === t.key ? 'var(--color-primary-600)' : '#9ca3af',
               boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 150ms',
             }}>
@@ -537,7 +537,7 @@ export default function CustomerTierSettings() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(168,85,247,0.04)' }}>
+                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                     {['Tier', 'Discount', 'Loyalty ×', 'Shipping', 'Upgrade at', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 5 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 5}>{h}</TH_LABEL>
@@ -549,7 +549,7 @@ export default function CustomerTierSettings() {
                   {tiers.map((t, i) => {
                     const isProtected = t.slug === PROTECTED_TIER_SLUG;
                     return (
-                      <tr key={t.id} style={{ borderTop: i ? '1px solid rgba(168,85,247,0.07)' : 'none' }}>
+                      <tr key={t.id} style={{ borderTop: i ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none' }}>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
@@ -559,7 +559,7 @@ export default function CustomerTierSettings() {
                             </div>
                           </div>
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>{t.discount_percentage}%</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-600)' }}>{t.discount_percentage}%</td>
                         <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#374151' }}>×{t.loyalty_points_multiplier}</td>
                         <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280' }}>
                           {t.free_shipping_threshold === null || t.free_shipping_threshold === '0.00' ? 'Always free' : `Free above ${fmtNum(t.free_shipping_threshold)}`}
@@ -611,7 +611,7 @@ export default function CustomerTierSettings() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(168,85,247,0.04)' }}>
+                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                     {['Type', 'Discount', 'Description', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 3 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 3}>{h}</TH_LABEL>
@@ -623,12 +623,12 @@ export default function CustomerTierSettings() {
                   {types.map((t, i) => {
                     const isProtected = t.slug === PROTECTED_TYPE_SLUG;
                     return (
-                      <tr key={t.id} style={{ borderTop: i ? '1px solid rgba(168,85,247,0.07)' : 'none' }}>
+                      <tr key={t.id} style={{ borderTop: i ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none' }}>
                         <td style={{ padding: '12px 16px' }}>
                           <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#111827', margin: 0 }}>{t.name}</p>
                           <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{t.slug}</p>
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>{t.discount_percentage}%</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-600)' }}>{t.discount_percentage}%</td>
                         <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280' }}>{t.description || '—'}</td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                           <button
@@ -670,10 +670,10 @@ export default function CustomerTierSettings() {
         <div style={{ ...card, overflow: 'hidden' }}>
           <button onClick={() => setShowLog(!showLog)} style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px', background: 'rgba(168,85,247,0.04)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            padding: '14px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>Activity Log</span>
-            {showLog ? <ChevronUp size={14} color="#7c3aed" /> : <ChevronDown size={14} color="#7c3aed" />}
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Activity Log</span>
+            {showLog ? <ChevronUp size={14} color="var(--color-primary-600)" /> : <ChevronDown size={14} color="var(--color-primary-600)" />}
           </button>
           {showLog && <ActivityTimeline items={activity} pag={activityPag} onLoadMore={loadActivity} loading={actLoading} tiers={tiers} types={types} />}
         </div>

@@ -48,7 +48,7 @@ const fmtDate = (d) => d
 
 // ── Pill badge ────────────────────────────────────────────────────────────────
 
-function Pill({ children, color = '#7c3aed', bg = 'rgba(124,58,237,0.08)', ring = 'rgba(124,58,237,0.2)' }) {
+function Pill({ children, color = 'var(--color-primary-600)', bg = 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', ring = 'color-mix(in srgb, var(--color-primary-600) 20%, transparent)' }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,

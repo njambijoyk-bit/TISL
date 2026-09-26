@@ -19,7 +19,7 @@ const STATUS_COLOR = {
     delivered:        '#14b8a6',
     failed:           '#ef4444',
     returned:         '#f59e0b',
-    out_for_delivery: '#a855f7',
+    out_for_delivery: 'var(--color-primary-500)',
     pending:          '#64748b',
 };
 
@@ -89,7 +89,7 @@ L.marker([${Number(item.delivery_latitude)}, ${Number(item.delivery_longitude)}]
     const routePolylineJs = routeCoords.length > 1 ? `
 var routeCoords = [${routeCoords.map(c => `[${c[0]},${c[1]}]`).join(',')}];
 L.polyline(routeCoords, {
-    color: '#a855f7',
+    color: 'var(--color-primary-500)',
     weight: 3,
     opacity: 0.75,
     dashArray: '8,5',
@@ -110,8 +110,8 @@ L.marker([${midLat}, ${midLng}], {
         className: '',
         html: \`<div style="
             background: rgba(15,14,26,0.85);
-            border: 1px solid rgba(168,85,247,0.5);
-            color: #a855f7;
+            border: 1px solid color-mix(in srgb, var(--color-primary-500) 50%, transparent);
+            color: var(--color-primary-500);
             font-size: 9px;
             font-weight: 700;
             padding: 2px 5px;
@@ -132,9 +132,9 @@ L.marker([${driverPos.lat}, ${driverPos.lng}], {
         className: '',
         html: \`<div style="
             width:36px;height:36px;border-radius:50%;
-            background:#a855f7;border:3px solid white;
+            background:var(--color-primary-500);border:3px solid white;
             display:flex;align-items:center;justify-content:center;
-            box-shadow:0 0 0 4px rgba(168,85,247,0.3),0 2px 8px rgba(0,0,0,0.4);
+            box-shadow:0 0 0 4px color-mix(in srgb, var(--color-primary-500) 30%, transparent),0 2px 8px rgba(0,0,0,0.4);
         ">
             <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -150,10 +150,10 @@ L.marker([${driverPos.lat}, ${driverPos.lng}], {
         : '';
     const trailJs = pingPoints ? `
 var trailCoords = [${pingPoints}];
-L.polyline(trailCoords, { color:'#a855f7', weight:2, opacity:0.45, dashArray:'4,4' }).addTo(map);
+L.polyline(trailCoords, { color:'var(--color-primary-500)', weight:2, opacity:0.45, dashArray:'4,4' }).addTo(map);
 trailCoords.forEach(function(c,i){
     if(i % 5 === 0){
-        L.circleMarker(c, {radius:3,color:'#a855f7',fillColor:'#a855f7',fillOpacity:0.8,weight:1}).addTo(map);
+        L.circleMarker(c, {radius:3,color:'var(--color-primary-500)',fillColor:'var(--color-primary-500)',fillOpacity:0.8,weight:1}).addTo(map);
     }
 });` : '';
 
@@ -340,12 +340,12 @@ function MapTab({ items, driverPos, pings }) {
                     </div>
                 ))}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: D.textDim }}>
-                    <div style={{ width: 16, height: 2, background: D.purple, borderRadius: 1, borderTop: '1px dashed rgba(168,85,247,0.6)' }} />
+                    <div style={{ width: 16, height: 2, background: D.purple, borderRadius: 1, borderTop: '1px dashed color-mix(in srgb, var(--color-primary-500) 60%, transparent)' }} />
                     Route
                 </div>
                 {pings.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: D.textDim }}>
-                        <div style={{ width: 16, height: 2, background: 'rgba(168,85,247,0.4)', borderRadius: 1 }} />
+                        <div style={{ width: 16, height: 2, background: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)', borderRadius: 1 }} />
                         Trail
                     </div>
                 )}
@@ -446,7 +446,7 @@ function StopsTab({ items, manifestId, manifest, onRouteOptimized, onRefresh, on
                     margin: '10px 16px 0',
                     padding: '10px 14px',
                     borderRadius: D.radiusSm,
-                    background: 'rgba(168,85,247,0.07)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
                     border: `1px solid ${D.purpleBorder}`,
                     display: 'flex', alignItems: 'center', gap: 10,
                     flexShrink: 0,
@@ -462,7 +462,7 @@ function StopsTab({ items, manifestId, manifest, onRouteOptimized, onRefresh, on
                             flexShrink: 0,
                             display: 'flex', alignItems: 'center', gap: 5,
                             padding: '7px 12px', borderRadius: D.radiusSm, border: 'none',
-                            background: optimizing ? D.purpleDim : `linear-gradient(135deg, ${D.purple}, #7c3aed)`,
+                            background: optimizing ? D.purpleDim : `linear-gradient(135deg, ${D.purple}, var(--color-primary-600))`,
                             color: 'white', fontSize: '0.78rem', fontWeight: 700,
                             cursor: optimizing ? 'not-allowed' : 'pointer',
                             opacity: optimizing ? 0.7 : 1,

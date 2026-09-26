@@ -42,12 +42,12 @@ export default function Wishlist() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Heart size={22} style={{ color: '#ef4444' }} />
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: 0 }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>
                   Wishlist
                 </h1>
                 <span style={{
                   padding: '2px 9px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
-                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
                 }}>
                   {items.length}
                 </span>
@@ -93,12 +93,12 @@ export default function Wishlist() {
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                       padding: '10px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
-                      border: '1.5px solid rgba(168,85,247,0.3)', color: '#7c3aed',
-                      background: 'rgba(168,85,247,0.05)', cursor: 'pointer', fontFamily: 'inherit',
+                      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-600)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                       transition: 'background 150ms',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
                   >
                     <ShoppingBag size={15} /> Continue shopping
                   </button>

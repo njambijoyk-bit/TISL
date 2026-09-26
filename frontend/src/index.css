@@ -13,8 +13,8 @@
    ============================================ */
 
 :root {
-  /* Primary Brand Colors - Purple */
-  --color-primary-50: #faf5ff;
+  /* Primary Brand Colors - Purple (fallback; overridden by ThemeProvider at runtime) */
+  --color-primary-50:  #faf5ff;
   --color-primary-100: #f3e8ff;
   --color-primary-200: #e9d5ff;
   --color-primary-300: #d8b4fe;

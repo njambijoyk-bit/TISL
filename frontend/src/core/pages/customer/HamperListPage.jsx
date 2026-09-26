@@ -16,7 +16,7 @@ const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || '
 const ORDER_STATUS_COLORS = {
   pending:    { bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  text: '#d97706' },
   confirmed:  { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.3)',  text: '#2563eb' },
-  processing: { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(168,85,247,0.3)',  text: '#7c3aed' },
+  processing: { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',  text: 'var(--color-primary-600)' },
   shipped:    { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.3)',  text: '#059669' },
   delivered:  { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.4)',  text: '#047857' },
   cancelled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.3)',   text: '#dc2626' },
@@ -26,7 +26,7 @@ const PAYMENT_STATUS_COLORS = {
   unpaid:         { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
   partially_paid: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
   paid:           { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  refunded:       { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.3)', text: '#7c3aed' },
+  refunded:       { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
   failed:         { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
 };
 
@@ -45,7 +45,7 @@ function StatusBadge({ status, map }) {
 
 function HamperCard({ hamper, onClick }) {
   const money = useMoney();   // hamper price in the shopper's chosen currency
-  const accent     = hamper.accent_color || '#a855f7';
+  const accent     = hamper.accent_color || 'var(--color-primary-500)';
   const accentFade = `${accent}18`;
   const accentMid  = `${accent}35`;
   const soldOut    = hamper.is_sold_out && !hamper.is_backorderable;
@@ -164,8 +164,8 @@ function MyHamperOrderCard({ order, onClick }) {
     <div style={{
       background: 'white', borderRadius: 14,
       boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-      border: '1px solid rgba(168,85,247,0.15)',
-      borderLeft: '3px solid #a855f7',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+      borderLeft: '3px solid var(--color-primary-500)',
       overflow: 'hidden',
     }}>
       {/* ── main row — clickable to open hamper detail ── */}
@@ -180,7 +180,7 @@ function MyHamperOrderCard({ order, onClick }) {
 
         {/* hamper + order info */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '0.825rem', fontWeight: 700, color: '#a855f7', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {hamper?.name ?? 'Hamper'}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -227,18 +227,18 @@ function MyHamperOrderCard({ order, onClick }) {
       {hasPayments && (
         <>
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderTop: '1px solid #f3f4f6', cursor: 'pointer', background: expanded ? 'rgba(168,85,247,0.02)' : 'transparent' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderTop: '1px solid #f3f4f6', cursor: 'pointer', background: expanded ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent' }}
             onClick={() => setExpanded(e => !e)}
           >
-            <CreditCard size={11} style={{ color: '#a855f7' }} />
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#a855f7', flex: 1 }}>
+            <CreditCard size={11} style={{ color: 'var(--color-primary-500)' }} />
+            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-primary-500)', flex: 1 }}>
               {order.payments.length} payment{order.payments.length !== 1 ? 's' : ''}
             </span>
             <span style={{ fontSize: '0.6rem', color: '#9ca3af', userSelect: 'none' }}>{expanded ? '▲' : '▼'}</span>
           </div>
 
           {expanded && (
-            <div style={{ padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+            <div style={{ padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
               {order.payments.map((pmt, i) => {
                 const isRefund  = pmt.method === 'refund';
                 const pmtAmount = Number(pmt.mpesa_amount_confirmed ?? pmt.amount_received ?? 0);
@@ -307,23 +307,23 @@ export default function HamperListPage() {
 
         {/* Page header */}
         <div style={{ marginBottom: 36, textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, background: 'rgba(168,85,247,0.08)', marginBottom: 12 }}>
-            <Tag size={14} style={{ color: '#a855f7' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Exclusive Deals</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', marginBottom: 12 }}>
+            <Tag size={14} style={{ color: 'var(--color-primary-500)' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Exclusive Deals</span>
           </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#a855f7', margin: '0 0 8px' }}>Hamper Deals</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary-500)', margin: '0 0 8px' }}>Hamper Deals</h1>
           <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: 0 }}>Curated bundles selected just for you</p>
         </div>
 
         {/* Content */}
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <div style={{ width: 40, height: 40, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 40, height: 40, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
         ) : hampers.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-            <Package size={52} style={{ color: 'rgba(168,85,247,0.2)', display: 'block', margin: '0 auto 16px' }} />
+            <Package size={52} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block', margin: '0 auto 16px' }} />
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151', margin: '0 0 6px' }}>No hampers available</h3>
             <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>Check back soon for exclusive deals</p>
           </div>
@@ -343,11 +343,11 @@ export default function HamperListPage() {
         {!ordersLoading && myOrders.length > 0 && (
           <div style={{ marginTop: 40 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <Receipt size={18} style={{ color: '#a855f7' }} />
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>My Hamper Orders</h2>
+              <Receipt size={18} style={{ color: 'var(--color-primary-500)' }} />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>My Hamper Orders</h2>
               <span style={{
                 fontSize: '0.65rem', fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-                background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: '#a855f7',
+                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)',
               }}>
                 {myOrders.length}
               </span>

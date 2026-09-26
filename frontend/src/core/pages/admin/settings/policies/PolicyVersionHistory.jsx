@@ -9,8 +9,8 @@ import policyAPI from '../../../../../_shared/api/policy';
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 function Spinner() {
@@ -18,8 +18,8 @@ function Spinner() {
     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
       <div style={{
         width: 28, height: 28,
-        border: '3px solid rgba(168,85,247,0.2)',
-        borderTopColor: '#a855f7',
+        border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+        borderTopColor: 'var(--color-primary-500)',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -128,7 +128,7 @@ function DiffViewer({ previousContent, newContent }) {
   const PREFIX = { added: '+', removed: '−', equal: ' ' };
 
   return (
-    <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.15)' }}>
+    <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
 
       {/* Header bar */}
       <div style={{
@@ -234,7 +234,7 @@ function LogEntry({ log, policyTitle }) {
     <div style={{
       ...card,
       overflow: 'hidden',
-      borderColor: log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'rgba(168,85,247,0.1)',
+      borderColor: log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
 
       {/* Summary row — always visible */}
@@ -253,7 +253,7 @@ function LogEntry({ log, policyTitle }) {
           <span style={{
             fontSize: '0.72rem', fontWeight: 700,
             padding: '2px 8px', borderRadius: 99,
-            background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+            background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
           }}>
             v{log.previous_version}
           </span>
@@ -261,8 +261,8 @@ function LogEntry({ log, policyTitle }) {
           <span style={{
             fontSize: '0.72rem', fontWeight: 700,
             padding: '2px 8px', borderRadius: 99,
-            background: log.is_major_bump ? 'rgba(245,158,11,0.15)' : 'rgba(168,85,247,0.1)',
-            color: log.is_major_bump ? '#b45309' : '#7c3aed',
+            background: log.is_major_bump ? 'rgba(245,158,11,0.15)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            color: log.is_major_bump ? '#b45309' : 'var(--color-primary-600)',
           }}>
             v{log.new_version}
           </span>
@@ -374,7 +374,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {[
-          { label: 'Total revisions',  value: totalChanges,           color: '#7c3aed' },
+          { label: 'Total revisions',  value: totalChanges,           color: 'var(--color-primary-600)' },
           { label: 'Major bumps',      value: majorChanges,           color: '#b45309' },
           { label: 'Policies tracked', value: policies.length,        color: '#0e7490' },
         ].map(({ label, value, color }) => (
@@ -393,9 +393,9 @@ export default function PolicyVersionHistory({ policies = [] }) {
           onClick={() => setFilterKey('all')}
           style={{
             padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-            border: `1.5px solid ${filterKey === 'all' ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-            background: filterKey === 'all' ? 'rgba(168,85,247,0.08)' : 'white',
-            color: filterKey === 'all' ? '#7c3aed' : '#9ca3af',
+            border: `1.5px solid ${filterKey === 'all' ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+            background: filterKey === 'all' ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+            color: filterKey === 'all' ? 'var(--color-primary-600)' : '#9ca3af',
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -407,9 +407,9 @@ export default function PolicyVersionHistory({ policies = [] }) {
             onClick={() => setFilterKey(p.key)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-              border: `1.5px solid ${filterKey === p.key ? '#a855f7' : 'rgba(168,85,247,0.18)'}`,
-              background: filterKey === p.key ? 'rgba(168,85,247,0.08)' : 'white',
-              color: filterKey === p.key ? '#7c3aed' : '#9ca3af',
+              border: `1.5px solid ${filterKey === p.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              background: filterKey === p.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+              color: filterKey === p.key ? 'var(--color-primary-600)' : '#9ca3af',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >

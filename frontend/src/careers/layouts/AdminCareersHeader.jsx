@@ -53,7 +53,7 @@ export default function AdminCareersHeader() {
                 <span style={{
                     fontSize: 11, fontWeight: 600,
                     letterSpacing: '0.15em', textTransform: 'uppercase',
-                    color: '#a855f7', marginRight: 28, flexShrink: 0,
+                    color: 'var(--color-primary-500)', marginRight: 28, flexShrink: 0,
                 }}>
                     Careers
                 </span>
@@ -72,7 +72,7 @@ export default function AdminCareersHeader() {
                                 fontSize: 13, fontWeight: isActive ? 600 : 400,
                                 color: isActive ? '#f0f0f0' : '#666',
                                 textDecoration: 'none',
-                                borderBottom: `2px solid ${isActive ? '#a855f7' : 'transparent'}`,
+                                borderBottom: `2px solid ${isActive ? 'var(--color-primary-500)' : 'transparent'}`,
                                 transition: 'color 0.15s, border-bottom-color 0.15s',
                                 whiteSpace: 'nowrap',
                             })}

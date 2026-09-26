@@ -62,7 +62,7 @@ function SelectableItem({ item, selected, onToggle, sourceManifestStatus }) {
                 padding:        '9px 12px',
                 borderRadius:   D.radiusSm,
                 background:     selected
-                    ? 'rgba(168,85,247,0.10)'
+                    ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'
                     : disabled
                         ? 'rgba(255,255,255,0.02)'
                         : 'transparent',
@@ -102,7 +102,7 @@ function ReadonlyItem({ item }) {
             gap:          10,
             padding:      '8px 12px',
             borderRadius: D.radiusSm,
-            background:   'rgba(168,85,247,0.04)',
+            background:   'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
             border:       `1px solid ${D.purpleBorder}`,
         }}>
             <Package size={13} color={D.textDim} style={{ flexShrink: 0 }} />
@@ -367,7 +367,7 @@ function ManifestLinkChip({ manifest, label, navigate, onHover }) {
                 alignItems: 'center',
                 gap: 8,
                 padding: '8px 14px',
-                background: 'rgba(168,85,247,0.06)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
                 border: `1px solid ${D.purpleBorder}`,
                 borderRadius: D.radiusSm,
                 cursor: 'pointer',
@@ -379,11 +379,11 @@ function ManifestLinkChip({ manifest, label, navigate, onHover }) {
                 minWidth: 0,
             }}
             onMouseOver={e => {
-                e.currentTarget.style.background = 'rgba(168,85,247,0.12)';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
                 e.currentTarget.style.borderColor = D.purple;
             }}
             onMouseOut={e => {
-                e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
                 e.currentTarget.style.borderColor = D.purpleBorder;
             }}
         >
@@ -1067,7 +1067,7 @@ export default function ManifestTransferPage() {
                                     marginBottom: 6,
                                     cursor:       'pointer',
                                     borderRadius: D.radiusSm,
-                                    background:   allSelected ? 'rgba(168,85,247,0.07)' : 'transparent',
+                                    background:   allSelected ? 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'transparent',
                                 }}
                             >
                                 <div style={{ color: allSelected ? D.purple : D.textDim }}>
@@ -1122,7 +1122,7 @@ export default function ManifestTransferPage() {
                     }}>
                         {someSelected && (
                             <div style={{
-                                background:   'rgba(168,85,247,0.15)',
+                                background:   'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                                 border:       `1px solid ${D.purpleBorder}`,
                                 borderRadius: D.radiusSm,
                                 padding:      '3px 10px',
@@ -1226,7 +1226,7 @@ export default function ManifestTransferPage() {
                                 gap:          12,
                                 marginBottom: 12,
                                 padding:      '8px 12px',
-                                background:   'rgba(168,85,247,0.05)',
+                                background:   'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                                 border:       `1px solid ${D.purpleBorder}`,
                                 borderRadius: D.radiusSm,
                                 fontSize:     '0.75rem',
@@ -1276,7 +1276,7 @@ export default function ManifestTransferPage() {
                                                 gap:          8,
                                                 padding:      '7px 12px',
                                                 borderRadius: D.radiusSm,
-                                                background:   'rgba(168,85,247,0.08)',
+                                                background:   'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                                                 border:       `1px dashed ${D.purple}`,
                                                 fontSize:     '0.78rem',
                                                 color:        D.text,

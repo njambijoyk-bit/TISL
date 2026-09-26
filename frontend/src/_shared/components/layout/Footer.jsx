@@ -24,20 +24,20 @@ const SocialLink = ({ item }) => {
       style={{
         width: 34, height: 34, borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '1px solid rgba(168,85,247,0.25)',
-        boxShadow: '0 0 8px rgba(168,85,247,0.08)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+        boxShadow: '0 0 8px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
         color: '#9ca3af', transition: 'all 150ms ease',
         textDecoration: 'none',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = '#a855f7';
-        e.currentTarget.style.color = '#a855f7';
-        e.currentTarget.style.boxShadow = '0 0 16px rgba(168,85,247,0.35)';
+        e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+        e.currentTarget.style.color = 'var(--color-primary-500)';
+        e.currentTarget.style.boxShadow = '0 0 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
         e.currentTarget.style.color = '#9ca3af';
-        e.currentTarget.style.boxShadow = '0 0 8px rgba(168,85,247,0.08)';
+        e.currentTarget.style.boxShadow = '0 0 8px color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
       }}
     >
       <Icon size={15} />
@@ -47,7 +47,7 @@ const SocialLink = ({ item }) => {
 
 // ── Skeletons ──────────────────────────────────────────────────────────────────
 const Skel = ({ w, h = 12, r = 4 }) => (
-  <div style={{ width: w, height: h, borderRadius: r, background: 'rgba(168,85,247,0.1)', animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
+  <div style={{ width: w, height: h, borderRadius: r, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
 );
 
 // ── Flexible section matcher ───────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export default function Footer() {
   const isLoading = loading.footer && sections.length === 0;
 
   return (
-    <footer style={{ background: '#0f0a1a', color: '#9ca3af', borderTop: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 -4px 40px rgba(168,85,247,0.06)' }}>
+    <footer style={{ background: 'color-mix(in srgb, var(--bg-primary) 60%, #050308)', color: 'var(--text-secondary)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 -4px 40px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
       
       <style>{`
         @keyframes skel-pulse {
@@ -161,10 +161,10 @@ export default function Footer() {
             ) : (
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                 color: 'white', fontWeight: 900, fontSize: '1.3rem',
                 padding: '6px 14px', borderRadius: 10, letterSpacing: '-0.02em',
-                boxShadow: '0 4px 18px rgba(168,85,247,0.35)',
+                boxShadow: '0 4px 18px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                 marginBottom: 16,
               }}>
                 {logoText}
@@ -173,7 +173,7 @@ export default function Footer() {
 
             {/* Subtitle */}
             {subtitle && (
-              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c084fc', marginBottom: 6, letterSpacing: '0.02em' }}>
+              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-primary-300)', marginBottom: 6, letterSpacing: '0.02em' }}>
                 {subtitle}
               </p>
             )}
@@ -193,7 +193,7 @@ export default function Footer() {
                 { Icon: MapPin, text: 'Nairobi, Kenya' },
               ].map(({ Icon, text }) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: '#6b7280' }}>
-                  <Icon size={13} style={{ color: '#c084fc', flexShrink: 0 }} />
+                  <Icon size={13} style={{ color: 'var(--color-primary-300)', flexShrink: 0 }} />
                   {text}
                 </div>
               ))}
@@ -206,9 +206,9 @@ export default function Footer() {
                 style={{
                   display: 'inline-block', marginBottom: 20,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                   color: 'white', textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+                  boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                   transition: 'opacity 150ms ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
@@ -239,7 +239,7 @@ export default function Footer() {
           : linkColumns.length > 0 
             ? linkColumns.map(section => (
                 <div key={section.id}>
-                  <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
+                  <h3 style={{ color: 'var(--color-primary-300)', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
                     {section.title}
                   </h3>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -248,7 +248,7 @@ export default function Footer() {
                         <Link
                           to={item.url}
                           style={{ fontSize: '0.82rem', color: '#6b7280', textDecoration: 'none', transition: 'color 150ms ease' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-300)'; }}
                           onMouseLeave={e => { e.currentTarget.style.color = '#6b7280'; }}
                         >
                           {item.label}
@@ -265,7 +265,7 @@ export default function Footer() {
                 { title: 'Support', items: [{ label: 'FAQ', url: '/faq' }, { label: 'Shipping', url: '/shipping' }, { label: 'Returns', url: '/returns' }] },
               ].map((col, idx) => (
                 <div key={idx}>
-                  <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
+                  <h3 style={{ color: 'var(--color-primary-300)', fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, margin: '0 0 20px' }}>
                     {col.title}
                   </h3>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -274,7 +274,7 @@ export default function Footer() {
                         <Link
                           to={item.url}
                           style={{ fontSize: '0.82rem', color: '#6b7280', textDecoration: 'none', transition: 'color 150ms ease' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-300)'; }}
                           onMouseLeave={e => { e.currentTarget.style.color = '#6b7280'; }}
                         >
                           {item.label}
@@ -289,18 +289,18 @@ export default function Footer() {
       </div>
 
       {/* ── Bottom bar ── */}
-      <div style={{ borderTop: '1px solid rgba(168,85,247,0.12)', padding: '18px 24px' }}>
+      <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', padding: '18px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: 0 }}>
             {isLoading
-              ? <span style={{ display: 'inline-block', height: 12, width: 280, background: 'rgba(168,85,247,0.1)', borderRadius: 4, animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
+              ? <span style={{ display: 'inline-block', height: 12, width: 280, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 4, animation: 'skel-pulse 1.8s ease-in-out infinite' }} />
               : copyright
             }
           </p>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Cookie Policy', '/cookies']].map(([label, to]) => (
               <Link key={to} to={to} style={{ fontSize: '0.75rem', color: '#4b5563', textDecoration: 'none', transition: 'color 150ms ease' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#c084fc'; }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary-300)'; }}
                 onMouseLeave={e => { e.currentTarget.style.color = '#4b5563'; }}
               >
                 {label}

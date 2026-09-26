@@ -36,7 +36,7 @@ export const ADMIN_NAV = [
     id: 'home',
     label: null,
     items: [
-      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard, color: '#a855f7', path: '/admin', exact: true, roles: 'all' },
+      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard, color: 'var(--color-primary-500)', path: '/admin', exact: true, roles: 'all' },
     ],
   },
 
@@ -47,7 +47,7 @@ export const ADMIN_NAV = [
       { id: 'orders', title: 'Orders', icon: ShoppingCart, color: '#f97316', path: '/admin/orders', keywords: 'invoices shipping' },
       { id: 'payments', title: 'Payments', icon: DollarSign, color: '#10b981', path: '/admin/finance/payments', roles: PAYMENTS_ROLES, keywords: 'mpesa transactions' },
       {
-        id: 'quotes', title: 'Quotes', icon: FileText, color: '#8b5cf6', path: '/admin/quotes', also: ['/admin/quote-requests'],
+        id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes', also: ['/admin/quote-requests'],
         tabs: [
           { title: 'Quotes', path: '/admin/quotes' },
           { title: 'Quote requests', path: '/admin/quote-requests' },
@@ -65,7 +65,7 @@ export const ADMIN_NAV = [
     module: MODULES.ECOMMERCE,
     items: [
       {
-        id: 'products', title: 'Products', icon: Package, color: '#a855f7', path: '/admin/products', keywords: 'variants stock',
+        id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products', keywords: 'variants stock',
         tabs: [
           { title: 'All products', path: '/admin/products' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
@@ -117,7 +117,7 @@ export const ADMIN_NAV = [
         ],
       },
       {
-        id: 'codes', title: 'Promo & referral codes', icon: TicketPercent, color: '#7c3aed', path: '/admin/promo-codes', also: ['/admin/referrals'], keywords: 'discount coupon',
+        id: 'codes', title: 'Promo & referral codes', icon: TicketPercent, color: 'var(--color-primary-600)', path: '/admin/promo-codes', also: ['/admin/referrals'], keywords: 'discount coupon',
         tabs: [
           { title: 'Promo codes', path: '/admin/promo-codes' },
           { title: 'Referral codes', path: '/admin/referrals' },
@@ -131,7 +131,7 @@ export const ADMIN_NAV = [
     id: 'finance',
     label: 'Tax & Finance',
     items: [
-      { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: '#7c3aed', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
+      { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       {
         id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/reports', also: ['/admin/settings/analytics'],
@@ -155,7 +155,7 @@ export const ADMIN_NAV = [
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees' },
         ],
       },
-      { id: 'publications', title: 'Publications', icon: Newspaper, color: '#a855f7', path: '/admin/settings/publications', keywords: 'blog news brochures' },
+      { id: 'publications', title: 'Publications', icon: Newspaper, color: 'var(--color-primary-500)', path: '/admin/settings/publications', keywords: 'blog news brochures' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
         tabs: [
@@ -275,7 +275,7 @@ export const ADMIN_NAV = [
     items: [
       { id: 'bug-reports', title: 'Bug reports', icon: Bug, color: '#c2410c', path: '/admin/bug-reports', ownerOnly: true },
       { id: 'dev-notes', title: 'Dev notes', icon: FolderCode, color: '#3b82f6', path: '/admin/dev-notes', ownerOnly: true },
-      { id: 'dev-keys', title: 'Dev keys', icon: FolderCog, color: '#7c3aed', path: '/admin/dev-keys', ownerOnly: true },
+      { id: 'dev-keys', title: 'Dev keys', icon: FolderCog, color: 'var(--color-primary-600)', path: '/admin/dev-keys', ownerOnly: true },
       { id: 'data-engine', title: 'Data Engine', icon: Database, color: '#10b981', path: '/admin/data-engine', ownerOnly: true },
       {
         id: 'flowcharts', title: 'Flowcharts', icon: GitBranch, color: '#ec4899', path: '/admin/flowchart/orders', also: ['/admin/flowchart'], ownerOnly: true,

@@ -26,7 +26,7 @@ const card = {
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
   fontSize: '0.68rem', fontWeight: 700,
-  color: '#a855f7',
+  color: 'var(--color-primary-500)',
   textTransform: 'uppercase', letterSpacing: '0.07em',
   borderBottom: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-secondary)',
@@ -81,7 +81,7 @@ function PrimaryBtn({ onClick, disabled, loading, children, style }) {
     <button onClick={onClick} disabled={disabled || loading} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-      border: 'none', background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+      border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
       color: 'white', cursor: disabled || loading ? 'not-allowed' : 'pointer',
       opacity: disabled || loading ? 0.6 : 1, fontFamily: 'inherit', ...style,
     }}>{children}</button>
@@ -103,7 +103,7 @@ function DangerBtn({ onClick, disabled, children }) {
 function Toggle({ value, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ width: 32, height: 18, borderRadius: 9, background: value ? '#a855f7' : '#e3cdf8', position: 'relative', transition: 'background 200ms' }}>
+      <div style={{ width: 32, height: 18, borderRadius: 9, background: value ? 'var(--color-primary-500)' : '#e3cdf8', position: 'relative', transition: 'background 200ms' }}>
         <div style={{ position: 'absolute', top: 2, left: value ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: 'white', transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
       </div>
       <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{label}</span>
@@ -134,7 +134,7 @@ function StatusBadge({ status }) {
 
 function SectionLabel({ children }) {
   return (
-    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
+    <p style={{ margin: '0 0 16px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 10, borderBottom: '1px solid var(--color-border-tertiary)' }}>
       {children}
     </p>
   );
@@ -152,7 +152,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
       <div style={{ ...card, width: '100%', maxWidth: 480, padding: 24, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>Set Quantities</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a855f7' }}><X size={18} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)' }}><X size={18} /></button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {products.map(p => (
@@ -236,7 +236,7 @@ function OverviewTab({ hamper }) {
             <p style={labelStyle}>Eligible Tiers</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {hamper.eligible_tiers.map(t => (
-                <span key={t} style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, background: 'rgba(168,85,247,0.1)', color: '#7c3aed' }}>{t}</span>
+                <span key={t} style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)' }}>{t}</span>
               ))}
             </div>
           </div>
@@ -344,7 +344,7 @@ function ProductsTab({ hamper, onRefresh }) {
         {/* Current items */}
         <div style={{ ...card, overflow: 'hidden' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)' }}>
-            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
               Current Items ({hamper.items?.length ?? 0})
             </p>
           </div>
@@ -356,7 +356,7 @@ function ProductsTab({ hamper, onRefresh }) {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ color: '#a855f7' }}>
+                <tr style={{ color: 'var(--color-primary-500)' }}>
                   {['Product', 'SKU', 'Qty', 'Snapshot Price', ''].map((h, i) => (
                     <th key={i} style={{ ...thStyle, textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>
                   ))}
@@ -599,7 +599,7 @@ function EligibilityTab({ hamper }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Criteria banner */}
-      <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)', fontSize: '0.82rem', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: '12px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.82rem', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Shield size={14} style={{ flexShrink: 0 }} />
         <span><strong>{hamper.eligibility_type?.toUpperCase()}</strong> — {criteriaSummary()}</span>
       </div>
@@ -607,7 +607,7 @@ function EligibilityTab({ hamper }) {
       {/* ── Selected customers (Eligibility Records) ── */}
       <div style={{ ...card }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
+          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
             Eligibility Records ({filteredRows.length})
           </p>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -728,7 +728,7 @@ function EligibilityTab({ hamper }) {
       {/* ── Available / Matching Customers ── */}
       <div style={{ ...card }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: '#a855f7' }}>
+          <p style={{ margin: 0, flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
             {matchingLabel} ({eligibleCustomers.length})
           </p>
           {checkedIds.length > 0 && (
@@ -738,10 +738,10 @@ function EligibilityTab({ hamper }) {
           )}
         </div>
         {eligibleLoading ? (
-          <div style={{ padding: '40px 24px', textAlign: 'center', color: '#a855f7', fontSize: '0.82rem' }}>Loading…</div>
+          <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-primary-500)', fontSize: '0.82rem' }}>Loading…</div>
         ) : eligibleCustomers.length === 0 ? (
           <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <Users size={36} style={{ display: 'block', margin: '0 auto 10px', color: '#a855f7', opacity: 0.3 }} />
+            <Users size={36} style={{ display: 'block', margin: '0 auto 10px', color: 'var(--color-primary-500)', opacity: 0.3 }} />
             <p style={{ margin: 0, fontSize: '0.82rem', color: '#c51d07' }}>No customers match this criteria</p>
           </div>
         ) : (
@@ -751,7 +751,7 @@ function EligibilityTab({ hamper }) {
                 <tr>
                   <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>
                     <input type="checkbox" checked={checkedIds.length === eligibleCustomers.length && eligibleCustomers.length > 0} onChange={toggleCheckAll}
-                      style={{ cursor: 'pointer', accentColor: '#7c3aed' }} />
+                      style={{ cursor: 'pointer', accentColor: 'var(--color-primary-600)' }} />
                   </th>
                   {['Customer', 'Tier', 'Type', 'Status', ''].map((h, i) => (
                     <th key={i} style={{ ...thStyle, textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>
@@ -767,10 +767,10 @@ function EligibilityTab({ hamper }) {
                   >
                     <td style={{ ...tdStyle, textAlign: 'center', width: 40 }}>
                       <input type="checkbox" checked={checkedIds.includes(c.id)} onChange={() => toggleCheck(c.id)}
-                        style={{ cursor: 'pointer', accentColor: '#7c3aed' }} />
+                        style={{ cursor: 'pointer', accentColor: 'var(--color-primary-600)' }} />
                     </td>
                     <td style={tdStyle}>
-                      <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: '#a855f7' }}>{c.full_name || c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</p>
+                      <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: 'var(--color-primary-500)' }}>{c.full_name || c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</p>
                       <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{c.email}</p>
                     </td>
                     <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{c.tier || '—'}</span></td>
@@ -856,9 +856,9 @@ function OrdersTab({ hamper }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ transition: 'background 120ms' }}
                 >
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, color: '#7c3aed' }}>{order.order_number}</span></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>{order.order_number}</span></td>
                   <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}>
-                    <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: '#a855f7' }}>{order.customer?.name || `${order.customer?.first_name} ${order.customer?.last_name}`}</p>
+                    <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: 'var(--color-primary-500)' }}>{order.customer?.name || `${order.customer?.first_name} ${order.customer?.last_name}`}</p>
                     <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{order.customer?.email}</p>
                   </td>
                   <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontWeight: 700 }}>{fmt(order.total, hamper.currency)}</span></td>
@@ -903,7 +903,7 @@ function ActivityTab({ hamperId }) {
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-      <div style={{ width: 28, height: 28, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 28, height: 28, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
@@ -931,7 +931,7 @@ function ActivityTab({ hamperId }) {
                   {log.severity.toUpperCase()}
                 </span>
                 {log.hamper_order_id && (
-                  <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: 'rgba(168,85,247,0.1)', color: '#ed7c3a' }}>
+                  <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: '#ed7c3a' }}>
                     ORDER
                   </span>
                 )}
@@ -945,7 +945,7 @@ function ActivityTab({ hamperId }) {
                 </span>
                 {log.metadata && (
                   <details style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>
-                    <summary style={{ cursor: 'pointer', color: '#a855f7' }}>metadata</summary>
+                    <summary style={{ cursor: 'pointer', color: 'var(--color-primary-500)' }}>metadata</summary>
                     <pre style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: 6, background: 'var(--color-background-secondary)', fontSize: '0.68rem', overflowX: 'auto' }}>
                       {JSON.stringify(log.metadata, null, 2)}
                     </pre>
@@ -1003,7 +1003,7 @@ export default function AdminHamperDetail() {
   if (loading) return (
     <AdminLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-        <div style={{ width: 36, height: 36, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </AdminLayout>
@@ -1062,9 +1062,9 @@ export default function AdminHamperDetail() {
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '10px 16px', fontSize: '0.82rem', fontWeight: active ? 700 : 500,
-                color: active ? '#7c3aed' : 'var(--color-text-secondary)',
+                color: active ? 'var(--color-primary-600)' : 'var(--color-text-secondary)',
                 background: 'none', border: 'none',
-                borderBottom: active ? '2px solid #7c3aed' : '2px solid transparent',
+                borderBottom: active ? '2px solid var(--color-primary-600)' : '2px solid transparent',
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'color 150ms',
                 marginBottom: -1,
               }}>

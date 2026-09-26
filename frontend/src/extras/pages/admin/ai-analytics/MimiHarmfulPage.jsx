@@ -215,7 +215,7 @@ function QueryRow({ log, expanded, onToggle, onFlag, onUnflag, showHarmBadge, au
                                 <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Query</div>
                                 <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-word' }}>{log.query}</div>
                             </div>
-                            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: `1px solid rgba(168,85,247,0.2)` }}>
+                            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
                                 <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Response</div>
                                 <div style={{ fontSize: '0.78rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-word' }}>{log.response ?? <span style={{ color: C.textDim }}>No response captured</span>}</div>
                             </div>

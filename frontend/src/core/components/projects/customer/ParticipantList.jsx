@@ -23,17 +23,17 @@ const STATUS_CONFIG = {
 // Shared input style — hardcoded against dark surface
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  border: '1.5px solid rgba(168,85,247,0.22)', outline: 'none',
-  background: 'rgba(168,85,247,0.06)', color: 'var(--color-text-primary)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', outline: 'none',
+  background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-text-primary)',
   boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
 };
 
 const inputFocus = (e) => {
-  e.currentTarget.style.borderColor = '#a855f7';
-  e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(168,85,247,0.12)';
+  e.currentTarget.style.borderColor = 'var(--color-primary-500)';
+  e.currentTarget.style.boxShadow   = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
 };
 const inputBlur = (e) => {
-  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)';
+  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)';
   e.currentTarget.style.boxShadow   = 'none';
 };
 
@@ -74,7 +74,7 @@ const ParticipantList = ({ project, permissions }) => {
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c084fc', margin: 0 }}>
+        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-400)', margin: 0 }}>
           Team{' '}
           <span style={{ color: '#6b7280', fontWeight: 600 }}>({active.length})</span>
         </p>
@@ -83,15 +83,15 @@ const ParticipantList = ({ project, permissions }) => {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: showInvite ? 'rgba(168,85,247,0.15)' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
-              color: showInvite ? '#c084fc' : '#f1f0ff',
+              background: showInvite ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
+              color: showInvite ? 'var(--color-primary-400)' : '#f1f0ff',
               fontWeight: 700, fontSize: '0.72rem',
-              boxShadow: showInvite ? 'none' : '0 2px 10px rgba(168,85,247,0.3)',
-              border: showInvite ? '1px solid rgba(168,85,247,0.3)' : 'none',
+              boxShadow: showInvite ? 'none' : '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+              border: showInvite ? '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
               transition: 'all 150ms',
             }}
-            onMouseEnter={e => { if (!showInvite) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'; }}
-            onMouseLeave={e => { if (!showInvite) e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'; }}>
+            onMouseEnter={e => { if (!showInvite) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; }}
+            onMouseLeave={e => { if (!showInvite) e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}>
             {showInvite
               ? <><X style={{ width: 11, height: 11 }} /> Cancel</>
               : <><UserPlus style={{ width: 11, height: 11 }} /> Invite</>}
@@ -103,13 +103,13 @@ const ParticipantList = ({ project, permissions }) => {
       {showInvite && (
         <div style={{
           borderRadius: 12, padding: 16,
-          background: 'rgba(168,85,247,0.05)',
-          border: '1px solid rgba(168,85,247,0.2)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <p style={{
             fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.1em', color: '#7c3aed', margin: 0,
+            letterSpacing: '0.1em', color: 'var(--color-primary-600)', margin: 0,
           }}>
             Invite a customer
           </p>
@@ -135,23 +135,23 @@ const ParticipantList = ({ project, permissions }) => {
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
                 cursor: loading.submitting ? 'not-allowed' : 'pointer',
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                 color: '#f1f0ff', fontWeight: 700, fontSize: '0.75rem',
                 opacity: loading.submitting ? 0.6 : 1,
-                boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+                boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
               }}>
               {loading.submitting ? 'Sending…' : 'Send Invite'}
             </button>
             <button onClick={() => setShowInvite(false)} type="button"
               style={{
                 padding: '6px 14px', borderRadius: 8,
-                border: '1px solid rgba(168,85,247,0.22)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                 cursor: 'pointer', background: 'transparent',
                 color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem',
                 transition: 'border-color 150ms, color 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
               Cancel
             </button>
           </div>
@@ -164,8 +164,8 @@ const ParticipantList = ({ project, permissions }) => {
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{
               height: 52, borderRadius: 12,
-              background: 'rgba(168,85,247,0.06)',
-              border: '1px solid rgba(168,85,247,0.1)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
               animation: 'pulse 1.5s ease-in-out infinite',
             }} />
           ))}
@@ -187,17 +187,17 @@ const ParticipantList = ({ project, permissions }) => {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '10px 14px', borderRadius: 12,
-                  border: '1px solid rgba(168,85,247,0.18)',
-                  background: 'rgba(168,85,247,0.03)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                   transition: 'border-color 160ms, background 160ms',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.38)';
-                  e.currentTarget.style.background  = 'rgba(168,85,247,0.07)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 38%, transparent)';
+                  e.currentTarget.style.background  = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
-                  e.currentTarget.style.background  = 'rgba(168,85,247,0.03)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                  e.currentTarget.style.background  = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)';
                 }}>
 
                 {/* Avatar — transparent, purple initials, faint ring */}
@@ -205,9 +205,9 @@ const ParticipantList = ({ project, permissions }) => {
                   width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '0.65rem', fontWeight: 700,
-                  color: '#c084fc',
+                  color: 'var(--color-primary-400)',
                   background: 'transparent',
-                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                 }}>
                   {initials}
                 </div>

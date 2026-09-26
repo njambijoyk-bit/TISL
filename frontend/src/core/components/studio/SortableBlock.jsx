@@ -22,9 +22,9 @@ export function SortableBlock({ block, isSelected, onClick }) {
         width,
         position: 'relative',
         borderRadius: 8,
-        border: isSelected ? '2px solid #a855f7' : '2px solid transparent',
+        border: isSelected ? '2px solid var(--color-primary-500)' : '2px solid transparent',
         padding: 4,
-        background: isSelected ? 'rgba(168,85,247,0.02)' : 'transparent',
+        background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent',
         boxSizing: 'border-box',
     };
 
@@ -96,7 +96,7 @@ function BlockRenderer({ block }) {
         case 'cta':
             return (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <button style={{ background: '#a855f7', color: 'white', padding: '12px 32px', borderRadius: 12, border: 'none', fontWeight: 800, cursor: 'default' }}>
+                    <button style={{ background: 'var(--color-primary-500)', color: 'white', padding: '12px 32px', borderRadius: 12, border: 'none', fontWeight: 800, cursor: 'default' }}>
                         {c.text || 'Call to Action'}
                     </button>
                 </div>
@@ -104,7 +104,7 @@ function BlockRenderer({ block }) {
 
         case 'pull_quote':
             return (
-                <div style={{ padding: '20px 40px', borderLeft: '4px solid #a855f7', background: '#f8fafc', fontStyle: 'italic' }}>
+                <div style={{ padding: '20px 40px', borderLeft: '4px solid var(--color-primary-500)', background: '#f8fafc', fontStyle: 'italic' }}>
                     <p style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: 10 }}>"{c.text || 'Your quote here...'}"</p>
                     {c.attribution && <cite style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 700 }}>— {c.attribution}</cite>}
                 </div>
@@ -133,7 +133,7 @@ function BlockRenderer({ block }) {
                     </div>
                     <div style={{ minWidth: 0 }}>
                         <h4 style={{ margin: 0, fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'Author Name'}</h4>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#a855f7', fontWeight: 700 }}>{c.role || 'Designation'}</p>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>{c.role || 'Designation'}</p>
                         <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.bio || 'Short biography goes here.'}</p>
                     </div>
                 </div>

@@ -110,12 +110,12 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
       <div
         className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         style={{
-          boxShadow: '0 32px 80px rgba(124,58,237,0.2), 0 8px 32px rgba(0,0,0,0.25)',
+          boxShadow: '0 32px 80px color-mix(in srgb, var(--color-primary-600) 20%, transparent), 0 8px 32px rgba(0,0,0,0.25)',
           maxHeight: '90vh',
         }}
       >
         {/* Top accent */}
-        <div className="h-1.5 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #c084fc, #a855f7, #7c3aed)' }} />
+        <div className="h-1.5 flex-shrink-0" style={{ background: 'linear-gradient(90deg, var(--color-primary-400), var(--color-primary-500), var(--color-primary-600))' }} />
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
@@ -146,7 +146,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50/50 dark:bg-purple-900/10'
+                    ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50/50 dark:bg-primary-900/10'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
@@ -281,7 +281,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                 }>
                 <div
                   className="mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{ background: form.force_password_change ? '#7c3aed' : '#e5e7eb' }}>
+                  style={{ background: form.force_password_change ? 'var(--color-primary-600)' : '#e5e7eb' }}>
                   {form.force_password_change && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                       <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -366,7 +366,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
               {/* Emergency Contact */}
               <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <Shield size={14} className="text-purple-500" />
+                  <Shield size={14} className="text-primary-500" />
                   Emergency Contact
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -412,7 +412,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
           {isStaff && activeTab === 'basic' && (
             <button 
               onClick={() => setActiveTab('employee')}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
             >
               Next: Employee Details
             </button>
@@ -432,7 +432,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
           </button>
           <button onClick={handleSubmit} disabled={actionLoading}
             className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>
             {actionLoading
               ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating…</>
               : <><UserPlus size={14} /> Create User</>
@@ -483,5 +483,5 @@ const inputCls = (error) =>
   `w-full px-3 py-2.5 rounded-xl text-sm border outline-none transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
     error
       ? 'border-red-400 bg-red-50/30 focus:border-red-400 focus:ring-2 focus:ring-red-100'
-      : 'border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+      : 'border-gray-200 dark:border-gray-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
   }`;

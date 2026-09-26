@@ -4,10 +4,10 @@ import { Volume2, VolumeX, ChevronRight } from 'lucide-react';
 // ── Design tokens — theme-aware, transparent bg ───────────────────────────────
 export const D = {
     // accent
-    purple:     '#a855f7',
-    purpleDim:  'rgba(168,85,247,0.15)',
-    purpleBorder:'rgba(168,85,247,0.25)',
-    purpleGlow: '0 0 18px rgba(168,85,247,0.2)',
+    purple:     'var(--color-primary-500)',
+    purpleDim:  'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+    purpleBorder:'color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+    purpleGlow: '0 0 18px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
     teal:       '#14b8a6',
     tealDim:    'rgba(20,184,166,0.15)',
 
@@ -15,13 +15,13 @@ export const D = {
     statusColors: {
         // manifest
         draft:           { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8',  border: 'rgba(100,116,139,0.3)'  },
-        dispatched:      { bg: 'rgba(168,85,247,0.12)',  text: '#a855f7',  border: 'rgba(168,85,247,0.3)'   },
+        dispatched:      { bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  text: 'var(--color-primary-500)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'   },
         in_progress:     { bg: 'rgba(245,158,11,0.12)',  text: '#f59e0b',  border: 'rgba(245,158,11,0.3)'   },
         completed:       { bg: 'rgba(20,184,166,0.12)',  text: '#14b8a6',  border: 'rgba(20,184,166,0.3)'   },
         cancelled:       { bg: 'rgba(239,68,68,0.12)',   text: '#ef4444',  border: 'rgba(239,68,68,0.3)'    },
         // delivery item
         pending:         { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8',  border: 'rgba(100,116,139,0.3)'  },
-        out_for_delivery:{ bg: 'rgba(168,85,247,0.12)',  text: '#a855f7',  border: 'rgba(168,85,247,0.3)'   },
+        out_for_delivery:{ bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  text: 'var(--color-primary-500)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'   },
         delivered:       { bg: 'rgba(20,184,166,0.12)',  text: '#14b8a6',  border: 'rgba(20,184,166,0.3)'   },
         failed:          { bg: 'rgba(239,68,68,0.12)',   text: '#ef4444',  border: 'rgba(239,68,68,0.3)'    },
         returned:        { bg: 'rgba(245,158,11,0.12)',  text: '#f59e0b',  border: 'rgba(245,158,11,0.3)'   },
@@ -94,6 +94,17 @@ export function LogisticsCanvas() {
 
         const draw = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Read current theme primary color from CSS variable (hex, e.g. #a855f7)
+            const primaryHex = getComputedStyle(document.documentElement).getPropertyValue('--color-primary-500').trim() || '#a855f7';
+            // Parse hex to RGB components for canvas opacity support
+            const hexToRgb = (hex) => {
+                const h = hex.replace('#', '');
+                const r = parseInt(h.substring(0,2), 16);
+                const g = parseInt(h.substring(2,4), 16);
+                const b = parseInt(h.substring(4,6), 16);
+                return isNaN(r) ? [168, 85, 247] : [r, g, b];
+            };
+            const [pr, pg, pb] = hexToRgb(primaryHex);
 
             // Move nodes
             nodes.forEach(n => {
@@ -116,7 +127,7 @@ export function LogisticsCanvas() {
                     ctx.beginPath();
                     ctx.moveTo(nodes[i].x, nodes[i].y);
                     ctx.lineTo(nodes[j].x, nodes[j].y);
-                    ctx.strokeStyle = `rgba(168,85,247,${alpha})`;
+                    ctx.strokeStyle = `rgba(${pr},${pg},${pb},${alpha})`;
                     ctx.lineWidth = 0.7;
                     ctx.stroke();
 
@@ -128,7 +139,7 @@ export function LogisticsCanvas() {
                             progress: 0,
                             speed:    Math.random() * 0.007 + 0.003,
                             // alternate purple and teal to suggest different delivery types
-                            color:    Math.random() > 0.4 ? '#a855f7' : '#14b8a6',
+                            color:    Math.random() > 0.4 ? 'var(--color-primary-500)' : '#14b8a6',
                         });
                     }
                 }
@@ -167,9 +178,9 @@ export function LogisticsCanvas() {
                 ctx.beginPath();
                 ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
                 ctx.fillStyle = n.hub
-                    ? `rgba(168,85,247,${0.5 + pulse * 0.4})`
-                    : `rgba(168,85,247,${0.3 + pulse * 0.3})`;
-                ctx.shadowColor = '#a855f7';
+                    ? `rgba(${pr},${pg},${pb},${0.5 + pulse * 0.4})`
+                    : `rgba(${pr},${pg},${pb},${0.3 + pulse * 0.3})`;
+                ctx.shadowColor = 'var(--color-primary-500)';
                 ctx.shadowBlur  = n.hub ? 10 + pulse * 8 : 5 + pulse * 4;
                 ctx.fill();
                 ctx.shadowBlur = 0;

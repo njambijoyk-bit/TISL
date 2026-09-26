@@ -60,7 +60,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 function tierStyle(slug, tierOptions = []) {
@@ -483,7 +483,7 @@ export default function Profile() {
         {/* ── Page heading ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
               My Profile
             </h1>
             <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
@@ -498,12 +498,12 @@ export default function Profile() {
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer',
-                border: '1.5px solid rgba(124,58,237,0.22)',
-                background: 'white', color: '#7c3aed',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-600) 22%, transparent)',
+                background: 'white', color: 'var(--color-primary-600)',
                 transition: 'background 150ms',
-                boxShadow: '0 1px 6px rgba(124,58,237,0.08)',
+                boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-600) 8%, transparent)',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-600) 6%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'white'}
             >
               <Gift size={13} />
@@ -516,13 +516,13 @@ export default function Profile() {
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer',
-                border: '1.5px solid rgba(168,85,247,0.2)',
-                background: 'white', color: '#7c3aed',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                background: 'white', color: 'var(--color-primary-600)',
                 transition: 'background 150ms',
-                boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+                boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                 position: 'relative',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'white'}
             >
               <Bell size={13} />
@@ -876,7 +876,7 @@ export default function Profile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div style={{ ...card, padding: '16px 20px' }}>
                     <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Loyalty Points</p>
-                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7c3aed', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary-600)', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                       {walletLoading ? '…' : Number(wallet?.loyalty_points ?? customer.loyalty_points ?? 0).toLocaleString()}
                     </p>
                     <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{wallet?.tier ?? customer.tier} tier · ×{wallet?.tier_benefits?.loyalty_points_multiplier ?? 1} multiplier</p>
@@ -896,7 +896,7 @@ export default function Profile() {
                   const minPts = Number(wallet.min_redemption_points ?? 0);
                   const TYPE_META = {
                     cashback: { emoji: '💸', label: 'Cashback',  color: '#059669', bg: 'rgba(5,150,105,0.08)'  },
-                    voucher:  { emoji: '🎟️',  label: 'Voucher',   color: '#7c3aed', bg: 'rgba(168,85,247,0.08)' },
+                    voucher:  { emoji: '🎟️',  label: 'Voucher',   color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' },
                     gift:     { emoji: '🎁',  label: 'Gift',      color: '#d97706', bg: 'rgba(245,158,11,0.08)' },
                   };
                   return (
@@ -917,7 +917,7 @@ export default function Profile() {
                               padding: '7px 12px',
                               borderRadius: 8,
                               border: '1.5px solid #111827',
-                              background: '#7c3aed',
+                              background: 'var(--color-primary-600)',
                               color: 'white',
                               fontSize: '0.75rem',
                               fontWeight: 800,
@@ -940,10 +940,10 @@ export default function Profile() {
                           return (
                             <div key={rule.id} style={{
                               borderRadius: 12, overflow: 'hidden',
-                              border: `1.5px solid ${canRedeem ? 'rgba(168,85,247,0.18)' : '#f0f0f0'}`,
+                              border: `1.5px solid ${canRedeem ? 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' : '#f0f0f0'}`,
                               background: canRedeem ? 'white' : '#fafafa',
                               transition: 'box-shadow 150ms',
-                              boxShadow: canRedeem ? '0 2px 10px rgba(168,85,247,0.07)' : 'none',
+                              boxShadow: canRedeem ? '0 2px 10px color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none',
                             }}>
                               <div style={{ padding: '13px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
 
@@ -967,7 +967,7 @@ export default function Profile() {
                                     </span>
                                   </div>
                                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 7px' }}>
-                                    <span style={{ fontWeight: 700, color: canRedeem ? '#7c3aed' : '#9ca3af' }}>{Number(rule.points_required).toLocaleString()} pts</span>
+                                    <span style={{ fontWeight: 700, color: canRedeem ? 'var(--color-primary-600)' : '#9ca3af' }}>{Number(rule.points_required).toLocaleString()} pts</span>
                                     {rule.value_kes > 0 && (
                                       <> → <span style={{ fontWeight: 700, color: canRedeem ? '#059669' : '#9ca3af' }}>KES {Number(rule.value_kes).toLocaleString()}</span></>
                                     )}
@@ -978,7 +978,7 @@ export default function Profile() {
                                     <div style={{
                                       height: '100%', borderRadius: 99,
                                       width: `${pctFilled * 100}%`,
-                                      background: canRedeem ? 'linear-gradient(90deg,#a855f7,#7c3aed)' : '#d1d5db',
+                                      background: canRedeem ? 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' : '#d1d5db',
                                       transition: 'width 600ms ease',
                                     }} />
                                   </div>
@@ -996,10 +996,10 @@ export default function Profile() {
                                   style={{
                                     padding: '7px 16px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                                     border: 'none', fontFamily: 'inherit', flexShrink: 0,
-                                    background: canRedeem ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : '#e5e7eb',
+                                    background: canRedeem ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#e5e7eb',
                                     color: canRedeem ? 'white' : '#9ca3af',
                                     cursor: canRedeem ? 'pointer' : 'not-allowed',
-                                    boxShadow: canRedeem ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                                    boxShadow: canRedeem ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                                     transition: 'opacity 150ms',
                                   }}
                                   onMouseEnter={e => { if (canRedeem) e.currentTarget.style.opacity = '0.88'; }}
@@ -1134,19 +1134,19 @@ export default function Profile() {
 
                 {/* Referral section */}
                 {customer.referral_code && (
-                  <div style={{ ...card, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
-                    <p style={{ ...sectionTitle, borderBottomColor: '#e9d5ff' }}>
+                  <div style={{ ...card, background: 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))' }}>
+                    <p style={{ ...sectionTitle, borderBottomColor: 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))' }}>
                       <span style={{ fontSize: '1rem' }}>🔗</span> Your Referral Code
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
                       <div>
-                        <p style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Share this code and earn KES 500 store credit per referral
                         </p>
                         <span style={{
                           fontFamily: 'monospace', fontWeight: 900, fontSize: '1.4rem',
-                          color: '#6d28d9', letterSpacing: '0.1em',
+                          color: 'var(--color-primary-700)', letterSpacing: '0.1em',
                         }}>
                           {customer.referral_code.code}
                         </span>
@@ -1155,7 +1155,7 @@ export default function Profile() {
                         onClick={() => { navigator.clipboard.writeText(customer.referral_code.code); toast.success('Code copied!'); }}
                         style={{
                           padding: '8px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
-                          border: '1.5px solid #c4b5fd', background: 'white', color: '#7c3aed',
+                          border: '1.5px solid #c4b5fd', background: 'white', color: 'var(--color-primary-600)',
                           cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                         }}>
                         Copy Code
@@ -1171,13 +1171,13 @@ export default function Profile() {
                       ].map(({ label, value }) => (
                         <div key={label} style={{
                           padding: '10px 12px', borderRadius: 8,
-                          background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                           textAlign: 'center',
                         }}>
-                          <p style={{ fontSize: '0.62rem', color: '#a78bfa', fontWeight: 700, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          <p style={{ fontSize: '0.62rem', color: 'var(--color-primary-400)', fontWeight: 700, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {label}
                           </p>
-                          <p style={{ fontSize: '0.92rem', fontWeight: 900, color: '#5b21b6', margin: 0 }}>
+                          <p style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-primary-800)', margin: 0 }}>
                             {value}
                           </p>
                         </div>
@@ -1188,17 +1188,17 @@ export default function Profile() {
                     {customer.referral_code.share_url && (
                       <div style={{
                         padding: '10px 12px', borderRadius: 8,
-                        background: 'rgba(168,85,247,0.05)', border: '1px dashed #c4b5fd',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px dashed #c4b5fd',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                       }}>
-                        <p style={{ fontSize: '0.72rem', color: '#7c3aed', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {customer.referral_code.share_url}
                         </p>
                         <button
                           onClick={() => { navigator.clipboard.writeText(customer.referral_code.share_url); toast.success('Link copied!'); }}
                           style={{
                             padding: '5px 12px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700,
-                            border: '1px solid #c4b5fd', background: 'white', color: '#7c3aed',
+                            border: '1px solid #c4b5fd', background: 'white', color: 'var(--color-primary-600)',
                             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                           }}>
                           Copy Link
@@ -1496,9 +1496,9 @@ export default function Profile() {
               {customer.referral_code && (
                 <div style={{
                   marginTop: 10, padding: '10px 12px', borderRadius: 8,
-                  background: '#faf5ff', border: '1px solid #e9d5ff',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))',
                 }}>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7c3aed', margin: '0 0 6px' }}>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-primary-600)', margin: '0 0 6px' }}>
                     Your referral code
                   </p>
 
@@ -1506,7 +1506,7 @@ export default function Profile() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                     <span style={{
                       fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem',
-                      color: '#6d28d9', letterSpacing: '0.08em',
+                      color: 'var(--color-primary-700)', letterSpacing: '0.08em',
                     }}>
                       {customer.referral_code.code}
                     </span>
@@ -1518,7 +1518,7 @@ export default function Profile() {
                       title="Copy code"
                       style={{
                         padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 700,
-                        border: '1px solid #ddd6fe', background: 'white', color: '#7c3aed',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, var(--bg-primary))', background: 'white', color: 'var(--color-primary-600)',
                         cursor: 'pointer', fontFamily: 'inherit', transition: 'background 120ms',
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
@@ -1538,8 +1538,8 @@ export default function Profile() {
                     { label: 'Earned', value: `KES ${Number(customer.referral_code.total_referrer_rewards ?? 0).toLocaleString()}` },
                     ].map(({ label, value }) => (
                       <div key={label} style={{ flex: 1 }}>
-                        <p style={{ fontSize: '0.62rem', color: '#a78bfa', fontWeight: 600, margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-                        <p style={{ fontSize: '0.78rem', fontWeight: 800, color: '#5b21b6', margin: 0 }}>{value}</p>
+                        <p style={{ fontSize: '0.62rem', color: 'var(--color-primary-400)', fontWeight: 600, margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+                        <p style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-primary-800)', margin: 0 }}>{value}</p>
                       </div>
                     ))}
                     
@@ -1555,7 +1555,7 @@ export default function Profile() {
                       style={{
                         marginTop: 8, width: '100%', padding: '5px 0', borderRadius: 6,
                         fontSize: '0.7rem', fontWeight: 700, border: '1px dashed #c4b5fd',
-                        background: 'transparent', color: '#7c3aed', cursor: 'pointer',
+                        background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer',
                         fontFamily: 'inherit', transition: 'background 120ms',
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
@@ -1658,10 +1658,10 @@ export default function Profile() {
     const opacity = used || expired ? 0.6 : 1;
     const borderColor = expired ? '#f3f4f6'
       : used    ? '#d1fae5'
-      : '#e9d5ff';
+      : 'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))';
     const bg = expired ? '#f9fafb'
       : used    ? '#f0fdf4'
-      : '#faf5ff';
+      : 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))';
 
     return (
       <div style={{
@@ -1679,7 +1679,7 @@ export default function Profile() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
             <span style={{
               fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem',
-              color: expired ? '#9ca3af' : used ? '#065f46' : '#6d28d9',
+              color: expired ? '#9ca3af' : used ? '#065f46' : 'var(--color-primary-700)',
               letterSpacing: '0.06em',
             }}>
               {code.code}
@@ -1691,7 +1691,7 @@ export default function Profile() {
             {code.name}
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.72rem', color: expired ? '#9ca3af' : '#7c3aed', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.72rem', color: expired ? '#9ca3af' : 'var(--color-primary-600)', fontWeight: 700 }}>
               {rewardStr}
             </span>
             {code.valid_until && (
@@ -1714,7 +1714,7 @@ export default function Profile() {
             onClick={handleCopy}
             style={{
               padding: '6px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
-              border: '1.5px solid #c4b5fd', background: 'white', color: '#7c3aed',
+              border: '1.5px solid #c4b5fd', background: 'white', color: 'var(--color-primary-600)',
               cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 4,
             }}>

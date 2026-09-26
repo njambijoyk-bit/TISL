@@ -46,7 +46,7 @@ const formatDate = (d) => {
 
 // Summary card with coloured accent bar + icon
 const StatCard = ({ icon: Icon, label, primary, secondary, color, iconBg }) => (
-  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
     <div style={{ height: 3, background: color, opacity: 0.7 }} />
     <div className="bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center justify-between mb-3">
@@ -64,9 +64,9 @@ const StatCard = ({ icon: Icon, label, primary, secondary, color, iconBg }) => (
 );
 
 // Section card with purple accent header
-const Card = ({ title, subtitle, accent = '#a855f7', children }) => (
-  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-    <div style={{ padding: '10px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+const Card = ({ title, subtitle, accent = 'var(--color-primary-500)', children }) => (
+  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+    <div style={{ padding: '10px 16px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
       <p style={{ fontSize: '0.75rem', fontWeight: 800, color: accent, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
         {title}
       </p>
@@ -81,11 +81,11 @@ const Card = ({ title, subtitle, accent = '#a855f7', children }) => (
 // Table header with purple label
 const THead = ({ cols }) => (
   <thead>
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
       {cols.map(({ label, align = 'left' }) => (
         <th key={label}
           className={`text-${align} pb-2.5 pr-4 last:pr-0`}
-          style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#c084fc' }}>
+          style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)' }}>
           {label}
         </th>
       ))}
@@ -144,10 +144,10 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
   if (!hasItems && !hasMilestones) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl"
-        style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+        style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-          style={{ background: 'rgba(168,85,247,0.08)' }}>
-          <BarChart3 className="w-6 h-6" style={{ color: '#c084fc' }} />
+          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+          <BarChart3 className="w-6 h-6" style={{ color: 'var(--color-primary-400)' }} />
         </div>
         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No financial data yet</p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -164,7 +164,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
         {/* Items total */}
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
           <div style={{ height: 3, background: '#3b82f6', opacity: 0.7 }} />
           <div className="bg-white dark:bg-gray-800 p-5">
             <div className="flex items-center justify-between mb-3">
@@ -196,13 +196,13 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
         </div>
 
         {/* Milestones total */}
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
-          <div style={{ height: 3, background: '#a855f7', opacity: 0.7 }} />
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+          <div style={{ height: 3, background: 'var(--color-primary-500)', opacity: 0.7 }} />
           <div className="bg-white dark:bg-gray-800 p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#a855f7' }}>Milestones Total</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.1)' }}>
-                <TrendingUp className="w-4 h-4" style={{ color: '#a855f7' }} />
+              <span className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--color-primary-500)' }}>Milestones Total</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-primary-500)' }} />
               </div>
             </div>
             {!hasMilestones ? (
@@ -217,9 +217,9 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                 ))}
                 {totalMilestonesKes > 0 && (
                   <div className="flex items-center justify-between pt-1.5 mt-1.5"
-                    style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
-                    <span className="text-xs" style={{ color: '#a855f7' }}>≈ KES</span>
-                    <span className="text-xs font-semibold" style={{ color: '#a855f7' }}>{fmtKes(totalMilestonesKes)}</span>
+                    style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                    <span className="text-xs" style={{ color: 'var(--color-primary-500)' }}>≈ KES</span>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--color-primary-500)' }}>{fmtKes(totalMilestonesKes)}</span>
                   </div>
                 )}
               </div>
@@ -260,7 +260,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
               <tbody>
                 {itemCurrencyRows.map(({ currency, count, total, totalKes }, i, arr) => (
                   <tr key={currency}
-                    style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                    style={{ borderBottom: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                     <td className="py-3 pr-4"><CurrencyPill currency={currency} color="#3b82f6" /></td>
                     <td className="py-3 pr-4 text-right text-gray-500 dark:text-gray-400">{count}</td>
                     <td className="py-3 pr-4 text-right font-bold text-gray-900 dark:text-white">{fmt(total, currency)}</td>
@@ -301,11 +301,11 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                 <tbody>
                   {milestoneCurrencyRows.map(({ currency, count, total, totalKes }, i, arr) => (
                     <tr key={currency}
-                      style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
-                      <td className="py-3 pr-4"><CurrencyPill currency={currency} color="#a855f7" /></td>
+                      style={{ borderBottom: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
+                      <td className="py-3 pr-4"><CurrencyPill currency={currency} color="var(--color-primary-500)" /></td>
                       <td className="py-3 pr-4 text-right text-gray-500 dark:text-gray-400">{count}</td>
                       <td className="py-3 pr-4 text-right font-bold text-gray-900 dark:text-white">{fmt(total, currency)}</td>
-                      <td className="py-3 text-right font-semibold" style={{ color: '#a855f7' }}>
+                      <td className="py-3 text-right font-semibold" style={{ color: 'var(--color-primary-500)' }}>
                         {totalKes > 0 ? fmtKes(totalKes) : '—'}
                       </td>
                     </tr>
@@ -313,9 +313,9 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                 </tbody>
                 {milestoneCurrencies.length > 1 && totalMilestonesKes > 0 && (
                   <tfoot>
-                    <tr style={{ borderTop: '2px solid rgba(168,85,247,0.2)' }}>
+                    <tr style={{ borderTop: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                       <td colSpan={3} className="pt-3 text-xs" style={{ color: '#9ca3af' }}>Total KES equivalent</td>
-                      <td className="pt-3 text-right font-extrabold" style={{ color: '#a855f7' }}>{fmtKes(totalMilestonesKes)}</td>
+                      <td className="pt-3 text-right font-extrabold" style={{ color: 'var(--color-primary-500)' }}>{fmtKes(totalMilestonesKes)}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -377,7 +377,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                   const due = formatDate(m.due_date);
                   return (
                     <tr key={m.id}
-                      style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.08)' : 'none' }}>
+                      style={{ borderBottom: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none' }}>
                       <td className="py-3 pr-4">
                         <p className="font-medium text-gray-900 dark:text-white leading-tight">{m.title}</p>
                         {due && <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>Due {due}</p>}
@@ -401,7 +401,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
               </tbody>
               {totalMilestonesKes > 0 && (
                 <tfoot>
-                  <tr style={{ borderTop: '2px solid rgba(168,85,247,0.2)' }}>
+                  <tr style={{ borderTop: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                     <td colSpan={3} className="pt-3 text-xs" style={{ color: '#9ca3af' }}>Total KES equivalent</td>
                     <td className="pt-3 text-right font-extrabold" style={{ color: '#10b981' }}>{fmtKes(totalMilestonesKes)}</td>
                   </tr>

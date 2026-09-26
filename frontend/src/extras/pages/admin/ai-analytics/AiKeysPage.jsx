@@ -15,7 +15,7 @@ const C = {
   bgInput:  'var(--color-background-secondary)',
   blue:     '#3b82f6',
   cyan:     '#06b6d4',
-  purple:   '#a855f7',
+  purple:   'var(--color-primary-500)',
   green:    '#10b981',
   red:      '#ef4444',
   border:   'rgba(59,130,246,0.2)',
@@ -28,7 +28,7 @@ const C = {
 };
 
 const PROVIDERS = [
-  { value: 'anthropic', label: 'Anthropic',  color: '#a855f7', desc: 'Claude models' },
+  { value: 'anthropic', label: 'Anthropic',  color: 'var(--color-primary-500)', desc: 'Claude models' },
   { value: 'gemini',    label: 'Gemini',     color: '#3b82f6', desc: 'Google AI'     },
   { value: 'openai',    label: 'OpenAI',     color: '#10b981', desc: 'GPT models'    },
   { value: 'mistral',   label: 'Mistral',    color: '#f59e0b', desc: 'Mistral AI'    },

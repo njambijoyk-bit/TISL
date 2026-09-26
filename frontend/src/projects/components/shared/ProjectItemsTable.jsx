@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
 const STATUS_CFG = {
   planned:   { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)',  border: 'rgba(156,163,175,0.3)'  },
   requested: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',   border: 'rgba(59,130,246,0.3)'   },
-  quoted:    { color: '#a855f7', bg: 'rgba(168,85,247,0.1)',   border: 'rgba(168,85,247,0.3)'   },
+  quoted:    { color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',   border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'   },
   approved:  { color: '#10b981', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.3)'   },
   ordered:   { color: '#6366f1', bg: 'rgba(99,102,241,0.1)',   border: 'rgba(99,102,241,0.3)'   },
   delivered: { color: '#0891b2', bg: 'rgba(8,145,178,0.1)',    border: 'rgba(8,145,178,0.3)'    },
@@ -23,7 +23,7 @@ const hasVars = (item) => item.variant_details && Object.keys(item.variant_detai
 
 // ── Expanded detail row ───────────────────────────────────────────────────────
 const ExpandedRow = ({ item, colSpan }) => (
-  <tr style={{ background: 'rgba(168,85,247,0.03)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
+  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
     <td colSpan={colSpan} className="px-5 py-3">
       <div className="flex flex-wrap gap-x-8 gap-y-2.5 text-xs">
 
@@ -52,11 +52,11 @@ const ExpandedRow = ({ item, colSpan }) => (
         {/* Variant details */}
         {hasVars(item) && (
           <div className="flex items-start gap-2.5">
-            <span className="font-semibold shrink-0 mt-0.5" style={{ color: '#a855f7' }}>Variants</span>
+            <span className="font-semibold shrink-0 mt-0.5" style={{ color: 'var(--color-primary-500)' }}>Variants</span>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(item.variant_details).map(([k, v]) => (
                 <span key={k} className="px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: '#a855f7' }}>
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)' }}>
                   <span className="font-bold">{k}:</span> {v}
                 </span>
               ))}
@@ -95,9 +95,9 @@ const DeleteConfirmRow = ({ item, colSpan, onConfirm, onCancel }) => (
         <div className="flex items-center gap-2 ml-4 shrink-0">
           <button type="button" onClick={onCancel}
             className="px-3 py-1.5 text-xs rounded-lg transition-colors text-gray-600 dark:text-gray-300"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}>
             Cancel
           </button>
           <button type="button" onClick={() => onConfirm(item)}
@@ -173,12 +173,12 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
   const colSpan = 6 + (hasAnyKes ? 1 : 0) + (readOnly ? 0 : 1) + 1;
 
   return (
-    <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+    <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       <table className="w-full text-sm">
 
         {/* ── Header ── */}
         <thead>
-          <tr style={{ borderBottom: '2px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.05)' }}>
+          <tr style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
             <th className="py-2.5 px-3 w-8" />
             {[
               ['left', 'Description'],
@@ -189,7 +189,7 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
             ].map(([align, col]) => (
               <th key={col}
                 className={`py-2.5 px-3 text-${align} text-xs font-extrabold uppercase tracking-wider`}
-                style={{ color: '#a855f7' }}>
+                style={{ color: 'var(--color-primary-500)' }}>
                 {col}
               </th>
             ))}
@@ -200,7 +200,7 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
               </th>
             )}
             <th className="text-left py-2.5 px-3 text-xs font-extrabold uppercase tracking-wider"
-              style={{ color: '#a855f7' }}>
+              style={{ color: 'var(--color-primary-500)' }}>
               Status
             </th>
             {!readOnly && <th className="py-2.5 px-3 w-20" />}
@@ -220,14 +220,14 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
                 onClick={() => canExpand && !isConfirm && toggleExpand(item.id)}
                 className={`transition-colors ${canExpand && !isConfirm ? 'cursor-pointer' : ''}`}
                 style={{
-                  borderBottom: '1px solid rgba(168,85,247,0.1)',
-                  background: isExpanded ? 'rgba(168,85,247,0.03)' : undefined,
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                  background: isExpanded ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : undefined,
                 }}
-                onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(168,85,247,0.02)'; }}
+                onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'; }}
                 onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = ''; }}
               >
                 {/* Expand chevron */}
-                <td className="py-3 px-3" style={{ color: '#c084fc' }}>
+                <td className="py-3 px-3" style={{ color: 'var(--color-primary-400)' }}>
                   {canExpand && !isConfirm && (
                     isExpanded
                       ? <ChevronUp className="w-3.5 h-3.5" />
@@ -258,7 +258,7 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
                 </td>
 
                 {/* Line Total */}
-                <td className="py-3 px-3 text-right font-bold whitespace-nowrap" style={{ color: '#a855f7' }}>
+                <td className="py-3 px-3 text-right font-bold whitespace-nowrap" style={{ color: 'var(--color-primary-500)' }}>
                   {item.currency} {money(item.line_total)}
                 </td>
 
@@ -267,7 +267,7 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
                   <td className="py-3 px-3 text-right whitespace-nowrap">
                     {hasKes(item)
                       ? <span className="font-semibold" style={{ color: '#3b82f6' }}>KES {money(item.line_total_kes)}</span>
-                      : <span className="text-xs" style={{ color: '#a855f7' }}>{item.currency} {money(item.line_total)}</span>
+                      : <span className="text-xs" style={{ color: 'var(--color-primary-500)' }}>{item.currency} {money(item.line_total)}</span>
                     }
                   </td>
                 )}
@@ -324,13 +324,13 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
 
         {/* ── Footer totals ── */}
         <tfoot>
-          <tr style={{ borderTop: '2px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.05)' }}>
+          <tr style={{ borderTop: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
             <td colSpan={readOnly ? 5 : 6}
               className="py-2.5 px-3 text-right text-sm font-bold"
-              style={{ color: '#a855f7' }}>
+              style={{ color: 'var(--color-primary-500)' }}>
               Total
             </td>
-            <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap" style={{ color: '#a855f7' }}>
+            <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap" style={{ color: 'var(--color-primary-500)' }}>
               {Object.entries(totals).map(([cur, amt]) => (
                 <div key={cur}>{cur} {money(amt)}</div>
               ))}

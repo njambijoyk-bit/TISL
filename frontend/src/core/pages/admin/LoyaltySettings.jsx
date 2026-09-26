@@ -10,8 +10,8 @@ import { loyaltyAPI } from '../../../_shared/api/index';
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const btn = (variant = 'primary', size = 'md') => {
@@ -23,16 +23,16 @@ const btn = (variant = 'primary', size = 'md') => {
     fontSize: size === 'sm' ? '0.75rem' : '0.82rem',
   };
   const variants = {
-    primary: { background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white' },
+    primary: { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.2)' },
-    ghost:   { background: 'rgba(168,85,247,0.06)', color: '#7c3aed', border: '1.5px solid rgba(168,85,247,0.18)' },
+    ghost:   { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' },
   };
   return { ...base, ...variants[variant] };
 };
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.15)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
@@ -43,7 +43,7 @@ const label = {
 
 const RULE_TYPE_COLORS = {
   cashback: { bg: 'rgba(5,150,105,0.08)',   color: '#059669' },
-  voucher:  { bg: 'rgba(168,85,247,0.08)',  color: '#7c3aed' },
+  voucher:  { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  color: 'var(--color-primary-600)' },
   gift:     { bg: 'rgba(245,158,11,0.08)',  color: '#d97706' },
 };
 
@@ -113,7 +113,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
     }}>
       <div style={{ ...card, width: '100%', maxWidth: 480 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: 0 }}>
             {rule ? 'Edit Rule' : 'New Redemption Rule'}
           </h3>
@@ -139,9 +139,9 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
                     flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.78rem',
                     fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     textTransform: 'capitalize',
-                    background: active ? tc.bg : 'rgba(168,85,247,0.03)',
+                    background: active ? tc.bg : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                     color: active ? tc.color : '#9ca3af',
-                    border: `1.5px solid ${active ? tc.color + '40' : 'rgba(168,85,247,0.1)'}`,
+                    border: `1.5px solid ${active ? tc.color + '40' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
                   }}>{t}</button>
                 );
               })}
@@ -185,14 +185,14 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
           </div>
 
           {/* Active toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
             <div>
               <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: '0 0 2px' }}>Active</p>
               <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Customers can see and redeem this rule</p>
             </div>
             <button onClick={() => set('active', !form.active)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               {form.active
-                ? <ToggleRight size={28} style={{ color: '#a855f7' }} />
+                ? <ToggleRight size={28} style={{ color: 'var(--color-primary-500)' }} />
                 : <ToggleLeft  size={28} style={{ color: '#d1d5db' }} />}
             </button>
           </div>
@@ -343,8 +343,8 @@ export default function LoyaltySettings() {
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Settings2 size={18} style={{ color: '#a855f7' }} />
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Settings2 size={18} style={{ color: 'var(--color-primary-500)' }} />
         </div>
         <div>
           <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#111827', margin: '0 0 2px', letterSpacing: '-0.02em' }}>Loyalty Settings</h1>
@@ -354,7 +354,7 @@ export default function LoyaltySettings() {
 
       {/* ── Global settings ── */}
       <div style={{ ...card, padding: '20px 24px', marginBottom: 20 }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 16px' }}>
+        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 16px' }}>
           Global Settings
         </p>
 
@@ -374,8 +374,8 @@ export default function LoyaltySettings() {
                 onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                 placeholder={placeholder}
                 style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = '#a855f7'; e.target.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(168,85,247,0.15)'; e.target.style.boxShadow = 'none'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-primary-500)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e  => { e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; e.target.style.boxShadow = 'none'; }}
               />
               <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '4px 0 0' }}>{hint}</p>
             </div>
@@ -392,9 +392,9 @@ export default function LoyaltySettings() {
 
       {/* ── Redemption rules ── */}
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
           <div>
-            <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
             <p style={{ fontSize: '0.76rem', color: '#6b7280', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
               Gift redemptions deduct the customer's points but do not add store credit. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules convert points into KES credit automatically.
@@ -412,11 +412,11 @@ export default function LoyaltySettings() {
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(168,85,247,0.02)', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                 {['Rule', 'Type', 'Points', 'Value', 'Validity', 'Status', ''].map((h, i) => (
                   <th key={i} style={{
                     padding: '9px 16px', fontSize: '0.63rem', fontWeight: 700,
-                    color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.07em',
                     textAlign: i >= 2 && i <= 3 ? 'right' : 'left',
                   }}>{h}</th>
                 ))}
@@ -427,7 +427,7 @@ export default function LoyaltySettings() {
                 const tc = RULE_TYPE_COLORS[r.type] ?? RULE_TYPE_COLORS.cashback;
                 const isLast = i === rules.length - 1;
                 return (
-                  <tr key={r.id} style={{ borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)' }}>
+                  <tr key={r.id} style={{ borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                     {/* Name */}
                     <td style={{ padding: '11px 16px' }}>
                       <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: 0 }}>{r.name}</p>
@@ -442,7 +442,7 @@ export default function LoyaltySettings() {
 
                     {/* Points */}
                     <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', fontVariantNumeric: 'tabular-nums' }}>
                         {Number(r.points_required).toLocaleString()} pts
                       </span>
                     </td>

@@ -216,7 +216,7 @@ function SessionDetail({ sessionId, onBack, audio }) {
                                     <span style={{ fontSize: '0.72rem', color: C.text, fontFamily: 'monospace', lineHeight: 1.5 }}>{log.query}</span>
                                 </div>
                                 {log.response && (
-                                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: `1px solid rgba(168,85,247,0.15)` }}>
+                                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
                                         <span style={{ fontSize: '0.72rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.5 }}>{truncate(log.response, 300)}</span>
                                     </div>
                                 )}
@@ -422,7 +422,7 @@ function QueryLogsTab({ audio }) {
                                     <>
                                         <tr key={log.id}
                                             onClick={() => setExpanded(expanded === log.id ? null : log.id)}
-                                            style={{ cursor: 'pointer', transition: 'background 150ms', background: expanded === log.id ? 'rgba(168,85,247,0.06)' : 'transparent' }}
+                                            style={{ cursor: 'pointer', transition: 'background 150ms', background: expanded === log.id ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent' }}
                                             onMouseEnter={e => { if (expanded !== log.id) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; audio.playHover(); }}
                                             onMouseLeave={e => { if (expanded !== log.id) e.currentTarget.style.background = 'transparent'; }}>
                                             <td style={{ ...tdSt, color: C.textDim, fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{fmtTime(log.queried_at)}</td>
@@ -447,13 +447,13 @@ function QueryLogsTab({ audio }) {
                                         </tr>
                                         {expanded === log.id && (
                                             <tr key={`${log.id}-exp`}>
-                                                <td colSpan={7} style={{ padding: '0 12px 14px', background: 'rgba(168,85,247,0.04)' }}>
+                                                <td colSpan={7} style={{ padding: '0 12px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 10 }}>
                                                         <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(59,130,246,0.07)', border: `1px solid ${C.border}` }}>
                                                             <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Query</div>
                                                             <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', lineHeight: 1.6 }}>{log.query}</div>
                                                         </div>
-                                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: `1px solid rgba(168,85,247,0.2)` }}>
+                                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
                                                             <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Response</div>
                                                             <div style={{ fontSize: '0.78rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.6 }}>{log.response ?? '—'}</div>
                                                         </div>

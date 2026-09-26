@@ -13,10 +13,10 @@ import toast from 'react-hot-toast';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const T = {
-  purple:   '#a855f7',
-  purpleDk: '#7c3aed',
-  purpleLt: 'rgba(168,85,247,0.07)',
-  purpleBd: 'rgba(168,85,247,0.18)',
+  purple:   'var(--color-primary-500)',
+  purpleDk: 'var(--color-primary-600)',
+  purpleLt: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+  purpleBd: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   green:    '#059669',
   greenLt:  'rgba(5,150,105,0.07)',
   red:      '#ef4444',
@@ -35,8 +35,8 @@ const T = {
 };
 
 const TYPE_PALETTE = [
-  '#3b82f6','#a855f7','#059669','#f59e0b',
-  '#ef4444','#06b6d4','#f97316','#8b5cf6','#ec4899','#14b8a6',
+  '#3b82f6','var(--color-primary-500)','#059669','#f59e0b',
+  '#ef4444','#06b6d4','#f97316','var(--color-primary-400)','#ec4899','#14b8a6',
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────

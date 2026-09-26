@@ -90,10 +90,10 @@ function PrimaryBtn({ onClick, disabled, children, style }) {
     <button onClick={onClick} disabled={disabled} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-      border: 'none', background: '#7c3aed', color: 'white',
+      border: 'none', background: 'var(--color-primary-600)', color: 'white',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.6 : 1, fontFamily: 'inherit',
-      boxShadow: '0 2px 8px rgba(124,58,237,0.3)', ...style,
+      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 30%, transparent)', ...style,
     }}>
       {children}
     </button>
@@ -186,7 +186,7 @@ function Modal({ children, onClose, maxWidth = 480 }) {
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ ...card, background: 'white', color: '#7c3aed', width: '100%', maxWidth, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ ...card, background: 'white', color: 'var(--color-primary-600)', width: '100%', maxWidth, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
@@ -323,7 +323,7 @@ function CategoryModal({ open, onClose, editing, parentOptions, onSaved }) {
             style={{
               ...inputStyle,
               backgroundColor: "#1e1b4b",   // dropdown background
-              color: "#a78bfa",             // text color
+              color: "var(--color-primary-400)",             // text color
               colorScheme: "dark",          // tells browser to use dark scrollbar/arrows
             }}
           >
@@ -365,7 +365,7 @@ function CategoryModal({ open, onClose, editing, parentOptions, onSaved }) {
               </span>
               <div style={{
                 width: 34, height: 18, borderRadius: 9, position: 'relative',
-                background: form.is_active ? '#7c3aed' : 'var(--color-background-secondary)',
+                background: form.is_active ? 'var(--color-primary-600)' : 'var(--color-background-secondary)',
                 border: '1px solid var(--color-border-tertiary)',
                 transition: 'background 200ms', flexShrink: 0,
               }}>
@@ -450,8 +450,8 @@ export default function ServiceCategories() {
         {/* ── Page heading ───────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <FolderTree size={24} style={{ color: '#a855f7' }} /> Service Categories
+            <h1 style={{ margin: '0 0 4px', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FolderTree size={24} style={{ color: 'var(--color-primary-500)' }} /> Service Categories
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
               Manage service categories and subcategories
@@ -464,7 +464,7 @@ export default function ServiceCategories() {
 
         {/* ── Stat cards ─────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <StatCard label="Total"         value={list.length}                           icon={FolderTree}  iconBg="rgba(124,58,237,0.1)" iconColor="#7c3aed" />
+          <StatCard label="Total"         value={list.length}                           icon={FolderTree}  iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)" iconColor="var(--color-primary-600)" />
           <StatCard label="Active"        value={list.filter(isActive).length}           icon={CheckCircle} iconBg="rgba(16,185,129,0.1)" iconColor="#10b981" />
           <StatCard label="Inactive"      value={list.filter(c => !isActive(c)).length}  icon={XCircle}     iconBg="rgba(239,68,68,0.1)"  iconColor="#ef4444" />
           <StatCard label="Subcategories" value={list.filter(c => c.parent_id).length}   icon={GitBranch}   iconBg="rgba(59,130,246,0.1)"  iconColor="#3b82f6" />
@@ -538,13 +538,13 @@ export default function ServiceCategories() {
                             {/* Icon placeholder */}
                             <div style={{
                               width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                              background: category.color ? `${category.color}18` : 'rgba(124,58,237,0.08)',
+                              background: category.color ? `${category.color}18` : 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: '1rem',
                             }}>
                               {category.icon
                                 ? <span style={{ fontSize: '1rem' }}>{category.icon}</span>
-                                : <FolderTree size={16} style={{ color: category.color || '#7c3aed' }} />
+                                : <FolderTree size={16} style={{ color: category.color || 'var(--color-primary-600)' }} />
                               }
                             </div>
                             <div style={{ minWidth: 0 }}>
@@ -589,7 +589,7 @@ export default function ServiceCategories() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '2px 7px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                              background: 'rgba(124,58,237,0.08)', color: '#7c3aed',
+                              background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', color: 'var(--color-primary-600)',
                             }}>
                               Root
                             </span>
@@ -614,7 +614,7 @@ export default function ServiceCategories() {
                             <IconBtn
                               onClick={() => setFormModal({ open: true, editing: category })}
                               title="Edit"
-                              color="#7c3aed"
+                              color="var(--color-primary-600)"
                             >
                               <Edit2 size={15} />
                             </IconBtn>

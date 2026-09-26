@@ -35,14 +35,14 @@ export default function MiniCart({ isOpen, onClose }) {
           padding: '16px 20px', borderBottom: '1px solid #f3f4f6', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ShoppingBag size={18} style={{ color: '#a855f7' }} />
+            <ShoppingBag size={18} style={{ color: 'var(--color-primary-500)' }} />
             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>
               Cart
             </h2>
             {items.length > 0 && (
               <span style={{
                 padding: '1px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
               }}>
                 {items.length}
               </span>
@@ -53,7 +53,7 @@ export default function MiniCart({ isOpen, onClose }) {
             borderRadius: 8, border: 'none', cursor: 'pointer',
             background: 'none', color: '#9ca3af', transition: 'background 120ms, color 120ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
           >
             <X size={16} />
@@ -64,7 +64,7 @@ export default function MiniCart({ isOpen, onClose }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
           {items.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', paddingTop: 60, gap: 12 }}>
-              <ShoppingBag size={44} style={{ color: 'rgba(168,85,247,0.2)' }} />
+              <ShoppingBag size={44} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
               <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>Your cart is empty</p>
             </div>
           ) : (
@@ -85,14 +85,14 @@ export default function MiniCart({ isOpen, onClose }) {
                       {item.name}
                     </p>
                     {item.selectedVariant?.name && (
-                      <p style={{ fontSize: '0.7rem', color: '#a855f7', fontWeight: 600, margin: '0 0 2px' }}>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--color-primary-500)', fontWeight: 600, margin: '0 0 2px' }}>
                         {item.selectedVariant.name}{item.selectedVariant.unit ? ` · ${item.selectedVariant.unit}` : ''}
                       </p>
                     )}
                     <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 2px' }}>
                       Qty: {item.quantity}
                     </p>
-                    <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#a855f7', margin: 0 }}>
+                    <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: 0 }}>
                       {fmt(item.price * item.quantity)}
                     </p>
                   </div>
@@ -125,25 +125,25 @@ export default function MiniCart({ isOpen, onClose }) {
             <button onClick={handleCheckout} style={{
               width: '100%', padding: '12px', borderRadius: 10, fontSize: '0.875rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               transition: 'box-shadow 150ms',
             }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
             >
               <Lock size={14} /> Checkout
             </button>
 
             <button onClick={handleViewCart} style={{
               width: '100%', padding: '11px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-              border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
-              background: 'rgba(168,85,247,0.04)', cursor: 'pointer', fontFamily: 'inherit',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
               transition: 'background 150ms',
             }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
             >
               View cart
             </button>

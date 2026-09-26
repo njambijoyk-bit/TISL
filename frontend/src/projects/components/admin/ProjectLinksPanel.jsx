@@ -13,7 +13,7 @@ const TYPE_LABELS = {
 // Type pills — visible on both themes (colored text + tinted fill)
 const TYPE_PILL = {
   quote_request: { color: '#60a5fa', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.28)'  },
-  quote:         { color: '#c084fc', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.28)'  },
+  quote:         { color: 'var(--color-primary-400)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 28%, transparent)'  },
   order:         { color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.28)'  },
 };
 
@@ -22,7 +22,7 @@ const RELATION_PILL = {
   primary:  { color: 'var(--color-text-secondary)', bg: 'var(--color-background-secondary)', border: 'var(--color-border-tertiary)' },
   addendum: { color: '#fcd34d', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
   revision: { color: '#fdba74', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.3)'  },
-  phase:    { color: '#c084fc', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.28)' },
+  phase:    { color: 'var(--color-primary-400)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 28%, transparent)' },
 };
 
 // Status colors — mid-range, readable on both light and dark
@@ -32,7 +32,7 @@ const STATUS_COLOR = {
   draft:      'var(--color-text-secondary)',
   sent:       '#2563eb',
   approved:   '#059669',
-  quoted:     '#7c3aed',
+  quoted:     'var(--color-primary-600)',
   converted:  '#059669',
   confirmed:  '#2563eb',
   processing: '#4338ca',
@@ -74,8 +74,8 @@ const ProjectLinksPanel = ({ project }) => {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link2 style={{ width: 14, height: 14, color: '#a855f7' }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c084fc' }}>
+          <Link2 style={{ width: 14, height: 14, color: 'var(--color-primary-500)' }} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-400)' }}>
             Linked Documents{' '}
             <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
               ({links.length})
@@ -89,12 +89,12 @@ const ProjectLinksPanel = ({ project }) => {
             padding: '5px 12px', fontSize: '0.72rem', fontWeight: 700,
             borderRadius: 8, border: 'none', cursor: 'pointer',
             color: 'white',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             transition: 'box-shadow 150ms',
           }}
-          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)'}
-          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)'}>
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'}>
           + Link Document
         </button>
       </div>
@@ -105,8 +105,8 @@ const ProjectLinksPanel = ({ project }) => {
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} style={{
               height: 64, borderRadius: 12,
-              background: 'rgba(168,85,247,0.06)',
-              border: '1px solid rgba(168,85,247,0.1)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             }} />
           ))}
         </div>
@@ -137,12 +137,12 @@ const ProjectLinksPanel = ({ project }) => {
                 style={{
                   display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
                   gap: 12, padding: '12px 14px', borderRadius: 12,
-                  border: '1px solid rgba(168,85,247,0.18)',
-                  background: 'rgba(168,85,247,0.03)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                   transition: 'border-color 160ms, background 160ms',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.background = 'rgba(168,85,247,0.03)'; }}>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}>
 
                 {/* Left */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
@@ -165,11 +165,11 @@ const ProjectLinksPanel = ({ project }) => {
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         fontSize: '0.84rem', fontWeight: 600,
-                        color: '#a855f7', textDecoration: 'none',
+                        color: 'var(--color-primary-500)', textDecoration: 'none',
                         transition: 'color 120ms',
                       }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#a855f7'}>
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-400)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--color-primary-500)'}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
                         {primaryText}
                       </span>
@@ -259,7 +259,7 @@ const ProjectLinksPanel = ({ project }) => {
           <div style={{
             width: '100%', maxWidth: 380, borderRadius: 16, overflow: 'hidden',
             background: '#0f0d1a',
-            border: '1px solid rgba(168,85,247,0.25)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
             {/* Red accent strip */}
@@ -281,7 +281,7 @@ const ProjectLinksPanel = ({ project }) => {
 
               <p style={{ fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: 20 }}>
                 Remove{' '}
-                <strong style={{ color: '#c084fc' }}>
+                <strong style={{ color: 'var(--color-primary-400)' }}>
                   {confirmDelete.linked_model_summary?.title
                     || confirmDelete.linked_model_summary?.document_number
                     || `${TYPE_LABELS[confirmDelete.link_type]} #${confirmDelete.link_id}`}
@@ -291,7 +291,7 @@ const ProjectLinksPanel = ({ project }) => {
 
               <div style={{
                 display: 'flex', justifyContent: 'flex-end', gap: 10,
-                paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.12)',
+                paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
               }}>
                 <button
                   onClick={() => setConfirmDelete(null)}
@@ -299,11 +299,11 @@ const ProjectLinksPanel = ({ project }) => {
                     padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600,
                     borderRadius: 8, cursor: 'pointer',
                     color: '#9ca3af', background: 'transparent',
-                    border: '1px solid rgba(168,85,247,0.22)',
+                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                     transition: 'border-color 150ms, color 150ms',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#c084fc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)'; e.currentTarget.style.color = '#9ca3af'; }}>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
                   Cancel
                 </button>
                 <button

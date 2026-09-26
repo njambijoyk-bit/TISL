@@ -16,7 +16,7 @@ const STATUS_TABS = [
   { id: 'active',     label: 'Active',    Icon: Activity,     color: '#10b981' },
   { id: 'planning',   label: 'Planning',  Icon: Clock,        color: '#3b82f6' },
   { id: 'on_hold',    label: 'On Hold',   Icon: PauseCircle,  color: '#f59e0b' },
-  { id: 'completed',  label: 'Completed', Icon: CheckCircle,  color: '#a855f7' },
+  { id: 'completed',  label: 'Completed', Icon: CheckCircle,  color: 'var(--color-primary-500)' },
   { id: 'cancelled',  label: 'Cancelled', Icon: XCircle,      color: '#ef4444' },
 ];
 
@@ -64,14 +64,14 @@ const MyProjects = () => {
       <Header />
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: '2px solid rgba(168,85,247,0.2)', padding: '32px 24px 0' }}>
+      <div style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '32px 24px 0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Title row */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6, color: '#c084fc' }}>Account</p>
-              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: 0 }}>My Projects</h1>
+              <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6, color: 'var(--color-primary-400)' }}>Account</p>
+              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>My Projects</h1>
               <p style={{ marginTop: 6, fontSize: '0.88rem', color: '#9ca3af', fontWeight: 500 }}>
                 {pagination?.total ?? allProjects.length} project{(pagination?.total ?? allProjects.length) !== 1 ? 's' : ''} total
               </p>
@@ -83,7 +83,7 @@ const MyProjects = () => {
                 {[
                   { label: 'Active',    value: counts.active,    color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)'  },
                   { label: 'Planning',  value: counts.planning,  color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.2)'  },
-                  { label: 'Completed', value: counts.completed, color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.2)' },
+                  { label: 'Completed', value: counts.completed, color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' },
                 ].map(s => s.value > 0 && (
                   <div key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: s.bg, border: `1px solid ${s.border}` }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 800, color: s.color }}>{s.value}</span>
@@ -103,9 +103,9 @@ const MyProjects = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search by project name, description, or status…"
-                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               {searchQuery && (
                 <button type="button" onClick={() => setSearchQuery('')}
@@ -125,7 +125,7 @@ const MyProjects = () => {
           <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
             {STATUS_TABS.map(({ id, label, Icon, color }) => {
               const active      = statusFilter === id;
-              const activeColor = color || '#a855f7';
+              const activeColor = color || 'var(--color-primary-500)';
               const count       = counts[id] ?? 0;
               return (
                 <button key={id}
@@ -168,9 +168,9 @@ const MyProjects = () => {
 
         /* No projects at all */
         ) : allProjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid rgba(168,85,247,0.2)' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Folder size={28} color="#c084fc" />
+          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Folder size={28} color="var(--color-primary-400)" />
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>No projects yet</h3>
             <p style={{ fontSize: '0.88rem', color: '#9ca3af' }}>Projects you're added to will appear here.</p>
@@ -178,9 +178,9 @@ const MyProjects = () => {
 
         /* No search results */
         ) : filteredProjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid rgba(168,85,247,0.2)' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              {searchQuery ? <Search size={28} color="#c084fc" /> : <Folder size={28} color="#c084fc" />}
+          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              {searchQuery ? <Search size={28} color="var(--color-primary-400)" /> : <Folder size={28} color="var(--color-primary-400)" />}
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>
               {searchQuery ? 'No Results Found' : 'No projects found'}
@@ -192,7 +192,7 @@ const MyProjects = () => {
             </p>
             <button type="button"
               onClick={() => { setSearchQuery(''); setStatusFilter(''); setPage(1); }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
               <X size={14} /> Clear Filters
             </button>
           </div>
@@ -211,7 +211,7 @@ const MyProjects = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 32 }}>
                 <button
                   onClick={() => setPage(p => p - 1)} disabled={page <= 1} type="button"
-                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1 }}>
+                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1 }}>
                   Previous
                 </button>
                 {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
@@ -222,14 +222,14 @@ const MyProjects = () => {
                   const isActive = p === pagination.current_page;
                   return (
                     <button key={p} onClick={() => setPage(p)} type="button"
-                      style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${isActive ? '#a855f7' : 'rgba(168,85,247,0.2)'}`, background: isActive ? '#a855f7' : 'white', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px rgba(168,85,247,0.15)' : 'none' }}>
+                      style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${isActive ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`, background: isActive ? 'var(--color-primary-500)' : 'white', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none' }}>
                       {p}
                     </button>
                   );
                 })}
                 <button
                   onClick={() => setPage(p => p + 1)} disabled={page >= pagination.last_page} type="button"
-                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: page >= pagination.last_page ? 'not-allowed' : 'pointer', opacity: page >= pagination.last_page ? 0.4 : 1 }}>
+                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: page >= pagination.last_page ? 'not-allowed' : 'pointer', opacity: page >= pagination.last_page ? 0.4 : 1 }}>
                   Next
                 </button>
               </div>

@@ -10,18 +10,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary Brand - Purple
+        // Primary Brand - theme-controlled via CSS variables
         primary: {
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
+          50:  'var(--color-primary-50)',
+          100: 'var(--color-primary-100)',
+          200: 'var(--color-primary-200)',
+          300: 'var(--color-primary-300)',
+          400: 'var(--color-primary-400)',
+          500: 'var(--color-primary-500)',
+          600: 'var(--color-primary-600)',
+          700: 'var(--color-primary-700)',
+          800: 'var(--color-primary-800)',
+          900: 'var(--color-primary-900)',
+          950: 'var(--color-primary-950)',
         },
         // Secondary Brand - Red
         secondary: {
@@ -74,8 +75,8 @@ export default {
         },
       },
       boxShadow: {
-        'brand': '0 10px 40px -10px rgb(168 85 247 / 0.5)',
-        'brand-lg': '0 20px 60px -15px rgb(168 85 247 / 0.5)',
+        'brand': '0 10px 40px -10px color-mix(in srgb, var(--color-primary-500) 50%, transparent)',
+        'brand-lg': '0 20px 60px -15px color-mix(in srgb, var(--color-primary-500) 50%, transparent)',
       },
     },
   },

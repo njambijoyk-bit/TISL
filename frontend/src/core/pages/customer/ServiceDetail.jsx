@@ -150,7 +150,7 @@ const ServiceDetail = () => {
           <div className="flex items-center gap-2 mb-6 text-sm">
             <button
               onClick={() => navigate('/services')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               <ArrowLeft size={14} /> Back to Services
             </button>
@@ -170,7 +170,7 @@ const ServiceDetail = () => {
             <div>
               {/* Title + Pills row */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
                   {service.name}
                 </h1>
 
@@ -190,7 +190,7 @@ const ServiceDetail = () => {
             </div>
               
             {/* ── IMAGE GALLERY ── */}
-            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 0 3px rgba(168,85,247,0.08), 0 0 20px rgba(168,85,247,0.15)' }}>
+            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent), 0 0 20px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
 
               {/* Main image — zoom on hover */}
               <div
@@ -201,7 +201,7 @@ const ServiceDetail = () => {
                 {/* Badges */}
                 <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {service.is_featured && (
-                    <span style={pill('#7c3aed', '#ede9fe')}><Star size={10} /> Featured</span>
+                    <span style={pill('var(--color-primary-600)', 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))')}><Star size={10} /> Featured</span>
                   )}
                   {service.is_remote_available && !service.requires_site_visit && (
                     <span style={pill('#059669', '#d1fae5')}><Monitor size={10} /> Remote</span>
@@ -276,7 +276,7 @@ const ServiceDetail = () => {
                             opacity: selectedImageIdx === idx ? 1 : 0.65,
                             transform: selectedImageIdx === idx ? 'scale(1.08)' : 'scale(1)',
                             transition: 'all 150ms ease',
-                            boxShadow: selectedImageIdx === idx ? '0 0 0 2px rgba(168,85,247,0.7)' : 'none',
+                            boxShadow: selectedImageIdx === idx ? '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 70%, transparent)' : 'none',
                           }}
                         >
                           <img src={img} alt={`View ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => handleImageError(idx)} />
@@ -291,7 +291,7 @@ const ServiceDetail = () => {
             {/* ── SERVICE INFO ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>             
             <div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.03em', flex: '1 1 auto' }}>
                 {service.name}
               </h1>
               {service.short_description && (
@@ -323,15 +323,15 @@ const ServiceDetail = () => {
               )}
 
               {/* ── Pricing + Meta card ── */}
-              <div style={{ borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', overflow: 'hidden' }}>
+              <div style={{ borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', overflow: 'hidden' }}>
 
                 {/* Price row */}
-                <div style={{ padding: '20px 20px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
-                  <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
+                <div style={{ padding: '20px 20px 16px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
                     {service.pricing_model_label || 'Pricing'}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                       {getPricingDisplay()}
                     </span>
                     {service.minimum_charge && (
@@ -352,9 +352,9 @@ const ServiceDetail = () => {
                     ].filter(Boolean).map((item, i, arr) => (
                       <div key={i} style={{
                         flex: '1 1 100px', padding: '14px 18px',
-                        borderRight: i < arr.length - 1 ? '1px solid rgba(168,85,247,0.12)' : 'none',
+                        borderRight: i < arr.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'none',
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, color: '#a855f7' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, color: 'var(--color-primary-500)' }}>
                           {item.icon}
                           <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             {item.label}
@@ -374,10 +374,10 @@ const ServiceDetail = () => {
                   type="button"
                   style={{
                     flex: '1 1 160px', height: 50, borderRadius: 12, border: 'none',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                     color: '#ffffff', fontSize: '0.88rem', fontWeight: 700,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    boxShadow: '0 4px 15px rgba(168,85,247,0.35)', transition: 'all 200ms ease',
+                    boxShadow: '0 4px 15px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'all 200ms ease',
                     letterSpacing: '0.04em',
                   }}
                 >
@@ -391,14 +391,14 @@ const ServiceDetail = () => {
                     type="button"
                     style={{
                       flex: '1 1 160px', height: 50, borderRadius: 12,
-                      border: '1.5px solid #a855f7',
-                      background: 'rgba(168,85,247,0.06)',
-                      color: '#7c3aed', fontSize: '0.88rem', fontWeight: 700,
+                      border: '1.5px solid var(--color-primary-500)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                      color: 'var(--color-primary-600)', fontSize: '0.88rem', fontWeight: 700,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       transition: 'background 150ms, box-shadow 150ms', letterSpacing: '0.04em',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.15)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     <Calendar size={16} />
                     Book this service
@@ -421,13 +421,13 @@ const ServiceDetail = () => {
               {hasDeliverables && (
                 <div style={{ background: 'white', borderRadius: 12, padding: '16px 18px', border: '1px solid #f3f4f6' }}>
                   <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Package size={13} style={{ color: '#a855f7' }} /> What You'll Get
+                    <Package size={13} style={{ color: 'var(--color-primary-500)' }} /> What You'll Get
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {service.deliverables.map((d, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                        <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                          <Check size={10} style={{ color: '#a855f7' }} />
+                        <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                          <Check size={10} style={{ color: 'var(--color-primary-500)' }} />
                         </span>
                         <span style={{ fontSize: '0.83rem', color: '#374151', lineHeight: 1.4 }}>{d}</span>
                       </div>
@@ -500,9 +500,9 @@ const ServiceDetail = () => {
                   type="button"
                   style={{
                     padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700,
-                    color: activeTab === tab.id ? '#a855f7' : '#6b7280',
+                    color: activeTab === tab.id ? 'var(--color-primary-500)' : '#6b7280',
                     background: 'none', border: 'none', cursor: 'pointer',
-                    borderBottom: activeTab === tab.id ? '2px solid #a855f7' : '2px solid transparent',
+                    borderBottom: activeTab === tab.id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                     marginBottom: -1, transition: 'all 150ms ease', letterSpacing: '0.02em',
                   }}
                 >
@@ -523,8 +523,8 @@ const ServiceDetail = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {service.features.map((feature, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                        <Check size={11} style={{ color: '#a855f7' }} />
+                      <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <Check size={11} style={{ color: 'var(--color-primary-500)' }} />
                       </span>
                       <span style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }} className="dark:text-gray-300">{feature}</span>
                     </div>
@@ -551,7 +551,7 @@ const ServiceDetail = () => {
           {relatedServices && relatedServices.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7c3aed', letterSpacing: '-0.02em', margin: 0 }} className="dark:text-white">
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-600)', letterSpacing: '-0.02em', margin: 0 }} className="dark:text-white">
                   Related Services
                 </h2>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedServices.length} items</span>

@@ -7,7 +7,7 @@ const inputStyle = {
   border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none',
   color: '#111827', boxSizing: 'border-box', fontWeight: 500,
 };
-const focusIn  = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
+const focusIn  = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
 const focusOut = e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; };
 const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: 5, color: '#9ca3af' };
 
@@ -24,7 +24,7 @@ const StatusPill = ({ children, color }) => (
 
 const statusColor = (s) => ({
   cancelled: '#ef4444', refunded: '#3b82f6', paid: '#10b981',
-  partially_paid: '#f59e0b', delivered: '#10b981', shipped: '#a855f7',
+  partially_paid: '#f59e0b', delivered: '#10b981', shipped: 'var(--color-primary-500)',
 }[s] || '#9ca3af');
 
 // ── Currency helpers ──────────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
           <div>
             <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#ef4444', marginBottom: 4 }}>Order Management</p>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#9ca3af' }}>
-              Cancel Order <span style={{ color: '#a855f7' }}>{order.order_number}</span>
+              Cancel Order <span style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</span>
             </h2>
             <p style={{ fontSize: '0.82rem', color: '#9ca3af', marginTop: 4 }}>{subDesc}</p>
           </div>
@@ -363,13 +363,13 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
           <div style={{
             padding: '12px 16px',
             borderRadius: 10,
-            background: 'rgba(168,85,247,0.06)',
-            border: '1px solid rgba(168,85,247,0.18)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
           }}>
             <p style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#a855f7',
+              color: 'var(--color-primary-500)',
               margin: '0 0 6px',
             }}>
               Return and Refund Limits
@@ -377,7 +377,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             <p style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#a855f7',
+              color: 'var(--color-primary-500)',
               margin: '0 0 6px',
             }}>
               items[index].refund_amount = Math.min(
@@ -396,7 +396,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             <p style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#a855f7',
+              color: 'var(--color-primary-500)',
               margin: '0 0 6px',
             }}>
               max_refund = line_total
@@ -404,7 +404,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             <p style={{
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: '#a855f7',
+              color: 'var(--color-primary-500)',
               margin: '0 0 6px',
             }}>
               const lineTotal = parseFloat(item.line_total_after_discount || item.line_total || 0);
@@ -447,11 +447,11 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
 
           {/* Manual Refund Override Section */}
           {requiresRefund && (
-          <div style={{ padding: '16px 18px', borderRadius: 12, border: '1px solid #f3f4f6', background: 'rgba(168,85,247,0.02)' }}>
+          <div style={{ padding: '16px 18px', borderRadius: 12, border: '1px solid #f3f4f6', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <DollarSign size={16} color="#a855f7" />
-                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', margin: 0 }}>
+                <DollarSign size={16} color="var(--color-primary-500)" />
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', margin: 0 }}>
                   Refund Override
                 </p>
               </div>
@@ -466,7 +466,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                       setManualRefundAmount('');
                     }
                   }}
-                  style={{ accentColor: '#a855f7' }}
+                  style={{ accentColor: 'var(--color-primary-500)' }}
                 />
                 <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>Manual Override</span>
               </label>
@@ -507,14 +507,14 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                         style={{
                           padding: '10px 12px',
                           borderRadius: 10,
-                          border: `1.5px solid ${opt.disabled ? '#f3f4f6' : refundType === opt.id ? '#a855f7' : '#f3f4f6'}`,
-                          background: opt.disabled ? '#fafafa' : refundType === opt.id ? 'rgba(168,85,247,0.04)' : 'white',
+                          border: `1.5px solid ${opt.disabled ? '#f3f4f6' : refundType === opt.id ? 'var(--color-primary-500)' : '#f3f4f6'}`,
+                          background: opt.disabled ? '#fafafa' : refundType === opt.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
                           cursor: opt.disabled ? 'not-allowed' : 'pointer',
                           opacity: opt.disabled ? 0.5 : 1,
                           transition: 'all 0.2s',
                         }}
                       >
-                        <p style={{ fontSize: '0.78rem', fontWeight: 700, color: opt.disabled ? '#9ca3af' : refundType === opt.id ? '#a855f7' : '#374151', margin: '0 0 2px' }}>
+                        <p style={{ fontSize: '0.78rem', fontWeight: 700, color: opt.disabled ? '#9ca3af' : refundType === opt.id ? 'var(--color-primary-500)' : '#374151', margin: '0 0 2px' }}>
                           {opt.label}
                         </p>
                         <p style={{ fontSize: '0.65rem', color: opt.disabled ? '#d1d5db' : '#9ca3af', margin: 0 }}>
@@ -559,8 +559,8 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
           {requiresReturn && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package size={16} color="#a855f7" />
-                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a855f7', margin: 0 }}>
+                <Package size={16} color="var(--color-primary-500)" />
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-500)', margin: 0 }}>
                   Return Items ({refundItems.length})
                 </p>
               </div>
@@ -572,7 +572,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                     type="checkbox"
                     checked={returnlessRefund}
                     onChange={e => setReturnlessRefund(e.target.checked)}
-                    style={{ accentColor: '#a855f7', width: 14, height: 14, marginTop: 2 }}
+                    style={{ accentColor: 'var(--color-primary-500)', width: 14, height: 14, marginTop: 2 }}
                   />
                   <span>
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#92400e' }}>Customer keeps all delivered items (returnless refund)</span>
@@ -590,12 +590,12 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {refundItems.map((item, index) => (
-                    <div key={index} style={{ borderRadius: 12, border: '1px solid #f3f4f6', padding: '16px 18px', background: 'rgba(168,85,247,0.02)' }}>
+                    <div key={index} style={{ borderRadius: 12, border: '1px solid #f3f4f6', padding: '16px 18px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                       {/* Item header */}
                       <div style={{ marginBottom: 14 }}>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#a855f7', margin: '0 0 3px' }}>{item.product_name}</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 3px' }}>{item.product_name}</p>
                         <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Category / SKU: {item.product_sku}</p>
-                        <div style={{ display: 'flex', gap: 20, marginTop: 8, fontSize: '0.78rem', color: '#a855f7' }}>
+                        <div style={{ display: 'flex', gap: 20, marginTop: 8, fontSize: '0.78rem', color: 'var(--color-primary-500)' }}>
                           <span>Ordered: <strong style={{ color: '#10b981' }}>{fmt(item.quantity, 2)}</strong></span>
                           <span>Unit Price: <strong style={{ color: '#3b82f6' }}>{money(item.unit_price, currency)}</strong></span>
                           <span>Max Returnable: <strong style={{ color: '#f59e0b' }}>{fmt(item.max_returnable, 2)}</strong></span>
@@ -636,7 +636,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                             <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 4 }}>No payment received — refund locked</p>
                           )}
                           {canRefund && manualRefundMode && (
-                            <p style={{ fontSize: '0.7rem', color: '#a855f7', marginTop: 4 }}>Set by override above</p>
+                            <p style={{ fontSize: '0.7rem', color: 'var(--color-primary-500)', marginTop: 4 }}>Set by override above</p>
                           )}
                         </div>
                         <div>
@@ -663,9 +663,9 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
 
               {/* Total refund summary */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <div style={{ textAlign: 'right', padding: '14px 20px', borderRadius: 12, border: '1px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.04)' }}>
+                <div style={{ textAlign: 'right', padding: '14px 20px', borderRadius: 12, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                   <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 6px' }}>Total Refund</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', margin: 0, letterSpacing: '-0.02em' }}>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0, letterSpacing: '-0.02em' }}>
                     {money(totalRefund, currency)}
                   </p>
                   {showKes && (

@@ -53,9 +53,9 @@ export default function CookieConsentBanner() {
                     color: #fca5a5 !important;
                 }
                 .ccb-accept:hover {
-                    background: rgba(168,85,247,0.32) !important;
+                    background: color-mix(in srgb, var(--color-primary-500) 32%, transparent) !important;
                     border-color: rgba(192,132,252,0.7) !important;
-                    color: #f3e8ff !important;
+                    color: color-mix(in srgb, var(--color-primary-500) 8%, var(--bg-primary)) !important;
                 }
             `}</style>
 
@@ -68,7 +68,7 @@ export default function CookieConsentBanner() {
                     right:      0,
                     zIndex:     9999,
                     background: 'rgba(15, 10, 30, 0.92)',
-                    borderTop:  '0.5px solid rgba(168,85,247,0.3)',
+                    borderTop:  '0.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                     fontFamily: "'DM Sans', sans-serif",
                     overflow:   'hidden',
                 }}
@@ -78,7 +78,7 @@ export default function CookieConsentBanner() {
                     position:   'absolute',
                     top:        0, left: 0, right: 0,
                     height:     1.5,
-                    background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.9) 30%, rgba(192,132,252,1) 50%, rgba(168,85,247,0.9) 70%, transparent)',
+                    background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary-500) 90%, transparent) 30%, rgba(192,132,252,1) 50%, color-mix(in srgb, var(--color-primary-500) 90%, transparent) 70%, transparent)',
                 }} />
 
                 {/* Scanline texture */}
@@ -117,14 +117,14 @@ export default function CookieConsentBanner() {
                         width:          42,
                         height:         42,
                         borderRadius:   10,
-                        background:     'rgba(168,85,247,0.15)',
-                        border:         '0.5px solid rgba(168,85,247,0.4)',
+                        background:     'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                        border:         '0.5px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
                         display:        'flex',
                         alignItems:     'center',
                         justifyContent: 'center',
                         flexShrink:     0,
                     }}>
-                        <Cookie size={20} style={{ color: '#c084fc' }} />
+                        <Cookie size={20} style={{ color: 'var(--color-primary-400)' }} />
                     </div>
 
                     {/* Text */}
@@ -136,7 +136,7 @@ export default function CookieConsentBanner() {
                             This site uses essential cookies solely to support core functionality. No third-party, analytics, or personalisation cookies are deployed -{' '}
                             <Link
                                 to="/cookies"
-                                style={{ color: '#c084fc', textDecoration: 'none' }}
+                                style={{ color: 'var(--color-primary-400)', textDecoration: 'none' }}
                                 onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                                 onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                             >
@@ -195,7 +195,7 @@ export default function CookieConsentBanner() {
                                 borderRadius:       8,
                                 fontSize:           12,
                                 fontWeight:         500,
-                                background:         'rgba(168,85,247,0.2)',
+                                background:         'color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                                 border:             '0.5px solid rgba(192,132,252,0.45)',
                                 color:              'rgba(216,180,254,0.95)',
                                 backdropFilter:     'blur(8px)',

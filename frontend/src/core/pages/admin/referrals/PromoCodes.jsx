@@ -17,7 +17,7 @@ const EVENT_META = {
   birthday:          { label: 'Birthday',          color: '#be185d', bg: 'rgba(236,72,153,0.1)',  ring: 'rgba(236,72,153,0.25)'  },
   first_time:        { label: 'First Time',        color: '#0e7490', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'   },
   vip_upgrade:       { label: 'VIP Upgrade',       color: '#b45309', bg: 'rgba(234,179,8,0.1)',   ring: 'rgba(234,179,8,0.25)'   },
-  loyalty_milestone: { label: 'Loyalty Milestone', color: '#7c3aed', bg: 'rgba(168,85,247,0.1)',  ring: 'rgba(168,85,247,0.25)'  },
+  loyalty_milestone: { label: 'Loyalty Milestone', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   win_back:          { label: 'Win-Back',          color: '#b91c1c', bg: 'rgba(239,68,68,0.1)',   ring: 'rgba(239,68,68,0.25)'   },
   seasonal:          { label: 'Seasonal',          color: '#065f46', bg: 'rgba(16,185,129,0.1)',  ring: 'rgba(16,185,129,0.25)'  },
   flash_sale:        { label: 'Flash Sale',        color: '#b45309', bg: 'rgba(245,158,11,0.1)',  ring: 'rgba(245,158,11,0.25)'  },
@@ -30,7 +30,7 @@ const STATUS_STYLES = {
   active:   { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   paused:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
   expired:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
-  depleted: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', dot: '#a855f7', ring: 'rgba(168,85,247,0.25)'  },
+  depleted: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   archived: { bg: 'rgba(107,114,128,0.08)',color: '#9ca3af', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
 };
 
@@ -42,13 +42,13 @@ const REWARD_META = {
 };
 
 const STAT_META = [
-  { key: 'total',          label: 'Total codes',    icon: <Tag size={18} />,        accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)',  val: (s) => s.counts?.total ?? 0                                    },
+  { key: 'total',          label: 'Total codes',    icon: <Tag size={18} />,        accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',  val: (s) => s.counts?.total ?? 0                                    },
   { key: 'active',         label: 'Active',         icon: <Zap size={18} />,        accent: '#059669', bg: 'rgba(5,150,105,0.08)',   val: (s) => s.counts?.active ?? 0                                   },
   { key: 'auto_generated', label: 'Auto-generated', icon: <RefreshCw size={18} />,  accent: '#0891b2', bg: 'rgba(8,145,178,0.08)',   val: (s) => s.counts?.auto_generated ?? 0                           },
   { key: 'revenue',        label: 'Total revenue',  icon: <DollarSign size={18} />, accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue)                                  },
   { key: 'discount',       label: 'Discount given', icon: <Tag size={18} />,        accent: '#dc2626', bg: 'rgba(220,38,38,0.08)',   val: (s) => fmt(s.totals?.discount_given)                           },
   { key: 'orders',         label: 'Total orders',   icon: <TrendingUp size={18} />, accent: '#d97706', bg: 'rgba(217,119,6,0.08)',   val: (s) => (s.totals?.orders ?? 0).toLocaleString()                },
-  { key: 'avg_order',      label: 'Avg order value',icon: <Star size={18} />,       accent: '#a855f7', bg: 'rgba(168,85,247,0.08)',  val: (s) => fmt(s.totals?.avg_order_value)                          },
+  { key: 'avg_order',      label: 'Avg order value',icon: <Star size={18} />,       accent: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  val: (s) => fmt(s.totals?.avg_order_value)                          },
 ];
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
@@ -59,20 +59,20 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
-const selectFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
@@ -94,7 +94,7 @@ function StatCard({ icon, label, value, accent, bg }) {
       </div>
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
+        <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
       </div>
     </div>
   );
@@ -126,12 +126,12 @@ function CopyCode({ code }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 9px', borderRadius: 7,
       fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700,
-      background: 'rgba(168,85,247,0.06)', color: '#6d28d9',
-      border: '1px solid rgba(168,85,247,0.18)', cursor: 'pointer',
+      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-700)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: 'pointer',
       transition: 'background 120ms, border-color 120ms',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.35)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; }}
     >
       {code}
       {copied
@@ -164,7 +164,7 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
           borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
           color: '#c4b5fd', transition: 'background 120ms, color 120ms',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
       >
         <MoreHorizontal size={14} />
@@ -176,13 +176,13 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 180, zIndex: 20,
             background: 'white', borderRadius: 12, padding: '6px 0',
-            border: '1.5px solid rgba(168,85,247,0.15)',
-            boxShadow: '0 8px 32px rgba(168,85,247,0.15)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
             onClick={e => e.stopPropagation()}
           >
             {items.map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid rgba(168,85,247,0.08)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
@@ -191,7 +191,7 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
                 color: item.danger ? '#ef4444' : '#374151',
                 transition: 'background 120ms',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'rgba(168,85,247,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <item.icon size={13} style={{ flexShrink: 0 }} />
@@ -207,10 +207,10 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
 
 function SkeletonRow() {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {[180, 90, 100, 70, 110, 60, 80, 0].map((w, j) => (
         <td key={j} style={{ padding: '14px 20px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'rgba(168,85,247,0.07)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }} />}
         </td>
       ))}
     </tr>
@@ -291,7 +291,7 @@ export default function PromoCodes() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
             Promo Codes
           </h1>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -311,12 +311,12 @@ export default function PromoCodes() {
               padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: triggerLoading ? 'not-allowed' : 'pointer',
               background: 'transparent', color: '#9ca3af',
-              border: '1.5px solid rgba(168,85,247,0.18)',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
               opacity: triggerLoading && triggerLoading !== key ? 0.5 : 1,
               transition: 'border-color 150ms, color 150ms',
             }}
-              onMouseEnter={e => { if (!triggerLoading) { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = '#9ca3af'; }}
+              onMouseEnter={e => { if (!triggerLoading) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
             >
               <RefreshCw size={13} style={{ animation: triggerLoading === key ? 'spin 1s linear infinite' : 'none' }} />
               {label}
@@ -329,11 +329,11 @@ export default function PromoCodes() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)', transition: 'box-shadow 150ms',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'box-shadow 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Plus size={15} /> New code
           </button>
@@ -393,13 +393,13 @@ export default function PromoCodes() {
               onChange={e => setFilter('search', e.target.value)}
               style={{
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'rgba(168,85,247,0.04)',
-                border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#111827', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-              onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+              onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
@@ -409,9 +409,9 @@ export default function PromoCodes() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-              background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-              border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-              color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
+              background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+              border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
             }}
           >
             <Filter size={14} />
@@ -420,7 +420,7 @@ export default function PromoCodes() {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 18, height: 18, borderRadius: '50%', fontSize: '0.6rem', fontWeight: 800,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               }}>
                 {activeFilterCount}
               </span>
@@ -431,7 +431,7 @@ export default function PromoCodes() {
         {showFilters && (
           <div style={{
             padding: '12px 16px 14px',
-            borderTop: '1px solid rgba(168,85,247,0.1)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
           }}>
             <select value={filters.status ?? ''} onChange={e => setFilter('status', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
@@ -454,9 +454,9 @@ export default function PromoCodes() {
               <button key={key} onClick={() => setFilter(key, !filters[key])} style={{
                 padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                background: filters[key] ? 'rgba(168,85,247,0.1)' : 'transparent',
-                border: `1.5px solid ${filters[key] ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)'}`,
-                color: filters[key] ? '#7c3aed' : '#9ca3af',
+                background: filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
+                border: `1.5px solid ${filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
+                color: filters[key] ? 'var(--color-primary-600)' : '#9ca3af',
               }}>
                 {label}
               </button>
@@ -483,7 +483,7 @@ export default function PromoCodes() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 200 }}><TH_LABEL>Code / Name</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}><TH_LABEL>Event type</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 120 }}><TH_LABEL>Reward</TH_LABEL></th>
@@ -503,10 +503,10 @@ export default function PromoCodes() {
                   ? (
                     <tr>
                       <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                        <Tag size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                        <Tag size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No promo codes found</p>
                         <button onClick={() => setShowCreate(true)} style={{
-                          fontSize: '0.75rem', fontWeight: 600, color: '#a855f7',
+                          fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
                           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         }}>
                           Create your first code →
@@ -526,10 +526,10 @@ export default function PromoCodes() {
                           key={code.id}
                           onClick={() => navigate(`/admin/promo-codes/${code.id}`)}
                           style={{
-                            borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                             cursor: 'pointer', transition: 'background 120ms',
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
 
@@ -604,11 +604,11 @@ export default function PromoCodes() {
                               </span>
                             )}
                             {code.max_uses && (
-                              <div style={{ width: 56, height: 3, borderRadius: 99, background: 'rgba(168,85,247,0.1)', marginTop: 4, marginLeft: 'auto', overflow: 'hidden' }}>
+                              <div style={{ width: 56, height: 3, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', marginTop: 4, marginLeft: 'auto', overflow: 'hidden' }}>
                                 <div style={{
                                   height: '100%', borderRadius: 99,
                                   width: `${Math.min((code.times_used / code.max_uses) * 100, 100)}%`,
-                                  background: code.times_used >= code.max_uses ? '#ef4444' : 'linear-gradient(90deg,#a855f7,#7c3aed)',
+                                  background: code.times_used >= code.max_uses ? '#ef4444' : 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))',
                                 }} />
                               </div>
                             )}
@@ -651,9 +651,9 @@ export default function PromoCodes() {
         {!loading && codes.length > 0 && pagination.last_page > 1 && (
           <div style={{
             padding: '12px 20px',
-            borderTop: '1px solid rgba(168,85,247,0.08)',
+            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(168,85,247,0.02)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} codes
@@ -666,10 +666,10 @@ export default function PromoCodes() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
                 }}
-                onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <ChevronLeft size={14} />
@@ -689,12 +689,12 @@ export default function PromoCodes() {
                     style={{
                       width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                      background: isActive ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                      border: isActive ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
+                      background: isActive ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
+                      border: isActive ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                       color: isActive ? 'white' : '#9ca3af',
-                      boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                      boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}
                   >
                     {p}
@@ -708,10 +708,10 @@ export default function PromoCodes() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                  color: '#a855f7', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  color: 'var(--color-primary-500)', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
                 }}
-                onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <ChevronRight size={14} />

@@ -12,24 +12,24 @@ export default function LoadingSpinner({ size = 'md', fullScreen = false }) {
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
           border: `${px * 0.06}px solid transparent`,
-          borderTopColor: '#a855f7',
-          borderRightColor: 'rgba(168,85,247,0.3)',
+          borderTopColor: 'var(--color-primary-500)',
+          borderRightColor: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           animation: 'spin-slow 1.4s linear infinite',
         }} />
         {/* Middle ring - medium, reverse */}
         <div style={{
           position: 'absolute', inset: px * 0.15, borderRadius: '50%',
           border: `${px * 0.06}px solid transparent`,
-          borderTopColor: '#7c3aed',
-          borderLeftColor: 'rgba(124,58,237,0.3)',
+          borderTopColor: 'var(--color-primary-600)',
+          borderLeftColor: 'color-mix(in srgb, var(--color-primary-600) 30%, transparent)',
           animation: 'spin-reverse 1s linear infinite',
         }} />
         {/* Inner dot */}
         <div style={{
           position: 'absolute', inset: px * 0.35, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
           animation: 'pulse-scale 1.4s ease-in-out infinite',
-          boxShadow: '0 0 12px rgba(168,85,247,0.5)',
+          boxShadow: '0 0 12px color-mix(in srgb, var(--color-primary-500) 50%, transparent)',
         }} />
       </div>
 
@@ -38,7 +38,7 @@ export default function LoadingSpinner({ size = 'md', fullScreen = false }) {
         {[0, 1, 2].map(i => (
           <div key={i} style={{
             width: 6, height: 6, borderRadius: '50%',
-            background: `rgba(168,85,247,${0.4 + i * 0.2})`,
+            background: i === 0 ? 'var(--color-primary-400)' : i === 1 ? 'var(--color-primary-500)' : 'var(--color-primary-600)',
             animation: `bounce-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
           }} />
         ))}

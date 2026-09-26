@@ -17,7 +17,7 @@ const TYPE_META = {
   general:           { label: 'General',    color: '#4338ca', bg: 'rgba(99,102,241,0.1)',  ring: 'rgba(99,102,241,0.25)'  },
   customer_referral: { label: 'Referral',   color: '#065f46', bg: 'rgba(16,185,129,0.1)',  ring: 'rgba(16,185,129,0.25)'  },
   first_time:        { label: 'First Time', color: '#0e7490', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'   },
-  bulk_order:        { label: 'Bulk Order', color: '#7c3aed', bg: 'rgba(168,85,247,0.1)',  ring: 'rgba(168,85,247,0.25)'  },
+  bulk_order:        { label: 'Bulk Order', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   vip:               { label: 'VIP',        color: '#b45309', bg: 'rgba(234,179,8,0.1)',   ring: 'rgba(234,179,8,0.25)'   },
   birthday:          { label: 'Birthday',   color: '#be185d', bg: 'rgba(236,72,153,0.1)',  ring: 'rgba(236,72,153,0.25)'  },
   event:             { label: 'Event',      color: '#b91c1c', bg: 'rgba(239,68,68,0.1)',   ring: 'rgba(239,68,68,0.25)'   },
@@ -28,7 +28,7 @@ const STATUS_STYLES = {
   active:   { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   paused:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
   expired:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
-  depleted: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', dot: '#a855f7', ring: 'rgba(168,85,247,0.25)'  },
+  depleted: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   archived: { bg: 'rgba(107,114,128,0.08)',color: '#9ca3af', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
 };
 
@@ -43,29 +43,29 @@ const USAGE_STATUS = {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
 
 const sectionHeader = {
-  fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)',
   display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
 };
 
@@ -92,7 +92,7 @@ function StatBlock({ label, value, color }) {
   return (
     <div style={{
       padding: '14px 16px', borderRadius: 10,
-      background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
       <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
       <p style={{ fontSize: '1.2rem', fontWeight: 800, color: color || '#111827', margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
@@ -129,12 +129,12 @@ function CopyCode({ code }) {
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 12px', borderRadius: 8,
         fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 700,
-        background: 'rgba(168,85,247,0.06)', color: '#6d28d9',
-        border: '1px solid rgba(168,85,247,0.2)', cursor: 'pointer',
+        background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-700)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer',
         transition: 'background 120ms, border-color 120ms',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.12)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; }}
     >
       {code}
       {copied
@@ -153,27 +153,27 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
       fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
       opacity: loading ? 0.6 : 1, transition: 'all 150ms',
       ...(primary ? {
-        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-        border: 'none', boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+        border: 'none', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
       } : danger ? {
         background: 'rgba(239,68,68,0.06)', color: '#b91c1c',
         border: '1.5px solid rgba(239,68,68,0.2)',
       } : {
         background: 'transparent', color: '#6b7280',
-        border: '1.5px solid rgba(168,85,247,0.18)',
+        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       }),
     }}
       onMouseEnter={e => {
         if (!loading) {
-          if (primary) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.45)';
+          if (primary) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 45%, transparent)';
           else if (danger) e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
-          else { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; }
+          else { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }
         }
       }}
       onMouseLeave={e => {
-        if (primary) e.currentTarget.style.boxShadow = '0 2px 10px rgba(168,85,247,0.3)';
+        if (primary) e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
         else if (danger) e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
-        else { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = '#6b7280'; }
+        else { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = '#6b7280'; }
       }}
     >
       {Icon && <Icon size={12} />}
@@ -183,7 +183,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
 }
 
 function SkeletonBlock({ height }) {
-  return <div style={{ height, borderRadius: 12, background: 'rgba(168,85,247,0.07)', marginBottom: 16 }} />;
+  return <div style={{ height, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />;
 }
 
 function TH_LABEL({ children }) {
@@ -292,7 +292,7 @@ export default function ReferralDetail() {
         fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
         cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', transition: 'color 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
       >
         <ChevronLeft size={16} /> Referral codes
@@ -301,7 +301,7 @@ export default function ReferralDetail() {
       {/* ── Hero ── */}
       <div style={{ ...card, padding: 24, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
         {/* accent strip */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${tm.color},#7c3aed)` }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${tm.color},var(--color-primary-600))` }} />
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', paddingTop: 4 }}>
 
@@ -351,13 +351,13 @@ export default function ReferralDetail() {
 
       {/* ── Tabs + content ── */}
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '2px solid rgba(168,85,247,0.1)', padding: '0 20px' }}>
+        <div style={{ display: 'flex', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 20px' }}>
           {['overview', 'settings', 'usage'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? '#a855f7' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              borderBottom: `2px solid ${tab === t ? '#a855f7' : 'transparent'}`,
+              borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
@@ -365,7 +365,7 @@ export default function ReferralDetail() {
               {t === 'usage' && usageData && (
                 <span style={{
                   padding: '1px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
-                  background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
                 }}>
                   {usageData.total}
                 </span>
@@ -384,7 +384,7 @@ export default function ReferralDetail() {
               <div>
                 <p style={sectionHeader}><TrendingUp size={14} style={{ color: '#c4b5fd' }} /> Performance</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
-                  <StatBlock label="Total uses"      value={(metrics?.total_uses_count ?? code.times_used ?? 0).toLocaleString()} color="#7c3aed" />
+                  <StatBlock label="Total uses"      value={(metrics?.total_uses_count ?? code.times_used ?? 0).toLocaleString()} color="var(--color-primary-600)" />
                   <StatBlock label="Revenue"         value={fmt(metrics?.total_revenue)}  color="#065f46" />
                   <StatBlock label="Discount given"  value={fmt(metrics?.total_discount)} color="#b91c1c" />
                   <StatBlock label="Conversion rate 'conversion_rate' => ($this->successful_uses / $this->attempts) * 100" value={`${Number(code.conversion_rate || 0).toFixed(1)}%`} color="#0891b2" />
@@ -405,7 +405,7 @@ export default function ReferralDetail() {
                     <div key={status} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 14px', borderRadius: 10,
-                      background: 'rgba(168,85,247,0.03)', border: '1px solid rgba(168,85,247,0.08)',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.dot, flexShrink: 0 }} />
@@ -427,11 +427,11 @@ export default function ReferralDetail() {
                       return monthly.map(m => (
                         <div key={m.month} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 56, flexShrink: 0 }}>{m.month}</span>
-                          <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'rgba(168,85,247,0.1)', overflow: 'hidden' }}>
+                          <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
                             <div style={{
                               height: '100%', borderRadius: 99,
                               width: `${Math.min(100, (m.count / max) * 100)}%`,
-                              background: 'linear-gradient(90deg,#a855f7,#7c3aed)',
+                              background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))',
                             }} />
                           </div>
                           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', width: 24, textAlign: 'right' }}>{m.count}</span>
@@ -468,7 +468,7 @@ export default function ReferralDetail() {
                   ))}
                 </div>
                 {code.admin_notes && (
-                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                     <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 6px' }}>Admin notes</p>
                     <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{code.admin_notes}</p>
                   </div>
@@ -542,15 +542,15 @@ export default function ReferralDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {!usageData || usageData.data?.length === 0 ? (
                 <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                  <Users size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 10px', display: 'block' }} />
+                  <Users size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 10px', display: 'block' }} />
                   <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No usage records yet</p>
                 </div>
               ) : (
                 <>
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(168,85,247,0.1)' }}>
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                        <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                           {['Referrer', 'Referred Customer', 'Order', 'Referred Discount', 'Referrer Reward', 'Status', 'IP Address', 'User Agent', 'Date'].map(h => (
                             <th key={h} style={{ padding: '10px 16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
                               <TH_LABEL>{h}</TH_LABEL>
@@ -564,8 +564,8 @@ export default function ReferralDetail() {
                           const isLast = i === usageData.data.length - 1;
                           return (
                             <tr key={u.id}
-                              style={{ borderBottom: isLast ? 'none' : '1px solid rgba(168,85,247,0.05)', transition: 'background 120ms' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
+                              style={{ borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)', transition: 'background 120ms' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
                               {/* Referrer */}
@@ -599,7 +599,7 @@ export default function ReferralDetail() {
                               {/* Order */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.order
-                                  ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>#{u.order.order_number}</span>
+                                  ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 700 }}>#{u.order.order_number}</span>
                                   : u.hamper_order
                                     ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#d97706', fontWeight: 700 }}>#{u.hamper_order.order_number} <span style={{ fontSize: '0.65rem', background: 'rgba(217,119,6,0.1)', padding: '1px 6px', borderRadius: 4 }}>Hamper</span></span>
                                     : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
@@ -682,8 +682,8 @@ export default function ReferralDetail() {
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button onClick={() => setUsagePage(p => p - 1)} disabled={usagePage === 1} style={{
                           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                          color: '#a855f7', cursor: usagePage === 1 ? 'not-allowed' : 'pointer',
+                          borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                          color: 'var(--color-primary-500)', cursor: usagePage === 1 ? 'not-allowed' : 'pointer',
                           opacity: usagePage === 1 ? 0.3 : 1,
                         }}>
                           <ChevronLeft size={13} />
@@ -691,15 +691,15 @@ export default function ReferralDetail() {
                         <span style={{
                           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                           borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
-                          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                          boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+                          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                          boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
                         }}>
                           {usagePage}
                         </span>
                         <button onClick={() => setUsagePage(p => p + 1)} disabled={usagePage === usageData.last_page} style={{
                           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none',
-                          color: '#a855f7', cursor: usagePage === usageData.last_page ? 'not-allowed' : 'pointer',
+                          borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                          color: 'var(--color-primary-500)', cursor: usagePage === usageData.last_page ? 'not-allowed' : 'pointer',
                           opacity: usagePage === usageData.last_page ? 0.3 : 1,
                         }}>
                           <ChevronRight size={13} />

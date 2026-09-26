@@ -16,7 +16,7 @@ const STATUS_CFG = {
   pending:    { color: '#f59e0b' },
   confirmed:  { color: '#3b82f6' },
   processing: { color: '#3b82f6' },
-  shipped:    { color: '#a855f7' },
+  shipped:    { color: 'var(--color-primary-500)' },
   delivered:  { color: '#10b981' },
   cancelled:  { color: '#ef4444' },
   failed:     { color: '#ef4444' },
@@ -50,7 +50,7 @@ const ITEM_TYPE_ICON = {
 
 function ItemIcon({ type }) {
   const Icon = ITEM_TYPE_ICON[type] || Package;
-  const color = type?.includes('service') ? '#10b981' : type === 'fee' ? '#f59e0b' : '#a855f7';
+  const color = type?.includes('service') ? '#10b981' : type === 'fee' ? '#f59e0b' : 'var(--color-primary-500)';
   return (
     <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
       style={{ background: `${color}14`, border: `1px solid ${color}22` }}>
@@ -62,8 +62,8 @@ function ItemIcon({ type }) {
 function InfoStrip({ icon: Icon, children }) {
   return (
     <div className="flex items-start gap-2.5 p-3 rounded-xl"
-      style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
-      <Icon size={14} color="#c084fc" className="flex-shrink-0 mt-0.5" />
+      style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+      <Icon size={14} color="var(--color-primary-400)" className="flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 text-sm text-gray-700 dark:text-gray-300">{children}</div>
     </div>
   );
@@ -94,8 +94,8 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md"
-      style={{ border: '1px solid rgba(168,85,247,0.2)' }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 16px rgba(168,85,247,0.1)'}
+      style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 16px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = ''}>
 
       {/* Status accent bar */}
@@ -106,18 +106,18 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <h3 className="text-base font-bold" style={{ color: '#a855f7' }}>{order.order_number}</h3>
+              <h3 className="text-base font-bold" style={{ color: 'var(--color-primary-500)' }}>{order.order_number}</h3>
               <StatusPill label={order.status_label || order.status} color={statusCfg.color} />
               <StatusPill label={order.payment_status_label || order.payment_status} color={paymentCfg.color} />
               {order.order_type && (
                 <span className="text-xs font-semibold uppercase px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)' }}>
                   {order.order_type}
                 </span>
               )}
               {order.referral_code && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                  style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                  style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)' }}>
                   🎁 {order.referral_code}
                 </span>
               )}
@@ -129,13 +129,13 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
               )}
             </div>
             <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
-              <span className="flex items-center gap-1.5"><Calendar size={12} color="#c084fc" />{new Date(order.created_at).toLocaleDateString()}</span>
-              <span className="flex items-center gap-1.5"><Package size={12} color="#c084fc" />{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</span>
+              <span className="flex items-center gap-1.5"><Calendar size={12} color="var(--color-primary-400)" />{new Date(order.created_at).toLocaleDateString()}</span>
+              <span className="flex items-center gap-1.5"><Package size={12} color="var(--color-primary-400)" />{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}</span>
             </div>
           </div>
 
           <div className="text-right flex-shrink-0">
-            <p className="text-xl font-bold" style={{ color: '#a855f7' }}>{money(order.total)}</p>
+            <p className="text-xl font-bold" style={{ color: 'var(--color-primary-500)' }}>{money(order.total)}</p>
             {showKes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{kesMoney(order.total_kes)}</p>}
             {order.payment_method && (
               <p className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1 justify-end">
@@ -203,7 +203,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
         <div className="mb-4 space-y-2">
           {visibleItems.map((item, idx) => (
             <div key={idx} className="flex items-center gap-3 pb-2 last:pb-0"
-              style={{ borderBottom: idx < visibleItems.length - 1 ? '1px solid rgba(168,85,247,0.1)' : 'none' }}>
+              style={{ borderBottom: idx < visibleItems.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'none' }}>
               <ItemIcon type={item.item_type || item.type || 'product'} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.product_name}</p>
@@ -217,12 +217,12 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
                   <div className="flex flex-wrap gap-1 mt-1">
                     {Object.entries(item.variant_details).slice(0, 2).map(([k, v]) => v && (
                       <span key={k} className="text-xs px-1.5 py-0.5 rounded-md"
-                        style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)', color: '#a855f7' }}>
+                        style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-500)' }}>
                         {k}: {v}
                       </span>
                     ))}
                     {Object.keys(item.variant_details).length > 2 && (
-                      <span className="text-xs" style={{ color: '#c084fc' }}>+{Object.keys(item.variant_details).length - 2}</span>
+                      <span className="text-xs" style={{ color: 'var(--color-primary-400)' }}>+{Object.keys(item.variant_details).length - 2}</span>
                     )}
                   </div>
                 )}
@@ -236,9 +236,9 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
           {order.items?.length > 3 && (
             <button onClick={() => setShowAllItems(v => !v)} type="button"
               className="w-full py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
-              style={{ border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc', background: 'transparent' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; e.currentTarget.style.background = 'rgba(168,85,247,0.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#c084fc'; e.currentTarget.style.background = 'transparent'; }}>
+              style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-400)', background: 'transparent' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-400)'; e.currentTarget.style.background = 'transparent'; }}>
               {showAllItems ? <><ChevronUp size={14} /> Show Less</> : <><ChevronDown size={14} /> Show {order.items.length - 3} More Items</>}
             </button>
           )}
@@ -246,7 +246,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
 
         {/* ── Pricing summary ───────────────────────────────────────── */}
         <div className="mb-4 p-3 rounded-xl"
-          style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
+          style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between text-gray-500 dark:text-gray-400">
               <span>Subtotal</span>
@@ -262,12 +262,12 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
               </div>
             )}
             {order.referral_discount > 0 && (
-              <div className="flex justify-between items-center" style={{ color: '#a855f7' }}>
+              <div className="flex justify-between items-center" style={{ color: 'var(--color-primary-500)' }}>
                 <span className="flex items-center gap-1">
                   🎁 Referral
                   {order.referral_code && (
                     <span className="font-bold px-1.5 py-0.5 rounded-md text-xs"
-                      style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                      style={{ background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                       {order.referral_code}
                     </span>
                   )}
@@ -313,7 +313,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
               </div>
             )}
             {Number(order.credit_account_deduction) > 0 && (
-              <div className="flex justify-between items-center" style={{ color: '#7c3aed' }}>
+              <div className="flex justify-between items-center" style={{ color: 'var(--color-primary-600)' }}>
                 <span className="flex items-center gap-1">
                   🏦 Credit account
                 </span>
@@ -321,13 +321,13 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
               </div>
             )}
             <div className="flex justify-between pt-2 font-bold"
-              style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+              style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
               <span className="text-gray-800 dark:text-gray-200">Total</span>
               <div className="text-right">
-                <span style={{ color: '#a855f7' }}>{money(order.total)}</span>
+                <span style={{ color: 'var(--color-primary-500)' }}>{money(order.total)}</span>
                 {showKes && (
                   <div className="mt-0.5">
-                    <p className="font-bold" style={{ color: '#a855f7' }}>{kesMoney(order.total_kes)}</p>
+                    <p className="font-bold" style={{ color: 'var(--color-primary-500)' }}>{kesMoney(order.total_kes)}</p>
                     <p className="text-xs font-normal text-gray-400 dark:text-gray-500 italic">
                       1 {displayCurrency} = {formatMoney(order.exchange_rate_to_kes, 6)} KES
                       {order.converted_at && ` · ${new Date(order.converted_at).toLocaleDateString()}`}
@@ -346,7 +346,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
               {order.tracking_number ? (
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Tracking: <span style={{ color: '#a855f7' }}>{order.tracking_number}</span>
+                    Tracking: <span style={{ color: 'var(--color-primary-500)' }}>{order.tracking_number}</span>
                   </p>
                   {order.courier_company && <p className="text-xs text-gray-500 dark:text-gray-400">via {order.courier_company}</p>}
                   {order.estimated_delivery_date && <p className="text-xs text-gray-500 dark:text-gray-400">ETA: {new Date(order.estimated_delivery_date).toLocaleDateString()}</p>}
@@ -360,12 +360,12 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
 
         {/* ── Actions ───────────────────────────────────────────────── */}
         <div className="flex items-center gap-2.5 pt-4"
-          style={{ borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+          style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
           <button
             onClick={() => navigate(`/orders/${order.id}`)}
             type="button"
             className="flex-1 py-2.5 px-4 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' }}
+            style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}
           >
             View Details
           </button>

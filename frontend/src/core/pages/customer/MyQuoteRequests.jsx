@@ -58,16 +58,16 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
   if (!requests.length) return null;
 
   return (
-    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 1px 8px rgba(168,85,247,0.06)' }}>
+    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 1px 8px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
         {/* Head */}
         <thead>
-          <tr style={{ background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+          <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             {['Request', 'Status', 'Type', 'Priority', 'Date', 'Budget / Timeline', 'Flags', ''].map((h, i) => (
               <th key={i} style={{
                 textAlign: 'left', padding: '12px 16px', whiteSpace: 'nowrap',
                 fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: '#a855f7',
+                letterSpacing: '0.08em', color: 'var(--color-primary-500)',
               }}>{h}</th>
             ))}
           </tr>
@@ -85,19 +85,19 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
               <tr
                 key={req.id}
                 style={{
-                  background: isEven ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.015)',
-                  borderBottom: '1px solid rgba(168,85,247,0.08)',
+                  background: isEven ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   borderLeft: `3px solid ${statusCfg.color}`,
                   transition: 'background 150ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
-                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'rgba(168,85,247,0.015)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
               >
                 {/* Request number + title + customer */}
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#9ca3af' }}>{req.request_number}</span>
-                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#a855f7', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-primary-500)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {req.request_title}
                     </span>
                     {showCustomer && req.customer && (
@@ -128,7 +128,7 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
                 {/* Type */}
                 <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
-                    <TypeIcon size={12} color="#c084fc" /> {typeCfg.label}
+                    <TypeIcon size={12} color="var(--color-primary-400)" /> {typeCfg.label}
                   </div>
                   {req.requested_items?.length > 0 && (
                     <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>
@@ -152,7 +152,7 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
                 {/* Date */}
                 <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
-                    <Calendar size={11} color="#c084fc" />
+                    <Calendar size={11} color="var(--color-primary-400)" />
                     {formatDate(req.created_at)}
                   </div>
                 </td>
@@ -162,12 +162,12 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {req.budget_range ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#6b7280' }}>
-                        <DollarSign size={11} color="#c084fc" /> {req.budget_range}
+                        <DollarSign size={11} color="var(--color-primary-400)" /> {req.budget_range}
                       </div>
                     ) : null}
                     {req.timeline_needed ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#6b7280' }}>
-                        <Clock size={11} color="#c084fc" /> {req.timeline_needed}
+                        <Clock size={11} color="var(--color-primary-400)" /> {req.timeline_needed}
                       </div>
                     ) : null}
                     {!req.budget_range && !req.timeline_needed && (
@@ -223,8 +223,8 @@ function QuoteRequestTable({ requests, showCustomer = false }) {
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         padding: '6px 14px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
-                        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                        border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(168,85,247,0.25)',
+                        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                        border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                         whiteSpace: 'nowrap', textDecoration: 'none',
                       }}
                     >
@@ -315,19 +315,19 @@ const MyQuoteRequests = () => {
       <Header />
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: '2px solid rgba(168,85,247,0.2)', padding: '32px 24px 0' }}>
+      <div style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '32px 24px 0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
             <div>
               <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Account</p>
-              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#c084fc', letterSpacing: '-0.02em', margin: 0 }}>Quote Requests</h1>
+              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary-400)', letterSpacing: '-0.02em', margin: 0 }}>Quote Requests</h1>
               <p style={{ marginTop: 6, fontSize: '0.88rem', color: '#9ca3af', fontWeight: 500 }}>
                 {pagination?.total ?? quoteRequests.length} request{(pagination?.total ?? quoteRequests.length) !== 1 ? 's' : ''} total
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               {/* View toggle */}
-              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+              <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 <button
                   type="button"
                   onClick={() => setQuoteRequestsView('card')}
@@ -335,8 +335,8 @@ const MyQuoteRequests = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 36, height: 36, cursor: 'pointer', border: 'none', transition: 'all 150ms',
-                    background: quoteRequestsView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                    color: quoteRequestsView === 'card' ? '#a855f7' : '#c084fc',
+                    background: quoteRequestsView === 'card' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                    color: quoteRequestsView === 'card' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                   }}
                 >
                   <LayoutGrid size={15} />
@@ -348,9 +348,9 @@ const MyQuoteRequests = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 36, height: 36, cursor: 'pointer', border: 'none',
-                    borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
-                    background: quoteRequestsView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                    color: quoteRequestsView === 'table' ? '#a855f7' : '#c084fc',
+                    borderLeft: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', transition: 'all 150ms',
+                    background: quoteRequestsView === 'table' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                    color: quoteRequestsView === 'table' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                   }}
                 >
                   <List size={15} />
@@ -358,7 +358,7 @@ const MyQuoteRequests = () => {
               </div>
 
               <button onClick={() => navigate('/request-quote')} type="button"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>
                 <Plus size={16} /> New Request
               </button>
             </div>
@@ -373,9 +373,9 @@ const MyQuoteRequests = () => {
                 placeholder="Search by ID, product name, status, or notes…"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               {searchTerm && (
                 <button type="button" onClick={() => setSearchTerm('')}
@@ -401,8 +401,8 @@ const MyQuoteRequests = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '11px 16px', border: 'none', cursor: 'pointer', background: 'transparent', whiteSpace: 'nowrap',
                     fontSize: '0.82rem', fontWeight: 700,
-                    color: active ? (color || '#a855f7') : '#9ca3af',
-                    borderBottom: active ? `2.5px solid ${color || '#a855f7'}` : '2.5px solid transparent',
+                    color: active ? (color || 'var(--color-primary-500)') : '#9ca3af',
+                    borderBottom: active ? `2.5px solid ${color || 'var(--color-primary-500)'}` : '2.5px solid transparent',
                     transition: 'all 150ms', marginBottom: 20,
                   }}
                 >
@@ -429,9 +429,9 @@ const MyQuoteRequests = () => {
           </div>
 
         ) : filteredRequests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid rgba(168,85,247,0.2)' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              {searchTerm ? <Search size={28} color="#c084fc" /> : <FileText size={28} color="#c084fc" />}
+          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              {searchTerm ? <Search size={28} color="var(--color-primary-400)" /> : <FileText size={28} color="var(--color-primary-400)" />}
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>
               {searchTerm ? 'No Results Found' : 'No quote requests yet'}
@@ -443,12 +443,12 @@ const MyQuoteRequests = () => {
             </p>
             {searchTerm ? (
               <button type="button" onClick={() => setSearchTerm('')}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
                 <X size={14} /> Clear Search
               </button>
             ) : !hasFilters && (
               <button onClick={() => navigate('/request-quote')} type="button"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.3)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
                 <Plus size={15} /> Request a Quote
               </button>
             )}
@@ -474,7 +474,7 @@ const MyQuoteRequests = () => {
             {pagination?.last_page > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 32 }}>
                 <button onClick={() => handlePageChange(pagination.current_page - 1)} disabled={pagination.current_page === 1} type="button"
-                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: pagination.current_page === 1 ? 'not-allowed' : 'pointer', opacity: pagination.current_page === 1 ? 0.4 : 1 }}>
+                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: pagination.current_page === 1 ? 'not-allowed' : 'pointer', opacity: pagination.current_page === 1 ? 0.4 : 1 }}>
                   Previous
                 </button>
                 {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
@@ -485,13 +485,13 @@ const MyQuoteRequests = () => {
                   const active = p === pagination.current_page;
                   return (
                     <button key={p} onClick={() => handlePageChange(p)} type="button"
-                      style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${active ? '#a855f7' : 'rgba(168,85,247,0.2)'}`, background: active ? '#a855f7' : 'white', color: active ? 'white' : '#374151', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: active ? '0 0 0 3px rgba(168,85,247,0.15)' : 'none' }}>
+                      style={{ width: 36, height: 36, borderRadius: 9, border: `1.5px solid ${active ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`, background: active ? 'var(--color-primary-500)' : 'white', color: active ? 'white' : '#374151', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: active ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none' }}>
                       {p}
                     </button>
                   );
                 })}
                 <button onClick={() => handlePageChange(pagination.current_page + 1)} disabled={pagination.current_page === pagination.last_page} type="button"
-                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.2)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: pagination.current_page === pagination.last_page ? 'not-allowed' : 'pointer', opacity: pagination.current_page === pagination.last_page ? 0.4 : 1 }}>
+                  style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white', color: '#374151', fontWeight: 700, fontSize: '0.82rem', cursor: pagination.current_page === pagination.last_page ? 'not-allowed' : 'pointer', opacity: pagination.current_page === pagination.last_page ? 0.4 : 1 }}>
                   Next
                 </button>
               </div>
@@ -500,8 +500,8 @@ const MyQuoteRequests = () => {
         )}
 
         {/* ── Status Guide ────────────────────────────────────────────────── */}
-        <div style={{ marginTop: 48, background: 'white', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', padding: '24px 28px' }}>
-          <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>Status Guide</p>
+        <div style={{ marginTop: 48, background: 'white', borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '24px 28px' }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>Status Guide</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
             {STATUS_GUIDE.map(({ color, label, desc }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>

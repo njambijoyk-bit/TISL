@@ -7,15 +7,15 @@ import useServiceStore from '../../store/serviceStore';
 import { productsAPI, servicesAPI } from '../../api/index';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ─── Atoms ──────────────────────────────────────────────────────────────────
 const Btn = ({ children, onClick, disabled, variant = 'outline', size = 'md', type = 'button' }) => {
   const variants = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}` },
   };

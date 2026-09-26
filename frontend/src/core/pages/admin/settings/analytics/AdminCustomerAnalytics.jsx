@@ -18,7 +18,7 @@ const TIER = {
   gold:     { bg: 'rgba(245,158,11,0.1)',  color: '#d97706', label: 'Gold'     },
   silver:   { bg: 'rgba(156,163,175,0.15)', color: '#6b7280', label: 'Silver'   },
   bronze:   { bg: 'rgba(180,83,9,0.1)',    color: '#b45309', label: 'Bronze'    },
-  standard: { bg: 'rgba(168,85,247,0.1)',  color: '#a855f7', label: 'Standard'  },
+  standard: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-500)', label: 'Standard'  },
 };
 
 // ── Event type icon/color map ─────────────────────────────────────────────────
@@ -29,8 +29,8 @@ const EVENT_META = {
   service_view:      { color: '#06b6d4', label: 'Service View'  },
   add_to_cart:       { color: '#f59e0b', label: 'Added to Cart' },
   add_to_wishlist:   { color: '#ec4899', label: 'Wishlisted'    },
-  add_to_quotelist:  { color: '#8b5cf6', label: 'Quoted'        },
-  filter:            { color: '#a855f7', label: 'Filter'        },
+  add_to_quotelist:  { color: 'var(--color-primary-400)', label: 'Quoted'        },
+  filter:            { color: 'var(--color-primary-500)', label: 'Filter'        },
 };
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ function Skeleton({ w = '100%', h = 14, radius = 6 }) {
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ icon: Icon, label, value, color = '#a855f7' }) {
+function StatCard({ icon: Icon, label, value, color = 'var(--color-primary-500)' }) {
   return (
     <div style={{
       background: 'white', borderRadius: 14, padding: '16px 18px',
@@ -68,7 +68,7 @@ function Section({ title, icon: Icon, children, action, noPad }) {
     }} className="dark:bg-gray-800 dark:border-gray-700">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          {Icon && <Icon size={14} style={{ color: '#a855f7' }} />}
+          {Icon && <Icon size={14} style={{ color: 'var(--color-primary-500)' }} />}
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">{title}</span>
         </div>
         {action}
@@ -79,7 +79,7 @@ function Section({ title, icon: Icon, children, action, noPad }) {
 }
 
 // ── Mini bar ──────────────────────────────────────────────────────────────────
-function MiniBar({ value, max, color = '#a855f7' }) {
+function MiniBar({ value, max, color = 'var(--color-primary-500)' }) {
   const w = max > 0 ? Math.max(3, (value / max) * 100) : 0;
   return (
     <div style={{ flex: 1, height: 5, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden', minWidth: 40 }}>
@@ -191,7 +191,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
           {/* Avatar */}
           <div style={{
             width: 62, height: 62, borderRadius: 16, flexShrink: 0,
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
@@ -223,7 +223,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                   <Phone size={11} /> {c.phone}
                 </span>
               )}
-              <span style={{ fontSize: '0.72rem', color: '#c084fc', fontFamily: 'monospace', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-primary-400)', fontFamily: 'monospace', fontWeight: 600 }}>
                 {c.customer_number}
               </span>
             </div>
@@ -235,7 +235,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
               { label: 'Total Orders', value: fmt(c.total_orders), color: '#3b82f6' },
               { label: 'Total Spent',  value: fmtKES(c.total_spent), color: '#10b981' },
               { label: 'Loyalty Pts',  value: fmt(c.loyalty_points), color: '#f59e0b' },
-              { label: 'Store Credit', value: fmtKES(c.store_credit), color: '#a855f7' },
+              { label: 'Store Credit', value: fmtKES(c.store_credit), color: 'var(--color-primary-500)' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color }} className="dark:text-white">{value}</div>
@@ -250,7 +250,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
           {[
             { icon: ShoppingCart, label: 'Cart Items',     value: c.cart_items,      color: '#f59e0b', updated: c.cart_updated_at },
             { icon: Heart,        label: 'Wishlist',        value: c.wishlist_count,  color: '#ec4899', updated: c.wishlist_updated_at },
-            { icon: FileText,     label: 'Quote List',      value: c.quotelist_items, color: '#8b5cf6', updated: c.quotelist_updated_at },
+            { icon: FileText,     label: 'Quote List',      value: c.quotelist_items, color: 'var(--color-primary-400)', updated: c.quotelist_updated_at },
           ].map(({ icon: Icon, label, value, color, updated }) => (
             <div key={label} style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px',
@@ -275,7 +275,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
 
       {/* ── Analytics stat cards ──────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 12 }}>
-        <StatCard icon={Activity}     label="Sessions"      value={fmt(a?.total_sessions)} color="#a855f7" />
+        <StatCard icon={Activity}     label="Sessions"      value={fmt(a?.total_sessions)} color="var(--color-primary-500)" />
         <StatCard icon={Search}       label="Searches"      value={fmt(a?.searches)}       color="#3b82f6" />
         <StatCard icon={Eye}          label="Product Views" value={fmt(a?.product_views)}  color="#10b981" />
         <StatCard icon={ShoppingCart} label="Cart Adds"     value={fmt(a?.cart_adds)}      color="#f59e0b" />
@@ -292,7 +292,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
             <div>
               {top_queries.map((row, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid #f9fafb' }} className="dark:border-gray-700">
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#a855f7', width: 18, flexShrink: 0 }}>#{i + 1}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-500)', width: 18, flexShrink: 0 }}>#{i + 1}</span>
                   <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="dark:text-white">
                     {row.query}
                   </span>
@@ -362,11 +362,11 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                   key={i}
                   onClick={() => onSessionClick?.(s.session_id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid #f9fafb', cursor: 'pointer' }}
-                  className="hover:bg-purple-50 dark:hover:bg-gray-700 dark:border-gray-700">
+                  className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700">
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#a855f7', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--color-primary-500)', fontWeight: 600 }}>
                         {s.session_id.slice(0, 16)}…
                       </span>
                       <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>{fmtTime(s.started_at)}</span>
@@ -416,8 +416,8 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
               <>
                 <div style={{
                   padding: '12px 14px',
-                  background: 'rgba(168,85,247,0.04)',
-                  border: '1px solid rgba(168,85,247,0.15)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                   borderRadius: 10,
                   fontSize: '0.82rem', lineHeight: 1.65,
                   color: '#374151', fontFamily: 'Georgia, serif',
@@ -430,7 +430,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                   <div style={{ position: 'relative', flex: 1 }}>
                     <Tag size={11} style={{
                       position: 'absolute', left: 10, top: '50%',
-                      transform: 'translateY(-50%)', color: '#a855f7', opacity: 0.5,
+                      transform: 'translateY(-50%)', color: 'var(--color-primary-500)', opacity: 0.5,
                     }} />
                     <input
                       value={tagInput}
@@ -440,8 +440,8 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                         width: '100%', boxSizing: 'border-box',
                         paddingLeft: 28, paddingRight: 10,
                         height: 34, borderRadius: 8,
-                        border: '1px solid rgba(168,85,247,0.2)',
-                        background: 'rgba(168,85,247,0.04)',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
                         fontSize: '0.78rem', color: '#374151', outline: 'none',
                       }}
                     />
@@ -452,7 +452,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '0 14px', height: 34, borderRadius: 8, border: 'none',
-                      background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                      background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                       color: '#fff', fontSize: '0.75rem', fontWeight: 700,
                       cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
                     }}
@@ -479,8 +479,8 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                     padding: '4px 0', marginBottom: savedOpen ? 10 : 0,
                   }}
                 >
-                  {savedOpen ? <ChevronUp size={12} color="#a855f7" /> : <ChevronDown size={12} color="#a855f7" />}
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a855f7' }}>
+                  {savedOpen ? <ChevronUp size={12} color="var(--color-primary-500)" /> : <ChevronDown size={12} color="var(--color-primary-500)" />}
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
                     {savedNotes.length} saved snapshot{savedNotes.length > 1 ? 's' : ''}
                   </span>
                 </button>
@@ -499,8 +499,8 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                                 display: 'inline-block', marginBottom: 6,
                                 fontSize: '0.65rem', fontWeight: 700,
                                 padding: '2px 7px', borderRadius: 99,
-                                background: 'rgba(168,85,247,0.1)', color: '#a855f7',
-                                border: '1px solid rgba(168,85,247,0.2)',
+                                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-500)',
+                                border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                                 textTransform: 'uppercase', letterSpacing: '0.05em',
                               }}>
                                 {s.internal_tag}

@@ -16,7 +16,7 @@ const EXP_LABELS = {
 const s = {
     page: { minHeight: '100vh', background: '#0f0f0f', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif" },
     hero: { borderBottom: '1px solid #1e1e1e', padding: '64px 40px 48px', maxWidth: 900, margin: '0 auto' },
-    eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#a855f7', marginBottom: 16, fontWeight: 600 },
+    eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 16, fontWeight: 600 },
     title: { fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 16, fontFamily: "'DM Serif Display', serif" },
     subtitle: { color: '#888', fontSize: 16, maxWidth: 480 },
     body: { maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px', display: 'grid', gridTemplateColumns: '220px 1fr', gap: 48 },
@@ -26,7 +26,7 @@ const s = {
     filterBtn: (active) => ({
         display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
         borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13,
-        background: active ? '#a855f7' : 'transparent',
+        background: active ? 'var(--color-primary-500)' : 'transparent',
         color: active ? '#fff' : '#aaa',
         marginBottom: 2, transition: 'all 0.15s',
     }),
@@ -44,7 +44,7 @@ const s = {
         background: color, color: '#ccc', fontWeight: 500,
     }),
     cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid #1e1e1e' },
-    applyBtn: { fontSize: 12, color: '#a855f7', fontWeight: 600, letterSpacing: '0.05em' },
+    applyBtn: { fontSize: 12, color: 'var(--color-primary-500)', fontWeight: 600, letterSpacing: '0.05em' },
     deadline: { fontSize: 12, color: '#555' },
     empty: { textAlign: 'center', padding: '64px 0', color: '#555' },
     loader: { textAlign: 'center', padding: '64px 0', color: '#555' },
@@ -114,7 +114,7 @@ export default function CareersPage() {
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 20px 0' }}>
             <p style={{ fontSize: 12, color: '#555', margin: 0 }}>
                 <Link to="/" style={{ color: '#555', textDecoration: 'none', transition: 'color 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                 onMouseLeave={e => e.currentTarget.style.color = '#555'}
                 >
                 Home
@@ -182,7 +182,7 @@ export default function CareersPage() {
                             <div style={s.grid}>
                                 {listings.map((job) => (
                                     <Link key={job.id} to={`/careers/${job.slug}`} style={s.card}
-                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#a855f7'}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
                                         onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}>
                                         <p style={s.cardTitle}>{job.title}</p>
                                         <div style={s.cardMeta}>
@@ -192,7 +192,7 @@ export default function CareersPage() {
                                             {job.location && <span style={s.pill()}><MapPin size={15} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {job.location}</span>}
                                         </div>
                                         {job.salary_range && (
-                                            <p style={{ fontSize: 13, color: '#a855f7', fontWeight: 600 }}>{job.salary_range}</p>
+                                            <p style={{ fontSize: 13, color: 'var(--color-primary-500)', fontWeight: 600 }}>{job.salary_range}</p>
                                         )}
                                         <div style={s.cardFooter}>
                                             <span style={s.applyBtn}>View & Apply →</span>

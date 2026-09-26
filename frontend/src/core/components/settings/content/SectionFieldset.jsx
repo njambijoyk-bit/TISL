@@ -7,8 +7,8 @@ import { getFieldConfig } from './sectionConfig';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
@@ -17,8 +17,8 @@ const inputError = {
   ...inputStyle,
   borderColor: 'rgba(239,68,68,0.5)',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
@@ -106,13 +106,13 @@ function ImageField({ value, onChange, onUpload, error }) {
           position: 'relative', width: '100%', borderRadius: 10, overflow: 'hidden',
           aspectRatio: '16/7', minHeight: 130,
           border: dragOver
-            ? '2px solid #a855f7'
+            ? '2px solid var(--color-primary-500)'
             : hasImage
-              ? '1.5px solid rgba(168,85,247,0.2)'
-              : '1.5px dashed rgba(168,85,247,0.2)',
+              ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
+              : '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           background: dragOver
-            ? 'rgba(168,85,247,0.06)'
-            : hasImage ? 'transparent' : 'rgba(168,85,247,0.03)',
+            ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'
+            : hasImage ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
           transition: 'border-color 150ms, background 150ms',
         }}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -144,7 +144,7 @@ function ImageField({ value, onChange, onUpload, error }) {
             gap: 6, pointerEvents: 'none', userSelect: 'none',
           }}>
             {uploading ? (
-              <Loader2 size={28} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+              <Loader2 size={28} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
             ) : (
               <>
                 <ImageIcon size={30} style={{ color: '#d1d5db' }} strokeWidth={1.5} />
@@ -160,9 +160,9 @@ function ImageField({ value, onChange, onUpload, error }) {
           <div style={{
             position: 'absolute', inset: 0, borderRadius: 10,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(168,85,247,0.12)', pointerEvents: 'none',
+            background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', pointerEvents: 'none',
           }}>
-            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>Drop image here</p>
+            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Drop image here</p>
           </div>
         )}
       </div>
@@ -170,13 +170,13 @@ function ImageField({ value, onChange, onUpload, error }) {
       {/* Tab panel */}
       <div style={{
         borderRadius: 10, overflow: 'hidden',
-        border: '1.5px solid rgba(168,85,247,0.15)',
+        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
       }}>
         {/* Tab bar — only if upload available */}
         {onUpload && (
           <div style={{
-            display: 'flex', borderBottom: '1px solid rgba(168,85,247,0.1)',
-            background: 'rgba(168,85,247,0.03)',
+            display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
           }}>
             {[
               { id: 'url',    icon: Link,   label: 'Paste URL'   },
@@ -187,8 +187,8 @@ function ImageField({ value, onChange, onUpload, error }) {
                 padding: '8px', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit',
                 cursor: 'pointer', border: 'none', transition: 'all 150ms',
                 background: tab === id ? 'white' : 'transparent',
-                color: tab === id ? '#7c3aed' : '#9ca3af',
-                borderBottom: tab === id ? '2px solid #a855f7' : '2px solid transparent',
+                color: tab === id ? 'var(--color-primary-600)' : '#9ca3af',
+                borderBottom: tab === id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                 marginBottom: -1,
               }}>
                 <Icon size={11} /> {label}
@@ -214,7 +214,7 @@ function ImageField({ value, onChange, onUpload, error }) {
               <button type="button" onClick={commitUrl} style={{
                 padding: '0 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+                background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
               }}>
                 Apply
               </button>
@@ -228,13 +228,13 @@ function ImageField({ value, onChange, onUpload, error }) {
                 onChange={e => handleFile(e.target.files?.[0])} />
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{
                 width: '100%', height: 36, borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-                border: '1.5px dashed rgba(168,85,247,0.25)', background: 'transparent',
+                border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent',
                 color: '#9ca3af', cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 opacity: uploading ? 0.6 : 1, transition: 'border-color 150ms, color 150ms',
               }}
-                onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#a855f7'; } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'; e.currentTarget.style.color = '#9ca3af'; }}
+                onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; } }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
               >
                 {uploading
                   ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</>
@@ -273,17 +273,17 @@ function SettingsField({ value, onChange, error }) {
   return (
     <div style={{
       borderRadius: 10, overflow: 'hidden',
-      border: '1.5px solid rgba(168,85,247,0.15)',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     }}>
       {/* Toggle header */}
       <button type="button" onClick={() => setOpen(o => !o)} style={{
         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px', background: 'rgba(168,85,247,0.03)',
+        padding: '10px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         transition: 'background 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
@@ -298,7 +298,7 @@ function SettingsField({ value, onChange, error }) {
           {keyCount > 0 && (
             <span style={{
               fontSize: '0.6rem', padding: '1px 7px', borderRadius: 99, fontWeight: 700,
-              background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
             }}>
               {keyCount} key{keyCount !== 1 ? 's' : ''} set
             </span>
@@ -317,8 +317,8 @@ function SettingsField({ value, onChange, error }) {
           </p>
           <div style={{
             fontSize: '0.68rem', color: '#9ca3af', fontFamily: 'monospace', lineHeight: 1.8,
-            background: 'rgba(168,85,247,0.03)', borderRadius: 8, padding: '8px 12px',
-            border: '1px solid rgba(168,85,247,0.1)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderRadius: 8, padding: '8px 12px',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
             <p style={{ color: '#d1d5db', margin: '0 0 2px' }}>// examples</p>
             <p style={{ margin: '0 0 2px' }}>{`{ "bg": "dark", "text_align": "center" }`}</p>

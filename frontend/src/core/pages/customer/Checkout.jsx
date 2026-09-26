@@ -20,7 +20,7 @@ const inputStyle = {
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box', background: 'white',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
 const inputBlur  = (e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; };
 const inputError = (e) => { e.currentTarget.style.borderColor = '#ef4444'; };
 
@@ -64,15 +64,15 @@ function RadioCard({ value, current, onChange, label, sub, icon, disabled }) {
     <button type="button" onClick={() => !disabled && onChange(value)} style={{
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 14px', borderRadius: 10, textAlign: 'left',
-      border: `1.5px solid ${active ? '#a855f7' : '#e5e7eb'}`,
-      background: disabled ? '#fbfaf9' : active ? 'rgba(168,85,247,0.04)' : 'white',
+      border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`,
+      background: disabled ? '#fbfaf9' : active ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
       cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', width: '100%',
       transition: 'all 150ms', opacity: disabled ? 0.6 : 1,
     }}>
       <div style={{
         width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-        border: `2px solid ${disabled ? '#e5e7eb' : active ? '#a855f7' : '#d1d5db'}`,
-        background: active ? '#a855f7' : 'white',
+        border: `2px solid ${disabled ? '#e5e7eb' : active ? 'var(--color-primary-500)' : '#d1d5db'}`,
+        background: active ? 'var(--color-primary-500)' : 'white',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 150ms',
       }}>
@@ -82,7 +82,7 @@ function RadioCard({ value, current, onChange, label, sub, icon, disabled }) {
         <p style={{ fontSize: '0.82rem', fontWeight: 600, color: disabled ? '#ef4444' : '#111827', margin: '0 0 1px' }}>{label}</p>
         {sub && <p style={{ fontSize: '0.72rem', color: disabled ? '#fca5a5' : '#9ca3af', margin: 0 }}>{sub}</p>}
       </div>
-      {icon && <span style={{ color: active ? '#a855f7' : '#d1d5db', flexShrink: 0 }}>{icon}</span>}
+      {icon && <span style={{ color: active ? 'var(--color-primary-500)' : '#d1d5db', flexShrink: 0 }}>{icon}</span>}
     </button>
   );
 }
@@ -309,15 +309,15 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
         {/* Breadcrumb */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#9ca3af', marginBottom: 24 }}>
           <button onClick={() => navigate('/cart')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontFamily: 'inherit', fontSize: '0.75rem', transition: 'color 150ms' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           >Cart</button>
           <ChevronRight size={12} />
-          <span style={{ color: '#a855f7', fontWeight: 600 }}>Checkout</span>
+          <span style={{ color: 'var(--color-primary-500)', fontWeight: 600 }}>Checkout</span>
         </div>
 
         {/* Heading */}
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 24px' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 24px' }}>
           Checkout
         </h1>
 
@@ -361,7 +361,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
               {/* Contact */}
               <div style={card}>
                 <p style={sectionTitle}>
-                  <CreditCard size={14} style={{ color: '#a855f7' }} /> Contact information
+                  <CreditCard size={14} style={{ color: 'var(--color-primary-500)' }} /> Contact information
                 </p>
                 <div style={{
                   display: 'grid',
@@ -380,7 +380,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
               {/* Shipping address */}
               <div style={card}>
                 <p style={sectionTitle}>
-                  <Package size={14} style={{ color: '#a855f7' }} /> Shipping information
+                  <Package size={14} style={{ color: 'var(--color-primary-500)' }} /> Shipping information
                 </p>
                 <Field label="Delivery address *" error={errors.shipping_address}>
                   <textarea
@@ -415,7 +415,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
               {/* Payment */}
               <div style={card}>
                 <p style={sectionTitle}>
-                  <CreditCard size={14} style={{ color: '#a855f7' }} /> Payment information
+                  <CreditCard size={14} style={{ color: 'var(--color-primary-500)' }} /> Payment information
                 </p>
                 <p style={{ ...labelStyle, marginBottom: 10 }}>Payment method</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
@@ -445,7 +445,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
             {/* ── Right: order summary ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, order: isMobile ? 1 : 2 }}>
               <div style={card}>
-                <p style={sectionTitle}><Package size={14} style={{ color: '#a855f7' }} /> Order summary</p>
+                <p style={sectionTitle}><Package size={14} style={{ color: 'var(--color-primary-500)' }} /> Order summary</p>
 
                 {/* Items */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
@@ -520,8 +520,8 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         width: '100%', padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
-                        border: `1.5px solid ${applyCredit ? '#a855f7' : '#e5e7eb'}`,
-                        background: applyCredit ? 'rgba(168,85,247,0.04)' : 'white',
+                        border: `1.5px solid ${applyCredit ? 'var(--color-primary-500)' : '#e5e7eb'}`,
+                        background: applyCredit ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
                         fontFamily: 'inherit', transition: 'all 150ms',
                         touchAction: 'manipulation',
                         WebkitTapHighlightColor: 'transparent',
@@ -529,8 +529,8 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{
-                          width: 16, height: 16, borderRadius: 4, border: `2px solid ${applyCredit ? '#a855f7' : '#d1d5db'}`,
-                          background: applyCredit ? '#a855f7' : 'white', flexShrink: 0,
+                          width: 16, height: 16, borderRadius: 4, border: `2px solid ${applyCredit ? 'var(--color-primary-500)' : '#d1d5db'}`,
+                          background: applyCredit ? 'var(--color-primary-500)' : 'white', flexShrink: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms',
                         }}>
                           {applyCredit && <div style={{ width: 6, height: 6, background: 'white', borderRadius: 1 }} />}
@@ -577,7 +577,7 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                           {creditCalculating && (
                             <Loader2 size={13} style={{
                               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                              color: '#a855f7', animation: 'spin 700ms linear infinite',
+                              color: 'var(--color-primary-500)', animation: 'spin 700ms linear infinite',
                             }} />
                           )}
                         </div>
@@ -590,8 +590,8 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                 {form.payment_method === 'credit' && customer?.has_credit_account && (() => {
                   const available = Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0));
                   return (
-                    <div style={{ marginTop: 16, padding: '14px', borderRadius: 10, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.18)' }}>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', margin: '0 0 10px' }}>
+                    <div style={{ marginTop: 16, padding: '14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 10px' }}>
                         Credit account — {fmt(available)} available
                       </p>
 
@@ -606,9 +606,9 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                             style={{
                               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                               fontFamily: 'inherit', cursor: 'pointer',
-                              border: `1.5px solid ${form.partialCredit === val ? '#a855f7' : '#e5e7eb'}`,
-                              background: form.partialCredit === val ? 'rgba(168,85,247,0.08)' : 'white',
-                              color: form.partialCredit === val ? '#7c3aed' : '#9ca3af',
+                              border: `1.5px solid ${form.partialCredit === val ? 'var(--color-primary-500)' : '#e5e7eb'}`,
+                              background: form.partialCredit === val ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+                              color: form.partialCredit === val ? 'var(--color-primary-600)' : '#9ca3af',
                               transition: 'all 150ms',
                             }}>
                             {label}
@@ -668,9 +668,9 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { label: 'Subtotal', value: fmt(subtotal) },
-                    ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: '#a855f7' }] : []),
+                    ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: 'var(--color-primary-500)' }] : []),
                     ...(creditDeduction > 0 ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
-                    ...(creditAccountDeductionDisplay > 0 ? [{ label: 'Credit account', value: `−${fmt(creditAccountDeductionDisplay)}`, color: '#7c3aed' }] : []),
+                    ...(creditAccountDeductionDisplay > 0 ? [{ label: 'Credit account', value: `−${fmt(creditAccountDeductionDisplay)}`, color: 'var(--color-primary-600)' }] : []),
                     { label: 'VAT (16%)', value: fmt(tax) },
                     { label: 'Shipping',  value: shipping === 0 ? 'Free' : fmt(shipping) },
                   ].map(({ label, value, color }) => (
@@ -691,8 +691,8 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                   {/* Referral note */}
                   <div style={{
                     padding: '8px 10px', borderRadius: 8, marginTop: 4,
-                    background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)',
-                    fontSize: '0.7rem', color: '#7c3aed',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                    fontSize: '0.7rem', color: 'var(--color-primary-600)',
                     display: 'flex', alignItems: 'flex-start', gap: 6,
                     transform: 'translateZ(0)',
                     WebkitTransform: 'translateZ(0)',
@@ -724,15 +724,15 @@ const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
                     cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
                     background: (loading || !policyAccepted)
-                      ? 'rgba(168,85,247,0.4)'
-                      : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                      ? 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'
+                      : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
                     color: 'white',
-                    boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 16px rgba(168,85,247,0.35)',
+                    boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'box-shadow 150ms', opacity: !policyAccepted ? 0.6 : 1,
                   }}
-                  onMouseEnter={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 6px 24px rgba(168,85,247,0.5)'; }}
-                  onMouseLeave={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 4px 16px rgba(168,85,247,0.35)'; }}
+                  onMouseEnter={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 6px 24px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+                  onMouseLeave={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
                 >
                   <Lock size={15} />
                   {loading ? 'Placing order…' : 'Place order'}

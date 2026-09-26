@@ -27,15 +27,15 @@ const TABS = [
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const rowStyle = {
   display: 'flex', alignItems: 'center', gap: 10,
   padding: '10px 14px', borderRadius: 10,
-  background: 'rgba(168,85,247,0.02)',
-  border: '1px solid rgba(168,85,247,0.07)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
   textDecoration: 'none', transition: 'background 120ms, border-color 120ms',
   cursor: 'pointer',
 };
@@ -69,7 +69,7 @@ function StatCard({ label, value, icon: Icon, accent, bg }) {
         <Icon size={18} />
       </div>
       <div>
-        <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a855f7', margin: '0 0 2px', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 2px', letterSpacing: '-0.02em', lineHeight: 1 }}>
           {value}
         </p>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
@@ -87,8 +87,8 @@ function Row({ to, children }) {
       to={to}
       style={{
         ...rowStyle,
-        background: hovered ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.02)',
-        borderColor: hovered ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.07)',
+        background: hovered ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+        borderColor: hovered ? 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -100,7 +100,7 @@ function Row({ to, children }) {
 
 const TYPE_ICON_META = {
   order:         { accent: '#ea580c', bg: 'rgba(234,88,12,0.1)',   Icon: ShoppingBag        },
-  quote:         { accent: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  Icon: FileText           },
+  quote:         { accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  Icon: FileText           },
   quote_request: { accent: '#be185d', bg: 'rgba(190,24,93,0.1)',   Icon: MessageSquareQuote },
   project:       { accent: '#059669', bg: 'rgba(5,150,105,0.1)',   Icon: FolderOpen         },
   task:          { accent: '#0d9488', bg: 'rgba(13,148,136,0.1)',  Icon: CheckSquare        },
@@ -141,7 +141,7 @@ function Section({ title, icon: Icon, children, alert = false }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-        <Icon size={14} style={{ color: alert ? '#ef4444' : '#a855f7', flexShrink: 0 }} />
+        <Icon size={14} style={{ color: alert ? '#ef4444' : 'var(--color-primary-500)', flexShrink: 0 }} />
         <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: alert ? '#dc2626' : '#111827', margin: 0 }}>
           {title}
         </h3>
@@ -218,7 +218,7 @@ function PriorityPill({ priority }) {
 }
 
 const ROLE_COLORS = {
-  super_admin: { bg: 'rgba(168,85,247,0.1)',  color: '#6d28d9' },
+  super_admin: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-700)' },
   admin:       { bg: 'rgba(37,99,235,0.1)',   color: '#1e40af' },
   manager:     { bg: 'rgba(13,148,136,0.1)',  color: '#0d5c55' },
   sales_rep:   { bg: 'rgba(5,150,105,0.1)',   color: '#065f46' },
@@ -240,7 +240,7 @@ const LOAD_PILL_COLORS = {
   blue:   { bg: 'rgba(37,99,235,0.1)',   color: '#1e40af' },
   green:  { bg: 'rgba(5,150,105,0.1)',   color: '#065f46' },
   orange: { bg: 'rgba(234,88,12,0.1)',   color: '#9a3412' },
-  purple: { bg: 'rgba(124,58,237,0.1)',  color: '#5b21b6' },
+  purple: { bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  color: 'var(--color-primary-800)' },
   pink:   { bg: 'rgba(190,24,93,0.1)',   color: '#9d174d' },
   teal:   { bg: 'rgba(13,148,136,0.1)',  color: '#0d5c55' },
   indigo: { bg: 'rgba(67,56,202,0.1)',   color: '#312e81' },
@@ -267,10 +267,10 @@ function EmptyState({ icon: Icon, message, positive = false }) {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '32px 24px', borderRadius: 12, gap: 8,
-      background: positive ? 'rgba(5,150,105,0.04)' : 'rgba(168,85,247,0.02)',
-      border: `1px solid ${positive ? 'rgba(5,150,105,0.12)' : 'rgba(168,85,247,0.07)'}`,
+      background: positive ? 'rgba(5,150,105,0.04)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+      border: `1px solid ${positive ? 'rgba(5,150,105,0.12)' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}`,
     }}>
-      <Icon size={28} style={{ color: positive ? 'rgba(5,150,105,0.4)' : 'rgba(168,85,247,0.2)' }} />
+      <Icon size={28} style={{ color: positive ? 'rgba(5,150,105,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
       <p style={{ fontSize: '0.78rem', color: positive ? '#065f46' : '#9ca3af', margin: 0, fontWeight: 500 }}>
         {message}
       </p>
@@ -320,7 +320,7 @@ export default function Work() {
       label: 'Staff Members',
       value: data?.team_load?.length || 0,
       icon:  Users,
-      accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)',
+      accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',
     },
     {
       label: 'Unassigned Items',
@@ -355,13 +355,13 @@ export default function Work() {
             <div style={{
               width: 42, height: 42, borderRadius: 12, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)', color: 'white',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', color: 'white',
             }}>
               <Briefcase size={18} />
             </div>
             <div>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
                 Work Overview
               </h1>
               <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -378,12 +378,12 @@ export default function Work() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer',
-              border: '1.5px solid rgba(168,85,247,0.2)',
-              background: 'white', color: '#7c3aed',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              background: 'white', color: 'var(--color-primary-600)',
               transition: 'background 150ms',
-              boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+              boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'white'}
           >
             <Bell size={13} />
@@ -395,12 +395,12 @@ export default function Work() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 16px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: 'pointer',
-              border: '1.5px solid rgba(168,85,247,0.2)',
-              background: 'white', color: '#7c3aed',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              background: 'white', color: 'var(--color-primary-600)',
               transition: 'background 150ms',
-              boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+              boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'white'}
           >
             <CalendarClock size={13} />
@@ -415,11 +415,11 @@ export default function Work() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 16px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
-              border: '1.5px solid rgba(168,85,247,0.2)',
-              background: refreshHover ? 'rgba(168,85,247,0.06)' : 'white',
-              color: '#7c3aed', opacity: loading ? 0.5 : 1,
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              background: refreshHover ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'white',
+              color: 'var(--color-primary-600)', opacity: loading ? 0.5 : 1,
               transition: 'background 150ms, border-color 150ms',
-              boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+              boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
             }}
           >
             <RefreshCw
@@ -479,7 +479,7 @@ export default function Work() {
         {/* ── Loading ── */}
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '96px 0' }}>
-            <Loader2 size={36} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+            <Loader2 size={36} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
           </div>
         ) : (
           <>
@@ -496,7 +496,7 @@ export default function Work() {
             <div style={{ ...card, overflow: 'hidden' }}>
 
               {/* Tab bar */}
-              <div style={{ display: 'flex', borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.01)' }}>
+              <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 1%, transparent)' }}>
                 {TABS.map(tab => {
                   const isActive = activeTab === tab.id;
                   return (
@@ -532,15 +532,15 @@ export default function Work() {
                         return (
                           <div key={idx} style={{
                             padding: '14px 16px', borderRadius: 12,
-                            border: '1px solid rgba(168,85,247,0.08)',
-                            background: 'rgba(168,85,247,0.02)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
                             display: 'flex', alignItems: 'flex-start', gap: 14,
                           }}>
                             {/* Avatar */}
                             <div style={{
                               width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
                               fontWeight: 800, fontSize: '0.78rem',
                             }}>
                               {member.user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -904,9 +904,9 @@ function TabBtn({ active, icon: Icon, label, onClick }) {
       style={{
         display: 'flex', alignItems: 'center', gap: 7,
         padding: '13px 20px', fontSize: '0.8rem', fontWeight: 700,
-        border: 'none', borderBottom: `2px solid ${active ? '#a855f7' : 'transparent'}`,
+        border: 'none', borderBottom: `2px solid ${active ? 'var(--color-primary-500)' : 'transparent'}`,
         background: 'none', cursor: 'pointer', fontFamily: 'inherit',
-        color: active ? '#a855f7' : hovered ? '#7c3aed' : '#9ca3af',
+        color: active ? 'var(--color-primary-500)' : hovered ? 'var(--color-primary-600)' : '#9ca3af',
         transition: 'color 150ms, border-color 150ms',
       }}
     >

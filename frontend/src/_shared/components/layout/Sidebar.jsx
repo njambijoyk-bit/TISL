@@ -106,7 +106,7 @@ function SidebarInner({ onOpenSearch }) {
 
   const logoMarkStyle = {
     width: 32, height: 32, borderRadius: 8,
-    background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+    background: 'linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: 'white', flexShrink: 0,
   };
@@ -184,9 +184,9 @@ function SidebarInner({ onOpenSearch }) {
             position: 'fixed', top: 12, left: 12, zIndex: 44,
             width: 38, height: 38, borderRadius: 9,
             background: 'var(--bg-primary, #fff)',
-            border: '1px solid rgba(168,85,247,0.25)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#a855f7',
+            cursor: 'pointer', color: 'var(--color-primary-500)',
             boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
           }}
         >
@@ -225,7 +225,7 @@ function SidebarInner({ onOpenSearch }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ThemeSwitcher />
               <button type="button" onClick={audio.toggleMute} title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
-                style={{ ...iconBtn, color: audio.muted ? '#a855f7' : iconBtn.color }}>
+                style={{ ...iconBtn, color: audio.muted ? 'var(--color-primary-500)' : iconBtn.color }}>
                 {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
               </button>
               {isMobile ? (
@@ -255,16 +255,16 @@ function SidebarInner({ onOpenSearch }) {
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 padding: collapsed ? 0 : '0 10px',
                 borderRadius: 8,
-                background: 'rgba(168,85,247,0.06)',
-                border: '1px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: TEXT_2, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem',
               }}
             >
-              <Search size={14} style={{ color: '#a855f7', flexShrink: 0 }} />
+              <Search size={14} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
               {!collapsed && (
                 <>
                   <span style={{ flex: 1, textAlign: 'left' }}>Jump to…</span>
-                  <kbd style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '1px 5px', borderRadius: 4, border: '1px solid rgba(168,85,247,0.25)', color: '#a855f7' }}>Ctrl K</kbd>
+                  <kbd style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '1px 5px', borderRadius: 4, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)' }}>Ctrl K</kbd>
                 </>
               )}
             </button>
@@ -282,7 +282,7 @@ function SidebarInner({ onOpenSearch }) {
             return (
               <div key={group.id}>
                 {collapsed ? (
-                  <div style={{ height: 1, background: 'rgba(168,85,247,0.18)', margin: '10px 10px 6px' }} title={group.label} />
+                  <div style={{ height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)', margin: '10px 10px 6px' }} title={group.label} />
                 ) : (
                   <button
                     type="button"
@@ -293,7 +293,7 @@ function SidebarInner({ onOpenSearch }) {
                       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '14px 8px 5px', background: 'none', border: 'none', fontFamily: 'inherit',
                       cursor: holdsActive ? 'default' : 'pointer', userSelect: 'none',
-                      fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#a855f7',
+                      fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-primary-500)',
                     }}
                   >
                     {group.label}
@@ -328,11 +328,11 @@ function SidebarInner({ onOpenSearch }) {
             onMouseEnter={audio.playHover}
             style={{
               ...linkBase,
-              background: location.pathname === '/admin/profile' ? 'rgba(168,85,247,0.12)' : 'transparent',
+              background: location.pathname === '/admin/profile' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
               color: TEXT_2,
             }}
           >
-            <UserCircle size={16} style={{ flexShrink: 0, color: '#a855f7' }} />
+            <UserCircle size={16} style={{ flexShrink: 0, color: 'var(--color-primary-500)' }} />
             {!collapsed && (
               <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.2 }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>{user?.name ?? 'My profile'}</span>

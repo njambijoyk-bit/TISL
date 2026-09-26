@@ -19,10 +19,10 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 // ─── Currency helpers ─────────────────────────────────────────────────────────
 const SYMBOLS = { KES: 'KSh', USD: '$', EUR: '€', GBP: '£' };
@@ -57,9 +57,9 @@ const Pill = ({ children, color = purple, bg }) => (
 const statusColors = {
   pending:          '#f59e0b',
   confirmed:        '#3b82f6',
-  processing:       '#8b5cf6',
+  processing:       'var(--color-primary-400)',
   ready_for_pickup: '#06b6d4',
-  shipped:          '#a855f7',
+  shipped:          'var(--color-primary-500)',
   delivered:        '#10b981',
   cancelled:        '#ef4444',
   failed:           '#6b7280',
@@ -68,7 +68,7 @@ const paymentColors = {
   unpaid:           '#f59e0b',
   paid:             '#10b981',
   partially_paid:   '#3b82f6',
-  refunded:         '#8b5cf6',
+  refunded:         'var(--color-primary-400)',
   failed:           '#ef4444',
   overpayment:      '#ec4899',
 };
@@ -84,7 +84,7 @@ const Panel = ({ children, style = {}, accent = false, className }) => (
     borderRadius: 16,
     overflow: 'hidden',
     boxShadow: accent
-      ? '0 0 0 1px rgba(168,85,247,0.12), 0 4px 20px rgba(168,85,247,0.08)'
+      ? '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 4px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'
       : '0 1px 4px rgba(0,0,0,0.04)',
     ...style,
   }}>
@@ -105,7 +105,7 @@ const fOut = e => { e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)'
 // ─── Action button ────────────────────────────────────────────────────────────
 const Btn = ({ children, onClick, disabled, variant = 'primary', icon, size = 'md' }) => {
   const variants = {
-    primary:  { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary:  { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     success:  { background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' },
     danger:   { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' },
     outline:  { background: 'transparent', color: 'var(--text-muted,#6b7280)', border: '1.5px solid var(--border,#e5e7eb)', boxShadow: 'none' },
@@ -751,7 +751,7 @@ export default function OrderDetail() {
           font-weight: 900;
           letter-spacing: -0.03em;
           margin: 0;
-          color: #a855f7;
+          color: var(--color-primary-500);
         }
         .od-pills {
           display: flex;
@@ -1066,12 +1066,12 @@ export default function OrderDetail() {
                   return (
                     <div key={idx} style={{
                       borderRadius: 14,
-                      border: `1px solid rgba(168,85,247,0.2)`,
+                      border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)`,
                       overflow: 'hidden',
                       transition: 'border-color 0.15s, box-shadow 0.15s',
                     }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = purpleBd; e.currentTarget.style.boxShadow = '0 2px 16px rgba(168,85,247,0.08)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = purpleBd; e.currentTarget.style.boxShadow = '0 2px 16px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
                     >
                       {/* ── Item header ── */}
                       <div style={{ display: 'flex', gap: 14, padding: '14px 16px', background: 'var(--panel-bg,white)', flexWrap: 'wrap' }}>
@@ -1091,7 +1091,7 @@ export default function OrderDetail() {
                                 <Pill color={itemColor}>{item.item_type?.replace('_', ' ')}</Pill>
                                 {item.is_custom_item  && <Pill color="#f59e0b">Custom</Pill>}
                                 {item.is_bulk_pricing && <Pill color="#3b82f6">Bulk Price</Pill>}
-                                {item.is_negotiated_price && <Pill color="#a855f7">Negotiated</Pill>}
+                                {item.is_negotiated_price && <Pill color="var(--color-primary-500)">Negotiated</Pill>}
                                 {item.is_taxable ? <Pill color="#10b981">Taxable</Pill> : <Pill color="#9ca3af">Non-Taxable</Pill>}
                                 {item.requires_site_visit && <Pill color="#f59e0b">Site Visit</Pill>}
                                 {(item.item_type === 'product' || item.item_type === 'custom_product') && item.fulfillment_status === 'backorder' && <Pill color="#f59e0b">Backorder</Pill>}
@@ -1126,7 +1126,7 @@ export default function OrderDetail() {
                                 )}
                                 <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '3px 0 0' }}>{qty} × {money(unitPrice)}</p>
                               </div>
-                              <button onClick={() => toggleItemExpansion(idx)} style={{ padding: 6, borderRadius: 8, border: `1px solid rgba(168,85,247,0.2)`, background: 'var(--panel-bg,white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#9ca3af', marginTop: 2 }}>
+                              <button onClick={() => toggleItemExpansion(idx)} style={{ padding: 6, borderRadius: 8, border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)`, background: 'var(--panel-bg,white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#9ca3af', marginTop: 2 }}>
                                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                               </button>
                             </div>
@@ -1149,13 +1149,13 @@ export default function OrderDetail() {
 
                       {/* ── Expanded details ── */}
                       {isExpanded && (
-                        <div style={{ borderTop: `1px solid rgba(168,85,247,0.15)`, background: purpleLt, padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ borderTop: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)`, background: purpleLt, padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                           {/* Pricing table */}
-                          <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid rgba(168,85,247,0.2)` }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '8px 14px', background: 'rgba(168,85,247,0.08)', borderBottom: `1px solid rgba(168,85,247,0.15)` }}>
+                          <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
                               {['Unit Price', 'Quantity', hasMarkup ? 'Markup' : 'Discount', 'Total'].map((h, i) => (
-                                <span key={h} style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a78bfa', textAlign: i > 1 ? 'center' : 'left' }}>{h}</span>
+                                <span key={h} style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)', textAlign: i > 1 ? 'center' : 'left' }}>{h}</span>
                               ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '10px 14px', background: 'var(--panel-bg,white)' }}>
@@ -1188,7 +1188,7 @@ export default function OrderDetail() {
                               </div>
                             </div>
                             {(hasDiscount || hasMarkup) && (
-                              <div style={{ padding: '8px 14px', borderTop: `1px solid rgba(168,85,247,0.1)`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: hasDiscount ? 'rgba(16,185,129,0.05)' : 'rgba(249,115,22,0.05)' }}>
+                              <div style={{ padding: '8px 14px', borderTop: `1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: hasDiscount ? 'rgba(16,185,129,0.05)' : 'rgba(249,115,22,0.05)' }}>
                                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasDiscount ? '#065f46' : '#9a3412' }}>
                                   {hasDiscount ? 'Customer saves on this item' : 'Price includes a markup'}
                                 </span>
@@ -1198,7 +1198,7 @@ export default function OrderDetail() {
                               </div>
                             )}
                             {item.pricing_notes && (
-                              <div style={{ padding: '8px 14px', borderTop: `1px solid rgba(168,85,247,0.1)`, background: purpleLt, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                              <div style={{ padding: '8px 14px', borderTop: `1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)`, background: purpleLt, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                                 <Info size={12} color={purple} style={{ flexShrink: 0, marginTop: 1 }} />
                                 <p style={{ fontSize: '0.75rem', color: purple, margin: 0, fontWeight: 600 }}>{item.pricing_notes}</p>
                               </div>
@@ -1207,9 +1207,9 @@ export default function OrderDetail() {
 
                           {/* Fulfillment & stock — products only */}
                           {(item.item_type === 'product' || item.item_type === 'custom_product') && (
-                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid rgba(168,85,247,0.2)` }}>
-                              <div style={{ padding: '8px 14px', background: 'rgba(168,85,247,0.08)', borderBottom: `1px solid rgba(168,85,247,0.15)` }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a78bfa', margin: 0 }}>Fulfillment</p>
+                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
+                              <div style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)', margin: 0 }}>Fulfillment</p>
                               </div>
                               <div style={{ background: 'var(--panel-bg,white)' }}>
                                 {[
@@ -1221,7 +1221,7 @@ export default function OrderDetail() {
                                   item.refund_amount > 0      && ['Refund Amount', money(item.refund_amount),                '#ef4444', 'rgba(239,68,68,0.06)'],
                                   returnCfg                   && ['Return Status', returnCfg.label,                          returnCfg.color, `${returnCfg.color}10`],
                                 ].filter(Boolean).map(([label, val, color, bg], i) => (
-                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid rgba(168,85,247,0.08)` : 'none' }}>
+                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none' }}>
                                     <span style={{ color, fontWeight: 700 }}>{label}</span>
                                     <span style={{ fontWeight: 800, color: 'var(--text,#111827)', textTransform: 'capitalize' }}>{val}</span>
                                   </div>
@@ -1240,13 +1240,13 @@ export default function OrderDetail() {
                               <div style={{ background: 'var(--panel-bg,white)' }}>
                                 {[
                                   (item.scheduled_start_date || item.scheduled_end_date) && ['Schedule', '#10b981', 'rgba(16,185,129,0.06)', `${item.scheduled_start_date ? new Date(item.scheduled_start_date).toLocaleDateString() : '—'}${item.scheduled_end_date ? ` → ${new Date(item.scheduled_end_date).toLocaleDateString()}` : ''}`],
-                                  item.estimated_duration    && ['Duration',     '#a855f7', 'rgba(168,85,247,0.06)', item.estimated_duration],
+                                  item.estimated_duration    && ['Duration',     'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', item.estimated_duration],
                                   item.estimated_hours != null && ['Est. Hours', '#3b82f6', 'rgba(59,130,246,0.06)', `${parseFloat(item.estimated_hours).toFixed(1)} hrs`],
                                   item.hourly_rate != null   && ['Hourly Rate',  '#f59e0b', 'rgba(245,158,11,0.06)', `${money(item.hourly_rate)} / hr`],
                                   item.labor_cost != null    && ['Labor Cost',   '#ef4444', 'rgba(239,68,68,0.06)',  money(item.labor_cost)],
                                   item.material_cost != null && ['Material Cost','#06b6d4', 'rgba(6,182,212,0.06)',  money(item.material_cost)],
                                 ].filter(Boolean).map(([label, color, bg, val], i) => (
-                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid rgba(168,85,247,0.08)` : 'none' }}>
+                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none' }}>
                                     <span style={{ color, fontWeight: 700 }}>{label}</span>
                                     <span style={{ fontWeight: 800, color: 'var(--text,#111827)' }}>{val}</span>
                                   </div>
@@ -1267,14 +1267,14 @@ export default function OrderDetail() {
 
                           {/* Variant details */}
                           {item.variant_details && Object.keys(item.variant_details).length > 0 && (
-                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid rgba(168,85,247,0.2)` }}>
-                              <div style={{ padding: '8px 14px', background: 'rgba(168,85,247,0.08)', borderBottom: `1px solid rgba(168,85,247,0.15)` }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a78bfa', margin: 0 }}>Variant Details</p>
+                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
+                              <div style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)', margin: 0 }}>Variant Details</p>
                               </div>
                               <div style={{ background: 'var(--panel-bg,white)' }}>
                                 {Object.entries(item.variant_details).map(([key, val], i) => (
-                                  <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: i % 2 === 0 ? 'transparent' : 'rgba(168,85,247,0.03)', borderTop: i > 0 ? `1px solid rgba(168,85,247,0.08)` : 'none' }}>
-                                    <span style={{ color: '#a78bfa', fontWeight: 700, textTransform: 'capitalize' }}>{key}</span>
+                                  <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: i % 2 === 0 ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderTop: i > 0 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none' }}>
+                                    <span style={{ color: 'var(--color-primary-400)', fontWeight: 700, textTransform: 'capitalize' }}>{key}</span>
                                     <span style={{ fontWeight: 800, color: 'var(--text,#111827)' }}>{val || '—'}</span>
                                   </div>
                                 ))}
@@ -1301,17 +1301,17 @@ export default function OrderDetail() {
 
                           {/* Notes / Prerequisites */}
                           {(item.notes || item.prerequisites || item.pricing_notes) && (
-                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid rgba(168,85,247,0.2)` }}>
-                              <div style={{ padding: '8px 14px', background: 'rgba(168,85,247,0.08)', borderBottom: `1px solid rgba(168,85,247,0.15)` }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a78bfa', margin: 0 }}>Notes & Info</p>
+                            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
+                              <div style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary-400)', margin: 0 }}>Notes & Info</p>
                               </div>
                               <div style={{ background: 'var(--panel-bg,white)' }}>
                                 {[
                                   item.prerequisites  && ['Prerequisites', item.prerequisites,  '#3b82f6', 'rgba(59,130,246,0.06)'],
-                                  item.notes          && ['Notes',          item.notes,          '#a855f7', 'rgba(168,85,247,0.06)'],
+                                  item.notes          && ['Notes',          item.notes,          'var(--color-primary-500)', 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'],
                                   item.pricing_notes  && ['Pricing Notes',  item.pricing_notes,  '#f59e0b', 'rgba(245,158,11,0.06)'],
                                 ].filter(Boolean).map(([label, val, color, bg], i) => (
-                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid rgba(168,85,247,0.08)` : 'none' }}>
+                                  <div key={label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', padding: '8px 14px', fontSize: '0.78rem', background: bg, borderTop: i > 0 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none' }}>
                                     <span style={{ color, fontWeight: 700 }}>{label}</span>
                                     <span style={{ fontWeight: 700, color: 'var(--text,#374151)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{val}</span>
                                   </div>
@@ -1338,7 +1338,7 @@ export default function OrderDetail() {
                 {[
                   { label: 'Subtotal',  value: money(order.subtotal),       kes: showKes && kesMoney(subtotalKes) },
                   order.discount > 0 && { label: 'Discount', value: `−${money(order.discount)}`, color: '#10b981' },
-                  order.referral_discount > 0 && { label: 'Referral Discount', value: `−${money(order.referral_discount)}`, color: '#a855f7' },
+                  order.referral_discount > 0 && { label: 'Referral Discount', value: `−${money(order.referral_discount)}`, color: 'var(--color-primary-500)' },
                   order.promo_discount > 0 && { 
                     label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1372,7 +1372,7 @@ export default function OrderDetail() {
                       </span>
                     ),
                     value:  `-${money(order.credit_account_deduction)}`,
-                    color:  '#7c3aed',
+                    color:  'var(--color-primary-600)',
                   },
                   { label: 'VAT',       value: money(order.tax) },
                   { label: 'Shipping',  value: money(order.shipping_cost) },
@@ -1499,8 +1499,8 @@ export default function OrderDetail() {
                                   <span style={{
                                     fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                                     padding: '1px 7px', borderRadius: 4,
-                                    background: p.method === 'mpesa' ? 'rgba(16,185,129,0.1)' : p.method === 'credit' ? 'rgba(124,58,237,0.1)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
-                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? '#5b21b6'              : p.method === 'refund' ? '#991b1b'              : '#374151',
+                                    background: p.method === 'mpesa' ? 'rgba(16,185,129,0.1)' : p.method === 'credit' ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : p.method === 'refund' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
+                                    color:      p.method === 'mpesa' ? '#065f46'              : p.method === 'credit' ? 'var(--color-primary-800)'              : p.method === 'refund' ? '#991b1b'              : '#374151',
                                   }}>
                                     {p.method === 'bank_transfer' ? 'Bank' : p.method === 'cod' ? 'COD' : p.method}
                                   </span>
@@ -1619,7 +1619,7 @@ export default function OrderDetail() {
                       #{order.shipping_option_id}
                     </span>
                   ) : 'N/A' },
-                  { label: 'Priority', value: <Pill color={order.priority === 'urgent' ? '#ef4444' : '#a855f7'}>{order.priority}</Pill> },
+                  { label: 'Priority', value: <Pill color={order.priority === 'urgent' ? '#ef4444' : 'var(--color-primary-500)'}>{order.priority}</Pill> },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border,#f3f4f6)', background: 'var(--row-bg,rgba(249,250,251,0.5))' }}>
                     <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 5 }}>{label}</p>
@@ -1638,7 +1638,7 @@ export default function OrderDetail() {
                   <button
                     onClick={() => setShowShippingSnapshot(v => !v)}
                     style={{
-                      fontSize: '0.78rem', fontWeight: 700, color: '#a855f7',
+                      fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-500)',
                       background: 'none', border: 'none', cursor: 'pointer',
                       padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
                     }}
@@ -1646,7 +1646,7 @@ export default function OrderDetail() {
                     <span style={{
                       display: 'inline-block', width: 14, height: 14, lineHeight: '14px',
                       textAlign: 'center', borderRadius: 3,
-                      background: 'rgba(168,85,247,0.15)', fontSize: '0.7rem',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.7rem',
                     }}>
                       {showShippingSnapshot ? '−' : '+'}
                     </span>

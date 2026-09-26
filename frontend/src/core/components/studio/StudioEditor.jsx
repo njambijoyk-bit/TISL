@@ -89,7 +89,7 @@ export default function StudioEditor() {
 
     const selectedBlock = activePublication.blocks?.find(b => (b.id || b._id) === selectedBlockId);
     const template = activePublication.template || 'minimal';
-    const accent = activePublication.style_config?.accent || '#a855f7';
+    const accent = activePublication.style_config?.accent || 'var(--color-primary-500)';
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
@@ -108,7 +108,7 @@ export default function StudioEditor() {
                     <button style={btnStyle} onClick={() => window.open(`/${activePublication.type}s/${activePublication.slug}`, '_blank')}>
                         <Eye size={16} /> Preview
                     </button>
-                    <button style={{ ...btnStyle, background: '#a855f7', color: 'white' }} onClick={handleSave} disabled={saving}>
+                    <button style={{ ...btnStyle, background: 'var(--color-primary-500)', color: 'white' }} onClick={handleSave} disabled={saving}>
                         {saving ? 'Saving...' : <><Save size={16} /> Save Changes</>}
                     </button>
                 </div>
@@ -234,7 +234,7 @@ export default function StudioEditor() {
                     ) : (
                         <div style={{ padding: 20 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                                <Settings size={18} color="#a855f7" />
+                                <Settings size={18} color="var(--color-primary-500)" />
                                 <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Publication Settings</h3>
                             </div>
 
@@ -253,7 +253,7 @@ export default function StudioEditor() {
                                         <div>
                                             <label style={fieldLabel}>Accent Color</label>
                                             <div style={{ display: 'flex', gap: 8, marginTop: 5 }}>
-                                                {['#a855f7', '#3b82f6', '#ef4444', '#10b981', '#f59e0b'].map(c => (
+                                                {['var(--color-primary-500)', '#3b82f6', '#ef4444', '#10b981', '#f59e0b'].map(c => (
                                                     <div 
                                                         key={c} 
                                                         onClick={() => updatePublication(id, { style_config: { ...activePublication.style_config, accent: c } })}
@@ -303,7 +303,7 @@ export default function StudioEditor() {
                                                 onClick={() => updatePublication(id, { status: s })}
                                                 style={{ 
                                                     flex: 1, padding: '8px 5px', fontSize: '0.65rem', fontWeight: 700, borderRadius: 6, textTransform: 'uppercase',
-                                                    background: activePublication.status === s ? '#a855f7' : '#f1f5f9',
+                                                    background: activePublication.status === s ? 'var(--color-primary-500)' : '#f1f5f9',
                                                     color: activePublication.status === s ? 'white' : '#64748b',
                                                     border: 'none', cursor: 'pointer', transition: 'all 0.2s'
                                                 }}
@@ -458,7 +458,7 @@ function BlockIcon({ label, icon: Icon, onClick }) {
             onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
         >
-            <Icon size={20} color="#a855f7" />
+            <Icon size={20} color="var(--color-primary-500)" />
             <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>{label}</span>
         </button>
     );

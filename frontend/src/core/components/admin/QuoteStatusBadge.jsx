@@ -5,7 +5,7 @@ const STATUS_CONFIG = {
   approved:  { label: 'Approved',          color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)'  },
   rejected:  { label: 'Rejected',          color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)'   },
   expired:   { label: 'Expired',           color: '#6b7280', bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.25)' },
-  converted: { label: 'Converted to Order',color: '#a855f7', bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.25)'  },
+  converted: { label: 'Converted to Order',color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
 
 const QuoteStatusBadge = ({ status }) => {

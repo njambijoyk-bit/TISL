@@ -17,8 +17,8 @@ const CONTACT_SECTION_ORDER = [
 
 const PULSE_CSS = `
   @keyframes skel-pulse {
-    0%, 100% { opacity: 1;    box-shadow: 0 0 10px rgba(168,85,247,0.10); }
-    50%       { opacity: 0.4; box-shadow: 0 0 26px rgba(168,85,247,0.30); }
+    0%, 100% { opacity: 1;    box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary-500) 10%, transparent); }
+    50%       { opacity: 0.4; box-shadow: 0 0 26px color-mix(in srgb, var(--color-primary-500) 30%, transparent); }
   }
 `;
 
@@ -26,8 +26,8 @@ function Skel({ h = 16, w = '100%', r = 8, delay = 0 }) {
   return (
     <div style={{
       height: h, width: w, borderRadius: r,
-      background: 'rgba(168,85,247,0.07)',
-      border: '1px solid rgba(168,85,247,0.18)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       animation: `skel-pulse 1.8s ease-in-out ${delay}ms infinite`,
     }} />
   );
@@ -41,14 +41,14 @@ function ContactSkeleton() {
       {/* Hero */}
       <div style={{
         height: 380,
-        background: 'rgba(168,85,247,0.05)',
-        borderBottom: '1px solid rgba(168,85,247,0.22)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
         animation: 'skel-pulse 1.8s ease-in-out infinite',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <span style={{
           fontSize: 'clamp(5rem, 18vw, 11rem)', fontWeight: 900,
-          color: 'rgba(168,85,247,0.08)', letterSpacing: '-0.04em',
+          color: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', letterSpacing: '-0.04em',
           userSelect: 'none', lineHeight: 1,
         }}>
           TISL
@@ -63,7 +63,7 @@ function ContactSkeleton() {
           <Skel h={28} w={260} r={8} style={{ marginBottom: 32 }} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 40px' }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                 <Skel h={48} w={48} r={12} delay={i * 80} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Skel h={13} w="70%" r={6} delay={i * 80} />
@@ -184,7 +184,7 @@ export default function Contact() {
 
         {/* ── Mimi Chatbot (Hardcoded inline section) ── */}
         <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px 48px' }}>
-        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a855f7', marginBottom: 12 }}>
+        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 12 }}>
           ✨ Or chat with Mimi instantly
         </p>
         <Mimi embedded />

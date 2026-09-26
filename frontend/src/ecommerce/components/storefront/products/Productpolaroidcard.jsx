@@ -25,10 +25,10 @@ const TYPE_CONFIG = {
     Icon:       Zap,
   },
   featured: {
-    tape:       'rgba(168,85,247,0.75)',
-    accent:     '#a855f7',
-    accentDim:  'rgba(168,85,247,0.10)',
-    accentDimD: 'rgba(168,85,247,0.22)',
+    tape:       'color-mix(in srgb, var(--color-primary-500) 75%, transparent)',
+    accent:     'var(--color-primary-500)',
+    accentDim:  'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+    accentDimD: 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
     stamp:      'FEATURED',
     Icon:       Award,
   },
@@ -45,7 +45,7 @@ const TYPE_CONFIG = {
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
   social_proof: { label: 'Social Proof', bg: '#3b82f6', text: '#fff' },
-  bundle:       { label: 'Bundle',       bg: '#8b5cf6', text: '#fff' },
+  bundle:       { label: 'Bundle',       bg: 'var(--color-primary-400)', text: '#fff' },
   urgency:      { label: 'Urgency',      bg: '#ef4444', text: '#fff' },
   tip:          { label: 'Tip',          bg: '#10b981', text: '#fff' },
 };

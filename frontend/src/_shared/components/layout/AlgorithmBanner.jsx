@@ -13,11 +13,11 @@ import {
 
 const SEGMENT_META = {
   champion: { icon: Trophy,    label: 'Champion', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)'  },
-  loyal:    { icon: Star,      label: 'Loyal',    color: '#a855f7', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.30)'  },
+  loyal:    { icon: Star,      label: 'Loyal',    color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'  },
   at_risk:  { icon: Zap,       label: 'At Risk',  color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.30)'  },
   dormant:  { icon: Moon,      label: 'Dormant',  color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.30)' },
   new:      { icon: Sparkles,  label: 'New',      color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.30)'  },
-  guest:    { icon: HandMetal, label: 'Guest',    color: '#a855f7', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.30)'  },
+  guest:    { icon: HandMetal, label: 'Guest',    color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'  },
 };
 
 const INSIGHT_ICONS = {
@@ -262,15 +262,15 @@ export default function AlgorithmBanner() {
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Loyalty Points
             </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#a855f7' }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--color-primary-500)' }}>
               {profile.loyaltyPoints.toLocaleString()}
             </span>
           </div>
-          <div style={{ height: 5, borderRadius: 99, background: 'rgba(168,85,247,0.12)', overflow: 'hidden' }}>
+          <div style={{ height: 5, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden' }}>
             <div style={{
               height: '100%',
               width: `${Math.min(100, (profile.loyaltyPoints / 1000) * 100)}%`,
-              background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(90deg, var(--color-primary-500), var(--color-primary-600))',
               borderRadius: 99, transition: 'width 0.6s ease',
             }} />
           </div>
@@ -288,12 +288,12 @@ export default function AlgorithmBanner() {
           {profile.insights.slice(0, 2).map((ins, i) => (
             <div key={i} style={{
               padding: '8px 10px', borderRadius: 10,
-              background: 'rgba(168,85,247,0.05)',
-              border: '1px solid rgba(168,85,247,0.10)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
             }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>
-                  {(() => { const Icon = INSIGHT_ICONS[ins.type] ?? Award; return <Icon size={13} color="#a855f7" strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />; })()}
+                  {(() => { const Icon = INSIGHT_ICONS[ins.type] ?? Award; return <Icon size={13} color="var(--color-primary-500)" strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />; })()}
                 </span>
                 <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5, color: 'var(--text-primary, #111827)', fontWeight: 500 }}>
                   {ins.message}
@@ -306,7 +306,7 @@ export default function AlgorithmBanner() {
                   style={{
                     marginTop: 7, width: '100%', padding: '5px 0',
                     borderRadius: 7, border: 'none',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                     color: '#fff', fontSize: 11, fontWeight: 700,
                     cursor: 'pointer', letterSpacing: '0.02em',
                   }}
@@ -323,13 +323,13 @@ export default function AlgorithmBanner() {
       {profile.tierNext && (
         <div style={{
           padding: '8px 14px 12px',
-          borderTop: '1px solid rgba(168,85,247,0.08)',
+          borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <Rocket size={12} color="#a855f7" strokeWidth={2.2} />
+          <Rocket size={12} color="var(--color-primary-500)" strokeWidth={2.2} />
           <span style={{ fontSize: 10, color: 'var(--text-secondary, #6b7280)', fontWeight: 500, lineHeight: 1.4 }}>
             Keep ordering to reach{' '}
-            <strong style={{ color: '#a855f7' }}>
+            <strong style={{ color: 'var(--color-primary-500)' }}>
               {profile.tierNext.charAt(0).toUpperCase() + profile.tierNext.slice(1)}
             </strong>{' '}
             tier

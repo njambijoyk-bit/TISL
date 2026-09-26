@@ -256,7 +256,7 @@ export default function AdminProfile() {
       `}</style>
 
       {/* ── Header Banner ────────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: 'white' }}>
+      <div style={{ background: 'linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)', color: 'white' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -299,10 +299,10 @@ export default function AdminProfile() {
                   cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                   transition: 'border-color 150ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'}
               >
-                <Camera size={11} style={{ color: '#7c3aed' }} />
+                <Camera size={11} style={{ color: 'var(--color-primary-600)' }} />
               </button>
               <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
             </div>
@@ -328,13 +328,13 @@ export default function AdminProfile() {
                   display: 'flex', alignItems: 'center', gap: 7,
                   padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: 'pointer',
-                  border: '1.5px solid rgba(168,85,247,0.2)',
-                  background: 'white', color: '#7c3aed',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                  background: 'white', color: 'var(--color-primary-600)',
                   transition: 'background 150ms',
-                  boxShadow: '0 1px 6px rgba(168,85,247,0.08)',
+                  boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   position: 'relative',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'white'}
               >
                 <Bell size={13} />
@@ -374,9 +374,9 @@ export default function AdminProfile() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '9px 16px', fontSize: '0.82rem',
                   fontWeight: activeTab === t.key ? 700 : 500,
-                  color: activeTab === t.key ? '#7c3aed' : '#6b7280',
+                  color: activeTab === t.key ? 'var(--color-primary-600)' : '#6b7280',
                   background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  borderBottom: `2px solid ${activeTab === t.key ? '#7c3aed' : 'transparent'}`,
+                  borderBottom: `2px solid ${activeTab === t.key ? 'var(--color-primary-600)' : 'transparent'}`,
                   marginBottom: -2,
                 }}>
                   <t.icon size={14} /> {t.label}
@@ -388,7 +388,7 @@ export default function AdminProfile() {
             {activeTab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={card}>
-                  <p style={sectionTitle}><User size={14} style={{ color: '#7c3aed' }} /> Personal information</p>
+                  <p style={sectionTitle}><User size={14} style={{ color: 'var(--color-primary-600)' }} /> Personal information</p>
                   <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     {[
                       { label: 'Full Name', value: user?.name },
@@ -411,13 +411,13 @@ export default function AdminProfile() {
 
                 {/* Quick stats */}
                 <div style={card}>
-                  <p style={sectionTitle}><TrendingUp size={14} style={{ color: '#7c3aed' }} /> Quick stats</p>
+                  <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats</p>
                   <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
                     {[
                       { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff' },
                       { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4' },
                       { label: 'Orders',    value: assignments.counts?.orders    || 0, color: '#f59e0b', bg: '#fffbeb' },
-                      { label: 'Quotes',    value: assignments.counts?.quotes    || 0, color: '#8b5cf6', bg: '#f5f3ff' },
+                      { label: 'Quotes',    value: assignments.counts?.quotes    || 0, color: 'var(--color-primary-400)', bg: '#f5f3ff' },
                       { label: 'Tickets',   value: assignments.counts?.tickets   || 0, color: '#06b6d4', bg: '#ecfeff' },
                     ].map(({ label, value, color, bg }) => (
                       <div key={label} style={{ padding: 16, borderRadius: 10, background: bg, textAlign: 'center' }}>
@@ -439,7 +439,7 @@ export default function AdminProfile() {
                   </p>
                   <button onClick={refreshAssignments} style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: '0.75rem', color: '#7c3aed', background: 'none', border: 'none',
+                    fontSize: '0.75rem', color: 'var(--color-primary-600)', background: 'none', border: 'none',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <Loader2 size={12} /> Refresh
@@ -568,13 +568,13 @@ export default function AdminProfile() {
                     label: 'Assigned Quotes',
                     count: assignments.counts?.quotes || 0,
                     icon: FileText,
-                    color: '#8b5cf6',
+                    color: 'var(--color-primary-400)',
                     colorBg: '#f5f3ff',
                     items: assignments.quotes,
                     emptyMsg: 'No quotes assigned to you yet',
                     renderItem: (q, idx) => (
                       <Link key={idx} to={`/admin/quotes/${q.id}`} style={rowStyle}>
-                        <Avatar icon={FileText} color="#f5f3ff" textColor="#8b5cf6" />
+                        <Avatar icon={FileText} color="#f5f3ff" textColor="var(--color-primary-400)" />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={rowTitle}>{q.quote_number}</p>
                           <p style={rowSub}>{q.customer?.full_name || 'Unknown'}</p>
@@ -730,7 +730,7 @@ export default function AdminProfile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {empLoading ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                    <div style={{ width: 28, height: 28, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ width: 28, height: 28, border: '3px solid color-mix(in srgb, var(--color-primary-600) 20%, transparent)', borderTopColor: 'var(--color-primary-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                   </div>
                 ) : !empRecord ? (
                   <div style={{ ...card, textAlign: 'center', padding: 40 }}>
@@ -741,7 +741,7 @@ export default function AdminProfile() {
                   <>
                     {/* Employment */}
                     <div style={card}>
-                      <p style={sectionTitle}><Briefcase size={14} style={{ color: '#7c3aed' }} /> Employment Details</p>
+                      <p style={sectionTitle}><Briefcase size={14} style={{ color: 'var(--color-primary-600)' }} /> Employment Details</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {[
                           { label: 'Employee Number', value: empRecord.employee_number },
@@ -768,7 +768,7 @@ export default function AdminProfile() {
 
                     {/* Personal */}
                     <div style={card}>
-                      <p style={sectionTitle}><User size={14} style={{ color: '#7c3aed' }} /> Personal Information</p>
+                      <p style={sectionTitle}><User size={14} style={{ color: 'var(--color-primary-600)' }} /> Personal Information</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {[
                           { label: 'Date of Birth',  value: fmtDate(empRecord.date_of_birth) },
@@ -786,7 +786,7 @@ export default function AdminProfile() {
 
                     {/* Identification */}
                     <div style={card}>
-                      <p style={sectionTitle}><Hash size={14} style={{ color: '#7c3aed' }} /> Identification</p>
+                      <p style={sectionTitle}><Hash size={14} style={{ color: 'var(--color-primary-600)' }} /> Identification</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {[
                           { label: 'ID Number',   value: empRecord.id_number },
@@ -805,7 +805,7 @@ export default function AdminProfile() {
                     {/* Emergency Contact */}
                     {(empRecord.emergency_contact_name || empRecord.emergency_contact_phone) && (
                       <div style={card}>
-                        <p style={sectionTitle}><Users size={14} style={{ color: '#7c3aed' }} /> Emergency Contact</p>
+                        <p style={sectionTitle}><Users size={14} style={{ color: 'var(--color-primary-600)' }} /> Emergency Contact</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                           {[
                             { label: 'Name',         value: empRecord.emergency_contact_name },
@@ -824,10 +824,10 @@ export default function AdminProfile() {
                     {/* Skills */}
                     {empRecord.skills?.length > 0 && (
                       <div style={card}>
-                        <p style={sectionTitle}><Star size={14} style={{ color: '#7c3aed' }} /> Skills</p>
+                        <p style={sectionTitle}><Star size={14} style={{ color: 'var(--color-primary-600)' }} /> Skills</p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           {empRecord.skills.map((skill, i) => (
-                            <span key={i} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ede9fe' }}>
+                            <span key={i} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: '#f5f3ff', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))' }}>
                               {skill}
                             </span>
                           ))}
@@ -838,11 +838,11 @@ export default function AdminProfile() {
                     {/* Certifications */}
                     {empRecord.certifications?.length > 0 && (
                       <div style={card}>
-                        <p style={sectionTitle}><Award size={14} style={{ color: '#7c3aed' }} /> Certifications</p>
+                        <p style={sectionTitle}><Award size={14} style={{ color: 'var(--color-primary-600)' }} /> Certifications</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {empRecord.certifications.map((cert, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
-                              <Award size={15} style={{ color: '#7c3aed', flexShrink: 0, marginTop: 1 }} />
+                              <Award size={15} style={{ color: 'var(--color-primary-600)', flexShrink: 0, marginTop: 1 }} />
                               <div>
                                 <p style={{ margin: '0 0 1px', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{cert.name || cert}</p>
                                 {cert.issuer && <p style={{ margin: '0 0 1px', fontSize: '0.72rem', color: '#6b7280' }}>{cert.issuer}</p>}
@@ -857,7 +857,7 @@ export default function AdminProfile() {
                     {/* Notes */}
                     {empRecord.notes && (
                       <div style={card}>
-                        <p style={sectionTitle}><FileText size={14} style={{ color: '#7c3aed' }} /> Notes</p>
+                        <p style={sectionTitle}><FileText size={14} style={{ color: 'var(--color-primary-600)' }} /> Notes</p>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{empRecord.notes}</p>
                       </div>
                     )}
@@ -896,7 +896,7 @@ export default function AdminProfile() {
 
                 {/* Change password */}
                 <div style={card}>
-                  <p style={sectionTitle}><Key size={14} style={{ color: '#7c3aed' }} /> Change password</p>
+                  <p style={sectionTitle}><Key size={14} style={{ color: 'var(--color-primary-600)' }} /> Change password</p>
                   <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 420 }}>
                     {[
                       { key: 'current_password',          label: 'Current password',    show: 'current' },
@@ -928,8 +928,8 @@ export default function AdminProfile() {
                       alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 20px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
                       border: 'none', cursor: savingPwd ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                      background: '#7c3aed', color: 'white',
-                      boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
+                      background: 'var(--color-primary-600)', color: 'white',
+                      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-600) 35%, transparent)',
                       opacity: savingPwd ? 0.7 : 1,
                     }}>
                       {savingPwd && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
@@ -969,7 +969,7 @@ export default function AdminProfile() {
             {/* Contact info */}
             <div style={card}>
               <p style={{ ...sectionTitle, marginBottom: 14 }}>
-                <User size={14} style={{ color: '#7c3aed' }} /> Contact information
+                <User size={14} style={{ color: 'var(--color-primary-600)' }} /> Contact information
               </p>
               {[
                 { icon: Mail,  label: 'Email',  value: user?.email },
@@ -981,7 +981,7 @@ export default function AdminProfile() {
                     width: 30, height: 30, borderRadius: 8,
                     background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    <Icon size={13} style={{ color: '#7c3aed' }} />
+                    <Icon size={13} style={{ color: 'var(--color-primary-600)' }} />
                   </div>
                   <div>
                     <p style={{ margin: '0 0 1px', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
@@ -994,7 +994,7 @@ export default function AdminProfile() {
             {/* Assignment counts */}
             <div style={card}>
               <p style={{ ...sectionTitle, marginBottom: 14 }}>
-                <ClipboardList size={14} style={{ color: '#7c3aed' }} /> Work summary
+                <ClipboardList size={14} style={{ color: 'var(--color-primary-600)' }} /> Work summary
               </p>
               {[
                 { label: 'Customers',      value: assignments.counts?.customers     || 0 },
@@ -1016,7 +1016,7 @@ export default function AdminProfile() {
             {([...(deadlines.projects || []), ...(deadlines.quotes || []), ...(deadlines.tickets || [])].length > 0) && (
               <div style={card}>
                 <p style={{ ...sectionTitle, marginBottom: 14 }}>
-                  <CalendarClock size={14} style={{ color: '#7c3aed' }} /> Upcoming deadlines
+                  <CalendarClock size={14} style={{ color: 'var(--color-primary-600)' }} /> Upcoming deadlines
                 </p>
                 {[...(deadlines.projects || []), ...(deadlines.quotes || []), ...(deadlines.tickets || [])]
                   .sort((a, b) => new Date(a.deadline || a.created_at) - new Date(b.deadline || b.created_at))

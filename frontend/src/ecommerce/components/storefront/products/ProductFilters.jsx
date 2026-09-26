@@ -41,11 +41,11 @@ function Dropdown({ label, icon: Icon, active, onClear, children, minWidth = 220
           padding: '7px 13px', borderRadius: 9999, cursor: 'pointer',
           fontSize: '0.775rem', fontWeight: 700, whiteSpace: 'nowrap',
           transition: 'all 150ms ease',
-          background: active ? 'rgba(168,85,247,0.12)' : 'white',
-          border: `1px solid ${active ? 'rgba(168,85,247,0.45)' : '#e5e7eb'}`,
-          color: active ? '#a855f7' : '#4b5563',
+          background: active ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'white',
+          border: `1px solid ${active ? 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)' : '#e5e7eb'}`,
+          color: active ? 'var(--color-primary-500)' : '#4b5563',
           boxShadow: active
-            ? '0 0 0 3px rgba(168,85,247,0.08), 0 0 8px rgba(168,85,247,0.12)'
+            ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent), 0 0 8px color-mix(in srgb, var(--color-primary-500) 12%, transparent)'
             : '0 1px 2px rgba(0,0,0,0.05)',
         }}
       >
@@ -54,7 +54,7 @@ function Dropdown({ label, icon: Icon, active, onClear, children, minWidth = 220
         {active && onClear ? (
           <span
             onClick={(e) => { e.stopPropagation(); onClear(); setOpen(false); }}
-            style={{ display: 'flex', alignItems: 'center', marginLeft: 1, color: '#a855f7', opacity: 0.65 }}
+            style={{ display: 'flex', alignItems: 'center', marginLeft: 1, color: 'var(--color-primary-500)', opacity: 0.65 }}
           >
             <X size={11} />
           </span>
@@ -67,7 +67,7 @@ function Dropdown({ label, icon: Icon, active, onClear, children, minWidth = 220
         <div style={{
           position: 'absolute', top: 'calc(100% + 7px)', left: 0, zIndex: 200,
           background: 'white', border: '1px solid #f0e8ff',
-          borderRadius: 14, boxShadow: '0 12px 32px rgba(168,85,247,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+          borderRadius: 14, boxShadow: '0 12px 32px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 8px rgba(0,0,0,0.08)',
           minWidth, padding: '6px 0', overflow: 'hidden',
         }}>
           {children}
@@ -91,12 +91,12 @@ function Option({ label, selected, onClick }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         width: '100%', padding: '8px 14px', border: 'none', cursor: 'pointer',
         fontSize: '0.8rem', fontWeight: selected ? 700 : 400, textAlign: 'left',
-        background: selected ? 'rgba(168,85,247,0.08)' : hovered ? '#faf5ff' : 'transparent',
-        color: selected ? '#a855f7' : '#374151', transition: 'background 100ms',
+        background: selected ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : hovered ? 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))' : 'transparent',
+        color: selected ? 'var(--color-primary-500)' : '#374151', transition: 'background 100ms',
       }}
     >
       {label}
-      {selected && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', flexShrink: 0 }} />}
+      {selected && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0 }} />}
     </button>
   );
 }
@@ -113,9 +113,9 @@ function QuickToggle({ label, icon: Icon, active, onClick }) {
         padding: '7px 13px', borderRadius: 9999, cursor: 'pointer',
         fontSize: '0.775rem', fontWeight: 700, whiteSpace: 'nowrap',
         transition: 'all 150ms ease', border: 'none', flexShrink: 0,
-        background: active ? 'rgba(168,85,247,0.12)' : '#f3f4f6',
-        color: active ? '#a855f7' : '#6b7280',
-        boxShadow: active ? '0 0 0 1.5px rgba(168,85,247,0.4), 0 0 10px rgba(168,85,247,0.15)' : 'none',
+        background: active ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '#f3f4f6',
+        color: active ? 'var(--color-primary-500)' : '#6b7280',
+        boxShadow: active ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-500) 40%, transparent), 0 0 10px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none',
       }}
     >
       {Icon && <Icon size={12} />}
@@ -133,13 +133,13 @@ function Chip({ label, onRemove }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 10px 3px 11px', borderRadius: 9999,
       fontSize: '0.72rem', fontWeight: 700,
-      background: 'rgba(168,85,247,0.09)',
-      border: '1px solid rgba(168,85,247,0.28)', color: '#a855f7',
+      background: 'color-mix(in srgb, var(--color-primary-500) 9%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent)', color: 'var(--color-primary-500)',
     }}>
       {label}
       <button
         type="button" onClick={onRemove}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: '#a855f7', opacity: 0.55 }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-primary-500)', opacity: 0.55 }}
         onMouseEnter={e => e.currentTarget.style.opacity = 1}
         onMouseLeave={e => e.currentTarget.style.opacity = 0.55}
       >
@@ -235,7 +235,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
 
         {/* Search */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#c084fc', pointerEvents: 'none' }} />
+          <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary-400)', pointerEvents: 'none' }} />
           <input
             type="text" placeholder="Search products…"
             value={searchVal}
@@ -247,12 +247,12 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
               border: '1px solid #e5e7eb', background: 'white', color: '#111827',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'border-color 150ms, box-shadow 150ms',
             }}
-            onFocus={e => { e.target.style.borderColor = 'rgba(168,85,247,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+            onFocus={e => { e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
             onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'; }}
           />
           {searchVal && (
             <button type="button" onClick={() => { setSearchVal(''); onFilterChange('search', ''); }}
-              style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#c084fc', padding: 0, display: 'flex' }}>
+              style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-400)', padding: 0, display: 'flex' }}>
               <X size={11} />
             </button>
           )}
@@ -263,7 +263,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
         {/* Category */}
         <Dropdown label={activeCategory?.name || 'Category'} icon={Tag} active={!!filters.category_id} onClear={() => onFilterChange('category_id', '')} minWidth={210}>
           <Option label="All Categories" selected={!filters.category_id} onClick={() => onFilterChange('category_id', '')} />
-          {categories.length > 0 && <div style={{ height: 1, background: '#f3e8ff', margin: '4px 0' }} />}
+          {categories.length > 0 && <div style={{ height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 8%, var(--bg-primary))', margin: '4px 0' }} />}
           {categories.map((cat) => (
             <Option key={cat.id} label={cat.name} selected={String(filters.category_id) === String(cat.id)} onClick={() => onFilterChange('category_id', cat.id)} />
           ))}
@@ -272,7 +272,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
         {/* Brand */}
         <Dropdown label={activeBrand?.name || 'Brand'} icon={Award} active={!!filters.brand_id} onClear={() => onFilterChange('brand_id', '')} minWidth={200}>
           <Option label="All Brands" selected={!filters.brand_id} onClick={() => onFilterChange('brand_id', '')} />
-          {brands.length > 0 && <div style={{ height: 1, background: '#f3e8ff', margin: '4px 0' }} />}
+          {brands.length > 0 && <div style={{ height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 8%, var(--bg-primary))', margin: '4px 0' }} />}
           {brands.map((brand) => (
             <Option key={brand.id} label={brand.name} selected={String(filters.brand_id) === String(brand.id)} onClick={() => onFilterChange('brand_id', brand.id)} />
           ))}
@@ -286,16 +286,16 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '7px 13px', borderRadius: 9999, cursor: 'pointer',
               fontSize: '0.775rem', fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 150ms ease',
-              background: hasPriceFilter ? 'rgba(168,85,247,0.12)' : 'white',
-              border: `1px solid ${hasPriceFilter ? 'rgba(168,85,247,0.45)' : '#e5e7eb'}`,
-              color: hasPriceFilter ? '#a855f7' : '#4b5563',
-              boxShadow: hasPriceFilter ? '0 0 0 3px rgba(168,85,247,0.08)' : '0 1px 2px rgba(0,0,0,0.05)',
+              background: hasPriceFilter ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'white',
+              border: `1px solid ${hasPriceFilter ? 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)' : '#e5e7eb'}`,
+              color: hasPriceFilter ? 'var(--color-primary-500)' : '#4b5563',
+              boxShadow: hasPriceFilter ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 1px 2px rgba(0,0,0,0.05)',
             }}
           >
             <span style={{ fontSize: '0.75rem' }}></span>
             <span>{priceBtnLabel}</span>
             {hasPriceFilter ? (
-              <span onClick={(e) => { e.stopPropagation(); clearPrice(); }} style={{ display: 'flex', alignItems: 'center', marginLeft: 1, color: '#a855f7', opacity: 0.65 }}>
+              <span onClick={(e) => { e.stopPropagation(); clearPrice(); }} style={{ display: 'flex', alignItems: 'center', marginLeft: 1, color: 'var(--color-primary-500)', opacity: 0.65 }}>
                 <X size={11} />
               </span>
             ) : (
@@ -307,22 +307,22 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
             <div style={{
               position: 'absolute', top: 'calc(100% + 7px)', left: 0, zIndex: 200,
               background: 'white', border: '1px solid #f0e8ff', borderRadius: 14,
-              boxShadow: '0 12px 32px rgba(168,85,247,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: '0 12px 32px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 8px rgba(0,0,0,0.08)',
               width: 240, padding: 14,
             }}>
-              <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
                 Price Range ({priceCode})
               </p>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                 <input type="number" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value)}
                   style={{ flex: 1, padding: '7px 10px', borderRadius: 9, border: '1px solid #e5e7eb', fontSize: '0.78rem', outline: 'none', width: 0, color: '#111827' }}
-                  onFocus={e => { e.target.style.borderColor = '#a855f7'; e.target.style.boxShadow = '0 0 0 2px rgba(168,85,247,0.1)'; }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-primary-500)'; e.target.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                   onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                 />
                 <span style={{ color: '#d1d5db', fontSize: '0.8rem', flexShrink: 0 }}>–</span>
                 <input type="number" placeholder="Max" value={priceMax} onChange={(e) => setPriceMax(e.target.value)}
                   style={{ flex: 1, padding: '7px 10px', borderRadius: 9, border: '1px solid #e5e7eb', fontSize: '0.78rem', outline: 'none', width: 0, color: '#111827' }}
-                  onFocus={e => { e.target.style.borderColor = '#a855f7'; e.target.style.boxShadow = '0 0 0 2px rgba(168,85,247,0.1)'; }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-primary-500)'; e.target.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                   onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
@@ -339,8 +339,8 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
                     style={{
                       padding: '3px 9px', borderRadius: 9999, border: '1px solid #e9e4f0',
                       fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer',
-                      background: priceMin === p.min && priceMax === p.max ? 'rgba(168,85,247,0.12)' : '#f9f5ff',
-                      color: priceMin === p.min && priceMax === p.max ? '#a855f7' : '#7c3aed',
+                      background: priceMin === p.min && priceMax === p.max ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '#f9f5ff',
+                      color: priceMin === p.min && priceMax === p.max ? 'var(--color-primary-500)' : 'var(--color-primary-600)',
                     }}
                   >
                     {p.label}
@@ -348,7 +348,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
                 ))}
               </div>
               <button type="button" onClick={applyPrice}
-                style={{ width: '100%', padding: '8px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+                style={{ width: '100%', padding: '8px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
               >
                 Apply
               </button>

@@ -5,10 +5,10 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import api from '../../../_shared/api/axios';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const purple   = '#a855f7';
-const purpleDk = '#7c3aed';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleDk = 'var(--color-primary-600)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const iStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 9,
@@ -22,7 +22,7 @@ const fOut = e => { e.currentTarget.style.borderColor = 'var(--border,#e5e7eb)';
 
 const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button' }) => {
   const v = {
-    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(168,85,247,0.3)' },
+    primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
     outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
   };
   return (
@@ -84,7 +84,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title={<span style={{ color: '#a855f7' }}>Assign Staff Member</span>} size="md">
+    <Modal isOpen={true} onClose={onClose} title={<span style={{ color: 'var(--color-primary-500)' }}>Assign Staff Member</span>} size="md">
       <form onSubmit={handleSubmit}>
         <p style={{ fontSize: '0.83rem', color: '#6b7280', marginBottom: 20, lineHeight: 1.65 }}>
           Select a staff member to handle this ticket. They will be responsible for responding to and resolving the customer's issue.

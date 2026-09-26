@@ -17,7 +17,7 @@ const card = {
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
   padding: 24,
-  color: '#9333ea',
+  color: 'var(--color-primary-600)',
 };
 
 const inputStyle = {
@@ -31,14 +31,14 @@ const inputStyle = {
 
 const labelStyle = {
   fontSize: '0.72rem', fontWeight: 700,
-  color: '#a855f7',
+  color: 'var(--color-primary-500)',
   display: 'block', marginBottom: 5,
   textTransform: 'uppercase', letterSpacing: '0.05em',
 };
 
 const sectionTitle = {
   margin: '0 0 20px', fontSize: '0.82rem', fontWeight: 700,
-  color: '#a855f7', paddingBottom: 12,
+  color: 'var(--color-primary-500)', paddingBottom: 12,
   borderBottom: '1px solid #f3ecfa',
 };
 
@@ -61,7 +61,7 @@ function Input({ name, type = 'text', value, onChange, placeholder, error, min, 
       type={type} name={name} value={value} onChange={onChange}
       placeholder={placeholder} min={min} max={max} step={step}
       style={{ ...inputStyle, borderColor: error ? '#ef4444' : '#dfbeff' }}
-      onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
       onBlur={e  => { e.currentTarget.style.borderColor = error ? '#ef4444' : '#dfbeff'; e.currentTarget.style.boxShadow = 'none'; }}
     />
   );
@@ -71,12 +71,12 @@ function ToggleRow({ label, hint, name, value, onChange }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--color-border-tertiary)' }}>
       <div>
-        <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 600, color: '#a855f7' }}>{label}</p>
+        <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>{label}</p>
         {hint && <p style={{ margin: 0, fontSize: '0.72rem', color: '#9ca3af' }}>{hint}</p>}
       </div>
       <button type="button" onClick={() => onChange(name, !value)} style={{
         width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
-        background: value ? '#a855f7' : '#dfbeff',
+        background: value ? 'var(--color-primary-500)' : '#dfbeff',
         position: 'relative', transition: 'background 200ms',
       }}>
         <div style={{
@@ -133,7 +133,7 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
           <span key={name} style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             padding: '2px 8px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-            background: 'rgba(168,85,247,0.1)', color: '#7c3aed',
+            background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
           }}>
             {name}
             <span onClick={e => { e.stopPropagation(); toggle(options.find(o => o.name === name)?.slug); }} style={{ cursor: 'pointer', lineHeight: 1 }}>×</span>
@@ -170,14 +170,14 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '9px 14px', cursor: 'pointer', fontSize: '0.82rem',
                   color: '#111827',
-                  background: isSelected ? 'rgba(168,85,247,0.06)' : 'transparent',
+                  background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent',
                   transition: 'background 100ms',
                 }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--color-background-secondary)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <span style={{ fontWeight: isSelected ? 700 : 400 }}>{opt.name}</span>
-                  {isSelected && <Check size={13} style={{ color: '#a855f7', flexShrink: 0 }} />}
+                  {isSelected && <Check size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />}
                 </div>
               );
             })}
@@ -217,10 +217,10 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
             alignItems: 'center', justifyContent: 'center', gap: 8,
             cursor: 'pointer', transition: 'border-color 150ms',
           }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#dfbeff'}
         >
-          <Upload size={24} style={{ color: '#a855f7' }} />
+          <Upload size={24} style={{ color: 'var(--color-primary-500)' }} />
           <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>Click to upload cover image</p>
           <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>PNG, JPG, WEBP</p>
         </div>
@@ -233,7 +233,7 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const defaultForm = {
-  name: '', description: '', accent_color: '#a855f7',
+  name: '', description: '', accent_color: 'var(--color-primary-500)',
   price: '', currency_id: '', status: 'draft',
   tax_rate_id: '', allow_promo_codes: false,
   allow_store_credit: true, earn_loyalty_points: true, is_visible: true,
@@ -354,14 +354,14 @@ export default function AdminHamperCreate() {
                 <ChevronLeft size={15} />
               </button>
               <div>
-                <h1 style={{ margin: '0 0 2px', fontSize: '1.3rem', fontWeight: 800, color: '#a855f7' }}>New Hamper</h1>
+                <h1 style={{ margin: '0 0 2px', fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-primary-500)' }}>New Hamper</h1>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>Products and manual eligibility are managed after creation</p>
               </div>
             </div>
             <button type="submit" disabled={saving} style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
               padding: '9px 20px', borderRadius: 9, fontSize: '0.875rem', fontWeight: 700,
-              border: 'none', background: saving ? 'rgba(168,85,247,0.5)' : 'linear-gradient(135deg,#a855f7,#7c3aed)',
+              border: 'none', background: saving ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
               color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
             }}>
               <Save size={15} /> {saving ? 'Creating…' : 'Create Hamper'}
@@ -386,7 +386,7 @@ export default function AdminHamperCreate() {
                       placeholder="Describe what this hamper includes and who it's for…"
                       rows={4}
                       style={{ ...inputStyle, resize: 'vertical' }}
-                      onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                       onBlur={e  => { e.currentTarget.style.borderColor = '#dfbeff'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </Field>
@@ -470,7 +470,7 @@ export default function AdminHamperCreate() {
                   )}
 
                   {form.eligibility_type === 'manual' && (
-                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)', fontSize: '0.78rem', color: '#7c3aed' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.78rem', color: 'var(--color-primary-600)' }}>
                       After creating this hamper, go to the <strong>Eligibility tab</strong> to add customers individually.
                     </div>
                   )}

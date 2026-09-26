@@ -70,21 +70,21 @@ export default function Cart() {
                   gap: '8px',
                   padding: '10px 24px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(168,85,247,0.4)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)',
                   background: 'transparent',
-                  color: '#a855f7',
+                  color: 'var(--color-primary-500)',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'border-color 0.2s, background 0.2s',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(168,85,247,0.08)';
-                  e.currentTarget.style.borderColor = '#a855f7';
+                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+                  e.currentTarget.style.borderColor = 'var(--color-primary-500)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
                 }}
               >
                 <ShoppingBag size={18} />

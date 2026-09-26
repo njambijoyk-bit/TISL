@@ -17,32 +17,32 @@ import { getAvailableServices, getAvailableProducts } from '../../../_shared/api
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 const hintStyle = { fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
 
 const sectionHeader = {
-  fontSize: '0.875rem', fontWeight: 700, color: '#7c3aed',
+  fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 16px', paddingBottom: 12,
-  borderBottom: '1px solid rgba(168,85,247,0.08)',
+  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -66,18 +66,18 @@ function ProductPills({ products, onRemove, onAdd, note }) {
             <span key={p.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-              border: '1px solid rgba(168,85,247,0.22)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             }}>
               {p.name}
               {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
               <button type="button" onClick={() => onRemove(p)} style={{
                 width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
               }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
               >
                 <X size={9} />
               </button>
@@ -89,12 +89,12 @@ function ProductPills({ products, onRemove, onAdd, note }) {
       <button type="button" onClick={onAdd} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-        background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-        border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+        border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
         transition: 'background 150ms',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
       >
         <Plus size={13} /> Browse products{products.length > 0 ? ` (${products.length} selected)` : ''}
       </button>
@@ -131,7 +131,7 @@ function Toggle({ checked, onChange, label, sub }) {
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-      background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.1)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
       userSelect: 'none',
     }}>
       <div>
@@ -140,7 +140,7 @@ function Toggle({ checked, onChange, label, sub }) {
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
-        background: checked ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.15)',
+        background: checked ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
         transition: 'background 200ms',
       }}>
         <span style={{
@@ -172,7 +172,7 @@ function GhostBtn({ onClick, children, danger }) {
       background: danger ? 'rgba(239,68,68,0.07)' : 'transparent',
       color: danger ? '#ef4444' : '#9ca3af',
     }}
-      onMouseEnter={e => e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.14)' : 'rgba(168,85,247,0.06)'}
+      onMouseEnter={e => e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.14)' : 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
       onMouseLeave={e => e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.07)' : 'transparent'}
     >
       {children}
@@ -186,11 +186,11 @@ function OutlineBtn({ onClick, children }) {
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
       fontFamily: 'inherit', cursor: 'pointer',
-      border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
-      background: 'rgba(168,85,247,0.04)', transition: 'background 150ms',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', transition: 'background 150ms',
     }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.1)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
     >
       {children}
     </button>
@@ -222,8 +222,8 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-              border: '1px solid rgba(168,85,247,0.22)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             }}>
               {item.name}
               {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
@@ -232,12 +232,12 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
                 onClick={() => onToggle(item.id)}
                 style={{
                   width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                  background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, padding: 0, transition: 'background 120ms',
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
               >
                 <X size={9} />
               </button>
@@ -258,7 +258,7 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
           onBlur={e => {
             // small delay so click on dropdown item registers first
             setTimeout(() => setOpen(false), 150);
-            e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)';
+            e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
             e.currentTarget.style.boxShadow = 'none';
           }}
           onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setQuery(''); } }}
@@ -267,8 +267,8 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
           <div style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
             background: 'white', borderRadius: 10,
-            border: '1.5px solid rgba(168,85,247,0.2)',
-            boxShadow: '0 8px 24px rgba(168,85,247,0.12)',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
             maxHeight: 220, overflowY: 'auto',
           }}>
             {filtered.length === 0 ? (
@@ -284,19 +284,19 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
                   onMouseDown={() => { onToggle(item.id); setQuery(''); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 14px', background: isSelected ? 'rgba(168,85,247,0.06)' : 'none',
-                    border: 'none', borderBottom: '1px solid rgba(168,85,247,0.05)',
+                    padding: '9px 14px', background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none',
+                    border: 'none', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                     transition: 'background 120ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
-                  onMouseLeave={e => e.currentTarget.style.background = isSelected ? 'rgba(168,85,247,0.06)' : 'none'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.background = isSelected ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none'}
                 >
                   {/* Checkmark */}
                   <span style={{
                     width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                    border: isSelected ? '2px solid #a855f7' : '2px solid rgba(168,85,247,0.3)',
-                    background: isSelected ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+                    border: isSelected ? '2px solid var(--color-primary-500)' : '2px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+                    background: isSelected ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {isSelected && (
@@ -543,12 +543,12 @@ const ServiceForm = () => {
               fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
             }}
-              onMouseEnter={e => e.currentTarget.style.color = '#7c3aed'}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
             >
               <ChevronLeft size={14} /> Services
             </button>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isEditMode ? 'Edit service' : 'New service'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -559,11 +559,11 @@ const ServiceForm = () => {
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
             background: 'transparent', color: '#9ca3af',
-            border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', fontFamily: 'inherit',
+            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
             transition: 'border-color 150ms, color 150ms',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';  e.currentTarget.style.color = '#9ca3af'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';  e.currentTarget.style.color = '#9ca3af'; }}
           >
             <ChevronLeft size={13} /> Back
           </button>
@@ -680,9 +680,9 @@ const ServiceForm = () => {
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {pricingTiers.map((tier, i) => (
-                    <div key={i} style={{ padding: 14, borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.12)', background: 'rgba(168,85,247,0.02)' }}>
+                    <div key={i} style={{ padding: 14, borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>Tier {i + 1}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Tier {i + 1}</span>
                         <GhostBtn onClick={() => removeTier(i)} danger><Trash2 size={13} /></GhostBtn>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 8 }}>
@@ -763,16 +763,16 @@ const ServiceForm = () => {
                           <span key={s.id} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-                            background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                            border: '1px solid rgba(168,85,247,0.22)',
+                            background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                            border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                           }}>
                             {s.name}
                             <button type="button" onClick={() => setRelatedServices(prev => prev.filter(x => x.id !== s.id))}
                               style={{ width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                                background: 'rgba(168,85,247,0.15)', color: '#7c3aed',
+                                background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
                             >
                               <X size={9} />
                             </button>
@@ -783,11 +783,11 @@ const ServiceForm = () => {
                     <button type="button" onClick={() => setShowServiceSelector(true)} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-                      background: 'rgba(168,85,247,0.08)', color: '#7c3aed',
-                      border: '1.5px dashed rgba(168,85,247,0.3)', cursor: 'pointer',
+                      background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                      border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
                     }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.14)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
                     >
                       <Plus size={13} /> Browse services{relatedServices.length > 0 ? ` (${relatedServices.length} selected)` : ''}
                     </button>
@@ -836,7 +836,7 @@ const ServiceForm = () => {
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 12px', borderRadius: 8, marginBottom: 12,
-                  background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)',
+                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
                 }}>
                   <div>
                     <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', margin: '0 0 1px' }}>Status</p>
@@ -857,25 +857,25 @@ const ServiceForm = () => {
                   <button type="button" onClick={() => submitWithStatus('draft')} disabled={submitting} style={{
                     width: '100%', padding: '10px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                     fontFamily: 'inherit', cursor: submitting ? 'not-allowed' : 'pointer',
-                    border: '1.5px solid rgba(168,85,247,0.25)', color: '#7c3aed',
-                    background: 'rgba(168,85,247,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                     opacity: submitting ? 0.6 : 1, transition: 'background 150ms',
                   }}
-                    onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.04)'}
+                    onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                    onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                   >
                     <Save size={13} /> {submitting ? 'Saving…' : 'Save as draft'}
                   </button>
                   <button type="button" onClick={() => submitWithStatus('active')} disabled={submitting} style={{
                     width: '100%', padding: '10px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                     border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                    background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                    boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+                    background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                    boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                     opacity: submitting ? 0.6 : 1, transition: 'box-shadow 150ms',
                   }}
-                    onMouseEnter={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'; }}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+                    onMouseEnter={e => { if (!submitting) e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
                   >
                     <Eye size={13} /> {submitting ? 'Publishing…' : isEditMode ? 'Update & publish' : 'Publish service'}
                   </button>
@@ -887,7 +887,7 @@ const ServiceForm = () => {
                 <p style={sectionHeader}>Main image</p>
                 {mainImagePreview && (
                   <div style={{ position: 'relative', marginBottom: 12 }}>
-                    <img src={mainImagePreview} alt="Preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, border: '1.5px solid rgba(168,85,247,0.15)', display: 'block' }} />
+                    <img src={mainImagePreview} alt="Preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', display: 'block' }} />
                     <button type="button" onClick={() => { setMainImageFile(null); setMainImagePreview(''); setMainImageUrl(''); }} style={{
                       position: 'absolute', top: -8, right: -8, width: 24, height: 24,
                       borderRadius: '50%', background: '#ef4444', border: 'none', cursor: 'pointer',
@@ -900,11 +900,11 @@ const ServiceForm = () => {
                 <label style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   height: 100, borderRadius: 9, cursor: 'pointer', gap: 6,
-                  border: '1.5px dashed rgba(168,85,247,0.25)', background: 'rgba(168,85,247,0.03)',
+                  border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                   transition: 'background 150ms',
                 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.07)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                 >
                   <Upload size={20} style={{ color: '#c4b5fd' }} />
                   <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Click to upload</span>
@@ -930,7 +930,7 @@ const ServiceForm = () => {
                   {galleryPreviews.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {galleryPreviews.map((p, i) => (
-                        <img key={i} src={p} alt={`Gallery ${i + 1}`} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid rgba(168,85,247,0.15)' }} />
+                        <img key={i} src={p} alt={`Gallery ${i + 1}`} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} />
                       ))}
                     </div>
                   )}
@@ -979,9 +979,9 @@ const ServiceForm = () => {
               </div>
 
               {/* SEO note */}
-              <div style={{ ...card, background: 'rgba(168,85,247,0.04)' }}>
+              <div style={{ ...card, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                 <p style={{ ...sectionHeader, marginBottom: 10 }}>SEO</p>
-                <p style={{ fontSize: '0.75rem', color: '#7c3aed', margin: 0, lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-primary-600)', margin: 0, lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                   <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
                   Meta title, description and keywords are auto-generated from your service name and description.
                 </p>

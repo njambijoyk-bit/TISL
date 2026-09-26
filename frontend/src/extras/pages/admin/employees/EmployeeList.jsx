@@ -25,7 +25,7 @@ const STAT_META = [
   { key: 'total_employees', label: 'Total',      icon: Users,        accent: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
   { key: 'active',          label: 'Active',     icon: TrendingUp,   accent: '#059669', bg: 'rgba(5,150,105,0.08)'   },
   { key: 'on_leave',        label: 'On Leave',   icon: Calendar,     accent: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
-  { key: 'probation',       label: 'Probation',  icon: Award,        accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)'  },
+  { key: 'probation',       label: 'Probation',  icon: Award,        accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'  },
   { key: 'terminated',      label: 'Terminated', icon: AlertCircle,  accent: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
 ];
 
@@ -38,19 +38,19 @@ const EMPLOYMENT_TYPE_LABELS = {
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#374151', outline: 'none', fontFamily: 'inherit',
   cursor: 'pointer', transition: 'border-color 150ms, box-shadow 150ms',
 };
-const sFocus = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const sBlur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const sFocus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const sBlur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH = ({ children, sortable, onClick }) => (
   <th
@@ -77,7 +77,7 @@ function StatCard({ label, value, icon: Icon, accent, bg }) {
       </div>
       <div>
         <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a855f7', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
+        <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
       </div>
     </div>
   );
@@ -99,10 +99,10 @@ function Badge({ status }) {
 
 function SkeletonRow() {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.05)' }}>
+    <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {[220, 160, 120, 80, 100, 60].map((w, i) => (
         <td key={i} style={{ padding: '14px 16px' }}>
-          <div style={{ width: w, height: 10, borderRadius: 6, background: 'rgba(168,85,247,0.07)' }} />
+          <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }} />
         </td>
       ))}
     </tr>
@@ -235,7 +235,7 @@ export default function EmployeeList() {
 
   const hasFilters = filters.search || filters.status || filters.department || filters.employment_type;
   const SortArrow = ({ col }) => (
-    <span style={{ marginLeft: 3, color: sortBy === col ? '#a855f7' : '#d1d5db' }}>
+    <span style={{ marginLeft: 3, color: sortBy === col ? 'var(--color-primary-500)' : '#d1d5db' }}>
       {sortBy === col && sortOrder === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />}
     </span>
   );
@@ -248,7 +248,7 @@ export default function EmployeeList() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 2px' }}>Employees</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>Employees</h1>
           <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
             {statistics?.total_employees?.toLocaleString() ?? 0} total employees
           </p>
@@ -260,9 +260,9 @@ export default function EmployeeList() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: showFilters || hasFilters ? 'rgba(168,85,247,0.08)' : 'transparent',
-              border: `1.5px solid ${showFilters || hasFilters ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.2)'}`,
-              color: showFilters || hasFilters ? '#7c3aed' : '#9ca3af',
+              background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+              border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
               transition: 'all 150ms',
             }}
           >
@@ -323,11 +323,11 @@ export default function EmployeeList() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 4px 14px rgba(168,85,247,0.35)', transition: 'box-shadow 150ms',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'box-shadow 150ms',
             }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <UserPlus size={15} /> Add Employee
           </button>
@@ -357,7 +357,7 @@ export default function EmployeeList() {
               onKeyPress={e => e.key === 'Enter' && fetchEmployees(1)}
               style={{
                 width: '100%', padding: '8px 12px 8px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'rgba(168,85,247,0.04)', border: '1.5px solid rgba(168,85,247,0.18)',
+                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                 color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                 transition: 'border-color 150ms, box-shadow 150ms',
               }}
@@ -368,7 +368,7 @@ export default function EmployeeList() {
 
         {/* Expanded filters */}
         {showFilters && (
-          <div style={{ padding: '12px 16px 14px', borderTop: '1px solid rgba(168,85,247,0.1)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <div style={{ padding: '12px 16px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
             <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
               <option value="">All statuses</option>
               {Object.entries(STATUS_META).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
@@ -383,7 +383,7 @@ export default function EmployeeList() {
             </select>
             <button
               onClick={() => fetchEmployees(1)}
-              style={{ padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', border: 'none' }}
+              style={{ padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', border: 'none' }}
             >
               Apply
             </button>
@@ -406,7 +406,7 @@ export default function EmployeeList() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                 <TH sortable onClick={() => handleSort('employee_number')}>
                   Employee <SortArrow col="employee_number" />
                 </TH>
@@ -431,14 +431,14 @@ export default function EmployeeList() {
                   ? (
                     <tr>
                       <td colSpan={7} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                        <Users size={36} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+                        <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                         <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>
                           {hasFilters ? 'No employees match your filters' : 'No employees found'}
                         </p>
                         {hasFilters && (
                           <button
                             onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '' }); setTimeout(() => fetchEmployees(1), 0); }}
-                            style={{ fontSize: '0.75rem', fontWeight: 600, color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                            style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                           >
                             Clear filters
                           </button>
@@ -449,8 +449,8 @@ export default function EmployeeList() {
                   : employees.map((emp, i) => (
                     <tr
                       key={emp.id}
-                      style={{ borderBottom: i === employees.length - 1 ? 'none' : '1px solid rgba(168,85,247,0.05)', transition: 'background 120ms' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.03)'}
+                      style={{ borderBottom: i === employees.length - 1 ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)', transition: 'background 120ms' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {/* Employee */}
@@ -459,9 +459,9 @@ export default function EmployeeList() {
                           <div style={{
                             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: 'linear-gradient(135deg,rgba(168,85,247,0.15),rgba(124,58,237,0.2))',
-                            color: '#7c3aed', fontSize: '0.85rem', fontWeight: 800,
-                            boxShadow: '0 0 0 1px rgba(168,85,247,0.2)',
+                            background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 15%, transparent),color-mix(in srgb, var(--color-primary-600) 20%, transparent))',
+                            color: 'var(--color-primary-600)', fontSize: '0.85rem', fontWeight: 800,
+                            boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                           }}>
                             {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                           </div>
@@ -516,8 +516,8 @@ export default function EmployeeList() {
                             <div style={{
                               width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              background: 'rgba(168,85,247,0.08)', color: '#7c3aed', fontSize: '0.72rem', fontWeight: 700,
-                              boxShadow: '0 0 0 1px rgba(168,85,247,0.15)',
+                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', fontSize: '0.72rem', fontWeight: 700,
+                              boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                             }}>
                               {emp.manager.user.name?.[0] || '?'}
                             </div>
@@ -551,7 +551,7 @@ export default function EmployeeList() {
 
         {/* Pagination */}
         {!loading && employees.length > 0 && pagination.last_page > 1 && (
-          <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(168,85,247,0.02)' }}>
+          <div style={{ padding: '12px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} employees
             </p>
@@ -565,12 +565,12 @@ export default function EmployeeList() {
                   <button key={p} onClick={() => fetchEmployees(p)} style={{
                     width: 30, height: 30, borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
                     cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
-                    background: active ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'none',
-                    border: active ? 'none' : '1.5px solid rgba(168,85,247,0.18)',
+                    background: active ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
+                    border: active ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
                     color: active ? 'white' : '#9ca3af',
-                    boxShadow: active ? '0 2px 8px rgba(168,85,247,0.3)' : 'none',
+                    boxShadow: active ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                   }}
-                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
                     onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none'; }}
                   >{p}</button>
                 );
@@ -586,20 +586,20 @@ export default function EmployeeList() {
         <Modal onClose={() => setShowTrashModal(false)} title="Deleted Employees" subtitle="Restore or permanently remove records" icon={<Trash2 size={18} style={{ color: '#b91c1c' }} />} iconBg="rgba(239,68,68,0.1)">
           {trashLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
             </div>
           ) : trashedEmployees.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <Trash2 size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+              <Trash2 size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Trash is empty</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {trashedEmployees.map(emp => (
-                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(168,85,247,0.1)', transition: 'border-color 150ms' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.1)'}
+                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', transition: 'border-color 150ms' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(107,114,128,0.1)', color: '#6b7280', fontSize: '0.8rem', fontWeight: 800 }}>
@@ -657,7 +657,7 @@ export default function EmployeeList() {
               }
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Cancel
               </button>
               <button
@@ -691,8 +691,8 @@ export default function EmployeeList() {
                   padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
                   background: leaveLogsFilter === v
-                    ? (v === 'add' ? '#059669' : v === 'use' ? '#d97706' : '#a855f7')
-                    : 'rgba(168,85,247,0.07)',
+                    ? (v === 'add' ? '#059669' : v === 'use' ? '#d97706' : 'var(--color-primary-500)')
+                    : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
                   color: leaveLogsFilter === v ? 'white' : '#9ca3af',
                 }}
               >
@@ -703,12 +703,12 @@ export default function EmployeeList() {
 
           {leaveLogsLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading logs…</p>
             </div>
           ) : leaveLogs.filter(l => leaveLogsFilter === '' || l.action === leaveLogsFilter).length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <History size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+              <History size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No leave logs yet</p>
             </div>
           ) : (
@@ -763,7 +763,7 @@ export default function EmployeeList() {
           )}
           {/* Pagination */}
           {leaveLogsPagination.last_page > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
               <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
                 Page {leaveLogsPagination.current_page} of {leaveLogsPagination.last_page} · {leaveLogsPagination.total} entries
               </p>
@@ -771,14 +771,14 @@ export default function EmployeeList() {
                 <button
                   onClick={() => fetchLeaveLogs(leaveLogsPagination.current_page - 1)}
                   disabled={leaveLogsPagination.current_page <= 1}
-                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page <= 1 ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: leaveLogsPagination.current_page <= 1 ? 0.3 : 1 }}
+                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page <= 1 ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: leaveLogsPagination.current_page <= 1 ? 0.3 : 1 }}
                 >
                   ← Prev
                 </button>
                 <button
                   onClick={() => fetchLeaveLogs(leaveLogsPagination.current_page + 1)}
                   disabled={leaveLogsPagination.current_page >= leaveLogsPagination.last_page}
-                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#a855f7', opacity: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 0.3 : 1 }}
+                  style={{ padding: '4px 10px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: leaveLogsPagination.current_page >= leaveLogsPagination.last_page ? 0.3 : 1 }}
                 >
                   Next →
                 </button>
@@ -821,12 +821,12 @@ export default function EmployeeList() {
           </div>
           {birthdaysLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid rgba(168,85,247,0.2)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
             </div>
           ) : birthdays.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
-              <Gift size={32} style={{ color: 'rgba(168,85,247,0.15)', margin: '0 auto 12px', display: 'block' }} />
+              <Gift size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
               <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
                 No upcoming birthdays in the next {birthdayDays} days  {/* ← was hardcoded 30 */}
               </p>
@@ -836,15 +836,15 @@ export default function EmployeeList() {
               {birthdays.map(emp => {
                 const isToday = emp.days_until_birthday === 0;
                 const isSoon  = emp.days_until_birthday <= 7;
-                const accentColor = isToday ? '#7c3aed' : isSoon ? '#d97706' : '#6b7280';
-                const accentBg    = isToday ? 'rgba(124,58,237,0.08)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
+                const accentColor = isToday ? 'var(--color-primary-600)' : isSoon ? '#d97706' : '#6b7280';
+                const accentBg    = isToday ? 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)' : isSoon ? 'rgba(217,119,6,0.07)' : 'rgba(107,114,128,0.06)';
 
                 return (
                   <div key={emp.id} style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                     padding: '11px 14px', borderRadius: 10,
-                    border: `1px solid ${isToday ? 'rgba(124,58,237,0.2)' : 'rgba(168,85,247,0.1)'}`,
-                    background: isToday ? 'rgba(124,58,237,0.04)' : 'transparent',
+                    border: `1px solid ${isToday ? 'color-mix(in srgb, var(--color-primary-600) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
+                    background: isToday ? 'color-mix(in srgb, var(--color-primary-600) 4%, transparent)' : 'transparent',
                     transition: 'border-color 150ms',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -895,7 +895,7 @@ function RowActions({ empId, onDelete, navigate }) {
       <button
         onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
         style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#c4b5fd', transition: 'background 120ms, color 120ms' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; e.currentTarget.style.color = '#a855f7'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
       >
         <MoreHorizontal size={14} />
@@ -903,17 +903,17 @@ function RowActions({ empId, onDelete, navigate }) {
       {open && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setOpen(false)} />
-          <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 168, zIndex: 20, background: 'white', borderRadius: 12, padding: '6px 0', border: '1.5px solid rgba(168,85,247,0.15)', boxShadow: '0 8px 32px rgba(168,85,247,0.15)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 168, zIndex: 20, background: 'white', borderRadius: 12, padding: '6px 0', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} onClick={e => e.stopPropagation()}>
             {[
               { icon: Eye,    label: 'View',    color: '#374151', onClick: () => navigate(`/admin/employees/${empId}`) },
               { icon: Edit3,  label: 'Edit',    color: '#374151', onClick: () => navigate(`/admin/employees/${empId}/edit`) },
               null,
               { icon: Trash2, label: 'Delete',  color: '#ef4444', onClick: onDelete },
             ].map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid rgba(168,85,247,0.08)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', fontSize: '0.8rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: item.color, transition: 'background 120ms' }}
-                onMouseEnter={e => e.currentTarget.style.background = item.color === '#ef4444' ? 'rgba(239,68,68,0.05)' : 'rgba(168,85,247,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = item.color === '#ef4444' ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <item.icon size={13} style={{ flexShrink: 0 }} /> {item.label}
@@ -930,7 +930,7 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg }}>{icon}</div>
             <div>
@@ -939,7 +939,7 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
             </div>
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.06)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             <X size={16} />
@@ -953,8 +953,8 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
 
 function PaginationBtn({ onClick, disabled, children }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid rgba(168,85,247,0.18)', background: 'none', color: '#a855f7', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(168,85,247,0.06)'; }}
+    <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
       onMouseLeave={e => e.currentTarget.style.background = 'none'}
     >{children}</button>
   );

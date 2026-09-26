@@ -52,7 +52,7 @@ export default function AboutCareersPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                             <span style={{
                                 width: 30, height: 30, borderRadius: 7,
-                                background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                                background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                             }}>
                                 <Icon size={14} color="#fff" strokeWidth={2} />
@@ -76,7 +76,7 @@ export default function AboutCareersPage() {
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
-                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                         color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
                     }}
                 >

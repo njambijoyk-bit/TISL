@@ -36,7 +36,7 @@ const CATEGORY_COLORS = {
     late_delivery:     '#f59e0b',
     damaged_goods:     '#ef4444',
     wrong_address:     '#3b82f6',
-    customer_complaint:'#a855f7',
+    customer_complaint:'var(--color-primary-500)',
     driver_issue:      '#f97316',
     other:             '#94a3b8',
 };
@@ -55,7 +55,7 @@ function printIncident(incident) {
 
     const severity = incident.severity ?? 'unknown';
     const severityColor = {
-        low: '#059669', medium: '#d97706', high: '#dc2626', critical: '#7c3aed'
+        low: '#059669', medium: '#d97706', high: '#dc2626', critical: 'var(--color-primary-600)'
     }[severity] ?? '#94a3b8';
 
     const row = (label, value) => value
@@ -64,9 +64,9 @@ function printIncident(incident) {
 
     const html = `
         <div id="${id}" style="font-family:system-ui,sans-serif;max-width:720px;margin:0 auto;padding:32px 24px;color:#111827">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #a855f7">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--color-primary-500)">
                 <div>
-                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#a855f7;margin-bottom:4px">Incident Report</div>
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-primary-500);margin-bottom:4px">Incident Report</div>
                     <div style="font-size:20px;font-weight:800;color:#111827">${incident.manifest?.manifest_number ?? 'No manifest'}</div>
                 </div>
                 <div style="text-align:right;font-size:11px;color:#9ca3af">
@@ -168,7 +168,7 @@ function IncidentRow({ incident, expanded, onToggle, onUpdate, onHover, onVisibi
 
                 <div style={{ gridColumn: '1 / -1' }}>
                     <Label>Description {incident.is_redacted && <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.12)', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', marginLeft: 6 }}>Redacted active</span>}</Label>
-                    <Value style={{ padding: 10, borderRadius: 8, background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                    <Value style={{ padding: 10, borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                         {incident.description
                             ? incident.description.length > 100
                                 ? incident.description.slice(0, 100) + '…'
@@ -466,7 +466,7 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                 background: 'white', borderRadius: 20, width: '100%', maxWidth: 480,
                 boxShadow: '0 24px 60px rgba(0,0,0,0.18)', overflow: 'hidden',
             }}>
-                <div style={{ height: 4, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+                <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
                 <div style={{ padding: 20 }}>
                     <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#111827' }}>
                         {incident.is_redacted ? 'Edit Redacted Description' : 'Redact Description'}
@@ -476,8 +476,8 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                     </p>
 
                     {/* Original description for reference */}
-                    <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#a855f7', marginBottom: 4 }}>
+                    <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 4 }}>
                             Original (admin only)
                         </div>
                         <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
@@ -490,7 +490,7 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                     </div>
 
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#c084fc', marginBottom: 6 }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-400)', marginBottom: 6 }}>
                             Redacted version <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         <textarea
@@ -501,7 +501,7 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                             maxLength={2100}
                             style={{
                                 width: '100%', resize: 'vertical', boxSizing: 'border-box',
-                                border: `1px solid ${overLimit ? 'rgba(239,68,68,0.4)' : 'rgba(168,85,247,0.2)'}`,
+                                border: `1px solid ${overLimit ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
                                 borderRadius: 12,
                                 padding: '10px 12px', fontSize: 13, color: '#111827',
                                 outline: 'none', fontFamily: 'inherit',
@@ -536,8 +536,8 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                         )}
                         <button onClick={handleSave} disabled={!text.trim() || loading || overLimit} style={{
                             flex: 2, padding: '10px 14px', borderRadius: 12, border: 'none',
-                            background: text.trim() && !loading && !overLimit ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'rgba(168,85,247,0.2)',
-                            color: text.trim() && !loading && !overLimit ? 'white' : '#a855f7',
+                            background: text.trim() && !loading && !overLimit ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                            color: text.trim() && !loading && !overLimit ? 'white' : 'var(--color-primary-500)',
                             fontSize: 13, fontWeight: 700, cursor: text.trim() && !loading && !overLimit ? 'pointer' : 'not-allowed',
                         }}>
                             {loading ? 'Saving…' : incident.is_redacted ? 'Update redaction' : 'Save redaction'}
@@ -585,7 +585,7 @@ function AdminNotesField({ incident, onSave, onHover }) {
                 rows={3}
                 style={{
                     width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                    background: 'rgba(168,85,247,0.03)', border: `1px solid ${D.purpleBorder}`,
+                    background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: `1px solid ${D.purpleBorder}`,
                     borderRadius: D.radiusSm, color: D.text,
                     fontSize: '0.82rem', padding: '8px 10px', outline: 'none',
                     fontFamily: 'inherit', marginTop: 4,
@@ -708,7 +708,7 @@ function CreateIncidentModal({ onClose, onSuccess, audio }) {
                 borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
                 overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
             }}>
-                <div style={{ height: 4, background: 'linear-gradient(90deg,#a855f7,#7c3aed)' }} />
+                <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
 
                 {/* header */}
                 <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${D.purpleBorder}`, flexShrink: 0 }}>
@@ -954,7 +954,7 @@ function CreateIncidentModal({ onClose, onSuccess, audio }) {
                         <div style={{ display: 'flex', gap: 8 }}>
                             {[
                                 { value: 'low', color: '#059669' }, { value: 'medium', color: '#d97706' },
-                                { value: 'high', color: '#dc2626' }, { value: 'critical', color: '#7c3aed' },
+                                { value: 'high', color: '#dc2626' }, { value: 'critical', color: 'var(--color-primary-600)' },
                             ].map(s => (
                                 <button key={s.value} onClick={() => setSeverity(s.value)} style={{
                                     flex: 1, padding: '8px 4px', borderRadius: D.radiusSm, cursor: 'pointer',
@@ -1016,8 +1016,8 @@ function CreateIncidentModal({ onClose, onSuccess, audio }) {
                         style={{
                             width: '100%', padding: '13px', borderRadius: D.radiusSm, border: 'none',
                             background: canSubmit && !submitting
-                                ? 'linear-gradient(135deg,#a855f7,#7c3aed)'
-                                : 'rgba(168,85,247,0.2)',
+                                ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))'
+                                : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                             color: canSubmit && !submitting ? 'white' : D.purple,
                             fontSize: '0.9rem', fontWeight: 700,
                             cursor: canSubmit && !submitting ? 'pointer' : 'not-allowed',

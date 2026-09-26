@@ -25,7 +25,7 @@ export default function SectionTabs({ item, activeTab }) {
       style={{
         position: 'sticky', top: 0, zIndex: 30,
         background: 'var(--bg-primary, #fff)',
-        borderBottom: '1px solid rgba(168,85,247,0.12)',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
       }}
     >
       <nav
@@ -40,7 +40,7 @@ export default function SectionTabs({ item, activeTab }) {
         <span style={{
           display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
           marginRight: 14, paddingRight: 16,
-          borderRight: '1px solid rgba(168,85,247,0.15)',
+          borderRight: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
           color: item.color,
         }}>

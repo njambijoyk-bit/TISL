@@ -28,11 +28,11 @@ const BG       = 'transparent';
 const SURFACE  = 'rgba(128,128,128,0.07)';
 const SURFACE2 = 'rgba(128,128,128,0.11)';
 const BORDER   = 'rgba(128,128,128,0.18)';
-const BORDER_P = 'rgba(168,85,247,0.3)';
+const BORDER_P = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
 const TEXT     = 'inherit';
 const MUTED    = 'rgba(128,128,128,0.75)';
-const PURPLE   = '#a855f7';
-const PURPLE_D = '#7c3aed';
+const PURPLE   = 'var(--color-primary-500)';
+const PURPLE_D = 'var(--color-primary-600)';
 
 const glass = (extra = {}) => ({
   background: SURFACE,
@@ -59,19 +59,19 @@ const glowBtn = (color) => ({
 // ── Route catalogs ────────────────────────────────────────────────────────────
 const CUSTOMER_ROUTES = [
   { key: 'orders',         label: 'My Orders',      icon: ShoppingBag,   path: '/orders',            color: '#f97316' },
-  { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: '#8b5cf6' },
+  { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: 'var(--color-primary-400)' },
   { key: 'quote-requests', label: 'Quote Requests', icon: MessageSquare, path: '/my-quote-requests', color: '#ec4899' },
   { key: 'bookings',       label: 'Bookings',       icon: ClipboardList, path: '/bookings',          color: '#10b981' },
   { key: 'tickets',        label: 'Support',        icon: LifeBuoy,      path: '/my-tickets',        color: '#ef4444' },
   { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6' },
   { key: 'wishlist',       label: 'Wishlist',       icon: Heart,         path: '/wishlist',          color: '#f43f5e' },
-  { key: 'hampers',        label: 'Hampers',        icon: Gift,          path: '/hampers',           color: '#a855f7' },
+  { key: 'hampers',        label: 'Hampers',        icon: Gift,          path: '/hampers',           color: 'var(--color-primary-500)' },
   { key: 'products',       label: 'Products',       icon: Package,       path: '/products',          color: '#3b82f6' },
   { key: 'services',       label: 'Services',       icon: Wrench,        path: '/services',          color: '#06b6d4' },
   { key: 'auctions',       label: 'Auctions',       icon: Gavel,         path: '/auctions',          color: '#dc2626' },
   { key: 'specials',       label: 'Specials',       icon: Tag,           path: '/specials',          color: '#f59e0b' },
   { key: 'brochures',      label: 'Brochures',      icon: BookOpen,      path: '/brochures',         color: '#64748b' },
-  { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: '#7c3aed' },
+  { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: 'var(--color-primary-600)' },
   { key: 'profile',        label: 'My Profile',     icon: Info,          path: '/profile',           color: '#0ea5e9' },
   { key: 'd-hist',         label: 'Delivery History',icon: ScrollText,   path: '/delivery-history',  color: '#14b8a6' },
 ];
@@ -79,9 +79,9 @@ const CUSTOMER_ROUTES = [
 const ADMIN_ROUTES = [
   { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/admin',                color: '#6366f1' },
   { key: 'orders',     label: 'Orders',     icon: ShoppingBag,     path: '/admin/orders',         color: '#f97316' },
-  { key: 'products',   label: 'Products',   icon: Package,         path: '/admin/products',       color: '#a855f7' },
+  { key: 'products',   label: 'Products',   icon: Package,         path: '/admin/products',       color: 'var(--color-primary-500)' },
   { key: 'customers',  label: 'Customers',  icon: Users,           path: '/admin/customers',      color: '#3b82f6' },
-  { key: 'quotes',     label: 'Quotes',     icon: FileText,        path: '/admin/quotes',         color: '#8b5cf6' },
+  { key: 'quotes',     label: 'Quotes',     icon: FileText,        path: '/admin/quotes',         color: 'var(--color-primary-400)' },
   { key: 'bookings',   label: 'Bookings',   icon: ClipboardList,   path: '/admin/bookings',       color: '#10b981' },
   { key: 'reports',    label: 'Reports',    icon: BarChart2,       path: '/admin/reports',        color: '#22c55e' },
   { key: 'tickets',    label: 'Tickets',    icon: LifeBuoy,        path: '/admin/tickets',        color: '#ef4444' },
@@ -91,7 +91,7 @@ const ADMIN_ROUTES = [
   { key: 'settings',   label: 'Settings',   icon: Settings,        path: '/admin/settings',       color: '#64748b' },
   { key: 'q-requests', label: 'Quote Reqs', icon: MessageSquare,   path: '/admin/quote-requests', color: '#f43f5e' },
   { key: 'employees',  label: 'Employees',  icon: Users,           path: '/admin/employees',      color: '#0ea5e9' },
-  { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: '#7c3aed' },
+  { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: 'var(--color-primary-600)' },
   { key: 'manifests',  label: 'Manifests',  icon: ScrollText,      path: '/admin/delivery',       color: '#f97316' },
   { key: 'd-mnfst',    label: 'Driver Mnfst', icon: Truck,         path: '/driver/manifests',     color: '#0ea5e9' },
 ];
@@ -104,7 +104,7 @@ const ROLE_LABELS = {
   driver: 'Driver', logistics: 'Logistics', sales_rep: 'Sales Rep', staff: 'Staff',
 };
 const ROLE_COLORS = {
-  super_admin: '#a855f7', admin: '#3b82f6', manager: '#10b981', finance: '#f59e0b',
+  super_admin: 'var(--color-primary-500)', admin: '#3b82f6', manager: '#10b981', finance: '#f59e0b',
   driver: '#0ea5e9', logistics: '#f97316', sales_rep: '#ec4899', staff: '#06b6d4',
 };
 
@@ -123,7 +123,7 @@ const GLOBAL_CSS = `
   .portal-press { transition: transform 110ms ease; }
   .portal-press:active { transform: scale(0.93) !important; }
   .portal-row-hover { transition: background 140ms ease; }
-  .portal-row-hover:hover { background: rgba(168,85,247,0.07) !important; }
+  .portal-row-hover:hover { background: color-mix(in srgb, var(--color-primary-500) 7%, transparent) !important; }
 `;
 
 // ── PWA Header ────────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ function PWAHeader({ name, onLogout }) {
   };
 
   const TYPE_COLORS = {
-    referral_earned: '#a855f7', birthday_promo: '#ec4899',
+    referral_earned: 'var(--color-primary-500)', birthday_promo: '#ec4899',
     win_back_promo: '#f97316', vip_upgrade_promo: '#f59e0b',
     loyalty_milestone_promo: '#10b981', order_placed: '#3b82f6',
     order_shipped: '#6366f1', order_delivered: '#22c55e',
@@ -247,7 +247,7 @@ function PWAHeader({ name, onLogout }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {unreadCount > 0 && (
-                  <button onClick={handleMarkAllRead} style={{ padding: '4px 10px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
+                  <button onClick={handleMarkAllRead} style={{ padding: '4px 10px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: PURPLE, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
                     Mark all read
                   </button>
                 )}
@@ -272,7 +272,7 @@ function PWAHeader({ name, onLogout }) {
                   <div key={n.id} className="portal-row-hover" style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10,
                     padding: '11px 16px',
-                    background: n.is_read ? 'transparent' : 'rgba(168,85,247,0.05)',
+                    background: n.is_read ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                     borderBottom: `1px solid ${BORDER}`,
                   }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.is_read ? BORDER : accent }} />
@@ -310,7 +310,7 @@ function TabBar({ tabs, active, onChange }) {
         return (
           <button key={tab.key} onClick={() => onChange(tab.key)} className="portal-press" style={{
             flex: 1, padding: '10px 4px 8px', border: 'none',
-            background: isActive ? 'rgba(168,85,247,0.08)' : 'none',
+            background: isActive ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'none',
             cursor: 'pointer', fontFamily: 'inherit',
             borderBottom: isActive ? `2px solid ${PURPLE}` : '2px solid transparent',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
@@ -354,7 +354,7 @@ function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
         <p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 800, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Quick Access</p>
         <button onClick={() => { setDraft(selected); setEditing(true); }} style={{
           display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8,
-          border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)',
+          border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           color: PURPLE, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
         }}>
           <Edit3 size={10} /> Edit
@@ -440,7 +440,7 @@ function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
               width: '100%', padding: '11px', borderRadius: 11, border: 'none',
               background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`,
               color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: `0 4px 16px rgba(168,85,247,0.35)`,
+              boxShadow: `0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)`,
             }}>
               Save Shortcuts
             </button>
@@ -600,7 +600,7 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
         <button onClick={handleSave}
           disabled={saving || !pwd.current_password || !pwd.new_password || !pwd.new_password_confirmation}
           className="portal-press"
-          style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px rgba(168,85,247,0.3)' }}>
+          style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
           {saving ? <><Loader2 size={14} style={{ animation: 'portalSpin 1s linear infinite' }} /> Saving…</> : 'Update Password'}
         </button>
       </GlassCard>
@@ -697,7 +697,7 @@ function CustomerPWAHome({ user, onLogout }) {
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           padding: '10px', borderRadius: 11,
           border: `1.5px solid ${BORDER_P}`,
-          background: 'rgba(168,85,247,0.08)',
+          background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           cursor: 'pointer', fontFamily: 'inherit',
           fontSize: '0.82rem', fontWeight: 700, color: PURPLE, position: 'relative',
         }}>
@@ -715,7 +715,7 @@ function CustomerPWAHome({ user, onLogout }) {
           background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`,
           cursor: 'pointer', fontFamily: 'inherit',
           fontSize: '0.82rem', fontWeight: 700, color: 'white', position: 'relative',
-          boxShadow: '0 2px 12px rgba(168,85,247,0.35)',
+          boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
         }}>
           <FileText size={15} strokeWidth={2.2} />
           Quote List
@@ -764,7 +764,7 @@ function CustomerPersonalTab({ customer, user, navigate }) {
         </button>
       </div>
 
-      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Edit Full Profile <ChevronRight size={13} />
       </button>
     </div>
@@ -776,7 +776,7 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
   if (!customer) return null;
   const tier       = customer.tier ?? 'bronze';
   const tierOption = tierOptions?.find(t => t.slug === tier);
-  const tierColor  = tierOption?.color ?? ({ bronze: '#f97316', silver: '#94a3b8', gold: '#f59e0b', platinum: '#a855f7' }[tier] ?? '#a855f7');
+  const tierColor  = tierOption?.color ?? ({ bronze: '#f97316', silver: '#94a3b8', gold: '#f59e0b', platinum: 'var(--color-primary-500)' }[tier] ?? 'var(--color-primary-500)');
   const tierLabel  = tierOption?.name ?? (tier.charAt(0).toUpperCase() + tier.slice(1));
   const points     = wallet?.loyalty_points ?? customer.loyalty_points ?? 0;
 
@@ -805,7 +805,7 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
           <span style={{ fontSize: '0.65rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Loyalty Points</span>
           <span style={{ fontSize: '1rem', fontWeight: 900, color: PURPLE }}>{points.toLocaleString()}</span>
         </div>
-        <div style={{ height: 5, borderRadius: 99, background: 'rgba(168,85,247,0.12)', overflow: 'hidden', marginBottom: 5 }}>
+        <div style={{ height: 5, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden', marginBottom: 5 }}>
           <div style={{ height: '100%', borderRadius: 99, width: `${Math.min(100, (points / 1000) * 100)}%`, background: `linear-gradient(90deg, ${PURPLE}, ${PURPLE_D})`, transition: 'width 0.7s ease' }} />
         </div>
         <p style={{ margin: 0, fontSize: '0.68rem', color: MUTED }}>
@@ -818,15 +818,15 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
         <GlassCard>
           <p style={{ margin: '0 0 8px', fontSize: '0.62rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Referral Code</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <code style={{ flex: 1, padding: '7px 11px', borderRadius: 8, background: 'rgba(168,85,247,0.12)', border: `1px dashed ${BORDER_P}`, fontFamily: 'monospace', fontWeight: 900, fontSize: '0.9rem', color: '#c4b5fd', letterSpacing: '0.06em' }}>
+            <code style={{ flex: 1, padding: '7px 11px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', border: `1px dashed ${BORDER_P}`, fontFamily: 'monospace', fontWeight: 900, fontSize: '0.9rem', color: '#c4b5fd', letterSpacing: '0.06em' }}>
               {customer.referral_code.code}
             </code>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.code); toast.success('Code copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.code); toast.success('Code copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Copy code
               </button>
               {customer.referral_code.share_url && (
-                <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.share_url); toast.success('Link copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => { navigator.clipboard.writeText(customer.referral_code.share_url); toast.success('Link copied!'); }} className="portal-press" style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: PURPLE, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Copy link
                 </button>
               )}
@@ -841,14 +841,14 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
           <p style={{ margin: '0 0 10px', fontSize: '0.62rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Promo Codes</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {myCodes.active.slice(0, 3).map(code => (
-              <div key={code.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 9, background: 'rgba(168,85,247,0.08)', border: `1px solid ${BORDER_P}` }}>
+              <div key={code.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 9, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${BORDER_P}` }}>
                 <div>
                   <code style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.82rem', color: '#c4b5fd', letterSpacing: '0.06em' }}>{code.code}</code>
                   <p style={{ margin: '2px 0 0', fontSize: '0.65rem', color: MUTED }}>
                     {code.reward_type === 'percentage' ? `${code.reward_value}% off` : `KES ${Number(code.reward_value).toLocaleString()} off`}
                   </p>
                 </div>
-                <button onClick={() => { navigator.clipboard.writeText(code.code); toast.success('Copied!'); }} className="portal-press" style={{ padding: '4px 10px', borderRadius: 7, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.1)', color: PURPLE, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => { navigator.clipboard.writeText(code.code); toast.success('Copied!'); }} className="portal-press" style={{ padding: '4px 10px', borderRadius: 7, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: PURPLE, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>
                   Copy
                 </button>
               </div>
@@ -857,7 +857,7 @@ function CustomerRewardsTab({ customer, wallet, myCodes, tierOptions, navigate }
         </GlassCard>
       )}
 
-      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Full Rewards Detail <ChevronRight size={13} />
       </button>
     </div>
@@ -896,7 +896,7 @@ function CustomerWalletTab({ wallet, navigate }) {
           </div>
         ))}
       </div>
-      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate('/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Full Wallet & Transactions <ChevronRight size={13} />
       </button>
     </div>
@@ -1096,7 +1096,7 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
       ),
     },
     {
-      key: 'quotes', label: 'Assigned Quotes', count: assignments.counts?.quotes || 0, color: '#8b5cf6', items: assignments.quotes, emptyMsg: 'No quotes assigned',
+      key: 'quotes', label: 'Assigned Quotes', count: assignments.counts?.quotes || 0, color: 'var(--color-primary-400)', items: assignments.quotes, emptyMsg: 'No quotes assigned',
       renderItem: (q, i) => (
         <button key={i} onClick={() => navigate(`/admin/quotes/${q.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1231,7 +1231,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
           <p style={{ margin: '0 0 8px', fontSize: '0.62rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Skills</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {empRecord.skills.map((s, i) => (
-              <span key={i} style={{ padding: '3px 10px', borderRadius: 99, background: 'rgba(168,85,247,0.15)', border: `1px solid ${BORDER_P}`, fontSize: '0.68rem', fontWeight: 600, color: '#c4b5fd' }}>
+              <span key={i} style={{ padding: '3px 10px', borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: `1px solid ${BORDER_P}`, fontSize: '0.68rem', fontWeight: 600, color: '#c4b5fd' }}>
                 {s.name ?? s}
               </span>
             ))}
@@ -1239,7 +1239,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
         </GlassCard>
       )}
 
-      <button onClick={() => navigate('/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate('/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Full Employee Record <ChevronRight size={13} />
       </button>
     </div>
@@ -1264,7 +1264,7 @@ function UnauthPWAHome() {
     { key: 'specials',  label: 'Specials',  path: '/specials',  color: '#f59e0b', icon: Tag       },
     { key: 'auctions',  label: 'Auctions',  path: '/auctions',  color: '#dc2626', icon: Gavel     },
     { key: 'brochures', label: 'Brochures', path: '/brochures', color: '#64748b', icon: BookOpen  },
-    { key: 'careers',   label: 'Careers',   path: '/careers',   color: '#7c3aed', icon: Briefcase },
+    { key: 'careers',   label: 'Careers',   path: '/careers',   color: 'var(--color-primary-600)', icon: Briefcase },
   ];
 
   return (
@@ -1303,16 +1303,16 @@ function UnauthPWAHome() {
         {activeTab === 'signin' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340, margin: '0 auto' }}>
             <div style={{ ...glass(), padding: '22px 18px', textAlign: 'center', marginBottom: 4 }}>
-              <div style={{ width: 50, height: 50, borderRadius: 14, background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, boxShadow: `0 4px 18px rgba(168,85,247,0.4)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <div style={{ width: 50, height: 50, borderRadius: 14, background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, boxShadow: `0 4px 18px color-mix(in srgb, var(--color-primary-500) 40%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <User size={24} color="white" strokeWidth={2} />
               </div>
               <p style={{ margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 800, color: TEXT }}>Welcome back</p>
               <p style={{ margin: 0, fontSize: '0.75rem', color: MUTED }}>Sign in to access your account</p>
             </div>
-            <button onClick={() => navigate('/login')} className="portal-press" style={{ width: '100%', padding: '12px', borderRadius: 11, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, color: 'white', fontSize: '0.87rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 16px rgba(168,85,247,0.35)` }}>
+            <button onClick={() => navigate('/login')} className="portal-press" style={{ width: '100%', padding: '12px', borderRadius: 11, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`, color: 'white', fontSize: '0.87rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)` }}>
               Sign In
             </button>
-            <button onClick={() => navigate('/register')} className="portal-press" style={{ width: '100%', padding: '12px', borderRadius: 11, border: `1.5px solid ${BORDER_P}`, background: 'rgba(168,85,247,0.08)', color: PURPLE, fontSize: '0.87rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={() => navigate('/register')} className="portal-press" style={{ width: '100%', padding: '12px', borderRadius: 11, border: `1.5px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.87rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Create Account
             </button>
             <button onClick={() => navigate('/products')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER}`, background: SURFACE, color: MUTED, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>

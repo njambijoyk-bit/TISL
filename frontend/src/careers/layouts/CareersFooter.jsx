@@ -23,7 +23,7 @@ export default function CareersFooter() {
                 <Link to="/careers" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                         width: 22, height: 22, borderRadius: 5,
-                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
                         <Briefcase size={11} color="#fff" strokeWidth={2.2} />
@@ -41,7 +41,7 @@ export default function CareersFooter() {
                             <Link
                                 to={to}
                                 style={{ fontSize: 12, color: '#444', textDecoration: 'none', transition: 'color 0.15s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                                 onMouseLeave={e => e.currentTarget.style.color = '#444'}
                             >
                                 {label}

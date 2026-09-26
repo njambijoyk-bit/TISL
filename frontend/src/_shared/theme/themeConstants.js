@@ -1,4 +1,4 @@
-// Default tokens used before API data loads
+// Default tokens used before API data loads (purple fallback)
 export const DEFAULT_LIGHT_TOKENS = {
   '--color-primary-50':  '#faf5ff',
   '--color-primary-100': '#f3e8ff',
@@ -29,17 +29,17 @@ export const DEFAULT_LIGHT_TOKENS = {
 };
 
 export const DEFAULT_DARK_TOKENS = {
-  '--color-primary-50':  '#3b0764',
-  '--color-primary-100': '#581c87',
-  '--color-primary-200': '#6b21a8',
-  '--color-primary-300': '#7e22ce',
-  '--color-primary-400': '#9333ea',
-  '--color-primary-500': '#a855f7',
-  '--color-primary-600': '#c084fc',
-  '--color-primary-700': '#d8b4fe',
-  '--color-primary-800': '#e9d5ff',
-  '--color-primary-900': '#f3e8ff',
-  '--color-primary-950': '#faf5ff',
+  '--color-primary-50':  '#1a0a2e',
+  '--color-primary-100': '#2d1054',
+  '--color-primary-200': '#4a1c87',
+  '--color-primary-300': '#7c3aed',
+  '--color-primary-400': '#a855f7',
+  '--color-primary-500': '#c084fc',
+  '--color-primary-600': '#d8b4fe',
+  '--color-primary-700': '#e9d5ff',
+  '--color-primary-800': '#f3e8ff',
+  '--color-primary-900': '#faf5ff',
+  '--color-primary-950': '#fdf4ff',
   '--bg-primary':    '#111827',
   '--bg-secondary':  '#1f2937',
   '--bg-tertiary':   '#374151',

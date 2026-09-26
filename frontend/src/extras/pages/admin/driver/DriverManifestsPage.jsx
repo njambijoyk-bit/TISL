@@ -100,7 +100,7 @@ function DriverManifestCard({ manifest, onClick, onHover }) {
             {isActive && (
                 <div style={{
                     marginTop: 12, padding: '8px 12px', borderRadius: D.radiusSm,
-                    background: 'rgba(168,85,247,0.08)', border: `1px solid ${D.purpleBorder}`,
+                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${D.purpleBorder}`,
                     fontSize: '0.78rem', color: D.purple, fontWeight: 600,
                     display: 'flex', alignItems: 'center', gap: 6,
                 }}>

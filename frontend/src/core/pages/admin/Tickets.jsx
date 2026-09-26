@@ -135,7 +135,7 @@ export default function AdminTickets() {
       key: 'ticket_number',
       label: 'Ticket #',
       render: (row) => (
-        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#a855f7', fontSize: '0.8rem' }}>
+        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', fontSize: '0.8rem' }}>
           {row.ticket_number}
         </span>
       ),
@@ -287,7 +287,7 @@ export default function AdminTickets() {
                 padding: '12px 16px', borderRadius: 10, border: '1px solid #f3f4f6', background: '#fafafa'
               }}>
                 <div>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#a855f7', fontSize: '0.8rem' }}>{t.ticket_number}</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', fontSize: '0.8rem' }}>{t.ticket_number}</span>
                   <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{t.subject}</span>
                   <span style={{ marginLeft: 12, fontSize: '0.75rem', color: '#9ca3af' }}>
                     Deleted {t.deleted_at ? format(new Date(t.deleted_at), 'dd MMM yyyy') : ''}

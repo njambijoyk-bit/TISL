@@ -66,10 +66,10 @@ function DropItem({ label, active, onClick, preview, suffix }) {
         padding: '8px 14px',
         border: 'none', cursor: 'pointer',
         background: active
-          ? 'var(--color-primary-50, #faf5ff)'
+          ? 'var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)))'
           : hovered ? 'var(--bg-secondary, #f9fafb)' : 'transparent',
         color: active
-          ? 'var(--color-primary-700, #7e22ce)'
+          ? 'var(--color-primary-700, var(--color-primary-700))'
           : 'var(--text-primary, #111827)',
         fontSize: 13, fontWeight: active ? 600 : 400,
         display: 'flex', alignItems: 'center', gap: 8,

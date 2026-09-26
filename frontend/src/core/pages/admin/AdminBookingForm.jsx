@@ -10,20 +10,20 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: '0.83rem',
-  background: 'rgba(168,85,247,0.03)', border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
-const focus = e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.08)'; };
-const blur  = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const focus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; };
+const blur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const Section = ({ title, children }) => (
-  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid rgba(168,85,247,0.1)', overflow: 'hidden' }}>
-    <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
+    <div style={{ padding: '12px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
       <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: 0 }}>{title}</p>
     </div>
     <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
@@ -125,11 +125,11 @@ const AdminBookingForm = () => {
         {/* Header */}
         <div>
           <button onClick={() => navigate('/admin/bookings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', fontFamily: 'inherit' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
           ><ArrowLeft size={14} /> Back to bookings</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#a855f7,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CalendarDays size={18} color="white" />
             </div>
             <div>
@@ -149,12 +149,12 @@ const AdminBookingForm = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               cursor: 'pointer', textAlign: 'left',
               color: selectedCustomer ? '#111827' : '#9ca3af',
-              background: 'rgba(168,85,247,0.03)',
+              background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
             }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#a855f7'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}
           >
-            <UserCheck size={14} style={{ color: selectedCustomer ? '#a855f7' : '#9ca3af', flexShrink: 0 }} />
+            <UserCheck size={14} style={{ color: selectedCustomer ? 'var(--color-primary-500)' : '#9ca3af', flexShrink: 0 }} />
             {selectedCustomer
               ? `${selectedCustomer.first_name} ${selectedCustomer.last_name} · ${selectedCustomer.email}`
               : 'Select a customer…'}
@@ -182,9 +182,9 @@ const AdminBookingForm = () => {
                 <button key={val} type="button" onClick={() => set('scheduled_type', val)} style={{
                   flex: 1, padding: '7px 0', borderRadius: 9, fontSize: '0.72rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                  border: `1.5px solid ${form.scheduled_type === val ? '#a855f7' : 'rgba(168,85,247,0.15)'}`,
-                  background: form.scheduled_type === val ? 'rgba(168,85,247,0.08)' : 'transparent',
-                  color: form.scheduled_type === val ? '#7c3aed' : '#9ca3af',
+                  border: `1.5px solid ${form.scheduled_type === val ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
+                  background: form.scheduled_type === val ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+                  color: form.scheduled_type === val ? 'var(--color-primary-600)' : '#9ca3af',
                 }}>{lbl}</button>
               ))}
             </div>
@@ -234,9 +234,9 @@ const AdminBookingForm = () => {
                 <button key={t} type="button" onClick={() => set('location_type', t)} style={{
                   flex: 1, padding: '7px 0', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms', textTransform: 'capitalize',
-                  border: `1.5px solid ${form.location_type === t ? '#a855f7' : 'rgba(168,85,247,0.15)'}`,
-                  background: form.location_type === t ? 'rgba(168,85,247,0.08)' : 'transparent',
-                  color: form.location_type === t ? '#7c3aed' : '#9ca3af',
+                  border: `1.5px solid ${form.location_type === t ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
+                  background: form.location_type === t ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+                  color: form.location_type === t ? 'var(--color-primary-600)' : '#9ca3af',
                 }}>{t}</button>
               ))}
             </div>
@@ -257,7 +257,7 @@ const AdminBookingForm = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="checkbox" id="is_recurring" checked={form.is_recurring}
               onChange={e => set('is_recurring', e.target.checked)}
-              style={{ width: 16, height: 16, accentColor: '#a855f7', cursor: 'pointer' }}
+              style={{ width: 16, height: 16, accentColor: 'var(--color-primary-500)', cursor: 'pointer' }}
             />
             <label htmlFor="is_recurring" style={{ fontSize: '0.82rem', color: '#374151', cursor: 'pointer', fontWeight: 600 }}>
               This is a recurring booking
@@ -271,9 +271,9 @@ const AdminBookingForm = () => {
                   <button key={val} type="button" onClick={() => set('recurring_billing_mode', val)} style={{
                     flex: 1, padding: '7px 0', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                     fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
-                    border: `1.5px solid ${form.recurring_billing_mode === val ? '#a855f7' : 'rgba(168,85,247,0.15)'}`,
-                    background: form.recurring_billing_mode === val ? 'rgba(168,85,247,0.08)' : 'transparent',
-                    color: form.recurring_billing_mode === val ? '#7c3aed' : '#9ca3af',
+                    border: `1.5px solid ${form.recurring_billing_mode === val ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}`,
+                    background: form.recurring_billing_mode === val ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
+                    color: form.recurring_billing_mode === val ? 'var(--color-primary-600)' : '#9ca3af',
                   }}>{lbl}</button>
                 ))}
               </div>
@@ -301,14 +301,14 @@ const AdminBookingForm = () => {
 
         {/* Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={() => navigate('/admin/bookings')} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid rgba(168,85,247,0.2)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/admin/bookings')} style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', color: '#9ca3af', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving} style={{
             padding: '9px 22px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
             border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 2px 10px rgba(168,85,247,0.3)',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
             opacity: saving ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             {saving && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}

@@ -12,8 +12,8 @@ import {
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-const purple   = '#a855f7';
-const purpleLt = 'rgba(168,85,247,0.08)';
+const purple   = 'var(--color-primary-500)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
 
 // ── Signal definitions ──────────────────────────────────────────────────────────
 const SIGNALS = [
@@ -21,13 +21,13 @@ const SIGNALS = [
   { key: 'frequency',  label: 'Frequency',  icon: RefreshCw,     color: '#3b82f6', desc: 'Order count (log scale)' },
   { key: 'monetary',   label: 'Monetary',   icon: TrendingUp,    color: '#10b981', desc: 'Spend percentile vs all customers' },
   { key: 'loyalty',    label: 'Loyalty',    icon: Star,          color: '#f59e0b', desc: 'Loyalty points balance' },
-  { key: 'engagement', label: 'Engagement', icon: MessageSquare, color: '#8b5cf6', desc: 'Reviews + bids + quote requests' },
+  { key: 'engagement', label: 'Engagement', icon: MessageSquare, color: 'var(--color-primary-400)', desc: 'Reviews + bids + quote requests' },
   { key: 'service',    label: 'Service',    icon: Wrench,        color: '#06b6d4', desc: 'Bookings + service order items' },
   { key: 'referral',   label: 'Referral',   icon: Share2,        color: '#ec4899', desc: 'Completed referrals made' },
 ];
 
 const BOOST_BADGES = [
-  { key: 'promo',        label: 'Promo',        color: '#a855f7' },
+  { key: 'promo',        label: 'Promo',        color: 'var(--color-primary-500)' },
   { key: 'social_proof', label: 'Social Proof', color: '#3b82f6' },
   { key: 'bundle',       label: 'Bundle',       color: '#10b981' },
   { key: 'urgency',      label: 'Urgency',      color: '#ef4444' },
@@ -47,7 +47,7 @@ const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
   silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
-  platinum: { bg: 'rgba(168,85,247,0.1)',  color: '#7c3aed', ring: 'rgba(168,85,247,0.25)'  },
+  platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   diamond:  { bg: 'rgba(6,182,212,0.1)',   color: '#0e7490', ring: 'rgba(6,182,212,0.25)'   },
 };
 
@@ -72,7 +72,7 @@ function tierStyle(slug, tierOptions = []) {
 // ── Reusable primitives ─────────────────────────────────────────────────────────
 function ScoreBar({ value, color, height = 6 }) {
   return (
-    <div style={{ background: 'rgba(168,85,247,0.12)', borderRadius: 4, height, overflow: 'hidden' }}>
+    <div style={{ background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', borderRadius: 4, height, overflow: 'hidden' }}>
       <div style={{
         height, width: `${Math.min(100, Math.max(0, value))}%`,
         background: color || scoreColor(value),
@@ -86,7 +86,7 @@ function Toggle({ checked, onChange, disabled }) {
   return (
     <div onClick={() => !disabled && onChange(!checked)} style={{
       width: 42, height: 24, borderRadius: 12,
-      background: checked ? '#a855f7' : 'rgba(168,85,247,0.15)',
+      background: checked ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       position: 'relative', transition: 'background 0.2s',
       flexShrink: 0, opacity: disabled ? 0.5 : 1,
@@ -142,8 +142,8 @@ function Spinner({ size = 18 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      border: '2px solid rgba(168,85,247,0.2)',
-      borderTopColor: '#a855f7',
+      border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+      borderTopColor: 'var(--color-primary-500)',
       animation: 'algoSpin 600ms linear infinite',
       display: 'inline-block', flexShrink: 0,
     }} />
@@ -173,7 +173,7 @@ function RuleModal({ rule, onClose, onSave }) {
 
   const inp = {
     width: '100%', padding: '8px 12px', borderRadius: 8,
-    border: '1px solid rgba(168,85,247,0.25)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
     background: 'var(--bg-secondary,#f9fafb)',
     color: 'var(--text-primary,#111827)',
     fontSize: 13, outline: 'none', boxSizing: 'border-box',
@@ -182,8 +182,8 @@ function RuleModal({ rule, onClose, onSave }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'var(--bg-primary,#fff)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', border: '1px solid rgba(168,85,247,0.15)', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg,rgba(168,85,247,0.08),rgba(124,58,237,0.04))' }}>
+      <div style={{ background: 'var(--bg-primary,#fff)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 8%, transparent),color-mix(in srgb, var(--color-primary-600) 4%, transparent))' }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>{rule ? 'Edit Segment Rule' : 'New Segment Rule'}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#6b7280', lineHeight: 1 }}>×</button>
         </div>
@@ -225,9 +225,9 @@ function RuleModal({ rule, onClose, onSave }) {
             <span style={{ fontSize: 13, color: '#6b7280' }}>Active</span>
           </div>
         </div>
-        <div style={{ padding: '14px 24px', borderTop: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(168,85,247,0.25)', background: 'transparent', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'rgba(168,85,247,0.5)' : 'linear-gradient(135deg,#a855f7,#7c3aed)', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             {saving && <Spinner size={14} />}
             {saving ? 'Saving…' : 'Save Rule'}
           </button>
@@ -355,8 +355,8 @@ const ALGO_DEV_NOTES = {
   ],
 };
 
-const SEV_COLOR = { critical: "#ff4d4d", warning: "#f59e0b", low: "#a855f7" };
-const HOR_COLOR = { near: "#06b6d4", medium: "#f59e0b", long: "#a855f7" };
+const SEV_COLOR = { critical: "#ff4d4d", warning: "#f59e0b", low: "var(--color-primary-500)" };
+const HOR_COLOR = { near: "#06b6d4", medium: "#f59e0b", long: "var(--color-primary-500)" };
 
 function AlgoDevNotesModal({ onClose }) {
   const [tab, setTab] = useState("pitfalls");
@@ -376,7 +376,7 @@ function AlgoDevNotesModal({ onClose }) {
         {/* Header */}
         <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--border,#e5e7eb)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-            <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "#a855f7" }}>
+            <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — algorithm system
             </span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af" }}>✕</button>
@@ -388,8 +388,8 @@ function AlgoDevNotesModal({ onClose }) {
             {["pitfalls", "strengths", "future"].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 18px", background: "none", border: "none",
-                borderBottom: tab === t ? "2px solid #a855f7" : "2px solid transparent",
-                color: tab === t ? "#a855f7" : "var(--text-secondary,#6b7280)",
+                borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
+                color: tab === t ? "var(--color-primary-500)" : "var(--text-secondary,#6b7280)",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1,
               }}>{t}</button>
@@ -425,9 +425,9 @@ function AlgoDevNotesModal({ onClose }) {
           {tab === "strengths" && ALGO_DEV_NOTES.strengths.map((n, i) => (
             <div key={i} style={{
               padding: "14px 16px", borderRadius: 8,
-              border: "1px solid #a855f722", background: "#a855f706",
+              border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)06",
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#a855f7", marginBottom: 6 }}>✓ {n.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
               <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
@@ -742,8 +742,8 @@ export default function CustomerAlgorithmPanel() {
     },
     card: {
       background: 'var(--bg-secondary,#fff)', borderRadius: 16,
-      border: '1px solid rgba(168,85,247,0.12)',
-      boxShadow: '0 2px 12px rgba(168,85,247,0.06)', overflow: 'hidden',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+      boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)', overflow: 'hidden',
     },
     btn: (variant = 'primary') => ({
       padding: '9px 20px', borderRadius: 10, border: 'none',
@@ -751,19 +751,19 @@ export default function CustomerAlgorithmPanel() {
       display: 'inline-flex', alignItems: 'center', gap: 7,
       transition: 'opacity 0.15s',
       ...(variant === 'primary' ? {
-        background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: '#fff',
+        background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: '#fff',
       } : variant === 'danger' ? {
         background: 'rgba(239,68,68,0.1)', color: '#ef4444',
         border: '1px solid rgba(239,68,68,0.2)',
       } : {
-        background: 'rgba(168,85,247,0.08)', color: '#a855f7',
-        border: '1px solid rgba(168,85,247,0.2)',
+        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)',
+        border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
       }),
     }),
     tab: (active) => ({
       padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
       fontSize: 13, fontWeight: 600, border: 'none',
-      background: active ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+      background: active ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
       color: active ? '#fff' : 'var(--text-secondary,#6b7280)',
       transition: 'all 0.2s',
     }),
@@ -771,18 +771,18 @@ export default function CustomerAlgorithmPanel() {
       padding: '10px 14px', fontSize: 11, fontWeight: 700,
       color: 'var(--text-secondary,#6b7280)', textTransform: 'uppercase',
       letterSpacing: '0.06em', textAlign: 'left',
-      borderBottom: '1px solid rgba(168,85,247,0.1)',
-      background: 'rgba(168,85,247,0.04)',
+      borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
     },
     td: {
       padding: '12px 14px', fontSize: 13,
       color: 'var(--text-primary,#111827)',
-      borderBottom: '1px solid rgba(168,85,247,0.07)',
+      borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
       verticalAlign: 'middle',
     },
     miniInput: {
       padding: '7px 10px', borderRadius: 8, fontSize: 12,
-      border: '1px solid rgba(168,85,247,0.2)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
       background: 'var(--bg-secondary,#f9fafb)',
       color: 'var(--text-primary,#111)', outline: 'none',
       boxSizing: 'border-box', width: '100%',
@@ -795,15 +795,15 @@ export default function CustomerAlgorithmPanel() {
       <div style={s.page}>
         <style>{`
           @keyframes algoSpin { to { transform: rotate(360deg) } }
-          .algo-row:hover td { background: rgba(168,85,247,0.03) !important; }
+          .algo-row:hover td { background: color-mix(in srgb, var(--color-primary-500) 3%, transparent) !important; }
           .algo-btn:hover { opacity: 0.85 !important; }
-          .cust-row:hover { background: rgba(168,85,247,0.05) !important; }
+          .cust-row:hover { background: color-mix(in srgb, var(--color-primary-500) 5%, transparent) !important; }
         `}</style>
 
         {/* ── Page header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#a855f7' }}>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--color-primary-500)' }}>
               Customer Scoring Algorithm
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-secondary,#6b7280)' }}>
@@ -847,7 +847,7 @@ export default function CustomerAlgorithmPanel() {
               { label: 'Pinned Products',  value: rankedProducts.filter(p => p.is_pinned).length || '—' },
             ].map(({ label, value }) => (
               <div key={label} style={{ ...s.card, padding: '14px 18px' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#a855f7' }}>{value}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-primary-500)' }}>{value}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary,#6b7280)', fontWeight: 600, marginTop: 2 }}>{label}</div>
               </div>
             ))}
@@ -855,7 +855,7 @@ export default function CustomerAlgorithmPanel() {
         )}
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: '6px', background: 'rgba(168,85,247,0.06)', borderRadius: 14, width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: '6px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 14, width: 'fit-content' }}>
           {[
             { key: 'leaderboard', label: 'Leaderboard',    Icon: BarChart2         },
             { key: 'config',      label: 'Config',          Icon: SlidersHorizontal },
@@ -902,7 +902,7 @@ export default function CustomerAlgorithmPanel() {
                         const sc   = parseFloat(row.total_score);
                         return (
                           <tr key={row.customer_id} className="algo-row">
-                            <td style={{ ...s.td, width: 44, fontWeight: 700, color: rank <= 3 ? '#a855f7' : '#6b7280' }}>
+                            <td style={{ ...s.td, width: 44, fontWeight: 700, color: rank <= 3 ? 'var(--color-primary-500)' : '#6b7280' }}>
                               {rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] : rank}
                             </td>
                             <td style={s.td}>
@@ -919,7 +919,7 @@ export default function CustomerAlgorithmPanel() {
                             {['recency_raw','frequency_raw','monetary_raw','loyalty_raw','engagement_raw'].map(sig => (
                               <td key={sig} style={{ ...s.td, minWidth: 70 }}>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>{row[sig]}</div>
-                                <ScoreBar value={row[sig]} height={4} color="rgba(168,85,247,0.5)" />
+                                <ScoreBar value={row[sig]} height={4} color="color-mix(in srgb, var(--color-primary-500) 50%, transparent)" />
                               </td>
                             ))}
                             <td style={{ ...s.td, fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>
@@ -932,7 +932,7 @@ export default function CustomerAlgorithmPanel() {
                   </table>
                 </div>
                 {scoresMeta && scoresMeta.last_page > 1 && (
-                  <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+                  <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                     <span style={{ fontSize: 12, color: '#6b7280' }}>
                       Showing {scoresMeta.from}–{scoresMeta.to} of {scoresMeta.total?.toLocaleString()}
                     </span>
@@ -953,7 +953,7 @@ export default function CustomerAlgorithmPanel() {
         {activeTab === 'config' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,340px)', gap: 20, alignItems: 'start' }}>
             <div style={s.card}>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Signal Weights</h2>
                   <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6b7280' }}>Adjust how much each signal contributes to the final score.</p>
@@ -980,19 +980,19 @@ export default function CustomerAlgorithmPanel() {
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span style={{ fontSize: 16, fontWeight: 800, color: '#a855f7', minWidth: 28, textAlign: 'right' }}>{w}</span>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-primary-500)', minWidth: 28, textAlign: 'right' }}>{w}</span>
                             <Toggle checked={on} onChange={v => setToggle(sig.key, v)} />
                           </div>
                         </div>
                         <input type="range" min={0} max={50} step={1} value={w}
                           onChange={e => setWeight(sig.key, parseInt(e.target.value))}
                           disabled={!on}
-                          style={{ width: '100%', accentColor: '#a855f7', cursor: on ? 'pointer' : 'not-allowed' }}
+                          style={{ width: '100%', accentColor: 'var(--color-primary-500)', cursor: on ? 'pointer' : 'not-allowed' }}
                         />
                       </div>
                     );
                   })}
-                  <div style={{ paddingTop: 8, borderTop: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ paddingTop: 8, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'flex-end' }}>
                     <button className="algo-btn" onClick={saveConfig} disabled={savingConfig} style={{ ...s.btn('primary'), opacity: savingConfig ? 0.7 : 1 }}>
                       {savingConfig && <Spinner size={14} />}
                       {savingConfig ? 'Saving…' : 'Save Config'}
@@ -1004,11 +1004,11 @@ export default function CustomerAlgorithmPanel() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={s.card}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
                   <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Scoring Formula</h3>
                 </div>
                 <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: 12, background: 'rgba(168,85,247,0.06)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.7 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.7 }}>
                     score = Σ(raw_signal<br />
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;× weight / 100)<br /><br />
                     then × segment boosts
@@ -1020,7 +1020,7 @@ export default function CustomerAlgorithmPanel() {
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 60 }}><ScoreBar value={(config.weights?.[sig.key] ?? 0) / 50 * 100} height={5} /></div>
-                        <span style={{ fontWeight: 700, color: '#a855f7', minWidth: 24, textAlign: 'right' }}>{config.weights?.[sig.key] ?? 0}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--color-primary-500)', minWidth: 24, textAlign: 'right' }}>{config.weights?.[sig.key] ?? 0}</span>
                       </div>
                     </div>
                   ))}
@@ -1045,7 +1045,7 @@ export default function CustomerAlgorithmPanel() {
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'rules' && (
           <div style={s.card}>
-            <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Segment Rules</h2>
                 <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6b7280' }}>Conditional multipliers applied on top of base weights during scoring.</p>
@@ -1075,7 +1075,7 @@ export default function CustomerAlgorithmPanel() {
                       <tr key={rule.id} className="algo-row">
                         <td style={{ ...s.td, fontWeight: 600 }}>{rule.name}</td>
                         <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12 }}>
-                          <span style={{ background: 'rgba(168,85,247,0.08)', borderRadius: 6, padding: '3px 8px' }}>
+                          <span style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderRadius: 6, padding: '3px 8px' }}>
                             {rule.condition?.field} {rule.condition?.operator} "{rule.condition?.value}"
                           </span>
                         </td>
@@ -1126,7 +1126,7 @@ export default function CustomerAlgorithmPanel() {
             {/* ── Left: Customer list ── */}
             <div style={{ ...s.card, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 260px)' }}>
               {/* Search */}
-              <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(168,85,247,0.1)', flexShrink: 0 }}>
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
                 <input
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
@@ -1152,9 +1152,9 @@ export default function CustomerAlgorithmPanel() {
                         onClick={() => selectCustomer(row)}
                         style={{
                           padding: '11px 14px', cursor: 'pointer',
-                          borderBottom: '1px solid rgba(168,85,247,0.06)',
-                          borderLeft: `3px solid ${isSelected ? '#a855f7' : 'transparent'}`,
-                          background: isSelected ? 'rgba(168,85,247,0.07)' : 'transparent',
+                          borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                          borderLeft: `3px solid ${isSelected ? 'var(--color-primary-500)' : 'transparent'}`,
+                          background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'transparent',
                           transition: 'all 0.15s',
                         }}
                       >
@@ -1177,16 +1177,16 @@ export default function CustomerAlgorithmPanel() {
 
               {/* Pagination */}
               {scoresMeta && scoresMeta.last_page > 1 && (
-                <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ padding: '10px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                   <button
                     disabled={scoresPage <= 1}
                     onClick={() => loadScores(scoresPage - 1)}
-                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(168,85,247,0.2)', background: 'transparent', color: '#a855f7', fontSize: 12, cursor: 'pointer', opacity: scoresPage <= 1 ? 0.4 : 1 }}>←</button>
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent', color: 'var(--color-primary-500)', fontSize: 12, cursor: 'pointer', opacity: scoresPage <= 1 ? 0.4 : 1 }}>←</button>
                   <span style={{ fontSize: 11, color: '#9ca3af' }}>{scoresPage} / {scoresMeta.last_page}</span>
                   <button
                     disabled={scoresPage >= scoresMeta.last_page}
                     onClick={() => loadScores(scoresPage + 1)}
-                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(168,85,247,0.2)', background: 'transparent', color: '#a855f7', fontSize: 12, cursor: 'pointer', opacity: scoresPage >= scoresMeta.last_page ? 0.4 : 1 }}>→</button>
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent', color: 'var(--color-primary-500)', fontSize: 12, cursor: 'pointer', opacity: scoresPage >= scoresMeta.last_page ? 0.4 : 1 }}>→</button>
                 </div>
               )}
             </div>
@@ -1250,9 +1250,9 @@ export default function CustomerAlgorithmPanel() {
                 {/* Ranked products */}
                 <div style={s.card}>
                   {/* Sub-header */}
-                  <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                     {/* Entity type tabs */}
-                    <div style={{ display: 'flex', gap: 5, padding: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 10 }}>
+                    <div style={{ display: 'flex', gap: 5, padding: 4, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 10 }}>
                       {[
                         { key: 'product', label: '📦 Products' },
                         { key: 'service', label: '🔧 Services' },
@@ -1260,7 +1260,7 @@ export default function CustomerAlgorithmPanel() {
                         <button key={key} onClick={() => switchEntityType(key)} style={{
                           padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                           fontSize: 12, fontWeight: 600, transition: 'all 0.2s',
-                          background: productEntityType === key ? 'linear-gradient(135deg,#a855f7,#7c3aed)' : 'transparent',
+                          background: productEntityType === key ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
                           color: productEntityType === key ? '#fff' : '#6b7280',
                         }}>{label}</button>
                       ))}
@@ -1303,10 +1303,10 @@ export default function CustomerAlgorithmPanel() {
                                 {/* Thumbnail */}
                                 <td style={{ ...s.td, width: 52 }}>
                                   {product.main_image ? (
-                                    <img src={product.main_image} alt="" style={{ width: 38, height: 38, borderRadius: 7, objectFit: 'cover', border: '1px solid rgba(168,85,247,0.15)', display: 'block' }} />
+                                    <img src={product.main_image} alt="" style={{ width: 38, height: 38, borderRadius: 7, objectFit: 'cover', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', display: 'block' }} />
                                   ) : (
-                                    <div style={{ width: 38, height: 38, borderRadius: 7, background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      <Package size={14} color="#a855f7" />
+                                    <div style={{ width: 38, height: 38, borderRadius: 7, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <Package size={14} color="var(--color-primary-500)" />
                                     </div>
                                   )}
                                 </td>
@@ -1329,11 +1329,11 @@ export default function CustomerAlgorithmPanel() {
                                 {/* Catalogue score */}
                                 <td style={{ ...s.td, minWidth: 110 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontWeight: 800, fontSize: 14, color: '#a855f7', minWidth: 32 }}>
+                                    <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-primary-500)', minWidth: 32 }}>
                                       {score.toFixed(1)}
                                     </span>
                                     <div style={{ flex: 1, minWidth: 50 }}>
-                                      <ScoreBar value={score} color="#a855f7" height={5} />
+                                      <ScoreBar value={score} color="var(--color-primary-500)" height={5} />
                                     </div>
                                   </div>
                                 </td>
@@ -1360,7 +1360,7 @@ export default function CustomerAlgorithmPanel() {
                                     <button
                                       onClick={() => handlePin(product.entity_type, product.id)}
                                       disabled={isPinning}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(168,85,247,0.25)', background: purpleLt, color: purple, fontSize: 12, fontWeight: 600, cursor: isPinning ? 'not-allowed' : 'pointer' }}>
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: purpleLt, color: purple, fontSize: 12, fontWeight: 600, cursor: isPinning ? 'not-allowed' : 'pointer' }}>
                                       {isPinning ? <Spinner size={11} /> : '📍'} Pin
                                     </button>
                                   )}
@@ -1375,7 +1375,7 @@ export default function CustomerAlgorithmPanel() {
 
                   {/* Pagination */}
                   {rankedMeta && rankedMeta.last_page > 1 && (
-                    <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(168,85,247,0.08)' }}>
+                    <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
                       <span style={{ fontSize: 12, color: '#9ca3af' }}>
                         {rankedMeta.from}–{rankedMeta.to} of {rankedMeta.total?.toLocaleString()}
                       </span>

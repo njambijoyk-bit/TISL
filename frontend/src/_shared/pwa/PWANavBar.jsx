@@ -121,11 +121,11 @@ export default function PWANavBar() {
       el.dataset.zone = zone;
       el.style.cssText = `
         position:fixed;${css}
-        background:rgba(168,85,247,0.07);
-        border:2px dashed rgba(168,85,247,0.25);
+        background:color-mix(in srgb, var(--color-primary-500) 7%, transparent);
+        border:2px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent);
         display:flex;align-items:center;justify-content:center;
         font-size:0.68rem;font-weight:800;
-        color:rgba(168,85,247,0.5);
+        color:color-mix(in srgb, var(--color-primary-500) 50%, transparent);
         text-transform:uppercase;letter-spacing:0.12em;
         transition:background 120ms,border-color 120ms,color 120ms;
         box-sizing:border-box;
@@ -152,9 +152,9 @@ export default function PWANavBar() {
       const active = nearestEdge(mv.clientX, mv.clientY);
       ghost.querySelectorAll('[data-zone]').forEach(el => {
         const on = el.dataset.zone === active;
-        el.style.background  = on ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.07)';
-        el.style.borderColor = on ? 'rgba(168,85,247,0.7)'  : 'rgba(168,85,247,0.25)';
-        el.style.color       = on ? 'rgba(168,85,247,1)'    : 'rgba(168,85,247,0.5)';
+        el.style.background  = on ? 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)';
+        el.style.borderColor = on ? 'color-mix(in srgb, var(--color-primary-500) 70%, transparent)'  : 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
+        el.style.color       = on ? 'var(--color-primary-500)'    : 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)';
       });
     };
 
@@ -251,8 +251,8 @@ export default function PWANavBar() {
     background: 'rgba(109,40,217,0.15)',
     backdropFilter: 'blur(16px) saturate(180%)',
     WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-    border: '1px solid rgba(168,85,247,0.25)',
-    boxShadow: '0 4px 24px rgba(168,85,247,0.2), 0 1px 0 rgba(168,85,247,0.1)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+    boxShadow: '0 4px 24px color-mix(in srgb, var(--color-primary-500) 20%, transparent), 0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     cursor: hovered ? 'grab' : 'default',
     ...(position === 'top'    && { borderRadius: '0 0 14px 14px', borderTop: 'none' }),
     ...(position === 'bottom' && { borderRadius: '14px 14px 0 0', borderBottom: 'none' }),
@@ -265,16 +265,16 @@ export default function PWANavBar() {
     background: 'rgba(109,40,217,0.15)',
     backdropFilter: 'blur(16px) saturate(180%)',
     WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-    border: '1px solid rgba(168,85,247,0.25)',
-    boxShadow: '0 4px 24px rgba(168,85,247,0.15)',
+    border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+    boxShadow: '0 4px 24px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     borderRadius: 10, minWidth: 360, padding: '8px 12px',
   };
 
   const btnStyle = (active = false) => ({
     width: isSide ? 30 : 34, height: isSide ? 30 : 34,
     borderRadius: 9, border: 'none',
-    background: active ? 'rgba(168,85,247,0.15)' : 'transparent',
-    color: active ? '#a855f7' : 'rgba(168,85,247,0.7)',
+    background: active ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
+    color: active ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 70%, transparent)',
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'background 150ms, color 150ms', flexShrink: 0,
@@ -294,8 +294,8 @@ export default function PWANavBar() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ display: 'flex', gap: 2 }}>
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(168,85,247,0.4)' }} />
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(168,85,247,0.4)' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }} />
             </div>
           ))}
         </div>
@@ -303,8 +303,8 @@ export default function PWANavBar() {
         <div style={{ display: 'flex', gap: 2 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(168,85,247,0.4)' }} />
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(168,85,247,0.4)' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' }} />
             </div>
           ))}
         </div>
@@ -321,14 +321,14 @@ export default function PWANavBar() {
         onKeyDown={handleUrlKey}
         style={{
           flex: 1, background: 'rgba(255,255,255,0.92)',
-          border: '1px solid rgba(168,85,247,0.3)', borderRadius: 7,
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', borderRadius: 7,
           color: '#111827', fontSize: '11px', padding: '5px 9px',
           outline: 'none', fontFamily: 'monospace', minWidth: 0,
         }}
         onFocus={e => e.target.select()}
       />
       <button onClick={handleUrlGo}
-        style={{ ...btnStyle(), color: '#a855f7', fontSize: 11, fontWeight: 700, width: 'auto', padding: '0 8px' }}>
+        style={{ ...btnStyle(), color: 'var(--color-primary-500)', fontSize: 11, fontWeight: 700, width: 'auto', padding: '0 8px' }}>
         Go
       </button>
       <button onClick={() => setUrlOpen(false)} style={btnStyle()} title="Close URL editor">
@@ -350,30 +350,30 @@ export default function PWANavBar() {
         <DragHandle />
 
         <button style={btnStyle()} onClick={() => { if (!didDrag.current) navigate(-1); }} title="Back"
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <ChevronLeft size={isSide ? 16 : 18} strokeWidth={2.5} />
         </button>
 
         <button style={btnStyle(isHome)} onClick={() => { if (!didDrag.current) navigate('/home'); }} title="Home"
-          onMouseEnter={e => { if (!isHome) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
-          onMouseLeave={e => { if (!isHome) e.currentTarget.style.background = isHome ? 'rgba(168,85,247,0.15)' : 'transparent'; }}>
+          onMouseEnter={e => { if (!isHome) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
+          onMouseLeave={e => { if (!isHome) e.currentTarget.style.background = isHome ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent'; }}>
           <Home size={isSide ? 15 : 17} strokeWidth={2.2} />
         </button>
 
         <button style={btnStyle()} onClick={() => { if (!didDrag.current) navigate(1); }} title="Forward"
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <ChevronRight size={isSide ? 16 : 18} strokeWidth={2.5} />
         </button>
 
         <div style={{
-          background: 'rgba(168,85,247,0.2)', borderRadius: 99,
+          background: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 99,
           ...(isSide ? { width: 20, height: 1, margin: '2px 0' } : { width: 1, height: 20, margin: '0 2px' }),
         }} />
 
         <button style={btnStyle()} onClick={handleRefresh} title="Refresh"
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <RotateCw size={isSide ? 14 : 15} strokeWidth={2.2} />
         </button>
@@ -382,7 +382,7 @@ export default function PWANavBar() {
           <button style={btnStyle(urlOpen)} onClick={handleUrlToggle}
             title={urlOpen ? 'Close URL editor' : 'Open URL editor'}
             onMouseDown={e => e.stopPropagation()}
-            onMouseEnter={e => { if (!urlOpen) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+            onMouseEnter={e => { if (!urlOpen) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
             onMouseLeave={e => { if (!urlOpen) e.currentTarget.style.background = 'transparent'; }}>
             <Link2 size={14} strokeWidth={2.2} />
           </button>

@@ -10,9 +10,9 @@ import useTicketStore from '../../../_shared/store/ticketStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const purple   = '#a855f7';
-const purpleLt = 'rgba(168,85,247,0.08)';
-const purpleBd = 'rgba(168,85,247,0.2)';
+const purple   = 'var(--color-primary-500)';
+const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
+const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
 const STATUS_COLORS = {
   open:             { text: '#93c5fd', bg: 'rgba(30,58,138,0.55)', border: 'rgba(96,165,250,0.65)' },

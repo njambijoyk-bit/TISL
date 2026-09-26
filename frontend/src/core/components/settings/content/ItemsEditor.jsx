@@ -6,8 +6,8 @@ import { ITEMS_SCHEMA } from './sectionConfig';
 
 const inputStyle = {
   width: '100%', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
@@ -16,8 +16,8 @@ const inputError = {
   ...inputStyle,
   borderColor: 'rgba(239,68,68,0.5)',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
@@ -86,13 +86,13 @@ function ItemImageField({ value, onChange, onUpload }) {
           position: 'relative', width: '100%', borderRadius: 9, overflow: 'hidden',
           aspectRatio: '16/6', minHeight: 90,
           border: dragOver
-            ? '2px solid #a855f7'
+            ? '2px solid var(--color-primary-500)'
             : hasImage
-              ? '1.5px solid rgba(168,85,247,0.2)'
-              : '1.5px dashed rgba(168,85,247,0.2)',
+              ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
+              : '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
           background: dragOver
-            ? 'rgba(168,85,247,0.06)'
-            : hasImage ? 'transparent' : 'rgba(168,85,247,0.03)',
+            ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'
+            : hasImage ? 'transparent' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
           transition: 'border-color 150ms, background 150ms',
         }}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -124,7 +124,7 @@ function ItemImageField({ value, onChange, onUpload }) {
             gap: 4, pointerEvents: 'none', userSelect: 'none',
           }}>
             {uploading
-              ? <Loader2 size={20} style={{ color: '#a855f7', animation: 'spin 1s linear infinite' }} />
+              ? <Loader2 size={20} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
               : <>
                   <ImageIcon size={22} style={{ color: '#d1d5db' }} strokeWidth={1.5} />
                   <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>
@@ -138,9 +138,9 @@ function ItemImageField({ value, onChange, onUpload }) {
           <div style={{
             position: 'absolute', inset: 0, borderRadius: 9, pointerEvents: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(168,85,247,0.1)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
-            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>Drop image</p>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Drop image</p>
           </div>
         )}
       </div>
@@ -159,7 +159,7 @@ function ItemImageField({ value, onChange, onUpload }) {
         <button type="button" onClick={commitUrl} style={{
           padding: '0 11px', borderRadius: 7, fontSize: '0.68rem', fontWeight: 700,
           border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-          background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
+          background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
         }}>
           Apply
         </button>
@@ -169,13 +169,13 @@ function ItemImageField({ value, onChange, onUpload }) {
               onChange={e => handleFile(e.target.files?.[0])} />
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{
               padding: '0 10px', borderRadius: 7, fontSize: '0.68rem', fontWeight: 600,
-              border: '1.5px solid rgba(168,85,247,0.2)', background: 'transparent',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent',
               color: '#9ca3af', cursor: uploading ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
               opacity: uploading ? 0.6 : 1, transition: 'border-color 150ms, color 150ms',
             }}
-              onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#7c3aed'; } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#9ca3af'; }}
+              onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
             >
               <Upload size={11} /> Upload
             </button>
@@ -195,15 +195,15 @@ function ItemCard({ item, idx, columns, errors, onUpdate, onRemove, onUploadImag
   return (
     <div style={{
       borderRadius: 11, overflow: 'hidden',
-      border: '1.5px solid rgba(168,85,247,0.12)',
+      border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
       background: 'white',
-      boxShadow: '0 1px 6px rgba(168,85,247,0.06)',
+      boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
     }}>
       {/* Item header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '9px 14px', background: 'rgba(168,85,247,0.03)',
-        borderBottom: collapsed ? 'none' : '1px solid rgba(168,85,247,0.08)',
+        padding: '9px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+        borderBottom: collapsed ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
       }}>
         <GripVertical size={13} style={{ color: '#e5e7eb', flexShrink: 0, cursor: 'grab' }} />
 
@@ -227,7 +227,7 @@ function ItemCard({ item, idx, columns, errors, onUpdate, onRemove, onUploadImag
             borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', color: '#9ca3af',
             transition: 'background 120ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             {collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
@@ -358,7 +358,7 @@ export default function ItemsEditor({ sectionType, pageType, value = [], onChang
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '32px 24px', borderRadius: 11, textAlign: 'center',
-          border: '1.5px dashed rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.02)',
+          border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
         }}>
           <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500, margin: '0 0 3px' }}>No items yet</p>
           <p style={{ fontSize: '0.68rem', color: '#d1d5db', margin: 0 }}>Click "Add item" below to get started</p>
@@ -384,18 +384,18 @@ export default function ItemsEditor({ sectionType, pageType, value = [], onChang
         onClick={addItem}
         style={{
           width: '100%', padding: '11px', borderRadius: 11, fontSize: '0.78rem', fontWeight: 700,
-          border: '1.5px dashed rgba(168,85,247,0.25)', background: 'transparent',
+          border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent',
           color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
           transition: 'border-color 150ms, color 150ms, background 150ms',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)';
-          e.currentTarget.style.color = '#a855f7';
-          e.currentTarget.style.background = 'rgba(168,85,247,0.04)';
+          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)';
+          e.currentTarget.style.color = 'var(--color-primary-500)';
+          e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)';
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.borderColor = 'rgba(168,85,247,0.25)';
+          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
           e.currentTarget.style.color = '#9ca3af';
           e.currentTarget.style.background = 'transparent';
         }}

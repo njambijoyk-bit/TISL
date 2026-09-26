@@ -83,19 +83,19 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
           width: 24, height: 24, borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'transparent',
-          border: open ? '1.5px solid rgba(168,85,247,0.5)' : '1.5px solid rgba(168,85,247,0.22)',
-          color: open ? '#c084fc' : '#9ca3af',
+          border: open ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
+          color: open ? 'var(--color-primary-400)' : '#9ca3af',
           cursor: 'pointer',
           transition: 'border-color 150ms, color 150ms, background 150ms',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)';
-          e.currentTarget.style.color = '#c084fc';
-          e.currentTarget.style.background = 'rgba(168,85,247,0.06)';
+          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)';
+          e.currentTarget.style.color = 'var(--color-primary-400)';
+          e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
         }}
         onMouseLeave={e => {
           if (!open) {
-            e.currentTarget.style.borderColor = 'rgba(168,85,247,0.22)';
+            e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)';
             e.currentTarget.style.color = '#9ca3af';
             e.currentTarget.style.background = 'transparent';
           }
@@ -109,15 +109,15 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
           style={{
             minWidth: 164, borderRadius: 12,
             background: '#1e1b2e',
-            border: '1px solid rgba(168,85,247,0.3)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(168,85,247,0.08)',
+            border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
           }}>
           {items.map((item, idx) => (
             <button key={item.label} type="button" onClick={item.action}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '8px 14px',
-                borderTop: idx > 0 && item.danger ? '1px solid rgba(168,85,247,0.1)' : 'none',
+                borderTop: idx > 0 && item.danger ? '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'none',
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 fontSize: '0.8rem', fontWeight: 500, textAlign: 'left',
                 color: item.danger ? '#f87171' : '#e2e8f0',
@@ -125,7 +125,7 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = item.danger
-                  ? 'rgba(239,68,68,0.12)' : 'rgba(168,85,247,0.1)';
+                  ? 'rgba(239,68,68,0.12)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
                 e.currentTarget.style.color = item.danger ? '#fca5a5' : '#f1f0ff';
               }}
               onMouseLeave={e => {
@@ -135,9 +135,9 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
               <span style={{
                 width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: item.danger ? 'rgba(239,68,68,0.1)' : 'rgba(168,85,247,0.1)',
-                border: item.danger ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(168,85,247,0.2)',
-                color: item.danger ? '#f87171' : '#c084fc',
+                background: item.danger ? 'rgba(239,68,68,0.1)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                border: item.danger ? '1px solid rgba(239,68,68,0.25)' : '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                color: item.danger ? '#f87171' : 'var(--color-primary-400)',
               }}>
                 {item.icon}
               </span>
@@ -155,7 +155,7 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
 const DeleteConfirmModal = ({ count = 1, onConfirm, onCancel, loading }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div className="rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
-      style={{ background: 'white', border: '1px solid rgba(168,85,247,0.2)' }}>
+      style={{ background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       <div style={{ height: 3, background: 'linear-gradient(90deg,#ef4444,#dc2626)' }} />
       <div className="p-6">
         <div className="flex items-center gap-3 mb-3">
@@ -172,12 +172,12 @@ const DeleteConfirmModal = ({ count = 1, onConfirm, onCancel, loading }) => (
             ? `This will permanently delete ${count} messages. This action cannot be undone.`
             : 'This message will be permanently deleted and cannot be recovered.'}
         </p>
-        <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+        <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
           <button onClick={onCancel} disabled={loading}
             className="px-3 py-1.5 text-sm rounded-lg text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}>
             Cancel
           </button>
           <button onClick={onConfirm} disabled={loading}
@@ -197,7 +197,7 @@ const DeleteConfirmModal = ({ count = 1, onConfirm, onCancel, loading }) => (
 const ClearChatModal = ({ onConfirm, onCancel, loading }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div className="rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
-      style={{ background: 'white', border: '1px solid rgba(168,85,247,0.2)' }}>
+      style={{ background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
       <div style={{ height: 3, background: 'linear-gradient(90deg,#ef4444,#dc2626)' }} />
       <div className="p-6">
         <div className="flex items-center gap-3 mb-3">
@@ -211,12 +211,12 @@ const ClearChatModal = ({ onConfirm, onCancel, loading }) => (
           This will <strong>permanently delete all messages</strong> in this project thread.
           This action cannot be undone and affects all participants.
         </p>
-        <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid rgba(168,85,247,0.12)' }}>
+        <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
           <button onClick={onCancel} disabled={loading}
             className="px-3 py-1.5 text-sm rounded-lg text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50"
-            style={{ border: '1px solid rgba(168,85,247,0.2)' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}>
+            style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}>
             Cancel
           </button>
           <button onClick={onConfirm} disabled={loading}
@@ -375,7 +375,7 @@ const MessageThread = ({
 
       {/* ── Toolbar ── */}
       <div className="sticky top-0 z-20 bg-white dark:bg-gray-900 flex items-center justify-between gap-2 px-3 py-2"
-        style={{ borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
+        style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
 
         {selectMode ? (
           <div className="flex items-center gap-3 flex-1">
@@ -406,7 +406,7 @@ const MessageThread = ({
               onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setSearchQuery(''); }}
               className="p-1.5 rounded-lg transition-colors"
               style={searchOpen
-                ? { background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)' }
+                ? { background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-500)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }
                 : { color: '#9ca3af', border: '1px solid transparent' }}
               title="Search messages">
               <Search className="w-4 h-4" />
@@ -416,7 +416,7 @@ const MessageThread = ({
               <button type="button" onClick={() => setTopMenuOpen((v) => !v)}
                 className="p-1.5 rounded-lg transition-colors"
                 style={{ color: '#9ca3af', border: '1px solid transparent' }}
-                onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#a855f7'; }}
+                onMouseEnter={e => { e.currentTarget.style.border = '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                 onMouseLeave={e => { e.currentTarget.style.border = '1px solid transparent'; e.currentTarget.style.color = '#9ca3af'; }}
                 title="More options">
                 <MoreVertical className="w-4 h-4" />
@@ -424,12 +424,12 @@ const MessageThread = ({
 
               {topMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 z-30 min-w-[180px] rounded-xl shadow-xl py-1 overflow-hidden"
-                  style={{ background: 'white', border: '1px solid rgba(168,85,247,0.2)' }}>
+                  style={{ background: 'white', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                   <button type="button"
                     onClick={() => { setSelectMode(true); setTopMenuOpen(false); }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
                       text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <CheckSquare className="w-4 h-4" style={{ color: '#a855f7' }} />
+                    <CheckSquare className="w-4 h-4" style={{ color: 'var(--color-primary-500)' }} />
                     Select messages
                   </button>
                   {isSuperAdmin && (
@@ -453,20 +453,20 @@ const MessageThread = ({
       {/* ── Search bar ── */}
       {searchOpen && (
         <div className="relative mb-3 mx-3 mt-2" ref={searchRef}>
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#c084fc' }} />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-primary-400)' }} />
           <input autoFocus type="text" value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search messages…"
             className="w-full pl-9 pr-9 py-2 text-sm rounded-xl bg-gray-50 dark:bg-gray-700/60
               text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
-            style={{ border: '1.5px solid rgba(168,85,247,0.2)' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-            onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+            style={{ border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+            onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
           {searchQuery && (
             <button type="button" onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2"
-              style={{ color: '#c084fc', background: 'none', border: 'none', cursor: 'pointer' }}>
+              style={{ color: 'var(--color-primary-400)', background: 'none', border: 'none', cursor: 'pointer' }}>
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -474,7 +474,7 @@ const MessageThread = ({
       )}
 
       {searchQuery && (
-        <p className="text-xs mb-2 px-1" style={{ color: '#c084fc' }}>
+        <p className="text-xs mb-2 px-1" style={{ color: 'var(--color-primary-400)' }}>
           {visibleMessages.length === 0
             ? 'No messages match your search.'
             : `${visibleMessages.length} result${visibleMessages.length !== 1 ? 's' : ''}`}
@@ -517,7 +517,7 @@ const MessageThread = ({
                   className={`shrink-0 mb-1 ${isOwn ? 'order-last ml-2' : 'order-first mr-1'}`}
                   onClick={(e) => { e.stopPropagation(); handleToggleSelect(msg.id); }}>
                   {isSelected
-                    ? <CheckSquare className="w-4 h-4" style={{ color: '#a855f7' }} />
+                    ? <CheckSquare className="w-4 h-4" style={{ color: 'var(--color-primary-500)' }} />
                     : <Square className="w-4 h-4 text-gray-400" />
                   }
                 </button>
@@ -529,9 +529,9 @@ const MessageThread = ({
                   width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '0.65rem', fontWeight: 700, marginBottom: 4,
-                  color: '#c084fc',
+                  color: 'var(--color-primary-400)',
                   background: 'transparent',
-                  border: '1.5px solid rgba(168,85,247,0.25)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                 }}>
                   {initials}
                 </div>
@@ -567,18 +567,18 @@ const MessageThread = ({
                         rows={2}
                         className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-gray-700
                           text-gray-900 dark:text-white focus:outline-none resize-none"
-                        style={{ border: '1.5px solid rgba(168,85,247,0.4)', boxShadow: '0 0 0 3px rgba(168,85,247,0.08)' }}
+                        style={{ border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}
                       />
                       <div className="flex gap-1.5 justify-end">
                         <button type="button" onClick={handleEditCancel} disabled={savingEdit}
                           className="px-2.5 py-1 text-xs rounded-lg transition-colors text-gray-600 dark:text-gray-400 disabled:opacity-50"
-                          style={{ border: '1px solid rgba(168,85,247,0.2)' }}>
+                          style={{ border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                           Cancel
                         </button>
                         <button type="button" onClick={() => handleEditSave(msg.id)}
                           disabled={savingEdit || !editText.trim()}
                           className="px-2.5 py-1 text-xs rounded-lg text-white disabled:opacity-50 flex items-center gap-1"
-                          style={{ background: 'linear-gradient(135deg,#a855f7,#7c3aed)', boxShadow: '0 2px 8px rgba(168,85,247,0.3)' }}>
+                          style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
                           {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                           Save
                         </button>
@@ -590,10 +590,10 @@ const MessageThread = ({
                         ${isSelected ? 'ring-2' : ''}`}
                       style={{
                         ...(isOwn
-                          ? { background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white', borderBottomRightRadius: 4, boxShadow: '0 2px 12px rgba(168,85,247,0.25)' }
-                          : { background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)', borderBottomLeftRadius: 4 }
+                          ? { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', borderBottomRightRadius: 4, boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }
+                          : { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderBottomLeftRadius: 4 }
                         ),
-                        ...(isSelected ? { outline: '2px solid #a855f7', outlineOffset: 2 } : {}),
+                        ...(isSelected ? { outline: '2px solid var(--color-primary-500)', outlineOffset: 2 } : {}),
                         ...visStyle,
                       }}>
                       {highlightText(msg.message, searchQuery)}
@@ -606,7 +606,7 @@ const MessageThread = ({
                   <div className={`flex items-center gap-1 mt-1 text-[11px] text-gray-400 dark:text-gray-500
                     ${isOwn ? 'justify-end pr-1' : 'justify-start pl-1'}`}>
                     {!isOwn && (
-                      <span className="font-semibold" style={{ color: '#a855f7' }}>
+                      <span className="font-semibold" style={{ color: 'var(--color-primary-500)' }}>
                         {msg.sender?.name || 'Unknown'}
                       </span>
                     )}
@@ -627,7 +627,7 @@ const MessageThread = ({
                       <a key={i} href={att.url || '#'} target="_blank" rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="text-xs px-2 py-1 rounded-lg transition-colors"
-                        style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                        style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-500)' }}>
                         {att.name || `Attachment ${i + 1}`}
                       </a>
                     ))}

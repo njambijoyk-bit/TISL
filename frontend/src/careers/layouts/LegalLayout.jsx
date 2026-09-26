@@ -9,14 +9,14 @@ export default function LegalLayout({ eyebrow, title, lastUpdated, children }) {
                 <Link
                     to="/careers"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555', textDecoration: 'none', marginBottom: 40 }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#a855f7'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#555'}
                 >
                     <ArrowLeft size={14} /> Back to Careers
                 </Link>
 
                 {eyebrow && (
-                    <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a855f7', marginBottom: 12 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 12 }}>
                         {eyebrow}
                     </p>
                 )}
@@ -62,9 +62,9 @@ export function Highlight({ children }) {
 export function InfoBox({ children }) {
     return (
         <div style={{
-            background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)',
+            background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             borderRadius: 10, padding: '16px 20px', marginBottom: 24,
-            fontSize: 14, color: '#c084fc', lineHeight: 1.7,
+            fontSize: 14, color: 'var(--color-primary-400)', lineHeight: 1.7,
         }}>
             {children}
         </div>

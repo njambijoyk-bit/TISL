@@ -14,24 +14,24 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'rgba(168,85,247,0.04)',
-  border: '1.5px solid rgba(168,85,247,0.18)',
+  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
   color: '#111827', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
-const inputFocus = (e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.boxShadow = 'none'; };
+const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
+const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#7c3aed', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 
 const card = {
   background: 'white', borderRadius: 12,
-  border: '1px solid rgba(168,85,247,0.1)',
-  boxShadow: '0 2px 12px rgba(168,85,247,0.06)',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
@@ -121,14 +121,14 @@ function AddShippingModal({ onClose, onSave }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 2px 8px rgba(168,85,247,0.35)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
             }}>Add option</button>
           </div>
         </form>
@@ -205,14 +205,14 @@ function EditShippingModal({ option, onClose, onSave }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#6b7280',
+              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-              boxShadow: '0 2px 8px rgba(168,85,247,0.35)',
+              background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+              boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
             }}>Save changes</button>
           </div>
         </form>
@@ -288,10 +288,10 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} style={{ display: 'flex', gap: 12 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(168,85,247,0.12)', flexShrink: 0 }} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ height: 12, borderRadius: 4, background: 'rgba(168,85,247,0.08)', width: '60%', marginBottom: 6 }} />
-              <div style={{ height: 10, borderRadius: 4, background: 'rgba(168,85,247,0.05)', width: '30%' }} />
+              <div style={{ height: 12, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', width: '60%', marginBottom: 6 }} />
+              <div style={{ height: 10, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', width: '30%' }} />
             </div>
           </div>
         ))}
@@ -324,7 +324,7 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
                 <cfg.Icon size={13} color={cfg.color} />
               </div>
               {!isLast && (
-                <div style={{ flex: 1, width: 1.5, background: 'rgba(168,85,247,0.15)', minHeight: 16, margin: '4px 0' }} />
+                <div style={{ flex: 1, width: 1.5, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', minHeight: 16, margin: '4px 0' }} />
               )}
             </div>
 
@@ -343,7 +343,7 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
       {pagination && pagination.current_page < pagination.last_page && (
         <button onClick={onLoadMore} style={{
           marginTop: 12, padding: '6px 14px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-          border: '1.5px solid rgba(168,85,247,0.18)', background: 'white', color: '#7c3aed',
+          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: 'var(--color-primary-600)',
           cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'center',
         }}>
           Load more
@@ -448,7 +448,7 @@ export default function ShippingSettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'rgba(168,85,247,0.07)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -461,7 +461,7 @@ export default function ShippingSettings() {
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               Shipping Settings
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
@@ -472,11 +472,11 @@ export default function ShippingSettings() {
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-            boxShadow: '0 4px 14px rgba(168,85,247,0.35)', transition: 'box-shadow 150ms',
+            background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'box-shadow 150ms',
           }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(168,85,247,0.35)'}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'}
           >
             <Plus size={15} /> Add option
           </button>
@@ -487,7 +487,7 @@ export default function ShippingSettings() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(168,85,247,0.02)' }}>
+                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                   {[
                     { label: 'ID',         w: 60  },
                     { label: 'Name',       w: 180 },
@@ -506,10 +506,10 @@ export default function ShippingSettings() {
               <tbody>
                 {options.map((opt, i) => (
                   <tr key={opt.id} style={{
-                    borderBottom: i === options.length - 1 ? 'none' : '1px solid rgba(168,85,247,0.05)',
+                    borderBottom: i === options.length - 1 ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
                     transition: 'background 120ms',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.02)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '12px 16px' }}>
@@ -572,12 +572,12 @@ export default function ShippingSettings() {
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => setEditing(opt)} style={{
                           width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
-                          background: 'rgba(168,85,247,0.07)', color: '#a855f7',
+                          background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-500)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'background 120ms',
                         }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.15)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(168,85,247,0.07)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
                           title="Edit"
                         >
                           <Edit2 size={12} />
@@ -613,13 +613,13 @@ export default function ShippingSettings() {
             padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           }}>
             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <RefreshCw size={14} style={{ color: '#a855f7' }} /> Shipping activity log
+              <RefreshCw size={14} style={{ color: 'var(--color-primary-500)' }} /> Shipping activity log
             </span>
             {showLog ? <ChevronUp size={14} style={{ color: '#9ca3af' }} /> : <ChevronDown size={14} style={{ color: '#9ca3af' }} />}
           </button>
 
           {showLog && (
-            <div style={{ padding: '0 20px 20px', borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 16 }}>
+            <div style={{ padding: '0 20px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 16 }}>
               <ShippingActivityFeed
                 activity={activity}
                 pagination={activityPag}

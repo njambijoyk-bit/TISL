@@ -10,8 +10,8 @@
 const PURPLE = '168,85,247';
 
 export const colors = {
-  primary:      '#a855f7',
-  primaryDeep:  '#7c3aed',
+  primary:      'var(--color-primary-500)',
+  primaryDeep:  'var(--color-primary-600)',
   tint:         (alpha) => `rgba(${PURPLE},${alpha})`,
 
   text:         '#111827',

@@ -23,7 +23,7 @@ const STATUS_CONFIG = {
   approved:  { label: 'Approved',  color: '#10b981', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.3)',   Icon: CheckCircle },
   rejected:  { label: 'Rejected',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.3)',    Icon: XCircle },
   expired:   { label: 'Expired',   color: '#6b7280', bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.3)', Icon: CalendarX },
-  converted: { label: 'Converted', color: '#a855f7', bg: 'rgba(168,85,247,0.1)',   border: 'rgba(168,85,247,0.3)',  Icon: TrendingUp },
+  converted: { label: 'Converted', color: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',   border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',  Icon: TrendingUp },
 };
 
 const TABS = [
@@ -50,7 +50,7 @@ function QuoteCard({ quote, onView }) {
   return (
     <div style={{
       borderRadius: 16,
-      border: '1px solid rgba(168,85,247,0.2)',
+      border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
       boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       overflow: 'hidden',
       transition: 'box-shadow 200ms, transform 200ms',
@@ -65,7 +65,7 @@ function QuoteCard({ quote, onView }) {
         {/* Top row: number + status + view */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#a855f7', margin: 0 }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>
               {quote.quote_number}
             </h3>
             {/* Status pill */}
@@ -77,7 +77,7 @@ function QuoteCard({ quote, onView }) {
               <StatusIcon size={11} /> {cfg.label}
             </span>
             {quote.version > 1 && (
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', border: '1px solid rgba(168,85,247,0.2)', padding: '2px 7px', borderRadius: 9999 }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '2px 7px', borderRadius: 9999 }}>
                 v{quote.version}
               </span>
             )}
@@ -89,9 +89,9 @@ function QuoteCard({ quote, onView }) {
           </div>
 
           <button onClick={() => onView(quote.id)} type="button"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid rgba(168,85,247,0.2)', color: '#374151', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0, transition: 'all 150ms' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.color = '#374151'; }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#374151', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0, transition: 'all 150ms' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#374151'; }}
           >
             <Eye size={14} /> View
           </button>
@@ -100,18 +100,18 @@ function QuoteCard({ quote, onView }) {
         {/* Meta row */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#6b7280' }}>
-            <Calendar size={13} color="#c084fc" />
+            <Calendar size={13} color="var(--color-primary-400)" />
             <span>{new Date(quote.valid_from).toLocaleDateString()} — {new Date(quote.valid_until).toLocaleDateString()}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#6b7280' }}>
-            <FileText size={13} color="#c084fc" />
+            <FileText size={13} color="var(--color-primary-400)" />
             <span>{quote.items_count || 0} item{quote.items_count !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
         {/* Price */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em' }}>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em' }}>
             {quote.currency} {formatMoney(quote.total)}
           </span>
           {shouldShowKes(quote) && (
@@ -148,16 +148,16 @@ function QuoteTable({ quotes, onView }) {
   if (!quotes.length) return null;
 
   return (
-    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 1px 8px rgba(168,85,247,0.06)' }}>
+    <div style={{ width: '100%', overflowX: 'auto', borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 1px 8px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
         {/* Head */}
         <thead>
-          <tr style={{ background: 'rgba(168,85,247,0.05)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+          <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             {['Quote', 'Status', 'Validity', 'Items', 'Total', 'Action', ''].map((h, i) => (
               <th key={i} style={{
                 textAlign: 'left', padding: '12px 16px', whiteSpace: 'nowrap',
                 fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: '#a855f7',
+                letterSpacing: '0.08em', color: 'var(--color-primary-500)',
               }}>{h}</th>
             ))}
           </tr>
@@ -175,23 +175,23 @@ function QuoteTable({ quotes, onView }) {
                 key={quote.id}
                 onClick={() => onView(quote.id)}
                 style={{
-                  background: isEven ? 'rgba(168,85,247,0.05)' : 'rgba(168,85,247,0.015)',
-                  borderBottom: '1px solid rgba(168,85,247,0.08)',
+                  background: isEven ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                   borderLeft: `3px solid ${cfg.color}`,
                   cursor: 'pointer', transition: 'background 150ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.05)'}
-                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'rgba(168,85,247,0.015)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(120, 85, 247, 0.09)' : 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)'}
               >
                 {/* Quote number + badges */}
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#a855f7' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-primary-500)' }}>
                       {quote.quote_number}
                     </span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {quote.version > 1 && (
-                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', border: '1px solid rgba(168,85,247,0.2)', padding: '1px 6px', borderRadius: 9999 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '1px 6px', borderRadius: 9999 }}>
                           v{quote.version}
                         </span>
                       )}
@@ -223,7 +223,7 @@ function QuoteTable({ quotes, onView }) {
                 {/* Validity */}
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
-                    <Calendar size={11} color="#c084fc" />
+                    <Calendar size={11} color="var(--color-primary-400)" />
                     <span style={{ whiteSpace: 'nowrap' }}>
                       {new Date(quote.valid_from).toLocaleDateString()} — {new Date(quote.valid_until).toLocaleDateString()}
                     </span>
@@ -233,7 +233,7 @@ function QuoteTable({ quotes, onView }) {
                 {/* Items */}
                 <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280' }}>
-                    <FileText size={11} color="#c084fc" />
+                    <FileText size={11} color="var(--color-primary-400)" />
                     {quote.items_count || 0} item{quote.items_count !== 1 ? 's' : ''}
                   </div>
                 </td>
@@ -241,7 +241,7 @@ function QuoteTable({ quotes, onView }) {
                 {/* Total */}
                 <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                   <div>
-                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#a855f7' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary-500)' }}>
                       {quote.currency} {formatMoney(quote.total)}
                     </span>
                     {shouldShowKes(quote) && (
@@ -275,8 +275,8 @@ function QuoteTable({ quotes, onView }) {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       padding: '6px 14px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
-                      background: 'linear-gradient(135deg,#a855f7,#7c3aed)', color: 'white',
-                      border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(168,85,247,0.25)',
+                      background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
+                      border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                       whiteSpace: 'nowrap', transition: 'opacity 150ms',
                     }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
@@ -371,19 +371,19 @@ const MyQuotes = () => {
       <Header />
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: '2px solid rgba(168,85,247,0.2)', padding: '32px 24px 0' }}>
+      <div style={{ borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', padding: '32px 24px 0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
               <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Account</p>
-              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em', margin: 0 }}>My Quotes</h1>
+              <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>My Quotes</h1>
               <p style={{ marginTop: 6, fontSize: '0.88rem', color: '#9ca3af', fontWeight: 500 }}>
                 {quotes.length} quote{quotes.length !== 1 ? 's' : ''} total
               </p>
             </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             {/* View toggle */}
-            <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.2)' }}>
+            <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
               <button
                 type="button"
                 onClick={() => setQuotesView('card')}
@@ -391,8 +391,8 @@ const MyQuotes = () => {
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   width: 36, height: 36, cursor: 'pointer', border: 'none', transition: 'all 150ms',
-                  background: quotesView === 'card' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                  color: quotesView === 'card' ? '#a855f7' : '#c084fc',
+                  background: quotesView === 'card' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                  color: quotesView === 'card' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                 }}
               >
                 <LayoutGrid size={15} />
@@ -404,9 +404,9 @@ const MyQuotes = () => {
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   width: 36, height: 36, cursor: 'pointer', border: 'none',
-                  borderLeft: '1px solid rgba(168,85,247,0.2)', transition: 'all 150ms',
-                  background: quotesView === 'table' ? 'rgba(168,85,247,0.12)' : 'transparent',
-                  color: quotesView === 'table' ? '#a855f7' : '#c084fc',
+                  borderLeft: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', transition: 'all 150ms',
+                  background: quotesView === 'table' ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent',
+                  color: quotesView === 'table' ? 'var(--color-primary-500)' : 'var(--color-primary-400)',
                 }}
               >
                 <List size={15} />
@@ -414,7 +414,7 @@ const MyQuotes = () => {
             </div>
 
             <button onClick={() => navigate('/request-quote')} type="button"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.35)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>
               <Plus size={16} /> Request Quote
             </button>
           </div>
@@ -429,9 +429,9 @@ const MyQuotes = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search quotes by number, status, currency, notes…"
-                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid rgba(168,85,247,0.2)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
-                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ width: '100%', padding: '10px 40px', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', fontSize: '0.85rem', outline: 'none', background: 'white', color: '#111827', boxSizing: 'border-box' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               {searchQuery && (
                 <button type="button" onClick={() => setSearchQuery('')}
@@ -458,8 +458,8 @@ const MyQuotes = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '12px 18px', border: 'none', cursor: 'pointer', background: 'transparent', whiteSpace: 'nowrap',
                     fontSize: '0.82rem', fontWeight: 700,
-                    color: active ? '#a855f7' : '#9ca3af',
-                    borderBottom: active ? '2.5px solid #a855f7' : '2.5px solid transparent',
+                    color: active ? 'var(--color-primary-500)' : '#9ca3af',
+                    borderBottom: active ? '2.5px solid var(--color-primary-500)' : '2.5px solid transparent',
                     transition: 'all 150ms', marginBottom: -1,
                   }}
                 >
@@ -467,8 +467,8 @@ const MyQuotes = () => {
                   {label}
                   <span style={{
                     minWidth: 18, padding: '1px 5px', borderRadius: 9999, fontSize: '0.65rem', fontWeight: 800,
-                    background: active ? 'rgba(168,85,247,0.12)' : '#f3f4f6',
-                    color: active ? '#a855f7' : '#9ca3af',
+                    background: active ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '#f3f4f6',
+                    color: active ? 'var(--color-primary-500)' : '#9ca3af',
                     transition: 'all 150ms',
                   }}>{count}</span>
                 </button>
@@ -481,9 +481,9 @@ const MyQuotes = () => {
       {/* ── Content ─────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px 64px' }}>
         {filteredQuotes.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid rgba(168,85,247,0.2)' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              {searchQuery ? <Search size={28} color="#c084fc" /> : <FileText size={28} color="#c084fc" />}
+          <div style={{ textAlign: 'center', padding: '64px 24px', borderRadius: 20, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              {searchQuery ? <Search size={28} color="var(--color-primary-400)" /> : <FileText size={28} color="var(--color-primary-400)" />}
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>
               {searchQuery ? 'No Results Found' : 'No quotes found'}
@@ -495,12 +495,12 @@ const MyQuotes = () => {
             </p>
             {searchQuery ? (
               <button type="button" onClick={() => setSearchQuery('')}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid rgba(168,85,247,0.2)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'white', color: '#6b7280', fontWeight: 700, fontSize: '0.85rem' }}>
                 <X size={14} /> Clear Search
               </button>
             ) : (
               <button onClick={() => navigate('/request-quote')} type="button"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px rgba(168,85,247,0.3)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
                 <Plus size={15} /> Request a Quote
               </button>
             )}
