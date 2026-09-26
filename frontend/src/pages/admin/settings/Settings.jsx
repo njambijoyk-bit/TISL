@@ -1,59 +1,53 @@
 import { useState } from 'react';
 import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home, Crown, Gavel,
-  Briefcase, Gift, Tag, Users, ChevronRight, GraduationCap, Award,
-  UserCheck, Settings as SettingsIcon, FootprintsIcon, Truck, Gauge,
-  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle, Boxes,
-  Scale,
+  Users, ChevronRight, Ruler, BrainCircuit, Vault, Network, Palette, Compass, Blocks,
+  Settings as SettingsIcon, FootprintsIcon, Truck,
+  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../../../components/layout/Sidebar';
+import useAuthStore from '../../../store/authStore';
+import { visibleNav, isOwner } from '../../../navigation/adminNav';
 import routeMapHtml from './route-map.html?url';
 import toast from 'react-hot-toast';
 
-const GROUPS = [
-  {
-    label: 'Content',
-    items: [
-      { name: 'About',    icon: FileText,       bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6', path: '/admin/settings/content/about',    active: true },
-      { name: 'Contact',  icon: Phone,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316', path: '/admin/settings/content/contact',  active: true },
-      { name: 'Manual',   icon: BookOpen,       bg: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#a855f7', path: '/admin/settings/content/manual',   active: true },
-      { name: 'Homepage', icon: Home,           bg: 'linear-gradient(135deg,#15803d,#22c55e)', color: '#22c55e', path: '/admin/settings/content/homepage', active: true },
-      { name: 'Footer',   icon: FootprintsIcon, bg: 'linear-gradient(135deg,#b45309,#f59e0b)', color: '#f59e0b', path: '/admin/settings/content/footer',   active: true },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { name: 'General',  icon: Globe,      bg: 'linear-gradient(135deg,#0e7490,#06b6d4)', color: '#06b6d4', path: '/admin/settings/general',  active: true },
-      { name: 'Analytics', icon: Gauge,     bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa', path: '/admin/settings/analytics', active: true },
-      { name: 'Currency', icon: DollarSign, bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981', path: '/admin/settings/currency', active: true },
-      { name: 'Customer Tiers',icon: Crown, bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/admin/settings/customer-tiers',   active: true },
-      { name: 'Shipping', icon: Truck,      bg: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fb923c', path: '/admin/settings/shipping', active: true },
-      
-    ],
-  },
-  {
-    label: 'Operations',
-    items: [
-      { name: 'Work', icon: Briefcase,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/work',                  active: true },
-      { name: 'Careers', icon: GraduationCap,  bg: 'linear-gradient(135deg,#4338ca,#6366f1)', color: '#6366f1', path: '/admin/careers/jobs',          active: true },
-      { name: 'Inventory', icon: Boxes,        bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316', path: '/admin/inventory',             active: true },  
-      { name: 'Reconciliation', icon: Scale,   bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981', path: '/admin/reconciliation',        active: true },  
-      { name: 'Publications', icon: FileText,  bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#a855f7', path: '/admin/settings/publications', active: true },
-    ],
-  },
-  {
-    label: 'People & Promos',
-    items: [
-      { name: 'User Management',     icon: Users, bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6', path: '/admin/users',       active: true },
-      { name: 'Loyalties',           icon: Award, bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899', path: '/admin/loyalty',     active: true },
-      { name: 'Referral Codes',      icon: Gift,  bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6', path: '/admin/referrals',   active: true },
-      { name: 'Promo Codes',         icon: Tag,   bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa', path: '/admin/promo-codes', active: true },
-      { name: 'policy',              icon: Gavel, bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316', path: '/admin/settings/policy',  active: true },
-    ],
-  },
-];
+// Settings pages come from the admin nav registry (System → Settings tabs);
+// this only gives each one its icon and colour on the hub.
+const LOOK = {
+  '/admin/settings/general':          { icon: Globe,          bg: 'linear-gradient(135deg,#0e7490,#06b6d4)', color: '#06b6d4' },
+  '/admin/settings/currency':         { icon: DollarSign,     bg: 'linear-gradient(135deg,#065f46,#10b981)', color: '#10b981' },
+  '/admin/settings/units':            { icon: Ruler,          bg: 'linear-gradient(135deg,#0891b2,#22d3ee)', color: '#22d3ee' },
+  '/admin/settings/customer-tiers':   { icon: Crown,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', color: '#f472b6' },
+  '/admin/settings/shipping':         { icon: Truck,          bg: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fb923c' },
+  '/admin/settings/content/about':    { icon: FileText,       bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6' },
+  '/admin/settings/content/contact':  { icon: Phone,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316' },
+  '/admin/settings/content/manual':   { icon: BookOpen,       bg: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#a855f7' },
+  '/admin/settings/content/homepage': { icon: Home,           bg: 'linear-gradient(135deg,#15803d,#22c55e)', color: '#22c55e' },
+  '/admin/settings/content/footer':   { icon: FootprintsIcon, bg: 'linear-gradient(135deg,#b45309,#f59e0b)', color: '#f59e0b' },
+  '/admin/settings/policy':           { icon: Gavel,          bg: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#f97316' },
+  '/admin/users':                     { icon: Users,          bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#3b82f6' },
+  '/admin/algorithm':                 { icon: BrainCircuit,   bg: 'linear-gradient(135deg,#1d4ed8,#60a5fa)', color: '#60a5fa' },
+  '/admin/vault':                     { icon: Vault,          bg: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#ef4444' },
+  '/admin/logs':                      { icon: Network,        bg: 'linear-gradient(135deg,#1e40af,#3b82f6)', color: '#3b82f6' },
+  '/admin/settings/themes':           { icon: Palette,        bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa' },
+  '/admin/settings/navigation':       { icon: Compass,        bg: 'linear-gradient(135deg,#0f766e,#14b8a6)', color: '#14b8a6' },
+  '/admin/settings/modules':          { icon: Blocks,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899' },
+};
+const LOOK_FALLBACK = { icon: SettingsIcon, bg: 'linear-gradient(135deg,#475569,#64748b)', color: '#64748b' };
+
+/** Settings tabs from the registry, grouped, as hub rows. */
+function hubGroups(user) {
+  const settings = visibleNav(user).flatMap((g) => g.items).find((i) => i.id === 'settings');
+  const groups = [];
+  for (const tab of settings?.tabs ?? []) {
+    if (tab.path === settings.path) continue; // "Overview" is this page
+    const look = LOOK[tab.path] ?? LOOK_FALLBACK;
+    const row = { name: tab.title, description: tab.description, path: tab.path, active: !tab.soon, ...look };
+    const g = groups.find((x) => x.label === tab.group);
+    if (g) g.items.push(row); else groups.push({ label: tab.group ?? 'Settings', items: [row] });
+  }
+  return groups;
+}
 
 const SettingRow = ({ item, onClick, isLast }) => {
   const Icon = item.icon;
@@ -93,13 +87,15 @@ const SettingRow = ({ item, onClick, isLast }) => {
         <Icon size={16} color="white" strokeWidth={2.2} />
       </div>
 
-      <span style={{
-        flex: 1,
-        fontSize: '0.88rem',
-        fontWeight: 600,
-        color: item.color,
-      }}>
-        {item.name}
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: item.color }}>
+          {item.name}
+        </span>
+        {item.description && (
+          <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--color-text-muted, #9ca3af)', marginTop: 1 }}>
+            {item.description}
+          </span>
+        )}
       </span>
 
       {!item.active ? (
@@ -1433,76 +1429,66 @@ function NavigationLinksSection() {
 
 export default function Settings() {
   const navigate = useNavigate();
+  const user = useAuthStore((st) => st.user);
+  const groups = hubGroups(user);
+  const owner = isOwner(user);
 
-  const leftGroups  = GROUPS.filter((_, i) => i % 2 === 0);
-  const rightGroups = GROUPS.filter((_, i) => i % 2 !== 0);
+  const leftGroups  = groups.filter((_, i) => i % 2 === 0);
+  const rightGroups = groups.filter((_, i) => i % 2 !== 0);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', flex: 1 }}>
-        <Sidebar />
+    <div>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 32px' }}>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
-              }}>
-                <SettingsIcon size={16} color="white" strokeWidth={2} />
-              </div>
-              <h1 style={{
-                margin: 0,
-                fontSize: '1.6rem', fontWeight: 800,
-                letterSpacing: '-0.02em',
-                color: '#a855f7',
-              }}>
-                Settings
-              </h1>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '20px 20px',
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {leftGroups.map(group => (
-                  <GroupCard key={group.label} group={group} onNavigate={navigate} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {rightGroups.map(group => (
-                  <GroupCard key={group.label} group={group} onNavigate={navigate} />
-                ))}
-              </div>
-            </div>
-
-            {/* ── Navigation Links ────────────────────────────────── */}
-            <NavigationLinksSection />
-
-            {/* ── Appendix ────────────────────────────────────────── */}
-            <AppendixSection />
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 9,
+            background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(168,85,247,0.3)',
+          }}>
+            <SettingsIcon size={16} color="white" strokeWidth={2} />
           </div>
-          
-          <div style={{ padding: '0', height: '70vh', minHeight: 500 }}>
-            <iframe
-              src={routeMapHtml}
-              style={{
-                width: '100%', height: '100%', border: 'none', display: 'block',
-                borderRadius: '0 0 12px 12px',
-              }}
-              title="TISL System Route Map"
-            />
-          </div>
-          <div></div>
-
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#a855f7' }}>
+            Settings
+          </h1>
         </div>
+        <p style={{ margin: '0 0 28px', fontSize: '0.82rem', color: 'var(--color-text-muted, #9ca3af)' }}>
+          Business-wide setup. Day-to-day pages (products, customers, loyalty, promo codes, delivery…) are in the sidebar — press Ctrl+K to jump anywhere.
+        </p>
+
+        <div className="settings-hub-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {leftGroups.map(group => (
+              <GroupCard key={group.label} group={group} onNavigate={navigate} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {rightGroups.map(group => (
+              <GroupCard key={group.label} group={group} onNavigate={navigate} />
+            ))}
+          </div>
+        </div>
+        <style>{'@media (max-width:767px){.settings-hub-grid{grid-template-columns:1fr!important}}'}</style>
+
+        {/* System docs — owner only */}
+        {owner && (
+          <>
+            <NavigationLinksSection />
+            <AppendixSection />
+          </>
+        )}
       </div>
+
+      {owner && (
+        <div style={{ padding: 0, height: '70vh', minHeight: 500 }}>
+          <iframe
+            src={routeMapHtml}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block', borderRadius: '0 0 12px 12px' }}
+            title="TISL System Route Map"
+          />
+        </div>
+      )}
     </div>
   );
 }

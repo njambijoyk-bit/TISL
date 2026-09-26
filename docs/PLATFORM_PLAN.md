@@ -43,6 +43,7 @@ Update it whenever a decision changes.
 | **Tax admin** | Tax & Compliance and Withholding & Compliance hubs (rates, rules, types, districts, certificates, credits, classifications), per-item tax overrides, customer Tax tab. Finance-role gated. |
 | **Hamper tax** | Admin picks an active tax rate; checkout charges it (no fixed 16%). |
 | **Units of measure** | Units, country defaults, converter. |
+| **Admin navigation** | One sidebar built from `src/navigation/adminNav.js` (groups, items, section tabs, roles, modules, owner-only). `AdminShell` is a layout route around every `/admin` and `/driver` page: sidebar, section tabs, Ctrl+K quick jump. Settings hub is generated from the same registry. `isModuleActive()` in `src/navigation/modules.js` is a stub (all on) until the module registry exists. |
 | **Variants** | Admin variant editor (options, variants, units, images) and storefront variant picker; the cart keeps each variant and unit as its own line. |
 
 ---
@@ -120,7 +121,7 @@ Each module declares, in one place, its admin sidebar group, storefront nav link
 
 ---
 
-## 6. Admin navigation (next up)
+## 6. Admin navigation (done)
 
 **One sidebar replaces four places** (main sidebar, Settings sidebar, Settings card page, General sidebar).
 
@@ -132,6 +133,8 @@ Each module declares, in one place, its admin sidebar group, storefront nav link
 - **Module groups** (only when active): Quotes, Projects, Help Desk, Careers, Delivery, Inventory, Publications, AI…
 - **Settings hub** with tabs: General, Currency, Units, Tiers, Shipping, Content pages, Policies, Themes, Navigation, Modules, Users & roles, Algorithm, Vault, Activity logs
 - **Developer** (owner-only): dev notes, dev keys, bug reports, Data Engine, flowcharts
+
+**As built:** Mimi AI sits under Workplace with Help desk, Team and Publications; Delivery, Inventory and the Work board are under Operations (TISL extras); drivers see only Dashboard and My deliveries; Reports has a Site analytics tab; the system docs on the Settings page are owner-only. New pages are added to the registry, not to a layout.
 
 **Other changes:**
 - The General sidebar is removed; bulk editors become a "Bulk edit" tab on Products, Customers and Employees.
@@ -156,6 +159,7 @@ Each module declares, in one place, its admin sidebar group, storefront nav link
 **Current state (measured):**
 - About 16,000 hex colours in 367 of 479 `.jsx` files, plus 7,700 `rgba()` values; the brand purple appears about 3,500 times.
 - About 1,800 Tailwind colour classes and 1,000 `dark:` classes.
+- **Tailwind isn't generating utilities.** The project runs Tailwind 4 (`@tailwindcss/postcss`) but `index.css` still uses the v3 `@tailwind base/components/utilities` directives, so classes like `bg-white` or `dark:bg-gray-900` produce no CSS; only the hand-written subset in `styles/layout.css` (`.flex`, `.container`, `.px-4`…) works. Switching to `@import "tailwindcss"` would suddenly switch on ~2,800 dormant colour classes and change how many pages look, so it's part of the theming work, not a quick fix.
 - `index.css` already has a variable system (brand scale, text and surface tokens, a `.dark` block) that most components ignore. `--color-text-primary` (used by 38 files) is undefined.
 - Storefront: about 67 files and 4,500 colour literals. Admin: about 260 files and 17,000.
 
@@ -185,7 +189,7 @@ Each module declares, in one place, its admin sidebar group, storefront nav link
 
 ## 10. Build order
 
-1. **Admin navigation** (sections 6 and 5.4 manifests).
+1. ~~**Admin navigation**~~ (done; manifests in 5.4 come with the module registry).
 2. **Theming** steps 1–5 (section 8).
 3. **Module registry, Module Center, license keys, route gating** (section 5).
 4. **Storefront navigation manager** (section 7).

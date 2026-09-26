@@ -219,7 +219,7 @@ const CustomerShipmentTracking = lazy(() => import('./pages/customer/CustomerShi
 const CustomerDeliveryHistory  = lazy(() => import('./pages/customer/CustomerDeliveryHistoryPage'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
-const GeneralLayout        = lazy(() => import('./components/layout/GeneralLayout.jsx'))
+const AdminShell           = lazy(() => import('./components/layout/AdminShell'));
 const ProductBulkPage      = lazy(() => import('./pages/admin/general/bulk/ProductBulkPage'));
 const CustomerBulkPage     = lazy(() => import('./pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./pages/admin/general/bulk/EmployeeBulkPage'));
@@ -602,1115 +602,1119 @@ function App() {
             />
 
             {/* ── Admin Routes ─────────────────────────────────────────────── */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/admin/settings/policy" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PolicySettings />
-                </ProtectedRoute>
-              } 
-            />
-            {/* Admin Career Management */}
-            <Route path="/admin/careers" element={
-                <ProtectedRoute requireAdmin>
-                    <AdminCareersStatsPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/admin/careers/jobs" element={
-                <ProtectedRoute requireAdmin>
-                    <AdminJobsPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/admin/careers/jobs/:id" element={
-                <ProtectedRoute requireAdmin>
-                    <AdminJobDetailPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/admin/careers/applications" element={
-                <ProtectedRoute requireAdmin>
-                    <AdminApplicationsPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/admin/careers/applicants"    element={
-              <ProtectedRoute requireAdmin>
-                <AdminApplicantsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/careers/applicants/:id" element={
-              <ProtectedRoute requireAdmin>
-                <AdminApplicantDetailPage />
-              </ProtectedRoute>
-            } />
-
-            {/* Admin Profile */}
-            <Route
-              path="/admin/profile"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/products"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminProducts />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/products/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/products/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/vault"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <VaultPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
-            <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
-            <Route path="/admin/hampers/orders/:id" element={<ProtectedRoute requireAdmin><AdminHamperOrderDetail /></ProtectedRoute>} />
-            <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
-            <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
-
-            <Route path="/admin/bookings"              element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
-            <Route path="/admin/bookings/create"       element={<ProtectedRoute requireAdmin><AdminBookingForm /></ProtectedRoute>} />
-            <Route path="/admin/bookings/:id"          element={<ProtectedRoute requireAdmin><AdminBookingDetail /></ProtectedRoute>} />
-            <Route path="/admin/bookings/:id/worksheets/:wsId" element={<ProtectedRoute requireAdmin><AdminWorksheetForm /></ProtectedRoute>} />
-            <Route path="/admin/settings/bookings"     element={<ProtectedRoute requireAdmin><BookingSettings /></ProtectedRoute>} />
-
-            <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin><AdminBugReportsPage /></ProtectedRoute>} />
-            <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin><AdminDevNotesPage /></ProtectedRoute>} />
-            <Route path="/admin/dev-keys"    element={<ProtectedRoute requireAdmin><AdminDevKeysPage /></ProtectedRoute>} />
-            <Route
-              path="/admin/ai-analytics"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AiAnalyticsSettings /> 
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/keys"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AiKeysPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/modules"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AiModulesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/sessions"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AiSessionsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/mimi"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <MimiOverviewPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/mimi-sessions"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Mimisessionspage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/mimi-eligibility"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Mimiblockspage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ai-analytics/mimi-harmful"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Mimiharmfulpage />
-                </ProtectedRoute>
-              }
-            />
-            {/* ── Admin Delivery Routes ─────────────────────────────────────────── */}
-            {/* Overview */}
-            <Route
-              path="/admin/delivery"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DeliveryOverviewPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Manifests */}
-            <Route
-              path="/admin/delivery/manifests"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ManifestsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/manifests/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CreateManifestPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/manifests/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ManifestDetailPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/manifests/transfer"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ManifestTransferPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/manifests/:id/route"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ManifestRoutePage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Drivers */}
-            <Route
-              path="/admin/delivery/drivers"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DriversPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/drivers/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DriverDetailPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Incidents */}
-            <Route
-              path="/admin/delivery/incidents"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <IncidentsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Ratings */}
-            <Route
-              path="/admin/delivery/ratings"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <RatingsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* AI Insights */}
-            <Route
-              path="/admin/delivery/insights"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DeliveryInsightsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/insights/:entityType"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DeliveryInsightsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/delivery/insights/:entityType/:entityId"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DeliveryInsightsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Reports */}
-            <Route
-              path="/admin/delivery/reports"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DeliveryReportsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* ── Driver Routes ─────────────────────────────────────────────────── */}
-
-            <Route
-              path="/driver/manifests"
-              element={
-                <ProtectedRoute>
-                  <DriverManifestsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/driver/manifests/:id"
-              element={
-                <ProtectedRoute>
-                  <DriverManifestDetailPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/driver/ratings"
-              element={
-                <ProtectedRoute>
-                  <DriverRatingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/driver/incidents"
-              element={
-                <ProtectedRoute>
-                  <DriverIncidentsPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Admin Auction Routes */}
-            <Route
-              path="/admin/auctions"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctions />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/admin/auctions/create" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctionCreator />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/auction-orders" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctionOrders />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/auction-orders/:id" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctionOrderDetail />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/auction-orders/:id/payments" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctionOrderPayments />
-                </ProtectedRoute>
-              }
-            />
-            {/* Admin Auction Detail/Edit */}
-            <Route
-              path="/admin/auctions/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminAuctionDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Service Routes */}
-            <Route
-              path="/admin/services"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminServices />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/services/new"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ServiceForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/services/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ServiceForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/service-categories"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ServiceCategories />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Categories Routes */}
-            <Route
-              path="/admin/categories"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Categories />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/categories/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CategoryForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/categories/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CategoryForm />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Brands Routes */}
-            <Route
-              path="/admin/brands"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Brands />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/brands/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <BrandForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/brands/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <BrandForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/orders"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminOrders />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/orders/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <OrderDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/orders/:id/ship"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <OrderDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Quote Request Routes */}
-            <Route
-              path="/admin/quote-requests"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteRequests />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/quote-requests/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteRequestDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Quote Routes */}
-            <Route
-              path="/admin/quotes"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Quotes />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/quotes/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteCreatePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/quotes/new"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/quotes/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/quotes/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <QuoteEdit />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Payments Dashboard */}
-            <Route
-              path="/admin/finance/payments"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PaymentsDashboard />
-                </ProtectedRoute>
-              }
-            />
-            {/* Payment Detail */}
-            <Route
-              path="/admin/finance/payments/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PaymentDetail />
-                </ProtectedRoute>
-              }
-            />
-            {/* Order Payment History (embedded panel) */}
-            <Route
-              path="/admin/orders/:id/payments"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <OrderPaymentsPanel />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Projects */}
-            <Route
-              path="/admin/projects"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProjectDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/projects/list"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Projects />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/projects/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProjectCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/projects/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProjectDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/work"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Work />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/publications"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PublicationListPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/publications/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <StudioEditor />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Customers & Users */}
-            <Route
-              path="/admin/customers"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminCustomers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/customers/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CustomerDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/credit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CreditDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/credit/customers/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CreditDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/users/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <UserDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/employees"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmployeeList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/employees/create"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmployeeForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/employees/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmployeeDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/employees/:id/edit"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmployeeForm />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Referrals & Promo Codes */}
-            <Route
-              path="/admin/referrals"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Referrals />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/referrals/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ReferralDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/promo-codes"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PromoCodes />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/promo-codes/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <PromoCodeDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reviews"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminReviews />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/loyalty"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <LoyaltyLedger />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/loyalty/settings"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <LoyaltySettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/loyalty/:customerId"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <LoyaltyLedgerDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/tickets"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminTickets />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/tickets/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminTicketDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Reports */}
-            <Route
-              path="/admin/reports"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/logs"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ActivityLogs />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/inventory"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <InventoryPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/algorithm"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CustomerAlgorithmPanel />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/admin/algorithm/catalogue-boosts"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CatalogueBoostPage />
-                </ProtectedRoute>}
-            />
-
-            {/* ── Financial Notes ─────────────────────────────────────────── */}
-            <Route
-              path="/admin/financial-notes"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <FinancialNotes />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* ── Reconciliation ──────────────────────────────────────────── */}
-            <Route
-              path="/admin/reconciliation"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ReconciliationPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reconciliation/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ReconciliationDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/data-engine"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <DataEnginePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/admin/logs/export" 
-              element={
+            {/* One frame (sidebar, section tabs, Ctrl+K) for every /admin and /driver page */}
+            <Route element={<ProtectedRoute requireAdmin><AdminShell /></ProtectedRoute>}>
+              <Route
+                path="/admin"
+                element={
                   <ProtectedRoute requireAdmin>
-                      <LogExportPage />
+                    <Dashboard />
                   </ProtectedRoute>
-              } 
-            />
+                }
+              />
+              <Route 
+                path="/admin/settings/policy" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PolicySettings />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* Admin Career Management */}
+              <Route path="/admin/careers" element={
+                  <ProtectedRoute requireAdmin>
+                      <AdminCareersStatsPage />
+                  </ProtectedRoute>
+              } />
+              <Route path="/admin/careers/jobs" element={
+                  <ProtectedRoute requireAdmin>
+                      <AdminJobsPage />
+                  </ProtectedRoute>
+              } />
+              <Route path="/admin/careers/jobs/:id" element={
+                  <ProtectedRoute requireAdmin>
+                      <AdminJobDetailPage />
+                  </ProtectedRoute>
+              } />
+              <Route path="/admin/careers/applications" element={
+                  <ProtectedRoute requireAdmin>
+                      <AdminApplicationsPage />
+                  </ProtectedRoute>
+              } />
+              <Route path="/admin/careers/applicants"    element={
+                <ProtectedRoute requireAdmin>
+                  <AdminApplicantsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/careers/applicants/:id" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminApplicantDetailPage />
+                </ProtectedRoute>
+              } />
 
-            {/* Admin Settings */}
-            <Route
-              path="/admin/settings"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/flowchart/orders"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <FlowchartPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/flowchart/customers"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CustFlowchartPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/flowchart/transactions"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <TxFlowchartPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/admin/settings/analytics"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AnalyticDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/analytics/:id"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
-            <Route
-              path="/admin/tax"
-              element={
-                <ProtectedRoute requireAdmin roles={FINANCE_READ}>
-                  <TaxCompliance />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/withholding"
-              element={
-                <ProtectedRoute requireAdmin roles={FINANCE_READ}>
-                  <WithholdingCompliance />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/units"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <UnitsOfMeasure />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/currency"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CurrencySettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/customer-tiers"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CustomerTierSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/shipping"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ShippingSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/general"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <GeneralSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/general/bulk/products"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ProductBulkPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/general/bulk/customers"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <CustomerBulkPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/general/bulk/employees"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmployeeBulkPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/notifications"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <NotificationSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/security"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <SecuritySettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/email"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <EmailSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/backup"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <BackupSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/appearance"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AppearanceSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/integrations"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <IntegrationSettings />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin Profile */}
+              <Route
+                path="/admin/profile"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminProducts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProductForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProductForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/vault"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <VaultPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
+              <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
+              <Route path="/admin/hampers/orders/:id" element={<ProtectedRoute requireAdmin><AdminHamperOrderDetail /></ProtectedRoute>} />
+              <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
+              <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
 
-            {/* Content Pages Routes */}
-            <Route
-              path="/admin/settings/content/about"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AboutSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/content/contact"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ContactSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/content/manual"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <ManualSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/content/homepage"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <HomepageSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/content/footer"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <FooterSettings />
-                </ProtectedRoute>
-              }
-            />
+              <Route path="/admin/bookings"              element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
+              <Route path="/admin/bookings/create"       element={<ProtectedRoute requireAdmin><AdminBookingForm /></ProtectedRoute>} />
+              <Route path="/admin/bookings/:id"          element={<ProtectedRoute requireAdmin><AdminBookingDetail /></ProtectedRoute>} />
+              <Route path="/admin/bookings/:id/worksheets/:wsId" element={<ProtectedRoute requireAdmin><AdminWorksheetForm /></ProtectedRoute>} />
+              <Route path="/admin/settings/bookings"     element={<ProtectedRoute requireAdmin><BookingSettings /></ProtectedRoute>} />
+
+              <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin><AdminBugReportsPage /></ProtectedRoute>} />
+              <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin><AdminDevNotesPage /></ProtectedRoute>} />
+              <Route path="/admin/dev-keys"    element={<ProtectedRoute requireAdmin><AdminDevKeysPage /></ProtectedRoute>} />
+              <Route
+                path="/admin/ai-analytics"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AiAnalyticsSettings /> 
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/keys"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AiKeysPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/modules"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AiModulesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/sessions"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AiSessionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/mimi"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <MimiOverviewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/mimi-sessions"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Mimisessionspage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/mimi-eligibility"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Mimiblockspage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/mimi-harmful"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Mimiharmfulpage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ── Admin Delivery Routes ─────────────────────────────────────────── */}
+              {/* Overview */}
+              <Route
+                path="/admin/delivery"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DeliveryOverviewPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Manifests */}
+              <Route
+                path="/admin/delivery/manifests"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ManifestsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/manifests/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CreateManifestPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/manifests/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ManifestDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/manifests/transfer"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ManifestTransferPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/manifests/:id/route"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ManifestRoutePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Drivers */}
+              <Route
+                path="/admin/delivery/drivers"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DriversPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/drivers/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DriverDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Incidents */}
+              <Route
+                path="/admin/delivery/incidents"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <IncidentsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Ratings */}
+              <Route
+                path="/admin/delivery/ratings"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <RatingsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* AI Insights */}
+              <Route
+                path="/admin/delivery/insights"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DeliveryInsightsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/insights/:entityType"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DeliveryInsightsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/insights/:entityType/:entityId"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DeliveryInsightsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Reports */}
+              <Route
+                path="/admin/delivery/reports"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DeliveryReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ── Driver Routes ─────────────────────────────────────────────────── */}
+
+              <Route
+                path="/driver/manifests"
+                element={
+                  <ProtectedRoute>
+                    <DriverManifestsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/driver/manifests/:id"
+                element={
+                  <ProtectedRoute>
+                    <DriverManifestDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/driver/ratings"
+                element={
+                  <ProtectedRoute>
+                    <DriverRatingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/driver/incidents"
+                element={
+                  <ProtectedRoute>
+                    <DriverIncidentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Admin Auction Routes */}
+              <Route
+                path="/admin/auctions"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/auctions/create" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctionCreator />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/auction-orders" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctionOrders />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/auction-orders/:id" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctionOrderDetail />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/auction-orders/:id/payments" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctionOrderPayments />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Admin Auction Detail/Edit */}
+              <Route
+                path="/admin/auctions/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAuctionDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Service Routes */}
+              <Route
+                path="/admin/services"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminServices />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/services/new"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ServiceForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/services/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ServiceForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/service-categories"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ServiceCategories />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Categories Routes */}
+              <Route
+                path="/admin/categories"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Categories />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/categories/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CategoryForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/categories/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CategoryForm />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Brands Routes */}
+              <Route
+                path="/admin/brands"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Brands />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/brands/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <BrandForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/brands/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <BrandForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminOrders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <OrderDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders/:id/ship"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <OrderDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Quote Request Routes */}
+              <Route
+                path="/admin/quote-requests"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteRequests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/quote-requests/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteRequestDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Quote Routes */}
+              <Route
+                path="/admin/quotes"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Quotes />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/quotes/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteCreatePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/quotes/new"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteEdit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/quotes/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/quotes/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuoteEdit />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Payments Dashboard */}
+              <Route
+                path="/admin/finance/payments"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PaymentsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Payment Detail */}
+              <Route
+                path="/admin/finance/payments/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PaymentDetail />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Order Payment History (embedded panel) */}
+              <Route
+                path="/admin/orders/:id/payments"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <OrderPaymentsPanel />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Projects */}
+              <Route
+                path="/admin/projects"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProjectDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/projects/list"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Projects />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/projects/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProjectCreate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/projects/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProjectDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/work"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Work />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/publications"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PublicationListPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/publications/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <StudioEditor />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Customers & Users */}
+              <Route
+                path="/admin/customers"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminCustomers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/customers/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CustomerDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/credit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CreditDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/credit/customers/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CreditDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <UserDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/employees"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmployeeList />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/employees/create"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmployeeForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmployeeDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmployeeForm />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Referrals & Promo Codes */}
+              <Route
+                path="/admin/referrals"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Referrals />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/referrals/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ReferralDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/promo-codes"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PromoCodes />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/promo-codes/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <PromoCodeDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/reviews"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminReviews />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/loyalty"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <LoyaltyLedger />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/loyalty/settings"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <LoyaltySettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/loyalty/:customerId"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <LoyaltyLedgerDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/tickets"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminTickets />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/tickets/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminTicketDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Reports */}
+              <Route
+                path="/admin/reports"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Reports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/logs"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ActivityLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/inventory"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <InventoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/algorithm"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CustomerAlgorithmPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/admin/algorithm/catalogue-boosts"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CatalogueBoostPage />
+                  </ProtectedRoute>}
+              />
+
+              {/* ── Financial Notes ─────────────────────────────────────────── */}
+              <Route
+                path="/admin/financial-notes"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <FinancialNotes />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ── Reconciliation ──────────────────────────────────────────── */}
+              <Route
+                path="/admin/reconciliation"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ReconciliationPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/reconciliation/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ReconciliationDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/data-engine"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <DataEnginePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/logs/export" 
+                element={
+                    <ProtectedRoute requireAdmin>
+                        <LogExportPage />
+                    </ProtectedRoute>
+                } 
+              />
+
+              {/* Admin Settings */}
+              <Route
+                path="/admin/settings"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/flowchart/orders"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <FlowchartPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/flowchart/customers"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CustFlowchartPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/flowchart/transactions"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <TxFlowchartPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/settings/analytics"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AnalyticDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/analytics/:id"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AnalyticsDetail />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
+              <Route
+                path="/admin/tax"
+                element={
+                  <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                    <TaxCompliance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/withholding"
+                element={
+                  <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                    <WithholdingCompliance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/units"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <UnitsOfMeasure />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/currency"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CurrencySettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/customer-tiers"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CustomerTierSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/shipping"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ShippingSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/general"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <GeneralSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/general/bulk/products"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ProductBulkPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/general/bulk/customers"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <CustomerBulkPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/general/bulk/employees"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmployeeBulkPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/notifications"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <NotificationSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/security"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <SecuritySettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/email"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <EmailSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/backup"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <BackupSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/appearance"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AppearanceSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/integrations"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <IntegrationSettings />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Content Pages Routes */}
+              <Route
+                path="/admin/settings/content/about"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AboutSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/content/contact"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ContactSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/content/manual"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ManualSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/content/homepage"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <HomepageSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/content/footer"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <FooterSettings />
+                  </ProtectedRoute>
+                }
+              />
+
+            </Route>
 
             {/* ── 404 Page ─────────────────────────────────────────────────── */}
             <Route
