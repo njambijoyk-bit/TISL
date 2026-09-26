@@ -50,7 +50,7 @@ function SidebarThemePicker() {
   const ModeIcon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Monitor;
   const activeColour = colourings.find(c => c.id === activeColouringId);
   const activeSwatch = activeColour?.light_tokens?.['--color-primary-500'] ?? 'var(--color-primary-500)';
-  const activeColourings = colourings.filter(c => c.is_active);
+  const activeColourings = colourings.filter(c => c.is_active !== false);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>

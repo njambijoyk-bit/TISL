@@ -108,8 +108,8 @@ export function ThemePicker() {
   if (loading) return null;
 
   const activeColouring = colourings.find(c => c.id === activeColouringId);
-  const activeFonts = fonts.filter(f => f.is_active);
-  const activeIconStyles = iconStyles.filter(s => s.is_active);
+  const activeFonts = fonts.filter(f => f.is_active !== false);
+  const activeIconStyles = iconStyles.filter(s => s.is_active !== false);
   const showIcons = activeIconStyles.length > 1;
   const showCurrency = currencies && currencies.length > 1;
 
@@ -158,10 +158,10 @@ export function ThemePicker() {
           ))}
 
           {/* Colour Theme */}
-          {colourings.filter(c => c.is_active).length > 0 && (
+          {colourings.filter(c => c.is_active !== false).length > 0 && (
             <>
               <SectionLabel>Colour Theme</SectionLabel>
-              {colourings.filter(c => c.is_active).map(c => (
+              {colourings.filter(c => c.is_active !== false).map(c => (
                 <DropItem key={c.id} label={c.name} active={activeColouringId === c.id}
                   preview={c.light_tokens?.['--color-primary-500'] ?? null}
                   onClick={() => { setColouring(c.id); close(); }} />
