@@ -188,21 +188,6 @@ export default function AppearanceSettings() {
         </Card>
       )}
 
-      {/* Icon style */}
-      {activeIconStyles.length > 1 && (
-        <Card title="Icon style" icon={Layers}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {activeIconStyles.map(s => (
-              <OptionRow
-                key={s.id}
-                label={s.name}
-                active={iconStyleId === s.id}
-                onClick={() => setIconStyle(s.id)}
-              />
-            ))}
-          </div>
-        </Card>
-      )}
 
       {/* Currency */}
       {currencies?.length > 1 && (
