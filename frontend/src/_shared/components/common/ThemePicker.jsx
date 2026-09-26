@@ -11,8 +11,10 @@ const MODES = [
 
 const MODE_ICONS = { system: Monitor, light: Sun, dark: Moon };
 
+const MODE_LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
+
 export function ThemePicker() {
-  const { mode, setMode, loading } = useTheme();
+  const { mode, setMode, loading, colourings, activeColouringId } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -25,6 +27,9 @@ export function ThemePicker() {
   if (loading) return null;
 
   const ModeIcon = MODE_ICONS[mode] ?? Monitor;
+  const activeColouring = colourings.find(c => c.id === activeColouringId);
+  const swatch = activeColouring?.light_tokens?.['--color-primary-500'] ?? 'var(--color-primary-500)';
+  const label = activeColouring?.name ?? MODE_LABELS[mode] ?? 'Theme';
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
@@ -32,16 +37,18 @@ export function ThemePicker() {
         title="Display mode"
         onClick={() => setOpen(o => !o)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          padding: '6px 10px', borderRadius: 9, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px', borderRadius: 9, cursor: 'pointer',
           border: '1px solid var(--border-primary)',
-          background: open ? 'var(--bg-secondary)' : 'transparent',
+          background: 'var(--bg-secondary)',
           color: 'var(--text-primary)',
-          fontSize: 13, fontWeight: 500,
+          fontSize: 12, fontWeight: 500,
           transition: 'background 0.15s',
         }}
       >
-        <ModeIcon size={14} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: swatch, flexShrink: 0 }} />
+        <ModeIcon size={13} />
+        <span style={{ maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
         <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
       </button>
 
