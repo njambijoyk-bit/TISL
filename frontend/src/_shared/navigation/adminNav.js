@@ -260,7 +260,7 @@ export const ADMIN_NAV = [
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, description: 'Ranking, pins and catalogue boosts' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },
           { group: 'Platform', title: 'Activity logs', path: '/admin/logs', description: 'Who changed what, and exports' },
-          { group: 'Platform', title: 'Themes', path: '/admin/settings/themes', soon: true, description: 'Colours for the store and admin' },
+          { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
           { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', soon: true, description: 'Storefront menu and links' },
           { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', soon: true, description: 'Module Center and license keys' },
         ],
