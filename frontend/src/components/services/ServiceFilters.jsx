@@ -3,6 +3,7 @@ import {
   Search, X, ChevronDown, Tag, ArrowUpDown,
   Wifi, MapPin, Star, Wrench, DollarSign,
 } from 'lucide-react';
+import useMoney from '../../hooks/useMoney';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -248,9 +249,17 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
     }
   }, [locationMode, push]);
 
-  const priceBtnLabel = hasPriceFilter
-    ? `KSh ${filters.min_price ?? '0'} – ${filters.max_price ?? '∞'}`
-    : 'Price';
+  // Range is in the shopper's display currency; clear it if they switch currency.
+  const money = useMoney();
+  const priceCode = money.code ?? 'KES';
+  const lastCode = useRef(money.code);
+  useEffect(() => {
+    if (lastCode.current && money.code && lastCode.current !== money.code && hasPriceFilter) clearPrice();
+    lastCode.current = money.code;
+  }, [money.code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const priceRangeText = `${money.symbol || priceCode} ${filters.min_price ?? '0'} – ${filters.max_price ?? '∞'}`;
+  const priceBtnLabel = hasPriceFilter ? priceRangeText : 'Price';
 
   const sortIsDefault = !filters?.sort_by || filters.sort_by === 'created_at';
 
@@ -364,7 +373,7 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
               width: 240, padding: 14,
             }}>
               <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
-                Price Range (KSh)
+                Price Range ({priceCode})
               </p>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                 <input type="number" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value)}
@@ -460,7 +469,7 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
           {activeCategory      && <Chip label={activeCategory.name}    onRemove={() => push({ category_id: null })} />}
           {filters?.type       && <Chip label={activeType}             onRemove={() => push({ type: null })} />}
           {filters?.pricing_model && <Chip label={activePricing?.label || filters.pricing_model} onRemove={() => push({ pricing_model: null })} />}
-          {hasPriceFilter      && <Chip label={`KSh ${filters.min_price ?? '0'} – ${filters.max_price ?? '∞'}`} onRemove={clearPrice} />}
+          {hasPriceFilter      && <Chip label={priceRangeText} onRemove={clearPrice} />}
           {locationMode === 'remote' && <Chip label="Remote Only"  onRemove={() => push({ remote_only: false, requires_site_visit: null })} />}
           {locationMode === 'onsite' && <Chip label="On-Site Only" onRemove={() => push({ remote_only: false, requires_site_visit: null })} />}
           {filters?.featured   && <Chip label="Featured"             onRemove={() => push({ featured: false })} />}

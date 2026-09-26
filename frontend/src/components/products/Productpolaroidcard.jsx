@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Package, Zap, Award, Sparkles, ShoppingCart, FileText, Heart, Gavel, Star } from 'lucide-react';
 import useCartStore from '../../store/cartStore';
+import useMoney from '../../hooks/useMoney';
 import useWishlistStore from '../../store/wishlistStore';
 import useQuoteListStore from '../../store/quoteListStore';
 import toast from 'react-hot-toast';
@@ -85,7 +86,11 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const price    = Number(product?.price ?? 0);
   const origPrice = product?.original_price ?? product?.originalprice ?? null;
   const origNum  = origPrice != null ? Number(origPrice) : null;
-  const pct      = discountPct(price, origNum);
+  const pct      = discountPct(price, origNum);   // a ratio, so currency doesn't matter
+
+  const money        = useMoney();
+  const priceText    = money.price(product);
+  const originalText = money.originalPrice({ ...product, original_price: origPrice });
 
   const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? 0;
   const isNegotiable    = negotiableValue === true || Number(negotiableValue) === 1;
@@ -377,10 +382,10 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
           {/* Price row */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
             <span className="ppc-price" style={{ color: cfg.accent }}>
-              KSh {price.toLocaleString()}
+              {priceText}
             </span>
-            {origNum && origNum > price && (
-              <span className="ppc-price-orig">KSh {origNum.toLocaleString()}</span>
+            {originalText && (
+              <span className="ppc-price-orig">{originalText}</span>
             )}
             {isNegotiable && (
               <button type="button" onClick={handleQuote}

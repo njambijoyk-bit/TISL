@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import logo from '../../assets/images/logo.png';
 import ThemeSwitcher from '../common/ThemeSwitcher';
+import CurrencyToggle from '../common/currency/CurrencyToggle';
+import useCurrencyStore from '../../store/currencyStore';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store';
 import useWishlistStore from '../../store/wishlistStore';
@@ -288,6 +290,7 @@ export default function Header() {
 
   // Then define your text colors
   const navColor = isDark ? '#aaabac' : '#374151';
+  const hasCurrencyChoice = useCurrencyStore(st => st.currencies.length > 1);
   const navActiveBg = isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.08)';
 
   const handleSearch = (e) => {
@@ -589,6 +592,12 @@ export default function Header() {
               <Search size={17} />
             </button>
 
+            {/* Currency — hidden automatically when only one is active.
+                Pages refetch on their own when the choice changes. */}
+            <span className="hidden-mobile" style={{ display: 'flex' }}>
+              <CurrencyToggle dark={isDark} color={navColor} compact />
+            </span>
+
             <ThemeSwitcher />
 
             {/* Wishlist */}
@@ -797,6 +806,12 @@ export default function Header() {
                   {l.label}
                 </Link>
               ))}
+
+              {/* Currency on mobile (the header one is hidden on small screens) */}
+              {hasCurrencyChoice && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Prices in</span>
+                <CurrencyToggle dark={isDark} color={navColor} />
+              </div>}
 
               {isAuthenticated && (
                 <>

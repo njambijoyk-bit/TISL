@@ -4,6 +4,7 @@ import {
   ArrowUpDown, Sparkles, Flame, PackageCheck, Star,
 } from 'lucide-react';
 import { categoriesAPI, brandsAPI } from '../../api';
+import useMoney from '../../hooks/useMoney';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -212,9 +213,19 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
     onReset();
   }, [onReset]);
 
-  const priceBtnLabel = hasPriceFilter
-    ? `KSh ${filters.min_price || '0'} – ${filters.max_price || '∞'}`
-    : 'Price';
+  // The range is entered in the shopper's display currency (the API reads it
+  // that way). If they switch currency, the old numbers no longer mean the
+  // same thing — clear them rather than silently reinterpret them.
+  const money = useMoney();
+  const priceCode = money.code ?? 'KES';
+  const lastCode = useRef(money.code);
+  useEffect(() => {
+    if (lastCode.current && money.code && lastCode.current !== money.code && hasPriceFilter) clearPrice();
+    lastCode.current = money.code;
+  }, [money.code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const priceRangeText = `${money.symbol || priceCode} ${filters.min_price || '0'} – ${filters.max_price || '∞'}`;
+  const priceBtnLabel = hasPriceFilter ? priceRangeText : 'Price';
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -300,7 +311,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
               width: 240, padding: 14,
             }}>
               <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
-                Price Range (KSh)
+                Price Range ({priceCode})
               </p>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                 <input type="number" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value)}
@@ -392,7 +403,7 @@ export default function ProductFilters({ filters, onFilterChange, onReset }) {
           {filters.search    && <Chip label={`"${filters.search}"`} onRemove={() => { setSearchVal(''); onFilterChange('search', ''); }} />}
           {activeCategory    && <Chip label={activeCategory.name}   onRemove={() => onFilterChange('category_id', '')} />}
           {activeBrand       && <Chip label={activeBrand.name}      onRemove={() => onFilterChange('brand_id', '')} />}
-          {hasPriceFilter    && <Chip label={`KSh ${filters.min_price || '0'} – ${filters.max_price || '∞'}`} onRemove={clearPrice} />}
+          {hasPriceFilter    && <Chip label={priceRangeText} onRemove={clearPrice} />}
           {filters.featured  && <Chip label="Featured"  onRemove={() => onFilterChange('featured',  false)} />}
           {filters.on_sale   && <Chip label="On Sale"   onRemove={() => onFilterChange('on_sale',   false)} />}
           {filters.new       && <Chip label="New"       onRemove={() => onFilterChange('new',       false)} />}

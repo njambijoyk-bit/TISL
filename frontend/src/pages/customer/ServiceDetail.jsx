@@ -28,6 +28,7 @@ import CollapsedServiceCard from '../../components/services/CollapsedServiceCard
 import LoadingSpinner from '../../components/layout/LoadingSpinner';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import useMoney from '../../hooks/useMoney';
 
 const ServiceDetail = () => {
   const { id } = useParams();
@@ -66,20 +67,17 @@ const ServiceDetail = () => {
 
   const handleImageError = (idx) => setImageErrors(prev => ({ ...prev, [idx]: true }));
 
-  const formatCurrency = (amount) =>
-    `KES ${parseFloat(amount || 0).toLocaleString()}`;
+  // Prices in the shopper's chosen currency. (Hook sits above the early
+  // returns below, as hooks must.)
+  const money = useMoney();
 
   const getPricingDisplay = () => {
     if (!currentService) return '';
-    if (currentService.price_is_negotiable) return 'Negotiable';
-    switch (currentService.pricing_model) {
-      case 'hourly':      return `${formatCurrency(currentService.hourly_rate)}/hr`;
-      case 'daily':       return `${formatCurrency(currentService.daily_rate)}/day`;
-      case 'fixed':
-      case 'project_based': return `From ${formatCurrency(currentService.base_price)}`;
-      case 'subscription':  return `${formatCurrency(currentService.base_price)}/month`;
-      default: return currentService.base_price ? formatCurrency(currentService.base_price) : 'Contact for pricing';
-    }
+    return money.servicePrice(currentService, {
+      contactLabel: 'Contact for pricing',
+      fromModels: ['fixed', 'project_based'],
+      suffixes: { subscription: '/month' },
+    });
   };
 
   const handleRequestQuote = () => {
@@ -338,7 +336,7 @@ const ServiceDetail = () => {
                     </span>
                     {service.minimum_charge && (
                       <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 500 }}>
-                        min. {formatCurrency(service.minimum_charge)}
+                        min. {money.itemAmount(service.minimum_charge, service)}
                       </span>
                     )}
                   </div>
@@ -455,7 +453,7 @@ const ServiceDetail = () => {
                               {item.description && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.description}</p>}
                             </div>
                           </div>
-                          {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>{formatCurrency(item.price)}</span>}
+                          {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>{money.price(item)}</span>}
                         </div>
                       ))}
                     </div>
@@ -483,7 +481,7 @@ const ServiceDetail = () => {
                             {item.description && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.description}</p>}
                           </div>
                         </div>
-                        {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>+ {formatCurrency(item.price)}</span>}
+                        {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>+ {money.price(item)}</span>}
                       </div>
                     ))}
                   </div>

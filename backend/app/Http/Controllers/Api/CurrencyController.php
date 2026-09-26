@@ -25,14 +25,16 @@ class CurrencyController extends Controller
 
     /**
      * Public: active currencies for the storefront price toggle.
-     * Only what a shopper needs — no rates.
+     * conversion_rate is included so the storefront can convert secondary
+     * amounts (minimum charges, legacy variant prices) with the same maths
+     * the server uses for display_price. Exchange rates aren't sensitive.
      */
     public function publicIndex()
     {
         $currencies = Currency::where('is_active', true)
             ->orderBy('is_base', 'desc')
             ->orderBy('code', 'asc')
-            ->get(['id', 'code', 'name', 'symbol', 'is_base']);
+            ->get(['id', 'code', 'name', 'symbol', 'is_base', 'conversion_rate']);
 
         return response()->json($currencies);
     }

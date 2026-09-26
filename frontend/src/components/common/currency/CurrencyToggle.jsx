@@ -11,7 +11,11 @@ import { colors, radius } from '../../../theme/tokens';
  * calls onChange so the page can refetch its listing. Hidden when only one
  * currency is active.
  */
-export default function CurrencyToggle({ onChange, compact = false }) {
+export default function CurrencyToggle({ onChange, compact = false, dark = false, color }) {
+  // Storefront header can be dark; admin is light.
+  const pal = dark
+    ? { text: color ?? '#d4d4d8', border: 'rgba(168,85,247,0.3)', bg: 'rgba(168,85,247,0.08)', menu: '#1f1b2e', menuBorder: 'rgba(168,85,247,0.25)', item: '#e4e4e7', faint: '#a1a1aa', hover: 'rgba(168,85,247,0.12)', selected: 'rgba(168,85,247,0.2)' }
+    : { text: color ?? colors.textBody, border: colors.tint(0.18), bg: colors.tint(0.04), menu: colors.surface, menuBorder: colors.tint(0.12), item: colors.textBody, faint: colors.textFaint, hover: colors.tint(0.04), selected: colors.tint(0.08) };
   const { currencies, fetchCurrencies, setDisplayCurrency, getActive } = useCurrencyStore();
   const invalidateDisplayPrices = useProductStore((s) => s.invalidateDisplayPrices);
   const [open, setOpen] = useState(false);
@@ -50,8 +54,8 @@ export default function CurrencyToggle({ onChange, compact = false }) {
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: compact ? '4px 8px' : '6px 10px', borderRadius: radius.md,
-          border: `1.5px solid ${colors.tint(0.18)}`, background: colors.tint(0.04),
-          color: colors.textBody, fontSize: '0.78rem', fontWeight: 700,
+          border: `1.5px solid ${pal.border}`, background: pal.bg,
+          color: pal.text, fontSize: '0.78rem', fontWeight: 700,
           cursor: 'pointer', fontFamily: 'inherit',
         }}
       >
@@ -67,8 +71,8 @@ export default function CurrencyToggle({ onChange, compact = false }) {
           style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 60,
             minWidth: 190, margin: 0, padding: 4, listStyle: 'none',
-            background: colors.surface, borderRadius: radius.lg,
-            border: `1px solid ${colors.tint(0.12)}`, boxShadow: `0 8px 24px ${colors.tint(0.15)}`,
+            background: pal.menu, borderRadius: radius.lg,
+            border: `1px solid ${pal.menuBorder}`, boxShadow: `0 8px 24px ${colors.tint(0.15)}`,
           }}
         >
           {currencies.map((c) => {
@@ -81,17 +85,17 @@ export default function CurrencyToggle({ onChange, compact = false }) {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 10px', borderRadius: radius.md, border: 'none',
-                    background: selected ? colors.tint(0.08) : 'transparent',
-                    color: colors.textBody, fontSize: '0.8rem', textAlign: 'left',
+                    background: selected ? pal.selected : 'transparent',
+                    color: pal.item, fontSize: '0.8rem', textAlign: 'left',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}
-                  onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = colors.tint(0.04); }}
+                  onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = pal.hover; }}
                   onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <span style={{ width: 22, fontWeight: 700, color: colors.primary }}>{c.symbol}</span>
                   <span style={{ flex: 1 }}>
                     <strong style={{ fontWeight: 700 }}>{c.code}</strong>
-                    <span style={{ color: colors.textFaint }}> · {c.name}</span>
+                    <span style={{ color: pal.faint }}> · {c.name}</span>
                   </span>
                   {selected && <Check size={13} style={{ color: colors.primary }} />}
                 </button>

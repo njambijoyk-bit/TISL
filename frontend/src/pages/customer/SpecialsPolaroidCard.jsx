@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Pin, Package, Zap, Award, Sparkles } from 'lucide-react';
+import useMoney from '../../hooks/useMoney';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SpecialsPolaroidCard
@@ -56,7 +57,9 @@ export default function SpecialsPolaroidCard({ product, type = 'featured', index
   const rot    = stableRot(product.id ?? index);
   const imgRot = stableRot((product.id ?? index) + 99, 3);
   const imgSrc = product.main_image_url || product.main_image || product.image_url || product.images?.[0];
-  const pct    = discountPct(product.price, product.original_price);
+  const pct    = discountPct(product.price, product.original_price);   // ratio — currency-neutral
+  const money  = useMoney();
+  const originalText = money.originalPrice(product);
 
   return (
     <>
@@ -229,12 +232,12 @@ export default function SpecialsPolaroidCard({ product, type = 'featured', index
         {/* ── Price tag ── */}
         <div className="spc-price-tag">
           <span className="spc-price-main" style={{ color: cfg.accent }}>
-            KSh {Number(product.price).toLocaleString()}
+            {money.price(product)}
           </span>
 
-          {product.original_price && (
+          {originalText && (
             <span className="spc-price-original">
-              KSh {Number(product.original_price).toLocaleString()}
+              {originalText}
             </span>
           )}
 

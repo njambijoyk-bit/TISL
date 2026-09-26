@@ -35,6 +35,7 @@ import useQuoteListStore from '../../store/quoteListStore';
 import { productsAPI } from '../../api';
 import { useCartStore, useProductStore, useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
+import useMoney from '../../hooks/useMoney';
 
 function Lightbox({ url, onClose }) {
   useEffect(() => {
@@ -86,6 +87,7 @@ function Lightbox({ url, onClose }) {
 }
 
 export default function ProductDetail() {
+  const money = useMoney();   // before any early return (hooks rule)
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -366,6 +368,13 @@ export default function ProductDetail() {
   
   const priceDiff = originalPrice && Number(originalPrice) !== Number(currentPrice);
   const isMarkdown = priceDiff && Number(originalPrice) > Number(currentPrice);
+
+  // Shown in the shopper's chosen currency. A (legacy) variant's own price is
+  // in the product's currency, so it's converted the same way.
+  const currentPriceText = selectedVariant?.price != null
+    ? money.itemAmount(selectedVariant.price, product)
+    : money.price(product);
+  const originalPriceText = originalPrice != null ? money.itemAmount(originalPrice, product) : null;
   const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
   const priceDeltaPct = priceDiff
     ? Math.round(Math.abs(Number(originalPrice) - Number(currentPrice)) / Number(originalPrice) * 100)
@@ -409,8 +418,9 @@ export default function ProductDetail() {
         },
         "offers": {
           "@type": "Offer",
+          // Structured data uses the product's own price and currency
           "price": currentPrice,
-          "priceCurrency": "KES",
+          "priceCurrency": product?.currency?.code ?? "KES",
           "availability": inStock
             ? "https://schema.org/InStock"
             : "https://schema.org/OutOfStock"
@@ -631,12 +641,12 @@ export default function ProductDetail() {
                 <div style={{ padding: '20px 20px 16px', background: 'rgba(168,85,247,0.06)', borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                      KSh {Number(currentPrice).toLocaleString()}
+                      {currentPriceText}
                     </span>
                     {priceDiff && (
                       <>
                         <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
-                          KSh {Number(originalPrice).toLocaleString()}
+                          {originalPriceText}
                         </span>
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: isMarkdown ? '#fee2e2' : '#fef3c7', color: isMarkdown ? '#dc2626' : '#d97706' }}>
                           {isMarkdown ? `SAVE ${priceDeltaPct}%` : `+${priceDeltaPct}%`}
@@ -991,7 +1001,7 @@ export default function ProductDetail() {
                             )}
                             {label}
                             {vPrice && (
-                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>· KSh {Number(vPrice).toLocaleString()}</span>
+                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>· {money.itemAmount(vPrice, product)}</span>
                             )}
 
                             {/* Hover tooltip */}

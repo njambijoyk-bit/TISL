@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
 import useCartStore from '../../store/cartStore';
+import useMoney from '../../hooks/useMoney';
 import useWishlistStore from '../../store/wishlistStore';
 import useQuoteListStore from '../../store/quoteListStore';
 import toast from 'react-hot-toast';
@@ -26,6 +27,7 @@ export default function CollapsedProductCard({ product }) {
 
   // ---------- Normalize fields ----------
   const price = Number(product?.price ?? 0);
+  const money = useMoney();   // shopper's chosen currency
   const originalPrice = product?.original_price ?? product?.originalprice ?? null;
   const originalPriceNum = originalPrice != null ? Number(originalPrice) : null;
 
@@ -82,11 +84,11 @@ export default function CollapsedProductCard({ product }) {
     if (!inStock && !isPriceNegotiable) return <span className="collapsed-price out-of-stock">Out of Stock</span>;
     return (
       <div className="collapsed-price-group">
-        {originalPriceNum != null && Number.isFinite(originalPriceNum) && originalPriceNum > price && (
-          <span className="collapsed-original-price">KSh {originalPriceNum.toLocaleString()}</span>
+        {money.originalPrice({ ...product, original_price: originalPrice }) && (
+          <span className="collapsed-original-price">{money.originalPrice({ ...product, original_price: originalPrice })}</span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span className="collapsed-price">KSh {price.toLocaleString()}</span>
+          <span className="collapsed-price">{money.price(product)}</span>
           {isPriceNegotiable && (
             <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
               style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>

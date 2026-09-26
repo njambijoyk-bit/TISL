@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react';
 import useCartStore from '../../store/cartStore';
+import useMoney from '../../hooks/useMoney';
 import useWishlistStore from '../../store/wishlistStore';
 import useQuoteListStore from '../../store/quoteListStore';
 import toast from 'react-hot-toast';
@@ -63,6 +64,11 @@ export default function ProductCard({ product }) {
   const price = Number(product?.price ?? 0);
   const originalPrice = product?.original_price ?? product?.originalprice ?? null;
   const originalPriceNum = originalPrice != null ? Number(originalPrice) : null;
+
+  // Prices in the shopper's chosen currency (server-converted display_price)
+  const money = useMoney();
+  const priceText = money.price(product);
+  const originalText = money.originalPrice({ ...product, original_price: originalPrice });
 
   const images = useMemo(
     () => [product?.main_image_url, ...(product?.additional_images || [])].filter(Boolean),
@@ -315,10 +321,10 @@ export default function ProductCard({ product }) {
         {/* Price */}
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg font-bold text-primary">
-            KSh {Number.isFinite(price) ? price.toLocaleString() : '0'}
+            {priceText}
           </span>
-          {originalPriceNum != null && Number.isFinite(originalPriceNum) && originalPriceNum > price && (
-            <span className="text-sm text-secondary line-through">KSh {originalPriceNum.toLocaleString()}</span>
+          {originalText && (
+            <span className="text-sm text-secondary line-through">{originalText}</span>
           )}
           {isPriceNegotiable && (
             <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}

@@ -18,6 +18,8 @@ import useServiceStore from '../../store/serviceStore';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
 import toast from 'react-hot-toast';
+import useMoney from '../../hooks/useMoney';
+import { formatMoney } from '../../lib/money';
 import CollapsedProductCard from '../../components/products/CollapsedProductCard';
 import AuctionCard from '../../components/products/AuctionCard';
 import CollapsedServiceCard from '../../components/services/CollapsedServiceCard';
@@ -281,6 +283,12 @@ function CartProductRow({ product, quantity, onRemove }) {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const price = Number(product?.price ?? 0);
+  // In the shopper's currency. Cart items saved before multi-currency have no
+  // currency — those were priced in the base currency, which toDisplay assumes.
+  const money = useMoney();
+  const unit = money.toDisplay(price, product?.currency_id ?? product?.currency?.id);
+  const show = (n) => (unit !== null ? money.format(n) : formatMoney(n, product?.currency ?? '', { decimals: 'auto' }));
+  const unitAmount = unit ?? price;
   const imageUrl = product?.main_image_url ?? product?.main_image ?? null;
   const description = product?.short_description ?? product?.description ?? '';
   return (
@@ -294,8 +302,8 @@ function CartProductRow({ product, quantity, onRemove }) {
         {description ? <p style={{ fontSize: '0.72rem', color: '#71717a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, lineHeight: 1.4 }}>{description}</p> : null}
       </div>
       <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fb923c', whiteSpace: 'nowrap' }}>KSh {(price * quantity).toLocaleString()}</span>
-        {quantity > 1 && <span style={{ fontSize: '0.65rem', color: '#71717a', whiteSpace: 'nowrap' }}>{quantity} × KSh {price.toLocaleString()}</span>}
+        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fb923c', whiteSpace: 'nowrap' }}>{show(unitAmount * quantity)}</span>
+        {quantity > 1 && <span style={{ fontSize: '0.65rem', color: '#71717a', whiteSpace: 'nowrap' }}>{quantity} × {show(unitAmount)}</span>}
         <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(); toast.success(`${product?.name} removed from cart`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171', transition: 'all 150ms ease', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#ef4444'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}>Remove</button>
       </div>
     </div>

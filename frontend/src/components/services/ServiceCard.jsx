@@ -19,6 +19,7 @@ import {
 import toast from 'react-hot-toast';
 import Badge from '../common/Badge';
 import useQuoteListStore from '../../store/quoteListStore';
+import useMoney from '../../hooks/useMoney';
 
 /**
  * ServiceCard Component
@@ -54,26 +55,9 @@ const ServiceCard = ({ service, onClick }) => {
 
   const activeImage = (!imgError && allImages[activeIndex]) || null;
 
-  // Determine pricing display
-  const getPricingDisplay = () => {
-    if (service.price_is_negotiable) {
-      return 'Negotiable';
-    }
-
-    switch (service.pricing_model) {
-      case 'hourly':
-        return `KES ${service.hourly_rate?.toLocaleString()}/hr`;
-      case 'daily':
-        return `KES ${service.daily_rate?.toLocaleString()}/day`;
-      case 'fixed':
-      case 'project_based':
-        return `From KES ${service.base_price?.toLocaleString()}`;
-      case 'subscription':
-        return `KES ${service.base_price?.toLocaleString()}/mo`;
-      default:
-        return service.base_price ? `KES ${service.base_price.toLocaleString()}` : 'Contact for price';
-    }
-  };
+  // Pricing in the shopper's chosen currency ("From …" for fixed and project-based, as before).
+  const money = useMoney();
+  const getPricingDisplay = () => money.servicePrice(service, { fromModels: ['fixed', 'project_based'] });
 
   // Get pricing model label
   const getPricingModelLabel = () => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Monitor, Clock, FileText } from 'lucide-react';
 import useQuoteListStore from '../../store/quoteListStore';
+import useMoney from '../../hooks/useMoney';
 import toast from 'react-hot-toast';
 
 /**
@@ -47,17 +48,10 @@ export default function CollapsedServiceCard({ service }) {
   const isFeatured     = service?.is_featured ?? false;
 
   // ── Pricing ───────────────────────────────────────────────────────────────
-  const getPricingDisplay = () => {
-    if (service?.price_is_negotiable) return 'Negotiable';
-    switch (service?.pricing_model) {
-      case 'hourly':       return `KES ${service.hourly_rate?.toLocaleString()}/hr`;
-      case 'daily':        return `KES ${service.daily_rate?.toLocaleString()}/day`;
-      case 'fixed':
-      case 'project_based': return `From KES ${service.base_price?.toLocaleString()}`;
-      case 'subscription': return `KES ${service.base_price?.toLocaleString()}/mo`;
-      default:             return service?.base_price ? `KES ${service.base_price.toLocaleString()}` : null;
-    }
-  };
+  // In the shopper's chosen currency ("From …" for fixed and project-based, as before).
+  const money = useMoney();
+  const getPricingDisplay = () =>
+    money.servicePrice(service, { contactLabel: null, fromModels: ['fixed', 'project_based'] });
   const pricingDisplay = getPricingDisplay();
 
   // ── Handlers ──────────────────────────────────────────────────────────────
