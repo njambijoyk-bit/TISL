@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LogOut, ChevronLeft, ChevronDown, Menu, X, HomeIcon, Volume2, VolumeX, Search, UserCircle,
+  Sun, Moon, Monitor,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import ThemeSwitcher from '../common/ThemeSwitcher';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTheme } from '../../theme';
 import useAuthStore from '../../store/authStore';
 import { useLayoutAudio } from './useLayoutAudio';
 import { useAdminShell } from './adminShellContext';
@@ -33,6 +34,127 @@ function useIsMobile() {
 }
 
 const roleLabel = (r) => (r ? r.replace(/_/g, ' ') : '');
+
+/** Compact theme picker that lives in the sidebar header */
+function SidebarThemePicker() {
+  const { colourings, activeColouringId, mode, setColouring, setMode } = useTheme();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const ModeIcon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Monitor;
+  const activeColour = colourings.find(c => c.id === activeColouringId);
+  const activeSwatch = activeColour?.light_tokens?.['--color-primary-500'] ?? 'var(--color-primary-500)';
+  const activeColourings = colourings.filter(c => c.is_active);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        title="Theme"
+        style={{
+          width: 28, height: 28, borderRadius: 6,
+          background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+          cursor: 'pointer', flexShrink: 0,
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSwatch, flexShrink: 0 }} />
+        <ModeIcon size={10} style={{ color: 'rgba(255,255,255,0.6)' }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+          minWidth: 180,
+          background: 'var(--bg-card, var(--bg-primary))',
+          border: '1px solid var(--border-primary)',
+          borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          zIndex: 9999, overflow: 'hidden',
+        }}>
+          {/* Mode row */}
+          <div style={{ padding: '8px 10px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            Mode
+          </div>
+          <div style={{ display: 'flex', padding: '4px 8px 8px', gap: 4 }}>
+            {[{ v: 'system', Icon: Monitor }, { v: 'light', Icon: Sun }, { v: 'dark', Icon: Moon }].map(({ v, Icon }) => (
+              <button key={v} type="button" onClick={() => setMode(v)}
+                title={v.charAt(0).toUpperCase() + v.slice(1)}
+                style={{
+                  flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: mode === v
+                    ? 'color-mix(in srgb, var(--color-primary-500) 15%, var(--bg-secondary))'
+                    : 'var(--bg-secondary)',
+                  outline: mode === v ? '1.5px solid var(--color-primary-500)' : '1.5px solid transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: mode === v ? 'var(--color-primary-500)' : 'var(--text-secondary)',
+                  transition: 'all 120ms',
+                }}>
+                <Icon size={12} />
+              </button>
+            ))}
+          </div>
+
+          {/* Colour swatches */}
+          {activeColourings.length > 0 && (
+            <>
+              <div style={{ padding: '4px 10px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', borderTop: '1px solid var(--border-primary)' }}>
+                Colour
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '6px 10px 10px' }}>
+                {activeColourings.map(c => {
+                  const swatch = c.light_tokens?.['--color-primary-500'] ?? '#a855f7';
+                  const isActive = activeColouringId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setColouring(c.id); setOpen(false); }}
+                      title={c.name}
+                      style={{
+                        width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                        background: swatch,
+                        outline: isActive ? `2.5px solid var(--color-primary-500)` : '2.5px solid transparent',
+                        outlineOffset: 2,
+                        boxShadow: isActive ? `0 0 0 1px white` : 'none',
+                        transition: 'all 120ms',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Link to appearance admin page */}
+          <div style={{ borderTop: '1px solid var(--border-primary)' }}>
+            <Link
+              to="/admin/appearance"
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'block', padding: '8px 12px',
+                fontSize: 11, color: 'var(--color-primary-500)', textDecoration: 'none',
+                fontWeight: 500,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              Manage themes →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * The admin sidebar. Everything it lists comes from navigation/adminNav.js,
@@ -223,7 +345,7 @@ function SidebarInner({ onOpenSearch }) {
           </Link>
           {!collapsed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ThemeSwitcher />
+              <SidebarThemePicker />
               <button type="button" onClick={audio.toggleMute} title={audio.muted ? 'Unmute sounds' : 'Mute sounds'}
                 style={{ ...iconBtn, color: audio.muted ? 'var(--color-primary-500)' : iconBtn.color }}>
                 {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}

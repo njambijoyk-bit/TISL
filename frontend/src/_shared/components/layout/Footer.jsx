@@ -107,7 +107,7 @@ export default function Footer() {
   const isLoading = loading.footer && sections.length === 0;
 
   return (
-    <footer style={{ background: 'color-mix(in srgb, var(--bg-primary) 60%, #050308)', color: 'var(--text-secondary)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 -4px 40px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
+    <footer style={{ background: '#0d0d12', color: 'var(--text-secondary)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 -4px 40px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
       
       <style>{`
         @keyframes skel-pulse {

@@ -47,6 +47,7 @@ const CustomerQuoteDetail  = lazy(() => import('./core/pages/customer/CustomerQu
 const MyProjects           = lazy(() => import('./projects/pages/customer/MyProjects'));
 const MyProjectDetail      = lazy(() => import('./projects/pages/customer/MyProjectDetail'));
 const Profile              = lazy(() => import('./core/pages/customer/Profile'));
+const CustomerAppearance   = lazy(() => import('./core/pages/customer/AppearanceSettings'));
 const About                = lazy(() => import('./core/pages/customer/About'));
 const Contact              = lazy(() => import('./core/pages/customer/Contact'));
 const Manual               = lazy(() => import('./core/pages/customer/Manual'));
@@ -472,6 +473,7 @@ function App() {
             <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
             <Route path="/services/:id/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
             <Route path="/account/bug-reports" element={<ProtectedRoute><MyBugReports /></ProtectedRoute>} />
+            <Route path="/settings/appearance" element={<CustomerAppearance />} />
             <Route
               path="/checkout"
               element={
