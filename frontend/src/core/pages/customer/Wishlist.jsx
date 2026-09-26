@@ -4,8 +4,8 @@ import { ShoppingBag, Heart, Trash2 } from 'lucide-react';
 
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
-import WishlistItem from '../../../components/wishlist/WishlistItem';
-import EmptyWishlist from '../../../components/wishlist/EmptyWishlist';
+import WishlistItem from '../../../ecommerce/components/storefront/wishlist/WishlistItem';
+import EmptyWishlist from '../../../ecommerce/components/storefront/wishlist/EmptyWishlist';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────

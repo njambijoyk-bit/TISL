@@ -5,7 +5,7 @@ import {
   Clock, Tag, Flag, ExternalLink, Check, Loader2,
 } from 'lucide-react';
 import TaskStatusBadge from '../../admin/TaskStatusBadge';
-import ProjectPriorityBadge from '../../admin/ProjectPriorityBadge';
+import ProjectPriorityBadge from '../../../../projects/components/shared/ProjectPriorityBadge';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
