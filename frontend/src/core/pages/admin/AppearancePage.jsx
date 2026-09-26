@@ -548,81 +548,6 @@ function IconsTab() {
   );
 }
 
-// ── Tab: Component Layouts ────────────────────────────────────────────────────
-function LayoutsTab() {
-  const [layouts, setLayouts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(null);
-  const [error, setError] = useState('');
-
-  const load = useCallback(async () => {
-    try {
-      const res = await appearanceAPI.adminGetLayouts();
-      setLayouts(res.data.layouts);
-    } catch { setError('Failed to load layouts'); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const update = async (id, patch) => {
-    setSaving(id);
-    try {
-      await appearanceAPI.adminUpdateLayout(id, patch);
-      await load();
-    } catch { setError('Save failed'); }
-    finally { setSaving(null); }
-  };
-
-  if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Loading…</p>;
-
-  const grouped = layouts.reduce((acc, l) => {
-    (acc[l.component_type] = acc[l.component_type] || []).push(l);
-    return acc;
-  }, {});
-
-  const typeLabel = (t) => t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-  return (
-    <div>
-      <SectionTitle>Component Layouts</SectionTitle>
-      {error && <p style={{ color: 'var(--accent-error)', marginBottom: '12px' }}>{error}</p>}
-      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-        Layouts control arrangement only — colours come from the active theme. Set one default per component type.
-      </p>
-
-      {Object.entries(grouped).map(([type, items]) => (
-        <div key={type} style={{ marginBottom: '24px' }}>
-          <h4 style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-            {typeLabel(type)}
-          </h4>
-          {items.map(l => (
-            <Card key={l.id}>
-              <Row>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.label}</span>
-                  {l.is_default && <DefaultBadge />}
-                  <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>{l.variant_key}</span>
-                  {l.description && <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '4px 0 0' }}>{l.description}</p>}
-                </div>
-                <Badge active={l.is_active} />
-                <ActionBtn onClick={() => update(l.id, { is_active: !l.is_active })} variant="ghost">
-                  {saving === l.id ? '…' : (l.is_active ? 'Deactivate' : 'Activate')}
-                </ActionBtn>
-                {!l.is_default && l.is_active && (
-                  <ActionBtn onClick={() => update(l.id, { is_default: true })} variant="primary">
-                    Set Default
-                  </ActionBtn>
-                )}
-              </Row>
-            </Card>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputStyle = {
   padding: '8px 12px',
@@ -648,7 +573,6 @@ const TABS = [
   { key: 'colours',  label: 'Colour Themes'      },
   { key: 'fonts',    label: 'Fonts'               },
   { key: 'icons',    label: 'Icon Styles'         },
-  { key: 'layouts',  label: 'Component Layouts'   },
 ];
 
 export default function AppearancePage() {
@@ -662,7 +586,7 @@ export default function AppearancePage() {
           Appearance
         </h1>
         <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', fontSize: '14px' }}>
-          Manage colour themes, fonts, icon styles and component layouts. Changes apply site-wide.
+          Manage colour themes, fonts and icon styles. Changes apply site-wide.
         </p>
       </div>
 
@@ -693,7 +617,6 @@ export default function AppearancePage() {
       {activeTab === 'colours' && <ColouringsTab />}
       {activeTab === 'fonts'   && <FontsTab />}
       {activeTab === 'icons'   && <IconsTab />}
-      {activeTab === 'layouts' && <LayoutsTab />}
     </div>
   );
 }

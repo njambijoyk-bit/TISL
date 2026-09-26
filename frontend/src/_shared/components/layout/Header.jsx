@@ -207,9 +207,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuthStore();
-  const { activeLayoutMap = {} } = useTheme();
-  // navbar layout: 'fixed' (default floating) or 'sticky' (scrolls with page, stays at top when reached)
-  const navPosition = activeLayoutMap['navbar'] ?? 'fixed';
+  const navPosition = 'fixed';
   const { items: cartItems } = useCartStore();
   const { items: wishlistItems } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
