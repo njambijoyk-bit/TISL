@@ -103,7 +103,38 @@ class ServiceController extends Controller
             return $service;
         });
 
-        return response()->json(array_merge($services->toArray(), $meta), 200);
+        // ── Fuzzy suggestions when exact search returns nothing ───────────────
+        $fuzzyResults = [];
+        if ($request->has('search') && $request->search && $services->total() === 0) {
+            $search = $request->search;
+            $words  = array_filter(explode(' ', preg_replace('/\s+/', ' ', trim($search))));
+
+            $fuzzyQuery = Service::with(['currency:id,code,symbol'])
+                ->where('is_available', true)
+                ->where('is_visible', true)
+                ->where('status', 'active')
+                ->where(function ($q) use ($search, $words) {
+                    foreach ($words as $word) {
+                        if (strlen($word) >= 3) {
+                            $q->orWhere('name', 'like', "%{$word}%")
+                              ->orWhere('short_description', 'like', "%{$word}%");
+                        }
+                    }
+                    if (!empty($words)) {
+                        $first = reset($words);
+                        if (strlen($first) >= 3) {
+                            $q->orWhereRaw('SOUNDEX(name) = SOUNDEX(?)', [$first]);
+                        }
+                    }
+                })
+                ->select('id', 'name', 'sku', 'main_image', 'base_price', 'currency_id', 'type')
+                ->limit(6)
+                ->get();
+
+            $fuzzyResults = $fuzzyQuery->values()->toArray();
+        }
+
+        return response()->json(array_merge($services->toArray(), $meta, ['fuzzy_results' => $fuzzyResults]), 200);
     }
 
     /**

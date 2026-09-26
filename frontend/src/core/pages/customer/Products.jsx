@@ -126,6 +126,7 @@ export default function Products() {
   const [error, setError]         = useState(null);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands]       = useState([]);
+  const [fuzzyResults, setFuzzyResults] = useState([]);
 
   const [showCategories, setShowCategories] = useState(false);
   const [showBrands, setShowBrands]         = useState(false);
@@ -175,6 +176,7 @@ export default function Products() {
     } : null;
 
     setProducts(items, paginationData);
+    setFuzzyResults(res?.data?.fuzzy_results ?? res?.fuzzy_results ?? []);
     if (filters.search?.trim()) {
       searchEvents.searchResult(filters.search, 'product', paginationSource?.total ?? 0);
     }
@@ -239,6 +241,29 @@ export default function Products() {
           value={filters.search ?? ''}
           onSearch={q => handleFilterChange('search', q)}
         />
+
+        {/* ── Fuzzy suggestions ────────────────────────────────────────────── */}
+        {!loading && filters.search?.trim() && totalCount === 0 && fuzzyResults.length > 0 && (
+          <div style={{ margin: '10px 0 4px', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, var(--bg-secondary))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
+              No exact match — are you looking for:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {fuzzyResults.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleFilterChange('search', p.name)}
+                  style={{ fontSize: '0.78rem', padding: '4px 12px', borderRadius: 99, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500, transition: 'all 120ms' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-500)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
         <ProductFilters filters={filters} onFilterChange={handleFilterChange} onReset={handleResetFilters} />
