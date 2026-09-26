@@ -6,8 +6,11 @@ import Footer from '../../components/layout/Footer';
 import hampersAPI from '../../api/hampers';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
+import useMoney from '../../hooks/useMoney';
+import { formatMoney } from '../../lib/money';
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+// Amount in a given currency (object or ISO code); nothing → KSh, as before
+const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
 
 // ── Status colour maps ────────────────────────────────────────────────────────
 const ORDER_STATUS_COLORS = {
@@ -41,6 +44,7 @@ function StatusBadge({ status, map }) {
 }
 
 function HamperCard({ hamper, onClick }) {
+  const money = useMoney();   // hamper price in the shopper's chosen currency
   const accent     = hamper.accent_color || '#a855f7';
   const accentFade = `${accent}18`;
   const accentMid  = `${accent}35`;
@@ -122,7 +126,7 @@ function HamperCard({ hamper, onClick }) {
 
         {/* Price + CTA */}
         <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: `1px solid ${accentFade}` }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: accent }}>{fmt(hamper.price)}</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: accent }}>{money.price(hamper)}</span>
           {!unavailable && (
             <button
               onClick={onClick}
@@ -192,12 +196,12 @@ function MyHamperOrderCard({ order, onClick }) {
             <StatusBadge status={order.payment_status} map={PAYMENT_STATUS_COLORS} />
           </div>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151' }}>
-            {fmt(total)}
+            {fmt(total, hamper?.currency)}
           </span>
           {paid > 0 && (
             <span style={{ fontSize: '0.65rem', color: '#059669' }}>
-              Paid {fmt(paid)}
-              {balance > 0 && <span style={{ color: '#dc2626' }}> · Bal {fmt(balance)}</span>}
+              Paid {fmt(paid, hamper?.currency)}
+              {balance > 0 && <span style={{ color: '#dc2626' }}> · Bal {fmt(balance, hamper?.currency)}</span>}
             </span>
           )}
         </div>
@@ -248,7 +252,7 @@ function MyHamperOrderCard({ order, onClick }) {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151' }}>
-                        {isRefund ? '−' : ''}{fmt(pmtAmount)}
+                        {isRefund ? '−' : ''}{fmt(pmtAmount, hamper?.currency)}
                       </span>
                       {isRefund && (
                         <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 5px', borderRadius: 99 }}>REFUND</span>

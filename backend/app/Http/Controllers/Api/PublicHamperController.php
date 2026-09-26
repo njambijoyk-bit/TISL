@@ -24,7 +24,7 @@ class PublicHamperController extends Controller
             return response()->json(['message' => 'Customer profile not found'], 404);
         }
 
-        $hampers = Hamper::available()->with('items')->get();
+        $hampers = Hamper::available()->with(['items', 'currency:id,code,symbol'])->get();
 
         $eligible = $this->eligibility->getEligibleHampers($customer, $hampers);
 
@@ -55,7 +55,7 @@ class PublicHamperController extends Controller
             return response()->json(['message' => 'Customer profile not found'], 404);
         }
 
-        $hamper = Hamper::available()->where('slug', $slug)->with('items')->firstOrFail();
+        $hamper = Hamper::available()->where('slug', $slug)->with(['items', 'currency:id,code,symbol'])->firstOrFail();
 
         $status = $this->eligibility->getStatus($customer, $hamper);
 

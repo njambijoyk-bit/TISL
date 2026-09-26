@@ -4,6 +4,7 @@ import { Search, Plus, Package, ShoppingBag, X, Eye, Tag, Wallet, Star, Zap, Tre
 import AdminLayout from '../../../components/layout/AdminLayout';
 import hampersAPI from '../../../api/hampers';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../../lib/money';
 import { format } from 'date-fns';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -41,7 +42,8 @@ const inputStyle = {
   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+// Amount in a given currency: a currency object, an ISO code, or nothing (→ KSh, as before)
+const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 
@@ -259,7 +261,7 @@ export default function AdminHampers() {
 
                         {/* Price */}
                         <td style={tdStyle}>
-                          <span style={{ fontWeight: 700 }}>{fmt(hamper.price)}</span>
+                          <span style={{ fontWeight: 700 }}>{fmt(hamper.price, hamper.currency)}</span>
                         </td>
 
                         {/* Stock */}

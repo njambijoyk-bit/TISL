@@ -11,6 +11,9 @@ import {
   MapPin, Phone, Mail
 } from 'lucide-react';
 import auctionsAPI from '../../api/auctions';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../store/currencyStore';
+import { formatMoney } from '../../lib/money';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb',
@@ -137,6 +140,18 @@ export default function AdminAuctionDetail() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
+
+  // Every amount on this page (bids, increment, reserve) is in the auction's own currency
+  const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
+  const fetchAdminCurrencies = useCurrencyStore(s => s.fetchAdminCurrencies);
+  useEffect(() => { if (!adminCurrencies.length) fetchAdminCurrencies().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /** "1 unit of code" in KES, from the currency rates (for the order's exchange_rate_to_kes). */
+  const rateToKes = (code) => {
+    const cur = adminCurrencies.find(c => c.code === code);
+    const kes = adminCurrencies.find(c => c.code === 'KES');
+    if (!cur || !kes || !Number(kes.conversion_rate)) return 1;
+    return Math.round((Number(cur.conversion_rate) / Number(kes.conversion_rate)) * 10000) / 10000;
+  };
   const [stats, setStats] = useState({});
   const [activityLogs] = useState([]);
 
@@ -161,6 +176,12 @@ export default function AdminAuctionDetail() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
+  // Rates may load after the auction: refresh the default exchange rate then
+  useEffect(() => {
+    if (!adminCurrencies.length || !approveForm.currency) return;
+    setApproveForm(prev => ({ ...prev, exchange_rate_to_kes: rateToKes(prev.currency) }));
+  }, [adminCurrencies.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchAuction = async () => {
     setLoading(true);
     try {
@@ -168,6 +189,7 @@ export default function AdminAuctionDetail() {
       setAuction(data.auction);
       setStats(data.stats);
       setForm({
+        currency_id: data.auction.currency_id ?? data.auction.currency?.id ?? '',
         start_price: data.auction.start_price,
         reserve_price: data.auction.reserve_price,
         bid_increment: data.auction.bid_increment,
@@ -175,6 +197,9 @@ export default function AdminAuctionDetail() {
         end_time: data.auction.end_time?.slice(0, 16),
         status: data.auction.status,
       });
+      // Winners are charged in the auction's currency by default
+      const auctionCode = data.auction.currency?.code ?? 'KES';
+      setApproveForm(prev => ({ ...prev, currency: auctionCode, exchange_rate_to_kes: rateToKes(auctionCode) }));
       // Reset approval state on refresh
       setSelectedBids(new Set());
       setBidAmounts({});
@@ -265,7 +290,7 @@ export default function AdminAuctionDetail() {
       amounts[bidId] = globalChargedAmount;
     });
     setBidAmounts(amounts);
-    toast.success(`Applied KSh ${Number(globalChargedAmount).toLocaleString()} to ${selectedBids.size} bid(s)`);
+    toast.success(`Applied ${approveForm.currency} ${Number(globalChargedAmount).toLocaleString()} to ${selectedBids.size} bid(s)`);
   };
 
   const clearAllSelections = () => {
@@ -333,7 +358,10 @@ export default function AdminAuctionDetail() {
     }
   };
 
-  const formatPrice = (price) => `KSh ${Number(price ?? 0).toLocaleString()}`;
+  const auctionCode = auction?.currency?.code ?? 'KES';
+  const auctionSymbol = auction?.currency?.symbol || auctionCode;
+  const formatPrice = (price, cur) => formatMoney(price ?? 0, cur || auctionSymbol, { decimals: 'auto' });
+  const hasBids = (auction?.bids?.length ?? 0) > 0;
   const formatDate = (date) => date ? new Date(date).toLocaleString('en-KE', {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
   }) : '—';
@@ -479,9 +507,9 @@ export default function AdminAuctionDetail() {
             <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 20px' }}>Edit Auction Settings</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {[
-                { name: 'start_price', label: 'Start Price (KSh)', type: 'number' },
+                { name: 'start_price', label: `Start Price (${adminCurrencies.find(c => String(c.id) === String(form.currency_id))?.code ?? auctionCode})`, type: 'number' },
                 { name: 'reserve_price', label: 'Reserve Price (Optional)', type: 'number' },
-                { name: 'bid_increment', label: 'Bid Increment (KSh)', type: 'number' },
+                { name: 'bid_increment', label: `Bid Increment (${adminCurrencies.find(c => String(c.id) === String(form.currency_id))?.code ?? auctionCode})`, type: 'number' },
                 { name: 'end_time', label: 'End Time', type: 'datetime-local' },
               ].map(field => (
                 <div key={field.name}>
@@ -493,6 +521,18 @@ export default function AdminAuctionDetail() {
                   />
                 </div>
               ))}
+              <div>
+                <label style={labelStyle}>Currency</label>
+                <CurrencySelect
+                  value={form.currency_id}
+                  onChange={v => setForm(prev => ({ ...prev, currency_id: v }))}
+                  disabled={hasBids}
+                  style={{ padding: '10px 14px' }}
+                />
+                {hasBids && (
+                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>Locked — bids have been placed in {auctionCode}.</p>
+                )}
+              </div>
               <div>
                 <label style={labelStyle}>Status</label>
                 <select name="status" value={form.status} onChange={handleChange} style={inputStyle}>
@@ -547,7 +587,7 @@ export default function AdminAuctionDetail() {
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
                   <div>
-                    <label style={labelStyle}>Global Charged Amount (KSh)</label>
+                    <label style={labelStyle}>Global Charged Amount ({approveForm.currency})</label>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input
                         type="number"
@@ -577,13 +617,12 @@ export default function AdminAuctionDetail() {
                     <label style={labelStyle}>Currency</label>
                     <select 
                       value={approveForm.currency}
-                      onChange={e => setApproveForm(prev => ({ ...prev, currency: e.target.value }))}
+                      onChange={e => setApproveForm(prev => ({ ...prev, currency: e.target.value, exchange_rate_to_kes: rateToKes(e.target.value) }))}
                       style={inputStyle}
                     >
-                      <option value="KES">KES</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
+                      {(adminCurrencies.length ? adminCurrencies.filter(c => c.is_active || c.code === approveForm.currency) : [{ code: approveForm.currency }]).map(c => (
+                        <option key={c.code} value={c.code}>{c.code}{c.code === auctionCode ? ' (auction currency)' : ''}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -620,7 +659,7 @@ export default function AdminAuctionDetail() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Shipping Cost (KSh)</label>
+                    <label style={labelStyle}>Shipping Cost ({approveForm.currency})</label>
                     <input
                       type="number"
                       value={approveForm.shipping_cost}
@@ -733,7 +772,7 @@ export default function AdminAuctionDetail() {
                           <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{o.customer?.email || '—'}</p>
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '0.9rem', fontWeight: 800, color: '#111827' }}>
-                          {formatPrice(o.total)}
+                          {formatPrice(o.total, o.currency)}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           {(() => {
@@ -856,7 +895,7 @@ export default function AdminAuctionDetail() {
                               type="number"
                               value={bidAmounts[bid.id] || ''}
                               onChange={e => setBidChargedAmount(bid.id, e.target.value)}
-                              placeholder={formatPrice(bid.amount).replace('KSh ', '')}
+                              placeholder={Number(bid.amount ?? 0).toLocaleString()}
                               disabled={!isSelected}
                               style={{
                                 width: 130, padding: '6px 10px', border: '1.5px solid #e5e7eb',

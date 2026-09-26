@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import auctionsAPI from '../../api/auctions';
 import toast from 'react-hot-toast';
+import CurrencySelect from '../../components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../store/currencyStore';
+import { formatMoney } from '../../lib/money';
 import { Helmet } from 'react-helmet-async';
 import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-react';
 import ProductSelectorModalAdmin from '../../components/quotes/request-wizard/ProductSelectorModalAdmin';
@@ -29,9 +32,14 @@ export default function AdminAuctionCreator() {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [form, setForm] = useState({
-    product_id: '', start_price: '', reserve_price: '',
+    product_id: '', currency_id: '', start_price: '', reserve_price: '',
     bid_increment: '50', start_time: '', end_time: ''
   });
+
+  // Bids, reserve and increment are all in this currency
+  const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
+  const code = adminCurrencies.find(c => String(c.id) === String(form.currency_id))?.code
+    ?? adminCurrencies.find(c => c.is_base)?.code ?? 'KES';
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -39,7 +47,8 @@ export default function AdminAuctionCreator() {
     if (products?.length > 0) {
       const prod = products[0];
       setSelectedProduct({ ...prod, product_id: prod.id });
-      setForm(prev => ({ ...prev, product_id: String(prod.id) }));
+      // Start from the product's own currency — the admin can change it
+      setForm(prev => ({ ...prev, product_id: String(prod.id), currency_id: prod.currency_id ?? prod.currency?.id ?? prev.currency_id }));
     }
     setShowProductModal(false);
   };
@@ -119,7 +128,7 @@ export default function AdminAuctionCreator() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a855f7', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedProduct.name}</p>
                   <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
-                    SKU: {selectedProduct.sku ?? 'N/A'} {selectedProduct.brand?.name ? `• ${selectedProduct.brand.name}` : ''} • KSh {Number(selectedProduct.price).toLocaleString()}
+                    SKU: {selectedProduct.sku ?? 'N/A'} {selectedProduct.brand?.name ? `• ${selectedProduct.brand.name}` : ''} • {formatMoney(selectedProduct.price, selectedProduct.currency?.symbol || selectedProduct.currency?.code || 'KSh', { decimals: 'auto' })}
                   </p>
                 </div>
                 <button type="button" onClick={clearProduct}
@@ -139,8 +148,20 @@ export default function AdminAuctionCreator() {
               <TrendingUp size={12} /> Pricing
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Currency</label>
+                <CurrencySelect
+                  value={form.currency_id}
+                  onChange={v => setForm(prev => ({ ...prev, currency_id: v }))}
+                  allowEmpty
+                  emptyLabel="Base currency"
+                />
+                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>
+                  Bidders see and bid in this currency. It can't change once someone has bid.
+                </p>
+              </div>
               <div>
-                <label style={labelStyle}>Start Price (KSh) <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>Start Price ({code}) <span style={{ color: '#ef4444' }}>*</span></label>
                 <input type="number" name="start_price" value={form.start_price} onChange={handleChange}
                   style={inputStyle} min="0" placeholder="e.g. 500"
                   onFocus={e => e.target.style.borderColor = '#a855f7'}
@@ -148,7 +169,7 @@ export default function AdminAuctionCreator() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Reserve Price <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
+                <label style={labelStyle}>Reserve Price ({code}) <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
                 <input type="number" name="reserve_price" value={form.reserve_price} onChange={handleChange}
                   style={inputStyle} min="0" placeholder="Leave empty for no reserve"
                   onFocus={e => e.target.style.borderColor = '#a855f7'}
@@ -159,9 +180,9 @@ export default function AdminAuctionCreator() {
                 </p>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Bid Increment (KSh)</label>
+                <label style={labelStyle}>Bid Increment ({code})</label>
                 <input type="number" name="bid_increment" value={form.bid_increment} onChange={handleChange}
-                  style={inputStyle} min="10" placeholder="50"
+                  style={inputStyle} min="0.01" step="0.01" placeholder="50"
                   onFocus={e => e.target.style.borderColor = '#a855f7'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />

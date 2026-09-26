@@ -24,7 +24,7 @@ class AuctionController extends Controller
 
     public function adminIndex(Request $request)
     {
-        $query = Auction::with(['product.brand', 'product.category', 'seller', 'winner'])
+        $query = Auction::with(['product.brand', 'product.category', 'seller', 'winner', 'currency:id,code,symbol'])
             ->withCount('bids')
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->product_id, fn($q, $id) => $q->where('product_id', $id))
@@ -42,7 +42,7 @@ class AuctionController extends Controller
     public function adminShow($id)
     {
         $auction = Auction::with([
-            'product.brand', 'product.category', 'seller', 'winner',
+            'product.brand', 'product.category', 'seller', 'winner', 'currency:id,code,symbol',
             'bids' => fn($q) => $q->orderByDesc('amount')->with('bidder:id,name,email'),
         ])->findOrFail($id);
 
@@ -63,9 +63,11 @@ class AuctionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'product_id'    => 'required|exists:products,id',
+            'currency_id'   => 'nullable|exists:currencies,id,is_active,1',
             'start_price'   => 'required|numeric|min:0',
             'reserve_price' => 'nullable|numeric|min:0',
-            'bid_increment' => 'required|numeric|min:10',
+            // any positive step: "10" means little in USD and a lot in JPY
+            'bid_increment' => 'required|numeric|gt:0',
             'start_time'    => 'nullable|date',
             'end_time'      => 'required|date|after:start_time',
             'max_winners'   => 'nullable|integer|min:1',
@@ -86,9 +88,15 @@ class AuctionController extends Controller
         $startTime = $request->start_time ?? now();
         $status    = strtotime($startTime) <= time() ? 'active' : 'scheduled';
 
+        // Default to the product's own currency, then the base
+        $currencyId = $request->currency_id
+            ?: \App\Models\Product::whereKey($request->product_id)->value('currency_id')
+            ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
+
         $auction = Auction::create([
             'product_id'    => $request->product_id,
             'seller_id'     => auth()->id(),
+            'currency_id'   => $currencyId,
             'start_price'   => $request->start_price,
             'current_price' => $request->start_price,
             'reserve_price' => $request->reserve_price,
@@ -99,15 +107,16 @@ class AuctionController extends Controller
             'max_winners'   => $request->max_winners ?? 1,
         ]);
 
-        return response()->json(['message' => 'Auction created successfully', 'auction' => $auction], 201);
+        return response()->json(['message' => 'Auction created successfully', 'auction' => $auction->load('currency:id,code,symbol')], 201);
     }
 
     public function update(Request $request, Auction $auction)
     {
         $validator = Validator::make($request->all(), [
+            'currency_id'   => 'nullable|exists:currencies,id,is_active,1',
             'start_price'   => 'nullable|numeric|min:0',
             'reserve_price' => 'nullable|numeric|min:0',
-            'bid_increment' => 'nullable|numeric|min:10',
+            'bid_increment' => 'nullable|numeric|gt:0',
             'start_time'    => 'nullable|date',
             'end_time'      => 'nullable|date|after_or_equal:start_time',
             'status'        => 'nullable|in:active,scheduled,ended,cancelled',
@@ -116,6 +125,15 @@ class AuctionController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Bids are amounts in the auction's currency — it can't change once anyone has bid.
+        if ($request->filled('currency_id')
+            && (int) $request->currency_id !== (int) $auction->currency_id
+            && $auction->bids()->exists()) {
+            return response()->json([
+                'message' => 'The currency can\'t change once bids have been placed.',
+            ], 422);
         }
 
         if ($request->filled('status')) {
@@ -135,7 +153,7 @@ class AuctionController extends Controller
         }
 
         $auction->update($request->only([
-            'start_price', 'reserve_price', 'bid_increment',
+            'currency_id', 'start_price', 'reserve_price', 'bid_increment',
             'start_time', 'end_time', 'status', 'max_winners',
         ]));
 
@@ -145,7 +163,7 @@ class AuctionController extends Controller
 
         return response()->json([
             'message' => 'Auction updated successfully',
-            'auction' => $auction->fresh(),
+            'auction' => $auction->fresh('currency:id,code,symbol'),
         ]);
     }
 
@@ -201,7 +219,7 @@ class AuctionController extends Controller
 
     public function index(Request $request)
     {
-        $query = Auction::with(['product.brand', 'product.category'])
+        $query = Auction::with(['product.brand', 'product.category', 'currency:id,code,symbol'])
             ->where('status', $request->status ?? 'active')
             ->where('end_time', '>', now())
             ->orderBy('end_time', 'asc');
@@ -211,7 +229,7 @@ class AuctionController extends Controller
 
     public function show($id)
     {
-        $auction = Auction::with(['product.brand', 'product.category', 'winner'])->findOrFail($id);
+        $auction = Auction::with(['product.brand', 'product.category', 'winner', 'currency:id,code,symbol'])->findOrFail($id);
         $topBids = $auction->bids()->with('bidder:id,name')->limit(10)->get();
  
         // Resolve the calling customer (if any) from the bearer token.
@@ -281,7 +299,7 @@ class AuctionController extends Controller
 
         if ($maxBid < $nextMin) {
             return response()->json([
-                'message' => 'Minimum bid is KSh ' . number_format($nextMin, 2),
+                'message' => 'Minimum bid is ' . ($auction->currency?->code ?? 'KES') . ' ' . number_format($nextMin, 2),
                 'min_bid' => $nextMin,
             ], 422);
         }

@@ -63,7 +63,7 @@ class AuctionOrderService
     {
         $this->log(
             action:        'bid_placed',
-            description:   "Bid of KES " . number_format($bid->amount, 2) . " placed on auction #{$auction->id} ({$auction->product?->name}).",
+            description:   "Bid of " . ($auction->currency?->code ?? 'KES') . " " . number_format($bid->amount, 2) . " placed on auction #{$auction->id} ({$auction->product?->name}).",
             severity:      'info',
             auctionId:     $auction->id,
             metadata:      [

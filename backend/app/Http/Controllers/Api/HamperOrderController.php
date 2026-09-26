@@ -57,7 +57,7 @@ class HamperOrderController extends Controller
         }
 
         $orders = HamperOrder::where('customer_id', $customer->id)
-            ->with(['hamper:id,name,slug'])
+            ->with(['hamper:id,name,slug,currency_id', 'hamper.currency:id,code,symbol'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 10));
 

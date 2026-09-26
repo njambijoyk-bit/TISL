@@ -10,6 +10,7 @@ import AdminLayout from '../../../components/layout/AdminLayout';
 import ProductSelectorModalAdmin from '../../../components/quotes/request-wizard/ProductSelectorModalAdmin';
 import hampersAPI from '../../../api/hampers';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../../lib/money';
 import { format } from 'date-fns';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -55,7 +56,8 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.05em',
 };
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+// Amount in a given currency: a currency object, an ISO code, or nothing (→ KSh, as before)
+const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 
@@ -158,7 +160,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
               {p.main_image_url && <img src={p.main_image_url} alt={p.name} style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{fmt(p.price)}</p>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{fmt(p.price, p.currency)}</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem' }}>QTY</label>
@@ -186,7 +188,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
 
 function OverviewTab({ hamper }) {
   const rows = [
-    { label: 'Price',            value: fmt(hamper.price) },
+    { label: 'Price',            value: fmt(hamper.price, hamper.currency) },
     { label: 'Status',           value: <StatusBadge status={hamper.status} /> },
     { label: 'Eligibility Type', value: hamper.eligibility_type },
     { label: 'Max Per Customer', value: hamper.max_purchases_per_customer ?? 'Unlimited' },
@@ -383,7 +385,7 @@ function ProductsTab({ hamper, onRefresh }) {
                       </td>
                       <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>{snap.sku || '—'}</span></td>
                       <td style={tdStyle}><span style={{ fontWeight: 700 }}>×{item.quantity}</span></td>
-                      <td style={tdStyle}>{snap.price ? fmt(snap.price) : '—'}</td>
+                      <td style={tdStyle}>{snap.price ? fmt(snap.price, snap.currency ?? item.product?.currency) : '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         <DangerBtn onClick={() => handleRemove(item.product_id)} disabled={removingId === item.product_id}>
                           <Trash2 size={13} /> {removingId === item.product_id ? 'Removing…' : 'Remove'}
@@ -422,7 +424,7 @@ function ProductsTab({ hamper, onRefresh }) {
                       </div>
                     </td>
                     <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>{p.sku || '—'}</span></td>
-                    <td style={tdStyle}>{fmt(p.price)}</td>
+                    <td style={tdStyle}>{fmt(p.price, p.currency)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <PrimaryBtn onClick={() => handleAddSuggestion(p)} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
                         <Plus size={12} /> Add
@@ -859,7 +861,7 @@ function OrdersTab({ hamper }) {
                     <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: '#a855f7' }}>{order.customer?.name || `${order.customer?.first_name} ${order.customer?.last_name}`}</p>
                     <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{order.customer?.email}</p>
                   </td>
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontWeight: 700 }}>{fmt(order.total)}</span></td>
+                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontWeight: 700 }}>{fmt(order.total, hamper.currency)}</span></td>
                   <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><StatusBadge status={order.status} /></td>
                   <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{format(new Date(order.created_at), 'dd MMM yyyy')}</span></td>
                 </tr>
@@ -1037,7 +1039,7 @@ export default function AdminHamperDetail() {
                 {hamper.is_sold_out && <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>SOLD OUT</span>}
               </div>
               <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                {fmt(hamper.price)} · {hamper.items?.length ?? 0} items · {hamper.eligibility_type} eligibility
+                {fmt(hamper.price, hamper.currency)} · {hamper.items?.length ?? 0} items · {hamper.eligibility_type} eligibility
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>

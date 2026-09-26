@@ -5,6 +5,8 @@ import AdminLayout from '../../../components/layout/AdminLayout';
 import hampersAPI from '../../../api/hampers';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
+import CurrencySelect from '../../../components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../../store/currencyStore';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
@@ -231,7 +233,7 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
 
 const defaultForm = {
   name: '', description: '', accent_color: '#a855f7',
-  price: '', status: 'draft',
+  price: '', currency_id: '', status: 'draft',
   apply_vat: true, allow_promo_codes: false,
   allow_store_credit: true, earn_loyalty_points: true, is_visible: true,
   max_purchases_per_customer: '', total_stock: '',
@@ -242,6 +244,11 @@ const defaultForm = {
 export default function AdminHamperCreate() {
   const navigate           = useNavigate();
   const [form, setForm]    = useState(defaultForm);
+
+  // Code for the price label: the chosen currency, else the base
+  const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
+  const priceCode = adminCurrencies.find(c => String(c.id) === String(form?.currency_id))?.code
+    ?? adminCurrencies.find(c => c.is_base)?.code ?? 'KES';
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -294,6 +301,7 @@ export default function AdminHamperCreate() {
         description:                form.description || undefined,
         accent_color:               form.accent_color,
         price:                      Number(form.price),
+        currency_id:                form.currency_id || null,   // null → server uses the base
         status:                     form.status,
         apply_vat:                  form.apply_vat,
         allow_promo_codes:          form.allow_promo_codes,
@@ -381,8 +389,16 @@ export default function AdminHamperCreate() {
                       onBlur={e  => { e.currentTarget.style.borderColor = '#dfbeff'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </Field>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <Field label="Price (KES) *" error={errors.price}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+                    <Field label="Currency">
+                      <CurrencySelect
+                        value={form.currency_id}
+                        onChange={v => setForm(f => ({ ...f, currency_id: v }))}
+                        allowEmpty={true}
+                        emptyLabel="Base currency"
+                      />
+                    </Field>
+                    <Field label={`Price (${priceCode}) *`} error={errors.price}>
                       <Input name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" error={errors.price} />
                     </Field>
                     <Field label="Status">
@@ -505,7 +521,7 @@ export default function AdminHamperCreate() {
                   <ToggleRow name="apply_vat"           value={form.apply_vat}           onChange={handleToggle} label="Apply VAT (16%)"       hint="Tax applied at checkout" />
                   <ToggleRow name="allow_promo_codes"   value={form.allow_promo_codes}   onChange={handleToggle} label="Allow Promo Codes"    hint="Referral/promo codes accepted" />
                   <ToggleRow name="allow_store_credit"  value={form.allow_store_credit}  onChange={handleToggle} label="Allow Store Credit"   hint="Customers can redeem store credit" />
-                  <ToggleRow name="earn_loyalty_points" value={form.earn_loyalty_points} onChange={handleToggle} label="Earn Loyalty Points"  hint="1pt per KES 100 spent" />
+                  <ToggleRow name="earn_loyalty_points" value={form.earn_loyalty_points} onChange={handleToggle} label="Earn Loyalty Points"  hint="1pt per 100 spent, in the base currency" />
                   <ToggleRow name="is_visible"          value={form.is_visible}          onChange={handleToggle} label="Visible to Customers" hint="Show on the hampers page" />
                 </div>
               </div>

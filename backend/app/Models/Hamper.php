@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\HasCurrencyConversion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Hamper extends Model
 {
+    use HasCurrencyConversion;
+
     protected $fillable = [
         'name',
         'slug',
@@ -15,6 +18,7 @@ class Hamper extends Model
         'cover_image',
         'accent_color',
         'price',
+        'currency_id',
         'status',
         'apply_vat',
         'allow_promo_codes',
@@ -32,6 +36,9 @@ class Hamper extends Model
         'valid_until',
         'created_by',
     ];
+
+    // Price in the shopper's chosen currency, like products
+    protected $appends = ['display_price', 'display_currency'];
 
     protected $casts = [
         'price'                      => 'decimal:2',
@@ -51,6 +58,12 @@ class Hamper extends Model
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
+
+    /** Hamper price in the shopper's display currency. NULL currency_id = base. */
+    public function getDisplayPriceAttribute(): ?float
+    {
+        return $this->convertAmount((float) $this->price);
+    }
 
     public function items(): HasMany
     {

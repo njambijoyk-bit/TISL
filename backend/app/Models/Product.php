@@ -108,7 +108,8 @@ class Product extends Model
     // Relationship: Check if product has an active auction
     public function activeAuction()
     {
-        return $this->hasOne(Auction::class)->where('status', 'active')->latest();
+        return $this->hasOne(Auction::class)->where('status', 'active')->latest()
+            ->with('currency:id,code,symbol'); // bids are in the auction's own currency
     }
     /**
      * Get all reviews for this product (alias for productReviews).

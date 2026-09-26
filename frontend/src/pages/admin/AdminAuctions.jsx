@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../lib/money';
 import {
   Search, Plus, Eye, Edit, Trash2, RefreshCw,
   Package, Clock, Gavel, Users, TrendingUp, CheckCircle,
@@ -175,7 +176,9 @@ export default function AdminAuctions() {
   const clearFilters = () => setFilters({ status: '', search: '', sort_by: 'end_time', sort_dir: 'desc' });
   const hasFilters = filters.search || filters.status;
 
-  const formatPrice = (price) => `KSh ${Number(price ?? 0).toLocaleString()}`;
+  // In each auction's own currency
+  const formatPrice = (price, auction) =>
+    formatMoney(price ?? 0, auction?.currency?.symbol || auction?.currency?.code || 'KSh', { decimals: 'auto' });
   const formatDate = (date) => date ? new Date(date).toLocaleString('en-KE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
   const active    = auctions.filter(a => a.status === 'active').length;
@@ -328,14 +331,14 @@ export default function AdminAuctions() {
                         {/* Current price */}
                         <td style={tdStyle}>
                           <span style={{ fontWeight: 800, fontSize: '0.9rem', color: auction.status === 'active' ? '#dc2626' : 'var(--color-text-primary)' }}>
-                            {formatPrice(auction.current_price)}
+                            {formatPrice(auction.current_price, auction)}
                           </span>
                         </td>
 
                         {/* Start price */}
                         <td style={tdStyle}>
                           <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                            {formatPrice(auction.start_price)}
+                            {formatPrice(auction.start_price, auction)}
                           </span>
                         </td>
 

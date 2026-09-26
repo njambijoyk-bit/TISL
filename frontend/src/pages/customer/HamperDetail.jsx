@@ -6,10 +6,14 @@ import Footer from '../../components/layout/Footer';
 import hampersAPI from '../../api/hampers';
 import { useAuthStore } from '../../store';
 import toast from 'react-hot-toast';
+import useMoney from '../../hooks/useMoney';
+import { formatMoney } from '../../lib/money';
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+// Amount in a given currency (object or ISO code); nothing → KSh, as before
+const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
 
 export default function HamperDetail() {
+  const money = useMoney();   // hamper price in the shopper's chosen currency
   const { slug }              = useParams();
   const navigate              = useNavigate();
   const { isAuthenticated }   = useAuthStore();
@@ -158,7 +162,7 @@ export default function HamperDetail() {
                       </div>
                       <div style={{ flexShrink: 0, textAlign: 'right' }}>
                         <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: accent }}>x{item.quantity}</span>
-                        {snap.price && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{fmt(snap.price)} each</span>}
+                        {snap.price && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{fmt(snap.price, snap.currency)} each</span>}
                       </div>
                     </div>
                   );
@@ -183,7 +187,7 @@ export default function HamperDetail() {
               {/* Price */}
               <div style={{ margin: '0 0 20px', padding: '16px 20px', borderRadius: 12, background: accentFade, border: `1px solid ${accentMid}` }}>
                 <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>Bundle Price</p>
-                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: accent, lineHeight: 1 }}>{fmt(hamper.price)}</p>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: accent, lineHeight: 1 }}>{money.price(hamper)}</p>
               </div>
 
               {/* Validity */}

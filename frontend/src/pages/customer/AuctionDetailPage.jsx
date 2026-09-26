@@ -4,6 +4,7 @@ import auctionsAPI from '../../api/auctions';
 import useAuctionSSE from '../../hooks/useAuctionSSE';
 import { Gavel, Clock, Shield, History, Package, ChevronLeft, Users, Receipt, CreditCard, CheckCircle, AlertCircle, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../lib/money';
 import { Helmet } from 'react-helmet-async';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
@@ -50,7 +51,9 @@ function StatusBadge({ status, map, label }) {
 }
 
 // ── CustomerOrderPanel ────────────────────────────────────────────────────────
-function CustomerOrderPanel({ order }) {
+function CustomerOrderPanel({ order, auctionCurrency }) {
+  // What the winner was charged, in the order's currency (usually the auction's)
+  const money = (n) => formatMoney(n ?? 0, order?.currency || auctionCurrency?.symbol || auctionCurrency?.code || 'KSh', { decimals: 'auto' });
   if (!order) return null;
 
   // AuctionOrder model uses `total` / `total_kes`; `paid_amount` is injected by the controller
@@ -87,9 +90,9 @@ function CustomerOrderPanel({ order }) {
         {/* amounts */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
-            { label: 'Order Total', value: `KSh ${total.toLocaleString()}`, color: '#374151' },
-            { label: 'Paid',        value: `KSh ${paid.toLocaleString()}`,  color: '#059669' },
-            { label: 'Balance',     value: `KSh ${balance.toLocaleString()}`, color: balance > 0 ? '#dc2626' : '#059669' },
+            { label: 'Order Total', value: money(total), color: '#374151' },
+            { label: 'Paid',        value: money(paid),  color: '#059669' },
+            { label: 'Balance',     value: money(balance), color: balance > 0 ? '#dc2626' : '#059669' },
           ].map((item, i) => (
             <div key={i} style={{ textAlign: 'center', padding: '10px 6px', background: '#f9fafb', borderRadius: 10 }}>
               <p style={{ fontSize: '0.62rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 3px' }}>{item.label}</p>
@@ -162,7 +165,7 @@ function CustomerOrderPanel({ order }) {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <p style={{ fontSize: '0.78rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151', margin: 0 }}>
-                          {isRefund ? '−' : ''}KSh {pmtAmount.toLocaleString()}
+                          {isRefund ? '−' : ''}{money(pmtAmount)}
                         </p>
                         {isRefund && (
                           <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 6px', borderRadius: 99 }}>
@@ -231,6 +234,9 @@ export default function AuctionDetailPage() {
   const currentPrice = Number(liveData?.current_price ?? auction?.current_price ?? 0);
   const timeLeft = liveData?.time_left ?? Math.max(0, (new Date(auction?.end_time) - new Date()) / 1000);
   const minBid = currentPrice + Number(auction?.bid_increment || 50);
+  // Bids happen in the auction's own currency — shown as-is, never converted
+  const bidCode = auction?.currency?.code ?? 'KES';
+  const money = (n) => formatMoney(n ?? 0, auction?.currency?.symbol || bidCode, { decimals: 'auto' });
   // Status is the source of truth — an admin can end an auction abruptly before the
   // countdown reaches zero. Countdown is a secondary/visual signal only.
   const isEnded = auction != null && (
@@ -342,8 +348,8 @@ export default function AuctionDetailPage() {
               {/* Bid stats strip below image */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 }}>
                 {[
-                  { label: 'Start Price', value: `KSh ${Number(auction.start_price ?? 0).toLocaleString()}` },
-                  { label: 'Bid Increment', value: `KSh ${Number(auction.bid_increment ?? 0).toLocaleString()}` },
+                  { label: 'Start Price', value: money(auction.start_price) },
+                  { label: 'Bid Increment', value: money(auction.bid_increment) },
                   { label: 'Total Bids', value: totalBids, icon: <Users size={12} /> },
                 ].map((item, i) => (
                   <div key={i} style={{ textAlign: 'center', padding: '10px 8px', background: 'white', borderRadius: 10, border: '1px solid #f3f4f6' }}>
@@ -376,7 +382,7 @@ export default function AuctionDetailPage() {
                 <div style={{ padding: '16px 20px', borderRadius: 14, background: 'rgba(220,38,38,0.06)', border: '1.5px solid rgba(220,38,38,0.2)' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Current Bid</p>
                   <p style={{ fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 800, color: '#dc2626', margin: 0, letterSpacing: '-0.02em' }}>
-                    KSh {currentPrice.toLocaleString()}
+                    {money(currentPrice)}
                   </p>
                 </div>
                 <div style={{ padding: '16px 20px', borderRadius: 14, border: 'none', background: 'none' }}>
@@ -440,11 +446,11 @@ export default function AuctionDetailPage() {
               </button>
 
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', margin: '-12px 0 0' }}>
-                {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>KSh {minBid.toLocaleString()}</strong></>}
+                {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>{money(minBid)}</strong></>}
               </p>
 
               {/* ── Customer Order Panel (ended auctions only) ── */}
-              {isEnded && <CustomerOrderPanel order={customerOrder} />}
+              {isEnded && <CustomerOrderPanel order={customerOrder} auctionCurrency={auction?.currency} />}
 
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
@@ -463,7 +469,7 @@ export default function AuctionDetailPage() {
                         {bid.bidder?.name ?? 'Anonymous'}
                         {idx === 0 && <span style={{ marginLeft: 6, fontSize: '0.65rem', fontWeight: 800, color: '#dc2626', background: 'rgba(220,38,38,0.08)', padding: '1px 6px', borderRadius: 99 }}>TOP</span>}
                       </span>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: idx === 0 ? '#dc2626' : '#374151' }}>KSh {Number(bid.amount).toLocaleString()}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: idx === 0 ? '#dc2626' : '#374151' }}>{money(bid.amount)}</span>
                     </div>
                   )) : (
                     <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem' }}>
@@ -496,14 +502,14 @@ export default function AuctionDetailPage() {
 
             <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.15)', marginBottom: 16 }}>
               <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>Minimum Bid</p>
-              <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', margin: 0 }}>KSh {minBid.toLocaleString()}</p>
+              <p style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', margin: 0 }}>{money(minBid)}</p>
             </div>
 
             <input
               type="number"
               id="bid-amount"
               style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: 12, fontSize: '1.1rem', fontWeight: 600, color: '#111827', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}
-              placeholder={`Enter amount (min KSh ${minBid.toLocaleString()})`}
+              placeholder={`Enter amount in ${bidCode} (min ${money(minBid)})`}
               onFocus={e => e.target.style.borderColor = '#dc2626'}
               onBlur={e => e.target.style.borderColor = '#e5e7eb'}
             />
@@ -518,7 +524,7 @@ export default function AuctionDetailPage() {
               <button
                 onClick={async () => {
                   const val = parseFloat(document.getElementById('bid-amount').value);
-                  if (!val || val < minBid) return toast.error(`Minimum bid is KSh ${minBid.toLocaleString()}`);
+                  if (!val || val < minBid) return toast.error(`Minimum bid is ${money(minBid)}`);
                   try {
                     await auctionsAPI.placeBid(id, val);
                     toast.success('Bid placed! 🎉');

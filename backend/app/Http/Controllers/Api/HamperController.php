@@ -24,7 +24,7 @@ class HamperController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $hampers = Hamper::with(['items', 'createdBy:id,name'])
+        $hampers = Hamper::with(['items', 'createdBy:id,name', 'currency:id,code,symbol'])
             ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
             ->when($request->filled('eligibility_type'), fn($q) => $q->where('eligibility_type', $request->eligibility_type))
             ->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
@@ -52,6 +52,7 @@ class HamperController extends Controller
             'cover_image'                => 'nullable|string',
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'required|numeric|min:0',
+            'currency_id'                => 'nullable|exists:currencies,id,is_active,1',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -70,6 +71,8 @@ class HamperController extends Controller
         $data['slug']            = Str::slug($data['name']) . '-' . Str::random(6);
         $data['created_by']      = auth()->id();
         $data['stock_remaining'] = $data['total_stock'] ?? null;
+        // Pin to an explicit currency: NULL would silently follow the base if it ever changes.
+        $data['currency_id']     = ($data['currency_id'] ?? null) ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
 
         $hamper = Hamper::create($data);
 
@@ -80,12 +83,12 @@ class HamperController extends Controller
             ['eligibility_type' => $hamper->eligibility_type, 'price' => $hamper->price, 'status' => $hamper->status]
         );
 
-        return response()->json(['message' => 'Hamper created', 'data' => $hamper], 201);
+        return response()->json(['message' => 'Hamper created', 'data' => $hamper->load('currency:id,code,symbol')], 201);
     }
 
     public function show($id): JsonResponse
     {
-        $hamper = Hamper::with(['items.product', 'createdBy:id,name'])->findOrFail($id);
+        $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'createdBy:id,name', 'currency:id,code,symbol'])->findOrFail($id);
         return response()->json($hamper);
     }
 
@@ -99,6 +102,7 @@ class HamperController extends Controller
             'cover_image'                => 'nullable|string',
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'sometimes|numeric|min:0',
+            'currency_id'                => 'sometimes|nullable|exists:currencies,id,is_active,1',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -125,8 +129,12 @@ class HamperController extends Controller
             $data['stock_remaining'] = $data['total_stock'];
         }
 
+        if (array_key_exists('currency_id', $data) && empty($data['currency_id'])) {
+            $data['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
+        }
+
         $watchedFields = [
-            'price', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
+            'price', 'currency_id', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
             'earn_loyalty_points', 'total_stock', 'max_purchases_per_customer',
             'status', 'is_visible', 'eligibility_type', 'eligible_tiers',
             'eligible_customer_types', 'valid_from', 'valid_until',
@@ -164,7 +172,7 @@ class HamperController extends Controller
             );
         }
 
-        return response()->json(['message' => 'Hamper updated', 'data' => $hamper->fresh()]);
+        return response()->json(['message' => 'Hamper updated', 'data' => $hamper->fresh('currency:id,code,symbol')]);
     }
 
     public function destroy($id): JsonResponse
@@ -278,7 +286,8 @@ class HamperController extends Controller
         $suggestions = Product::whereIn('id', $relatedIds)
             ->where('status', 'active')
             ->where('is_visible', true)
-            ->get(['id', 'name', 'sku', 'price', 'main_image', 'short_description']);
+            ->with('currency:id,code,symbol')
+            ->get(['id', 'name', 'sku', 'price', 'currency_id', 'main_image', 'short_description']);
 
         return response()->json($suggestions);
     }

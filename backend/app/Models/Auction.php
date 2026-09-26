@@ -5,12 +5,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Auction extends Model
 {
+    // currency() relation. Auctions are shown and bid on in their OWN
+    // currency (no display conversion): every bid, increment and reserve
+    // is an amount in auction.currency.
+    use \App\Traits\HasCurrencyConversion;
+
     use SoftDeletes;
 
     protected $fillable = [
-        'product_id', 'seller_id', 'start_price', 'current_price',
+        'product_id', 'seller_id', 'currency_id', 'start_price', 'current_price',
         'reserve_price', 'bid_increment', 'start_time', 'end_time',
-        'status', 'winner_id'
+        'status', 'winner_id', 'max_winners'
     ];
 
     protected $casts = [

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import auctionsAPI from '../../api/auctions';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../lib/money';
 import useAuctionSSE from '../../hooks/useAuctionSSE';
 
 export default function BidModal({ auction, onClose, onSuccess }) {
@@ -12,13 +13,18 @@ export default function BidModal({ auction, onClose, onSuccess }) {
   
   // Merge static auction data with live SSE data
   const currentPrice = liveData?.current_price ?? auction.current_price;
-  const minBid = liveData?.min_next ?? (auction.current_price + auction.bid_increment);
+  // Numbers: the API sends decimals as strings ("450.00" + "50.00" would concatenate)
+  const minBid = Number(liveData?.min_next ?? (Number(auction.current_price) + Number(auction.bid_increment)));
+
+  // Bids are placed in the auction's own currency
+  const code = auction.currency?.code ?? 'KES';
+  const money = (n) => formatMoney(n ?? 0, auction.currency?.symbol || code, { decimals: 'auto' });
   const timeLeft = liveData?.time_left ?? Math.max(0, (new Date(auction.end_time) - new Date()) / 1000);
 
   const handleBid = async () => {
     const val = parseFloat(amount);
     if (!val || val < minBid) {
-      return toast.error(`Minimum bid is KSh ${Number(minBid).toLocaleString()}`);
+      return toast.error(`Minimum bid is ${money(minBid)}`);
     }
 
     setLoading(true);
@@ -51,24 +57,24 @@ export default function BidModal({ auction, onClose, onSuccess }) {
           <div className="flex justify-between items-center bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <span className="text-sm text-gray-600 dark:text-gray-300">Current Bid</span>
             <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-              KSh {Number(currentPrice).toLocaleString()}
+              {money(currentPrice)}
             </span>
           </div>
 
           <div className="flex justify-between text-xs text-gray-400">
             <span>Ends in: {Math.floor(timeLeft / 60)}m {Math.floor(timeLeft % 60)}s</span>
-            <span>Min Increment: KSh {auction.bid_increment}</span>
+            <span>Min Increment: {money(auction.bid_increment)}</span>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Your Maximum Bid</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">KSh</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{code}</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`Min: KSh ${Number(minBid).toLocaleString()}`}
+                placeholder={`Min: ${money(minBid)}`}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 outline-none transition"
               />
             </div>

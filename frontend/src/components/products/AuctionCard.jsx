@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gavel, Clock, Package } from 'lucide-react';
+import { formatMoney } from '../../lib/money';
 
 export default function AuctionCard({ auction }) {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ export default function AuctionCard({ auction }) {
       <div className="collapsed-right">
         <div className="auction-price-group">
           <span className="auction-label">Current Bid</span>
-          <span className="auction-price">KSh {currentPrice.toLocaleString()}</span>
+          <span className="auction-price">{formatMoney(currentPrice, auction?.currency?.symbol || auction?.currency?.code || 'KSh', { decimals: 'auto' })}</span>
         </div>
 
         <button

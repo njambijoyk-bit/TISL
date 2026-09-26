@@ -7,6 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Breadcrumb from '../../components/layout/Breadcrumb';
+import { formatMoney } from '../../lib/money';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 const AuctionSkeleton = () => (
@@ -57,6 +58,8 @@ function StatusBadge({ status, map }) {
 
 // ── My Auction Order Card ─────────────────────────────────────────────────────
 function MyOrderCard({ order, onClick }) {
+  // In the currency the order was charged in (falls back to the auction's)
+  const money = (n) => formatMoney(n ?? 0, order?.currency || order?.auction?.currency?.code || 'KSh', { decimals: 'auto' });
   const [expanded, setExpanded] = useState(false);
 
   const auction  = order.auction;
@@ -112,12 +115,12 @@ function MyOrderCard({ order, onClick }) {
             <StatusBadge status={order.payment_status} map={PAYMENT_STATUS_COLORS} />
           </div>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151' }}>
-            KSh {total.toLocaleString()}
+            {money(total)}
           </span>
           {paid > 0 && (
             <span style={{ fontSize: '0.65rem', color: '#059669' }}>
-              Paid KSh {paid.toLocaleString()}
-              {balance > 0 && <span style={{ color: '#dc2626' }}> · Bal KSh {balance.toLocaleString()}</span>}
+              Paid {money(paid)}
+              {balance > 0 && <span style={{ color: '#dc2626' }}> · Bal {money(balance)}</span>}
             </span>
           )}
         </div>
@@ -168,7 +171,7 @@ function MyOrderCard({ order, onClick }) {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151' }}>
-                        {isRefund ? '−' : ''}KSh {pmtAmount.toLocaleString()}
+                        {isRefund ? '−' : ''}{money(pmtAmount)}
                       </span>
                       {isRefund && (
                         <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 5px', borderRadius: 99 }}>REFUND</span>

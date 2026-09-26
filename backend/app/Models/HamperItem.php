@@ -46,6 +46,8 @@ class HamperItem extends Model
             'name'        => $product->name,
             'sku'         => $product->sku,
             'price'       => $product->price,
+            // snapshot price is in this currency, not necessarily the hamper's
+            'currency'    => $product->currency?->code,
             'brand_name'  => $product->brand?->name,
             'main_image'  => $product->main_image_url ?? $product->main_image,
             'description' => $product->short_description,
