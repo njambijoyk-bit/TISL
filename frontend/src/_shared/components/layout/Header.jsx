@@ -9,9 +9,7 @@ import {
   Bug, Volume2, VolumeX,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
-import ThemeSwitcher from '../common/ThemeSwitcher';
 import { ThemePicker } from '../common/ThemePicker';
-import CurrencyToggle from '../common/currency/CurrencyToggle';
 import useCurrencyStore from '../../store/currencyStore';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
@@ -402,28 +400,10 @@ export default function Header() {
           .show-account-mobile { display: block !important; }
         }
         .site-header {
-          background: linear-gradient(135deg,
-            rgba(250,245,255,0.98) 0%, rgba(237,233,254,0.98) 25%,
-            rgba(245,243,255,0.98) 50%, rgba(252,231,243,0.98) 75%,
-            rgba(250,245,255,0.98) 100%);
+          background: color-mix(in srgb, var(--bg-primary) 95%, var(--color-primary-300) 5%);
         }
         .site-header.scrolled {
-          background: linear-gradient(135deg,
-            rgba(250,245,255,0.85) 0%, rgba(237,233,254,0.85) 25%,
-            rgba(245,243,255,0.85) 50%, rgba(252,231,243,0.85) 75%,
-            rgba(250,245,255,0.85) 100%);
-        }
-        .dark .site-header {
-          background: linear-gradient(135deg,
-            rgba(31,41,55,0.97) 0%, rgba(33,43,57,0.97) 25%,
-            rgba(31,41,55,0.97) 50%, rgba(35,45,60,0.97) 75%,
-            rgba(31,41,55,0.97) 100%);
-        }
-        .dark .site-header.scrolled {
-          background: linear-gradient(135deg,
-            rgba(31,41,55,0.90) 0%, rgba(33,43,57,0.90) 25%,
-            rgba(31,41,55,0.90) 50%, rgba(35,45,60,0.90) 75%,
-            rgba(31,41,55,0.90) 100%);
+          background: color-mix(in srgb, var(--bg-primary) 92%, var(--color-primary-300) 8%);
         }
       `}</style>
 
@@ -593,15 +573,8 @@ export default function Header() {
               <Search size={17} />
             </button>
 
-            {/* Currency — hidden automatically when only one is active.
-                Pages refetch on their own when the choice changes. */}
-            <span className="hidden-mobile" style={{ display: 'flex' }}>
-              <CurrencyToggle dark={isDark} color={navColor} compact />
-            </span>
-
+            {/* Appearance & Currency — consolidated into ThemePicker */}
             <ThemePicker />
-
-            <ThemeSwitcher />
 
             {/* Wishlist */}
             <Link to="/wishlist" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
