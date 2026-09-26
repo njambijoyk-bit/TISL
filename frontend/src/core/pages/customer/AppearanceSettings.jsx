@@ -71,9 +71,9 @@ export default function AppearanceSettings() {
   const displayCurrency = useCurrencyStore(s => s.displayCurrency);
   const setDisplayCurrency = useCurrencyStore(s => s.setDisplayCurrency);
 
-  const activeColourings = colourings.filter(c => c.is_active);
-  const activeFonts      = fonts.filter(f => f.is_active);
-  const activeIconStyles = iconStyles.filter(s => s.is_active);
+  const activeColourings = colourings.filter(c => c.is_active !== false);
+  const activeFonts      = fonts.filter(f => f.is_active !== false);
+  const activeIconStyles = iconStyles.filter(s => s.is_active !== false);
 
   if (loading) {
     return (
