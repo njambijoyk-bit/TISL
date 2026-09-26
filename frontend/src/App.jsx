@@ -26,19 +26,19 @@ const ResetPassword       = lazy(() => import('./core/pages/auth/ResetPassword')
 
 // ── Customer Pages ────────────────────────────────────────────────────────────
 const Home                 = lazy(() => import('./core/pages/customer/Home'));
-const Products             = lazy(() => import('./core/pages/customer/Products'));
-const ProductDetail        = lazy(() => import('./core/pages/customer/ProductDetail'));
+const Products             = lazy(() => import('./ecommerce/pages/customer/Products'));
+const ProductDetail        = lazy(() => import('./ecommerce/pages/customer/ProductDetail'));
 const AuctionListPage      = lazy(() => import('./ecommerce/pages/customer/AuctionListPage'));
 const AuctionDetailPage    = lazy(() => import('./ecommerce/pages/customer/AuctionDetailPage'));
 const Cart                 = lazy(() => import('./core/pages/customer/Cart'));
-const Wishlist             = lazy(() => import('./core/pages/customer/Wishlist'));
+const Wishlist             = lazy(() => import('./ecommerce/pages/customer/Wishlist'));
 const QuoteList            = lazy(() => import('./core/pages/customer/QuoteList'));
 const Checkout             = lazy(() => import('./core/pages/customer/Checkout'));
 const MyOrders             = lazy(() => import('./core/pages/customer/MyOrders'));
 const CustomerOrderDetail  = lazy(() => import('./core/pages/customer/OrderDetail'));
-const Services             = lazy(() => import('./core/pages/customer/Services'));
-const ServiceDetail        = lazy(() => import('./core/pages/customer/ServiceDetail'));
-const SpecialsPage         = lazy(() => import('./core/pages/customer/SpecialsPage'));
+const Services             = lazy(() => import('./ecommerce/pages/customer/Services'));
+const ServiceDetail        = lazy(() => import('./ecommerce/pages/customer/ServiceDetail'));
+const SpecialsPage         = lazy(() => import('./ecommerce/pages/customer/SpecialsPage'));
 const RequestQuote         = lazy(() => import('./core/pages/customer/RequestQuote'));
 const MyQuoteRequests      = lazy(() => import('./core/pages/customer/MyQuoteRequests'));
 const MyQuoteRequestDetail = lazy(() => import('./core/pages/customer/MyQuoteRequestDetail'));
@@ -63,18 +63,18 @@ const OrderPolicy          = lazy(() => import('./_shared/components/legal/Order
 const BookingPolicy        = lazy(() => import('./_shared/components/legal/BookingPolicy'));
 const MyTickets            = lazy(() => import('./core/pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./core/pages/customer/MyTicketDetail'));
-const HamperListPage       = lazy(() => import('./core/pages/customer/HamperListPage'));
-const HamperDetail         = lazy(() => import('./core/pages/customer/HamperDetail'));
-const HamperCheckout       = lazy(() => import('./core/pages/customer/HamperCheckout'));
-const MyHamperOrders       = lazy(() => import('./core/pages/customer/MyHamperOrders'));
-const MyHamperOrderDetail  = lazy(() => import('./core/pages/customer/MyHamperOrderDetail'));
+const HamperListPage       = lazy(() => import('./ecommerce/pages/customer/HamperListPage'));
+const HamperDetail         = lazy(() => import('./ecommerce/pages/customer/HamperDetail'));
+const HamperCheckout       = lazy(() => import('./ecommerce/pages/customer/HamperCheckout'));
+const MyHamperOrders       = lazy(() => import('./ecommerce/pages/customer/MyHamperOrders'));
+const MyHamperOrderDetail  = lazy(() => import('./ecommerce/pages/customer/MyHamperOrderDetail'));
 const BugReportPage        = lazy(() => import('./core/pages/customer/BugReportPage'));
 const BugTrackerPage       = lazy(() => import('./core/pages/customer/BugTrackerPage'));
 const MyBugReports         = lazy(() => import('./core/pages/customer/MyBugReports'));
 
 const MyBookings           = lazy(() => import('./core/pages/customer/MyBookings'));
 const MyBookingDetail      = lazy(() => import('./core/pages/customer/MyBookingDetail'));
-const BookService          = lazy(() => import('./core/pages/customer/BookService'));
+const BookService          = lazy(() => import('./ecommerce/pages/customer/BookService'));
 
 const BrochureListPage     = lazy(() => import('./core/pages/customer/BrochureListPage'));
 const BrochureDetail       = lazy(() => import('./core/pages/customer/BrochureDetail'));
@@ -117,24 +117,24 @@ const Mimiharmfulpage    = lazy(() => import('./extras/pages/admin/ai-analytics/
 
 const Dashboard          = lazy(() => import('./core/pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./core/pages/admin/settings/policies/PolicySettings'))
-const AdminProducts      = lazy(() => import('./core/pages/admin/Products'));
-const ProductForm        = lazy(() => import('./core/pages/admin/ProductForm'));
+const AdminProducts      = lazy(() => import('./ecommerce/pages/admin/Products'));
+const ProductForm        = lazy(() => import('./ecommerce/pages/admin/ProductForm'));
 const AdminAuctions      = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionDetail'));
 const AdminAuctionCreator = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionCreator'));
 const AdminAuctionOrders   = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrders'));
 const AdminAuctionOrderPayments = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrderPayments'));
 const AdminAuctionOrderDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrderDetail'));
-const Categories         = lazy(() => import('./core/pages/admin/Categories'));
-const CategoryForm       = lazy(() => import('./core/pages/admin/CategoryForm'));
-const Brands             = lazy(() => import('./core/pages/admin/Brands'));
-const BrandForm          = lazy(() => import('./core/pages/admin/BrandForm'));
+const Categories         = lazy(() => import('./ecommerce/pages/admin/Categories'));
+const CategoryForm       = lazy(() => import('./ecommerce/pages/admin/CategoryForm'));
+const Brands             = lazy(() => import('./ecommerce/pages/admin/Brands'));
+const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'));
 const AdminOrders        = lazy(() => import('./core/pages/admin/Orders'));
 const OrderDetail        = lazy(() => import('./core/pages/admin/OrderDetail'));
-const AdminServices      = lazy(() => import('./core/pages/admin/Services'));
-const ServiceForm        = lazy(() => import('./core/pages/admin/ServiceForm'));
-const ServiceCategories  = lazy(() => import('./core/pages/admin/ServiceCategories'));
-const Work               = lazy(() => import('./core/pages/admin/Work'));
+const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
+const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
+const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
+const Work               = lazy(() => import('./projects/pages/admin/Work'));
 const QuoteRequests      = lazy(() => import('./core/pages/admin/QuoteRequests'));
 const QuoteRequestDetail = lazy(() => import('./core/pages/admin/QuoteRequestDetail'));
 const Quotes             = lazy(() => import('./core/pages/admin/Quotes'));
@@ -145,7 +145,7 @@ const AdminCustomers     = lazy(() => import('./core/pages/admin/Customers'));
 const CustomerDetail     = lazy(() => import('./core/pages/admin/CustomerDetail'));
 const CreditDashboard    = lazy(() => import('./core/pages/admin/CreditDashboard'));
 const CreditDetail       = lazy(() => import('./core/pages/admin/CustomerCreditDetail'));
-const AdminReviews       = lazy(() => import('./core/pages/admin/Reviews'));
+const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'));
 const Reports            = lazy(() => import('./core/pages/admin/Reports'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
