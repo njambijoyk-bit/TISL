@@ -1,7 +1,7 @@
 import { Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import useWishlistStore from '../../store/wishlistStore';
-import useCartStore from '../../store/cartStore';
+import useWishlistStore from '../../_shared/store/wishlistStore';
+import useCartStore from '../../_shared/store/cartStore';
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
 

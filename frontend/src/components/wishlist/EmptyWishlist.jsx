@@ -1,6 +1,6 @@
 import { Heart, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../common/Button';
+import Button from '../../_shared/components/common/Button';
 
 export default function EmptyWishlist({ loading }) {
   const navigate = useNavigate();
