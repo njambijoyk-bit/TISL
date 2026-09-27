@@ -28,6 +28,13 @@ Update it whenever a decision changes.
 | 03 | `03_currency_on_hampers_and_auctions.sql` | `currency_id` on hampers and auctions |
 | 04 | `04_hamper_tax_rate.sql` | `tax_rate_id` on hampers (replaces the fixed "VAT 16%" toggle) |
 | 05 | `05_customer_currency_and_currency_log.sql` | Customer account currency + `currency_activity_logs` table |
+| 06 | `06_licensing_tables.sql` | `installation` (one row), `modules`, `module_locks` |
+| 07 | `07_license_attempt_events.sql` | `license_attempts` log (time, user, result) |
+| 08 | `08_backup_settings.sql` | `backup_settings` (destination, frequency, encrypted passphrase) |
+| 09 | `09_module_table_map.sql` | `module_table_map` — DB-driven table → module assignment |
+| 10 | `10_backup_map_adjustments.sql` | Seed/adjust the built-in table → module map |
+| 11 | `11_backup_runs.sql` | `backup_runs` history (when, destination, result, file) |
+| 12 | `12_nav_links.sql` | `nav_links` — storefront links per module, with show/visible flags |
 
 ---
 
@@ -45,6 +52,10 @@ Update it whenever a decision changes.
 | **Units of measure** | Units, country defaults, converter. |
 | **Admin navigation** | One sidebar built from `src/navigation/adminNav.js` (groups, items, section tabs, roles, modules, owner-only). `AdminShell` is a layout route around every `/admin` and `/driver` page: sidebar, section tabs, Ctrl+K quick jump. Settings hub is generated from the same registry. `isModuleActive()` in `src/navigation/modules.js` is a stub (all on) until the module registry exists. |
 | **Variants** | Admin variant editor (options, variants, units, images) and storefront variant picker; the cart keeps each variant and unit as its own line. |
+| **Licensing** | Offline three-piece handshake (disguised public key + pepper in code, hashed pieces in DB, long signed `WNKJ-…` keys). Ed25519 signatures, no editable 0/1 flag. Route middleware (`module:`) gates all 11 paid modules; Core never gated. `LicenseManager::isLicensed()/isActive()` memoised per request. (Section 5.3) |
+| **Module Center** | Super-admin page: a card per module (Active / Licensed but off / Not licensed), on/off switch for licensed modules, key paste box for unlicensed ones, "Licensed to …" and the attempts log. Works even with nothing licensed. (Section 5.2) |
+| **Backup & restore engine** | Exports only **active** modules' data (never modules/licensing) to browser download, FTP, SFTP or S3, encrypted with a separate passphrase into `.wnkjba` files (XChaCha20-Poly1305 secretstream, Argon2id key). DB-driven table → module assignment form. Restore (upload or pull) requires the passphrase, replace/merge. Scheduled daily/weekly/monthly/never. Admin+super-admin can back up; only super-admin can restore. (Section 5.10) |
+| **Storefront navigation manager** | Admin sets which links customers see; only **licensed** modules' links appear, a switched-off module locks its links (green-tick / red-x toggle). Stored in `nav_links`, backed up under Core. Header (desktop + mobile) renders links from the server. (Section 7) |
 
 ---
 
@@ -76,6 +87,15 @@ Update it whenever a decision changes.
 ---
 
 ## 5. Modules
+
+> ### ⚠️ CONTRACT: every new module — and every change to an existing one — MUST be synced to the nav system and the backup engine.
+>
+> Adding a module or a new table without doing both leaves it invisible to customers and **silently missing from every backup**. This is not optional. The full checklist is in **section 5.11**; the two non-negotiables are:
+>
+> 1. **Backup engine** — register the module's tables so they are exported when the module is active. Add them to `ModuleTables::MAP` (or assign them via the `module_table_map` form in Backup settings). Anything not mapped falls into "unassigned" and is **never backed up**. New Core tables go under `core` (always backed up).
+> 2. **Nav system** — seed the module's storefront links into `nav_links`, gate its routes with the `module:` middleware, and expose them through `NavController` so the admin can show/hide them and the header renders them.
+>
+> A change that adds a table, a route or a customer-facing page is a change to these two systems too.
 
 ### 5.1 The 12 modules
 
@@ -618,6 +638,45 @@ Build one module at a time, backend + frontend together, in this order:
 
 ---
 
+### 5.10 Backup & restore engine (built)
+
+A growing subsystem. It backs up the **client's data**, never the code, the modules table or the licensing tables (those are re-pasteable keys, not data).
+
+**What it does**
+- **Backs up only active modules' tables.** A disabled or unlicensed module's tables are skipped, and a banner in the UI explains why (so a client isn't shocked a module's data is absent). Core is always included.
+- **Table → module assignment.** `ModuleTables::MAP` is the built-in map; the `module_table_map` table (managed by an admin form in Backup settings) overrides it. `BackupPlanner::plan()` returns included / disabled / unlicensed / excluded / unassigned so the admin can see exactly what will and won't be saved.
+- **Destinations:** browser download (to the admin's own machine, not the server), FTP, SFTP, S3. Remote disks are built at run time with `Storage::build()`.
+- **Encryption:** output is a single `.wnkjba` file — magic `WNKJBAK1`, a JSON header (salt, Argon2id params, secretstream header), then framed XChaCha20-Poly1305 secretstream chunks over a ZIP payload (`manifest.json` + `data/<module>/<table>.jsonl`). The key is Argon2id(passphrase, salt); the passphrase is separate from any license key. Wrong passphrase cannot decrypt — the file is pure gibberish without it.
+- **Restore** (super-admin only): from an uploaded `.wnkjba` or pulled from a destination. The passphrase is **always required**, even for an uploaded file. Replace or merge; generated columns are stripped on insert; runs in a transaction with FK checks off.
+- **Schedule:** daily / weekly / monthly / never, gated by frequency/time/day in `backup:run` (scheduled hourly, skips `local`).
+- **Who:** admin + super-admin can back up; only super-admin can restore.
+
+**Deferred:** a standalone Streamlit viewer for `.wnkjba` files.
+
+### 5.11 New-module checklist — MUST sync to nav + backup
+
+Run through this for **every** new module and for any change that adds a table, route or customer page. See the contract callout at the top of section 5.
+
+**Backend**
+- [ ] SQL script (Workbench) for the module's tables — delivered as a copyable file, not a migration.
+- [ ] **Backup:** add every new table to `ModuleTables::MAP` under the module's key (or assign via `module_table_map`). Confirm `BackupPlanner::plan()` shows them under *included* when the module is active and not under *unassigned*. New Core tables go under `core`. Anything that must never be exported (keys, secrets) goes in `ModuleTables::EXCLUDE`.
+- [ ] **Routes:** wrap the module's route group with the `module:<key>` middleware. Core routes are never gated.
+- [ ] **Nav:** seed the module's storefront links into `nav_links` (module key, label, path, sort). `NavController::index` shows them to admins only when licensed; `publicNav` returns active + visible links.
+- [ ] Models, controllers, service provider under `app/Modules/<Module>/` (target layout, 5.5).
+
+**Frontend**
+- [ ] Register the module in `_shared/navigation/modules.js` (MODULES + `isModuleActive`).
+- [ ] Admin pages gated by module activity; storefront routes wrapped in `ModuleRoute`.
+- [ ] Header already renders `nav_links` generically (desktop + mobile) — no hardcoding; just make sure the links are seeded.
+- [ ] Manifest (5.4) declares sidebar group, nav links, account-menu links, settings tabs, dependencies.
+
+**Verify**
+- [ ] Activate the module → its data appears in a backup; deactivate → it's skipped with the banner.
+- [ ] Its links appear in the nav manager, toggle correctly, and lock when the module is switched off.
+- [ ] `php -l` clean; frontend lint + full build pass.
+
+---
+
 ## 6. Admin navigation (done)
 
 **One sidebar replaces four places** (main sidebar, Settings sidebar, Settings card page, General sidebar).
@@ -641,13 +700,16 @@ Build one module at a time, backend + frontend together, in this order:
 
 ---
 
-## 7. Storefront navigation manager
+## 7. Storefront navigation manager (built)
 
-- Active modules offer their links; core adds Home, About, Contact and custom pages.
-- The admin sets, per link, a **show** switch, a **primary** switch and a **sort number**. At most **7 primary links**, enforced by the server.
-- **Large screens:** primary links in the header in sort order; the rest in a "More" dropdown.
-- **Small screens:** one menu, primary links first, then the rest, each in sort order.
-- **Account menu:** built from active modules (e.g. "My Hampers" only if hampers are on).
+**As built:**
+- Only **licensed** modules offer their links; Core adds Home, About, Contact and the standard pages. Links live in `nav_links` and are **backed up under Core**.
+- Per link, the admin sets a **visible** switch — a green tick (visible) / red x (hidden) toggle (Lucide icons).
+- A module that is **licensed but switched off locks its links**: the customer can't see them and the admin can't toggle them (the toggle greys out and the server refuses the change). Turning the module back on unlocks them.
+- The header renders the returned links **generically** on both desktop and the mobile hamburger menu — nothing is hardcoded.
+- `NavController::index` (admin) returns groups for licensed modules with an `active` flag for the lock; `publicNav` returns active + visible links for the storefront.
+
+**Still to do (deferred, optional):** a **primary** switch + **sort number** with at most 7 primary links, large-screen "More" overflow dropdown, and an account-menu built from active modules.
 
 ---
 
@@ -688,10 +750,11 @@ Build one module at a time, backend + frontend together, in this order:
 
 1. ~~**Admin navigation**~~ (done; manifests in 5.4 come with the module registry).
 2. **Theming** steps 1–5 (section 8).
-3. **Module registry, Module Center, license keys, route gating** (section 5).
-4. **Storefront navigation manager** (section 7).
-5. **Checkout foundations and checkout** (section 9, plus sections 3 and 4).
-6. **New modules** one at a time (Listings, Campaigns, Courses, Accommodations, Menus, Events, Memberships).
+3. ~~**Module registry, Module Center, license keys, route gating**~~ (done, section 5).
+4. ~~**Backup & restore engine**~~ (done, section 5.10; Streamlit viewer deferred).
+5. ~~**Storefront navigation manager**~~ (done, section 7; primary/overflow ordering deferred).
+6. **Checkout foundations and checkout** (section 9, plus sections 3 and 4).
+7. **New modules** one at a time (Listings, Events, Campaigns, Courses, Memberships, Accommodations, Menus) — each following the section 5.11 checklist.
 
 ---
 
