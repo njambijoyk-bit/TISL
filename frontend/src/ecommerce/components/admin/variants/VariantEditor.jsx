@@ -12,6 +12,8 @@ import RowActions from '../../../../core/components/admin/tax/sections/RowAction
 import useDeleteConfirm from '../../../../core/components/admin/tax/sections/useDeleteConfirm';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { colors, card, btnPrimary, btnGhost, radius } from '../../../../_shared/theme/tokens';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../../_shared/lib/roles';
 
 const ROLE_LABEL = { base: 'Base', compound: 'Pack', alternate: 'Alternate' };
 const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString(undefined, { maximumFractionDigits: 4 }));
@@ -40,6 +42,8 @@ function Section({ title, description, children, action }) {
  * @param {boolean} readOnly
  */
 export default function VariantEditor({ productId, currencyCode = 'KES', readOnly = false }) {
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const {
     productId: loadedId, variants, loading, actionLoading, error,
     loadProduct, reset, deleteVariant, setDefaultVariant, deleteUnit, effectiveUnitPrice,
@@ -131,7 +135,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
                                 <button type="button" onClick={() => setDefaultVariant(v.id).catch(() => toast.error('Could not change the default'))}
                                   style={{ ...btnGhost, padding: '3px 8px', fontSize: '0.7rem' }}>Make default</button>
                               )}
-                              <RowActions label={v.name || 'variant'} onEdit={() => setEditingVariant(v)} onDelete={() => ask({
+                              <RowActions label={v.name || 'variant'} onEdit={() => setEditingVariant(v)} onDelete={!canDelete ? undefined : () => ask({
                                 title: `Delete ${v.name || 'this variant'}?`, message: 'Its units and prices go with it.',
                                 run: () => deleteVariant(v.id), done: 'Variant deleted',
                               })} />
@@ -172,7 +176,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
                                           <td style={{ padding: '6px 8px' }}>
                                             {!readOnly && (
                                               <RowActions label={unitLabel(u)} onEdit={() => setEditingUnit({ variant: v, unit: u })}
-                                                onDelete={u.role === 'base' ? undefined : () => ask({
+                                                onDelete={u.role === 'base' || !canDelete ? undefined : () => ask({
                                                   title: `Remove ${unitLabel(u)}?`, message: 'Not possible while a pack unit is built from it.',
                                                   run: () => deleteUnit(v.id, u.id), done: 'Unit removed',
                                                 })} />

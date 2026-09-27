@@ -13,6 +13,8 @@ import VariantEditor from '../../components/admin/variants/VariantEditor';
 import {
   Save, X, Trash2, Edit2, ChevronLeft, Plus, AlertTriangle,
 } from 'lucide-react';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -560,6 +562,8 @@ export default function ProductForm() {
     } finally { setLoading(false); }
   };
 
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${formData.name}"? This cannot be undone.`)) return;
     try {
@@ -1067,7 +1071,7 @@ export default function ProductForm() {
         </form>
 
         {/* ── Danger zone (view mode only) ── */}
-        {isView && (
+        {isView && canDelete && (
           <div style={{
             marginTop: 20, padding: '20px 24px', borderRadius: 12,
             background: 'rgba(239,68,68,0.05)', border: '1.5px solid rgba(239,68,68,0.2)',

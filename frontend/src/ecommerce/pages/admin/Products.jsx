@@ -11,6 +11,8 @@ import {
   Plus, Search, Edit2, Eye, Trash2, Filter, X,
   Package, TrendingUp, AlertCircle, CheckCircle, XCircle, Archive,
 } from 'lucide-react';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Theme-agnostic style tokens ─────────────────────────────────────────────
 
@@ -244,6 +246,8 @@ export default function Products() {
   const [filters, setFilters] = useState({ status: '', is_featured: '', on_sale: '', in_stock: '', currency_id: '' });
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
 
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, product: null, loading: false });
   const [trashModal,  setTrashModal]  = useState({
     isOpen: false, loading: false, products: [], search: '', selectedIds: [],
@@ -510,9 +514,11 @@ export default function Products() {
                             <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                               <Edit2 size={15} />
                             </IconBtn>
-                            <IconBtn onClick={() => setDeleteModal({ isOpen: true, product, loading: false })} title="Delete" color="var(--color-text-danger)">
-                              <Trash2 size={15} />
-                            </IconBtn>
+                            {canDelete && (
+                              <IconBtn onClick={() => setDeleteModal({ isOpen: true, product, loading: false })} title="Delete" color="var(--color-text-danger)">
+                                <Trash2 size={15} />
+                              </IconBtn>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -717,9 +723,11 @@ export default function Products() {
                     <Btn onClick={() => openBulkConfirm('restore')} disabled={!trashModal.selectedIds.length} style={{ fontSize: '0.78rem', padding: '6px 12px', color: 'var(--color-text-success)', borderColor: 'var(--color-border-success)' }}>
                       Restore selected
                     </Btn>
-                    <DangerBtn onClick={() => openBulkConfirm('force')} disabled={!trashModal.selectedIds.length} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                      Delete permanently
-                    </DangerBtn>
+                    {canDelete && (
+                      <DangerBtn onClick={() => openBulkConfirm('force')} disabled={!trashModal.selectedIds.length} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+                        Delete permanently
+                      </DangerBtn>
+                    )}
                   </div>
                 </div>
 
@@ -768,7 +776,9 @@ export default function Products() {
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                               <Btn onClick={() => openSingleConfirm('restore', p)} style={{ fontSize: '0.72rem', padding: '5px 10px', color: 'var(--color-text-success)', borderColor: 'var(--color-border-success)' }}>Restore</Btn>
-                              <DangerBtn onClick={() => openSingleConfirm('force', p)} style={{ fontSize: '0.72rem', padding: '5px 10px' }}>Delete</DangerBtn>
+                              {canDelete && (
+                                <DangerBtn onClick={() => openSingleConfirm('force', p)} style={{ fontSize: '0.72rem', padding: '5px 10px' }}>Delete</DangerBtn>
+                              )}
                             </div>
                           </td>
                         </tr>

@@ -6,6 +6,8 @@ import {
   DollarSign, Percent, RefreshCw, Clock, Ban, ChevronDown,
 } from 'lucide-react';
 import { adminCreditAPI } from '../../../_shared/api/customerCredit';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canActOnCredit } from '../../../_shared/lib/roles';
 
 // ── Shared style atoms (matching CustomerDetail.jsx) ──────────────────────────
 
@@ -524,6 +526,7 @@ function InvoiceModal({ customerId, onSuccess, onClose }) {
 // ── Summary sub-tab ───────────────────────────────────────────────────────────
 
 function SummaryTab({ customerId, summary, onRefresh, onAction }) {
+  const canAct = canActOnCredit(useAuthStore().user);
   if (!summary) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
       <Loader2 size={24} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
@@ -598,7 +601,11 @@ function SummaryTab({ customerId, summary, onRefresh, onAction }) {
         <div style={card}>
           <p style={sectionHeader}><MoreHorizontal size={14} style={{ color: '#c4b5fd' }} /> Actions</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
+            {!canAct ? (
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-tertiary)' }}>
+                View only. Finance, managers and admins can record payments and adjustments.
+              </p>
+            ) : [
               { label: 'Record Payment',    icon: <TrendingDown size={14} />, action: 'payment',    variant: 'primary' },
               { label: 'Manual Adjustment', icon: <RefreshCw    size={14} />, action: 'adjustment', variant: 'ghost'   },
               { label: 'Apply Interest',    icon: <Percent      size={14} />, action: 'interest',   variant: 'ghost'   },
@@ -801,6 +808,7 @@ function StatementTab({ customerId }) {
 // ── Schedules sub-tab ─────────────────────────────────────────────────────────
 
 function SchedulesTab({ customerId, onRefresh, notify }) {
+  const canAct = canActOnCredit(useAuthStore().user);
   const [data,      setData]      = useState(null);
   const [loading,   setLoading]   = useState(true);
   const [expanded,  setExpanded]  = useState({});
@@ -891,7 +899,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                {sched.status === 'active' && (
+                {canAct && sched.status === 'active' && (
                   <button onClick={() => handleCancel(sched.id)} style={{
                     padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 600,
                     background: 'rgba(239,68,68,0.06)', color: '#dc2626',
@@ -928,7 +936,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
                         {item.paid_at && <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Paid {fmtDate(item.paid_at)}</span>}
                         <Pill color={is.color} bg={is.bg} ring={is.ring}>{item.status}</Pill>
                       </div>
-                      {(item.status === 'pending' || item.status === 'overdue') && (
+                      {canAct && (item.status === 'pending' || item.status === 'overdue') && (
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                           <button onClick={() => handlePay(customerId, sched.id, item)} disabled={!!acting} style={{
                             padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
@@ -964,6 +972,7 @@ function SchedulesTab({ customerId, onRefresh, notify }) {
 // ── Invoices sub-tab ──────────────────────────────────────────────────────────
 
 function InvoicesTab({ customerId, notify }) {
+  const canAct = canActOnCredit(useAuthStore().user);
   const [data,      setData]      = useState(null);
   const [loading,   setLoading]   = useState(true);
   const [page,      setPage]      = useState(1);
@@ -1065,7 +1074,7 @@ function InvoicesTab({ customerId, notify }) {
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexDirection: 'column', alignItems: 'flex-end' }}>
-                {inv.status !== 'void' && inv.status !== 'paid' && (
+                {canAct && inv.status !== 'void' && inv.status !== 'paid' && (
                   <button onClick={() => handleSend(inv.id)} disabled={!!acting} style={{
                     padding: '6px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
                     background: 'rgba(59,130,246,0.08)', color: '#1d4ed8',
@@ -1076,7 +1085,7 @@ function InvoicesTab({ customerId, notify }) {
                     Send
                   </button>
                 )}
-                {inv.status !== 'paid' && inv.status !== 'void' && (
+                {canAct && inv.status !== 'paid' && inv.status !== 'void' && (
                   <button onClick={() => handleStatus(inv.id, 'paid')} disabled={!!acting} style={{
                     padding: '6px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
                     background: 'rgba(16,185,129,0.08)', color: '#059669',
@@ -1087,7 +1096,7 @@ function InvoicesTab({ customerId, notify }) {
                     Mark paid
                   </button>
                 )}
-                {inv.status !== 'void' && (
+                {canAct && inv.status !== 'void' && (
                   <button onClick={() => handleStatus(inv.id, 'void')} disabled={!!acting} style={{
                     padding: '6px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 600,
                     background: 'rgba(239,68,68,0.05)', color: '#dc2626',

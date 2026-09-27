@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import { ChevronLeft, Save, Edit2, X, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -278,6 +280,8 @@ export default function CategoryForm() {
     } finally { setLoading(false); }
   };
 
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${formData.name}"? This cannot be undone.`)) return;
     try {
@@ -504,7 +508,7 @@ export default function CategoryForm() {
           </div>
 
           {/* ── Danger zone (view only) ── */}
-          {isView && (
+          {isView && canDelete && (
             <div style={{
               padding: '20px 24px', borderRadius: 12,
               background: 'rgba(239,68,68,0.05)', border: '1.5px solid rgba(239,68,68,0.2)',

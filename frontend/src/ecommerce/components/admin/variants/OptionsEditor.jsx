@@ -5,12 +5,16 @@ import useProductVariantStore from '../../../../_shared/store/productVariantStor
 import { TextInput } from '../../../../core/components/admin/ui/Form';
 import useDeleteConfirm from '../../../../core/components/admin/tax/sections/useDeleteConfirm';
 import { colors, radius, btnGhost, btnIcon } from '../../../../_shared/theme/tokens';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../../_shared/lib/roles';
 
 /**
  * The product's options (Size, Colour…) and their values (Small, Red…).
  * Variants are built from one value per option.
  */
 export default function OptionsEditor({ readOnly }) {
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const { options, actionLoading, createOption, updateOption, deleteOption, createOptionValue, deleteOptionValue } = useProductVariantStore();
   const [newOption, setNewOption] = useState('');
   const [newValues, setNewValues] = useState({});   // { [optionId]: text }
@@ -69,7 +73,7 @@ export default function OptionsEditor({ readOnly }) {
                 </button>
               )}
               <span style={{ fontSize: '0.7rem', color: colors.textFaint }}>{o.values?.length ?? 0} value{o.values?.length === 1 ? '' : 's'}</span>
-              {!readOnly && (
+              {!readOnly && canDelete && (
                 <button type="button" aria-label={`Delete option ${o.name}`} style={{ ...btnIcon, marginLeft: 'auto' }}
                   onClick={() => ask({
                     title: `Delete ${o.name}?`, message: 'Its values go too. Variants using them may need their options set again.',
@@ -87,7 +91,7 @@ export default function OptionsEditor({ readOnly }) {
                   background: colors.surface, border: `1px solid ${colors.tint(0.18)}`, fontSize: '0.78rem', color: colors.textBody,
                 }}>
                   {v.value}
-                  {!readOnly && (
+                  {!readOnly && canDelete && (
                     <button type="button" aria-label={`Remove ${v.value}`} onClick={() => deleteOptionValue(o.id, v.id).catch((err) => fail(err, 'Could not remove it'))}
                       style={{ display: 'inline-flex', background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 2 }}>
                       <X size={11} />

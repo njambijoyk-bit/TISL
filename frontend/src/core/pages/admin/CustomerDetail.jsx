@@ -12,7 +12,7 @@ import CreditTab from './CreditTab';
 import CustomerTaxTab from '../../components/admin/tax/CustomerTaxTab';
 import AccountCurrencyCard from '../../components/admin/customers/AccountCurrencyCard';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance } from '../../../_shared/lib/roles';
+import { canReadFinance, canActOnCredit } from '../../../_shared/lib/roles';
 import customersAPI from '../../../_shared/api/customers';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import ordersAPI from '../../../_shared/api/orders';
@@ -395,6 +395,7 @@ export default function CustomerDetail() {
 
   const authUser = useAuthStore((st) => st.user);
   const showTaxTab = canReadFinance(authUser);
+  const canAct = canActOnCredit(authUser);
 
   const [customer,    setCustomer]    = useState(null);
   const [loading,     setLoading]     = useState(true);
@@ -1207,7 +1208,7 @@ export default function CustomerDetail() {
                 <div style={card}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <p style={{ ...sectionHeader, margin: 0 }}><CreditCard size={14} style={{ color: '#c4b5fd' }} /> Store credit</p>
-                    <div style={{ position: 'relative' }}>
+                    {canAct && (<div style={{ position: 'relative' }}>
                       <button
                         onClick={() => { setShowCredit(v => !v); setShowPoints(false); setShowStatus(false); }}
                         style={{
@@ -1218,7 +1219,7 @@ export default function CustomerDetail() {
                         <Plus size={13} /> Add
                       </button>
                       {showCredit && <QuickAddPanel type="credit" onSubmit={handleAddCredit} onClose={() => setShowCredit(false)} />}
-                    </div>
+                    </div>)}
                   </div>
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
                     {fmt(customer.store_credit, acct)}

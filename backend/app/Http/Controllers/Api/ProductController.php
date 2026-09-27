@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Services\CurrencyConversionService;
+use App\Services\FuzzySuggestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -162,32 +163,14 @@ class ProductController extends Controller
         // ── Fuzzy suggestions when exact search returns nothing ───────────────
         $fuzzyResults = [];
         if ($request->filled('search') && $products->total() === 0) {
-            $search = $request->search;
-            $words  = array_filter(explode(' ', preg_replace('/\s+/', ' ', trim($search))));
-
-            $fuzzyQuery = Product::with(['brand', 'currency:id,code,symbol'])
-                ->where('is_visible', true)
-                ->where('status', 'active')
-                ->where(function ($q) use ($search, $words) {
-                    // Each individual word as a LIKE anywhere in name
-                    foreach ($words as $word) {
-                        if (strlen($word) >= 3) {
-                            $q->orWhere('name', 'like', "%{$word}%");
-                        }
-                    }
-                    // SOUNDEX match on first word for typo tolerance
-                    if (!empty($words)) {
-                        $first = reset($words);
-                        if (strlen($first) >= 3) {
-                            $q->orWhereRaw('SOUNDEX(name) = SOUNDEX(?)', [$first]);
-                        }
-                    }
-                })
-                ->select('id', 'name', 'sku', 'main_image', 'price', 'currency_id', 'slug')
-                ->limit(6)
-                ->get();
-
-            $fuzzyResults = $fuzzyQuery->values()->toArray();
+            $fuzzyResults = app(FuzzySuggestService::class)->suggest(
+                Product::with(['brand:id,name', 'currency:id,code,symbol'])
+                    ->where('is_visible', true)
+                    ->where('status', 'active')
+                    ->select('id', 'name', 'sku', 'main_image', 'price', 'currency_id', 'slug', 'brand_id'),
+                (string) $request->search,
+                ['name']
+            )->toArray();
         }
 
         return response()->json(array_merge($products->toArray(), $meta, ['fuzzy_results' => $fuzzyResults]), 200);
