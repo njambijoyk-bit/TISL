@@ -4,7 +4,7 @@ import backupsAPI from '../../../../_shared/api/backups';
 import { useAuthStore } from '../../../../_shared/store/index';
 import {
   Database, Save, PlayCircle, RotateCcw, AlertTriangle, CheckCircle2,
-  HardDrive, Server, Cloud, RefreshCw, Lock,
+  HardDrive, Server, Cloud, RefreshCw, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -84,6 +84,7 @@ export default function BackupSettings() {
   const [form, setForm] = useState(null);
   const [cfg, setCfg] = useState({});
   const [passphrase, setPassphrase] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [hasPass, setHasPass] = useState(false);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -213,7 +214,24 @@ export default function BackupSettings() {
           </div>
 
           <Field l="Backup passphrase" hint={hasPass ? 'A passphrase is set. Type a new one to change it; leave blank to keep it.' : 'Set a passphrase — it encrypts every backup and is required to restore or view one. Store it safely; it is never recoverable from here.'}>
-            <input type="password" style={{ ...input, maxWidth: 360 }} value={passphrase} placeholder={hasPass ? '•••••••• (set)' : 'Choose a passphrase'} onChange={(e) => setPassphrase(e.target.value)} />
+            <div style={{ position: 'relative', maxWidth: 360 }}>
+              <input
+                type={showPass ? 'text' : 'password'}
+                style={{ ...input, paddingRight: 38 }}
+                value={passphrase}
+                placeholder={hasPass ? '•••••••• (set)' : 'Choose a passphrase'}
+                onChange={(e) => setPassphrase(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                aria-label={showPass ? 'Hide passphrase' : 'Show passphrase'}
+                title={showPass ? 'Hide' : 'Show'}
+                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)', display: 'flex', padding: 4 }}
+              >
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </Field>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -233,11 +251,11 @@ export default function BackupSettings() {
             {plan ? <>{plan.included.length} active module group{plan.included.length === 1 ? '' : 's'} · {includedTables} table{includedTables === 1 ? '' : 's'}.</> : 'Plan unavailable.'}
           </p>
 
-          {(plan?.skipped || []).map((m) => (
+          {(plan?.disabled || []).map((m) => (
             <div key={m.module} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.30)', borderRadius: 9, padding: '10px 13px', marginBottom: 8 }}>
               <AlertTriangle size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
               <span style={{ fontSize: '0.82rem', color: '#92400e' }}>
-                <strong>{m.name}</strong> is disabled — its data won't be included in backups. This doesn't stop the backup; the module's tables are simply skipped until it's switched on.
+                <strong>{m.name}</strong> is switched off — its data won't be included in backups. This doesn't stop the backup; the module's tables are simply skipped until you switch it back on in the Module Center.
               </span>
             </div>
           ))}
@@ -253,8 +271,14 @@ export default function BackupSettings() {
             ))}
           </div>
 
+          {plan?.unlicensed?.length > 0 && (
+            <p style={{ marginTop: 14, fontSize: '0.76rem', color: '#9ca3af' }}>
+              Not licensed on this installation (not backed up): {plan.unlicensed.map((m) => m.name).join(', ')}.
+            </p>
+          )}
+
           {plan?.unassigned?.length > 0 && (
-            <p style={{ marginTop: 14, fontSize: '0.78rem', color: '#b45309' }}>
+            <p style={{ marginTop: 10, fontSize: '0.78rem', color: '#b45309' }}>
               {plan.unassigned.length} unassigned table{plan.unassigned.length === 1 ? '' : 's'} not yet mapped to a module — tell me and I'll place {plan.unassigned.length === 1 ? 'it' : 'them'}: {plan.unassigned.join(', ')}
             </p>
           )}
