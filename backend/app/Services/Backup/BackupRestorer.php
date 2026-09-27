@@ -217,7 +217,12 @@ class BackupRestorer
             return ['action' => $mode, 'reason' => 'empty', 'rows' => 0];
         }
 
-        $pk = $mode === 'merge' ? $this->primaryKey($table) : [];
+        // Columns we may actually write: real columns minus generated/computed ones,
+        // and only those that still exist in this schema (drift-safe).
+        $generated = $this->generatedColumns($table);
+        $insertable = array_values(array_diff(Schema::getColumnListing($table), $generated));
+
+        $pk = $mode === 'merge' ? array_values(array_intersect($this->primaryKey($table), $insertable)) : [];
         if ($mode === 'merge' && empty($pk)) {
             fclose($stream);
             return ['action' => 'skipped', 'reason' => 'no primary key (merge not possible)', 'rows' => 0];
@@ -239,6 +244,11 @@ class BackupRestorer
             }
             $decoded = json_decode($trim, true);
             if (!is_array($decoded)) {
+                continue;
+            }
+            // Drop generated columns and anything not in this table's schema.
+            $decoded = array_intersect_key($decoded, array_flip($insertable));
+            if ($decoded === []) {
                 continue;
             }
             $batch[] = $decoded;
@@ -268,6 +278,22 @@ class BackupRestorer
             DB::table($table)->upsert($rows, $pk, $update ?: array_keys($rows[0]));
         } else {
             DB::table($table)->insert($rows);
+        }
+    }
+
+    /** Generated/virtual/stored columns — MySQL forbids writing values to these. */
+    private function generatedColumns(string $table): array
+    {
+        try {
+            $rows = DB::select(
+                "SELECT column_name AS name FROM information_schema.columns
+                 WHERE table_schema = DATABASE() AND table_name = ?
+                   AND extra LIKE '%GENERATED%'",
+                [$table]
+            );
+            return array_map(fn ($r) => $r->name, $rows);
+        } catch (Throwable $e) {
+            return [];
         }
     }
 
