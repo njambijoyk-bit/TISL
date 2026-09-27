@@ -72,7 +72,7 @@ final class LicenseFormat
 
         $head = substr($body, 0, 3 + $length);
         $signature = substr($body, 3 + $length, 64);
-        if (strlen($publicKey) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES
+        if (strlen($publicKey) !== 32
             || !sodium_crypto_sign_verify_detached($signature, self::DOMAIN . $head, $publicKey)) {
             return $none(self::FAKE);
         }

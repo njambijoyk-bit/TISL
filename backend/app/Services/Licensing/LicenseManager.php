@@ -170,7 +170,7 @@ class LicenseManager
     /** Encrypt a key's raw bytes for storage; lock derived from pepper + uuid. */
     public function seal(string $keyBytes, string $uuid): string
     {
-        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $nonce = random_bytes(24);
         $cipher = sodium_crypto_secretbox($keyBytes, $nonce, $this->boxKey($uuid));
 
         return base64_encode($nonce . $cipher);
@@ -179,11 +179,11 @@ class LicenseManager
     private function unseal(string $sealed, string $uuid): ?string
     {
         $raw = base64_decode($sealed, true);
-        if ($raw === false || strlen($raw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+        if ($raw === false || strlen($raw) <= 24) {
             return null;
         }
-        $nonce = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $nonce = substr($raw, 0, 24);
+        $cipher = substr($raw, 24);
         $plain = sodium_crypto_secretbox_open($cipher, $nonce, $this->boxKey($uuid));
 
         return $plain === false ? null : $plain;
@@ -194,7 +194,7 @@ class LicenseManager
         return sodium_crypto_generichash(
             'tisl|box|' . $uuid . '|' . SecretAssembler::pepper(),
             '',
-            SODIUM_CRYPTO_SECRETBOX_KEYBYTES
+            32
         );
     }
 
