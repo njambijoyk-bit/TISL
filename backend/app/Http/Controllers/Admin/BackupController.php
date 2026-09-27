@@ -8,6 +8,7 @@ use App\Models\Module;
 use App\Models\ModuleTableMap;
 use App\Services\Backup\BackupExporter;
 use App\Services\Backup\BackupPlanner;
+use App\Services\Backup\BackupRestorer;
 use App\Services\Licensing\LicenseFormat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ class BackupController extends Controller
     public function __construct(
         private BackupPlanner $planner,
         private BackupExporter $exporter,
+        private BackupRestorer $restorer,
     ) {}
 
     /** Current settings — secrets returned only as booleans, never in the clear. */
@@ -196,13 +198,50 @@ class BackupController extends Controller
         return response()->json(['runs' => $rows]);
     }
 
-    /** Restore — super_admin only; engine not built yet. */
-    public function restore()
+    /** Backups available at the remote destination (for the pull picker). */
+    public function restoreFiles()
     {
-        return response()->json([
-            'ok'      => false,
-            'message' => 'The restore engine is still being built.',
-        ], 501);
+        return response()->json(['files' => $this->restorer->destinationFiles()]);
+    }
+
+    /** Restore from an uploaded .wnkjba file. Passphrase required. */
+    public function restoreUpload(Request $request)
+    {
+        @set_time_limit(0);
+        $data = $request->validate([
+            'file'       => 'required|file|max:1048576', // up to ~1 GB
+            'passphrase' => 'required|string',
+            'mode'       => ['required', Rule::in(['replace', 'merge'])],
+        ]);
+
+        try {
+            $result = $this->restorer->restoreFromFile(
+                $request->file('file')->getRealPath(),
+                $data['passphrase'],
+                $data['mode']
+            );
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Restore by pulling a named backup from the remote destination. Passphrase required. */
+    public function restorePull(Request $request)
+    {
+        @set_time_limit(0);
+        $data = $request->validate([
+            'filename'   => 'required|string|max:255',
+            'passphrase' => 'required|string',
+            'mode'       => ['required', Rule::in(['replace', 'merge'])],
+        ]);
+
+        try {
+            $result = $this->restorer->restoreFromDestination($data['filename'], $data['passphrase'], $data['mode']);
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /** Strip secret fields from the destination config for display. */

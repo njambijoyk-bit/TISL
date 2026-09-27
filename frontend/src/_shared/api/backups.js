@@ -60,8 +60,25 @@ const backupsAPI = {
     return { ok: true, filename: name };
   },
 
-  restore: async (payload) => {
-    const { data } = await api.post('/admin/backups/restore', payload);
+  // ── Restore (super_admin) ────────────────────────────────────────────────
+  restoreFiles: async () => {
+    const { data } = await api.get('/admin/backups/restore/files');
+    return data; // { files: [{filename, size}] }
+  },
+
+  restoreUpload: async (file, passphrase, mode) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('passphrase', passphrase);
+    fd.append('mode', mode);
+    const { data } = await api.post('/admin/backups/restore/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  restorePull: async (filename, passphrase, mode) => {
+    const { data } = await api.post('/admin/backups/restore/pull', { filename, passphrase, mode });
     return data;
   },
 };

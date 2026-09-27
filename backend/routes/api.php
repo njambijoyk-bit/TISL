@@ -348,7 +348,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/download', [BackupController::class, 'download']);
     });
     Route::middleware('role:super_admin')->prefix('admin/backups')->group(function () {
-        Route::post('/restore', [BackupController::class, 'restore']);
+        Route::get('/restore/files',   [BackupController::class, 'restoreFiles']);
+        Route::post('/restore/upload', [BackupController::class, 'restoreUpload']);
+        Route::post('/restore/pull',   [BackupController::class, 'restorePull']);
     });
 
     // ============================================

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import backupsAPI from '../../../../_shared/api/backups';
 import AssignTablesModal from './AssignTablesModal';
+import RestorePanel from './RestorePanel';
 import { useAuthStore } from '../../../../_shared/store/index';
 import {
   Database, Save, PlayCircle, RotateCcw, AlertTriangle, CheckCircle2,
@@ -375,9 +376,7 @@ export default function BackupSettings() {
             <span style={{ fontFamily: 'monospace', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', color: 'var(--color-primary-700)' }}>super admin</span>
           </div>
           {isSuper ? (
-            <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
-              Restore from a backup (upload a <code>.wnkjba</code> file or pull from the destination) — you'll enter the backup's passphrase, which must match or it won't decrypt — choosing Replace or Merge per restore. The restore engine is being built next.
-            </p>
+            <RestorePanel destinationDriver={form.destination_driver} />
           ) : (
             <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 7, color: '#9ca3af', fontSize: '0.82rem' }}>
               <Lock size={14} /> Only a super admin can restore backups.
