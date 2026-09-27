@@ -8,6 +8,8 @@ import {
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import { adminCreditAPI } from '../../../_shared/api/customerCredit';
 import customersAPI from '../../../_shared/api/customers';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canActOnCredit } from '../../../_shared/lib/roles';
 
 // ── Shared style atoms ───────────────────────────────────────────────────────
 
@@ -1381,6 +1383,7 @@ function LocalStatementTab({ customerId }) {
 }
 
 function LocalSchedulesTab({ customerId, onRefresh, notify }) {
+  const canAct = canActOnCredit(useAuthStore().user);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1421,7 +1424,7 @@ function LocalSchedulesTab({ customerId, onRefresh, notify }) {
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <span style={{ fontWeight: 700 }}>{Number(i.amount).toLocaleString()}</span>
                 <span style={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800, color: i.status === 'paid' ? '#16a34a' : '#4b5563' }}>{i.status}</span>
-                {i.status === 'pending' && <button onClick={() => handleWaive(s.id, i.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600 }}>Waive</button>}
+                {canAct && i.status === 'pending' && <button onClick={() => handleWaive(s.id, i.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600 }}>Waive</button>}
               </div>
             </div>
           ))}
@@ -1432,6 +1435,7 @@ function LocalSchedulesTab({ customerId, onRefresh, notify }) {
 }
 
 function LocalInvoicesTab({ customerId, notify }) {
+  const canAct = canActOnCredit(useAuthStore().user);
   const [invs, setInvs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1472,7 +1476,7 @@ function LocalInvoicesTab({ customerId, notify }) {
               <td style={{ padding: 12 }}><span style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700 }}>{v.status}</span></td>
               <td style={{ padding: 12, textAlign: 'right', fontWeight: 700 }}>{Number(v.total_amount).toLocaleString()}</td>
               <td style={{ padding: 12, textAlign: 'center' }}>
-                {v.status === 'draft' && <button onClick={() => handleSend(v.id)} style={{ background: 'var(--color-primary-600)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontSize: '0.75rem' }}>Send Notification</button>}
+                {canAct && v.status === 'draft' && <button onClick={() => handleSend(v.id)} style={{ background: 'var(--color-primary-600)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontSize: '0.75rem' }}>Send Notification</button>}
               </td>
             </tr>
           ))}

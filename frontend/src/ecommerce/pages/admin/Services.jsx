@@ -30,6 +30,7 @@ import Input from '../../../_shared/components/common/Input';
 import Select from '../../../_shared/components/common/Select';
 import Modal from '../../../_shared/components/common/Modal';
 import Badge from '../../../_shared/components/common/Badge';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 const Services = () => {
   const navigate = useNavigate();
@@ -70,6 +71,7 @@ const Services = () => {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   const isSuperAdmin = user?.role === 'super_admin';
+  const canDelete = canDeleteCatalogue(user);
 
   useEffect(() => {
     console.log('Fetching services and statistics...');
@@ -402,16 +404,18 @@ const Services = () => {
           )}
 
           {/* Delete */}
-          <button
-            onClick={() => handleDeleteClick(service)}
-            disabled={actionLoading}
-            title="Delete"
-            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#ef4444', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <Trash2 size={15} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => handleDeleteClick(service)}
+              disabled={actionLoading}
+              title="Delete"
+              style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: '#ef4444', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.5 : 1 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -583,31 +587,33 @@ const Services = () => {
               </button>
 
               {/* Move to Trash — danger/red */}
-              <button
-                onClick={handleBulkSoftDelete}
-                disabled={actionLoading}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '5px 12px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
-                  fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
-                  border: '1.5px solid rgba(239,68,68,0.2)',
-                  opacity: actionLoading ? 0.5 : 1,
-                  transition: 'all 150ms',
-                }}
-                onMouseEnter={e => {
-                  if (!actionLoading) {
-                    e.currentTarget.style.background = 'rgba(239,68,68,0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)';
-                  }
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
-                  e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)';
-                }}
-              >
-                <Trash2 size={14} /> Move to Trash
-              </button>
+              {canDelete && (
+                <button
+                  onClick={handleBulkSoftDelete}
+                  disabled={actionLoading}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '5px 12px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
+                    background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
+                    border: '1.5px solid rgba(239,68,68,0.2)',
+                    opacity: actionLoading ? 0.5 : 1,
+                    transition: 'all 150ms',
+                  }}
+                  onMouseEnter={e => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.background = 'rgba(239,68,68,0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)';
+                  }}
+                >
+                  <Trash2 size={14} /> Move to Trash
+                </button>
+              )}
 
             </div>
           </div>

@@ -246,37 +246,63 @@ class PaymentController extends Controller
     }
 
     // =========================================================================
-    // DARAJA CALLBACK — unchanged logic, works for both order types
+    // DARAJA CALLBACK
+    //
+    // The callback body is never trusted on its own:
+    //  - optional shared token in the URL (DARAJA_CALLBACK_TOKEN)
+    //  - a "success" callback only confirms the payment after Daraja's own
+    //    STK query agrees it was paid
+    //  - the amount recorded is the amount we pushed, not the amount posted
+    //  - the payment row is locked so duplicate callbacks can't double-process
+    // Always answers "Accepted" so Safaricom doesn't retry.
     // =========================================================================
 
     public function callback(Request $request)
     {
-        $rawBody = $request->all();
-        Log::info('Daraja: Callback received', ['body' => $rawBody]);
+        $accepted = response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+        $rawBody  = $request->all();
+
+        $expectedToken = (string) config('daraja.callback_token');
+        if ($expectedToken !== '' && !hash_equals($expectedToken, (string) $request->query('token', ''))) {
+            Log::warning('Daraja: Callback rejected — missing or wrong token', ['ip' => $request->ip()]);
+            return $accepted;
+        }
+
+        Log::info('Daraja: Callback received', ['body' => $rawBody, 'ip' => $request->ip()]);
 
         try {
             $parsed = $this->daraja->parseCallback($rawBody);
         } catch (\Exception $e) {
             Log::error('Daraja: Callback parse failed', ['error' => $e->getMessage(), 'body' => $rawBody]);
-            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+            return $accepted;
         }
+
+        $payment = Payment::where('checkout_request_id', $parsed['checkout_request_id'])->first();
+
+        if (!$payment) {
+            Log::warning('Daraja: Callback received for unknown CheckoutRequestID', [
+                'checkout_request_id' => $parsed['checkout_request_id'],
+            ]);
+            return $accepted;
+        }
+
+        if ($payment->isConfirmed()) {
+            Log::info('Daraja: Duplicate callback for already-confirmed payment', ['payment_id' => $payment->id]);
+            return $accepted;
+        }
+
+        // Ask Daraja before touching the payment (outside the transaction: it's an HTTP call)
+        $verified = $parsed['is_success']
+            ? $this->daraja->verifyPaid($payment->checkout_request_id)
+            : null;
 
         DB::beginTransaction();
         try {
-            $payment = Payment::where('checkout_request_id', $parsed['checkout_request_id'])->first();
-
-            if (!$payment) {
-                Log::warning('Daraja: Callback received for unknown CheckoutRequestID', [
-                    'checkout_request_id' => $parsed['checkout_request_id'],
-                ]);
-                DB::rollBack();
-                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
-            }
+            $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
 
             if ($payment->isConfirmed()) {
-                Log::info('Daraja: Duplicate callback for already-confirmed payment', ['payment_id' => $payment->id]);
                 DB::rollBack();
-                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+                return $accepted;
             }
 
             $callbackFields = [
@@ -287,27 +313,25 @@ class PaymentController extends Controller
                 'merchant_request_id'   => $parsed['merchant_request_id'] ?: $payment->merchant_request_id,
             ];
 
-            if ($parsed['is_success']) {
-                $amountConfirmed = $parsed['amount_confirmed'];
+            if ($parsed['is_success'] && $verified === true) {
+                $this->confirmVerifiedPayment($payment, $parsed, $callbackFields, 'callback');
 
+            } elseif ($parsed['is_success']) {
+                // Claimed success that Daraja did not confirm (false) or could not confirm yet (null).
+                // Keep it pending; the admin "Query Daraja" action finishes it once Daraja agrees.
                 $payment->update(array_merge($callbackFields, [
-                    'status'                 => 'confirmed',
-                    'amount_received'        => $amountConfirmed,
-                    'mpesa_receipt_number'   => $parsed['receipt_number'],
-                    'mpesa_transaction_date' => $parsed['transaction_date'],
-                    'mpesa_phone_confirmed'  => $parsed['phone_confirmed'],
-                    'mpesa_amount_confirmed' => $amountConfirmed,
-                    'confirmed_at'           => now(),
+                    'admin_notes' => $this->appendNote(
+                        $payment->admin_notes,
+                        $verified === false
+                            ? 'Callback reported success but Daraja STK query says NOT paid. Left pending — investigate.'
+                            : 'Callback reported success; Daraja could not confirm yet. Left pending — use "Query Daraja".'
+                    ),
                 ]));
 
-                $payment->refresh();
-                $payment->syncOrderPaymentStatus();
-
-                Log::info('Payment: Confirmed via callback', [
-                    'payment_id'     => $payment->id,
-                    'payment_number' => $payment->payment_number,
-                    'receipt'        => $parsed['receipt_number'],
-                    'amount'         => $amountConfirmed,
+                Log::warning('Daraja: Success callback not verified', [
+                    'payment_id' => $payment->id,
+                    'verified'   => $verified,
+                    'ip'         => $request->ip(),
                 ]);
 
             } else {
@@ -334,7 +358,52 @@ class PaymentController extends Controller
             ]);
         }
 
-        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+        return $accepted;
+    }
+
+    /**
+     * Mark a payment confirmed after Daraja's STK query said it was paid.
+     * Call inside a transaction with the payment row locked.
+     */
+    private function confirmVerifiedPayment(Payment $payment, array $parsed, array $extraFields, string $source): void
+    {
+        // An STK push can only be paid in full, for exactly the amount we pushed.
+        $pushedAmount  = (float) ceil((float) $payment->amount_expected);
+        $claimedAmount = (float) ($parsed['amount_confirmed'] ?? 0);
+
+        if ($claimedAmount > 0 && abs($claimedAmount - $pushedAmount) > 0.001) {
+            Log::warning('Daraja: Callback amount differs from pushed amount — using pushed amount', [
+                'payment_id' => $payment->id,
+                'pushed'     => $pushedAmount,
+                'claimed'    => $claimedAmount,
+            ]);
+        }
+
+        $payment->update(array_merge($extraFields, [
+            'status'                 => 'confirmed',
+            'amount_received'        => $pushedAmount,
+            'mpesa_receipt_number'   => $parsed['receipt_number'],
+            'mpesa_transaction_date' => $parsed['transaction_date'],
+            'mpesa_phone_confirmed'  => $parsed['phone_confirmed'],
+            'mpesa_amount_confirmed' => $pushedAmount,
+            'confirmed_at'           => now(),
+        ]));
+
+        $payment->refresh();
+        $payment->syncOrderPaymentStatus();
+
+        Log::info('Payment: Confirmed (verified with Daraja)', [
+            'payment_id'     => $payment->id,
+            'payment_number' => $payment->payment_number,
+            'receipt'        => $parsed['receipt_number'],
+            'amount'         => $pushedAmount,
+            'source'         => $source,
+        ]);
+    }
+
+    private function appendNote(?string $notes, string $note): string
+    {
+        return ($notes ? $notes . "\n\n" : '') . '[' . now()->format('Y-m-d H:i:s') . '] ' . $note;
     }
 
     // =========================================================================
@@ -361,7 +430,7 @@ class PaymentController extends Controller
     }
 
     // =========================================================================
-    // MANUAL STATUS QUERY — unchanged
+    // MANUAL STATUS QUERY — also finishes a pending payment Daraja reports as paid
     // =========================================================================
 
     public function queryDaraja(Request $request, Payment $payment)
@@ -377,18 +446,46 @@ class PaymentController extends Controller
 
         try {
             $result = $this->daraja->queryStatus($payment->checkout_request_id);
-            return response()->json([
-                'message'          => 'Daraja query returned.',
-                'daraja_result'    => $result,
-                'payment_status'   => $payment->fresh()->status,
-                'hint'             => 'If ResultCode is 0, the callback may still arrive shortly. If 1032, customer cancelled.',
-            ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Daraja query failed.',
                 'error'   => $e->getMessage(),
             ], 502);
         }
+
+        $paid = array_key_exists('ResultCode', $result) && (string) $result['ResultCode'] === '0';
+
+        // Daraja says paid and we already hold its success callback: finish the payment now.
+        if ($paid && !empty($payment->callback_raw)) {
+            try {
+                $parsed = $this->daraja->parseCallback($payment->callback_raw);
+
+                if ($parsed['is_success'] && $parsed['checkout_request_id'] === $payment->checkout_request_id) {
+                    DB::transaction(function () use ($payment, $parsed, $request) {
+                        $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
+                        if ($locked->isPending()) {
+                            $this->confirmVerifiedPayment($locked, $parsed, [
+                                'admin_notes' => $this->appendNote(
+                                    $locked->admin_notes,
+                                    'Confirmed via Daraja query by ' . $request->user()->name . '.'
+                                ),
+                            ], 'manual_query');
+                        }
+                    });
+                }
+            } catch (\Throwable $e) {
+                Log::error('Daraja: Manual confirmation failed', ['payment_id' => $payment->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return response()->json([
+            'message'        => 'Daraja query returned.',
+            'daraja_result'  => $result,
+            'payment_status' => $payment->fresh()->status,
+            'hint'           => $paid && empty($payment->callback_raw)
+                ? 'Daraja says paid, but the callback has not arrived yet. Query again shortly.'
+                : 'If ResultCode is 0 the payment is confirmed. 1032 means the customer cancelled.',
+        ]);
     }
 
     // =========================================================================

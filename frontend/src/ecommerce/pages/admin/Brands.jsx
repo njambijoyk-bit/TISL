@@ -8,6 +8,8 @@ import {
   Plus, Search, Edit2, Eye, Trash2, X,
   Tag, CheckCircle, XCircle, TrendingUp, Globe, Star,
 } from 'lucide-react';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Style tokens (mirrors Products page) ────────────────────────────────────
 
@@ -216,6 +218,8 @@ export default function Brands() {
   const [loading, setLoading] = useState(true);
   const [brands, setBrands] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, brand: null, loading: false });
 
   useEffect(() => { fetchBrands(); }, []);
@@ -411,9 +415,11 @@ export default function Brands() {
                           <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                             <Edit2 size={15} />
                           </IconBtn>
-                          <IconBtn onClick={() => setDeleteModal({ isOpen: true, brand, loading: false })} title="Delete" color="var(--color-text-danger)">
-                            <Trash2 size={15} />
-                          </IconBtn>
+                          {canDelete && (
+                            <IconBtn onClick={() => setDeleteModal({ isOpen: true, brand, loading: false })} title="Delete" color="var(--color-text-danger)">
+                              <Trash2 size={15} />
+                            </IconBtn>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -36,7 +36,7 @@ export const ADMIN_NAV = [
     id: 'home',
     label: null,
     items: [
-      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard, color: 'var(--color-primary-500)', path: '/admin', exact: true, roles: 'all' },
+      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard, color: 'var(--color-primary-500)', path: '/admin', exact: true },
     ],
   },
 

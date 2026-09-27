@@ -8,6 +8,8 @@ import {
   Plus, Search, Edit2, Eye, Trash2, X,
   Layers, CheckCircle, XCircle, GitBranch, AlertTriangle,
 } from 'lucide-react';
+import useAuthStore from '../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Style tokens ─────────────────────────────────────────────────────────────
 
@@ -186,6 +188,8 @@ export default function Categories() {
   const [loading, setLoading]       = useState(true);
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, category: null, loading: false });
 
   useEffect(() => { fetchCategories(); }, []);
@@ -388,13 +392,15 @@ export default function Categories() {
                             <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="var(--color-primary-600)">
                               <Edit2 size={15} />
                             </IconBtn>
-                            <IconBtn
-                              onClick={() => setDeleteModal({ isOpen: true, category, loading: false })}
-                              title={kids > 0 ? `Has ${kids} subcategories` : 'Delete'}
-                              color="var(--color-text-danger)"
-                            >
-                              <Trash2 size={15} />
-                            </IconBtn>
+                            {canDelete && (
+                              <IconBtn
+                                onClick={() => setDeleteModal({ isOpen: true, category, loading: false })}
+                                title={kids > 0 ? `Has ${kids} subcategories` : 'Delete'}
+                                color="var(--color-text-danger)"
+                              >
+                                <Trash2 size={15} />
+                              </IconBtn>
+                            )}
                           </div>
                         </td>
                       </tr>

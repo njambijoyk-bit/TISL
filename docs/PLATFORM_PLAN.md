@@ -707,6 +707,9 @@ Build one module at a time, backend + frontend together, in this order:
 - Order totals use `exchange_rate_to_kes`; this is to move to `exchange_rate_to_base` + `base_currency_id`.
 
 ### Security and enforcement
+- ~~M-Pesa callback trusted the posted body~~ **Done 27 Sep:** a success callback only confirms after Daraja's STK query agrees; the amount recorded is the amount pushed; the row is locked against duplicate callbacks; optional `DARAJA_CALLBACK_TOKEN` (callback URL must end `?token=<value>`). "Query Daraja" finishes a payment the callback couldn't verify.
+- ~~Every staff role, drivers included, reached the whole /admin API~~ **Done 27 Sep:** drivers use `/driver/*` only; catalogue deletes (products, services, categories, brands, variants, images) are manager/admin/super_admin; credit actions are finance/manager/admin/super_admin (everyone can view; loyalty points stay open to staff); bug reports, dev notes and dev keys are super_admin. The UI hides what the API refuses (`src/_shared/lib/roles.js`).
+- A route points at `App\Http\Controllers\Api\InventoryController`, which doesn't exist (breaks `php artisan route:list`).
 - Tax and withholding policies exist but controllers never call `authorize()` (state rules unenforced).
 - Certificate and withholding documents are on the public disk; they should move to a private disk behind an authorised download.
 - Withholding `applyClearance` needs a transaction and a row lock.

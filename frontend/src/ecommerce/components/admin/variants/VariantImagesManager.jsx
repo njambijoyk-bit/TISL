@@ -7,6 +7,8 @@ import { Field, TextInput, SelectInput, CheckboxRow, FormStack, ModalActions, Fo
 import useDeleteConfirm from '../../../../core/components/admin/tax/sections/useDeleteConfirm';
 import { storageUrl } from '../../../../_shared/lib/storageUrl';
 import { colors, radius, btnGhost, btnIcon } from '../../../../_shared/theme/tokens';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canDeleteCatalogue } from '../../../../_shared/lib/roles';
 
 /**
  * Images for the structured variants: tie a photo to a whole option value
@@ -94,6 +96,8 @@ function AddImageModal({ onClose }) {
 }
 
 export default function VariantImagesManager({ readOnly }) {
+  const { user } = useAuthStore();
+  const canDelete = canDeleteCatalogue(user);
   const { images, options, variants, actionLoading, setPrimaryImage, deleteImage } = useProductVariantStore();
   const [adding, setAdding] = useState(false);
   const { ask, modal } = useDeleteConfirm(actionLoading);
@@ -122,10 +126,12 @@ export default function VariantImagesManager({ readOnly }) {
                       style={{ ...btnIcon, width: 24, height: 24, color: img.is_primary ? colors.warning : colors.textFaint }}>
                       <Star size={12} fill={img.is_primary ? colors.warning : 'none'} />
                     </button>
-                    <button type="button" aria-label="Delete image" style={{ ...btnIcon, width: 24, height: 24 }}
-                      onClick={() => ask({ title: 'Delete this image?', message: 'Uploaded files are removed from storage too.', run: () => deleteImage(img.id), done: 'Image deleted' })}>
-                      <Trash2 size={12} />
-                    </button>
+                    {canDelete && (
+                      <button type="button" aria-label="Delete image" style={{ ...btnIcon, width: 24, height: 24 }}
+                        onClick={() => ask({ title: 'Delete this image?', message: 'Uploaded files are removed from storage too.', run: () => deleteImage(img.id), done: 'Image deleted' })}>
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </>
                 )}
               </figcaption>

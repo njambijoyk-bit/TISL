@@ -535,7 +535,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // ADMIN/MANAGER/SALES REP ROUTES
     // ============================================
-    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep,driver')->prefix('admin')->group(function () {
+    // Staff area. Drivers are not here: their app uses /driver/* only.
+    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
         // Dashboard
         // Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
@@ -549,7 +550,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [ProductController::class, 'adminIndex']);
             Route::get('/trash', [ProductController::class, 'trashIndex']); // trashed products list
             Route::post('/restore-multiple', [ProductController::class, 'restoreMultiple']); // bulk restore
-            Route::post('/force-delete-multiple', [ProductController::class, 'forceDeleteMultiple']); // bulk permanent delete
+            Route::post('/force-delete-multiple', [ProductController::class, 'forceDeleteMultiple'])->middleware('role:admin,super_admin,manager'); // bulk permanent delete
 
             Route::post('/bulk-update-flags', [ProductController::class, 'bulkUpdateFlags']);
             Route::post('/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
@@ -557,9 +558,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [ProductController::class, 'show']); 
             Route::put('/{id}', [ProductController::class, 'update']);
             Route::post('/{id}/bulk-update', [ProductController::class, 'bulkUpdate']);
-            Route::delete('/{id}', [ProductController::class, 'destroy']);
+            Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
             Route::post('/{id}/restore', [ProductController::class, 'restore']); // restore single
-            Route::delete('/{id}/force', [ProductController::class, 'forceDelete']); // permanent delete single
+            Route::delete('/{id}/force', [ProductController::class, 'forceDelete'])->middleware('role:admin,super_admin,manager'); // permanent delete single
             Route::put('/{id}/stock', [ProductController::class, 'updateStock']);
 
             // Options / values / variants / units / images — nested under the existing
@@ -568,11 +569,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/', [ProductVariantController::class, 'adminIndexOptions']);
                 Route::post('/', [ProductVariantController::class, 'adminStoreOption']);
                 Route::put('/{optionId}', [ProductVariantController::class, 'adminUpdateOption']);
-                Route::delete('/{optionId}', [ProductVariantController::class, 'adminDestroyOption']);
+                Route::delete('/{optionId}', [ProductVariantController::class, 'adminDestroyOption'])->middleware('role:admin,super_admin,manager');
 
                 Route::post('/{optionId}/values', [ProductVariantController::class, 'adminStoreOptionValue']);
                 Route::put('/{optionId}/values/{valueId}', [ProductVariantController::class, 'adminUpdateOptionValue']);
-                Route::delete('/{optionId}/values/{valueId}', [ProductVariantController::class, 'adminDestroyOptionValue']);
+                Route::delete('/{optionId}/values/{valueId}', [ProductVariantController::class, 'adminDestroyOptionValue'])->middleware('role:admin,super_admin,manager');
             });
 
             Route::prefix('{id}/variants')->group(function () {
@@ -580,7 +581,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/', [ProductVariantController::class, 'adminStoreVariant']);
                 Route::get('/{variantId}', [ProductVariantController::class, 'adminShowVariant']);
                 Route::put('/{variantId}', [ProductVariantController::class, 'adminUpdateVariant']);
-                Route::delete('/{variantId}', [ProductVariantController::class, 'adminDestroyVariant']);
+                Route::delete('/{variantId}', [ProductVariantController::class, 'adminDestroyVariant'])->middleware('role:admin,super_admin,manager');
                 Route::post('/{variantId}/set-default', [ProductVariantController::class, 'adminSetDefaultVariant']);
             });
 
@@ -593,7 +594,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('images')->group(function () {
             Route::put('/{imageId}', [ProductVariantController::class, 'adminUpdateImage']);
-            Route::delete('/{imageId}', [ProductVariantController::class, 'adminDestroyImage']);
+            Route::delete('/{imageId}', [ProductVariantController::class, 'adminDestroyImage'])->middleware('role:admin,super_admin,manager');
         });
 
         Route::prefix('variants/{variantId}/units')->group(function () {
@@ -603,7 +604,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('variant-units')->group(function () {
             Route::put('/{unitId}', [ProductVariantController::class, 'adminUpdateUnit']);
-            Route::delete('/{unitId}', [ProductVariantController::class, 'adminDestroyUnit']);
+            Route::delete('/{unitId}', [ProductVariantController::class, 'adminDestroyUnit'])->middleware('role:admin,super_admin,manager');
         });
 
         // Units of measure
@@ -659,7 +660,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('categories')->group(function () {
             Route::post('/', [CategoryController::class, 'store']);
             Route::put('/{id}', [CategoryController::class, 'update']);
-            Route::delete('/{id}', [CategoryController::class, 'destroy']);
+            Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
         });
 
         // Brands Management
@@ -668,7 +669,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [BrandController::class, 'show']); 
             Route::post('/', [BrandController::class, 'store']);
             Route::put('/{id}', [BrandController::class, 'update']);
-            Route::delete('/{id}', [BrandController::class, 'destroy']);
+            Route::delete('/{id}', [BrandController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
         });
 
         // Customers Management
@@ -686,7 +687,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/assign-sales-rep', [CustomerController::class, 'assignSalesRep']);
             Route::post('/{id}/add-tag', [CustomerController::class, 'addTag']);
             Route::post('/{id}/remove-tag', [CustomerController::class, 'removeTag']);
-            Route::post('/{id}/add-credit', [CustomerController::class, 'addCredit']);
+            Route::post('/{id}/add-credit', [CustomerController::class, 'addCredit'])->middleware('role:finance,manager,admin,super_admin');
             Route::post('/{id}/add-loyalty-points', [CustomerController::class, 'addLoyaltyPoints']);
 
             // Addresses
@@ -700,27 +701,28 @@ Route::middleware('auth:sanctum')->group(function () {
             });
 
             // ── Credit Account (Admin) ──────────────────────────────
+            // Any staff role can view; only finance, manager, admin, super_admin can act.
             Route::prefix('/{id}/credit')->group(function () {
                 Route::get('/summary',                              [CustomerCreditController::class, 'summary']);
                 Route::get('/statement',                            [CustomerCreditController::class, 'statement']);
-                Route::post('/payment',                             [CustomerCreditController::class, 'recordPayment']);
-                Route::post('/adjustment',                          [CustomerCreditController::class, 'adjustment']);
-                Route::post('/interest',                            [CustomerCreditController::class, 'applyInterest']);
+                Route::post('/payment',                             [CustomerCreditController::class, 'recordPayment'])->middleware('role:finance,manager,admin,super_admin');
+                Route::post('/adjustment',                          [CustomerCreditController::class, 'adjustment'])->middleware('role:finance,manager,admin,super_admin');
+                Route::post('/interest',                            [CustomerCreditController::class, 'applyInterest'])->middleware('role:finance,manager,admin,super_admin');
 
                 // Schedules
                 Route::get('/schedules',                            [CustomerCreditController::class, 'schedules']);
-                Route::post('/schedules',                           [CustomerCreditController::class, 'createSchedule']);
+                Route::post('/schedules',                           [CustomerCreditController::class, 'createSchedule'])->middleware('role:finance,manager,admin,super_admin');
                 Route::get('/schedules/{sid}',                      [CustomerCreditController::class, 'showSchedule']);
-                Route::patch('/schedules/{sid}/cancel',             [CustomerCreditController::class, 'cancelSchedule']);
-                Route::patch('/schedules/{sid}/items/{iid}/pay',    [CustomerCreditController::class, 'payInstallment']);
-                Route::patch('/schedules/{sid}/items/{iid}/waive',  [CustomerCreditController::class, 'waiveInstallment']);
+                Route::patch('/schedules/{sid}/cancel',             [CustomerCreditController::class, 'cancelSchedule'])->middleware('role:finance,manager,admin,super_admin');
+                Route::patch('/schedules/{sid}/items/{iid}/pay',    [CustomerCreditController::class, 'payInstallment'])->middleware('role:finance,manager,admin,super_admin');
+                Route::patch('/schedules/{sid}/items/{iid}/waive',  [CustomerCreditController::class, 'waiveInstallment'])->middleware('role:finance,manager,admin,super_admin');
 
                 // Invoices
                 Route::get('/invoices',                             [CustomerCreditController::class, 'invoices']);
-                Route::post('/invoices',                            [CustomerCreditController::class, 'createInvoice']);
+                Route::post('/invoices',                            [CustomerCreditController::class, 'createInvoice'])->middleware('role:finance,manager,admin,super_admin');
                 Route::get('/invoices/{inv}',                       [CustomerCreditController::class, 'showInvoice']);
-                Route::patch('/invoices/{inv}/status',              [CustomerCreditController::class, 'updateInvoiceStatus']);
-                Route::post('/invoices/{inv}/send',                 [CustomerCreditController::class, 'sendInvoice']);
+                Route::patch('/invoices/{inv}/status',              [CustomerCreditController::class, 'updateInvoiceStatus'])->middleware('role:finance,manager,admin,super_admin');
+                Route::post('/invoices/{inv}/send',                 [CustomerCreditController::class, 'sendInvoice'])->middleware('role:finance,manager,admin,super_admin');
             });
         });
 
@@ -730,13 +732,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [ServiceController::class, 'store']);
             Route::get('/trash', [ServiceController::class, 'trash']);
             Route::post('/restore-multiple', [ServiceController::class, 'restoreMultiple']);
-            Route::post('/force-delete-multiple', [ServiceController::class, 'forceDeleteMultiple']);
+            Route::post('/force-delete-multiple', [ServiceController::class, 'forceDeleteMultiple'])->middleware('role:admin,super_admin,manager');
             Route::get('/statistics', [ServiceController::class, 'statistics']);
             Route::get('/available', [ServiceController::class, 'getAvailableServices']); 
             Route::get('/products/available', [ServiceController::class, 'getAvailableProducts']); 
             Route::get('/{id}', [ServiceController::class, 'adminShow']);
             Route::put('/{id}', [ServiceController::class, 'update']);
-            Route::delete('/{id}', [ServiceController::class, 'destroy']);
+            Route::delete('/{id}', [ServiceController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
             Route::post('/{id}/restore', [ServiceController::class, 'restore']);
             Route::post('/{id}/publish', [ServiceController::class, 'publish']);
             Route::post('/{id}/unpublish', [ServiceController::class, 'unpublish']);
@@ -748,7 +750,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [ServiceCategoryController::class, 'store']);
             Route::get('/{id}', [ServiceCategoryController::class, 'adminShow']);
             Route::put('/{id}', [ServiceCategoryController::class, 'update']);
-            Route::delete('/{id}', [ServiceCategoryController::class, 'destroy']);
+            Route::delete('/{id}', [ServiceCategoryController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
             Route::post('/reorder', [ServiceCategoryController::class, 'reorder']);
         });
         
@@ -1004,8 +1006,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{customerId}/transactions',  [LoyaltyController::class, 'transactions']);
             Route::post('/{customerId}/grant-points', [LoyaltyController::class, 'grantPoints']);
             Route::post('/{customerId}/deduct-points',[LoyaltyController::class, 'deductPoints']);
-            Route::post('/{customerId}/grant-credit', [LoyaltyController::class, 'grantCredit']);
-            Route::post('/{customerId}/deduct-credit',[LoyaltyController::class, 'deductCredit']);
+            Route::post('/{customerId}/grant-credit', [LoyaltyController::class, 'grantCredit'])->middleware('role:finance,manager,admin,super_admin');
+            Route::post('/{customerId}/deduct-credit',[LoyaltyController::class, 'deductCredit'])->middleware('role:finance,manager,admin,super_admin');
             Route::post('/{customerId}/redeem',       [LoyaltyController::class, 'redeem']);
         });
 
@@ -1105,7 +1107,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Bug Reports
-        Route::prefix('bug-reports')->group(function () {
+        Route::prefix('bug-reports')->middleware('role:super_admin')->group(function () {
             Route::get('/',                     [BugReportController::class, 'adminIndex']);
             Route::get('/{id}',                 [BugReportController::class, 'adminShow']);
             Route::patch('/{id}/status',        [BugReportController::class, 'updateStatus']);
@@ -1114,7 +1116,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Dev Notes (admin entering on behalf of dev)
-        Route::prefix('dev-notes')->group(function () {
+        Route::prefix('dev-notes')->middleware('role:super_admin')->group(function () {
             Route::get('/',              [BugReportController::class, 'devNoteIndex']);
             Route::post('/',             [BugReportController::class, 'devNoteStore']);
             Route::put('/{id}',          [BugReportController::class, 'devNoteUpdate']);
@@ -1123,7 +1125,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Dev Access Keys (admin board)
-        Route::prefix('dev-keys')->group(function () {
+        Route::prefix('dev-keys')->middleware('role:super_admin')->group(function () {
             Route::get('/active',        [BugReportController::class, 'activeKey']);
             Route::post('/regenerate',   [BugReportController::class, 'regenerateKey']);
             Route::get('/logs',          [BugReportController::class, 'keyLogs']);

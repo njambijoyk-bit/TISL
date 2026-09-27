@@ -194,14 +194,44 @@ class DarajaService
     // Useful for finance portal "Check Status" button.
     // =========================================================================
 
-    public function queryStatus(string $checkoutRequestId): array
+    /**
+     * Ask Daraja whether an STK push was actually paid.
+     *
+     * true  = paid (ResultCode 0)
+     * false = definitely not paid (any other ResultCode: cancelled, timeout, wrong PIN…)
+     * null  = could not tell (still processing, network or auth error)
+     */
+    public function verifyPaid(string $checkoutRequestId): ?bool
+    {
+        if ($checkoutRequestId === '') {
+            return null;
+        }
+
+        try {
+            $data = $this->queryStatus($checkoutRequestId, 15);
+        } catch (\Throwable $e) {
+            Log::warning('Daraja: STK query failed during verification', [
+                'checkout_request_id' => $checkoutRequestId,
+                'error'               => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!is_array($data) || !array_key_exists('ResultCode', $data)) {
+            return null; // e.g. "The transaction is being processed"
+        }
+
+        return (string) $data['ResultCode'] === '0';
+    }
+
+    public function queryStatus(string $checkoutRequestId, int $timeout = 30): array
     {
         $token     = $this->getAccessToken();
         $timestamp = now()->format('YmdHis');
         $password  = base64_encode($this->businessShortCode . $this->passkey . $timestamp);
 
         $response = Http::withToken($token)
-            ->timeout(30)
+            ->timeout($timeout)
             ->post("{$this->baseUrl}/mpesa/stkpushquery/v1/query", [
                 'BusinessShortCode' => $this->businessShortCode,
                 'Password'          => $password,
@@ -216,7 +246,7 @@ class DarajaService
             'response'            => $data,
         ]);
 
-        return $data;
+        return is_array($data) ? $data : []; // non-JSON reply would otherwise be a TypeError
     }
 
     // =========================================================================

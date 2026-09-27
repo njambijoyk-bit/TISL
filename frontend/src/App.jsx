@@ -287,6 +287,11 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
     return <Navigate to="/admin" replace />;
   }
 
+  // Drivers only use the driver app (/driver/*); the API refuses them everywhere under /admin
+  if (requireAdmin && user?.role === 'driver' && !window.location.pathname.startsWith('/driver')) {
+    return <Navigate to="/driver/manifests" replace />;
+  }
+
   // Admin routes (includes admin, super_admin, manager, finance, logistics, sales_rep)
   if (requireAdmin) {
     const allowedRoles = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep', 'driver'];
