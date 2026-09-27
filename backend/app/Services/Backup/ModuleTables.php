@@ -76,7 +76,7 @@ final class ModuleTables
         // Licensing / identity
         'installation', 'modules', 'module_locks', 'license_attempts',
         // Backup feature's own state
-        'backup_settings', 'backup_runs',
+        'backup_settings', 'backup_runs', 'module_table_map',
         // Framework / transient
         'migrations', 'sessions', 'cache', 'cache_locks',
         'jobs', 'job_batches', 'failed_jobs',
