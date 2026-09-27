@@ -341,6 +341,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/settings', [BackupController::class, 'settings']);
         Route::put('/settings',  [BackupController::class, 'updateSettings']);
         Route::get('/plan',      [BackupController::class, 'plan']);
+        Route::get('/tables',    [BackupController::class, 'tables']);
+        Route::post('/tables',   [BackupController::class, 'assignTables']);
         Route::post('/run',      [BackupController::class, 'run']);
     });
     Route::middleware('role:super_admin')->prefix('admin/backups')->group(function () {

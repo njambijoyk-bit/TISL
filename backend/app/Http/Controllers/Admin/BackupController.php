@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BackupSetting;
+use App\Models\Module;
+use App\Models\ModuleTableMap;
 use App\Services\Backup\BackupPlanner;
+use App\Services\Licensing\LicenseFormat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -91,6 +94,67 @@ class BackupController extends Controller
     public function plan()
     {
         return response()->json($this->planner->plan());
+    }
+
+    /** Data for the table-assignment form: unassigned tables, module options, current picks. */
+    public function tables()
+    {
+        $plan = $this->planner->plan();
+
+        $modules = array_merge(
+            [['key' => 'core', 'name' => 'Core']],
+            Module::orderBy('sort_order')->get(['module_key', 'name'])
+                ->map(fn ($m) => ['key' => $m->module_key, 'name' => $m->name])->all()
+        );
+
+        $assignments = ModuleTableMap::all(['table_name', 'module_key', 'is_excluded'])
+            ->map(fn ($r) => [
+                'table'    => $r->table_name,
+                'target'   => $r->is_excluded ? '__exclude__' : $r->module_key,
+            ]);
+
+        return response()->json([
+            'unassigned'  => $plan['unassigned'],
+            'modules'     => $modules,
+            'assignments' => $assignments,
+        ]);
+    }
+
+    /** Save table → module assignments (or exclude / unassign). */
+    public function assignTables(Request $request)
+    {
+        $allowed = array_merge(['core'], array_values(LicenseFormat::MODULES), ['__exclude__', '__unassign__']);
+        $data = $request->validate([
+            'assignments'             => 'required|array|min:1',
+            'assignments.*.table'     => 'required|string|max:100',
+            'assignments.*.target'    => ['required', 'string', Rule::in($allowed)],
+        ]);
+
+        $live = $this->planner->liveTables();
+        $saved = 0;
+
+        foreach ($data['assignments'] as $a) {
+            if (!in_array($a['table'], $live, true)) {
+                continue; // ignore anything that isn't a real table
+            }
+            $target = $a['target'];
+            if ($target === '__unassign__') {
+                ModuleTableMap::where('table_name', $a['table'])->delete();
+            } elseif ($target === '__exclude__') {
+                ModuleTableMap::updateOrCreate(
+                    ['table_name' => $a['table']],
+                    ['module_key' => null, 'is_excluded' => true]
+                );
+            } else {
+                ModuleTableMap::updateOrCreate(
+                    ['table_name' => $a['table']],
+                    ['module_key' => $target, 'is_excluded' => false]
+                );
+            }
+            $saved++;
+        }
+
+        return response()->json(['ok' => true, 'saved' => $saved, 'message' => "Saved $saved assignment(s)."]);
     }
 
     /** Run a backup now — export engine not built yet. */

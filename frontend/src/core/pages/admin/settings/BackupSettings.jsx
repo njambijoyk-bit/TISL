@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import backupsAPI from '../../../../_shared/api/backups';
+import AssignTablesModal from './AssignTablesModal';
 import { useAuthStore } from '../../../../_shared/store/index';
 import {
   Database, Save, PlayCircle, RotateCcw, AlertTriangle, CheckCircle2,
@@ -89,6 +90,7 @@ export default function BackupSettings() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -278,9 +280,12 @@ export default function BackupSettings() {
           )}
 
           {plan?.unassigned?.length > 0 && (
-            <p style={{ marginTop: 10, fontSize: '0.78rem', color: '#b45309' }}>
-              {plan.unassigned.length} unassigned table{plan.unassigned.length === 1 ? '' : 's'} not yet mapped to a module — tell me and I'll place {plan.unassigned.length === 1 ? 'it' : 'them'}: {plan.unassigned.join(', ')}
-            </p>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'rgba(180,83,9,0.06)', border: '1px solid rgba(180,83,9,0.25)', borderRadius: 9, padding: '10px 13px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#b45309', flex: 1 }}>
+                <strong>{plan.unassigned.length}</strong> table{plan.unassigned.length === 1 ? '' : 's'} not yet assigned to a module — they won't be backed up until you place them.
+              </span>
+              <button onClick={() => setAssignOpen(true)} style={{ ...btn('var(--color-primary-600)'), whiteSpace: 'nowrap' }}>Assign tables</button>
+            </div>
           )}
         </div>
 
@@ -302,6 +307,10 @@ export default function BackupSettings() {
           )}
         </div>
       </div>
+
+      {assignOpen && (
+        <AssignTablesModal onClose={() => setAssignOpen(false)} onSaved={load} />
+      )}
     </SettingsLayout>
   );
 }
