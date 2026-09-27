@@ -15,6 +15,7 @@ import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
+import useNavStore from '../../store/navStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
 
@@ -212,6 +213,13 @@ export default function Header() {
   const { items: cartItems } = useCartStore();
   const { items: wishlistItems } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
+
+  // Storefront nav visibility (admin-controlled, per active module).
+  const navKeys = useNavStore((s) => s.keys);
+  const navLoaded = useNavStore((s) => s.loaded);
+  const fetchNav = useNavStore((s) => s.fetch);
+  useEffect(() => { fetchNav(); }, [fetchNav]);
+  const navHas = (k) => (!navLoaded ? true : navKeys.includes(k));
 
   const audio = useLayoutAudio();
 
@@ -440,12 +448,14 @@ export default function Header() {
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1 }} className="hidden-mobile">
 
+            {navHas('home') && (
             <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? 'var(--color-primary-500)' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
               Home
             </Link>
+            )}
 
             {/* Products mega menu */}
-            {isModuleActive(MODULES.ECOMMERCE) && (
+            {isModuleActive(MODULES.ECOMMERCE) && navHas('products') && (
             <div style={{ position: 'relative' }} onMouseEnter={() => { products.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { products.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
@@ -511,7 +521,7 @@ export default function Header() {
             )}
 
             {/* Services mega menu */}
-            {isModuleActive(MODULES.ECOMMERCE) && (
+            {isModuleActive(MODULES.ECOMMERCE) && navHas('services') && (
             <div style={{ position: 'relative' }} onMouseEnter={() => { services.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { services.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
@@ -551,21 +561,24 @@ export default function Header() {
             </div>
             )}
 
-            {isModuleActive(MODULES.ECOMMERCE) && (
+            {isModuleActive(MODULES.ECOMMERCE) && navHas('specials') && (
             <Link to="/specials" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/specials') ? 'var(--color-primary-500)' : '#ef4444', textDecoration: 'none' }}>
               🔥 Specials
             </Link>
             )}
 
-            <Link to="/about" style={{ 
-              padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
+            {navHas('about') && (
+            <Link to="/about" style={{
+              padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
               textDecoration: 'none', transition: 'all 150ms',
               color: isActive('/about') ? 'var(--color-primary-500)' : navColor,
               background: isActive('/about') ? navActiveBg : 'transparent',
             }}>
               About
             </Link>
-            <Link to="/contact" style={{ 
+            )}
+            {navHas('contact') && (
+            <Link to="/contact" style={{
               padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
               textDecoration: 'none', transition: 'all 150ms',
               color: isActive('/contact') ? 'var(--color-primary-500)' : navColor,
@@ -573,6 +586,7 @@ export default function Header() {
             }}>
               Contact
             </Link>
+            )}
           </nav>
 
           {/* ── Right icons ──────────────────────────────────────────────── */}
@@ -589,7 +603,7 @@ export default function Header() {
             <ThemePicker />
 
             {/* Wishlist */}
-            {isModuleActive(MODULES.ECOMMERCE) && (
+            {isModuleActive(MODULES.ECOMMERCE) && navHas('wishlist') && (
             <Link to="/wishlist" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Heart size={17} />
