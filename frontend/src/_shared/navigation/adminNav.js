@@ -262,7 +262,7 @@ export const ADMIN_NAV = [
           { group: 'Platform', title: 'Activity logs', path: '/admin/logs', description: 'Who changed what, and exports' },
           { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
           { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', soon: true, description: 'Storefront menu and links' },
-          { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', soon: true, description: 'Module Center and license keys' },
+          { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', roles: ['super_admin'], description: 'Module Center and license keys' },
         ],
       },
     ],
