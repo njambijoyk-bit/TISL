@@ -98,16 +98,69 @@ Update it whenever a decision changes.
 
 ### 5.2 Module Center (client superadmin)
 
-- A card for each module: its name, what it contains, and a status (Active / Licensed but off / Not licensed / Expired).
+- A card for each module: its name, what it contains, and a status (Active / Licensed but off / Not licensed).
 - The switch works only for licensed modules; switching one off hides it but keeps its data.
 - Unlicensed cards have a text area for a key. Pasting the key Renka provides activates the module immediately.
-- Every activation and switch is logged.
+- Shows "Licensed to <business name>" from the installation row, and the attempts log.
+- Every activation, switch and failed attempt is logged.
 
-### 5.3 License keys
+### 5.3 Licensing (decided 27 Sep 2026)
 
-- **Signed keys:** the payload (install, module, expiry) is signed with Renka's private key. The app ships only the public key, so keys can't be forged or edited, even with database access. The private key never goes in the repo.
-- **Enforcement on both ends:** the server blocks an inactive module's routes; the frontend hides its pages, menus and admin screens.
-- **Expiry or deactivation never deletes data**: the module goes read-only after a grace period, and a new key restores it.
+**Model.** Clients deploy on their own servers. The app **never calls home**; everything is checked offline. Licenses are **one-off and never expire** (no weekly/monthly/yearly keys, so winding the server clock back gains nothing). One codebase for every client: nothing client-specific lives in the code. Renka keeps the master register of clients and keys in her own Excel.
+
+**The three pieces.** A module unlocks only when all three agree:
+
+| Piece | Where | What it holds |
+|---|---|---|
+| 1. Code | Backend, same in every copy | Renka's **public key** and a secret **pepper**, each split into small chunks across a few files and disguised as ordinary config (default settings, sort weights, lookup tables). Assembled only at runtime. |
+| 2. Database | `installation` (one row) and one row per activated module | Installation: `client_uuid`, `business_name`, `purchased_at`, `ownership_signature` (Renka's signature over uuid + name + date), a hash of the uuid made with the pepper, `installed_at`. Module rows: the pasted key stored **encrypted** (lock built from pepper + client_uuid) plus its hash, `used` (0/1), `activated_at`, `activated_by`. |
+| 3. Renka's key | Given to the client on payment | Long (`TISL-XXXXX-…`), signed with Renka's private key. Carries `client_uuid`, module, serial number, issue date, a key-pair version (`v1`) and a checksum. |
+
+- The public key must stay in the code, never the database (a public key in the DB could be swapped for the attacker's own).
+- The private key never leaves Renka's machine and never goes in the repo. Keys and ownership codes are made by a small signing script kept outside this repo.
+- The installation table holds exactly one row (`CHECK (id = 1)`).
+
+**Setup.** On first install the client pastes an **ownership code** from Renka (uuid + business name + purchase date + signature). The site verifies it with the public key and writes the installation row. The row is then locked; changing it needs a new ownership code.
+
+**Pasting a module key** (checked in this order, all offline):
+
+| Check | Fails means | Message | Logged as |
+|---|---|---|---|
+| Checksum | Mistyped | "Looks mistyped, check the key" | typo (harmless) |
+| Signature (public key from code) | Edited or made-up key | "Invalid key" | fake (suspicious) |
+| `client_uuid` in key = installation's | Real key, another client's | "This key isn't for this installation" | other client (suspicious; records whose key) |
+| Module/serial already active | — | "Already active" | info |
+| All pass | — | Module activated, `used = 1` | accepted |
+
+After 10 failed attempts in an hour the key box locks for 15 minutes. Every attempt is logged (time, user, result).
+
+**The handshake (every time the site asks "is this module on?").**
+1. Assemble the public key and pepper from the code.
+2. Installation row: ownership signature valid and uuid hash matches (using the code's pepper).
+3. Module row: stored key decrypts and its hash matches.
+4. The key: signature valid, its uuid equals the installation's, its module is the one asked about.
+
+All pass means **licensed**. A module is **active** only if it is licensed **and** the client's own switch is on. The result is held in memory for a short time and never saved as "on", so there is no 0/1 flag to edit: setting a module to enabled in the database cannot turn on an unlicensed module. The `used` flag is a record, not a lock.
+
+**Where it is checked:** route middleware, module model loading, scheduled jobs and queued work, and navigation, so skipping it means patching many places.
+
+**When something doesn't add up**
+
+| Problem | Result |
+|---|---|
+| No ownership code yet | Setup screen only |
+| Installation row edited or fake | "Installation not verified": paid modules off, core keeps running |
+| One module key invalid | Only that module off |
+
+**Core never shuts down.** Orders, customers and payments keep working whatever happens to licensing. No data is ever deleted.
+
+**Recovery after a crash:** DB restored → nothing to do. DB lost → re-paste the same keys (a used key can always be re-pasted on its own installation). Key lost → Renka resends it from her register.
+
+**Honest limits and cover.** Someone with the code can still patch out the checks; the pieces make that a hassle, not impossible. A client copying their own install to a second site cannot be detected offline. Covered by: the checks spread through the code, "Licensed to <business name>" shown in admin, the Module Center and the footer (a copied site advertises whose license it is), a private repo, and the license agreement (licensed, not sold; one installation; no tampering; updates and support only with a valid license). If the private key ever leaks, a new key pair ships in an update and keys are reissued as `v2`.
+
+**TISL** is client #1 and gets its own ownership code and keys like any other client.
+
+**Still open:** whether Renka's owner tools (dev keys, bug reports, Data Engine, flowcharts) ship to clients; if they do, they unlock with Renka's own signed key, not the `super_admin` role (a client can make anyone super_admin).
 
 ### 5.4 Module manifests
 
