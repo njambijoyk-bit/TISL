@@ -31,6 +31,10 @@ class BackupRunCommand extends Command
                 $this->info('Backups disabled or set to never — nothing to do.');
                 return self::SUCCESS;
             }
+            if ($s->destination_driver === 'local') {
+                $this->warn('Destination is Local (download only) — scheduled backups need FTP, SFTP or S3.');
+                return self::SUCCESS;
+            }
             if (!$this->isDue($s)) {
                 $this->info('Not due yet.');
                 return self::SUCCESS;

@@ -52,7 +52,11 @@ function DestinationFields({ driver, cfg, set }) {
     <input type="password" style={input} value={cfg[k] ?? ''} placeholder={ph} onChange={(e) => set(k, e.target.value)} />
   );
   if (driver === 'local') {
-    return <Field l="Folder path" hint="Absolute path on the server, e.g. /var/backups/tisl">{f('path', '/var/backups/tisl')}</Field>;
+    return (
+      <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>
+        The backup is built on demand and <strong>downloaded to your computer</strong> as a <code>.wnkjba</code> file when you click <em>Back up &amp; download</em>. Nothing is stored on the server. (Automatic scheduled backups need FTP, SFTP or S3.)
+      </p>
+    );
   }
   if (driver === 'ftp' || driver === 'sftp') {
     return (
@@ -141,16 +145,32 @@ export default function BackupSettings() {
     } finally { setSaving(false); }
   };
 
+  const readErr = async (e) => {
+    const d = e.response?.data;
+    if (d instanceof Blob) {
+      try { return JSON.parse(await d.text()).message || 'Backup failed.'; } catch { return 'Backup failed.'; }
+    }
+    return d?.message || 'Backup failed.';
+  };
+
+  const isLocal = form?.destination_driver === 'local';
+
   const runNow = async () => {
     setRunning(true);
-    const t = toast.loading('Running backup…');
+    const t = toast.loading(isLocal ? 'Preparing download…' : 'Running backup…');
     try {
-      const res = await backupsAPI.runNow();
-      toast.dismiss(t);
-      res.ok ? toast.success(res.message) : toast.error(res.message || 'Backup failed.');
+      if (isLocal) {
+        await backupsAPI.downloadNow();
+        toast.dismiss(t);
+        toast.success('Backup downloaded to your computer.');
+      } else {
+        const res = await backupsAPI.runNow();
+        toast.dismiss(t);
+        res.ok ? toast.success(res.message) : toast.error(res.message || 'Backup failed.');
+      }
     } catch (e) {
       toast.dismiss(t);
-      toast.error(e.response?.data?.message || 'Backup failed.');
+      toast.error(await readErr(e));
     } finally {
       setRunning(false);
       await load();
@@ -225,7 +245,7 @@ export default function BackupSettings() {
 
           <Field l="Destination">
             <select style={{ ...input, maxWidth: 240 }} value={form.destination_driver} onChange={(e) => set('destination_driver', e.target.value)}>
-              <option value="local">Local file (server)</option>
+              <option value="local">Download to this computer</option>
               <option value="ftp">FTP</option>
               <option value="sftp">SFTP</option>
               <option value="s3">S3-compatible (online)</option>
@@ -262,7 +282,7 @@ export default function BackupSettings() {
               <Save size={15} /> {saving ? 'Saving…' : 'Save settings'}
             </button>
             <button onClick={runNow} disabled={running} style={{ ...btn('rgba(16,185,129,0.12)', '#047857'), opacity: running ? 0.6 : 1 }}>
-              <PlayCircle size={16} /> {running ? 'Backing up…' : 'Back up now'}
+              <PlayCircle size={16} /> {running ? 'Working…' : (isLocal ? 'Back up & download' : 'Back up now')}
             </button>
           </div>
         </div>
@@ -356,7 +376,7 @@ export default function BackupSettings() {
           </div>
           {isSuper ? (
             <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
-              Restore from a backup (upload a local <code>.wnkjbak</code> file or pull from the destination), choosing Replace or Merge per restore. The restore engine is being built next.
+              Restore from a backup (upload a <code>.wnkjba</code> file or pull from the destination) — you'll enter the backup's passphrase, which must match or it won't decrypt — choosing Replace or Merge per restore. The restore engine is being built next.
             </p>
           ) : (
             <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 7, color: '#9ca3af', fontSize: '0.82rem' }}>

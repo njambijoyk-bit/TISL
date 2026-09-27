@@ -43,6 +43,23 @@ const backupsAPI = {
     return data;
   },
 
+  // Local destination: build + stream the .wnkjba to the browser as a download.
+  downloadNow: async () => {
+    const res = await api.post('/admin/backups/download', {}, { responseType: 'blob' });
+    const cd = res.headers['content-disposition'] || '';
+    const m = /filename="?([^";]+)"?/.exec(cd);
+    const name = m ? m[1] : `wnkj-backup-${Date.now()}.wnkjba`;
+    const url = window.URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { ok: true, filename: name };
+  },
+
   restore: async (payload) => {
     const { data } = await api.post('/admin/backups/restore', payload);
     return data;
