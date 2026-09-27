@@ -60,7 +60,7 @@ class BackupController extends Controller
             'retention_count'    => 'integer|min:1|max:365',
             'destination_driver' => ['required', Rule::in(['local', 'ftp', 'sftp', 's3'])],
             'destination'        => 'nullable|array',
-            'passphrase'         => 'nullable|string|min:8|max:200',
+            'passphrase'         => 'nullable|string|min:1|max:200',
         ]);
 
         $s = BackupSetting::current();
