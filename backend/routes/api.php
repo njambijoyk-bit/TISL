@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Admin\MimiAnalyticsController;
 use App\Http\Controllers\Admin\DataEngineController;
 use App\Http\Controllers\Admin\LogExportController;
+use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
@@ -114,6 +115,21 @@ Route::get('/ping', function () {
 // ============================================
 Route::post('/chat/guest', [ChatController::class, 'chatGuest'])
     ->middleware('throttle:10,1'); // Strict limit for guests
+
+// Active modules — feeds storefront + admin navigation. Reveals only which
+// modules are on, which the UI and footer already show.
+Route::get('/modules/active', function (\App\Services\Licensing\LicenseManager $m) {
+    $active = array_values(array_filter(
+        array_values(\App\Services\Licensing\LicenseFormat::MODULES),
+        fn ($k) => $m->isActive($k)
+    ));
+
+    return response()->json([
+        'core'     => true,
+        'active'   => $active,
+        'verified' => $m->installationVerified(),
+    ]);
+});
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -295,6 +311,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/mark-all-read', [NotificationController::class, 'markAllRead']);
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    });
+
+    // ============================================
+    // LICENSING — SETUP + MODULE CENTER
+    // ============================================
+    // Setup (ownership code) is open to any staff user while the install is
+    // unverified, so a fresh site can be set up. Module Center is superadmin.
+    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->group(function () {
+        Route::get('/modules/setup-status', [ModuleController::class, 'status']);
+        Route::post('/modules/setup',       [ModuleController::class, 'setup']);
+    });
+    Route::middleware('role:super_admin')->prefix('admin/modules')->group(function () {
+        Route::get('/',                 [ModuleController::class, 'index']);
+        Route::get('/attempts',         [ModuleController::class, 'attempts']);
+        Route::post('/activate',        [ModuleController::class, 'activate']);
+        Route::patch('/{moduleKey}/toggle', [ModuleController::class, 'toggle']);
     });
 
     // ============================================
