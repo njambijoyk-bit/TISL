@@ -88,6 +88,8 @@ export default function BackupSettings() {
   const [showPass, setShowPass] = useState(false);
   const [hasPass, setHasPass] = useState(false);
   const [plan, setPlan] = useState(null);
+  const [runs, setRuns] = useState([]);
+  const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -95,7 +97,12 @@ export default function BackupSettings() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, p] = await Promise.all([backupsAPI.getSettings(), backupsAPI.getPlan().catch(() => null)]);
+      const [s, p, r] = await Promise.all([
+        backupsAPI.getSettings(),
+        backupsAPI.getPlan().catch(() => null),
+        backupsAPI.getRuns().catch(() => ({ runs: [] })),
+      ]);
+      setRuns(r.runs || []);
       setForm({
         enabled: s.enabled, frequency: s.frequency, run_time: s.run_time || '',
         run_day: s.run_day ?? '', retention_count: s.retention_count ?? 7,
@@ -135,12 +142,26 @@ export default function BackupSettings() {
   };
 
   const runNow = async () => {
+    setRunning(true);
+    const t = toast.loading('Running backup…');
     try {
       const res = await backupsAPI.runNow();
-      toast(res.message || 'Requested.', { icon: 'ℹ️' });
+      toast.dismiss(t);
+      res.ok ? toast.success(res.message) : toast.error(res.message || 'Backup failed.');
     } catch (e) {
-      toast(e.response?.data?.message || 'Not available yet.', { icon: 'ℹ️' });
+      toast.dismiss(t);
+      toast.error(e.response?.data?.message || 'Backup failed.');
+    } finally {
+      setRunning(false);
+      await load();
     }
+  };
+
+  const fmtSize = (b) => {
+    if (!b && b !== 0) return '—';
+    if (b < 1024) return `${b} B`;
+    if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
+    return `${(b / 1048576).toFixed(1)} MB`;
   };
 
   if (loading || !form) {
@@ -240,8 +261,8 @@ export default function BackupSettings() {
             <button onClick={save} disabled={saving} style={{ ...btn('var(--color-primary-600)'), opacity: saving ? 0.6 : 1 }}>
               <Save size={15} /> {saving ? 'Saving…' : 'Save settings'}
             </button>
-            <button onClick={runNow} style={btn('rgba(16,185,129,0.12)', '#047857')}>
-              <PlayCircle size={16} /> Back up now
+            <button onClick={runNow} disabled={running} style={{ ...btn('rgba(16,185,129,0.12)', '#047857'), opacity: running ? 0.6 : 1 }}>
+              <PlayCircle size={16} /> {running ? 'Backing up…' : 'Back up now'}
             </button>
           </div>
         </div>
@@ -285,6 +306,43 @@ export default function BackupSettings() {
                 <strong>{plan.unassigned.length}</strong> table{plan.unassigned.length === 1 ? '' : 's'} not yet assigned to a module — they won't be backed up until you place them.
               </span>
               <button onClick={() => setAssignOpen(true)} style={{ ...btn('var(--color-primary-600)'), whiteSpace: 'nowrap' }}>Assign tables</button>
+            </div>
+          )}
+        </div>
+
+        {/* RECENT RUNS */}
+        <div style={{ ...card, padding: 20, marginTop: 18 }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: '1rem', fontWeight: 700 }}>Recent backups</h2>
+          {runs.length === 0 ? (
+            <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.82rem' }}>No backups yet — hit "Back up now" to create the first one.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#9ca3af' }}>
+                    <th style={{ padding: '6px 8px' }}>When</th>
+                    <th style={{ padding: '6px 8px' }}>Status</th>
+                    <th style={{ padding: '6px 8px' }}>Trigger</th>
+                    <th style={{ padding: '6px 8px' }}>Tables</th>
+                    <th style={{ padding: '6px 8px' }}>Rows</th>
+                    <th style={{ padding: '6px 8px' }}>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {runs.map((r) => (
+                    <tr key={r.id} style={{ borderTop: '1px solid #f1f1f4' }}>
+                      <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{r.started_at ? new Date(r.started_at).toLocaleString() : '—'}</td>
+                      <td style={{ padding: '6px 8px', fontWeight: 600, color: r.status === 'ok' ? '#059669' : r.status === 'running' ? '#d97706' : '#dc2626' }}>
+                        {r.status}{r.error ? ` · ${r.error}` : ''}
+                      </td>
+                      <td style={{ padding: '6px 8px' }}>{r.trigger}</td>
+                      <td style={{ padding: '6px 8px', fontVariantNumeric: 'tabular-nums' }}>{r.table_count ?? '—'}</td>
+                      <td style={{ padding: '6px 8px', fontVariantNumeric: 'tabular-nums' }}>{r.row_count != null ? r.row_count.toLocaleString() : '—'}</td>
+                      <td style={{ padding: '6px 8px', fontVariantNumeric: 'tabular-nums' }}>{fmtSize(r.size_bytes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

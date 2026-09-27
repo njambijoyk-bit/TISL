@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BackupSetting;
 use App\Models\Module;
 use App\Models\ModuleTableMap;
+use App\Services\Backup\BackupExporter;
 use App\Services\Backup\BackupPlanner;
 use App\Services\Licensing\LicenseFormat;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ use Illuminate\Validation\Rule;
  */
 class BackupController extends Controller
 {
-    public function __construct(private BackupPlanner $planner) {}
+    public function __construct(
+        private BackupPlanner $planner,
+        private BackupExporter $exporter,
+    ) {}
 
     /** Current settings — secrets returned only as booleans, never in the clear. */
     public function settings()
@@ -157,13 +161,25 @@ class BackupController extends Controller
         return response()->json(['ok' => true, 'saved' => $saved, 'message' => "Saved $saved assignment(s)."]);
     }
 
-    /** Run a backup now — export engine not built yet. */
-    public function run()
+    /** Run a backup now (synchronous). */
+    public function run(Request $request)
     {
-        return response()->json([
-            'ok'      => false,
-            'message' => 'The export engine is still being built. Your settings and the backup plan are ready.',
-        ], 501);
+        @set_time_limit(0);
+        $result = $this->exporter->run('manual', $request->user()?->id);
+
+        return response()->json($result, $result['ok'] ? 200 : 422);
+    }
+
+    /** Recent backup runs (history + chain). */
+    public function runs()
+    {
+        $rows = \App\Models\BackupRun::latest('id')->limit(50)->get([
+            'id', 'status', 'trigger', 'destination_driver', 'filename',
+            'size_bytes', 'table_count', 'row_count', 'previous_run_id',
+            'started_at', 'finished_at', 'error',
+        ]);
+
+        return response()->json(['runs' => $rows]);
     }
 
     /** Restore — super_admin only; engine not built yet. */

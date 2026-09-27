@@ -18,6 +18,13 @@ Schedule::command('algorithm:compute-scores')->dailyAt('03:00');
 
 Schedule::command('loyalty:expire-points')->monthly();
 
+// ── Data backups ────────────────────────────────────────────────────────────
+// Runs hourly; the command decides whether the configured frequency/time is due.
+Schedule::command('backup:run')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // ── Vault Archiver ────────────────────────────────────────────────────────────
 Schedule::command('vault:archive')
     ->dailyAt('02:00')
