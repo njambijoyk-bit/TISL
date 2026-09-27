@@ -812,12 +812,8 @@ export default function Header() {
           <div style={{ borderTop: '1px solid #f3f4f6', background: 'white', maxHeight: '80vh', overflowY: 'auto' }} className="dark:bg-gray-900 dark:border-gray-700">
             <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
               {[
-                { label: 'Home', to: '/' },
-                { label: 'Products', to: '/products' },
-                { label: 'Services', to: '/services' },
-                { label: '🔥 Specials', to: '/specials' },
-                { label: 'About', to: '/about' },
-                { label: 'Contact', to: '/contact' },
+                // Driven by the nav manager (active module + admin-visible), in sort order.
+                ...navLinks.map(l => ({ label: l.label, to: l.path })),
                 { label: 'Manual', to: '/manual' },
               ].map(l => (
                 <Link key={l.to} to={l.to}
