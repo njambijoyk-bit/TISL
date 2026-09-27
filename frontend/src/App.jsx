@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
 import 'leaflet/dist/leaflet.css';
-import { useThemeStore, useAuthStore } from './_shared/store/index';
+import { useThemeStore, useAuthStore, useModuleStore } from './_shared/store/index';
+import ModuleRoute from './_shared/components/routing/ModuleRoute';
 
 import InstallPrompt from './_shared/components/common/InstallPrompt';
 import AlgorithmBanner from './_shared/components/layout/AlgorithmBanner';
@@ -230,6 +231,7 @@ const PublicationListPage  = lazy(() => import('./core/pages/admin/PublicationLi
 const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPage'));
 
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
+const ModuleCenter         = lazy(() => import('./core/pages/admin/settings/ModuleCenter'));
 const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));  
 const CustFlowchartPage    = lazy(() => import('./core/pages/admin/settings/diagrams/CustFlowchartPage'));
 const TxFlowchartPage      = lazy(() => import('./core/pages/admin/settings/diagrams/TxFlowchartPage'));
@@ -337,10 +339,17 @@ function PWARedirect() {
 // ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   const { initTheme } = useThemeStore();
+  const fetchModules = useModuleStore((s) => s.fetch);
 
   useEffect(() => {
     initTheme();
   }, [initTheme]);
+
+  // Load active modules once at boot (public endpoint) so nav, routes and
+  // menus reflect licensing. moduleStore fails closed on error.
+  useEffect(() => {
+    fetchModules();
+  }, [fetchModules]);
 
   return (
     <HelmetProvider>
@@ -391,15 +400,15 @@ function App() {
             } />
             <Route path="/home" element={<Home />} />
             <Route path="/portal" element={<Portal />} />
-            <Route path="/auctions" element={<AuctionListPage />} />
-            <Route path="/auctions/:id" element={<AuctionDetailPage />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/:id" element={<ProductDetail />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/specials" element={<SpecialsPage />} />
-            <Route path="/services/:id" element={<ServiceDetail />} />
+            <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
+            <Route path="/auctions/:id" element={<ModuleRoute module="ecommerce.auctions"><AuctionDetailPage /></ModuleRoute>} />
+            <Route path="/products" element={<ModuleRoute module="ecommerce"><Products /></ModuleRoute>} />
+            <Route path="/products/:id" element={<ModuleRoute module="ecommerce"><ProductDetail /></ModuleRoute>} />
+            <Route path="/services" element={<ModuleRoute module="ecommerce"><Services /></ModuleRoute>} />
+            <Route path="/specials" element={<ModuleRoute module="ecommerce"><SpecialsPage /></ModuleRoute>} />
+            <Route path="/services/:id" element={<ModuleRoute module="ecommerce"><ServiceDetail /></ModuleRoute>} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/wishlist" element={<ModuleRoute module="ecommerce"><Wishlist /></ModuleRoute>} />
             <Route path="/quote-list" element={<QuoteList />} />
 
             {/* Content Pages — public, no auth required */}
@@ -468,15 +477,15 @@ function App() {
             </Route>
 
             {/* ── Protected Customer Routes ────────────────────────────────── */}
-            <Route path="/hampers" element={<ProtectedRoute><HamperListPage /></ProtectedRoute>} />
-            <Route path="/hampers/my-orders" element={<ProtectedRoute><MyHamperOrders /></ProtectedRoute>} />
-            <Route path="/hampers/my-orders/:id" element={<ProtectedRoute><MyHamperOrderDetail /></ProtectedRoute>} />
-            <Route path="/hampers/:slug" element={<ProtectedRoute><HamperDetail /></ProtectedRoute>} />
-            <Route path="/hampers/:slug/checkout" element={<ProtectedRoute><HamperCheckout /></ProtectedRoute>} />
+            <Route path="/hampers" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperListPage /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/hampers/my-orders" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><MyHamperOrders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/hampers/my-orders/:id" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><MyHamperOrderDetail /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/hampers/:slug" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperDetail /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/hampers/:slug/checkout" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperCheckout /></ModuleRoute></ProtectedRoute>} />
 
             <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
-            <Route path="/services/:id/book" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
+            <Route path="/services/:id/book" element={<ProtectedRoute><ModuleRoute module="ecommerce"><BookService /></ModuleRoute></ProtectedRoute>} />
             <Route path="/account/bug-reports" element={<ProtectedRoute><MyBugReports /></ProtectedRoute>} />
             <Route path="/settings/appearance" element={<CustomerAppearance />} />
             <Route
@@ -596,7 +605,7 @@ function App() {
               path="/my-projects"
               element={
                 <ProtectedRoute>
-                  <MyProjects />
+                  <ModuleRoute module="projects"><MyProjects /></ModuleRoute>
                 </ProtectedRoute>
               }
             />
@@ -604,7 +613,7 @@ function App() {
               path="/my-projects/:id"
               element={
                 <ProtectedRoute>
-                  <MyProjectDetail />
+                  <ModuleRoute module="projects"><MyProjectDetail /></ModuleRoute>
                 </ProtectedRoute>
               }
             />
@@ -1564,6 +1573,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin roles={FINANCE_READ}>
                     <WithholdingCompliance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/modules"
+                element={
+                  <ProtectedRoute requireAdmin requireSuperAdmin>
+                    <ModuleCenter />
                   </ProtectedRoute>
                 }
               />

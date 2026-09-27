@@ -14,6 +14,7 @@ import useCurrencyStore from '../../store/currencyStore';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
+import { MODULES, isModuleActive } from '../../navigation/modules';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
 
@@ -353,19 +354,19 @@ export default function Header() {
 
   const profilePath = isAdmin ? '/admin/profile' : '/profile';
 
-  // ── Customer account menu ──────────────────────────────────────────────────
+  // ── Customer account menu (built from active modules) ───────────────────────
   const customerLinks = [
     { label: 'My Profile',        icon: User,          to: profilePath },
     { label: 'My Orders',         icon: ShoppingBag,   to: '/orders' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
     { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },
-    { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects' },
+    { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects', module: MODULES.PROJECTS },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
-    { label: 'My Hampers',        icon: Package,       to: '/hampers' },
-    { label: 'Auctions',          icon: Zap,           to: '/auctions' },
-    { label: 'Wishlist',          icon: Heart,         to: '/wishlist' },
+    { label: 'My Hampers',        icon: Package,       to: '/hampers', module: MODULES.HAMPERS },
+    { label: 'Auctions',          icon: Zap,           to: '/auctions', module: MODULES.AUCTIONS },
+    { label: 'Wishlist',          icon: Heart,         to: '/wishlist', module: MODULES.ECOMMERCE },
     { label: 'Report a Bug',        icon: Bug,           to: '/report-bug'},
-  ];
+  ].filter((l) => isModuleActive(l.module));
 
   return (
     <>
@@ -444,6 +445,7 @@ export default function Header() {
             </Link>
 
             {/* Products mega menu */}
+            {isModuleActive(MODULES.ECOMMERCE) && (
             <div style={{ position: 'relative' }} onMouseEnter={() => { products.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { products.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
@@ -506,8 +508,10 @@ export default function Header() {
                 </div>
               </MegaPanel>
             </div>
+            )}
 
             {/* Services mega menu */}
+            {isModuleActive(MODULES.ECOMMERCE) && (
             <div style={{ position: 'relative' }} onMouseEnter={() => { services.enter(); audio.playFlyoutOpen(); }} onMouseLeave={() => { services.leave(); audio.playFlyoutClose(); }}>
               <button type="button" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px',
@@ -545,10 +549,13 @@ export default function Header() {
                 </div>
               </MegaPanel>
             </div>
+            )}
 
+            {isModuleActive(MODULES.ECOMMERCE) && (
             <Link to="/specials" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/specials') ? 'var(--color-primary-500)' : '#ef4444', textDecoration: 'none' }}>
               🔥 Specials
             </Link>
+            )}
 
             <Link to="/about" style={{ 
               padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, 
@@ -582,11 +589,13 @@ export default function Header() {
             <ThemePicker />
 
             {/* Wishlist */}
+            {isModuleActive(MODULES.ECOMMERCE) && (
             <Link to="/wishlist" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
               className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Heart size={17} />
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
+            )}
 
             {/* Quote list */}
             <Link to="/quote-list" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}

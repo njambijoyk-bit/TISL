@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authAPI } from '../../../_shared/api/index';
-import { useAuthStore } from '../../../_shared/store/index';
+import { useAuthStore, useModuleStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 
@@ -56,6 +56,9 @@ export default function Login() {
       }
 
       login(response.user, response.customer, response.token);
+      // Refresh active modules for the signed-in session (keys may have
+      // changed since boot); don't block the redirect on it.
+      useModuleStore.getState().refresh();
       toast.success('Welcome back!');
       navigate(redirect);
     } catch (error) {
