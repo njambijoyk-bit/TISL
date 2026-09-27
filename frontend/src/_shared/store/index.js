@@ -30,3 +30,4 @@ export { default as useFinancialJournalStore } from './useFinancialJournalStore'
 export { default as useCareersStore } from './useCareersStore';
 export { default as useAdminCareersStore } from './useAdminCareersStore';
 export { default as useModuleStore } from './moduleStore';
+export { default as useNavStore } from './navStore';

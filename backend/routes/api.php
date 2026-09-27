@@ -131,6 +131,9 @@ Route::get('/modules/active', function (\App\Services\Licensing\LicenseManager $
         'verified' => $m->installationVerified(),
     ]);
 });
+
+// Storefront navigation — visible links for the customer header.
+Route::get('/nav', [\App\Http\Controllers\Admin\NavController::class, 'publicNav']);
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -347,6 +350,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/run',      [BackupController::class, 'run']);
         Route::post('/download', [BackupController::class, 'download']);
     });
+    // Storefront navigation manager (admin/super_admin)
+    Route::middleware('role:admin,super_admin')->prefix('admin/navigation')->group(function () {
+        Route::get('/',        [\App\Http\Controllers\Admin\NavController::class, 'index']);
+        Route::put('/{id}',    [\App\Http\Controllers\Admin\NavController::class, 'update']);
+    });
+
     Route::middleware('role:super_admin')->prefix('admin/backups')->group(function () {
         Route::get('/restore/files',   [BackupController::class, 'restoreFiles']);
         Route::post('/restore/upload', [BackupController::class, 'restoreUpload']);

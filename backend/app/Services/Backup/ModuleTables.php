@@ -31,7 +31,7 @@ final class ModuleTables
             'orders', 'order_items',
             'quotes', 'quote_items', 'quote_requests',
             'referral_codes', 'referral_code_usage',
-            'admin_saved_notes', 'vault_settings',
+            'admin_saved_notes', 'vault_settings', 'nav_links',
             // TODO: loyalty, payments, credit accounts, tickets, content pages,
             // policies, publications, notifications, bookings, reconciliation…
         ],
