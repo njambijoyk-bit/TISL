@@ -190,7 +190,7 @@ Route::prefix('dev')->group(function () {
 // ============================================
 // CAREERS — PUBLIC
 // ============================================
-Route::prefix('careers')->group(function () {
+Route::prefix('careers')->middleware('module:careers')->group(function () {
     Route::get('/jobs',         [PublicJobController::class, 'index']);
     Route::get('/jobs/{slug}',  [PublicJobController::class, 'show']);
 
@@ -224,6 +224,7 @@ Route::post('/payments/callback', [PaymentController::class, 'callback'])
 // Active currencies for the storefront price toggle (?currency= / X-Currency)
 Route::get('/currencies', [CurrencyController::class, 'publicIndex']);
 
+    Route::middleware('module:ecommerce')->group(function () {
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
 Route::get('/products/new-arrivals', [ProductController::class, 'newArrivals']);
@@ -238,12 +239,14 @@ Route::post('/reviews/{id}/helpful', [ProductReviewController::class, 'markHelpf
 Route::get('/auctions', [AuctionController::class, 'index']);
 Route::get('/auctions/{id}', [AuctionController::class, 'show']);
 Route::get('/auctions/{id}/stream', [AuctionController::class, 'stream']);
+    });
 
 Route::get('/content', [ContentPageController::class, 'publicIndex']);
 Route::get('/content/{slug}', [ContentPageController::class, 'showBySlug']);
 
 
 // PUBLIC CATEGORIES & BRANDS
+    Route::middleware('module:ecommerce')->group(function () {
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/main', [CategoryController::class, 'main']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
@@ -265,6 +268,7 @@ Route::get('/service-categories', [ServiceCategoryController::class, 'index']);
 Route::get('/service-categories/main', [ServiceCategoryController::class, 'main']);
 Route::get('/service-categories/{id}', [ServiceCategoryController::class, 'show']);
 Route::get('/service-categories/{id}/subcategories', [ServiceCategoryController::class, 'subcategories']);
+    });
 
 // Validate referral code (public - before registration)
 Route::post('/referral/validate', [ReferralController::class, 'validateCode']);
@@ -288,7 +292,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // CAREERS — APPLICANT PORTAL (auth:sanctum resolves Applicant model)
     // ============================================
-    Route::prefix('careers')->middleware('applicant')->group(function () {
+    Route::prefix('careers')->middleware('applicant')->middleware('module:careers')->group(function () {
         Route::post('/auth/logout',                [ApplicantAuthController::class, 'logout']);
         Route::get('/auth/me',                     [ApplicantAuthController::class, 'me']);
         Route::post('/jobs/{jobId}/apply',         [ApplicantPortalController::class, 'apply']);
@@ -392,7 +396,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);
 
         // ── Customer hamper routes (auth required) ────────────────────────────────────
-        Route::prefix('hampers')->group(function () {
+        Route::prefix('hampers')->middleware('module:ecommerce')->group(function () {
             Route::get('/',                              [PublicHamperController::class, 'index']);
             Route::get('/my-orders',                    [HamperOrderController::class, 'myOrders']);
             Route::get('/orders/{id}',                  [HamperOrderController::class, 'show']);
@@ -402,7 +406,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{slug}/checkout/place-order', [HamperCheckoutController::class, 'placeOrder']);
         });
 
-        Route::get('/auction-orders', [AuctionController::class, 'myAuctionOrders']);
+        Route::middleware('module:ecommerce')->group(function () {
+            Route::get('/auction-orders', [AuctionController::class, 'myAuctionOrders']);
+        });
 
         // Quotes
         Route::prefix('quotes')->group(function () {
@@ -427,7 +433,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/attachments/{index}', [QuoteRequestController::class, 'downloadAttachment']);
         });
 
-        Route::prefix('projects')->group(function () {
+        Route::prefix('projects')->middleware('module:projects')->group(function () {
             Route::get('/', [ProjectController::class, 'customerIndex']);
             Route::post('/', [ProjectController::class, 'customerStore']); // optional, keep if you want
             Route::get('/{project}', [ProjectController::class, 'customerShow']);
@@ -475,11 +481,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/redeem',      [LoyaltyController::class, 'selfRedeem']);
         });
 
-        Route::post('/products/{productId}/reviews', [ProductReviewController::class, 'store']);
-        Route::get('/products/{productId}/can-review', [ReviewEligibilityController::class, 'canReview']);
+        Route::middleware('module:ecommerce')->group(function () {
+            Route::post('/products/{productId}/reviews', [ProductReviewController::class, 'store']);
+            Route::get('/products/{productId}/can-review', [ReviewEligibilityController::class, 'canReview']);
+        });
         
         // Reviews
-        Route::prefix('reviews')->group(function () {
+        Route::prefix('reviews')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ProductReviewController::class, 'myReviews']);
             Route::post('/', [ProductReviewController::class, 'store']);
             Route::put('/{id}', [ProductReviewController::class, 'update']);
@@ -509,7 +517,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // ── DELIVERY — CUSTOMER ────────────────────────────────────────────────────
-        Route::prefix('delivery')->group(function () {
+        Route::prefix('delivery')->middleware('module:extras')->group(function () {
             // Track shipment for their order
             Route::get('/orders/{orderId}/shipment', [OrderShipmentController::class, 'showForOrder']);
             Route::get('/orders/{orderId}/pings',    [OrderShipmentController::class, 'getLivePings']);
@@ -531,7 +539,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // DRIVER ROUTES
     // ============================================
-    Route::middleware('role:driver')->prefix('driver')->group(function () {
+    Route::middleware('role:driver')->prefix('driver')->middleware('module:extras')->group(function () {
 
         // Manifests assigned to this driver
         Route::prefix('manifests')->group(function () {
@@ -577,7 +585,7 @@ Route::middleware('auth:sanctum')->group(function () {
       
         Route::get('/customers/{customerId}/orders', [OrderController::class, 'adminCustomerOrders']);
         // Products Management
-        Route::prefix('products')->group(function () {
+        Route::prefix('products')->middleware('module:ecommerce')->group(function () {
             Route::post('/', [ProductController::class, 'store']);
             Route::get('/', [ProductController::class, 'adminIndex']);
             Route::get('/trash', [ProductController::class, 'trashIndex']); // trashed products list
@@ -656,7 +664,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Admin Auction Management
-        Route::prefix('auctions')->group(function () {
+        Route::prefix('auctions')->middleware('module:ecommerce')->group(function () {
             Route::post('/', [AuctionController::class, 'store']);
             Route::get('/', [AuctionController::class, 'adminIndex']);
             Route::get('/trashed', [AuctionController::class, 'trashed']);
@@ -689,14 +697,14 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Categories Management
-        Route::prefix('categories')->group(function () {
+        Route::prefix('categories')->middleware('module:ecommerce')->group(function () {
             Route::post('/', [CategoryController::class, 'store']);
             Route::put('/{id}', [CategoryController::class, 'update']);
             Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('role:admin,super_admin,manager');
         });
 
         // Brands Management
-        Route::prefix('brands')->group(function () {
+        Route::prefix('brands')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [BrandController::class, 'adminIndex']);
             Route::get('/{id}', [BrandController::class, 'show']); 
             Route::post('/', [BrandController::class, 'store']);
@@ -759,7 +767,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Services Management
-        Route::prefix('services')->group(function () {
+        Route::prefix('services')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ServiceController::class, 'adminIndex']);
             Route::post('/', [ServiceController::class, 'store']);
             Route::get('/trash', [ServiceController::class, 'trash']);
@@ -777,7 +785,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Service Categories Management
-        Route::prefix('service-categories')->group(function () {
+        Route::prefix('service-categories')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ServiceCategoryController::class, 'adminIndex']);
             Route::post('/', [ServiceCategoryController::class, 'store']);
             Route::get('/{id}', [ServiceCategoryController::class, 'adminShow']);
@@ -906,7 +914,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        Route::prefix('projects')->group(function () {
+        Route::prefix('projects')->middleware('module:projects')->group(function () {
             // Core project CRUD (some roles may be restricted via policy)
             Route::get('/statistics', [ProjectController::class, 'statistics']);
             Route::get('/trash', [ProjectController::class, 'adminTrashed']);  
@@ -958,7 +966,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{project}/messages',          [ProjectMessageController::class, 'destroyBulk']);
         });
 
-        Route::prefix('employees')->group(function () {
+        Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
             Route::get('/template', [EmployeeController::class, 'downloadTemplate']);
             Route::post('/import', [EmployeeController::class, 'bulkImport']);
@@ -993,7 +1001,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Reviews Management
-        Route::prefix('reviews')->group(function () {
+        Route::prefix('reviews')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ProductReviewController::class, 'adminIndex']);
             Route::get('/statistics', [ProductReviewController::class, 'statistics']);
             Route::post('/{id}/approve', [ProductReviewController::class, 'approve']);
@@ -1164,7 +1172,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // ── AI Analytics ─────────────────────────────────────────────────────────────
-        Route::prefix('ai-analytics')->group(function () {
+        Route::prefix('ai-analytics')->middleware('module:extras')->group(function () {
 
             // Keys (super_admin only — policy handles it)
             Route::get   ('keys',              [AiAnalyticsController::class, 'indexKeys']);
@@ -1378,7 +1386,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Projects — policy-gated, same as admin
-        Route::prefix('projects')->group(function () {
+        Route::prefix('projects')->middleware('module:projects')->group(function () {
             Route::get('/',                          [ProjectController::class, 'adminIndex']);
             Route::get('/{project}',                 [ProjectController::class, 'adminShow']);
             Route::get('/{project}/activity',        [ProjectActivityController::class, 'index']);
@@ -1439,7 +1447,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Own employee record
-        Route::prefix('employees')->group(function () {
+        Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
         });
 
@@ -1465,7 +1473,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/analyse',              [DataEngineController::class, 'analyse']);
         });
 
-        Route::prefix('analytics')->group(function () {
+        Route::prefix('analytics')->middleware('module:extras')->group(function () {
             Route::get('dashboard',                [SearchAnalyticsController::class, 'dashboard']);
             Route::get('sessions',                 [SearchAnalyticsController::class, 'sessions']);
             Route::get('sessions/{sessionId}',     [SearchAnalyticsController::class, 'sessionDetail']);
@@ -1480,7 +1488,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:logistics,manager,admin,super_admin')->prefix('admin')->group(function () {
 
         // ── DELIVERY — ADMIN ──────────────────────────────────────────────────────
-        Route::prefix('delivery')->group(function () {
+        Route::prefix('delivery')->middleware('module:extras')->group(function () {
 
             Route::get('/drivers',                           [DeliveryManifestController::class, 'activeDrivers']);
             Route::post('/drivers/check-safety',             [DeliveryManifestController::class, 'checkDriverSafety']);
@@ -1618,7 +1626,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // INVENTORY — ADMIN / MANAGER
     // ============================================
     Route::middleware('role:admin,super_admin,manager')
-        ->prefix('admin/inventory')
+        ->prefix('admin/inventory')->middleware('module:extras')
         ->group(function () {
 
             // ── Catalogue ────────────────────────────────────────────────────
@@ -1746,14 +1754,14 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         
-        Route::prefix('projects')->group(function () {
+        Route::prefix('projects')->middleware('module:projects')->group(function () {
             Route::delete('/{project}', [ProjectController::class, 'adminDestroy']);          // soft delete → trash
             Route::post('/{project}/transfer-ownership', [ProjectController::class, 'transferOwnership']);
             Route::post('/{id}/restore', [ProjectController::class, 'adminRestore']);
         });
         
         // ── Admin hamper routes ───────────────────────────────────────────────────────
-        Route::prefix('hampers')->group(function () {           
+        Route::prefix('hampers')->middleware('module:ecommerce')->group(function () {           
             Route::get('/',                                     [HamperController::class, 'index']);
             Route::get('/stats',                                [HamperController::class, 'stats']); 
             Route::post('/',                                    [HamperController::class, 'store']);
@@ -1805,7 +1813,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/activate',        [ReferralController::class, 'activate']);
         });
 
-        Route::prefix('employees')->group(function () {
+        Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/',                         [EmployeeController::class, 'index']);
             Route::get('/statistics',               [EmployeeController::class, 'statistics']);
             Route::get('/departments',              [EmployeeController::class, 'departments']);
@@ -1839,7 +1847,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── ALGORITHM — ADMIN ──────────────────────────────────────────────────────
     Route::middleware('role:admin,super_admin')
-        ->prefix('admin/algorithm')
+        ->prefix('admin/algorithm')->middleware('module:extras')
         ->group(function () {
             Route::get('/config',               [AlgorithmController::class, 'getConfig']);
             Route::put('/config',               [AlgorithmController::class, 'saveConfig']);
@@ -1866,7 +1874,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // CAREERS — ADMIN
     // ============================================
     Route::middleware(['role:admin,super_admin'])
-        ->prefix('admin/careers')
+        ->prefix('admin/careers')->middleware('module:careers')
         ->group(function () {
             Route::get('/jobs',              [AdminJobController::class, 'index']);
             Route::post('/jobs',             [AdminJobController::class, 'store']);
@@ -1898,7 +1906,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
     // Run scoring — super_admin only (matches your existing destructive-action pattern)
     Route::middleware('role:super_admin')
-    ->prefix('admin/algorithm')
+    ->prefix('admin/algorithm')->middleware('module:extras')
     ->group(function () {
         Route::post('/run', [AlgorithmController::class, 'runScoring']);
     });
@@ -1930,7 +1938,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/force-delete-multiple', [QuoteController::class, 'forceDeleteMultiple']);
         });
 
-        Route::prefix('projects')->group(function () {
+        Route::prefix('projects')->middleware('module:projects')->group(function () {
             Route::delete('/{project}/force', [ProjectController::class, 'forceDestroy'])
                ->withTrashed();
         });
