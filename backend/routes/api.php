@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MimiAnalyticsController;
 use App\Http\Controllers\Admin\DataEngineController;
 use App\Http\Controllers\Admin\LogExportController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
@@ -331,6 +332,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/attempts',         [ModuleController::class, 'attempts']);
         Route::post('/activate',        [ModuleController::class, 'activate']);
         Route::patch('/{moduleKey}/toggle', [ModuleController::class, 'toggle']);
+    });
+
+    // ============================================
+    // BACKUPS (Core) — config + run: admin/super_admin; restore: super_admin
+    // ============================================
+    Route::middleware('role:admin,super_admin')->prefix('admin/backups')->group(function () {
+        Route::get('/settings', [BackupController::class, 'settings']);
+        Route::put('/settings',  [BackupController::class, 'updateSettings']);
+        Route::get('/plan',      [BackupController::class, 'plan']);
+        Route::post('/run',      [BackupController::class, 'run']);
+    });
+    Route::middleware('role:super_admin')->prefix('admin/backups')->group(function () {
+        Route::post('/restore', [BackupController::class, 'restore']);
     });
 
     // ============================================
