@@ -232,7 +232,7 @@ const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPa
 
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
 const ModuleCenter         = lazy(() => import('./core/pages/admin/settings/ModuleCenter'));
-const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));  
+const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));
 const CustFlowchartPage    = lazy(() => import('./core/pages/admin/settings/diagrams/CustFlowchartPage'));
 const TxFlowchartPage      = lazy(() => import('./core/pages/admin/settings/diagrams/TxFlowchartPage'));
 const AnalyticDashboard    = lazy(() => import('./core/pages/admin/settings/analytics/AdminAnalyticsDashboard'));
@@ -1585,6 +1585,14 @@ function App() {
                 }
               />
               <Route
+                path="/admin/settings/backups"
+                element={
+                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                    <BackupSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/settings/units"
                 element={
                   <ProtectedRoute requireAdmin>
@@ -1675,7 +1683,7 @@ function App() {
               <Route
                 path="/admin/settings/backup"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
                     <BackupSettings />
                   </ProtectedRoute>
                 }

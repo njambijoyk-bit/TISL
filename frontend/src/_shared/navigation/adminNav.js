@@ -263,6 +263,7 @@ export const ADMIN_NAV = [
           { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
           { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', soon: true, description: 'Storefront menu and links' },
           { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', roles: ['super_admin'], description: 'Module Center and license keys' },
+          { group: 'Platform', title: 'Backups', path: '/admin/settings/backups', roles: ['admin', 'super_admin'], description: 'Scheduled encrypted data backups and restore' },
         ],
       },
     ],
