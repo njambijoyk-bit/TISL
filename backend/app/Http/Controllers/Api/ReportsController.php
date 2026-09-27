@@ -158,6 +158,70 @@ class ReportsController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // GET /admin/reports/summary?period=30d
+    //
+    // Headline figures for the period, each with the previous period of the
+    // same length and the % change. Revenue follows revenue(): paid orders by
+    // paid_at, net of refunds, in KES.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function summary(Request $request): JsonResponse
+    {
+        [$start, $end] = $this->periodDates($request);
+
+        $length    = $start->diffInSeconds($end);
+        $prevEnd   = $start->copy()->subSecond();
+        $prevStart = $prevEnd->copy()->subSeconds($length);
+
+        $now  = $this->summaryFigures($start, $end);
+        $prev = $this->summaryFigures($prevStart, $prevEnd);
+
+        $metrics = [];
+        foreach ($now as $key => $value) {
+            $before = $prev[$key];
+            $metrics[$key] = [
+                'value'      => $value,
+                'previous'   => $before,
+                'change_pct' => $before > 0 ? round(($value - $before) / $before * 100, 1) : null,
+            ];
+        }
+
+        return response()->json([
+            'period'          => $request->get('period', '30d'),
+            'start'           => $start->toDateString(),
+            'end'             => $end->toDateString(),
+            'previous_start'  => $prevStart->toDateString(),
+            'previous_end'    => $prevEnd->toDateString(),
+            'metrics'         => $metrics,
+            'open_tickets'    => Ticket::whereIn('status', ['open', 'in_progress', 'waiting_customer', 'on_hold'])->count(),
+            'pending_quote_requests' => QuoteRequest::whereIn('status', ['pending', 'reviewing'])->count(),
+        ]);
+    }
+
+    /** The figures summary() compares between two periods. */
+    private function summaryFigures(Carbon $start, Carbon $end): array
+    {
+        $paid = Order::where('payment_status', 'paid')
+            ->whereBetween('paid_at', [$start, $end])
+            ->withSum('items as items_sum_refund_amount', 'refund_amount')
+            ->get(['id', 'total_kes', 'total', 'currency']);
+
+        $revenue = $paid->sum(fn ($o) => $this->orderNetKes($o));
+        $count   = $paid->count();
+
+        return [
+            'revenue_kes'         => round($revenue, 2),
+            'paid_orders'         => $count,
+            'avg_order_value_kes' => $count > 0 ? round($revenue / $count, 2) : 0.0,
+            'orders_placed'       => Order::whereBetween('created_at', [$start, $end])->where('status', '!=', 'cancelled')->count(),
+            'new_customers'       => Customer::whereBetween('created_at', [$start, $end])->count(),
+            'quote_requests'      => QuoteRequest::whereBetween('created_at', [$start, $end])->count(),
+            'quotes_created'      => Quote::whereBetween('created_at', [$start, $end])->count(),
+            'tickets_opened'      => Ticket::whereBetween('created_at', [$start, $end])->count(),
+        ];
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // GET /admin/reports/orders
     // ──────────────────────────────────────────────────────────────────────────
 

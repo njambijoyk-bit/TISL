@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Log;
 class QuoteController extends Controller
 {
     public function __construct(private QuoteMailService $mailer) {}
+
+    /** Set by createFromRequest so an auto-built draft is not emailed to the customer. */
+    private bool $skipCreatedMail = false;
     /**
      * Admin quote list
      */
@@ -410,10 +413,12 @@ class QuoteController extends Controller
 
             DB::commit();
 
-            try {
-                $this->mailer->sendQuoteSent($quote->load(['customer', 'items.product', 'items.service']));
-            } catch (\Exception $e) {
-                Log::error('Quote sent email failed: ' . $e->getMessage());
+            if (!$this->skipCreatedMail) {
+                try {
+                    $this->mailer->sendQuoteSent($quote->load(['customer', 'items.product', 'items.service']));
+                } catch (\Exception $e) {
+                    Log::error('Quote sent email failed: ' . $e->getMessage());
+                }
             }
 
             return response()->json([
@@ -429,6 +434,130 @@ class QuoteController extends Controller
                 'message' => 'Failed to create quote',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
+        }
+    }
+
+    /**
+     * POST /admin/quotes/from-request/{requestId}
+     *
+     * Build a DRAFT quote from a quote request's own items, for the admin to
+     * review and price before sending. Runs through store() so numbering,
+     * totals, items and linking the request back all work the same way.
+     * The customer is not emailed.
+     *
+     * Prices: catalogue items start at their current price converted into the
+     * base currency; custom items start at the customer's budget per unit (or 0).
+     */
+    public function createFromRequest(Request $request, $requestId)
+    {
+        $quoteRequest = QuoteRequest::findOrFail($requestId);
+
+        if ($quoteRequest->quote_id) {
+            return response()->json([
+                'message'  => 'This request already has a quote.',
+                'quote_id' => $quoteRequest->quote_id,
+            ], 409);
+        }
+
+        if (!$quoteRequest->canConvertToQuote()) {
+            return response()->json([
+                'message' => 'Quote request cannot be converted. It must be in reviewing status and not already have a quote.',
+            ], 422);
+        }
+
+        $requested = collect($quoteRequest->requested_items ?? [])->filter(fn ($i) => is_array($i))->values();
+        if ($requested->isEmpty()) {
+            return response()->json([
+                'message' => 'This request has no items. Create the quote manually from the request.',
+            ], 422);
+        }
+
+        $conversion = app(\App\Services\CurrencyConversionService::class);
+        $base       = $conversion->getBaseCurrency();
+
+        $items = $requested->map(function (array $item, int $index) use ($conversion, $base) {
+            $type     = in_array($item['item_type'] ?? '', ['product', 'service', 'custom_product', 'custom_service'], true)
+                ? $item['item_type']
+                : (!empty($item['service_id']) ? 'service' : 'product');
+            $quantity = max(0.01, (float) ($item['quantity'] ?? 1));
+            $budget   = isset($item['budget_per_unit']) && $item['budget_per_unit'] !== '' ? (float) $item['budget_per_unit'] : null;
+            $notes    = [];
+            $price    = null;
+
+            if (!empty($item['product_id']) && ($product = Product::find($item['product_id']))) {
+                $price = $conversion->convert((float) $product->price, $conversion->resolveCurrency($product->currency_id), $base);
+            } elseif (!empty($item['service_id']) && ($service = Service::find($item['service_id']))) {
+                $native = match (true) {
+                    (bool) $service->price_is_negotiable     => null,
+                    $service->pricing_model === 'hourly'      => $service->hourly_rate,
+                    $service->pricing_model === 'daily'       => $service->daily_rate,
+                    default                                   => $service->base_price ?? $service->hourly_rate ?? $service->daily_rate,
+                };
+                if ($native !== null) {
+                    $price = $conversion->convert((float) $native, $conversion->resolveCurrency($service->currency_id), $base);
+                } else {
+                    $notes[] = 'Negotiable service — set the price.';
+                }
+            }
+
+            if ($price === null) {
+                $price = $budget ?? 0.0;
+                $notes[] = $budget !== null ? 'Starting from the customer\'s budget — review the price.' : 'No price yet — set the price.';
+            }
+            if ($budget !== null) {
+                $notes[] = 'Customer budget per unit: ' . number_format($budget, 2) . '.';
+            }
+
+            return [
+                'item_type'       => $type,
+                'product_id'      => $item['product_id'] ?? null,
+                'service_id'      => $item['service_id'] ?? null,
+                'description'     => $item['description'] ?? null,
+                'quantity'        => $quantity,
+                'unit_of_measure' => $item['unit_of_measure'] ?? null,
+                'original_price'  => $price,
+                'unit_price'      => $price,
+                'estimated_hours' => $item['estimated_hours'] ?? null,
+                'lead_time'       => $item['lead_time'] ?? null,
+                'notes'           => trim(implode("\n", array_filter([$item['specifications'] ?? null, $item['notes'] ?? null]))) ?: null,
+                'pricing_notes'   => $notes ? implode(' ', $notes) : null,
+                'display_order'   => $index,
+            ];
+        });
+
+        $hasProducts = $items->contains(fn ($i) => in_array($i['item_type'], ['product', 'custom_product'], true));
+        $hasServices = $items->contains(fn ($i) => in_array($i['item_type'], ['service', 'custom_service'], true));
+        $quoteType   = in_array($quoteRequest->request_type, ['product', 'service', 'mixed'], true)
+            ? $quoteRequest->request_type
+            : ($hasProducts && $hasServices ? 'mixed' : ($hasServices ? 'service' : 'product'));
+
+        $payload = [
+            'customer_id'      => $quoteRequest->customer_id,
+            'quote_type'       => $quoteType,
+            'status'           => 'draft',
+            'priority'         => in_array($quoteRequest->priority, ['low', 'medium', 'high', 'urgent'], true) ? $quoteRequest->priority : 'medium',
+            'assigned_to'      => $quoteRequest->assigned_to,
+            'currency'         => $base->code,
+            'quote_request_id' => $quoteRequest->id,
+            'customer_notes'   => $quoteRequest->customer_notes,
+            'admin_notes'      => trim(implode("\n", array_filter([
+                'Created from request ' . ($quoteRequest->request_number ?? '#' . $quoteRequest->id) . '.',
+                $quoteRequest->timeline_needed ? 'Timeline needed: ' . $quoteRequest->timeline_needed : null,
+                $quoteRequest->budget_range ? 'Budget range: ' . $quoteRequest->budget_range : null,
+                $quoteRequest->admin_notes,
+            ]))),
+            'shipping_address' => $quoteRequest->delivery_location,
+            'quote_items'      => $items->all(),
+        ];
+
+        $this->skipCreatedMail = true;
+        try {
+            $sub = Request::create($request->url(), 'POST', $payload);
+            $sub->setUserResolver($request->getUserResolver());
+
+            return $this->store($sub);
+        } finally {
+            $this->skipCreatedMail = false;
         }
     }
 
