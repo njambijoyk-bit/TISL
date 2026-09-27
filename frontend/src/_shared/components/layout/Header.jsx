@@ -214,12 +214,16 @@ export default function Header() {
   const { items: wishlistItems } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
 
-  // Storefront nav visibility (admin-controlled, per active module).
-  const navKeys = useNavStore((s) => s.keys);
+  // Storefront nav (admin-controlled, per active module).
+  const navLinks = useNavStore((s) => s.links);
   const navLoaded = useNavStore((s) => s.loaded);
   const fetchNav = useNavStore((s) => s.fetch);
   useEffect(() => { fetchNav(); }, [fetchNav]);
-  const navHas = (k) => (!navLoaded ? true : navKeys.includes(k));
+  // Keys the header renders with a bespoke element (mega-menus, icons).
+  const SPECIAL_NAV = ['home', 'products', 'services', 'specials', 'about', 'contact', 'wishlist'];
+  const navHas = (k) => (!navLoaded ? true : navLinks.some((l) => l.key === k));
+  // Everything else visible (auctions, hampers, careers, future modules) renders generically.
+  const extraNavLinks = navLinks.filter((l) => !SPECIAL_NAV.includes(l.key));
 
   const audio = useLayoutAudio();
 
@@ -587,6 +591,18 @@ export default function Header() {
               Contact
             </Link>
             )}
+
+            {/* Extra module links (auctions, hampers, careers, …) driven by the nav manager */}
+            {extraNavLinks.map((l) => (
+              <Link key={l.key} to={l.path} style={{
+                padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                textDecoration: 'none', transition: 'all 150ms',
+                color: isActive(l.path) ? 'var(--color-primary-500)' : navColor,
+                background: isActive(l.path) ? navActiveBg : 'transparent',
+              }} className="dark:text-gray-200">
+                {l.label}
+              </Link>
+            ))}
           </nav>
 
           {/* ── Right icons ──────────────────────────────────────────────── */}
