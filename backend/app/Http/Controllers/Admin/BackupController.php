@@ -170,6 +170,20 @@ class BackupController extends Controller
         return response()->json($result, $result['ok'] ? 200 : 422);
     }
 
+    /** Build a backup and stream it to the admin's computer (Local destination). */
+    public function download(Request $request)
+    {
+        @set_time_limit(0);
+        $res = $this->exporter->prepareDownload($request->user()?->id);
+        if (!($res['ok'] ?? false)) {
+            return response()->json($res, 422);
+        }
+
+        return response()
+            ->download($res['path'], $res['filename'], ['Content-Type' => 'application/octet-stream'])
+            ->deleteFileAfterSend(true);
+    }
+
     /** Recent backup runs (history + chain). */
     public function runs()
     {

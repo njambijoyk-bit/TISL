@@ -14,99 +14,171 @@ use Throwable;
 use ZipArchive;
 
 /**
- * Builds an encrypted .wnkjbak backup of the active modules' data and ships it
- * to the configured destination.
+ * Builds an encrypted .wnkjba backup of the active modules' data.
  *
- * File format (.wnkjbak):
+ * Two ways out:
+ *  - Local destination  → prepareDownload(): the file is streamed to the
+ *    admin's own computer (never kept on the server).
+ *  - FTP / SFTP / S3     → run(): the file is shipped to that remote disk
+ *    (this is what scheduled backups use).
+ *
+ * File format (.wnkjba):
  *   "WNKJBAK1"                     8-byte magic
  *   uint32 BE header length
  *   header JSON { v, cipher, kdf, salt, opslimit, memlimit, ss_header }
  *   framed secretstream chunks: [uint32 BE len][ciphertext] …  (last = FINAL)
  * The sealed payload is a ZIP of: manifest.json + data/<module>/<table>.jsonl
  *
- * Encryption is xchacha20poly1305 secretstream, key = Argon2id(passphrase,salt).
- * Independent of the module/license keys and pepper.
+ * Encryption: XChaCha20-Poly1305 secretstream, key = Argon2id(passphrase, salt).
+ * Independent of the module/license keys and pepper. The passphrase is never
+ * stored in the file; a wrong passphrase cannot decrypt (authenticated).
  */
 class BackupExporter
 {
     private const MAGIC = 'WNKJBAK1';
+    private const EXT = '.wnkjba';
     private const CHUNK = 65536; // 64 KiB plaintext chunks
 
     public function __construct(private BackupPlanner $planner) {}
 
     /**
+     * Ship a backup to the configured remote destination (ftp/sftp/s3).
+     * Local is download-only, so it is rejected here.
+     *
      * @return array{ok:bool, message:string, run_id?:int, filename?:string, size?:int}
      */
     public function run(string $trigger = 'manual', ?int $userId = null): array
     {
         $settings = BackupSetting::current();
-        $pass = $settings->passphrase;
-        if (blank($pass)) {
+        if (blank($settings->passphrase)) {
             return ['ok' => false, 'message' => 'Set a backup passphrase before running a backup.'];
         }
+        if ($settings->destination_driver === 'local') {
+            return ['ok' => false, 'message' => 'The Local destination downloads to your computer — use "Back up now" on the page. Pick FTP, SFTP or S3 for automatic/remote backups.'];
+        }
 
-        $prev = BackupRun::lastSuccessful();
-        $run = BackupRun::create([
-            'uuid'               => (string) Str::uuid(),
-            'status'             => BackupRun::RUNNING,
-            'trigger'            => $trigger,
-            'destination_driver' => $settings->destination_driver,
-            'previous_run_id'    => $prev?->id,
-            'started_at'         => now(),
-            'started_by'         => $userId,
-        ]);
-
-        $work = storage_path('app/backup-tmp/' . $run->uuid);
-        @mkdir($work, 0700, true);
-        $zipPath = "$work/payload.zip";
-        $sealedPath = "$work/backup.wnkjbak";
-
+        $run = $this->newRun($settings, $trigger, $userId);
+        $work = $this->workDir($run);
         try {
-            [$tableCount, $rowCount] = $this->buildZip($zipPath, $settings);
-            $this->seal($zipPath, $sealedPath, $pass);
-
-            $checksum = hash_file('sha256', $sealedPath);
-            $size = filesize($sealedPath);
-            $filename = $this->filename($run->uuid);
+            $a = $this->assemble($run, $settings, $work);
 
             $disk = $this->disk($settings);
-            $stream = fopen($sealedPath, 'rb');
-            $disk->put($filename, $stream);
+            $stream = fopen($a['path'], 'rb');
+            $disk->put($a['filename'], $stream);
             if (is_resource($stream)) {
                 fclose($stream);
             }
 
-            $run->update([
-                'status'      => BackupRun::OK,
-                'filename'    => $filename,
-                'size_bytes'  => $size,
-                'table_count' => $tableCount,
-                'row_count'   => $rowCount,
-                'checksum'    => $checksum,
-                'finished_at' => now(),
-            ]);
-            $settings->update([
-                'last_run_at' => now(),
-                'last_status' => BackupRun::OK,
-            ]);
-
+            $this->finish($run, $settings, $a);
             $this->prune($disk, $settings->retention_count);
 
-            return [
-                'ok'       => true,
-                'message'  => "Backup complete — $tableCount tables, " . number_format($rowCount) . ' rows.',
-                'run_id'   => $run->id,
-                'filename' => $filename,
-                'size'     => $size,
-            ];
+            return ['ok' => true, 'message' => $this->message($a), 'run_id' => $run->id, 'filename' => $a['filename'], 'size' => $a['size']];
         } catch (Throwable $e) {
-            $run->update(['status' => BackupRun::FAILED, 'finished_at' => now(), 'error' => $e->getMessage()]);
-            $settings->update(['last_run_at' => now(), 'last_status' => BackupRun::FAILED]);
-
+            $this->failRun($run, $settings, $e);
             return ['ok' => false, 'message' => 'Backup failed: ' . $e->getMessage(), 'run_id' => $run->id];
         } finally {
             $this->rmdir($work);
         }
+    }
+
+    /**
+     * Build a backup for immediate download to the admin's machine. The caller
+     * streams the returned path and deletes it afterwards.
+     *
+     * @return array{ok:bool, message?:string, path?:string, filename?:string, run_id?:int}
+     */
+    public function prepareDownload(?int $userId = null): array
+    {
+        $settings = BackupSetting::current();
+        if (blank($settings->passphrase)) {
+            return ['ok' => false, 'message' => 'Set a backup passphrase before running a backup.'];
+        }
+
+        $run = $this->newRun($settings, 'manual', $userId);
+        $work = $this->workDir($run);
+        try {
+            $a = $this->assemble($run, $settings, $work);
+            // Move the sealed file out of the work dir so we can clean the rest now.
+            $flat = storage_path('app/backup-tmp/' . $a['filename']);
+            @rename($a['path'], $flat);
+
+            $this->finish($run, $settings, $a);
+            $this->rmdir($work);
+
+            return ['ok' => true, 'path' => $flat, 'filename' => $a['filename'], 'run_id' => $run->id];
+        } catch (Throwable $e) {
+            $this->failRun($run, $settings, $e);
+            $this->rmdir($work);
+            return ['ok' => false, 'message' => 'Backup failed: ' . $e->getMessage()];
+        }
+    }
+
+    // ── Shared build ──────────────────────────────────────────────────────
+
+    private function newRun(BackupSetting $s, string $trigger, ?int $userId): BackupRun
+    {
+        return BackupRun::create([
+            'uuid'               => (string) Str::uuid(),
+            'status'             => BackupRun::RUNNING,
+            'trigger'            => $trigger,
+            'destination_driver' => $s->destination_driver,
+            'previous_run_id'    => BackupRun::lastSuccessful()?->id,
+            'started_at'         => now(),
+            'started_by'         => $userId,
+        ]);
+    }
+
+    private function workDir(BackupRun $run): string
+    {
+        $dir = storage_path('app/backup-tmp/' . $run->uuid);
+        @mkdir($dir, 0700, true);
+        return $dir;
+    }
+
+    /** @return array{path:string, filename:string, checksum:string, size:int, tables:int, rows:int} */
+    private function assemble(BackupRun $run, BackupSetting $settings, string $work): array
+    {
+        $zipPath = "$work/payload.zip";
+        $filename = $this->filename($run->uuid);
+        $sealedPath = "$work/$filename";
+
+        [$tableCount, $rowCount] = $this->buildZip($zipPath, $settings);
+        $this->seal($zipPath, $sealedPath, $settings->passphrase);
+        @unlink($zipPath);
+
+        return [
+            'path'     => $sealedPath,
+            'filename' => $filename,
+            'checksum' => hash_file('sha256', $sealedPath),
+            'size'     => filesize($sealedPath),
+            'tables'   => $tableCount,
+            'rows'     => $rowCount,
+        ];
+    }
+
+    private function finish(BackupRun $run, BackupSetting $settings, array $a): void
+    {
+        $run->update([
+            'status'      => BackupRun::OK,
+            'filename'    => $a['filename'],
+            'size_bytes'  => $a['size'],
+            'table_count' => $a['tables'],
+            'row_count'   => $a['rows'],
+            'checksum'    => $a['checksum'],
+            'finished_at' => now(),
+        ]);
+        $settings->update(['last_run_at' => now(), 'last_status' => BackupRun::OK]);
+    }
+
+    private function failRun(BackupRun $run, BackupSetting $settings, Throwable $e): void
+    {
+        $run->update(['status' => BackupRun::FAILED, 'finished_at' => now(), 'error' => $e->getMessage()]);
+        $settings->update(['last_run_at' => now(), 'last_status' => BackupRun::FAILED]);
+    }
+
+    private function message(array $a): string
+    {
+        return "Backup complete — {$a['tables']} tables, " . number_format($a['rows']) . ' rows.';
     }
 
     // ── Build the ZIP payload (manifest + per-table JSONL) ────────────────
@@ -132,14 +204,15 @@ class BackupExporter
         ];
         $tableCount = 0;
         $rowCount = 0;
+        $temps = [];
 
         foreach ($plan['included'] as $group) {
             $moduleEntry = ['module' => $group['module'], 'name' => $group['name'], 'tables' => []];
             foreach ($group['tables'] as $table) {
                 $tmp = tempnam(sys_get_temp_dir(), 'tbl');
+                $temps[] = $tmp;
                 [$rows, $sha] = $this->dumpTable($table, $tmp);
                 $zip->addFile($tmp, "data/{$group['module']}/{$table}.jsonl");
-                // Keep temp files until close() writes them.
                 $moduleEntry['tables'][] = ['table' => $table, 'rows' => $rows, 'sha256' => $sha];
                 $tableCount++;
                 $rowCount += $rows;
@@ -154,14 +227,14 @@ class BackupExporter
         if ($zip->close() !== true) {
             throw new RuntimeException('Could not finalise the backup archive.');
         }
+        foreach ($temps as $t) {
+            @unlink($t);
+        }
 
         return [$tableCount, $rowCount];
     }
 
-    /**
-     * Stream one table to a JSONL file. Returns [rowCount, sha256].
-     * Uses a lazy cursor so large tables don't load into memory.
-     */
+    /** Stream one table to a JSONL file. Returns [rowCount, sha256]. */
     private function dumpTable(string $table, string $outPath): array
     {
         $fh = fopen($outPath, 'wb');
@@ -180,7 +253,7 @@ class BackupExporter
         return [$rows, hash_final($hash)];
     }
 
-    // ── Seal the ZIP into .wnkjbak (xchacha20poly1305 secretstream) ───────
+    // ── Seal the ZIP into .wnkjba (XChaCha20-Poly1305 secretstream) ───────
 
     private function seal(string $zipPath, string $outPath, string $passphrase): void
     {
@@ -231,17 +304,13 @@ class BackupExporter
         sodium_memzero($key);
     }
 
-    // ── Destination + retention ───────────────────────────────────────────
+    // ── Destination + retention (remote drivers only) ─────────────────────
 
     private function disk(BackupSetting $s): Filesystem
     {
         $cfg = $s->destination_config ?? [];
 
         return match ($s->destination_driver) {
-            'local' => Storage::build([
-                'driver' => 'local',
-                'root'   => $cfg['path'] ?: storage_path('app/backups'),
-            ]),
             'ftp' => Storage::build(array_filter([
                 'driver'   => 'ftp',
                 'host'     => $cfg['host'] ?? null,
@@ -272,13 +341,12 @@ class BackupExporter
         };
     }
 
-    /** Keep only the newest N .wnkjbak files at the destination. */
     private function prune(Filesystem $disk, int $keep): void
     {
         try {
             $files = collect($disk->files())
-                ->filter(fn ($f) => str_ends_with($f, '.wnkjbak'))
-                ->sortDesc()   // filenames are timestamped, so name sort = time sort
+                ->filter(fn ($f) => str_ends_with($f, self::EXT))
+                ->sortDesc()
                 ->values();
             foreach ($files->slice(max(1, $keep)) as $old) {
                 $disk->delete($old);
@@ -290,7 +358,7 @@ class BackupExporter
 
     private function filename(string $uuid): string
     {
-        return 'wnkj-backup-' . now()->format('Ymd-His') . '-' . substr($uuid, 0, 8) . '.wnkjbak';
+        return 'wnkj-backup-' . now()->format('Ymd-His') . '-' . substr($uuid, 0, 8) . self::EXT;
     }
 
     private function rmdir(string $dir): void
