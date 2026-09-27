@@ -96,7 +96,7 @@ function OwnershipBanner({ verified, businessName, onVerified }) {
         <div style={{ marginTop: 12 }}>
           <label style={label}>Ownership code</label>
           <textarea rows={3} value={code} onChange={(e) => setCode(e.target.value)}
-            placeholder="TISL-XXXXX-XXXXX-…" style={{ ...inputStyle, resize: 'vertical' }} />
+            placeholder="WNKJ-XXXXX-XXXXX-…" style={{ ...inputStyle, resize: 'vertical' }} />
           <div style={{ marginTop: 10 }}>
             <button onClick={submit} disabled={busy} style={{ ...btn('#059669'), opacity: busy ? 0.6 : 1 }}>
               <ShieldCheck size={15} /> {busy ? 'Verifying…' : 'Verify installation'}
