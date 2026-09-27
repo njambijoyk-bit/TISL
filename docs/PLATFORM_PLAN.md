@@ -709,7 +709,8 @@ Build one module at a time, backend + frontend together, in this order:
 ### Security and enforcement
 - ~~M-Pesa callback trusted the posted body~~ **Done 27 Sep:** a success callback only confirms after Daraja's STK query agrees; the amount recorded is the amount pushed; the row is locked against duplicate callbacks; optional `DARAJA_CALLBACK_TOKEN` (callback URL must end `?token=<value>`). "Query Daraja" finishes a payment the callback couldn't verify.
 - ~~Every staff role, drivers included, reached the whole /admin API~~ **Done 27 Sep:** drivers use `/driver/*` only; catalogue deletes (products, services, categories, brands, variants, images) are manager/admin/super_admin; credit actions are finance/manager/admin/super_admin (everyone can view; loyalty points stay open to staff); bug reports, dev notes and dev keys are super_admin. The UI hides what the API refuses (`src/_shared/lib/roles.js`).
-- A route points at `App\Http\Controllers\Api\InventoryController`, which doesn't exist (breaks `php artisan route:list`).
+- ~~`InventoryController` not found~~ **Done 27 Sep:** `Inventorycontroller.php`, `Purchaseorder.php`, `Purchaseorderitem.php` and `Vendorpolicy.php` renamed to match their classes (Windows ignores the case; Linux servers couldn't load them).
+- Routes that point at methods that don't exist (500 if called): `ServiceCategoryController@adminShow`, `QuoteController@createFromRequest` (used by the quotes UI), `PaymentController@adminOrderPaymentHistory`, `ReportsController@summary` (used by the reports UI).
 - Tax and withholding policies exist but controllers never call `authorize()` (state rules unenforced).
 - Certificate and withholding documents are on the public disk; they should move to a private disk behind an authorised download.
 - Withholding `applyClearance` needs a transaction and a row lock.
@@ -743,10 +744,9 @@ Build one module at a time, backend + frontend together, in this order:
 - `WithholdingService` works only for customers.
 
 ### Housekeeping
-- Delete `app/Models/us.php` (duplicate `UserController` class).
+- Delete `app/Models/us.php` (duplicate `UserController` class) and `app/Traits/Inventory/InventoryTraits.php` (old combined copy of three traits that now have their own files).
 - Untrack the committed `app.zip` and `src.zip`; delete the stray `backend/5.3.0` and `backend/composer` files; gitignore `frontend/dev-dist/`.
 - Move `ActivityLog`, `ProductActivityLog`, `TaxActivityLog` and `WithholdingActivityLog` into `app/Models/Logs/` to match their namespace.
-- Rename `Vendorpolicy.php` → `VendorPolicy.php`.
 - The tax, UoM, currency and variant tables have no committed schema; add SQL scripts for them.
 - Add `->whereNumber()` to `{id}` routes; remove the duplicate project, referral and promo routes.
 - Run `npm install xlsx` (used by delivery manifest printing but missing from `package.json`).
