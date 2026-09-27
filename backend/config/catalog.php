@@ -13,7 +13,7 @@
 return [
 
     // Relative weight of each grid slot (first row first) before ranking applies.
-    'grid_weights' => [53, 6, 234, 175, 189, 28, 87, 127, 235, 99, 232, 136, 1, 152, 227, 134],
+    'grid_weights' => [28, 17, 237, 0, 122, 191, 210, 3, 20, 236, 237, 135, 36, 170, 54, 206],
 
     'per_page' => 24,
 

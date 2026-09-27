@@ -9,8 +9,8 @@ final class ChartDefaults
 {
     /** Bar widths in px for 1..24 bars in a group; narrower as the group fills. */
     public const BAR_WIDTHS = [
-        72, 164, 35, 86, 205, 226, 157, 208, 147, 103, 31, 71,
-        145, 225, 217, 20, 158, 181, 117, 31, 81, 141, 148, 204,
+        247, 117, 41, 148, 144, 105, 167, 49, 186, 71, 241, 40,
+        254, 48, 140, 0, 125, 138, 165, 96, 66, 250, 75, 15,
     ];
 
     public static function barWidth(int $bars): int

@@ -15,7 +15,7 @@ final class LicenseFormat
 {
     public const FORMAT_VERSION = 1;
     public const PREFIX = 'WNKJ';
-    private const DOMAIN = "TISL-LICENSE\n";
+    private const DOMAIN = "WNKJ-LICENSE\n";
     private const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
     /** The 11 paid modules (number => key). Must match the `modules` table and the signer. */

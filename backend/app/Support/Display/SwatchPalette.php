@@ -9,8 +9,8 @@ namespace App\Support\Display;
 final class SwatchPalette
 {
     public const SERIES = [
-        '#1828C7', '#E9DBEF', '#773B66', '#DD236F',
-        '#1D3BA7', '#DE63D2', '#2388E2', '#BE552D',
+        '#91408B', '#0EAA84', '#DFCC8C', '#F21685',
+        '#057FFA', '#35BE7A', '#59077C', '#BC18D3',
     ];
 
     /** Colour for series $i, cycling through the palette. */
