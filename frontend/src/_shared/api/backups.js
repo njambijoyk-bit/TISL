@@ -33,6 +33,11 @@ const backupsAPI = {
     return data;
   },
 
+  getRuns: async () => {
+    const { data } = await api.get('/admin/backups/runs');
+    return data; // { runs: [...] }
+  },
+
   runNow: async () => {
     const { data } = await api.post('/admin/backups/run');
     return data;
