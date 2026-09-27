@@ -25,38 +25,47 @@ class BackupPlanner
 
     /**
      * @return array{
-     *   included: array<int, array{module:string, name:string, tables:array<int,string>}>,
-     *   skipped:  array<int, array{module:string, name:string}>,
-     *   excluded: array<int,string>,
+     *   included:   array<int, array{module:string, name:string, tables:array<int,string>}>,
+     *   disabled:   array<int, array{module:string, name:string}>,  // licensed but switched off (enabled = 0)
+     *   unlicensed: array<int, array{module:string, name:string}>,  // not owned — no alarm, just not backed up
+     *   excluded:   array<int,string>,
      *   unassigned: array<int,string>
      * }
      */
     public function plan(): array
     {
-        $names = Module::pluck('name', 'module_key')->all();
+        $rows = Module::get(['module_key', 'name', 'enabled'])->keyBy('module_key');
 
         $included = [[
             'module' => LicenseManager::CORE,
             'name'   => 'Core',
             'tables' => $this->existing(ModuleTables::for(LicenseManager::CORE)),
         ]];
-        $skipped = [];
+        $disabled = [];
+        $unlicensed = [];
 
         foreach (array_keys(ModuleTables::MAP) as $key) {
             if ($key === LicenseManager::CORE) {
                 continue;
             }
-            $name = $names[$key] ?? ucfirst($key);
-            if ($this->manager->isActive($key)) {
-                $included[] = ['module' => $key, 'name' => $name, 'tables' => $this->existing(ModuleTables::for($key))];
+            $row = $rows->get($key);
+            $name = $row->name ?? ucfirst($key);
+
+            if (!$this->manager->isLicensed($key)) {
+                // Not owned: quietly not backed up — no banner.
+                $unlicensed[] = ['module' => $key, 'name' => $name];
+            } elseif (!($row && $row->enabled)) {
+                // Owned but the client switched it off: warn — its data won't be backed up.
+                $disabled[] = ['module' => $key, 'name' => $name];
             } else {
-                $skipped[] = ['module' => $key, 'name' => $name];
+                $included[] = ['module' => $key, 'name' => $name, 'tables' => $this->existing(ModuleTables::for($key))];
             }
         }
 
         return [
             'included'   => $included,
-            'skipped'    => $skipped,
+            'disabled'   => $disabled,
+            'unlicensed' => $unlicensed,
             'excluded'   => ModuleTables::EXCLUDE,
             'unassigned' => $this->unassigned(),
         ];
