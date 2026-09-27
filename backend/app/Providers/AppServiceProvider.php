@@ -74,6 +74,10 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(InventoryTransactionService::class)
             );
         });
+
+        // Licensing: one manager per request (memoises the handshake result).
+        $this->app->scoped(\App\Services\Licensing\LicenseManager::class);
+        $this->app->singleton(\App\Services\Licensing\LicenseActivationService::class);
     }
 
     /**

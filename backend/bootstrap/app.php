@@ -15,7 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register the role middleware alias
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
-            'applicant' => \App\Http\Middleware\EnsureApplicant::class, 
+            'applicant' => \App\Http\Middleware\EnsureApplicant::class,
+            'module' => \App\Http\Middleware\EnsureModuleActive::class,
         ]);
 
         // ?currency=USD / X-Currency header -> display currency for every API response
