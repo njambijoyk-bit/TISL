@@ -22,6 +22,17 @@ const backupsAPI = {
     return data; // { included, skipped, excluded, unassigned }
   },
 
+  // Table-assignment form data + save.
+  getTables: async () => {
+    const { data } = await api.get('/admin/backups/tables');
+    return data; // { unassigned, modules, assignments }
+  },
+
+  assignTables: async (assignments) => {
+    const { data } = await api.post('/admin/backups/tables', { assignments });
+    return data;
+  },
+
   runNow: async () => {
     const { data } = await api.post('/admin/backups/run');
     return data;
