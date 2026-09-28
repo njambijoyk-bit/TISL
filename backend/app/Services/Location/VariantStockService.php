@@ -2,6 +2,7 @@
 
 namespace App\Services\Location;
 
+use App\Models\Location;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantUnit;
@@ -64,9 +65,35 @@ class VariantStockService
     }
 
     /**
-     * Recompute the cached quantities from variant_location_stock. Only touches
-     * products that are location-managed (have at least one stock row); legacy
-     * products keep their existing numbers.
+     * Seed a brand-new variant across every active branch: the entered quantity
+     * lands in the default ("Main") branch, all others start at 0. Called when a
+     * variant is created so stock is branch-ready from the start.
+     */
+    public function seedNewVariant(ProductVariant $variant, float $mainQty): void
+    {
+        $main = Location::default();
+        if (!$main) {
+            return; // no locations configured yet
+        }
+        foreach (Location::active()->get(['id']) as $loc) {
+            VariantLocationStock::firstOrCreate(
+                ['product_variant_id' => $variant->id, 'location_id' => $loc->id],
+                ['quantity' => $loc->id === $main->id ? max(0, $mainQty) : 0]
+            );
+        }
+        $variant->loadMissing('product');
+        if ($variant->product) {
+            $this->recomputeCaches($variant->product);
+        }
+    }
+
+    /**
+     * Recompute the cached quantities from variant_location_stock. For any
+     * product that has variants, product.stock_quantity becomes the sum of its
+     * variants (and each variant.stock_quantity the sum of its branches) — so
+     * the product total is always auto-calculated, never hand-edited. Uses
+     * saveQuietly to avoid re-triggering the variant observer. Products with no
+     * variants are left untouched (simple products keep their manual number).
      */
     public function recomputeCaches(Product $product): void
     {
@@ -75,16 +102,14 @@ class VariantStockService
             return;
         }
 
-        $anyRows = false;
         $productTotal = 0.0;
 
         foreach ($product->productVariants as $variant) {
-            $sum = (float) VariantLocationStock::where('product_variant_id', $variant->id)->sum('quantity');
             $hasRows = VariantLocationStock::where('product_variant_id', $variant->id)->exists();
             if ($hasRows) {
-                $anyRows = true;
+                $sum = (float) VariantLocationStock::where('product_variant_id', $variant->id)->sum('quantity');
                 if ((float) $variant->stock_quantity !== $sum) {
-                    $variant->forceFill(['stock_quantity' => $sum])->save();
+                    $variant->forceFill(['stock_quantity' => $sum])->saveQuietly();
                 }
                 $productTotal += $sum;
             } else {
@@ -92,12 +117,10 @@ class VariantStockService
             }
         }
 
-        if ($anyRows) {
-            $product->forceFill([
-                'stock_quantity' => $productTotal,
-                'in_stock'       => $productTotal > 0,
-            ])->save();
-        }
+        $product->forceFill([
+            'stock_quantity' => $productTotal,
+            'in_stock'       => $productTotal > 0,
+        ])->saveQuietly();
     }
 
     /** A sensible base unit id: a "piece/each" unit if present, else the first. */
