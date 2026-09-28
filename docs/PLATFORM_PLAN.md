@@ -66,6 +66,14 @@ leans on them, so they benefit from seeing all callers first).
 
 ## 3. Multi-location & multi-currency (design locked 28 Sep 2026)
 
+> ### ⚠️ PRINCIPLE: location-coupled by default.
+> **Most features are coupled to location.** Any sellable, and most module data,
+> carries a location dimension — availability, price and (where it applies) stock
+> resolve per branch. New work should assume location-awareness from the start,
+> not bolt it on later; the §5 checklist requires every module to declare its
+> location axes. A single-branch business never sees any of it (everything
+> defaults to "Main").
+
 Location is **not** an e-commerce feature. It is a **cross-cutting Core
 capability** that hangs off the Purchasable contract (§9): every sellable
 inherits a location dimension. Central catalog, location-scoped everything,
@@ -177,6 +185,43 @@ Source of truth = the pivot/ledger tables above. An optional **`location_ids`
 JSON cache** on a sellable (for fast "in A, B" badges) is allowed only as a
 **system-maintained, rebuildable mirror** — never hand-edited. Skip it unless a
 join actually lags.
+
+### 3.9 E-commerce × locations — products, services, variants, auctions, hampers (plan 28 Sep 2026)
+
+How the existing catalogue plugs into the three axes. Current state: nothing
+writes/reads `location_offering`/`location_price` yet — every product/service is
+global (implicitly `location_mode = all`, one price, one global stock number).
+Tax already resolves by district (`TaxService::calculateForEntity` takes
+`districtIds`), so multi-branch tax is mostly wiring.
+
+**Products**
+- **Offered-at:** product-level (which branches) + `location_mode` (all / specific / online).
+- **Priced-at:** optional per-branch override at **product** and **variant-unit** level (net); otherwise auto-convert base price → branch currency via `PriceResolver`.
+- **Tax:** feed the branch's `tax_district_id → selfAndAncestorIds()` into `TaxService`.
+- **Stock:** **global for now**; true per-branch stock ("12 in A, 3 in B") is the Inventory tier (§3.7), deferred.
+- **Display:** storefront scoped to the branch in context; a product not offered at the current branch shows an "Available at <branch>" note rather than vanishing.
+
+**Variants & options**
+- **Definitions stay central** — a product's options/variants (and its units) are defined once; never fragmented per branch.
+- **Per branch we vary** availability, price and (later) stock.
+- **v1 granularity:** offered-at at the **product** level, price override at **product / variant-unit** level. **Per-variant per-branch availability** ("Nairobi red+blue, Kampala red only") is a **later refinement**.
+
+**Auctions & hampers — show-all + badge (different from products)**
+- They **are** per-location (offered-at says which branch runs them).
+- **The listing shows ALL of them regardless of the selected branch**, each with a **"where available" badge** ("Available here" / "Kampala only" / "Also at Nairobi") — no filtering. Products filter by branch; auctions & hampers badge, because they're limited, event-like, high-interest items where discovery matters.
+- Bidding/buying stays tied to the item's branch (collect/settle there).
+
+**Services — underdone; overhaul planned**
+Services are currently a flat `base_price` + rate fields + a `pricing_tiers` JSON blob. Target structure (parallels products):
+- **Service packages/tiers as first-class** (the service equivalent of variants): Basic / Standard / Premium, each with price + duration.
+- **Add-ons** (upsells), **duration + buffer**, **deposit %** (§4).
+- **Staff / resource assignment** and **per-branch availability** — lean on **Bookings** (built last).
+- **Per-location** offered-at / priced-at / tax, same as products.
+- **Phasing:** (1) *now* — wire services' offered-at / priced-at / tax like products; (2) *services catalog overhaul* (packages, add-ons, deposit) — a focused phase, can precede Bookings; (3) *booking-dependent parts* (staff, availability calendar) — with Bookings.
+
+**Build order for the E-commerce × location work:** availability (offered-at) → pricing (priced-at) → tax (branch district) → services light wiring → [later] per-branch stock (Inventory) + per-variant availability + services overhaul.
+
+**Open decisions to confirm before coding:** (a) products filter vs auctions/hampers show-all+badge; (b) central variant definitions with product-level per-branch availability in v1; (c) whether the services catalog overhaul comes before or after the new modules.
 
 ---
 
