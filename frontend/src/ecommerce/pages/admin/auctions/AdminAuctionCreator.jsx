@@ -7,6 +7,8 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { Helmet } from 'react-helmet-async';
 import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-react';
+import BranchSelect from '../../../../_shared/components/common/BranchSelect';
+import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
 import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
 
 const inputStyle = {
@@ -32,7 +34,7 @@ export default function AdminAuctionCreator() {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [form, setForm] = useState({
-    product_id: '', currency_id: '', start_price: '', reserve_price: '',
+    product_id: '', variant_id: '', location_id: '', currency_id: '', start_price: '', reserve_price: '',
     bid_increment: '50', start_time: '', end_time: ''
   });
 
@@ -48,14 +50,14 @@ export default function AdminAuctionCreator() {
       const prod = products[0];
       setSelectedProduct({ ...prod, product_id: prod.id });
       // Start from the product's own currency — the admin can change it
-      setForm(prev => ({ ...prev, product_id: String(prod.id), currency_id: prod.currency_id ?? prod.currency?.id ?? prev.currency_id }));
+      setForm(prev => ({ ...prev, product_id: String(prod.id), variant_id: '', currency_id: prod.currency_id ?? prod.currency?.id ?? prev.currency_id }));
     }
     setShowProductModal(false);
   };
 
   const clearProduct = () => {
     setSelectedProduct(null);
-    setForm(prev => ({ ...prev, product_id: '' }));
+    setForm(prev => ({ ...prev, product_id: '', variant_id: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -63,9 +65,10 @@ export default function AdminAuctionCreator() {
     if (!form.product_id || !form.start_price || !form.end_time) {
       return toast.error('Please fill all required fields');
     }
+    if (!form.location_id) return toast.error('Pick the branch this auction belongs to');
     setLoading(true);
     try {
-      await auctionsAPI.createAuction(form);
+      await auctionsAPI.createAuction({ ...form, variant_id: form.variant_id || undefined });
       toast.success('Auction created! 🎉');
       navigate('/admin/auctions');
     } catch (err) {
@@ -140,6 +143,31 @@ export default function AdminAuctionCreator() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* ── Branch & item ── */}
+          <div style={sectionStyle}>
+            <p style={{ ...labelStyle, marginBottom: 14 }}>Branch &amp; item</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Branch *</label>
+                <BranchSelect value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} />
+                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '6px 0 0' }}>The auction belongs to this branch; the item must be in stock there.</p>
+              </div>
+              <div>
+                <label style={labelStyle}>Variant</label>
+                {selectedProduct && form.location_id ? (
+                  <VariantAtBranchPicker
+                    productId={selectedProduct.id}
+                    locationId={form.location_id}
+                    value={form.variant_id}
+                    onChange={v => setForm(prev => ({ ...prev, variant_id: v }))}
+                  />
+                ) : (
+                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Choose a product and branch first.</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* ── Pricing ── */}

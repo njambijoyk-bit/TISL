@@ -2,7 +2,7 @@
 import api from './axios';
 
 const paymentsAPI = {
-  // Admin: List all payments (regular + auction)
+  // Admin: List all payments
   listPayments: async (params = {}) => {
     const response = await api.get('/admin/payments', { params });
     return response.data;
@@ -20,14 +20,6 @@ const paymentsAPI = {
     return response.data;
   },
 
-  // Admin: Initiate STK Push for auction order
-  initiateAuctionPayment: async (auctionOrderId, data = {}) => {
-    const response = await api.post('/admin/payments/initiate', {
-      auction_order_id: auctionOrderId,
-      ...data,
-    });
-    return response.data;
-  },
 
   // Admin: Poll payment status
   pollPaymentStatus: async (id) => {
@@ -80,10 +72,9 @@ const paymentsAPI = {
     return response.data;
   },
 
-  // Admin: Get payment history for an order (regular or auction)
-  getOrderPayments: async (orderId, type = 'regular') => {
-    const params = type === 'auction' ? { auction_order_id: orderId } : { order_id: orderId };
-    const response = await api.get('/admin/payments/order-payments', { params });
+  // Admin: Get payment history for an order
+  getOrderPayments: async (orderId) => {
+    const response = await api.get('/admin/payments/order-payments', { params: { order_id: orderId } });
     return response.data;
   },
 

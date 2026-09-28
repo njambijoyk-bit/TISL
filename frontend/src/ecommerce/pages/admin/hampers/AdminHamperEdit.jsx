@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, Upload, X, Search, Check } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -219,6 +220,7 @@ export default function AdminHamperEdit() {
         accent_color:               data.accent_color || 'var(--color-primary-500)',
         price:                      data.price || '',
         currency_id:                data.currency_id ?? data.currency?.id ?? '',
+        location_id:                data.location_id ?? data.location?.id ?? '',
         status:                     data.status || 'draft',
         tax_rate_id:                data.tax_rate_id ?? '',
         allow_promo_codes:          !!data.allow_promo_codes,
@@ -275,6 +277,7 @@ export default function AdminHamperEdit() {
         accent_color:               form.accent_color,
         price:                      Number(form.price),
         currency_id:                form.currency_id || null,
+        location_id:                form.location_id || undefined,
         status:                     form.status,
         tax_rate_id:                form.tax_rate_id || null,   // null → no tax
         allow_promo_codes:          form.allow_promo_codes,
@@ -365,6 +368,9 @@ export default function AdminHamperEdit() {
                     />
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+                    <Field label="Branch *" error={errors.location_id}>
+                      <BranchSelect value={form.location_id} onChange={v => setForm(f => ({ ...f, location_id: v }))} />
+                    </Field>
                     <Field label="Currency">
                       <CurrencySelect
                         value={form.currency_id}

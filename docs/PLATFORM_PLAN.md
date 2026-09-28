@@ -373,14 +373,21 @@ Fundraising, crowdfunding, awareness, marketing.
 
 ---
 
-## 10. Checkout (after modules; built with Bookings, last)
-- **Purchasable contract** per sellable type: price + currency, tax class, **location axes (§3)**, availability, reserve/release, fulfil.
-- Cart & order lines point at purchasables polymorphically.
-- **Variant + unit + branch on every line:** checkout requires a specific **variant** and **unit**, and decrements that variant's `variant_location_stock` row at the **fulfilment branch** (overselling blocked against the branch quantity). "Which cups, in which unit, from which branch."
-- **Ways to pay:** pay now; open tab/folio settled later (stays, credit accounts); recurring (memberships); **deposits/partial (§4)**; **M-Pesa (§4)**.
+## 10. Checkout & orders (revised 28 Sep 2026)
+
+**Three layers, three jobs**
+| Layer | Holds | Money? |
+|---|---|---|
+| Catalogue (products, services, hampers, auctions) | What can be sold, its branch, availability, price rules | No |
+| **Checkout** (per module, customer-facing) | The particulars — who, what, where, when: lines (variant + unit + qty, or service + slot + add-ons), branch, delivery/pickup, addresses, notes, promo/referral/loyalty choices | No — it only produces a request |
+| **Orders / Sales register** (one system, Core) | Priced + taxed lines, payments (cash, bank, M-Pesa, store credit, credit account), deposits, refunds, and a **double-entry journal** | Yes — all of it |
+
+- **No separate hamper or auction orders (done 28 Sep 2026).** `hamper_orders` / `auction_orders` and their code are removed (SQL `09_retire_hamper_auction_orders.sql`). A hamper is a bundle line whose components are variants at its branch; an auction only holds bidding state (bids, winner, branch, variant) and the winner buys through the normal checkout. Hamper "Get this hamper" is disabled until checkout is rebuilt.
+- **Hampers and auctions belong to ONE branch; their items are variants stocked there (done).** `hampers.location_id`, `hamper_items.variant_id`, `auctions.location_id`, `auctions.variant_id` (SQL `10_hamper_auction_locations.sql`). Adding an item / creating an auction is refused when the variant isn't stocked at the branch, and the response lists the branches that do have it. Listings show all hampers/auctions with an owning-branch badge.
+- **Services must be enhanced before checkout is built** (purchasable contract: price/currency, tax class, branches + delivery mode, bookable time/capacity/lead time, deposit & payment terms, structured packages/add-ons, admin form with an auto "Standard" package).
+- **Sales register foundation (next):** `order_lines` (variant + unit + qty in selling unit and base units + branch + price/tax/currency snapshots), append-only `journal_entries`/`journal_lines`, accounts (Cash, Bank, M-Pesa clearing, Receivable, Revenue, Tax payable, Discounts, Shipping income, Store-credit liability, Refunds, Withholding receivable), a small Core `stock_movements` log, and one `SalesRegister::record()` entry point that also decrements `variant_location_stock` at the fulfilment branch in base units (strict stock).
+- **Ways to pay:** pay now; open tab/folio settled later; recurring; deposits/partial; M-Pesa. **Currency/tax:** convert into the customer's account currency with snapshots; tax from item class × branch jurisdiction.
 - **Shared booking & availability service** for slots, date ranges, seats (services, viewings, rooms, events, classes + waitlists).
-- **Currency/tax:** convert into the customer's account currency with snapshots; tax from item class × **branch jurisdiction**; promo/wallet/loyalty via the conversion helper.
-- Also: customer currency-change request form + review queue; tax-status request form.
 
 ---
 
@@ -399,7 +406,7 @@ Fundraising, crowdfunding, awareness, marketing.
 ## 12. Backlog & known issues
 
 **Checkout & money** (address during checkout work)
-- Checkout charges `product.price`, ignoring chosen variant/unit.
+- Checkout charges `product.price`, ignoring chosen variant/unit; order creation decrements `product.stock_quantity` by raw quantity (ignores variant, unit and branch) — fixed by the sales register.
 - Quote list merges variants of the same product.
 
 **Security & enforcement** — spread license checks through model loading, jobs, nav (done for routes + nav); confirm queued/scheduled work is gated.

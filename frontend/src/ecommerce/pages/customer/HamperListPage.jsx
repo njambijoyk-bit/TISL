@@ -7,41 +7,7 @@ import hampersAPI from '../../../_shared/api/hampers';
 import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
-import { formatMoney } from '../../../_shared/lib/money';
-
-// Amount in a given currency (object or ISO code); nothing → KSh, as before
-const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
-
-// ── Status colour maps ────────────────────────────────────────────────────────
-const ORDER_STATUS_COLORS = {
-  pending:    { bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  text: '#d97706' },
-  confirmed:  { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.3)',  text: '#2563eb' },
-  processing: { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)',  text: 'var(--color-primary-600)' },
-  shipped:    { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.3)',  text: '#059669' },
-  delivered:  { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.4)',  text: '#047857' },
-  cancelled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.3)',   text: '#dc2626' },
-  failed:     { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.3)',   text: '#dc2626' },
-};
-const PAYMENT_STATUS_COLORS = {
-  unpaid:         { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
-  partially_paid: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
-  paid:           { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  refunded:       { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
-  failed:         { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
-};
-
-function StatusBadge({ status, map }) {
-  const c = map[status] ?? { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.3)', text: '#6b7280' };
-  return (
-    <span style={{
-      fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-      background: c.bg, border: `1px solid ${c.border}`, color: c.text,
-      textTransform: 'capitalize', whiteSpace: 'nowrap',
-    }}>
-      {status?.replace(/_/g, ' ')}
-    </span>
-  );
-}
+import BranchBadge from '../../components/storefront/BranchBadge';
 
 function HamperCard({ hamper, onClick }) {
   const money = useMoney();   // hamper price in the shopper's chosen currency
@@ -77,6 +43,8 @@ function HamperCard({ hamper, onClick }) {
             <Package size={48} style={{ color: accent, opacity: 0.3 }} />
           </div>
         )}
+
+        <BranchBadge location={hamper.location} style={{ position: 'absolute', top: 10, left: 10 }} />
 
         {/* Status overlays */}
         {soldOut && (
@@ -149,140 +117,11 @@ function HamperCard({ hamper, onClick }) {
   );
 }
 
-// ── My Hamper Order Card ───────────────────────────────────────────────────────
-function MyHamperOrderCard({ order, onClick }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const hamper = order.hamper;
-
-  const total       = Number(order.total_kes ?? order.total ?? 0);
-  const paid        = Number(order.paid_amount ?? 0);
-  const balance     = Math.max(0, total - paid);
-  const hasPayments = order.payments?.length > 0;
-
-  return (
-    <div style={{
-      background: 'white', borderRadius: 14,
-      boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-      border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-      borderLeft: '3px solid var(--color-primary-500)',
-      overflow: 'hidden',
-    }}>
-      {/* ── main row — clickable to open hamper detail ── */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', cursor: 'pointer' }}
-        onClick={onClick}
-      >
-        {/* icon */}
-        <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 10, overflow: 'hidden', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Package size={20} style={{ color: '#d1d5db' }} />
-        </div>
-
-        {/* hamper + order info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {hamper?.name ?? 'Hamper'}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Receipt size={10} style={{ color: '#9ca3af' }} />
-            <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>{order.order_number}</span>
-          </div>
-        </div>
-
-        {/* amounts + badges */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <StatusBadge status={order.status}         map={ORDER_STATUS_COLORS} />
-            <StatusBadge status={order.payment_status} map={PAYMENT_STATUS_COLORS} />
-          </div>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151' }}>
-            {fmt(total, hamper?.currency)}
-          </span>
-          {paid > 0 && (
-            <span style={{ fontSize: '0.65rem', color: '#059669' }}>
-              Paid {fmt(paid, hamper?.currency)}
-              {balance > 0 && <span style={{ color: '#dc2626' }}> · Bal {fmt(balance, hamper?.currency)}</span>}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── shipping strip ── */}
-      {(order.status === 'shipped' || order.status === 'delivered') && order.tracking_number && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '5px 12px', borderTop: '1px solid rgba(16,185,129,0.15)',
-          background: 'rgba(16,185,129,0.04)',
-        }}>
-          <Truck size={11} style={{ color: '#059669' }} />
-          <span style={{ fontSize: '0.67rem', color: '#059669', fontWeight: 600 }}>
-            {order.status === 'delivered' ? 'Delivered' : 'Shipped'}
-          </span>
-          {order.courier_company && <span style={{ fontSize: '0.65rem', color: '#6b7280' }}>· {order.courier_company}</span>}
-          <span style={{ fontSize: '0.65rem', color: '#374151', marginLeft: 2 }}>#{order.tracking_number}</span>
-        </div>
-      )}
-
-      {/* ── payment history toggle ── */}
-      {hasPayments && (
-        <>
-          <div
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderTop: '1px solid #f3f4f6', cursor: 'pointer', background: expanded ? 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' : 'transparent' }}
-            onClick={() => setExpanded(e => !e)}
-          >
-            <CreditCard size={11} style={{ color: 'var(--color-primary-500)' }} />
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-primary-500)', flex: 1 }}>
-              {order.payments.length} payment{order.payments.length !== 1 ? 's' : ''}
-            </span>
-            <span style={{ fontSize: '0.6rem', color: '#9ca3af', userSelect: 'none' }}>{expanded ? '▲' : '▼'}</span>
-          </div>
-
-          {expanded && (
-            <div style={{ padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-              {order.payments.map((pmt, i) => {
-                const isRefund  = pmt.method === 'refund';
-                const pmtAmount = Number(pmt.mpesa_amount_confirmed ?? pmt.amount_received ?? 0);
-                const ref       = pmt.mpesa_receipt_number ?? pmt.payment_number;
-                return (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '6px 10px', borderRadius: 8,
-                    background: isRefund ? 'rgba(6,182,212,0.05)' : '#f9fafb',
-                    border: isRefund ? '1px solid rgba(6,182,212,0.15)' : '1px solid transparent',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151' }}>
-                        {isRefund ? '−' : ''}{fmt(pmtAmount, hamper?.currency)}
-                      </span>
-                      {isRefund && (
-                        <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 5px', borderRadius: 99 }}>REFUND</span>
-                      )}
-                      {ref && <span style={{ fontSize: '0.63rem', color: '#9ca3af' }}>{ref}</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <StatusBadge status={pmt.status} map={PAYMENT_STATUS_COLORS} />
-                      <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>
-                        {new Date(pmt.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function HamperListPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const [hampers, setHampers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [myOrders, setMyOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) { navigate('/login?redirect=/hampers'); return; }
@@ -290,14 +129,6 @@ export default function HamperListPage() {
       .then(data => setHampers(Array.isArray(data) ? data : data.data ?? []))
       .catch(() => toast.error('Failed to load hampers'))
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    hampersAPI.getMyHamperOrders()
-      .then(data => setMyOrders(Array.isArray(data) ? data : data.data ?? []))
-      .catch(() => setMyOrders([]))
-      .finally(() => setOrdersLoading(false));
   }, [isAuthenticated]);
 
   return (
@@ -339,30 +170,6 @@ export default function HamperListPage() {
           </div>
         )}
 
-        {/* ── MY HAMPER ORDERS — renders regardless of hampers availability ── */}
-        {!ordersLoading && myOrders.length > 0 && (
-          <div style={{ marginTop: 40 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <Receipt size={18} style={{ color: 'var(--color-primary-500)' }} />
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>My Hamper Orders</h2>
-              <span style={{
-                fontSize: '0.65rem', fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-                background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)',
-              }}>
-                {myOrders.length}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {myOrders.map(order => (
-                <MyHamperOrderCard
-                  key={order.id}
-                  order={order}
-                  onClick={() => order.hamper?.slug && navigate(`/hampers/${order.hamper.slug}`)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
       </div>
       <Footer />

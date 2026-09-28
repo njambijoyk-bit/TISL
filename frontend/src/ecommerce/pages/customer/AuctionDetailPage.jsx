@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BranchBadge from '../../components/storefront/BranchBadge';
 import { useParams, useNavigate } from 'react-router-dom';
 import auctionsAPI from '../../../_shared/api/auctions';
 import useAuctionSSE from '../../../_shared/hooks/useAuctionSSE';
@@ -22,189 +23,6 @@ function useWindowWidth() {
 }
 
 // ── order status helpers ─────────────────────────────────────────────────────
-const ORDER_STATUS_COLORS = {
-  pending:    { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
-  confirmed:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
-  processing: { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
-  shipped:    { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  delivered:  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.4)', text: '#047857' },
-  cancelled:  { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
-  failed:     { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
-};
-
-const PAYMENT_STATUS_COLORS = {
-  unpaid:          { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', text: '#d97706' },
-  partially_paid:  { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', text: '#2563eb' },
-  paid:            { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', text: '#059669' },
-  refunded:        { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)', text: 'var(--color-primary-600)' },
-  failed:          { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#dc2626' },
-};
-
-function StatusBadge({ status, map, label }) {
-  const c = map[status] ?? { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.3)', text: '#6b7280' };
-  return (
-    <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-      background: c.bg, border: `1px solid ${c.border}`, color: c.text, textTransform: 'capitalize' }}>
-      {label ?? status?.replace(/_/g, ' ')}
-    </span>
-  );
-}
-
-// ── CustomerOrderPanel ────────────────────────────────────────────────────────
-function CustomerOrderPanel({ order, auctionCurrency }) {
-  // What the winner was charged, in the order's currency (usually the auction's)
-  const money = (n) => formatMoney(n ?? 0, order?.currency || auctionCurrency?.symbol || auctionCurrency?.code || 'KSh', { decimals: 'auto' });
-  if (!order) return null;
-
-  // AuctionOrder model uses `total` / `total_kes`; `paid_amount` is injected by the controller
-  const total   = Number(order.total_kes ?? order.total ?? 0);
-  const paid    = Number(order.paid_amount ?? 0);
-  const balance = Math.max(0, total - paid);
-
-  const hasTacking = order.tracking_number;
-
-  return (
-    <div style={{ background: 'white', borderRadius: 16, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', overflow: 'hidden', marginTop: 8 }}>
-      {/* header */}
-      <div style={{ padding: '14px 18px', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Receipt size={16} style={{ color: 'var(--color-primary-500)' }} />
-        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#374151', flex: 1 }}>Your Order</span>
-        <StatusBadge status={order.status} map={ORDER_STATUS_COLORS} />
-      </div>
-
-      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* order number + date */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>Order Number</p>
-            <p style={{ fontSize: '0.92rem', fontWeight: 700, color: '#111827', margin: 0 }}>{order.order_number}</p>
-          </div>
-          {order.created_at && (
-            <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
-              {new Date(order.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </p>
-          )}
-        </div>
-
-        {/* amounts */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[
-            { label: 'Order Total', value: money(total), color: '#374151' },
-            { label: 'Paid',        value: money(paid),  color: '#059669' },
-            { label: 'Balance',     value: money(balance), color: balance > 0 ? '#dc2626' : '#059669' },
-          ].map((item, i) => (
-            <div key={i} style={{ textAlign: 'center', padding: '10px 6px', background: '#f9fafb', borderRadius: 10 }}>
-              <p style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 3px' }}>{item.label}</p>
-              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: item.color, margin: 0 }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* payment status row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CreditCard size={13} style={{ color: '#6b7280' }} />
-          <span style={{ fontSize: '0.78rem', color: '#6b7280', fontWeight: 500 }}>Payment:</span>
-          <StatusBadge status={order.payment_status} map={PAYMENT_STATUS_COLORS} />
-          {order.payment_method && (
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 4 }}>
-              via {order.payment_method.replace(/_/g, ' ')}
-            </span>
-          )}
-        </div>
-
-        {/* shipping row */}
-        {order.status === 'shipped' || order.status === 'delivered' ? (
-          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Truck size={13} style={{ color: '#059669' }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669' }}>
-                {order.status === 'delivered' ? 'Delivered' : 'Shipped'}
-              </span>
-              {order.courier_company && (
-                <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>· {order.courier_company}</span>
-              )}
-            </div>
-            {hasTacking && (
-              <p style={{ fontSize: '0.75rem', color: '#374151', margin: 0 }}>
-                Tracking: <strong>{order.tracking_number}</strong>
-              </p>
-            )}
-            {order.estimated_delivery_date && order.status !== 'delivered' && (
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-                Est. delivery: {new Date(order.estimated_delivery_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
-              </p>
-            )}
-          </div>
-        ) : null}
-
-        {/* shipping address */}
-        {order.shipping_address && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <Package size={13} style={{ color: '#9ca3af', marginTop: 2, flexShrink: 0 }} />
-            <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{order.shipping_address}</p>
-          </div>
-        )}
-
-        {/* payment history */}
-        {order.payments?.length > 0 && (
-          <div>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Payment History</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {order.payments.map((pmt, i) => {
-                const isRefund = pmt.method === 'refund';
-                const pmtAmount = Number(pmt.mpesa_amount_confirmed ?? pmt.amount_received ?? 0);
-                const ref = pmt.mpesa_receipt_number ?? pmt.payment_number;
-                return (
-                  <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px 12px', borderRadius: 8,
-                    background: isRefund ? 'rgba(6,182,212,0.05)' : '#f9fafb',
-                    border: isRefund ? '1px solid rgba(6,182,212,0.15)' : '1px solid transparent',
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <p style={{ fontSize: '0.78rem', fontWeight: 600, color: isRefund ? '#0891b2' : '#374151', margin: 0 }}>
-                          {isRefund ? '−' : ''}{money(pmtAmount)}
-                        </p>
-                        {isRefund && (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#0891b2', background: 'rgba(6,182,212,0.1)', padding: '1px 6px', borderRadius: 99 }}>
-                            REFUND
-                          </span>
-                        )}
-                      </div>
-                      {ref && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '1px 0 0' }}>{ref}</p>}
-                      {pmt.method && !isRefund && (
-                        <p style={{ fontSize: '0.65rem', color: 'var(--color-primary-500)', margin: '1px 0 0', textTransform: 'capitalize' }}>
-                          {pmt.method.replace(/_/g, ' ')}
-                        </p>
-                      )}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <StatusBadge status={pmt.status} map={PAYMENT_STATUS_COLORS} />
-                      <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '3px 0 0' }}>
-                        {new Date(pmt.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* customer notes */}
-        {order.customer_notes && (
-          <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>Note</p>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{order.customer_notes}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function AuctionDetailPage() {
   const { id } = useParams();
@@ -213,7 +31,6 @@ export default function AuctionDetailPage() {
   const isMobile = windowWidth < 768;
 
   const [auction, setAuction] = useState(null);
-  const [customerOrder, setCustomerOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -222,7 +39,6 @@ export default function AuctionDetailPage() {
   const fetchAuction = () =>
     auctionsAPI.getAuction(id).then(res => {
       setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 });
-      if (res.customer_order) setCustomerOrder(res.customer_order);
     });
 
   useEffect(() => {
@@ -370,6 +186,12 @@ export default function AuctionDetailPage() {
                 <h1 style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.2, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
                   {product?.name}
                 </h1>
+                <div style={{ margin: '0 0 10px' }}>
+                  <BranchBadge location={auction.location} style={{ background: 'rgba(107,114,128,0.1)', boxShadow: 'none' }} />
+                  {auction.variant?.name && auction.variant.name !== 'Standard' && (
+                    <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#6b7280' }}>{auction.variant.name}</span>
+                  )}
+                </div>
                 {product?.short_description && (
                   <p style={{ fontSize: '0.9rem', color: '#6b7280', lineHeight: 1.6, margin: 0 }}>
                     {product.short_description}
@@ -448,9 +270,6 @@ export default function AuctionDetailPage() {
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', margin: '-12px 0 0' }}>
                 {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>{money(minBid)}</strong></>}
               </p>
-
-              {/* ── Customer Order Panel (ended auctions only) ── */}
-              {isEnded && <CustomerOrderPanel order={customerOrder} auctionCurrency={auction?.currency} />}
 
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
@@ -531,8 +350,7 @@ export default function AuctionDetailPage() {
                     setShowModal(false);
                     auctionsAPI.getAuction(id).then(res => {
                       setAuction({ ...(res.auction ?? res), top_bids: res.top_bids ?? [], bid_count: res.bid_count ?? 0 });
-                      if (res.customer_order) setCustomerOrder(res.customer_order);
-                    });
+                                    });
                   } catch (err) { toast.error(err.response?.data?.message || 'Bid failed'); }
                 }}
                 style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}

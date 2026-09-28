@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Save, Upload, X, Search, Check, Package } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -234,7 +235,7 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
 
 const defaultForm = {
   name: '', description: '', accent_color: 'var(--color-primary-500)',
-  price: '', currency_id: '', status: 'draft',
+  price: '', currency_id: '', location_id: '', status: 'draft',
   tax_rate_id: '', allow_promo_codes: false,
   allow_store_credit: true, earn_loyalty_points: true, is_visible: true,
   max_purchases_per_customer: '', total_stock: '',
@@ -303,6 +304,7 @@ export default function AdminHamperCreate() {
         accent_color:               form.accent_color,
         price:                      Number(form.price),
         currency_id:                form.currency_id || null,   // null → server uses the base
+        location_id:                form.location_id || undefined,
         status:                     form.status,
         tax_rate_id:                form.tax_rate_id || null,   // null → no tax
         allow_promo_codes:          form.allow_promo_codes,
@@ -391,6 +393,9 @@ export default function AdminHamperCreate() {
                     />
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+                    <Field label="Branch *" error={errors.location_id}>
+                      <BranchSelect value={form.location_id} onChange={v => setForm(f => ({ ...f, location_id: v }))} />
+                    </Field>
                     <Field label="Currency">
                       <CurrencySelect
                         value={form.currency_id}

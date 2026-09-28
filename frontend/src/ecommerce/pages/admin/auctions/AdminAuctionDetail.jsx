@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import auctionsAPI from '../../../../_shared/api/auctions';
 import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
+import BranchSelect from '../../../../_shared/components/common/BranchSelect';
+import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
 import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 
@@ -145,42 +147,8 @@ export default function AdminAuctionDetail() {
   const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
   const fetchAdminCurrencies = useCurrencyStore(s => s.fetchAdminCurrencies);
   useEffect(() => { if (!adminCurrencies.length) fetchAdminCurrencies().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  /** "1 unit of code" in KES, from the currency rates (for the order's exchange_rate_to_kes). */
-  const rateToKes = (code) => {
-    const cur = adminCurrencies.find(c => c.code === code);
-    const kes = adminCurrencies.find(c => c.code === 'KES');
-    if (!cur || !kes || !Number(kes.conversion_rate)) return 1;
-    return Math.round((Number(cur.conversion_rate) / Number(kes.conversion_rate)) * 10000) / 10000;
-  };
   const [stats, setStats] = useState({});
   const [activityLogs] = useState([]);
-
-  // ── Bid Approval State ──
-  const [showApprovePanel, setShowApprovePanel] = useState(false);
-  const [selectedBids, setSelectedBids] = useState(new Set());
-  const [bidAmounts, setBidAmounts] = useState({}); // { bidId: chargedAmount }
-  const [globalChargedAmount, setGlobalChargedAmount] = useState('');
-  const [approving, setApproving] = useState(false);
-  const [approveForm, setApproveForm] = useState({
-    currency: 'KES',
-    exchange_rate_to_kes: 1,
-    apply_tax: true,
-    shipping_address: '',
-    delivery_method: '',
-    shipping_cost: '',
-    payment_method: 'mpesa',
-    admin_notes: '',
-    customer_notes: '',
-  });
-
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-
-  // Rates may load after the auction: refresh the default exchange rate then
-  useEffect(() => {
-    if (!adminCurrencies.length || !approveForm.currency) return;
-    setApproveForm(prev => ({ ...prev, exchange_rate_to_kes: rateToKes(prev.currency) }));
-  }, [adminCurrencies.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAuction = async () => {
     setLoading(true);
@@ -190,6 +158,8 @@ export default function AdminAuctionDetail() {
       setStats(data.stats);
       setForm({
         currency_id: data.auction.currency_id ?? data.auction.currency?.id ?? '',
+        location_id: data.auction.location_id ?? '',
+        variant_id: data.auction.variant_id ?? '',
         start_price: data.auction.start_price,
         reserve_price: data.auction.reserve_price,
         bid_increment: data.auction.bid_increment,
@@ -197,12 +167,6 @@ export default function AdminAuctionDetail() {
         end_time: data.auction.end_time?.slice(0, 16),
         status: data.auction.status,
       });
-      // Winners are charged in the auction's currency by default
-      const auctionCode = data.auction.currency?.code ?? 'KES';
-      setApproveForm(prev => ({ ...prev, currency: auctionCode, exchange_rate_to_kes: rateToKes(auctionCode) }));
-      // Reset approval state on refresh
-      setSelectedBids(new Set());
-      setBidAmounts({});
     } catch (err) {
       toast.error('Failed to load auction');
     } finally {
@@ -210,19 +174,7 @@ export default function AdminAuctionDetail() {
     }
   };
   
-  const fetchOrders = async () => {
-    setOrdersLoading(true);
-    try {
-      const data = await auctionsAPI.listAuctionOrders({ auction_id: id, per_page: 50 });
-      setOrders(data.data || []);
-    } catch { /* silent */ } finally {
-      setOrdersLoading(false);
-    }
-  };
-
   useEffect(() => { fetchAuction(); }, [id]);
-
-  useEffect(() => { fetchAuction(); fetchOrders(); }, [id]);
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -264,100 +216,7 @@ export default function AdminAuctionDetail() {
     }
   };
 
-  // ── Bid Selection ──
-  const toggleBidSelection = (bidId) => {
-    setSelectedBids(prev => {
-      const next = new Set(prev);
-      if (next.has(bidId)) {
-        next.delete(bidId);
-        // Also clear custom amount
-        setBidAmounts(a => { const na = { ...a }; delete na[bidId]; return na; });
-      } else {
-        next.add(bidId);
-      }
-      return next;
-    });
-  };
-
-  const setBidChargedAmount = (bidId, amount) => {
-    setBidAmounts(prev => ({ ...prev, [bidId]: amount }));
-  };
-
-  const applyGlobalAmount = () => {
-    if (!globalChargedAmount) return;
-    const amounts = {};
-    selectedBids.forEach(bidId => {
-      amounts[bidId] = globalChargedAmount;
-    });
-    setBidAmounts(amounts);
-    toast.success(`Applied ${approveForm.currency} ${Number(globalChargedAmount).toLocaleString()} to ${selectedBids.size} bid(s)`);
-  };
-
-  const clearAllSelections = () => {
-    setSelectedBids(new Set());
-    setBidAmounts({});
-    setGlobalChargedAmount('');
-  };
-
-  // ── Approve Bids ──
-  const handleApproveBids = async () => {
-    if (selectedBids.size === 0) {
-      toast.error('Select at least one bid to approve');
-      return;
-    }
-    if (selectedBids.size > (auction?.max_winners || 1)) {
-      toast.error(`This auction allows max ${auction.max_winners} winner(s). You selected ${selectedBids.size}.`);
-      return;
-    }
-
-    setApproving(true);
-    try {
-      const bidsPayload = Array.from(selectedBids).map(bidId => ({
-        bid_id: bidId,
-        charged_amount: bidAmounts[bidId] ? parseFloat(bidAmounts[bidId]) : undefined,
-      }));
-
-      const payload = {
-        bids: bidsPayload,
-        global_charged_amount: globalChargedAmount ? parseFloat(globalChargedAmount) : undefined,
-        currency: approveForm.currency,
-        exchange_rate_to_kes: parseFloat(approveForm.exchange_rate_to_kes) || 1,
-        apply_tax: approveForm.apply_tax,
-        shipping_address: approveForm.shipping_address || undefined,
-        delivery_method: approveForm.delivery_method || undefined,
-        shipping_cost: approveForm.shipping_cost ? parseFloat(approveForm.shipping_cost) : undefined,
-        payment_method: approveForm.payment_method || undefined,
-        admin_notes: approveForm.admin_notes || undefined,
-        customer_notes: approveForm.customer_notes || undefined,
-      };
-
-      const result = await auctionsAPI.approveBids(id, payload);
-
-      const successCount = result.orders?.length || 0;
-      const errorCount = result.errors?.length || 0;
-
-      if (successCount > 0) {
-        toast.success(`${successCount} order(s) created successfully!`);
-      }
-      if (errorCount > 0) {
-        result.errors.forEach(err => toast.error(`Bid #${err.bid_id}: ${err.message}`));
-      }
-
-      // Reset and refresh
-      setShowApprovePanel(false);
-      setSelectedBids(new Set());
-      setBidAmounts({});
-      setGlobalChargedAmount('');
-      fetchAuction();
-    } catch (err) {
-      const msg = err.response?.data?.message || 
-        (err.response?.data?.errors ? Object.values(err.response.data.errors).flat()[0] : 'Approval failed');
-      toast.error(msg);
-    } finally {
-      setApproving(false);
-    }
-  };
-
+  const maxWinners = auction?.max_winners || 1;
   const auctionCode = auction?.currency?.code ?? 'KES';
   const auctionSymbol = auction?.currency?.symbol || auctionCode;
   const formatPrice = (price, cur) => formatMoney(price ?? 0, cur || auctionSymbol, { decimals: 'auto' });
@@ -373,9 +232,6 @@ export default function AdminAuctionDetail() {
       highestBid: Math.max(...auction.bids.map(b => Number(b.amount)))
     };
   }, [auction?.bids]);
-
-  const canApproveBids = auction?.status === 'ended' && auction?.bids?.length > 0;
-  const maxWinners = auction?.max_winners || 1;
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 12 }}>
@@ -409,15 +265,6 @@ export default function AdminAuctionDetail() {
           </button>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {canApproveBids && (
-              <ActionBtn 
-                variant="success" 
-                icon={ShoppingCart}
-                onClick={() => setShowApprovePanel(!showApprovePanel)}
-              >
-                {showApprovePanel ? 'Close Approval' : 'Approve Bids & Create Orders'}
-              </ActionBtn>
-            )}
             {editing ? (
               <>
                 <button onClick={() => { setEditing(false); }} disabled={saving}
@@ -480,6 +327,12 @@ export default function AdminAuctionDetail() {
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
                 <Users size={13} style={{ color: 'var(--color-primary-500)' }} /> Max Winners: {maxWinners}
               </span>
+              {auction.location?.name && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
+                  <MapPin size={13} style={{ color: 'var(--color-primary-500)' }} /> {auction.location.name}
+                  {auction.variant?.name && auction.variant.name !== 'Standard' ? ` · ${auction.variant.name}` : ''}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -522,6 +375,15 @@ export default function AdminAuctionDetail() {
                 </div>
               ))}
               <div>
+                <label style={labelStyle}>Branch</label>
+                <BranchSelect value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} disabled={hasBids} />
+              </div>
+              <div>
+                <label style={labelStyle}>Variant</label>
+                <VariantAtBranchPicker productId={auction.product_id} locationId={form.location_id} value={form.variant_id}
+                  onChange={v => setForm(prev => ({ ...prev, variant_id: v }))} />
+              </div>
+              <div>
                 <label style={labelStyle}>Currency</label>
                 <CurrencySelect
                   value={form.currency_id}
@@ -546,281 +408,14 @@ export default function AdminAuctionDetail() {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            BID APPROVAL PANEL (shown when "Approve Bids" is clicked)
-            ═══════════════════════════════════════════════════════════════ */}
-        {showApprovePanel && (
-          <Panel accent style={{ animation: 'slideDown 200ms ease-out' }}>
-            <div style={{ padding: 24 }}>
-              {/* Panel Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-                <div>
-                  <SectionLabel icon={ShoppingCart}>Approve Bids & Create Orders</SectionLabel>
-                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '-10px 0 0' }}>
-                    Select winning bids and configure order details. Max {maxWinners} winner(s) allowed.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {selectedBids.size > 0 && (
-                    <ActionBtn variant="outline" icon={RotateCcw} onClick={clearAllSelections}>
-                      Clear ({selectedBids.size})
-                    </ActionBtn>
-                  )}
-                  <ActionBtn 
-                    variant="success" 
-                    icon={CheckCircle}
-                    onClick={handleApproveBids}
-                    disabled={approving || selectedBids.size === 0}
-                  >
-                    {approving ? 'Creating Orders...' : `Create ${selectedBids.size} Order(s)`}
-                  </ActionBtn>
-                </div>
-              </div>
-
-              {/* Global Settings Row */}
-              <div style={{ 
-                background: '#f9fafb', borderRadius: 14, padding: 16, 
-                marginBottom: 20, border: '1px solid #f3f4f6'
-              }}>
-                <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 14px' }}>
-                  Global Order Settings
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
-                  <div>
-                    <label style={labelStyle}>Global Charged Amount ({approveForm.currency})</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input
-                        type="number"
-                        value={globalChargedAmount}
-                        onChange={e => setGlobalChargedAmount(e.target.value)}
-                        placeholder="Override all"
-                        style={{ ...inputStyle, flex: 1 }}
-                      />
-                      <button
-                        onClick={applyGlobalAmount}
-                        disabled={!globalChargedAmount || selectedBids.size === 0}
-                        style={{
-                          padding: '8px 14px', borderRadius: 10, border: 'none',
-                          background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                          color: 'white', fontSize: '0.75rem', fontWeight: 700,
-                          cursor: (!globalChargedAmount || selectedBids.size === 0) ? 'not-allowed' : 'pointer',
-                          opacity: (!globalChargedAmount || selectedBids.size === 0) ? 0.5 : 1,
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Apply
-                      </button>
-                    </div>
-                    <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '4px 0 0' }}>Applied to selected bids without custom amount</p>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Currency</label>
-                    <select 
-                      value={approveForm.currency}
-                      onChange={e => setApproveForm(prev => ({ ...prev, currency: e.target.value, exchange_rate_to_kes: rateToKes(e.target.value) }))}
-                      style={inputStyle}
-                    >
-                      {(adminCurrencies.length ? adminCurrencies.filter(c => c.is_active || c.code === approveForm.currency) : [{ code: approveForm.currency }]).map(c => (
-                        <option key={c.code} value={c.code}>{c.code}{c.code === auctionCode ? ' (auction currency)' : ''}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Exchange Rate to KES</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={approveForm.exchange_rate_to_kes}
-                      onChange={e => setApproveForm(prev => ({ ...prev, exchange_rate_to_kes: e.target.value }))}
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Payment Method</label>
-                    <select
-                      value={approveForm.payment_method}
-                      onChange={e => setApproveForm(prev => ({ ...prev, payment_method: e.target.value }))}
-                      style={inputStyle}
-                    >
-                      <option value="mpesa">M-Pesa</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="cod">Cash on Delivery</option>
-                      <option value="cash">Cash</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Delivery Method</label>
-                    <input
-                      type="text"
-                      value={approveForm.delivery_method}
-                      onChange={e => setApproveForm(prev => ({ ...prev, delivery_method: e.target.value }))}
-                      placeholder="e.g. nairobi-cbd"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Shipping Cost ({approveForm.currency})</label>
-                    <input
-                      type="number"
-                      value={approveForm.shipping_cost}
-                      onChange={e => setApproveForm(prev => ({ ...prev, shipping_cost: e.target.value }))}
-                      placeholder="Auto-calculate if empty"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <Checkbox 
-                      checked={approveForm.apply_tax}
-                      onChange={e => setApproveForm(prev => ({ ...prev, apply_tax: e.target.checked }))}
-                      label="Apply 16% VAT/Tax"
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Shipping Address</label>
-                    <input
-                      type="text"
-                      value={approveForm.shipping_address}
-                      onChange={e => setApproveForm(prev => ({ ...prev, shipping_address: e.target.value }))}
-                      placeholder="Customer delivery address"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Admin Notes</label>
-                    <input
-                      type="text"
-                      value={approveForm.admin_notes}
-                      onChange={e => setApproveForm(prev => ({ ...prev, admin_notes: e.target.value }))}
-                      placeholder="Internal notes..."
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Customer Notes</label>
-                    <input
-                      type="text"
-                      value={approveForm.customer_notes}
-                      onChange={e => setApproveForm(prev => ({ ...prev, customer_notes: e.target.value }))}
-                      placeholder="Visible to customer..."
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Selected Summary */}
-              {selectedBids.size > 0 && (
-                <div style={{
-                  background: 'rgba(16,185,129,0.06)', borderRadius: 12,
-                  padding: '12px 16px', marginBottom: 16, border: '1px solid rgba(16,185,129,0.15)',
-                  display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'
-                }}>
-                  <CheckCircle size={18} style={{ color: '#059669' }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>
-                    {selectedBids.size} of {maxWinners} winner(s) selected
-                  </span>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                    {Array.from(selectedBids).map(bidId => {
-                      const bid = auction.bids.find(b => b.id === bidId);
-                      const amount = bidAmounts[bidId] ? formatPrice(bidAmounts[bidId]) : formatPrice(bid?.amount);
-                      return `${bid?.bidder?.name || 'Unknown'} (${amount})`;
-                    }).join(', ')}
-                  </span>
-                </div>
-              )}
-            </div>
-          </Panel>
-        )}
-
-        {/* ── Orders for this auction ── */}
-        {(ordersLoading || orders.length > 0) && (
-          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShoppingCart size={16} style={{ color: 'var(--color-primary-500)' }} />
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Orders</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>
-                {orders.length} order{orders.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            {ordersLoading ? (
-              <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af', fontSize: '0.82rem' }}>Loading orders...</div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb' }}>
-                      {['Order #', 'Customer', 'Total', 'Status', 'Payment', 'Created'].map(h => (
-                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map(o => (
-                      <tr key={o.id}
-                        onClick={() => navigate(`/admin/auction-orders/${o.id}`)}
-                        style={{ borderTop: '1px solid #f3f4f6', cursor: 'pointer' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>{o.order_number}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>
-                            {o.customer?.first_name && o.customer?.last_name
-                              ? `${o.customer.first_name} ${o.customer.last_name}`
-                              : o.customer?.name || 'Unknown'}
-                          </p>
-                          <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{o.customer?.email || '—'}</p>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.9rem', fontWeight: 800, color: '#111827' }}>
-                          {formatPrice(o.total, o.currency)}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {(() => {
-                            const s = statusConfig[o.status] ?? { color: '#9ca3af', bg: '#f3f4f6', border: '#e5e7eb', dot: '#9ca3af' };
-                            return (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, fontSize: '0.7rem', fontWeight: 800, color: s.color, textTransform: 'uppercase' }}>
-                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.dot }} />{o.status}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {(() => {
-                            const p = { pending: '#d97706', confirmed: '#2563eb', partially_paid: 'var(--color-primary-600)', paid: '#059669', overpayment: '#0891b2', refunded: '#6b7280', unpaid: '#9ca3af' };
-                            const c = p[o.payment_status] || '#9ca3af';
-                            return <span style={{ fontSize: '0.72rem', fontWeight: 700, color: c }}>{o.payment_status?.replace('_', ' ')}</span>;
-                          })()}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>{formatDate(o.created_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Bid history (with approval checkboxes when panel is open) ── */}
+        {/* ── Bid history ── */}
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Users size={16} style={{ color: 'var(--color-primary-500)' }} />
             <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Bid History</span>
-            {showApprovePanel && (
-              <span style={{ 
-                marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, 
-                color: selectedBids.size >= maxWinners ? '#dc2626' : '#059669',
-                background: selectedBids.size >= maxWinners ? 'rgba(220,38,38,0.08)' : 'rgba(16,185,129,0.08)',
-                padding: '3px 10px', borderRadius: 99
-              }}>
-                {selectedBids.size}/{maxWinners} selected
-              </span>
-            )}
-            {!showApprovePanel && (
-              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>
-                {auction.bids?.length ?? 0} bids
-              </span>
-            )}
+            <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>
+              {auction.bids?.length ?? 0} bids
+            </span>
           </div>
 
           {auction.bids?.length > 0 ? (
@@ -828,50 +423,18 @@ export default function AdminAuctionDetail() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f9fafb' }}>
-                    {showApprovePanel && (
-                      <th style={{ padding: '10px 8px 10px 16px', width: 40 }} />
-                    )}
                     {['Bidder', 'Amount', 'Max Bid', 'Time'].map(h => (
                       <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
                     ))}
-                    {showApprovePanel && (
-                      <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        Charged Amount
-                      </th>
-                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {auction.bids.map((bid, idx) => {
-                    const isSelected = selectedBids.has(bid.id);
-                    const isDisabled = !isSelected && selectedBids.size >= maxWinners && showApprovePanel;
-
                     return (
-                      <tr key={bid.id ?? idx} style={{ 
-                        borderTop: '1px solid #f3f4f6',
-                        background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent'
-                      }}
-                        onMouseEnter={e => !showApprovePanel && (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))')}
-                        onMouseLeave={e => !showApprovePanel && (e.currentTarget.style.background = isSelected ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent')}
+                      <tr key={bid.id ?? idx} style={{ borderTop: '1px solid #f3f4f6', background: 'transparent' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        {showApprovePanel && (
-                          <td style={{ padding: '12px 8px 12px 16px' }}>
-                            <div 
-                              onClick={() => !isDisabled && toggleBidSelection(bid.id)}
-                              style={{
-                                width: 20, height: 20, borderRadius: 5,
-                                border: isSelected ? '2px solid var(--color-primary-500)' : isDisabled ? '2px solid #e5e7eb' : '2px solid #d1d5db',
-                                background: isSelected ? 'var(--color-primary-500)' : 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isDisabled ? 0.4 : 1,
-                                transition: 'all 150ms'
-                              }}
-                            >
-                              {isSelected && <CheckCircle size={12} color="white" />}
-                            </div>
-                          </td>
-                        )}
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: idx === 0 ? 'rgba(220,38,38,0.1)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: idx === 0 ? '#dc2626' : 'var(--color-primary-500)', flexShrink: 0 }}>
@@ -889,25 +452,6 @@ export default function AdminAuctionDetail() {
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '0.825rem', color: '#6b7280' }}>{formatPrice(bid.max_bid)}</td>
                         <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>{formatDate(bid.created_at)}</td>
-                        {showApprovePanel && (
-                          <td style={{ padding: '12px 16px' }}>
-                            <input
-                              type="number"
-                              value={bidAmounts[bid.id] || ''}
-                              onChange={e => setBidChargedAmount(bid.id, e.target.value)}
-                              placeholder={Number(bid.amount ?? 0).toLocaleString()}
-                              disabled={!isSelected}
-                              style={{
-                                width: 130, padding: '6px 10px', border: '1.5px solid #e5e7eb',
-                                borderRadius: 8, fontSize: '0.8rem', color: '#111827',
-                                background: isSelected ? 'white' : '#f9fafb',
-                                outline: 'none', opacity: isSelected ? 1 : 0.5
-                              }}
-                              onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
-                              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-                            />
-                          </td>
-                        )}
                       </tr>
                     );
                   })}

@@ -9,6 +9,7 @@ import {
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
 import hampersAPI from '../../../../_shared/api/hampers';
+import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { format } from 'date-fns';
@@ -142,14 +143,15 @@ function SectionLabel({ children }) {
 
 // ── Modal: Set quantity for selected products ─────────────────────────────────
 
-function QuantityModal({ products, onConfirm, onClose }) {
+function QuantityModal({ products, locationId, onConfirm, onClose }) {
   const [qtys, setQtys] = useState(
     Object.fromEntries(products.map(p => [p.id, 1]))
   );
+  const [variantIds, setVariantIds] = useState({});   // { productId: variantId }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }} onClick={onClose}>
-      <div style={{ ...card, width: '100%', maxWidth: 480, padding: 24, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+      <div style={{ ...card, width: '100%', maxWidth: 760, padding: 24, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>Set Quantities</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)' }}><X size={18} /></button>
@@ -161,6 +163,10 @@ function QuantityModal({ products, onConfirm, onClose }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{fmt(p.price, p.currency)}</p>
+              </div>
+              <div style={{ flex: '0 0 220px' }}>
+                <VariantAtBranchPicker productId={p.id} locationId={locationId} value={variantIds[p.id]}
+                  onChange={v => setVariantIds(m => ({ ...m, [p.id]: v }))} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem' }}>QTY</label>
@@ -175,7 +181,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--color-border-tertiary)' }}>
           <Btn onClick={onClose}>Cancel</Btn>
-          <PrimaryBtn onClick={() => onConfirm(qtys)}>
+          <PrimaryBtn onClick={() => onConfirm(qtys, variantIds)}>
             <Plus size={14} /> Add {products.length} Product{products.length !== 1 ? 's' : ''}
           </PrimaryBtn>
         </div>
@@ -188,6 +194,7 @@ function QuantityModal({ products, onConfirm, onClose }) {
 
 function OverviewTab({ hamper }) {
   const rows = [
+    { label: 'Branch',           value: hamper.location?.name ?? '—' },
     { label: 'Price',            value: fmt(hamper.price, hamper.currency) },
     { label: 'Status',           value: <StatusBadge status={hamper.status} /> },
     { label: 'Eligibility Type', value: hamper.eligibility_type },
@@ -267,11 +274,11 @@ function ProductsTab({ hamper, onRefresh }) {
   const [removingId, setRemovingId]         = useState(null);
   const [addingLoading, setAddingLoading]   = useState(false);
 
-  const handleRemove = async (productId) => {
+  const handleRemove = async (productId, variantId) => {
     if (!confirm('Remove this product from the hamper?')) return;
-    setRemovingId(productId);
+    setRemovingId(hamper.items.find(i => i.product_id === productId && i.variant_id === variantId)?.id ?? productId);
     try {
-      await hampersAPI.removeProduct(hamper.id, productId);
+      await hampersAPI.removeProduct(hamper.id, productId, variantId);
       toast.success('Product removed');
       onRefresh();
     } catch { toast.error('Failed to remove product'); }
@@ -287,7 +294,7 @@ function ProductsTab({ hamper, onRefresh }) {
   };
 
   // called by QuantityModal with { productId: qty } map
-  const handleConfirmQtys = async (qtys) => {
+  const handleConfirmQtys = async (qtys, variantIds = {}) => {
     setAddingLoading(true);
     setShowQtyModal(false);
     let successCount = 0;
@@ -295,6 +302,7 @@ function ProductsTab({ hamper, onRefresh }) {
       try {
         await hampersAPI.addProduct(hamper.id, {
           product_id: product.id,
+          variant_id: variantIds[product.id] || undefined,
           quantity:   qtys[product.id] ?? 1,
         });
         successCount++;
@@ -380,15 +388,15 @@ function ProductsTab({ hamper, onRefresh }) {
                               <Package size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                             </div>
                           )}
-                          <span style={{ fontWeight: 600, fontSize: '0.82rem' }}>{snap.name || `Product #${item.product_id}`}</span>
+                          <span style={{ fontWeight: 600, fontSize: '0.82rem' }}>{snap.name || `Product #${item.product_id}`}{(item.variant?.name ?? snap.variant_name) && (item.variant?.name ?? snap.variant_name) !== 'Standard' ? ` — ${item.variant?.name ?? snap.variant_name}` : ''}</span>
                         </div>
                       </td>
                       <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>{snap.sku || '—'}</span></td>
                       <td style={tdStyle}><span style={{ fontWeight: 700 }}>×{item.quantity}</span></td>
                       <td style={tdStyle}>{snap.price ? fmt(snap.price, snap.currency ?? item.product?.currency) : '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <DangerBtn onClick={() => handleRemove(item.product_id)} disabled={removingId === item.product_id}>
-                          <Trash2 size={13} /> {removingId === item.product_id ? 'Removing…' : 'Remove'}
+                        <DangerBtn onClick={() => handleRemove(item.product_id, item.variant_id)} disabled={removingId === item.id}>
+                          <Trash2 size={13} /> {removingId === item.id ? 'Removing…' : 'Remove'}
                         </DangerBtn>
                       </td>
                     </tr>
@@ -451,6 +459,7 @@ function ProductsTab({ hamper, onRefresh }) {
       {showQtyModal && pendingProducts.length > 0 && (
         <QuantityModal
           products={pendingProducts}
+          locationId={hamper.location_id}
           onConfirm={handleConfirmQtys}
           onClose={() => { setShowQtyModal(false); setPendingProducts([]); }}
         />
@@ -814,159 +823,12 @@ function EligibilityTab({ hamper }) {
   );
 }
 
-// ── Tab: Orders ───────────────────────────────────────────────────────────────
-
-function OrdersTab({ hamper }) {
-  const navigate                    = useNavigate();
-  const [orders, setOrders]         = useState([]);
-  const [pagination, setPagination] = useState(null);
-  const [loading, setLoading]       = useState(true);
-
-  const fetchOrders = async (page = 1) => {
-    setLoading(true);
-    try {
-      const res = await hampersAPI.getHamperOrders(hamper.id, { page, per_page: 20 });
-      setOrders(res.data ?? res);
-      setPagination(res.meta ?? res.pagination ?? null);
-    } catch { toast.error('Failed to load orders'); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
-
-  return (
-    <div style={{ ...card, overflow: 'hidden' }}>
-      {loading ? (
-        <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '0.82rem' }}>Loading…</div>
-      ) : orders.length === 0 ? (
-        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <ShoppingBag size={40} style={{ display: 'block', margin: '0 auto 12px', color: 'var(--color-text-tertiary)', opacity: 0.3 }} />
-          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>No orders yet</p>
-        </div>
-      ) : (
-        <>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>{['Order #', 'Customer', 'Total', 'Status', 'Date'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {orders.map(order => (
-                <tr key={order.id}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e3cdf8'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  style={{ transition: 'background 120ms' }}
-                >
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>{order.order_number}</span></td>
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}>
-                    <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: '0.82rem', color: 'var(--color-primary-500)' }}>{order.customer?.name || `${order.customer?.first_name} ${order.customer?.last_name}`}</p>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>{order.customer?.email}</p>
-                  </td>
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontWeight: 700 }}>{fmt(order.total, hamper.currency)}</span></td>
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><StatusBadge status={order.status} /></td>
-                  <td style={tdStyle} onClick={() => navigate(`/admin/hampers/orders/${order.id}`)}><span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>{format(new Date(order.created_at), 'dd MMM yyyy')}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {pagination && pagination.last_page > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--color-border-tertiary)' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>Page {pagination.current_page} of {pagination.last_page}</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn onClick={() => fetchOrders(pagination.current_page - 1)} disabled={pagination.current_page === 1}>← Prev</Btn>
-                <Btn onClick={() => fetchOrders(pagination.current_page + 1)} disabled={pagination.current_page === pagination.last_page}>Next →</Btn>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-const SEVERITY_STYLES = {
-  info:    { bg: 'rgba(59,130,246,0.08)',  color: '#3b82f6',  dot: '#3b82f6'  },
-  success: { bg: 'rgba(34,197,94,0.08)',   color: '#16a34a',  dot: '#22c55e'  },
-  warning: { bg: 'rgba(245,158,11,0.08)',  color: '#b45309',  dot: '#f59e0b'  },
-  danger:  { bg: 'rgba(239,68,68,0.08)',   color: '#dc2626',  dot: '#ef4444'  },
-};
-
-function ActivityTab({ hamperId }) {
-  const [logs, setLogs]       = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    hampersAPI.getHamperActivity(hamperId)
-      .then(data => setLogs(Array.isArray(data) ? data : (data.data || [])))
-      .catch(() => toast.error('Failed to load activity logs'))
-      .finally(() => setLoading(false));
-  }, [hamperId]);
-
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-      <div style={{ width: 28, height: 28, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-    </div>
-  );
-
-  if (!logs.length) return (
-    <div style={{ ...card, padding: 40, textAlign: 'center' }}>
-      <Activity size={32} style={{ color: '#d1d5db', marginBottom: 12 }} />
-      <p style={{ margin: 0, color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>No activity recorded yet.</p>
-    </div>
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {logs.map(log => {
-        const s = SEVERITY_STYLES[log.severity] || SEVERITY_STYLES.info;
-        return (
-          <div key={log.id} style={{ ...card, padding: '14px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            {/* dot */}
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.dot, flexShrink: 0, marginTop: 5 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                  {log.description}
-                </span>
-                <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color }}>
-                  {log.severity.toUpperCase()}
-                </span>
-                {log.hamper_order_id && (
-                  <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: '#ed7c3a' }}>
-                    ORDER
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
-                  {log.performed_by}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>
-                  {format(new Date(log.created_at), 'dd MMM yyyy, HH:mm')}
-                </span>
-                {log.metadata && (
-                  <details style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>
-                    <summary style={{ cursor: 'pointer', color: 'var(--color-primary-500)' }}>metadata</summary>
-                    <pre style={{ margin: '6px 0 0', padding: '8px 10px', borderRadius: 6, background: 'var(--color-background-secondary)', fontSize: '0.68rem', overflowX: 'auto' }}>
-                      {JSON.stringify(log.metadata, null, 2)}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
   { key: 'overview',    label: 'Overview',    icon: Settings },
   { key: 'products',    label: 'Products',    icon: Package },
   { key: 'eligibility', label: 'Eligibility', icon: Users },
-  { key: 'orders',      label: 'Orders',      icon: ShoppingBag },
   { key: 'activity',    label: 'Activity',    icon: Activity  },
 ];
 
@@ -1077,7 +939,6 @@ export default function AdminHamperDetail() {
         {activeTab === 'overview'    && <OverviewTab hamper={hamper} />}
         {activeTab === 'products'    && <ProductsTab hamper={hamper} onRefresh={fetchHamper} />}
         {activeTab === 'eligibility' && <EligibilityTab hamper={hamper} />}
-        {activeTab === 'orders'      && <OrdersTab hamper={hamper} />}
         {activeTab === 'activity'    && <ActivityTab hamperId={id} />}
 
       </div>

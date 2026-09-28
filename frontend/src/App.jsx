@@ -66,9 +66,6 @@ const MyTickets            = lazy(() => import('./core/pages/customer/MyTickets'
 const MyTicketDetail       = lazy(() => import('./core/pages/customer/MyTicketDetail'));
 const HamperListPage       = lazy(() => import('./ecommerce/pages/customer/HamperListPage'));
 const HamperDetail         = lazy(() => import('./ecommerce/pages/customer/HamperDetail'));
-const HamperCheckout       = lazy(() => import('./ecommerce/pages/customer/HamperCheckout'));
-const MyHamperOrders       = lazy(() => import('./ecommerce/pages/customer/MyHamperOrders'));
-const MyHamperOrderDetail  = lazy(() => import('./ecommerce/pages/customer/MyHamperOrderDetail'));
 const BugReportPage        = lazy(() => import('./core/pages/customer/BugReportPage'));
 const BugTrackerPage       = lazy(() => import('./core/pages/customer/BugTrackerPage'));
 const MyBugReports         = lazy(() => import('./core/pages/customer/MyBugReports'));
@@ -123,9 +120,6 @@ const ProductForm        = lazy(() => import('./ecommerce/pages/admin/ProductFor
 const AdminAuctions      = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionDetail'));
 const AdminAuctionCreator = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionCreator'));
-const AdminAuctionOrders   = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrders'));
-const AdminAuctionOrderPayments = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrderPayments'));
-const AdminAuctionOrderDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionOrderDetail'));
 const Categories         = lazy(() => import('./ecommerce/pages/admin/Categories'));
 const CategoryForm       = lazy(() => import('./ecommerce/pages/admin/CategoryForm'));
 const Brands             = lazy(() => import('./ecommerce/pages/admin/Brands'));
@@ -175,7 +169,6 @@ const AdminHampers         = lazy(() => import('./ecommerce/pages/admin/hampers/
 const AdminHamperDetail    = lazy(() => import('./ecommerce/pages/admin/hampers/AdminHamperDetail'));
 const AdminHamperEdit      = lazy(() => import('./ecommerce/pages/admin/hampers/AdminHamperEdit'));
 const AdminHamperCreate    = lazy(() => import('./ecommerce/pages/admin/hampers/AdminHamperCreate'));
-const AdminHamperOrderDetail = lazy(() => import('./ecommerce/pages/admin/hampers/AdminHamperOrderDetail'));
 const CustomerAlgorithmPanel = lazy(() => import('./core/pages/admin/CustomerAlgorithmPanel'));
 const InventoryPage          = lazy(() => import('./core/pages/admin/InventoryPage'));
 const CatalogueBoostPage     = lazy(() => import('./core/pages/admin/algorithm/CatalogueBoostPage'));
@@ -487,10 +480,7 @@ function App() {
 
             {/* ── Protected Customer Routes ────────────────────────────────── */}
             <Route path="/hampers" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperListPage /></ModuleRoute></ProtectedRoute>} />
-            <Route path="/hampers/my-orders" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><MyHamperOrders /></ModuleRoute></ProtectedRoute>} />
-            <Route path="/hampers/my-orders/:id" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><MyHamperOrderDetail /></ModuleRoute></ProtectedRoute>} />
             <Route path="/hampers/:slug" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperDetail /></ModuleRoute></ProtectedRoute>} />
-            <Route path="/hampers/:slug/checkout" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperCheckout /></ModuleRoute></ProtectedRoute>} />
 
             <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
@@ -721,7 +711,6 @@ function App() {
               />
               <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
               <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
-              <Route path="/admin/hampers/orders/:id" element={<ProtectedRoute requireAdmin><AdminHamperOrderDetail /></ProtectedRoute>} />
               <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
               <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
 
@@ -975,30 +964,6 @@ function App() {
                     <AdminAuctionCreator />
                   </ProtectedRoute>
                 } 
-              />
-              <Route 
-                path="/admin/auction-orders" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAuctionOrders />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin/auction-orders/:id" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAuctionOrderDetail />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin/auction-orders/:id/payments" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAuctionOrderPayments />
-                  </ProtectedRoute>
-                }
               />
               {/* Admin Auction Detail/Edit */}
               <Route

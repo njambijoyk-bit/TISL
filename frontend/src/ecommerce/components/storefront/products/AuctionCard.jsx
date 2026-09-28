@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gavel, Clock, Package } from 'lucide-react';
 import { formatMoney } from '../../../../_shared/lib/money';
+import BranchBadge from '../BranchBadge';
 
 export default function AuctionCard({ auction }) {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ export default function AuctionCard({ auction }) {
       <div className="collapsed-info">
         <p className="collapsed-name">{product?.name}</p>
         <p className="collapsed-desc">{product?.short_description || product?.brand?.name || 'Live auction'}</p>
+        <BranchBadge location={auction?.location} style={{ background: 'rgba(107,114,128,0.1)', boxShadow: 'none', margin: '3px 0 2px', fontSize: '0.62rem' }} />
         <div className={`auction-timer ${isUrgent ? 'urgent' : ''} ${isEnded ? 'ended' : ''}`}>
           <Clock size={11} />
           {formatTime(countdown)}

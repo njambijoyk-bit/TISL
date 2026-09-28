@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import BranchBadge from '../../components/storefront/BranchBadge';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Package, ShoppingBag, Clock, Lock, ChevronLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
@@ -157,7 +158,7 @@ export default function HamperDetail() {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: '0 0 2px', fontSize: '0.875rem', fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{snap.name || 'Product'}</p>
+                        <p style={{ margin: '0 0 2px', fontSize: '0.875rem', fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{snap.name || 'Product'}{snap.variant_name ? ` — ${snap.variant_name}` : ''}</p>
                         {snap.description && <p style={{ margin: 0, fontSize: '0.72rem', color: '#6b7280' }}>{snap.description}</p>}
                       </div>
                       <div style={{ flexShrink: 0, textAlign: 'right' }}>
@@ -179,6 +180,7 @@ export default function HamperDetail() {
               <div style={{ height: 4, borderRadius: 4, background: `linear-gradient(90deg, ${accent}, ${accent}80)`, marginBottom: 20 }} />
 
               <h1 style={{ margin: '0 0 8px', fontSize: '1.4rem', fontWeight: 900, color: '#111827' }}>{hamper.name}</h1>
+              <div style={{ margin: '0 0 12px' }}><BranchBadge location={hamper.location} style={{ background: accentFade, boxShadow: 'none' }} /></div>
 
               {hamper.description && (
                 <p style={{ margin: '0 0 20px', fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6 }}>{hamper.description}</p>
@@ -225,20 +227,19 @@ export default function HamperDetail() {
 
               {/* CTA */}
               {canPurchase ? (
+                // Hampers will be bought through the normal checkout once it is rebuilt.
                 <button
-                  onClick={() => navigate(`/hampers/${hamper.slug}/checkout`)}
+                  type="button"
+                  disabled
+                  title="Checkout for hampers is coming soon"
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 800,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: accent, color: 'white',
-                    boxShadow: `0 4px 18px ${accent}40`,
+                    border: 'none', cursor: 'not-allowed', fontFamily: 'inherit',
+                    background: accent, color: 'white', opacity: 0.55,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'opacity 150ms, box-shadow 150ms',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = `0 8px 28px ${accent}55`; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = `0 4px 18px ${accent}40`; }}
                 >
-                  <Lock size={16} /> Get This Hamper
+                  <Lock size={16} /> Checkout coming soon
                 </button>
               ) : (
                 <div style={{ padding: '14px', borderRadius: 12, background: '#f3f4f6', textAlign: 'center' }}>

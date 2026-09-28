@@ -83,10 +83,9 @@ export const ADMIN_NAV = [
       },
       { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS },
       {
-        id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', also: ['/admin/auction-orders'], module: MODULES.AUCTIONS, keywords: 'bids',
+        id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', module: MODULES.AUCTIONS, keywords: 'bids',
         tabs: [
           { title: 'Auctions', path: '/admin/auctions' },
-          { title: 'Auction orders', path: '/admin/auction-orders' },
         ],
       },
       {
