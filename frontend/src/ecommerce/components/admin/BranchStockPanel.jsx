@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { MapPin, Save, RefreshCw, Info } from 'lucide-react';
 import productsAPI from '../../../_shared/api/products';
+import useProductVariantStore from '../../../_shared/store/productVariantStore';
 import toast from 'react-hot-toast';
 
 /**
@@ -16,6 +17,13 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [stock, setStock] = useState({});   // { `${variantId}:${locId}`: qty }
+
+  // A signature of the editor's current variants — changes whenever options or
+  // variants are added, edited or removed, so we can reload the grid to match.
+  const variantSignature = useProductVariantStore((s) =>
+    s.productId === Number(productId)
+      ? s.variants.map((v) => `${v.id}:${v.combination_key}:${v.is_default ? 1 : 0}`).join('|')
+      : '');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -35,7 +43,8 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
     } finally { setLoading(false); }
   }, [productId]);
 
-  useEffect(() => { load(); }, [load]);
+  // Reload on mount and whenever the variant set changes in the editor.
+  useEffect(() => { load(); }, [load, variantSignature]);
 
   const setQty = (variantId, locId, val) =>
     setStock((s) => ({ ...s, [`${variantId}:${locId}`]: val }));
