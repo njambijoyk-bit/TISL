@@ -44,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
         // Scoped, not singleton: holds the per-request display currency.
         $this->app->scoped(\App\Services\CurrencyConversionService::class);
 
+        // Scoped: holds the per-request branch in context (multi-location).
+        $this->app->scoped(\App\Services\Location\LocationContext::class);
+
         $this->app->singleton(OrderMailService::class);
         $this->app->singleton(QuoteMailService::class);
         $this->app->singleton(QuoteRequestMailService::class);
@@ -135,6 +138,7 @@ class AppServiceProvider extends ServiceProvider
             'withholding_classification' => \App\Models\WithholdingClassification::class,
             'withholding_certificate'    => \App\Models\WithholdingCertificate::class,
             'withholding_credit'         => \App\Models\WithholdingCredit::class,
+            'location'                   => \App\Models\Location::class,
         ]);
     }
 }

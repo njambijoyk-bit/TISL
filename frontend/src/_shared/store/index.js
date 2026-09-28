@@ -31,3 +31,4 @@ export { default as useCareersStore } from './useCareersStore';
 export { default as useAdminCareersStore } from './useAdminCareersStore';
 export { default as useModuleStore } from './moduleStore';
 export { default as useNavStore } from './navStore';
+export { default as useLocationStore } from './locationStore';

@@ -113,6 +113,41 @@ class User extends Authenticatable
     }
 
     /**
+     * Branches this staff user is cleared for (multi-location).
+     * Empty for admin/super_admin, who are treated as all-access.
+     */
+    public function locations()
+    {
+        return $this->belongsToMany(Location::class, 'location_user')
+            ->withPivot('role_scope')
+            ->withTimestamps();
+    }
+
+    /**
+     * Location clearance. Admin/super_admin see every branch; other staff see
+     * only branches they're assigned to (or all, if they have no assignment yet
+     * — so nothing is accidentally locked out before branches are set up).
+     */
+    public function canAccessLocation(int $locationId): bool
+    {
+        if (in_array($this->role, ['admin', 'super_admin'], true)) {
+            return true;
+        }
+        $ids = $this->locations()->pluck('locations.id')->all();
+        return $ids === [] || in_array($locationId, $ids, true);
+    }
+
+    /** Ids of branches this user may act on, or null for all-access. */
+    public function accessibleLocationIds(): ?array
+    {
+        if (in_array($this->role, ['admin', 'super_admin'], true)) {
+            return null; // all
+        }
+        $ids = $this->locations()->pluck('locations.id')->all();
+        return $ids === [] ? null : $ids;
+    }
+
+    /**
      * Vendor profile for this user (role = 'vendor').
      * Mirrors the customer() and employee() pattern.
      */

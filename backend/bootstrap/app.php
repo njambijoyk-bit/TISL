@@ -20,8 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // ?currency=USD / X-Currency header -> display currency for every API response
+        // ?location=<id> / X-Location header -> branch in context (multi-location)
         $middleware->api(append: [
             \App\Http\Middleware\SetDisplayCurrency::class,
+            \App\Http\Middleware\SetLocationContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

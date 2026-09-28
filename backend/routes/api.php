@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DataEngineController;
 use App\Http\Controllers\Admin\LogExportController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
@@ -134,6 +135,9 @@ Route::get('/modules/active', function (\App\Services\Licensing\LicenseManager $
 
 // Storefront navigation — visible links for the customer header.
 Route::get('/nav', [\App\Http\Controllers\Admin\NavController::class, 'publicNav']);
+
+// Active branches — feeds the storefront branch picker (multi-location).
+Route::get('/locations', [LocationController::class, 'publicIndex']);
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -354,6 +358,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,super_admin')->prefix('admin/navigation')->group(function () {
         Route::get('/',        [\App\Http\Controllers\Admin\NavController::class, 'index']);
         Route::put('/{id}',    [\App\Http\Controllers\Admin\NavController::class, 'update']);
+    });
+
+    // Branches / multi-location (Core) — admin/super_admin
+    Route::middleware('role:admin,super_admin')->prefix('admin/locations')->group(function () {
+        Route::get('/',                 [LocationController::class, 'index']);
+        Route::get('/options',          [LocationController::class, 'formOptions']);
+        Route::post('/',                [LocationController::class, 'store']);
+        Route::get('/{id}',             [LocationController::class, 'show']);
+        Route::put('/{id}',             [LocationController::class, 'update']);
+        Route::delete('/{id}',          [LocationController::class, 'destroy']);
+        Route::patch('/{id}/default',   [LocationController::class, 'setDefault']);
     });
 
     Route::middleware('role:super_admin')->prefix('admin/backups')->group(function () {

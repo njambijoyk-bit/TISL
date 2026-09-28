@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
 import 'leaflet/dist/leaflet.css';
-import { useThemeStore, useAuthStore, useModuleStore } from './_shared/store/index';
+import { useThemeStore, useAuthStore, useModuleStore, useLocationStore } from './_shared/store/index';
 import ModuleRoute from './_shared/components/routing/ModuleRoute';
 
 import InstallPrompt from './_shared/components/common/InstallPrompt';
@@ -233,6 +233,7 @@ const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPa
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
 const ModuleCenter         = lazy(() => import('./core/pages/admin/settings/ModuleCenter'));
 const NavigationSettings   = lazy(() => import('./core/pages/admin/settings/NavigationSettings'));
+const LocationsSettings    = lazy(() => import('./core/pages/admin/settings/LocationsSettings'));
 const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));
 const CustFlowchartPage    = lazy(() => import('./core/pages/admin/settings/diagrams/CustFlowchartPage'));
 const TxFlowchartPage      = lazy(() => import('./core/pages/admin/settings/diagrams/TxFlowchartPage'));
@@ -341,6 +342,7 @@ function PWARedirect() {
 function App() {
   const { initTheme } = useThemeStore();
   const fetchModules = useModuleStore((s) => s.fetch);
+  const fetchLocations = useLocationStore((s) => s.fetch);
 
   useEffect(() => {
     initTheme();
@@ -351,6 +353,12 @@ function App() {
   useEffect(() => {
     fetchModules();
   }, [fetchModules]);
+
+  // Load active branches once at boot so the storefront branch picker + context
+  // are ready (single-branch sites just resolve to Main).
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
 
   return (
     <HelmetProvider>
@@ -1598,6 +1606,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
                     <NavigationSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/locations"
+                element={
+                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                    <LocationsSettings />
                   </ProtectedRoute>
                 }
               />
