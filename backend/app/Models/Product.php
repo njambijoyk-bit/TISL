@@ -216,6 +216,66 @@ class Product extends Model
         return $this->morphMany(\App\Models\TaxApplicability::class, 'taxable');
     }
 
+    /** All per-branch stock rows across this product's variants (multi-location). */
+    public function variantLocationStocks()
+    {
+        return $this->hasManyThrough(
+            \App\Models\VariantLocationStock::class,
+            \App\Models\ProductVariant::class,
+            'product_id',          // FK on product_variants
+            'product_variant_id',  // FK on variant_location_stock
+            'id',
+            'id'
+        );
+    }
+
+    /** Per-branch price overrides (polymorphic location_price for this product). */
+    public function locationPrices()
+    {
+        return $this->morphMany(\App\Models\LocationPrice::class, 'sellable', 'sellable_type', 'sellable_id');
+    }
+
+    /**
+     * True once any of this product's variants has a per-branch stock row.
+     * A product with no rows is legacy/global — shown at every branch until
+     * an admin sets its branch stock.
+     */
+    public function isLocationManaged(): bool
+    {
+        return $this->variantLocationStocks()->exists();
+    }
+
+    /**
+     * Products available at a branch: either not location-managed (global) OR
+     * offered at this branch (has a stock row there, any quantity).
+     */
+    public function scopeAvailableAtLocation($query, ?int $locationId)
+    {
+        if (!$locationId) {
+            return $query;
+        }
+        return $query->where(function ($w) use ($locationId) {
+            $w->whereDoesntHave('variantLocationStocks')
+              ->orWhereHas('variantLocationStocks', fn ($s) => $s->where('location_id', $locationId));
+        });
+    }
+
+    /** Is this product offered at the given branch? */
+    public function offeredAt(?int $locationId): bool
+    {
+        if (!$locationId || !$this->isLocationManaged()) {
+            return true;
+        }
+        return $this->variantLocationStocks()->where('location_id', $locationId)->exists();
+    }
+
+    /** Location ids where this product has stock (quantity > 0). */
+    public function branchIdsInStock(): array
+    {
+        return $this->variantLocationStocks()->where('quantity', '>', 0)
+            ->pluck('variant_location_stock.location_id')->unique()->values()->all();
+    }
+
     // ========================================
     // ACCESSORS & MUTATORS
     // ========================================

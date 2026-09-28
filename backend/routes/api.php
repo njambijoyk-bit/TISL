@@ -646,6 +646,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore', [ProductController::class, 'restore']); // restore single
             Route::delete('/{id}/force', [ProductController::class, 'forceDelete'])->middleware('role:admin,super_admin,manager'); // permanent delete single
             Route::put('/{id}/stock', [ProductController::class, 'updateStock']);
+            // Per-branch stock + price grid (multi-location)
+            Route::get('/{id}/branch-stock', [ProductController::class, 'branchStock']);
+            Route::put('/{id}/branch-stock', [ProductController::class, 'saveBranchStock']);
 
             // Options / values / variants / units / images — nested under the existing
             // products/{id} pattern, same style as {id}/addresses.

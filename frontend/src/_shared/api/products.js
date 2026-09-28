@@ -188,6 +188,16 @@ const productsAPI = {
     const response = await api.put(`/admin/products/${id}/stock`, data);
     return response.data;
   },
+
+  // ADMIN: Per-branch stock + price grid (multi-location)
+  getBranchStock: async (id) => {
+    const response = await api.get(`/admin/products/${id}/branch-stock`);
+    return response.data;
+  },
+  saveBranchStock: async (id, data) => {
+    const response = await api.put(`/admin/products/${id}/branch-stock`, data);
+    return response.data;
+  },
 };
 
 export default productsAPI;

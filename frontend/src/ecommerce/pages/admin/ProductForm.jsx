@@ -7,6 +7,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
+import BranchStockPanel from '../../components/admin/BranchStockPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import useProductVariantStore from '../../../_shared/store/productVariantStore';
 import VariantEditor from '../../components/admin/variants/VariantEditor';
@@ -598,7 +599,7 @@ export default function ProductForm() {
     { id: 'marketing',name: 'Marketing'        },
     { id: 'seo',      name: 'SEO & advanced'   },
     // Overrides attach to a saved product, so only once it has an id
-    ...(id ? [{ id: 'tax', name: 'Tax' }] : []),
+    ...(id ? [{ id: 'tax', name: 'Tax' }, { id: 'branches', name: 'Branches' }] : []),
   ];
 
   return (
@@ -966,6 +967,10 @@ export default function ProductForm() {
           {/* ── TAX ── */}
           {activeTab === 'tax' && id && (
             <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
+          )}
+
+          {activeTab === 'branches' && id && (
+            <BranchStockPanel productId={Number(id)} readOnly={isView} />
           )}
 
           {/* ── MARKETING ── */}
