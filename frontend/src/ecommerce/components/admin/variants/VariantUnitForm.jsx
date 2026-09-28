@@ -21,7 +21,7 @@ const ROLE_HELP = {
  * (role, unit, pack size, factor) is fixed once created — delete and re-add
  * to change it, so stock and price maths never go stale.
  */
-export default function VariantUnitForm({ variant, unit, currencyCode, onClose }) {
+export default function VariantUnitForm({ variant, unit, currencyCode, defaultUnitId = null, alternateUnitId = null, onClose }) {
   const { createUnit, updateUnit, effectiveUnitPrice, actionLoading } = useProductVariantStore();
   const { unitById } = useUomStore();
   const editing = Boolean(unit);
@@ -29,8 +29,8 @@ export default function VariantUnitForm({ variant, unit, currencyCode, onClose }
   const base = units.find((u) => u.role === 'base');
 
   const [form, setForm] = useState({
-    role: unit?.role ?? (base ? 'compound' : 'base'),
-    unit_id: unit?.unit_id ?? '',
+    role: unit?.role ?? (base ? 'alternate' : 'base'),
+    unit_id: unit?.unit_id ?? (base ? (alternateUnitId ?? '') : (defaultUnitId ?? '')),
     contains_variant_unit_id: unit?.contains_variant_unit_id ?? base?.id ?? '',
     contains_qty: unit?.contains_qty != null ? Number(unit.contains_qty) : '',
     base_factor: unit?.base_factor != null ? Number(unit.base_factor) : '',
@@ -43,7 +43,13 @@ export default function VariantUnitForm({ variant, unit, currencyCode, onClose }
   });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
-  const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+  // Selling units are limited to the product's default (base) and alternate unit;
+  // packs of another unit are no longer offered.
+  const set = (k) => (v) => setForm((f) => ({
+    ...f, [k]: v,
+    ...(k === 'role' ? { unit_id: (v === 'base' ? defaultUnitId : alternateUnitId) ?? '' } : {}),
+  }));
+  const unitLocked = form.role === 'base' ? Boolean(defaultUnitId) : Boolean(alternateUnitId);
 
   const unitName = (vu) => { const u = unitById(vu?.unit_id) ?? vu?.unit; return u ? `${u.name} (${u.code})` : `Unit #${vu?.id}`; };
 
@@ -107,12 +113,11 @@ export default function VariantUnitForm({ variant, unit, currencyCode, onClose }
               <Field label="Kind" htmlFor="vu-role" error={errors.role} hint={ROLE_HELP[form.role]}>
                 <SelectInput id="vu-role" value={form.role} onChange={(e) => set('role')(e.target.value)}>
                   {!base && <option value="base">Base unit</option>}
-                  <option value="compound" disabled={!base}>Pack of another unit</option>
-                  <option value="alternate" disabled={!base}>Alternate unit</option>
+                  <option value="alternate" disabled={!base || !alternateUnitId}>Alternate unit{alternateUnitId ? '' : ' (set one on Pricing & stock)'}</option>
                 </SelectInput>
               </Field>
               <Field label="Unit" htmlFor="vu-unit" error={errors.unit_id}>
-                <UnitSelect id="vu-unit" value={form.unit_id} onChange={set('unit_id')} />
+                <UnitSelect id="vu-unit" value={form.unit_id} onChange={set('unit_id')} disabled={unitLocked} />
               </Field>
               {form.role === 'compound' && (
                 <FormGrid>

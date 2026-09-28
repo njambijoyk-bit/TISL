@@ -29,6 +29,8 @@ class Product extends Model
         'type',
         'price',
         'currency_id',
+        'default_unit_id',
+        'alternate_unit_id',
         'original_price',
         'price_is_negotiable',
         'in_stock',
@@ -103,6 +105,18 @@ class Product extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /** Unit every variant's stock is counted in. */
+    public function defaultUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'default_unit_id');
+    }
+
+    /** Optional second selling unit; same dimension as the default unit. */
+    public function alternateUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'alternate_unit_id');
     }
 
     // Relationship: Check if product has an active auction

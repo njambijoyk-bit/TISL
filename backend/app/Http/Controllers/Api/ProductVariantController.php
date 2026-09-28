@@ -37,7 +37,7 @@ class ProductVariantController extends Controller
      */
     public function publicShow($productId)
     {
-        $product = Product::with('currency:id,code,symbol')
+        $product = Product::with(['currency:id,code,symbol', 'defaultUnit:id,code,name,dimension,to_base_factor', 'alternateUnit:id,code,name,dimension,to_base_factor'])
             ->where('is_visible', true)
             ->findOrFail($productId);
 
@@ -122,6 +122,9 @@ class ProductVariantController extends Controller
         return response()->json([
             'currency'         => $product->currency,
             'display_currency' => $display->code,
+            'default_unit'     => $product->defaultUnit,
+            'alternate_unit'   => $product->alternateUnit,
+            'alternate_factor' => $this->alternateFactor($product),
             'options'          => $options,
             'variants'         => $variantsOut,
             'images'           => $images,
@@ -339,6 +342,17 @@ class ProductVariantController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Stock is counted in the product's default unit, so every variant's
+        // base unit must be it. A product with no unit yet adopts the first one.
+        if ($request->filled('base_unit')) {
+            $reqUnit = (int) $request->input('base_unit.unit_id');
+            if (! $product->default_unit_id) {
+                $product->forceFill(['default_unit_id' => $reqUnit])->save();
+            } elseif ($reqUnit !== (int) $product->default_unit_id) {
+                return response()->json(['message' => 'A variant\'s base unit must be the product\'s default unit.'], 422);
+            }
+        }
+
         // Validate option_value_ids belong to this product, one per option,
         // and that the submitted combination_key matches what we derive.
         $optionValueIdsByOptionId = [];
@@ -532,6 +546,19 @@ class ProductVariantController extends Controller
         }
 
         $baseFactor = $request->base_factor;
+
+        $product = $variant->product;
+        if ($request->role === ProductVariantUnit::ROLE_BASE) {
+            if ($product->default_unit_id && (int) $request->unit_id !== (int) $product->default_unit_id) {
+                return response()->json(['message' => 'A variant\'s base unit must be the product\'s default unit.'], 422);
+            }
+        } elseif ($request->role === ProductVariantUnit::ROLE_ALTERNATE) {
+            if (! $product->alternate_unit_id || (int) $request->unit_id !== (int) $product->alternate_unit_id) {
+                return response()->json(['message' => 'Selling units are limited to the product\'s default and alternate unit. Set them on Pricing & stock.'], 422);
+            }
+            // the ratio comes from the unit table, never hand-entered
+            $baseFactor = $this->alternateFactor($product);
+        }
 
         if ($request->role === ProductVariantUnit::ROLE_COMPOUND) {
             $contains = ProductVariantUnit::find($request->contains_variant_unit_id);
@@ -752,6 +779,17 @@ class ProductVariantController extends Controller
     // ========================================
 
     /** Sorted, joined option_value ids — must match ProductVariant::combination_key. */
+    /** How many default units make one alternate unit (e.g. 12 pieces per dozen). */
+    private function alternateFactor(Product $product): ?float
+    {
+        $product->loadMissing(['defaultUnit', 'alternateUnit']);
+        if (! $product->defaultUnit || ! $product->alternateUnit) {
+            return null;
+        }
+
+        return $product->alternateUnit->convertTo($product->defaultUnit, 1);
+    }
+
     private function deriveCombinationKey(array $optionValueIds): string
     {
         $ids = array_map('intval', $optionValueIds);

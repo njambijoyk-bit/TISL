@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../../_shared/api/index';
 import toast from 'react-hot-toast';
@@ -6,6 +6,8 @@ import ProductSelectorModalAdmin from '../../components/admin/quotes/request-wiz
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
+import UnitSelect from '../../../_shared/components/common/UnitSelect';
+import useUomStore from '../../../_shared/store/uomStore';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
 import BranchStockPanel from '../../components/admin/BranchStockPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
@@ -289,6 +291,10 @@ export default function ProductForm() {
 
   const [loading,   setLoading]   = useState(false);
   const [deleting,  setDeleting]  = useState(false);
+  const loadedUnits = useRef({ d: '', a: '' });
+  const [variantEditorKey, setVariantEditorKey] = useState(0);
+  const { unitById, fetchUnits } = useUomStore();
+  useEffect(() => { fetchUnits().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [categories, setCategories] = useState([]);
   const [brands,     setBrands]     = useState([]);
   const [showProductSelector, setShowProductSelector] = useState(false);
@@ -313,7 +319,7 @@ export default function ProductForm() {
 
   const [formData, setFormData] = useState({
     name: '', sku: '', type: '', category_id: '', brand_id: '',
-    price: '', original_price: '', price_is_negotiable: false, currency_id: '',
+    price: '', original_price: '', price_is_negotiable: false, currency_id: '', default_unit_id: '', alternate_unit_id: '',
     stock_quantity: '', in_stock: true, has_variants: false,
     short_description: '', description: '',
     badge: '', is_featured: false, is_new: false, on_sale: false,
@@ -360,6 +366,7 @@ export default function ProductForm() {
     const product = res.product || res.data || res;
     console.log('type:', product.type);
 
+      loadedUnits.current = { d: product.default_unit_id ?? '', a: product.alternate_unit_id ?? '' };
       setFormData({
         name: product.name || '', sku: product.sku || '', type: product.type || '',
         category_id: product.category_id ?? product.category?.id ?? '',
@@ -367,6 +374,8 @@ export default function ProductForm() {
         price: product.price || '', original_price: product.original_price || '',
         price_is_negotiable: product.price_is_negotiable || false,
         currency_id: product.currency_id ?? product.currency?.id ?? '',
+        default_unit_id: product.default_unit_id ?? '',
+        alternate_unit_id: product.alternate_unit_id ?? '',
         stock_quantity: product.stock_quantity || '',
         in_stock: product.in_stock !== undefined ? Boolean(product.in_stock) : true,
         has_variants: product.has_variants || false,
@@ -499,6 +508,7 @@ export default function ProductForm() {
     if (!formData.name || !formData.sku || !formData.price || !formData.category_id) {
       toast.error('Please fill in all required fields'); return;
     }
+    if (!formData.default_unit_id) { toast.error('Pick the product\'s stock unit (Pricing & stock)'); return; }
     try {
       setLoading(true);
       const fd = new FormData();
@@ -510,6 +520,8 @@ export default function ProductForm() {
       str('type', formData.type); str('price', formData.price);
       str('original_price', formData.original_price);
       str('currency_id', formData.currency_id);   // '' → server pins the current base
+      str('default_unit_id', formData.default_unit_id);
+      str('alternate_unit_id', formData.alternate_unit_id);
       bool('price_is_negotiable', formData.price_is_negotiable);
       str('stock_quantity', formData.stock_quantity || '0');
       bool('in_stock', formData.in_stock);
@@ -553,7 +565,16 @@ export default function ProductForm() {
       if (selectedRelated.length > 0)
         fd.append('related_products', JSON.stringify(selectedRelated.map(p => p.id ?? p)));
 
-      if (isEdit) { await productsAPI.updateProduct(id, fd); toast.success('Product updated!'); }
+      if (isEdit) {
+        await productsAPI.updateProduct(id, fd);
+        toast.success('Product updated!');
+        // Units feed the variant pickers — stay here and reload so they pick up the change.
+        if (String(loadedUnits.current.d) !== String(formData.default_unit_id) || String(loadedUnits.current.a) !== String(formData.alternate_unit_id)) {
+          await fetchProduct();
+          setVariantEditorKey(k => k + 1);
+          return;
+        }
+      }
       else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); }
       navigate('/admin/products');
     } catch (err) {
@@ -766,6 +787,26 @@ export default function ProductForm() {
                   />
                 </Field>
                 <div />
+                <Field label="Stock unit *" hint={!isView ? 'All variant stock is counted in this unit (e.g. piece). Locked once variants exist.' : undefined}>
+                  <UnitSelect
+                    value={formData.default_unit_id}
+                    onChange={v => setFormData(p => ({
+                      ...p, default_unit_id: v,
+                      alternate_unit_id: unitById(p.alternate_unit_id)?.dimension === unitById(v)?.dimension ? p.alternate_unit_id : '',
+                    }))}
+                    disabled={isView || (isEdit && Boolean(loadedUnits.current.d) && formData.has_variants)}
+                    allowEmpty={false}
+                  />
+                </Field>
+                <Field label="Alternate selling unit" hint={!isView ? 'Optional, same kind as the stock unit (e.g. dozen for pieces).' : undefined}>
+                  <UnitSelect
+                    value={formData.alternate_unit_id}
+                    onChange={v => setFormData(p => ({ ...p, alternate_unit_id: v }))}
+                    dimension={unitById(formData.default_unit_id)?.dimension}
+                    disabled={isView || !formData.default_unit_id}
+                    emptyLabel="None"
+                  />
+                </Field>
                 <Field label={`Price (${priceCurrencyCode}) *`}>
                   <StyledInput type="number" name="price" value={formData.price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" required={!isView} />
                 </Field>
@@ -962,7 +1003,7 @@ export default function ProductForm() {
                     the old list stops being used once the first variant is saved.
                   </div>
                 )}
-                <VariantEditor productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
+                <VariantEditor key={variantEditorKey} defaultUnitId={formData.default_unit_id || null} alternateUnitId={formData.alternate_unit_id || null} productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
                 {/* Per-branch stock — only renders when there is more than one branch */}
                 <BranchStockPanel productId={Number(id)} readOnly={isView} />
               </>

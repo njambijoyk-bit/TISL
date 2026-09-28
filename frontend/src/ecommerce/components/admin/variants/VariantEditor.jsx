@@ -41,7 +41,7 @@ function Section({ title, description, children, action }) {
  * @param {string}  currencyCode   the product's currency — every price here is in it
  * @param {boolean} readOnly
  */
-export default function VariantEditor({ productId, currencyCode = 'KES', readOnly = false }) {
+export default function VariantEditor({ productId, currencyCode = 'KES', readOnly = false, defaultUnitId = null, alternateUnitId = null }) {
   const { user } = useAuthStore();
   const canDelete = canDeleteCatalogue(user);
   const {
@@ -211,7 +211,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
       </Section>
 
       {editingVariant && (
-        <VariantForm variant={editingVariant === 'new' ? null : editingVariant} currencyCode={currencyCode} onClose={() => setEditingVariant(null)} />
+        <VariantForm variant={editingVariant === 'new' ? null : editingVariant} currencyCode={currencyCode} defaultUnitId={defaultUnitId} onClose={() => setEditingVariant(null)} />
       )}
       {editingUnit && (
         <VariantUnitForm
@@ -219,6 +219,8 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
           variant={variants.find((x) => x.id === editingUnit.variant.id) ?? editingUnit.variant}
           unit={editingUnit.unit}
           currencyCode={currencyCode}
+          defaultUnitId={defaultUnitId}
+          alternateUnitId={alternateUnitId}
           onClose={() => setEditingUnit(null)}
         />
       )}

@@ -70,7 +70,7 @@ class ProductController extends Controller
 
     public function adminShow($id)
     {
-        $product = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction'])->findOrFail($id);
+        $product = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction', 'defaultUnit', 'alternateUnit'])->findOrFail($id);
 
         $relatedProductsData = collect([]);
         if (!empty($product->related_products)) {
@@ -197,12 +197,20 @@ class ProductController extends Controller
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id,is_active,1',
+            'default_unit_id' => 'nullable|exists:units_of_measure,id',
+            'alternate_unit_id' => 'nullable|exists:units_of_measure,id',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $unitsDraft = new Product();
+        $uomError = $this->applyProductUnits($request, $unitsDraft);
+        if ($uomError) {
+            return response()->json(['message' => $uomError, 'errors' => ['default_unit_id' => [$uomError]]], 422);
         }
 
         try {
@@ -278,6 +286,8 @@ class ProductController extends Controller
                 'price' => $request->price,
                 // Pin to an explicit currency: a NULL would silently follow the base if it's ever changed.
                 'currency_id' => $request->currency_id ?: app(CurrencyConversionService::class)->getBaseCurrency()->id,
+                'default_unit_id' => $unitsDraft->default_unit_id,
+                'alternate_unit_id' => $unitsDraft->alternate_unit_id,
                 'original_price' => $request->original_price,
                 'price_is_negotiable' => $priceNegotiable,
                 'in_stock' => $inStock,
@@ -517,6 +527,45 @@ class ProductController extends Controller
     }
 
     /**
+     * Apply default/alternate unit from the request onto the product (unsaved).
+     * Returns an error message, or null. The default unit is where all variant
+     * stock is counted; the alternate must share its dimension.
+     */
+    private function applyProductUnits(Request $request, Product $product): ?string
+    {
+        if (! $request->has('default_unit_id') && ! $request->has('alternate_unit_id')) {
+            return null;
+        }
+
+        $defaultId   = $request->has('default_unit_id') ? ($request->default_unit_id ?: null) : $product->default_unit_id;
+        $alternateId = $request->has('alternate_unit_id') ? ($request->alternate_unit_id ?: null) : $product->alternate_unit_id;
+
+        if (! $defaultId) {
+            return 'A product needs a default unit of measure.';
+        }
+        if ($alternateId) {
+            $default = \App\Models\UnitOfMeasure::find($defaultId);
+            $alt     = \App\Models\UnitOfMeasure::find($alternateId);
+            if ((int) $alternateId === (int) $defaultId) {
+                return 'The alternate unit must differ from the default unit.';
+            }
+            if (! $default || ! $alt || $default->dimension !== $alt->dimension) {
+                return 'The alternate unit must be the same kind of measure as the default unit (e.g. both counts).';
+            }
+        }
+
+        if ($product->default_unit_id && (int) $product->default_unit_id !== (int) $defaultId
+            && $product->productVariants()->exists()) {
+            return 'The default unit cannot change once the product has variants — stock is counted in it.';
+        }
+
+        $product->default_unit_id   = $defaultId;
+        $product->alternate_unit_id = $alternateId;
+
+        return null;
+    }
+
+    /**
      * Update the specified product (ADMIN ONLY)
      */
     public function update(Request $request, $id)
@@ -530,6 +579,8 @@ class ProductController extends Controller
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id,is_active,1',
+            'default_unit_id' => 'nullable|exists:units_of_measure,id',
+            'alternate_unit_id' => 'nullable|exists:units_of_measure,id',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'additional_image_urls' => 'nullable|string', // expect JSON array string or newline-separated from frontend
@@ -537,6 +588,11 @@ class ProductController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $uomError = $this->applyProductUnits($request, $product);
+        if ($uomError) {
+            return response()->json(['message' => $uomError, 'errors' => ['default_unit_id' => [$uomError]]], 422);
         }
 
         try {

@@ -16,7 +16,7 @@ const selectionOf = (variant) => Object.fromEntries(
  * Create / edit one variant. On create you can set its base selling unit and
  * price in the same step (prices are in the product's currency).
  */
-export default function VariantForm({ variant, currencyCode, onClose }) {
+export default function VariantForm({ variant, currencyCode, defaultUnitId = null, onClose }) {
   const { options, variants, createVariant, updateVariant, variantByCombination, actionLoading } = useProductVariantStore();
   const editing = Boolean(variant);
   const [selection, setSelection] = useState(selectionOf(variant));
@@ -30,7 +30,7 @@ export default function VariantForm({ variant, currencyCode, onClose }) {
     status: variant?.status ?? 'active',
     is_default: variant?.is_default ?? variants.length === 0,
   });
-  const [baseUnit, setBaseUnit] = useState({ unit_id: '', price: '', compare_at_price: '' });
+  const [baseUnit, setBaseUnit] = useState({ unit_id: defaultUnitId ?? '', price: '', compare_at_price: '' });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
@@ -143,8 +143,8 @@ export default function VariantForm({ variant, currencyCode, onClose }) {
             <div style={{ padding: 14, borderRadius: 10, border: `1.5px solid ${colors.tint(0.15)}`, background: colors.tint(0.02) }}>
               <p style={{ margin: '0 0 10px', fontSize: '0.8rem', fontWeight: 700, color: colors.primaryDeep }}>How it's sold</p>
               <FormGrid min={150}>
-                <Field label="Base unit" htmlFor="v-bunit" error={errors['base_unit.unit_id']} hint="The smallest unit you sell and count stock in">
-                  <UnitSelect id="v-bunit" value={baseUnit.unit_id} onChange={(v) => setBaseUnit((b) => ({ ...b, unit_id: v }))} emptyLabel="Set later" />
+                <Field label="Base unit" htmlFor="v-bunit" error={errors['base_unit.unit_id']} hint={defaultUnitId ? "The product's default unit — all stock is counted in it" : "The smallest unit you sell and count stock in"}>
+                  <UnitSelect id="v-bunit" value={baseUnit.unit_id} onChange={(v) => setBaseUnit((b) => ({ ...b, unit_id: v }))} emptyLabel="Set later" disabled={Boolean(defaultUnitId)} />
                 </Field>
                 <Field label={`Price (${currencyCode})`} htmlFor="v-price" error={errors['base_unit.price']}>
                   <NumberInput id="v-price" min="0" step="0.01" disabled={!baseUnit.unit_id} value={baseUnit.price} onChange={(e) => setBaseUnit((b) => ({ ...b, price: e.target.value }))} />
