@@ -214,7 +214,7 @@ export default function Header() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navPosition = 'fixed';
   const { items: cartItems } = useCartStore();
-  const { items: wishlistItems } = useWishlistStore();
+  const { ids: wishlistIds, serviceIds: wishlistServiceIds } = useWishlistStore();
   const { items: quoteListItems } = useQuoteListStore();
 
   // Storefront nav (admin-controlled, per active module).
@@ -260,7 +260,7 @@ export default function Header() {
                   user?.role === 'sales_rep' ||
                   user?.role === 'driver';  
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
-  const wishlistCount = wishlistItems?.length ?? 0;
+  const wishlistCount = (wishlistIds?.length ?? 0) + (wishlistServiceIds?.length ?? 0);
   const quoteListCount = quoteListItems?.length ?? 0;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 

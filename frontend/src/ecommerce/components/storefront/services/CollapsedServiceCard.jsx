@@ -25,7 +25,7 @@ export default function CollapsedServiceCard({ service }) {
   // ── Stores ────────────────────────────────────────────────────────────────
   const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
 
-  const inQL   = service?.id ? inQuoteList(service.id) : false;
+  const inQL   = service?.id ? inQuoteList(`s:${service.id}`) : false;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleCardClick = () => navigate(`/services/${service?.id}`);

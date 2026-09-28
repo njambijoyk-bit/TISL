@@ -17,6 +17,14 @@ const syncQuoteToServer = (items) => {
   }, DEBOUNCE_MS);
 };
 
+/**
+ * A line's identity. Services carry a line_key (service + package) so two
+ * packages of one service stay separate and a service id never collides with a
+ * product id; products fall back to their id.
+ */
+const isService = (p) => typeof p?.line_key === 'string' ? p.line_key.startsWith('s:') : p?.pricing_model !== undefined;
+export const quoteKey = (p) => p?.line_key ?? (isService(p) ? `s:${p.id}` : p?.id);
+
 const useQuoteListStore = create(
   persist(
     (set, get) => ({
@@ -25,16 +33,17 @@ const useQuoteListStore = create(
       // ── Getters ────────────────────────────────────────────────────────
 
       count: () => get().items.length,
-      has: (productId) => get().items.some(i => i.product.id === productId),
+      has: (key) => get().items.some(i => quoteKey(i.product) === key),
 
       // ── Actions ────────────────────────────────────────────────────────
 
       addItem: (product, quantity = 1, notes = '') => {
-        const isNew = !get().items.some(i => i.product.id === product.id); // check BEFORE set
+        const key = quoteKey(product);
+        const isNew = !get().items.some(i => quoteKey(i.product) === key); // check BEFORE set
         set(state => {
-          const existing = state.items.find(i => i.product.id === product.id);
+          const existing = state.items.find(i => quoteKey(i.product) === key);
           const next = existing
-            ? state.items.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
+            ? state.items.map(i => quoteKey(i.product) === key ? { ...i, quantity: i.quantity + quantity } : i)
             : [...state.items, { product, quantity, notes }];
           syncQuoteToServer(next);
           return { items: next };
@@ -42,26 +51,35 @@ const useQuoteListStore = create(
         if (isNew) searchEvents.addToQuotelist(product); // fire only on genuinely new items
       },
 
-      removeItem: (productId) => {
+      removeItem: (key) => {
         set(state => {
-          const next = state.items.filter(i => i.product.id !== productId);
+          const next = state.items.filter(i => quoteKey(i.product) !== key);
           syncQuoteToServer(next);
           return { items: next };
         });
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (key, quantity) => {
         if (quantity < 1) return;
         set(state => {
-          const next = state.items.map(i => i.product.id === productId ? { ...i, quantity } : i);
+          const next = state.items.map(i => quoteKey(i.product) === key ? { ...i, quantity } : i);
           syncQuoteToServer(next);
           return { items: next };
         });
       },
 
-      updateNotes: (productId, notes) => {
+      updateNotes: (key, notes) => {
         set(state => {
-          const next = state.items.map(i => i.product.id === productId ? { ...i, notes } : i);
+          const next = state.items.map(i => quoteKey(i.product) === key ? { ...i, notes } : i);
+          syncQuoteToServer(next);
+          return { items: next };
+        });
+      },
+
+      /** Answers to a service's requirements: { [requirementId]: value } */
+      updateAnswers: (key, answers) => {
+        set(state => {
+          const next = state.items.map(i => quoteKey(i.product) === key ? { ...i, answers } : i);
           syncQuoteToServer(next);
           return { items: next };
         });
@@ -86,7 +104,7 @@ const useQuoteListStore = create(
           const localItems = get().items;
           const merged = [...serverItems.map(i => ({ ...i }))];
           localItems.forEach(localItem => {
-            const idx = merged.findIndex(i => i.product.id === localItem.product.id);
+            const idx = merged.findIndex(i => quoteKey(i.product) === quoteKey(localItem.product));
             if (idx !== -1) {
               merged[idx] = {
                 ...merged[idx],

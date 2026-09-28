@@ -9,6 +9,7 @@ import ServiceSelectorModalAdmin from '../../components/admin/quotes/request-wiz
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
+import ServiceCatalogEditor from '../../components/admin/services/ServiceCatalogEditor';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import { getAvailableServices, getAvailableProducts } from '../../../_shared/api/services';
@@ -354,7 +355,7 @@ const ServiceForm = () => {
     pricing_model: 'fixed', base_price: '', hourly_rate: '', daily_rate: '',
     minimum_charge: '', price_is_negotiable: false, currency_id: '',
     estimated_duration: '', lead_time: '', service_area: '',
-    unit_of_measure: 'project', requires_site_visit: false,
+    unit_of_measure: 'project', delivery_mode: '', requires_site_visit: false,
     is_remote_available: true, booking_required: false,
     max_concurrent_bookings: '', is_available: true, is_visible: true,
     is_featured: false, status: 'draft',
@@ -362,9 +363,7 @@ const ServiceForm = () => {
   });
 
   const [features,     setFeatures]     = useState(['']);
-  const [requirements, setRequirements] = useState(['']);
   const [deliverables, setDeliverables] = useState(['']);
-  const [pricingTiers, setPricingTiers] = useState([]);
 
   const [relatedServices,  setRelatedServices]  = useState([]);
   const [requiredProducts, setRequiredProducts] = useState([]);
@@ -400,7 +399,7 @@ const ServiceForm = () => {
       price_is_negotiable: cs.price_is_negotiable || false,
       currency_id: cs.currency_id ?? cs.currency?.id ?? '',
       estimated_duration: cs.estimated_duration || '', lead_time: cs.lead_time || '',
-      service_area: cs.service_area || '', unit_of_measure: cs.unit_of_measure || 'project',
+      service_area: cs.service_area || '', unit_of_measure: cs.unit_of_measure || 'project', delivery_mode: cs.delivery_mode || '',
       requires_site_visit: cs.requires_site_visit || false,
       is_remote_available: cs.is_remote_available !== undefined ? cs.is_remote_available : true,
       booking_required: cs.booking_required || false,
@@ -412,9 +411,7 @@ const ServiceForm = () => {
       badge: cs.badge || '', admin_notes: cs.admin_notes || '',
     });
     setFeatures(cs.features?.length > 0 ? cs.features : ['']);
-    setRequirements(cs.requirements?.length > 0 ? cs.requirements : ['']);
     setDeliverables(cs.deliverables?.length > 0 ? cs.deliverables : ['']);
-    setPricingTiers(cs.pricing_tiers || []);
     const normalizeItems = arr => (arr || []).map(s =>
       typeof s === 'object' ? { id: s.id, name: s.name } : { id: s, name: `Service #${s}` }
     );
@@ -446,9 +443,6 @@ const ServiceForm = () => {
   const arrRemove = (i, setter, arr) => { if (arr.length > 1) setter(arr.filter((_, j) => j !== i)); };
 
   // Pricing tiers
-  const addTier    = () => setPricingTiers(p => [...p, { min_quantity: '', max_quantity: '', price: '', description: '' }]);
-  const removeTier = (i) => setPricingTiers(p => p.filter((_, j) => j !== i));
-  const updateTier = (i, f, v) => { const u = [...pricingTiers]; u[i][f] = v; setPricingTiers(u); };
 
   // Images
   const handleMainImageChange = (e) => {
@@ -483,9 +477,7 @@ const ServiceForm = () => {
       const data = {
         ...formData,
         features:     features.filter(f => f.trim()),
-        requirements: requirements.filter(r => r.trim()),
         deliverables: deliverables.filter(d => d.trim()),
-        pricing_tiers:    pricingTiers.length > 0 ? pricingTiers.map(t => ({ ...t, min_quantity: t.min_quantity ? parseInt(t.min_quantity) : null, max_quantity: t.max_quantity ? parseInt(t.max_quantity) : null, price: t.price ? parseFloat(t.price) : null })) : null,
         related_services: relatedServices.map(s => s.id ?? s),
         required_products: requiredProducts.map(p => p.id ?? p),
         optional_products: optionalProducts.map(p => p.id ?? p),
@@ -673,33 +665,16 @@ const ServiceForm = () => {
                 </div>
               </SectionCard>
 
-              {/* Pricing tiers */}
-              <SectionCard title="Pricing tiers (optional)">
-                <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: -8, marginBottom: 14 }}>
-                  Offer volume discounts or tiered pricing.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {pricingTiers.map((tier, i) => (
-                    <div key={i} style={{ padding: 14, borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Tier {i + 1}</span>
-                        <GhostBtn onClick={() => removeTier(i)} danger><Trash2 size={13} /></GhostBtn>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 8 }}>
-                        {[['min_quantity','Min qty','1'],['max_quantity','Max qty','10'],['price',`Price (${priceCurrencyCode})`,'0.00']].map(([f, lbl, ph]) => (
-                          <Field key={f} label={lbl}>
-                            <SI type="number" value={tier[f]} onChange={e => updateTier(i, f, e.target.value)} placeholder={ph} min="0" step={f === 'price' ? '0.01' : '1'} />
-                          </Field>
-                        ))}
-                      </div>
-                      <Field label="Description">
-                        <SI value={tier.description} onChange={e => updateTier(i, 'description', e.target.value)} placeholder="e.g. Bulk discount for 10+" />
-                      </Field>
-                    </div>
-                  ))}
-                  <OutlineBtn onClick={addTier}><Plus size={13} /> Add pricing tier</OutlineBtn>
-                </div>
-              </SectionCard>
+              {/* Options, packages and requirements — once the service exists */}
+              {isEditMode && id ? (
+                <ServiceCatalogEditor serviceId={Number(id)} currencyCode={priceCurrencyCode} />
+              ) : (
+                <SectionCard title="Options & packages">
+                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>
+                    Save the service first. It starts with a "Standard" package at the starting price; then add options and packages here.
+                  </p>
+                </SectionCard>
+              )}
 
               {/* Tax overrides — only once the service exists */}
               {isEditMode && id && (
@@ -715,6 +690,15 @@ const ServiceForm = () => {
                     </Field>
                     <Field label="Lead time">
                       <SI name="lead_time" value={formData.lead_time} onChange={handleChange} placeholder="e.g. 1 week" />
+                    </Field>
+                    <Field label="How it is delivered">
+                      <SS name="delivery_mode" value={formData.delivery_mode} onChange={handleChange}>
+                        <option value="">Not specified</option>
+                        <option value="on_site">On-site (we come to you)</option>
+                        <option value="in_branch">In a branch</option>
+                        <option value="remote">Remote</option>
+                        <option value="hybrid">Hybrid</option>
+                      </SS>
                     </Field>
                     <Field label="Service area">
                       <SI name="service_area" value={formData.service_area} onChange={handleChange} placeholder="e.g. Nairobi & surrounding areas" />
@@ -734,7 +718,6 @@ const ServiceForm = () => {
               {/* Array fields: features, requirements, deliverables */}
               {[
                 { title: 'Features',      state: features,     setter: setFeatures,     ph: 'Enter a feature…'          },
-                { title: 'Requirements',  state: requirements, setter: setRequirements, ph: 'Enter a requirement…'      },
                 { title: 'Deliverables',  state: deliverables, setter: setDeliverables, ph: 'What will the customer receive…' },
               ].map(({ title, state, setter, ph }) => (
                 <SectionCard key={title} title={title}>

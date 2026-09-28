@@ -158,18 +158,29 @@ const RequestQuote = () => {
         if (!item) return;
 
         if (isService) {
+          // A chosen package (with its own price/duration) and the customer's answers travel with the request
+          const pkg = item.package ?? null;
+          const answers = listItem.answers ?? {};
+          const specs = [
+            pkg && `Package: ${pkg.label || pkg.name}`,
+            pkg?.duration && `Duration: ${pkg.duration}`,
+            ...(item.requirement_fields ?? [])
+              .filter(f => String(answers[f.id] ?? '').trim())
+              .map(f => `${f.label}: ${answers[f.id]}`),
+          ].filter(Boolean).join('\n');
+
           prefilledServices.push({
             service_id: item.id,
-            service: item,
+            service: pkg && (pkg.label || pkg.name) !== 'Standard' ? { ...item, name: `${item.name} — ${pkg.label || pkg.name}` } : item,
             quantity: qty,
             estimated_hours: null,
             notes,
             is_custom: false,
-            specifications: '',
-            unit_of_measure: item.unit_of_measure ?? 'hour',
+            specifications: specs,
+            unit_of_measure: pkg?.price_unit ? pkg.price_unit.toLowerCase() : (item.unit_of_measure ?? 'hour'),
             lead_time: item.lead_time ?? '',
             budget_per_unit: item.price_is_negotiable ? null : (
-              item.hourly_rate ?? item.daily_rate ?? item.base_price ?? null
+              pkg?.price ?? item.hourly_rate ?? item.daily_rate ?? item.base_price ?? null
             ),
           });
         } else {

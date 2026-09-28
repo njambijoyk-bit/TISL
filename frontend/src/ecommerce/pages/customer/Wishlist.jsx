@@ -5,6 +5,7 @@ import { ShoppingBag, Heart, Trash2 } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import WishlistItem from '../../components/storefront/wishlist/WishlistItem';
+import ServiceWishlistItem from '../../components/storefront/wishlist/ServiceWishlistItem';
 import EmptyWishlist from '../../components/storefront/wishlist/EmptyWishlist';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 
@@ -19,11 +20,12 @@ const card = {
 
 export default function Wishlist() {
   const navigate = useNavigate();
-  const { items, clearWishlist, fetchWishlistItems, loading, ids } = useWishlistStore();
+  const { items, serviceItems, clearWishlist, fetchWishlistItems, loading, ids, serviceIds } = useWishlistStore();
+  const total = items.length + serviceItems.length;
 
   useEffect(() => {
     fetchWishlistItems();
-  }, [fetchWishlistItems, ids.length]);
+  }, [fetchWishlistItems, ids.length, serviceIds.length]);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -34,7 +36,7 @@ export default function Wishlist() {
         {/* Breadcrumb */}
         <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: 24 }}>Wishlist</p>
 
-        {items.length === 0 ? (
+        {total === 0 ? (
           <EmptyWishlist loading={loading} />
         ) : (
           <>
@@ -49,7 +51,7 @@ export default function Wishlist() {
                   padding: '2px 9px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
                   background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
                 }}>
-                  {items.length}
+                  {total}
                 </span>
               </div>
 
@@ -74,7 +76,10 @@ export default function Wishlist() {
               {/* Wishlist items */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {items.map(item => (
-                  <WishlistItem key={item.id} item={item} />
+                  <WishlistItem key={`p${item.id}`} item={item} />
+                ))}
+                {serviceItems.map(item => (
+                  <ServiceWishlistItem key={`s${item.id}`} item={item} />
                 ))}
               </div>
 
@@ -86,7 +91,7 @@ export default function Wishlist() {
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 16 }}>
                     <span style={{ color: '#6b7280' }}>Saved items</span>
-                    <span style={{ fontWeight: 700, color: '#111827' }}>{items.length}</span>
+                    <span style={{ fontWeight: 700, color: '#111827' }}>{total}</span>
                   </div>
                   <button
                     onClick={() => navigate('/products')}

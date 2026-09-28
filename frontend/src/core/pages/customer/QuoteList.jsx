@@ -3,17 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FileText, Package, Trash2, Plus, Minus, ArrowRight, ShoppingBag, X } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
-import useQuoteListStore from '../../../_shared/store/quoteListStore';
+import useQuoteListStore, { quoteKey } from '../../../_shared/store/quoteListStore';
 import toast from 'react-hot-toast';
 
 const purple   = 'var(--color-primary-500)';
 const purpleDk = 'var(--color-primary-600)';
 const purpleLt = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
 const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
+const fieldStyle = { padding: '7px 10px', border: `1px solid ${purpleBd}`, borderRadius: 8, fontSize: '0.78rem', outline: 'none', background: purpleLt, fontFamily: 'inherit', boxSizing: 'border-box', width: '100%' };
 
 export default function QuoteList() {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, updateNotes, clearList } = useQuoteListStore();
+  const { items, removeItem, updateQuantity, updateNotes, updateAnswers, clearList } = useQuoteListStore();
 
   const handleRemove = (productId, name) => {
     removeItem(productId);
@@ -27,6 +28,15 @@ export default function QuoteList() {
 
   const handleRequestQuote = () => {
     if (items.length === 0) return;
+    // A service's required details must be filled in before it can be quoted.
+    const missing = items.flatMap(({ product, answers }) =>
+      (product.requirement_fields ?? [])
+        .filter(f => f.is_required && f.field_type !== 'file' && !String(answers?.[f.id] ?? '').trim())
+        .map(f => `${product.name}: ${f.label}`));
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` and ${missing.length - 3} more` : ''}`);
+      return;
+    }
     navigate('/request-quote', { state: { fromQuoteList: true } });
   };
 
@@ -108,15 +118,17 @@ export default function QuoteList() {
       style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {/* ── Item list ──────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {items.map(({ product, quantity, notes }) => (
+          {items.map(({ product, quantity, notes, answers }) => (
             <QuoteListItem
-              key={product.id}
+              key={quoteKey(product)}
               product={product}
               quantity={quantity}
               notes={notes}
-              onRemove={() => handleRemove(product.id, product.name)}
-              onQuantityChange={(q) => updateQuantity(product.id, q)}
-              onNotesChange={(n) => updateNotes(product.id, n)}
+              answers={answers ?? {}}
+              onRemove={() => handleRemove(quoteKey(product), product.name)}
+              onQuantityChange={(q) => updateQuantity(quoteKey(product), q)}
+              onNotesChange={(n) => updateNotes(quoteKey(product), n)}
+              onAnswersChange={(a) => updateAnswers(quoteKey(product), a)}
             />
           ))}
         </div>
@@ -193,7 +205,7 @@ export default function QuoteList() {
 }
 
 // ── Individual item row ───────────────────────────────────────────────────────
-function QuoteListItem({ product, quantity, notes, onRemove, onQuantityChange, onNotesChange }) {
+function QuoteListItem({ product, quantity, notes, answers, onRemove, onQuantityChange, onNotesChange, onAnswersChange }) {
   const [showNotes, setShowNotes] = useState(!!notes);
   const [imageError, setImageError] = useState(false);
   const imageUrl = product?.main_image_url ?? null;
@@ -222,7 +234,14 @@ function QuoteListItem({ product, quantity, notes, onRemove, onQuantityChange, o
         <p style={{ fontWeight: 700, fontSize: '0.88rem', color: purple, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {product.name}
         </p>
-        {product.short_description && (
+        {product.package ? (
+          <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 10px' }}>
+            {[product.package.label && product.package.label !== 'Standard' ? product.package.label : null,
+              product.package.duration,
+              product.package.display_price != null ? `${Number(product.package.display_price).toLocaleString()} ${product.package.display_currency ?? ''}${product.package.price_unit ? ` per ${product.package.price_unit.toLowerCase()}` : ''}` : null,
+            ].filter(Boolean).join(' · ') || 'Standard package'}
+          </p>
+        ) : product.short_description && (
           <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0 0 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {product.short_description}
           </p>
@@ -249,6 +268,29 @@ function QuoteListItem({ product, quantity, notes, onRemove, onQuantityChange, o
             {showNotes ? 'Hide notes' : '+ Add notes'}
           </button>
         </div>
+
+        {(product.requirement_fields ?? []).length > 0 && (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#6b7280' }}>What we need from you</p>
+            {product.requirement_fields.map(f => (
+              <label key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.76rem', color: '#374151' }}>
+                <span>{f.label}{f.is_required ? ' *' : ''}{f.help_text ? <span style={{ color: '#9ca3af' }}> — {f.help_text}</span> : null}</span>
+                {f.field_type === 'select' ? (
+                  <select value={answers[f.id] ?? ''} onChange={e => onAnswersChange({ ...answers, [f.id]: e.target.value })} style={fieldStyle}>
+                    <option value="">Choose…</option>
+                    {(f.choices ?? []).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                ) : f.field_type === 'textarea' ? (
+                  <textarea rows={2} value={answers[f.id] ?? ''} onChange={e => onAnswersChange({ ...answers, [f.id]: e.target.value })} style={{ ...fieldStyle, resize: 'vertical' }} />
+                ) : f.field_type === 'file' ? (
+                  <span style={{ color: '#9ca3af' }}>You can send photos or documents after the quote request is submitted.</span>
+                ) : (
+                  <input type={f.field_type === 'number' ? 'number' : 'text'} value={answers[f.id] ?? ''} onChange={e => onAnswersChange({ ...answers, [f.id]: e.target.value })} style={fieldStyle} />
+                )}
+              </label>
+            ))}
+          </div>
+        )}
 
         {showNotes && (
           <textarea

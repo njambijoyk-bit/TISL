@@ -17,9 +17,14 @@ import {
   ChevronRight,
   Check,
   Info,
+  Heart,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
 import useQuoteListStore from '../../../_shared/store/quoteListStore';
+import useWishlistStore from '../../../_shared/store/wishlistStore';
+import useServicePackages from '../../components/storefront/services/useServicePackages';
+import ServicePackagePicker from '../../components/storefront/services/ServicePackagePicker';
+import { formatMoney } from '../../../_shared/lib/money';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
@@ -45,7 +50,6 @@ const ServiceDetail = () => {
   } = useServiceStore();
 
   const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
-  const inQL = currentService?.id ? inQuoteList(currentService.id) : false;
 
   const [activeTab, setActiveTab] = useState('description');
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
@@ -71,6 +75,20 @@ const ServiceDetail = () => {
   // returns below, as hooks must.)
   const money = useMoney();
 
+  // Options + packages (each with its own price, duration, unit) chosen by the shopper
+  const picker = useServicePackages(id);
+  const pkg = picker.variant;
+  const dispCode = picker.data?.display_currency;
+  const fmtDisp = (n) => formatMoney(n ?? 0, dispCode, { decimals: 'auto' });
+  const lineKey = currentService?.id ? `s:${currentService.id}:${pkg?.id ?? 'default'}` : null;
+  const inQL = lineKey ? inQuoteList(lineKey) : false;
+  const { hasService, toggleService } = useWishlistStore();
+  const saved = currentService?.id ? hasService(currentService.id) : false;
+  const trimNum = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const pkgDuration = pkg?.duration_value
+    ? `${trimNum(pkg.duration_value)} ${(pkg.duration_unit?.name ?? '').toLowerCase()}${pkg.duration_value > 1 && pkg.duration_unit ? 's' : ''}`.trim()
+    : null;
+
   const getPricingDisplay = () => {
     if (!currentService) return '';
     return money.servicePrice(currentService, {
@@ -82,8 +100,17 @@ const ServiceDetail = () => {
 
   const handleRequestQuote = () => {
     if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList(currentService, 1);
-    toast.success(`${currentService?.name} added to quote list`);
+    addToQuoteList({
+      ...currentService,
+      line_key: lineKey,
+      package: pkg ? {
+        id: pkg.id, name: pkg.name, label: picker.label,
+        price: pkg.price, display_price: pkg.display_price, display_currency: dispCode,
+        duration: pkgDuration, price_unit: pkg.price_unit?.name ?? null, tax_label: picker.data?.tax_label ?? null,
+      } : null,
+      requirement_fields: picker.data?.requirements ?? [],
+    }, 1);
+    toast.success(`${currentService?.name}${pkg && picker.label && picker.label !== 'Standard' ? ` (${picker.label})` : ''} added to quote list`);
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -130,7 +157,8 @@ const ServiceDetail = () => {
   ].filter(Boolean);
 
   const hasVariants = service.features && service.features.length > 0;
-  const hasRequirements = service.requirements && service.requirements.length > 0;
+  const requirementFields = picker.data?.requirements ?? [];
+  const hasRequirements = requirementFields.length > 0;
   const hasDeliverables = service.deliverables && service.deliverables.length > 0;
 
   const tabs = [
@@ -332,8 +360,14 @@ const ServiceDetail = () => {
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                      {getPricingDisplay()}
+                      {pkg && pkg.display_price != null ? fmtDisp(pkg.display_price) : getPricingDisplay()}
                     </span>
+                    {pkg?.display_compare_at != null && pkg.display_compare_at > pkg.display_price && (
+                      <span style={{ fontSize: '0.95rem', color: '#9ca3af', textDecoration: 'line-through' }}>{fmtDisp(pkg.display_compare_at)}</span>
+                    )}
+                    {pkg?.price_unit && (
+                      <span style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600 }}>per {pkg.price_unit.name.toLowerCase()}</span>
+                    )}
                     {service.minimum_charge && (
                       <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 500 }}>
                         min. {money.itemAmount(service.minimum_charge, service)}
@@ -342,11 +376,17 @@ const ServiceDetail = () => {
                   </div>
                 </div>
 
+                {pkg && picker.data?.tax_label && pkg.display_price != null && (
+                  <div style={{ padding: '8px 20px', fontSize: '0.75rem', color: '#6b7280', background: 'white', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
+                    Excludes {picker.data.tax_label}: <strong>+ {fmtDisp(pkg.display_tax)}</strong> · Total <strong>{fmtDisp(pkg.display_price + pkg.display_tax)}</strong>
+                  </div>
+                )}
+
                 {/* Meta row */}
-                {(service.estimated_duration || service.lead_time || service.service_area) && (
+                {(pkgDuration || service.estimated_duration || service.lead_time || service.service_area) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', background: 'white' }}>
                     {[
-                      service.estimated_duration && { icon: <Clock size={14} />, label: 'Duration', value: service.estimated_duration },
+                      (pkgDuration || service.estimated_duration) && { icon: <Clock size={14} />, label: 'Duration', value: pkgDuration || service.estimated_duration },
                       service.lead_time        && { icon: <Calendar size={14} />, label: 'Lead Time', value: service.lead_time },
                       service.service_area     && { icon: <MapPin size={14} />, label: 'Area', value: service.service_area },
                     ].filter(Boolean).map((item, i, arr) => (
@@ -367,6 +407,8 @@ const ServiceDetail = () => {
                 )}
               </div>
 
+              <ServicePackagePicker picker={picker} />
+
               {/* CTA buttons */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
@@ -383,6 +425,20 @@ const ServiceDetail = () => {
                 >
                   <FileText size={16} />
                   {inQL ? 'In Quote List →' : 'Request a Quote'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { toggleService(service.id); toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist'); }}
+                  aria-pressed={saved}
+                  aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'}
+                  style={{
+                    width: 50, height: 50, borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid ' + (saved ? '#ef4444' : '#e5e7eb'), background: saved ? 'rgba(239,68,68,0.06)' : 'white',
+                  }}
+                >
+                  <Heart size={18} style={{ color: saved ? '#ef4444' : '#9ca3af', fill: saved ? '#ef4444' : 'none' }} />
                 </button>
 
                 {service.booking_required && (
@@ -532,14 +588,15 @@ const ServiceDetail = () => {
                 </div>
               )}
 
-              {activeTab === 'requirements' && service.requirements && (
+              {activeTab === 'requirements' && hasRequirements && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {service.requirements.map((req, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>You'll be asked for these when you request a quote.</p>
+                  {requirementFields.map((req) => (
+                    <div key={req.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                         <AlertCircle size={11} style={{ color: '#3b82f6' }} />
                       </span>
-                      <span style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }} className="dark:text-gray-300">{req}</span>
+                      <span style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }} className="dark:text-gray-300">{req.label}{req.is_required ? ' *' : ''}{req.help_text ? <span style={{ color: '#9ca3af' }}> — {req.help_text}</span> : null}</span>
                     </div>
                   ))}
                 </div>

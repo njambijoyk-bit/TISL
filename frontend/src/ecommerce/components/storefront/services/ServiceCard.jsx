@@ -82,7 +82,7 @@ const ServiceCard = ({ service, onClick }) => {
   
 const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
 
-  const inQL   = service?.id ? inQuoteList(service.id) : false;
+  const inQL   = service?.id ? inQuoteList(`s:${service.id}`) : false;
 
   const handleAddToQuoteList = (e) => {
     e.preventDefault();
