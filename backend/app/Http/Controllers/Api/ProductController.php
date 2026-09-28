@@ -9,6 +9,10 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Services\CurrencyConversionService;
 use App\Services\FuzzySuggestService;
+use App\Services\Location\LocationContext;
+use App\Services\Location\VariantStockService;
+use App\Models\LocationPrice;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -113,6 +117,11 @@ class ProductController extends Controller
         }
         // ------------------------------------------
 
+        // Multi-location: show only products offered at the branch in context
+        // (legacy products with no branch stock stay visible everywhere).
+        $branchId = app(LocationContext::class)->id();
+        $query->availableAtLocation($branchId);
+
         // Sort: honour manual sort param; otherwise personalise
         if ($request->filled('sort')) {
             $sortParts = explode('_', $request->sort);
@@ -153,10 +162,26 @@ class ProductController extends Controller
             ->get(['entity_id', 'message', 'badge_type'])
             ->keyBy('entity_id');
 
-        $products->getCollection()->transform(function ($product) use ($boosts) {
+        // Per-branch price overrides for this page (one query, no N+1).
+        $branchOverrides = collect();
+        if ($branchId) {
+            $branchOverrides = LocationPrice::where('sellable_type', 'product')
+                ->whereIn('sellable_id', $pageIds)
+                ->where('location_id', $branchId)
+                ->get()->keyBy('sellable_id');
+        }
+        $conv = app(CurrencyConversionService::class);
+
+        $products->getCollection()->transform(function ($product) use ($boosts, $branchOverrides, $conv) {
             $boost = $boosts->get($product->id);
             $product->boost_message    = $boost?->message    ?? null;
             $product->boost_badge_type = $boost?->badge_type ?? null;
+
+            // Branch price override → shown in the display currency; null = use display_price.
+            $ov = $branchOverrides->get($product->id);
+            $product->branch_display_price = $ov
+                ? $conv->convertForDisplay((float) $ov->amount, $ov->currency_id, null)['amount']
+                : null;
             return $product;
         });
 
@@ -366,6 +391,19 @@ class ProductController extends Controller
                 $discountPercentage = round((($product->original_price - $product->price) / $product->original_price) * 100);
             }
 
+            // Multi-location: is this offered at the branch in context, and where is it in stock?
+            $branchId = app(LocationContext::class)->id();
+            $offeredHere = $product->offeredAt($branchId);
+            $branchesInStock = Location::whereIn('id', $product->branchIdsInStock())
+                ->orderBy('name')->pluck('name', 'id');
+            $branchOverride = $branchId
+                ? LocationPrice::where('sellable_type', 'product')->where('sellable_id', $product->id)
+                    ->where('location_id', $branchId)->first()
+                : null;
+            $branchDisplayPrice = $branchOverride
+                ? app(CurrencyConversionService::class)->convertForDisplay((float) $branchOverride->amount, $branchOverride->currency_id, null)['amount']
+                : null;
+
             return response()->json([
                 'product' => [
                     // Basic Info
@@ -388,6 +426,11 @@ class ProductController extends Controller
                     'price_is_negotiable' => $product->price_is_negotiable,
                     'on_sale' => $product->on_sale,
                     'discount_percentage' => $discountPercentage,
+
+                    // Multi-location
+                    'offered_here' => $offeredHere,
+                    'available_branches' => $branchesInStock,   // { id: name } where in stock
+                    'branch_display_price' => $branchDisplayPrice,
                     
                     // Stock
                     'in_stock' => $product->in_stock,
@@ -1059,6 +1102,106 @@ public function related($id)
             'message' => 'Stock updated successfully',
             'product' => $product,
         ], 200);
+    }
+
+    /**
+     * Per-branch stock + price grid for a product (ADMIN).
+     * Ensures a default variant exists (simple products) so there's always a
+     * row to edit. Returns the active branches, each variant's per-branch
+     * quantity, and any product-level per-branch price override.
+     */
+    public function branchStock($id, VariantStockService $stock)
+    {
+        $product = Product::findOrFail($id);
+        $stock->ensureDefaultVariant($product);
+
+        $locations = Location::active()->ordered()
+            ->get(['id', 'name', 'code', 'currency_id'])
+            ->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'code' => $l->code, 'currency_id' => $l->currency_id]);
+
+        $variants = $product->productVariants()->with('locationStocks')->orderByDesc('is_default')->orderBy('id')->get()
+            ->map(function ($v) {
+                $byLoc = $v->locationStocks->keyBy('location_id');
+                return [
+                    'id'              => $v->id,
+                    'name'            => $v->name ?: ($v->combination_key === 'default' ? 'Default' : $v->combination_key),
+                    'is_default'      => (bool) $v->is_default,
+                    'combination_key' => $v->combination_key,
+                    'stock'           => $byLoc->map(fn ($r) => (float) $r->quantity)->toArray(), // { location_id: qty }
+                ];
+            });
+
+        $prices = LocationPrice::where('sellable_type', 'product')->where('sellable_id', $product->id)->get()
+            ->keyBy('location_id')
+            ->map(fn ($p) => [
+                'amount'           => (float) $p->amount,
+                'currency_id'      => $p->currency_id,
+                'is_tax_inclusive' => (bool) $p->is_tax_inclusive,
+            ]);
+
+        return response()->json([
+            'has_variants'    => (bool) $product->has_variants,
+            'base_currency_id'=> $product->currency_id,
+            'locations'       => $locations,
+            'variants'        => $variants,
+            'price_overrides' => $prices,   // { location_id: {amount, currency_id, is_tax_inclusive} }
+        ]);
+    }
+
+    /**
+     * Save per-branch stock + price overrides for a product (ADMIN).
+     * Body: { stock: [{variant_id, location_id, quantity}],
+     *         prices: [{location_id, amount|null, is_tax_inclusive}] }
+     * A null/blank price amount clears that branch's override.
+     */
+    public function saveBranchStock(Request $request, $id, VariantStockService $stock)
+    {
+        $product = Product::findOrFail($id);
+
+        $data = $request->validate([
+            'stock'                  => 'array',
+            'stock.*.variant_id'     => 'required|integer|exists:product_variants,id',
+            'stock.*.location_id'    => 'required|integer|exists:locations,id',
+            'stock.*.quantity'       => 'required|numeric|min:0',
+            'prices'                 => 'array',
+            'prices.*.location_id'   => 'required|integer|exists:locations,id',
+            'prices.*.amount'        => 'nullable|numeric|min:0',
+            'prices.*.is_tax_inclusive' => 'boolean',
+        ]);
+
+        $variantIds = $product->productVariants()->pluck('id')->all();
+
+        DB::transaction(function () use ($product, $data, $variantIds, $stock) {
+            foreach ($data['stock'] ?? [] as $row) {
+                if (!in_array((int) $row['variant_id'], $variantIds, true)) {
+                    continue; // ignore variants that aren't this product's
+                }
+                $stock->setBranchStock((int) $row['variant_id'], (int) $row['location_id'], (float) $row['quantity']);
+            }
+
+            foreach ($data['prices'] ?? [] as $row) {
+                $loc = Location::find($row['location_id']);
+                if (!$loc) { continue; }
+                $amount = $row['amount'] ?? null;
+                if ($amount === null || $amount === '') {
+                    LocationPrice::where('sellable_type', 'product')->where('sellable_id', $product->id)
+                        ->where('location_id', $loc->id)->delete();
+                    continue;
+                }
+                LocationPrice::updateOrCreate(
+                    ['sellable_type' => 'product', 'sellable_id' => $product->id, 'location_id' => $loc->id],
+                    [
+                        'amount'           => $amount,
+                        'currency_id'      => $loc->currency_id ?? $product->currency_id,
+                        'is_tax_inclusive' => (bool) ($row['is_tax_inclusive'] ?? false),
+                    ]
+                );
+            }
+
+            $stock->recomputeCaches($product);
+        });
+
+        return response()->json(['ok' => true, 'message' => 'Branch stock & pricing saved.']);
     }
 
     /**

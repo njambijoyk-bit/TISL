@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Check,
   Gavel,
+  MapPin,
 } from 'lucide-react';
 
 import Header from '../../../_shared/components/layout/Header';
@@ -491,6 +492,19 @@ export default function ProductDetail() {
               ].filter(Boolean)}
             />
           </div>
+
+          {/* Not sold at the current branch — point to where it is */}
+          {product?.offered_here === false && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.25)', color: '#92400e', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem' }}>
+              <MapPin size={16} style={{ flexShrink: 0 }} />
+              <span>
+                Not available at your selected branch.
+                {product.available_branches && Object.keys(product.available_branches).length > 0
+                  ? ` Available at: ${Object.values(product.available_branches).join(', ')}.`
+                  : ' Currently out of stock at all branches.'}
+              </span>
+            </div>
+          )}
 
           {/* ── MAIN PRODUCT GRID ─────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '4rem' }}>

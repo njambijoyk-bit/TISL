@@ -42,6 +42,7 @@ final class ModuleTables
         'ecommerce' => [
             'products', 'product_images', 'product_options', 'product_option_values',
             'product_variants', 'product_variant_options', 'product_variant_units',
+            'variant_location_stock',
             'product_reviews',
             'categories', 'brands',
             'services', 'service_categories',

@@ -60,6 +60,12 @@ class ProductVariant extends Model
         return $this->hasMany(ProductVariantUnit::class, 'variant_id')->orderBy('position');
     }
 
+    /** Per-branch stock rows (multi-location). */
+    public function locationStocks(): HasMany
+    {
+        return $this->hasMany(\App\Models\VariantLocationStock::class, 'product_variant_id');
+    }
+
     public function baseUnit(): HasOne
     {
         return $this->hasOne(ProductVariantUnit::class, 'variant_id')->where('role', ProductVariantUnit::ROLE_BASE);
