@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, DollarSign, FileText, CreditCard, Scale, NotebookPen,
-  Package, Wrench, Tag, Award, Gift, Gavel, CalendarCheck,
+  Package, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
@@ -65,9 +65,12 @@ export const ADMIN_NAV = [
     module: MODULES.ECOMMERCE,
     items: [
       {
-        id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products', keywords: 'variants stock',
+        id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products',
+        keywords: 'variants stock categories brands', also: ['/admin/categories', '/admin/brands'],
         tabs: [
           { title: 'All products', path: '/admin/products' },
+          { title: 'Categories', path: '/admin/categories' },
+          { title: 'Brands', path: '/admin/brands' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
         ],
       },
@@ -78,8 +81,6 @@ export const ADMIN_NAV = [
           { title: 'Service categories', path: '/admin/service-categories' },
         ],
       },
-      { id: 'categories', title: 'Categories', icon: Tag, color: '#3b82f6', path: '/admin/categories' },
-      { id: 'brands', title: 'Brands', icon: Award, color: '#f59e0b', path: '/admin/brands' },
       { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS },
       {
         id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', also: ['/admin/auction-orders'], module: MODULES.AUCTIONS, keywords: 'bids',
