@@ -205,19 +205,27 @@ Tax already resolves by district (`TaxService::calculateForEntity` takes
 - **Tax:** feed the branch's `tax_district_id → selfAndAncestorIds()` into `TaxService`, plus the tax-rate change below.
 - **Display:** storefront scoped to the branch in context; a product not offered at the current branch shows an "Available at <branch>" note rather than vanishing.
 
-**Variants, options & per-branch stock (confirmed — location lives on VARIANTS, not options)**
-- **Definitions stay central** — options and their values (size, colour) and the variant combinations are defined once; never fragmented per branch.
-- **Stock is per variant per branch:** new table **`variant_location_stock(product_variant_id, location_id, quantity, …)`**. E.g. "large red mug: 12 in Nairobi, 3 in Ruiru." Location attaches to variants (which are coupled to options), not to options themselves.
-- **Availability derives from stock rows:** row present = sold at that branch; `quantity = 0` = out of stock there; **no row = not offered there**.
-- **Simple products get a default variant** (schema already supports `is_default`) so stock always attaches to a variant — one clean path, no dual product/variant stock model. Legacy `products.stock_quantity` becomes derived/deprecated.
-- **Price** override still per branch at product / variant-unit level.
-- This puts **basic per-branch counts in scope now** (Core/E-commerce). **Batches, expiry, transfers, reconciliation stay in Extras · Inventory** (§3.7).
+**The variant model — the variant is the atomic sellable (confirmed, resolves the "fake options" trap)**
+- **Every product has ≥1 variant.** A **simple product has one option-less "default" variant**, created **silently** by the backend — the admin never invents a fake option ("size: M" for a couch). Options exist **only** for real variations; when they exist, variants are generated from the option combinations as today.
+- **Hierarchy:** `product → 1..n variants (≥1 always) → 1..n units (≥1; price lives on the unit) → variant_location_stock per branch`. Options are just what *generate* variants when variations exist.
+- `has_variants` is redefined to mean **"has customer-visible options"** (a simple product is `has_variants = false` but still has its one default variant internally).
 
-**Auctions & hampers — belong to ONE branch, listing shows all + info badge (confirmed)**
-- A hamper/auction **belongs to a single branch** (`location_id` chosen at creation), not a many-to-many offered-at.
-- **Hamper composition:** its items must come from that branch. When building a branch-A hamper, if an item has 0 at branch A, show **"Branch A is out of stock"** + a **badge listing the branches that do have it** (read from `variant_location_stock`).
-- **Auction:** "this auction belongs to Branch B" → Branch B must have that item in stock.
-- **Listing:** show **all** hampers/auctions regardless of the selected branch, each with an **info badge naming its owning branch**. (Products filter by branch; auctions/hampers are limited, event-like items where discovery matters, so they badge instead.)
+**Options, variants & per-branch stock (location lives on VARIANTS, not options)**
+- **Definitions stay central** — options/values and variant combinations defined once; never per-branch.
+- **Stock is per variant per branch:** new table **`variant_location_stock(product_variant_id, location_id, quantity, …)`**. "Large red mug: 12 in Nairobi, 3 in Ruiru."
+- **Availability derives from stock rows:** row present = sold at that branch; `quantity = 0` = out of stock there; **no row = not offered there**.
+- **`stock_quantity` becomes an auto-calculated cache, not source of truth:** `variant.stock_quantity` = sum across branches for that variant; `product.stock_quantity` = sum across all its variants; `in_stock` = any branch qty > 0. Truth = `variant_location_stock`. Kept (not dropped) so existing reads/`isInStock()`/`scopeInStock()` keep working; **never hand-edited**, recomputed on every stock change. Per-branch "in stock" reads the current branch's rows.
+- **Price** override per branch at product / variant-unit level.
+- **Product form:** *simple mode* (no options → a Stock & price section: qty + optional price per branch, backed by the hidden default variant/unit) vs *variations mode* (add options → a variant matrix → stock + price per variant per branch).
+- **Backfill:** existing simple products (no variant rows) get a default variant + default unit, and their `stock_quantity` moves into a `variant_location_stock` row for **Main**.
+- Basic per-branch counts are **Core/E-commerce**; **batches, expiry, transfers, reconciliation stay in Extras · Inventory** (§3.7).
+
+**Auctions & hampers — belong to ONE branch; items are VARIANTS (confirmed)**
+- A hamper/auction **belongs to a single branch** (`location_id` chosen at creation), not many-to-many offered-at.
+- Their items are **specific variants (and unit)**, not just products — that's the thing with identity + branch stock.
+- **Hamper composition:** items must come from that branch. If a chosen variant has 0 at branch A while building a branch-A hamper, show **"Branch A is out of stock"** + a **badge listing the branches that do have it** (from `variant_location_stock`).
+- **Auction:** "this auction belongs to Branch B" → the auctioned variant must have stock in Branch B.
+- **Listing:** show **all** hampers/auctions regardless of selected branch, each with an **info badge naming its owning branch** (they're limited, event-like items where discovery matters; products filter, these badge).
 - Bidding/buying stays tied to the item's branch (collect/settle there).
 
 **Services — underdone; overhaul planned**
