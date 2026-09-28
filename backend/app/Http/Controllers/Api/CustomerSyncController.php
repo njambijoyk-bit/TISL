@@ -73,17 +73,18 @@ class CustomerSyncController extends Controller
     {
         try {
             $customerId = $this->customerId($request);
-            if (!$customerId) return response()->json(['ids' => []]);
+            if (!$customerId) return response()->json(['ids' => [], 'service_ids' => []]);
 
             $row = DB::table('customer_wishlists')
                 ->where('customer_id', $customerId)
                 ->first();
 
             return response()->json([
-                'ids' => $row ? json_decode($row->ids, true) : [],
+                'ids'         => $row ? json_decode($row->ids, true) : [],
+                'service_ids' => $row && ! empty($row->service_ids) ? json_decode($row->service_ids, true) : [],
             ]);
         } catch (Throwable) {
-            return response()->json(['ids' => []]);
+            return response()->json(['ids' => [], 'service_ids' => []]);
         }
     }
 
@@ -94,18 +95,21 @@ class CustomerSyncController extends Controller
             if (!$customerId) return response()->json(['success' => false, 'reason' => 'no_customer']);
 
             $request->validate([
-                'ids'   => 'required|array',
-                'ids.*' => 'integer',
+                'ids'           => 'required|array',
+                'ids.*'         => 'integer',
+                'service_ids'   => 'nullable|array',
+                'service_ids.*' => 'integer',
             ]);
 
             DB::table('customer_wishlists')->upsert(
                 [
                     'customer_id' => $customerId,
                     'ids'         => json_encode($request->ids),
+                    'service_ids' => json_encode($request->input('service_ids', [])),
                     'updated_at'  => now(),
                 ],
                 ['customer_id'],
-                ['ids', 'updated_at']
+                ['ids', 'service_ids', 'updated_at']
             );
 
             return response()->json(['success' => true]);

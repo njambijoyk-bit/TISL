@@ -36,6 +36,10 @@ class Service extends Model
         'deliverables',
         'requirements',
         'estimated_duration',
+        'duration_value',
+        'duration_unit_id',
+        'price_unit_id',
+        'delivery_mode',
         'unit_of_measure',
         'requires_site_visit',
         'is_remote_available',
@@ -119,6 +123,34 @@ class Service extends Model
     // ========================================
     // RELATIONSHIPS
     // ========================================
+
+    /** Options a customer chooses between (Type, Location…). */
+    public function options()
+    {
+        return $this->hasMany(ServiceOption::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** Packages: each has its own price, duration and unit. */
+    public function variants()
+    {
+        return $this->hasMany(ServiceVariant::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** What the customer must provide (structured). */
+    public function requirementFields()
+    {
+        return $this->hasMany(ServiceRequirement::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function durationUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'duration_unit_id');
+    }
+
+    public function priceUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'price_unit_id');
+    }
 
     /**
      * Get the category this service belongs to.

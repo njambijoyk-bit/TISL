@@ -326,6 +326,10 @@ class ServiceController extends Controller
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',
             'unit_of_measure' => 'nullable|string|max:50',
+            'duration_value' => 'nullable|numeric|min:0',
+            'duration_unit_id' => 'nullable|exists:units_of_measure,id',
+            'price_unit_id' => 'nullable|exists:units_of_measure,id',
+            'delivery_mode' => 'nullable|in:on_site,remote,in_branch,hybrid',
             'requires_site_visit' => 'nullable|boolean',
             'is_remote_available' => 'nullable|boolean',
             'service_area' => 'nullable|string',
@@ -472,6 +476,9 @@ class ServiceController extends Controller
 
             $service = Service::create($data);
 
+            // Every service starts with a "Standard" package at its starting price.
+            app(\App\Services\ServiceCatalogService::class)->ensureStandardVariant($service);
+
             DB::commit();
 
             return response()->json([
@@ -543,6 +550,10 @@ class ServiceController extends Controller
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',
             'unit_of_measure' => 'nullable|string|max:50',
+            'duration_value' => 'nullable|numeric|min:0',
+            'duration_unit_id' => 'nullable|exists:units_of_measure,id',
+            'price_unit_id' => 'nullable|exists:units_of_measure,id',
+            'delivery_mode' => 'nullable|in:on_site,remote,in_branch,hybrid',
             'requires_site_visit' => 'nullable|boolean',
             'is_remote_available' => 'nullable|boolean',
             'service_area' => 'nullable|string',
@@ -658,6 +669,11 @@ class ServiceController extends Controller
             }
 
             $service->update($data);
+
+            // Keep an untouched Standard package in step with the starting price.
+            if (array_key_exists('base_price', $data)) {
+                app(\App\Services\ServiceCatalogService::class)->syncStandardPrice($service);
+            }
 
             DB::commit();
 

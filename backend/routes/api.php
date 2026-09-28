@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\SearchEventController;
 use App\Http\Controllers\Api\QuoteRequestController;
@@ -266,6 +267,7 @@ Route::get('/brands/{id}', [BrandController::class, 'show']);
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/featured', [ServiceController::class, 'featured']);
 Route::get('/services/types', [ServiceController::class, 'getTypes']);
+Route::get('/services/{id}/packages', [ServiceCatalogController::class, 'publicPackages'])->whereNumber('id');
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/related', [ServiceController::class, 'related']);
 
@@ -800,6 +802,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore', [ServiceController::class, 'restore']);
             Route::post('/{id}/publish', [ServiceController::class, 'publish']);
             Route::post('/{id}/unpublish', [ServiceController::class, 'unpublish']);
+
+            // Options, packages (variants) and requirements
+            Route::get('/{id}/catalog',                                   [ServiceCatalogController::class, 'adminCatalog']);
+            Route::post('/{id}/options',                                  [ServiceCatalogController::class, 'storeOption']);
+            Route::put('/{id}/options/{optionId}',                        [ServiceCatalogController::class, 'updateOption']);
+            Route::delete('/{id}/options/{optionId}',                     [ServiceCatalogController::class, 'destroyOption']);
+            Route::post('/{id}/options/{optionId}/values',                [ServiceCatalogController::class, 'storeOptionValue']);
+            Route::put('/{id}/options/{optionId}/values/{valueId}',       [ServiceCatalogController::class, 'updateOptionValue']);
+            Route::delete('/{id}/options/{optionId}/values/{valueId}',    [ServiceCatalogController::class, 'destroyOptionValue']);
+            Route::post('/{id}/variants/generate',                        [ServiceCatalogController::class, 'generateVariants']);
+            Route::post('/{id}/variants',                                 [ServiceCatalogController::class, 'storeVariant']);
+            Route::put('/{id}/variants/{variantId}',                      [ServiceCatalogController::class, 'updateVariant']);
+            Route::delete('/{id}/variants/{variantId}',                   [ServiceCatalogController::class, 'destroyVariant']);
+            Route::post('/{id}/requirements',                             [ServiceCatalogController::class, 'storeRequirement']);
+            Route::put('/{id}/requirements/{requirementId}',              [ServiceCatalogController::class, 'updateRequirement']);
+            Route::delete('/{id}/requirements/{requirementId}',           [ServiceCatalogController::class, 'destroyRequirement']);
         });
 
         // Service Categories Management

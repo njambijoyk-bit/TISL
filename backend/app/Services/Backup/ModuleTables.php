@@ -51,6 +51,8 @@ final class ModuleTables
             'product_reviews',
             'categories', 'brands',
             'services', 'service_categories',
+            // service options, packages (variants) and structured requirements
+            'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements',
             'hamper_customer_eligibility',
             // TODO: hampers, hamper_items, auctions, bids, wishlists, specials…
             // (hamper/auction orders were retired — they sell through the normal checkout)
