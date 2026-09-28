@@ -162,6 +162,11 @@ solo shop or ship-anywhere), `specific` (use offering rows), `online`
   flows through existing order status + notifications.
 
 ### 3.7 Stock movement & transfers (Extras · Inventory)
+> **Split:** the **basic per-branch quantity** lives in Core/E-commerce as
+> `variant_location_stock` (§3.9) — it's what the storefront reads for
+> availability. **Extras · Inventory** adds the richer layer below on top:
+> the movement ledger, transfers, batches/expiry and reconciliation.
+
 Applies to **any stockable** (products, menu items, ingredients) — not just products.
 ```
 stock_movements(sellable/ingredient, location, delta, reason, ref_type, ref_id, batch_id, at, by)
@@ -194,21 +199,25 @@ global (implicitly `location_mode = all`, one price, one global stock number).
 Tax already resolves by district (`TaxService::calculateForEntity` takes
 `districtIds`), so multi-branch tax is mostly wiring.
 
-**Products**
-- **Offered-at:** product-level (which branches) + `location_mode` (all / specific / online).
+**Products (confirmed 28 Sep 2026)**
+- **Offered-at:** derived from per-branch **variant stock** (see below) — a variant is "sold at" a branch when it has a stock row there. `location_mode` (all / specific / online) still applies at product level.
 - **Priced-at:** optional per-branch override at **product** and **variant-unit** level (net); otherwise auto-convert base price → branch currency via `PriceResolver`.
-- **Tax:** feed the branch's `tax_district_id → selfAndAncestorIds()` into `TaxService`.
-- **Stock:** **global for now**; true per-branch stock ("12 in A, 3 in B") is the Inventory tier (§3.7), deferred.
+- **Tax:** feed the branch's `tax_district_id → selfAndAncestorIds()` into `TaxService`, plus the tax-rate change below.
 - **Display:** storefront scoped to the branch in context; a product not offered at the current branch shows an "Available at <branch>" note rather than vanishing.
 
-**Variants & options**
-- **Definitions stay central** — a product's options/variants (and its units) are defined once; never fragmented per branch.
-- **Per branch we vary** availability, price and (later) stock.
-- **v1 granularity:** offered-at at the **product** level, price override at **product / variant-unit** level. **Per-variant per-branch availability** ("Nairobi red+blue, Kampala red only") is a **later refinement**.
+**Variants, options & per-branch stock (confirmed — location lives on VARIANTS, not options)**
+- **Definitions stay central** — options and their values (size, colour) and the variant combinations are defined once; never fragmented per branch.
+- **Stock is per variant per branch:** new table **`variant_location_stock(product_variant_id, location_id, quantity, …)`**. E.g. "large red mug: 12 in Nairobi, 3 in Ruiru." Location attaches to variants (which are coupled to options), not to options themselves.
+- **Availability derives from stock rows:** row present = sold at that branch; `quantity = 0` = out of stock there; **no row = not offered there**.
+- **Simple products get a default variant** (schema already supports `is_default`) so stock always attaches to a variant — one clean path, no dual product/variant stock model. Legacy `products.stock_quantity` becomes derived/deprecated.
+- **Price** override still per branch at product / variant-unit level.
+- This puts **basic per-branch counts in scope now** (Core/E-commerce). **Batches, expiry, transfers, reconciliation stay in Extras · Inventory** (§3.7).
 
-**Auctions & hampers — show-all + badge (different from products)**
-- They **are** per-location (offered-at says which branch runs them).
-- **The listing shows ALL of them regardless of the selected branch**, each with a **"where available" badge** ("Available here" / "Kampala only" / "Also at Nairobi") — no filtering. Products filter by branch; auctions & hampers badge, because they're limited, event-like, high-interest items where discovery matters.
+**Auctions & hampers — belong to ONE branch, listing shows all + info badge (confirmed)**
+- A hamper/auction **belongs to a single branch** (`location_id` chosen at creation), not a many-to-many offered-at.
+- **Hamper composition:** its items must come from that branch. When building a branch-A hamper, if an item has 0 at branch A, show **"Branch A is out of stock"** + a **badge listing the branches that do have it** (read from `variant_location_stock`).
+- **Auction:** "this auction belongs to Branch B" → Branch B must have that item in stock.
+- **Listing:** show **all** hampers/auctions regardless of the selected branch, each with an **info badge naming its owning branch**. (Products filter by branch; auctions/hampers are limited, event-like items where discovery matters, so they badge instead.)
 - Bidding/buying stays tied to the item's branch (collect/settle there).
 
 **Services — underdone; overhaul planned**
@@ -219,9 +228,14 @@ Services are currently a flat `base_price` + rate fields + a `pricing_tiers` JSO
 - **Per-location** offered-at / priced-at / tax, same as products.
 - **Phasing:** (1) *now* — wire services' offered-at / priced-at / tax like products; (2) *services catalog overhaul* (packages, add-ons, deposit) — a focused phase, can precede Bookings; (3) *booking-dependent parts* (staff, availability calendar) — with Bookings.
 
-**Build order for the E-commerce × location work:** availability (offered-at) → pricing (priced-at) → tax (branch district) → services light wiring → [later] per-branch stock (Inventory) + per-variant availability + services overhaul.
+**Tax — the rate must vary by district (confirmed)**
+Districts already sit on tax **rules** (`tax_rule_districts`), but a `tax_rate` is keyed only by `(tax_type, classification)` — so "VAT · standard" is one global %. Fix: add a **nullable `tax_district_id` to `tax_rates`**. A rate is **global** (`district = null`, default) or **district-specific** (KE 16%, UG 18%); rate selection prefers the district-specific rate and falls back to the global one. The branch supplies its district. This keeps a single "standard" classification instead of proliferating per-country tax types, and is backward-compatible (existing rates become the global default).
 
-**Open decisions to confirm before coding:** (a) products filter vs auctions/hampers show-all+badge; (b) central variant definitions with product-level per-branch availability in v1; (c) whether the services catalog overhaul comes before or after the new modules.
+**Checkout (recorded for the checkout phase):** at checkout the customer must pick a **specific variant + unit**, and that variant's row in `variant_location_stock` **at the fulfilment branch** is decremented — "which cups, in which unit." Overselling is blocked against the branch quantity.
+
+**Build order for the E-commerce × location work:** per-branch variant stock (`variant_location_stock` + default-variant backfill) → availability derived from it → per-branch pricing (`PriceResolver`) → tax (branch district + district on rates) → auctions/hampers branch ownership + composition checks → services light wiring → [later] batches/expiry/transfers (Inventory) + services overhaul.
+
+**Confirmed:** (a) products filter by branch, auctions/hampers belong to one branch + show-all with an owning-branch badge; (b) central variant/option definitions, **per-branch stock at the variant level**; (c) location on variants (not options); (d) tax rate gains a nullable district. **Still open:** whether the services catalog overhaul lands before or after the new modules.
 
 ---
 
@@ -340,6 +354,7 @@ Fundraising, crowdfunding, awareness, marketing.
 - **Line-by-line result:** each line records the treatment applied, even at 0% (zero-rated vs exempt reported differently).
 - **"Verify your tax status" form** (neutral wording; ID label follows country — KRA PIN, TIN, VAT, GST — with document upload), feeding an admin review queue that creates and verifies the certificate on approval.
 - **Display preference:** include/exclude tax (guests: include). Resolves per branch jurisdiction (§3.3).
+- **Rate varies by district:** `tax_rates` gains a nullable `tax_district_id` — a rate is global (null) or district-specific; selection prefers the district match, falls back to global. Districts already sit on rules; this makes the *number* per-jurisdiction too (§3.9).
 - **Later:** backend allows only one "standard" tax type.
 
 ---
@@ -354,6 +369,7 @@ Fundraising, crowdfunding, awareness, marketing.
 ## 10. Checkout (after modules; built with Bookings, last)
 - **Purchasable contract** per sellable type: price + currency, tax class, **location axes (§3)**, availability, reserve/release, fulfil.
 - Cart & order lines point at purchasables polymorphically.
+- **Variant + unit + branch on every line:** checkout requires a specific **variant** and **unit**, and decrements that variant's `variant_location_stock` row at the **fulfilment branch** (overselling blocked against the branch quantity). "Which cups, in which unit, from which branch."
 - **Ways to pay:** pay now; open tab/folio settled later (stays, credit accounts); recurring (memberships); **deposits/partial (§4)**; **M-Pesa (§4)**.
 - **Shared booking & availability service** for slots, date ranges, seats (services, viewings, rooms, events, classes + waitlists).
 - **Currency/tax:** convert into the customer's account currency with snapshots; tax from item class × **branch jurisdiction**; promo/wallet/loyalty via the conversion helper.
