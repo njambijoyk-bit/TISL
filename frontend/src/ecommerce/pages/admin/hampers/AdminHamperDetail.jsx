@@ -143,7 +143,7 @@ function SectionLabel({ children }) {
 
 // ── Modal: Set quantity for selected products ─────────────────────────────────
 
-function QuantityModal({ products, locationId, onConfirm, onClose }) {
+function QuantityModal({ products, locationId, takenVariantIds = [], onConfirm, onClose }) {
   const [qtys, setQtys] = useState(
     Object.fromEntries(products.map(p => [p.id, 1]))
   );
@@ -165,7 +165,7 @@ function QuantityModal({ products, locationId, onConfirm, onClose }) {
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}>{fmt(p.price, p.currency)}</p>
               </div>
               <div style={{ flex: '0 0 220px' }}>
-                <VariantAtBranchPicker productId={p.id} locationId={locationId} value={variantIds[p.id]}
+                <VariantAtBranchPicker productId={p.id} locationId={locationId} value={variantIds[p.id]} avoidVariantIds={takenVariantIds}
                   onChange={v => setVariantIds(m => ({ ...m, [p.id]: v }))} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -333,9 +333,6 @@ function ProductsTab({ hamper, onRefresh }) {
     setShowQtyModal(true);
   };
 
-  // existing product ids to pass as already-selected to modal
-  const existingProductIds = (hamper.items || []).map(i => ({ product_id: i.product_id }));
-
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -451,7 +448,7 @@ function ProductsTab({ hamper, onRefresh }) {
         <ProductSelectorModalAdmin
           onClose={() => setShowSelector(false)}
           onSelect={handleModalSelect}
-          selectedProducts={existingProductIds}
+          selectedProducts={[]}   // products already in the hamper stay pickable: another variant can be added
         />
       )}
 
@@ -460,6 +457,7 @@ function ProductsTab({ hamper, onRefresh }) {
         <QuantityModal
           products={pendingProducts}
           locationId={hamper.location_id}
+          takenVariantIds={(hamper.items || []).map(i => i.variant_id)}
           onConfirm={handleConfirmQtys}
           onClose={() => { setShowQtyModal(false); setPendingProducts([]); }}
         />

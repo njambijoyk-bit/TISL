@@ -12,7 +12,7 @@ import { input, focusRing } from '../../../_shared/theme/tokens';
  * @param {number|string} value variant id
  * @param {(variantId: number) => void} onChange
  */
-export default function VariantAtBranchPicker({ productId, locationId, value, onChange, style }) {
+export default function VariantAtBranchPicker({ productId, locationId, value, onChange, avoidVariantIds = [], style }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -32,7 +32,10 @@ export default function VariantAtBranchPicker({ productId, locationId, value, on
   // Choose something sensible once the data arrives: a variant stocked here, else the default
   useEffect(() => {
     if (!data || value || !variants.length) return;
-    const pick = variants.find((v) => at(v, locationId) > 0) ?? variants.find((v) => v.is_default) ?? variants[0];
+    const free = (v) => !avoidVariantIds.includes(v.id);
+    const pick = variants.find((v) => free(v) && at(v, locationId) > 0)
+      ?? variants.find((v) => at(v, locationId) > 0)
+      ?? variants.find((v) => v.is_default) ?? variants[0];
     onChange(pick.id);
   }, [data, locationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -50,7 +53,7 @@ export default function VariantAtBranchPicker({ productId, locationId, value, on
       <select value={value ?? ''} onChange={(e) => onChange(Number(e.target.value))} style={{ ...input, padding: '6px 8px', fontSize: '0.8rem' }} {...focusRing}>
         {variants.map((v) => (
           <option key={v.id} value={v.id}>
-            {v.name} — {at(v, locationId) > 0 ? `${at(v, locationId)} at ${branchName}` : `out of stock at ${branchName}`}
+            {v.name} — {at(v, locationId) > 0 ? `${at(v, locationId)} at ${branchName}` : `out of stock at ${branchName}`}{avoidVariantIds.includes(v.id) ? ' (already in hamper)' : ''}
           </option>
         ))}
       </select>
