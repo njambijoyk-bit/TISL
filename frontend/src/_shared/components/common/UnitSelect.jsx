@@ -24,6 +24,11 @@ export default function UnitSelect({
     (u.is_active || String(u.id) === String(value)) && (!dimension || u.dimension === dimension)
   );
 
+  // The saved value must always have an option, or the browser falls back to
+  // showing the first unit (wrong) while units load or when it is filtered out.
+  const orphan = value !== '' && value != null && !available.some((u) => String(u.id) === String(value));
+  const orphanUnit = orphan ? units.find((u) => String(u.id) === String(value)) : null;
+
   const groups = available.reduce((acc, u) => {
     (acc[u.dimension] ??= []).push(u);
     return acc;
@@ -41,6 +46,9 @@ export default function UnitSelect({
       {...(disabled ? {} : focusRing)}
     >
       {allowEmpty && <option value="">{loading.units && !units.length ? 'Loading units…' : emptyLabel}</option>}
+      {orphan && (
+        <option value={value}>{orphanUnit ? `${orphanUnit.name} (${orphanUnit.code})` : 'Loading…'}</option>
+      )}
       {Object.keys(groups).sort().map((dim) => (
         <optgroup key={dim} label={prettify(dim)}>
           {groups[dim].map((u) => (

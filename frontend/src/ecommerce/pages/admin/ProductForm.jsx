@@ -293,6 +293,13 @@ export default function ProductForm() {
   const [deleting,  setDeleting]  = useState(false);
   const loadedUnits = useRef({ d: '', a: '' });
   const [variantEditorKey, setVariantEditorKey] = useState(0);
+  const [saveError, setSaveError] = useState(null);   // { title, lines[] } — stays on screen until the next save
+  const errorRef = useRef(null);
+  const fail = (title, lines = []) => {
+    setSaveError({ title, lines });
+    toast.error(title);
+    setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  };
   const { unitById, fetchUnits } = useUomStore();
   useEffect(() => { fetchUnits().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [categories, setCategories] = useState([]);
@@ -359,7 +366,9 @@ export default function ProductForm() {
     const d = draftStore.read();
     draftReady.current = true;
     if (!d || d.stamp !== serverStamp.current) { if (d) draftStore.clear(); return; }
-    setFormData(p => ({ ...p, ...d.formData }));
+    // units and stock are server-owned; a stale draft must never override them
+    const { default_unit_id, alternate_unit_id, stock_quantity, in_stock, ...typed } = d.formData ?? {}; // eslint-disable-line no-unused-vars
+    setFormData(p => ({ ...p, ...typed }));
     setFeaturesText(d.featuresText ?? ''); setMetaKeywordsText(d.metaKeywordsText ?? '');
     if (Array.isArray(d.specifications) && d.specifications.length) setSpecifications(d.specifications);
     setVariantsText(d.variantsText ?? '');
@@ -556,9 +565,10 @@ export default function ProductForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.sku || !formData.price || !formData.category_id) {
-      toast.error('Please fill in all required fields'); return;
+      fail('Please fill in all required fields', ['Name, SKU, price and category are required (Basic info and Pricing & stock).']); return;
     }
-    if (!formData.default_unit_id) { toast.error('Pick the product\'s stock unit (Pricing & stock)'); return; }
+    if (!formData.default_unit_id) { fail('Pick the product\'s stock unit', ['Pricing & stock → Stock unit. All variant stock is counted in it.']); setActiveTab('pricing'); return; }
+    setSaveError(null);
     try {
       setLoading(true);
       const fd = new FormData();
@@ -590,7 +600,7 @@ export default function ProductForm() {
 
       let typedExternal = (formData.additional_image_urls || '').split('\n').map(u => u.trim()).filter(Boolean);
       const total = existingImageUrlsRaw.length + typedExternal.length + additionalImages.length;
-      if (total > 5) { toast.error(`Max 5 images. Current: ${total}.`); setLoading(false); return; }
+      if (total > 5) { fail(`Max 5 images. Current: ${total}.`); setLoading(false); return; }
       const keepList = [...existingImageUrlsRaw, ...typedExternal];
       if (keepList.length > 0) fd.append('additional_image_urls', JSON.stringify(keepList.slice(0, 5)));
       additionalImages.forEach((file, i) => fd.append(`images[${i}]`, file));
@@ -629,9 +639,11 @@ export default function ProductForm() {
       else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); draftStore.clear(); }
       navigate('/admin/products');
     } catch (err) {
-      const errs = err.response?.data?.errors;
-      if (errs) Object.keys(errs).forEach(k => toast.error(`${k}: ${errs[k][0]}`));
-      else toast.error(err.response?.data?.message || 'Failed to save product');
+      const data = err.response?.data;
+      const lines = data?.errors
+        ? Object.entries(data.errors).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${[].concat(v)[0]}`)
+        : [data?.error, !err.response && err.message].filter(Boolean);
+      fail(data?.message || 'Failed to save product', lines);
     } finally { setLoading(false); }
   };
 
@@ -763,6 +775,24 @@ export default function ProductForm() {
             ))}
           </div>
         </div>
+
+        {saveError && (
+          <div ref={errorRef} role="alert" style={{
+            margin: '12px 0', padding: '12px 16px', borderRadius: 10, background: '#fef2f2',
+            border: '1px solid #fecaca', color: '#991b1b', fontSize: '0.84rem',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <strong>{saveError.title}</strong>
+              <button type="button" onClick={() => setSaveError(null)} aria-label="Dismiss"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1rem', lineHeight: 1 }}>×</button>
+            </div>
+            {saveError.lines.length > 0 && (
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                {saveError.lines.map((l, i) => <li key={i}>{l}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* ── Form ── */}
         <form id="product-form" onSubmit={handleSubmit} style={{

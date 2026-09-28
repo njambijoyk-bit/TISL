@@ -16,6 +16,7 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [stock, setStock] = useState({});   // { `${variantId}:${locId}`: qty }
 
   // A signature of the editor's current variants — changes whenever options or
@@ -59,7 +60,7 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
         }
       });
     });
-    setSaving(true);
+    setSaving(true); setError(null);
     try {
       const res = await productsAPI.saveBranchStock(productId, { stock: rows });
       if (res.ok === false) throw new Error(res.message);
@@ -68,7 +69,10 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
       // variants table + product stock read the same numbers — refresh them too
       useProductVariantStore.getState().refreshVariants();
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Could not save.');
+      const d = e.response?.data;
+      const msg = [d?.message || e.message || 'Could not save.', d?.errors && Object.values(d.errors).flat()[0], d?.error].filter(Boolean).join(' — ');
+      setError(msg);
+      toast.error(msg);
     } finally { setSaving(false); }
   };
 
@@ -124,6 +128,8 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
           </tbody>
         </table>
       </div>
+
+      {error && <p role="alert" style={{ margin: 0, padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.8rem' }}>{error}</p>}
 
       {!readOnly && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

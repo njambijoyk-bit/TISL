@@ -325,6 +325,12 @@ class ProductController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
+            // Every product starts with a "Standard" variant: product SKU, price and
+            // stock unit, so it can be sold (and stocked per branch) straight away.
+            if ($product->default_unit_id) {
+                app(VariantStockService::class)->ensureDefaultVariant($product);
+            }
+
             return response()->json([
                 'message' => 'Product created successfully',
                 'product' => $product->load(['brand', 'category'])

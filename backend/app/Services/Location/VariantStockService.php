@@ -35,7 +35,7 @@ class VariantStockService
         return DB::transaction(function () use ($product) {
             $variant = $product->productVariants()->create([
                 'sku'             => $product->sku,
-                'name'            => null,
+                'name'            => 'Standard',
                 'combination_key' => 'default',
                 'is_default'      => true,
                 'net_content_qty' => 1,
@@ -44,7 +44,7 @@ class VariantStockService
             ]);
 
             $variant->units()->create([
-                'unit_id'         => $this->defaultUnitId(),
+                'unit_id'         => $product->default_unit_id ?: $this->defaultUnitId(),
                 'role'            => ProductVariantUnit::ROLE_BASE,
                 'base_factor'     => 1,
                 'price'           => (float) ($product->price ?? 0),
