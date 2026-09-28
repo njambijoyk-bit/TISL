@@ -39,6 +39,17 @@ api.interceptors.request.use(
         /* corrupted storage — just use the default branch */
       }
     }
+
+    // Preferred language (persisted by languageStore). Sent for future i18n;
+    // the backend can ignore it until translations are wired.
+    if (!config.headers['X-Locale']) {
+      try {
+        const lang = JSON.parse(localStorage.getItem('language-storage') || '{}')?.state?.current;
+        if (lang) config.headers['X-Locale'] = lang;
+      } catch {
+        /* corrupted storage — just use the default language */
+      }
+    }
     return config;
   },
   (error) => {

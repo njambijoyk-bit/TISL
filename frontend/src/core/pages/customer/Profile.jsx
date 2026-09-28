@@ -12,7 +12,10 @@ import NotificationsModal from '../../../_shared/components/common/Notifications
 import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
 import CustomerCreditTab from './CustomerCreditTab';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../../_shared/api/index';
-import { useAuthStore, usePromoCodeStore } from '../../../_shared/store/index';
+import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
+import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
+import LocationPicker from '../../../_shared/components/common/LocationPicker';
+import LanguagePicker from '../../../_shared/components/common/LanguagePicker';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../_shared/lib/money';
 
@@ -111,6 +114,12 @@ export default function Profile() {
   const { myCodes, fetchMyCodes } = usePromoCodeStore();
   const navigate = useNavigate();
   const imgInputRef = useRef(null);
+
+  // Browsing preferences (currency / branch / language)
+  const hasCurrencyChoice = useCurrencyStore((s) => s.currencies.length > 1);
+  const fetchCurrencies = useCurrencyStore((s) => s.fetchCurrencies);
+  const hasBranchChoice = useLocationStore((s) => s.locations.length > 1);
+  useEffect(() => { fetchCurrencies?.(); }, [fetchCurrencies]);
 
   const [customer,  setCustomer]  = useState(null);
   const [loading,   setLoading]   = useState(true);
@@ -653,6 +662,29 @@ export default function Profile() {
                     <Edit2 size={13} /> Edit profile
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Preferences — currency / branch / language */}
+            <div style={{ ...card, marginBottom: 20 }}>
+              <h3 style={sectionTitle}>Preferences</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {hasCurrencyChoice && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Currency</span>
+                    <CurrencyToggle />
+                  </div>
+                )}
+                {hasBranchChoice && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Branch</span>
+                    <LocationPicker />
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Language</span>
+                  <LanguagePicker />
+                </div>
               </div>
             </div>
 

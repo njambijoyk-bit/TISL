@@ -13,6 +13,8 @@ import { ThemePicker } from '../common/ThemePicker';
 import useCurrencyStore from '../../store/currencyStore';
 import useLocationStore from '../../store/locationStore';
 import LocationPicker from '../common/LocationPicker';
+import LanguagePicker from '../common/LanguagePicker';
+import CurrencyToggle from '../common/currency/CurrencyToggle';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
@@ -618,11 +620,11 @@ export default function Header() {
               <Search size={17} />
             </button>
 
-            {/* Branch picker (only when multi-location) */}
-            <LocationPicker dark={isDark} color={navColor} compact />
-
             {/* Appearance & Currency — consolidated into ThemePicker */}
             <ThemePicker />
+
+            {/* Language switcher */}
+            <LanguagePicker dark={isDark} color={navColor} iconOnly />
 
             {/* Wishlist */}
             {isModuleActive(MODULES.ECOMMERCE) && navHas('wishlist') && (
@@ -722,6 +724,14 @@ export default function Header() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Preferences — currency */}
+                    {hasCurrencyChoice && (
+                      <div style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }} className="dark:border-gray-700">
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Currency</span>
+                        <CurrencyToggle />
+                      </div>
+                    )}
 
                     {/* Customer links */}
                     <div style={{ padding: '8px 6px' }}>
@@ -840,6 +850,12 @@ export default function Header() {
                 <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Branch</span>
                 <LocationPicker dark={isDark} color={navColor} />
               </div>}
+
+              {/* Language on mobile */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Language</span>
+                <LanguagePicker dark={isDark} color={navColor} />
+              </div>
 
               {isAuthenticated && (
                 <>
