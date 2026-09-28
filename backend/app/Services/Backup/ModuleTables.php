@@ -25,7 +25,7 @@ final class ModuleTables
             'currencies', 'currency_activity_logs',
             'units_of_measure', 'unit_locale_defaults',
             'tax_rates', 'tax_types', 'tax_rules', 'tax_districts', 'tax_rule_districts',
-            'tax_applicability', 'tax_applications', 'tax_legitimacy_certificates',
+            'tax_applicability', 'tax_applications', 'tax_legitimacy_certificates', 'tax_activity_logs',
             'withholding_certificates', 'withholding_classifications',
             'withholding_credits', 'withholding_credit_clearances', 'withholding_activity_logs',
             'orders', 'order_items',
@@ -43,6 +43,11 @@ final class ModuleTables
             'products', 'product_images', 'product_options', 'product_option_values',
             'product_variants', 'product_variant_options', 'product_variant_units',
             'variant_location_stock',
+            // products.default_unit_id / alternate_unit_id point at units_of_measure
+            // (Core, always backed up). The whole table is dumped and restore is
+            // column-drift-safe, so those columns travel with 'products' — no extra
+            // entry needed. product_activity_logs records variant/unit changes.
+            'product_activity_logs',
             'product_reviews',
             'categories', 'brands',
             'services', 'service_categories',
