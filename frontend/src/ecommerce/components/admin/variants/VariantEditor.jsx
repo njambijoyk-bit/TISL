@@ -135,7 +135,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
                                 <button type="button" onClick={() => setDefaultVariant(v.id).catch(() => toast.error('Could not change the default'))}
                                   style={{ ...btnGhost, padding: '3px 8px', fontSize: '0.7rem' }}>Make default</button>
                               )}
-                              <RowActions label={v.name || 'variant'} onEdit={() => setEditingVariant(v)} onDelete={!canDelete ? undefined : () => ask({
+                              <RowActions label={v.name || 'variant'} onEdit={() => setEditingVariant(v)} onDelete={!canDelete || variants.length <= 1 ? undefined : () => ask({
                                 title: `Delete ${v.name || 'this variant'}?`, message: 'Its units and prices go with it.',
                                 run: () => deleteVariant(v.id), done: 'Variant deleted',
                               })} />

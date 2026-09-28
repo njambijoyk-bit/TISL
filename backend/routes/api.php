@@ -639,7 +639,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/bulk-update-flags', [ProductController::class, 'bulkUpdateFlags']);
             Route::post('/bulk-update-status', [ProductController::class, 'bulkUpdateStatus']);
 
-            Route::get('/{id}', [ProductController::class, 'show']); 
+            Route::get('/{id}', [ProductController::class, 'adminShow']); 
             Route::put('/{id}', [ProductController::class, 'update']);
             Route::post('/{id}/bulk-update', [ProductController::class, 'bulkUpdate']);
             Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('role:admin,super_admin,manager');

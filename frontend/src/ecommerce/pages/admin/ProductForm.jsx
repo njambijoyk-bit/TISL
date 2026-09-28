@@ -419,7 +419,7 @@ export default function ProductForm() {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-    const res = isEdit ? await productsAPI.getAdminProduct(id) : await productsAPI.getProduct(id);
+    const res = await productsAPI.getAdminProduct(id);
     const product = res.product || res.data || res;
     console.log('type:', product.type);
 
