@@ -11,6 +11,8 @@ import {
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
 import useCurrencyStore from '../../store/currencyStore';
+import useLocationStore from '../../store/locationStore';
+import LocationPicker from '../common/LocationPicker';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
@@ -307,6 +309,7 @@ export default function Header() {
   // Then define your text colors
   const navColor = isDark ? '#aaabac' : '#374151';
   const hasCurrencyChoice = useCurrencyStore(st => st.currencies.length > 1);
+  const hasBranchChoice = useLocationStore(st => st.locations.length > 1);
   const navActiveBg = isDark ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
 
   const handleSearch = (e) => {
@@ -615,6 +618,9 @@ export default function Header() {
               <Search size={17} />
             </button>
 
+            {/* Branch picker (only when multi-location) */}
+            <LocationPicker dark={isDark} color={navColor} compact />
+
             {/* Appearance & Currency — consolidated into ThemePicker */}
             <ThemePicker />
 
@@ -827,6 +833,12 @@ export default function Header() {
               {hasCurrencyChoice && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
                 <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Prices in</span>
                 <CurrencyToggle dark={isDark} color={navColor} />
+              </div>}
+
+              {/* Branch on mobile (only when multi-location) */}
+              {hasBranchChoice && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Branch</span>
+                <LocationPicker dark={isDark} color={navColor} />
               </div>}
 
               {isAuthenticated && (

@@ -32,6 +32,9 @@ final class ModuleTables
             'quotes', 'quote_items', 'quote_requests',
             'referral_codes', 'referral_code_usage',
             'admin_saved_notes', 'vault_settings', 'nav_links',
+            // Multi-location (Core): branches + staff clearance + offered-at/priced-at.
+            // Stock movement/transfers live in the Inventory (Extras) tier.
+            'locations', 'location_user', 'location_offering', 'location_price',
             // TODO: loyalty, payments, credit accounts, tickets, content pages,
             // policies, publications, notifications, bookings, reconciliation…
         ],

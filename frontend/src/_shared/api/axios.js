@@ -28,6 +28,17 @@ api.interceptors.request.use(
         /* corrupted storage — just use base currency */
       }
     }
+
+    // Branch in context chosen in the location picker (persisted by locationStore).
+    // Backend SetLocationContext middleware reads it; unknown ids fall back to default.
+    if (!config.headers['X-Location']) {
+      try {
+        const id = JSON.parse(localStorage.getItem('location-storage') || '{}')?.state?.currentId;
+        if (id) config.headers['X-Location'] = id;
+      } catch {
+        /* corrupted storage — just use the default branch */
+      }
+    }
     return config;
   },
   (error) => {
