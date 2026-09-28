@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class HamperActivityLog extends Model
 {
     protected $fillable = [
-        'hamper_id', 'hamper_order_id', 'user_id',
+        'hamper_id', 'user_id',
         'performed_by', 'action', 'description',
         'severity', 'metadata',
     ];

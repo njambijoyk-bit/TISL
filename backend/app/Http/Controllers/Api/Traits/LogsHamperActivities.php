@@ -12,14 +12,12 @@ trait LogsHamperActivities
         string $action,
         string $description,
         string $severity = 'info',
-        array  $metadata = [],
-        ?int   $hamperOrderId = null
+        array  $metadata = []
     ): void {
         $user = Auth::user();
 
         HamperActivityLog::create([
             'hamper_id'       => $hamperId,
-            'hamper_order_id' => $hamperOrderId,
             'user_id'         => $user?->id,
             'performed_by'    => $user
                 ? ($user->name ?? trim("{$user->first_name} {$user->last_name}") ?: $user->email)

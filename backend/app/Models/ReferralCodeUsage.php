@@ -20,7 +20,6 @@ class ReferralCodeUsage extends Model
         'referral_code_id',
         'customer_id',
         'order_id',
-        'hamper_order_id',
         'referrer_id',
         'status',
         'discount_amount',
