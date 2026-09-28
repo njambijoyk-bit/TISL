@@ -1,817 +1,349 @@
-# TISL Platform — Plan & Decisions
+# TISL Platform — Plan & Roadmap (what we want)
 
-The single reference for what has been decided, what is built, and what comes next.
-Update it whenever a decision changes.
+What we intend to build and the decisions behind it. For what is **already
+built**, see **`PLATFORM_BUILT.md`**. Working conventions (delivery, SQL, push
+rules, logging, builds) live in that doc's §1 and apply here too.
+
+> When something here ships, move it into `PLATFORM_BUILT.md`.
 
 ---
 
-## 1. Working conventions
+## 1. Design philosophy — capabilities, not verticals
 
-- **Delivery:** changed files are handed over one by one, in repo folder layout — never zipped.
-- **Pushing:** Renka pushes to `tisl_v2` herself, then uploads so the latest state can be pulled before the next change.
-- **Database changes:** SQL scripts to run in MySQL Workbench, not Laravel migrations. Each script:
-  - starts with read-only `SELECT` checks (column types, what will change), run first on their own;
-  - turns `SQL_SAFE_UPDATES` off and back on;
-  - runs updates inside a transaction;
-  - ends with a result check;
-  - is safe to re-run where possible.
-- **Planning first:** big changes are discussed and agreed before any code.
-- **Logging:** every money- or configuration-changing action is recorded through the activity-log traits (who, when, old → new, why, and the context needed to reverse it).
-- **Builds:** before delivery, frontend changes are checked with a full-app bundle and a lint for undefined names; PHP files with `php -l`.
+We do **not** build "a bakery module" or "a law module." We build **capability
+modules that compose**, and each business switches on the ones it needs. 11
+paid modules + always-on Core cover a huge range of industries because a
+business is defined by *which switches are on*.
 
-### SQL scripts so far
+**The clusters** (what most requests actually are):
 
-| # | Script | Does |
+| Cluster | Example industries | Leans on |
 |---|---|---|
-| 01 | `01_morph_types_to_aliases.sql` | Stored `*_type` class names → short aliases (`product`, `tax_rate`…) |
-| 02 | `02_backfill_currency_id_products_services.sql` | Pins products/services without a currency to the base |
-| 03 | `03_currency_on_hampers_and_auctions.sql` | `currency_id` on hampers and auctions |
-| 04 | `04_hamper_tax_rate.sql` | `tax_rate_id` on hampers (replaces the fixed "VAT 16%" toggle) |
-| 05 | `05_customer_currency_and_currency_log.sql` | Customer account currency + `currency_activity_logs` table |
-| 06 | `06_licensing_tables.sql` | `installation` (one row), `modules`, `module_locks` |
-| 07 | `07_license_attempt_events.sql` | `license_attempts` log (time, user, result) |
-| 08 | `08_backup_settings.sql` | `backup_settings` (destination, frequency, encrypted passphrase) |
-| 09 | `09_module_table_map.sql` | `module_table_map` — DB-driven table → module assignment |
-| 10 | `10_backup_map_adjustments.sql` | Seed/adjust the built-in table → module map |
-| 11 | `11_backup_runs.sql` | `backup_runs` history (when, destination, result, file) |
-| 12 | `12_nav_links.sql` | `nav_links` — storefront links per module, with show/visible flags |
+| Book a time with a person/resource | clinics, estheticians, photography, law consults, salons, restaurant tables, viewings | Core **Bookings** + E-commerce **Services** |
+| Sell physical goods | bakeries, pharmacies, retail | **E-commerce** (+ Extras Inventory) |
+| Run a job/matter over time | engineering, construction, architecture, law | **Projects** + Core **Quotes** |
+| Recurring money | subscriptions, gym/spa packages, retainers, rent | **Memberships** |
+| Stay / space over date ranges | hotels, short-term rentals, coworking | **Accommodations** |
+| Rent an item/property | rentals mgmt, equipment, vehicles | **Listings** |
+| Feed people | restaurants, cafés, catering, custom cakes | **Menus** |
+| Gathering with capacity | weddings, ticketed events, workshops | **Events** |
+| Teach | courses, training, workshops | **Courses** |
+| Give / mobilise | charities, churches, schools, campaigns | **Campaigns** |
+
+**The magic is the combos.** A gym = Memberships + E-commerce (merch) + Courses
+(programs) + Bookings (PT) + Events. A restaurant can add Courses (cooking
+classes) + Events (private dining) + E-commerce (branded sauce). A photographer
+= Services/Bookings + E-commerce (prints) + Galleries + Courses + Events. The
+platform is a **business OS** that grows with the client.
+
+The two most leveraged things to get right are **Bookings** (Core) and
+**Services/packages** (E-commerce) — they alone unlock every appointment
+business. **Bookings and Checkout are built last** (they're Core and everything
+leans on them, so they benefit from seeing all callers first).
 
 ---
 
-## 2. What is built
+## 2. The 12 modules and what each should contain
 
-| Area | State |
-|---|---|
-| **Morph map** | Full alias map in `AppServiceProvider` (must match script 01) |
-| **Currencies** | Products, services, hampers, auctions and tax rates each carry their own currency. Storefront toggle (browse-only) converts prices for display; admin and selectors show stored prices. |
-| **Conversion helper** | `CurrencyConversionService::snapshot()` returns a `ConversionSnapshot`: amounts, rate, `exchange_rate_to_base`, `base_currency_id`, time. `reverse()` undoes it at the stored rate. `logConversion()` / `logEvent()` write to the currency log. |
-| **Currency log** | `currency_activity_logs`, via the `LogsCurrencyActivity` trait: currency edits, base switches, customer currency assignment and changes, saved conversions. |
-| **Customer currency** | Every customer has a pinned account currency (defaults to the base when created). The credit account follows it. Finance can change it only when there is no store credit, credit balance or unpaid invoice. |
-| **Tax admin** | Tax & Compliance and Withholding & Compliance hubs (rates, rules, types, districts, certificates, credits, classifications), per-item tax overrides, customer Tax tab. Finance-role gated. |
-| **Hamper tax** | Admin picks an active tax rate; checkout charges it (no fixed 16%). |
-| **Units of measure** | Units, country defaults, converter. |
-| **Admin navigation** | One sidebar built from `src/navigation/adminNav.js` (groups, items, section tabs, roles, modules, owner-only). `AdminShell` is a layout route around every `/admin` and `/driver` page: sidebar, section tabs, Ctrl+K quick jump. Settings hub is generated from the same registry. `isModuleActive()` in `src/navigation/modules.js` is a stub (all on) until the module registry exists. |
-| **Variants** | Admin variant editor (options, variants, units, images) and storefront variant picker; the cart keeps each variant and unit as its own line. |
-| **Licensing** | Offline three-piece handshake (disguised public key + pepper in code, hashed pieces in DB, long signed `WNKJ-…` keys). Ed25519 signatures, no editable 0/1 flag. Route middleware (`module:`) gates all 11 paid modules; Core never gated. `LicenseManager::isLicensed()/isActive()` memoised per request. (Section 5.3) |
-| **Module Center** | Super-admin page: a card per module (Active / Licensed but off / Not licensed), on/off switch for licensed modules, key paste box for unlicensed ones, "Licensed to …" and the attempts log. Works even with nothing licensed. (Section 5.2) |
-| **Backup & restore engine** | Exports only **active** modules' data (never modules/licensing) to browser download, FTP, SFTP or S3, encrypted with a separate passphrase into `.wnkjba` files (XChaCha20-Poly1305 secretstream, Argon2id key). DB-driven table → module assignment form. Restore (upload or pull) requires the passphrase, replace/merge. Scheduled daily/weekly/monthly/never. Admin+super-admin can back up; only super-admin can restore. (Section 5.10) |
-| **Storefront navigation manager** | Admin sets which links customers see; only **licensed** modules' links appear, a switched-off module locks its links (green-tick / red-x toggle). Stored in `nav_links`, backed up under Core. Header (desktop + mobile) renders links from the server. (Section 7) |
+| # | Module | Should contain |
+|---|---|---|
+| 0 | **Core** (always on) | customers, users & roles, team, currency, units, tax & withholding, payments, orders & invoices, checkout, quotes, loyalty, referral & promo, store credit (**+ gift cards**), credit accounts, reconciliation, financial notes, reports, help desk, publications, content pages, notifications, vault, Mimi AI, activity logs, themes, navigation, Module Center, **bookings**, **locations**, **galleries**, **form builder** |
+| 1 | **E-commerce** | products (variants, categories, brands, bulk), **services & packages** (add-ons, duration, deposit %), specials, wishlist, reviews; **digital/downloadable products**; hampers, auctions |
+| 2 | **Listings** | property, vehicles, equipment, rentals; rental periods (daily/weekly/monthly), availability calendar, security deposit, pickup/return, enquiries, paid viewings/test drives |
+| 3 | **Campaigns** | fundraising & crowdfunding (goal, progress, donations), awareness/marketing campaigns without payments |
+| 4 | **Courses** | courses, curriculum (modules→lessons→topics), enrolment, progress, lesson player, assessments, certificates |
+| 5 | **Accommodations** | properties, room types, rooms, rate plans, availability calendar, reservations, room board, guest folio (settles at checkout), housekeeping |
+| 6 | **Menus** | multiple menus, sections, items with modifiers/allergens, dine-in/takeaway/delivery, tables + floor plan, kitchen display, **custom orders** (cakes: lead time + deposit + pickup date) |
+| 7 | **Events** | events, ticket/RSVP types, capacity, add-ons, attendees, QR check-in, optional seating |
+| 8 | **Memberships** | plans (interval, trial, proration, pause, dunning), **retainers**, **class passes / credits** (10-session packs), member check-in, member-only gates, **branch access scope** |
+| 9 | **Careers** | job board, applicant portal, ATS with AI screening, interview scheduling, offers |
+| 10 | **Projects** | projects/**jobs/matters**, milestones, tasks, messages, participants; **time entries + billing** (T&M vs fixed), documents, client portal, approvals |
+| 11 | **TISL Extras** | delivery (manifests, drivers, incidents, ratings, driver portal), **inventory** (per-location stock, batches/expiry, movement ledger, **transfers**, reconciliation, worksheets), algorithm (ranking, pins, search analytics) |
 
----
-
-## 3. Money & currency rules (decided)
-
-1. **Every stored amount carries its own currency.** Nothing is ever mass-converted.
-2. **Changing the base currency never rewrites stored money.** The base only sets defaults.
-3. **Every saved conversion stores `exchange_rate_to_base` and `base_currency_id`** (the base at that moment), so it can be reversed exactly later. The name `exchange_rate_to_kes` is retired for new work.
-4. **Customer account currency:** pinned per customer, defaults to the base at creation. The wallet (store credit), credit account and checkout run in it. It changes only through a customer request form approved by an admin, or by finance directly, and only with no balance outstanding.
-5. **Checkout:** cart items in any currency (rand, yen…) are converted into the customer's account currency at checkout. Guests check out in the base currency.
-6. **Storefront currency toggle** is browse-only.
-7. **Promo codes:** each code has its own currency; fixed amounts, minimum order values and referrer rewards are in it and are converted for orders in other currencies.
-8. **Loyalty:** earns in the base currency. Orders in other currencies convert to base at that day's rate, and the rate is stored so a cancellation reverses exactly. The loyalty rules record the currency they were written in; if the base changes, settings flag the rules for review.
-9. **Store credit:** one wallet per customer in the account currency. Each movement records its amount, the wallet currency, the rate and the base.
-10. **Accounting snapshots** (`*_kes` columns on orders) stay in KES as the accounting currency for TallyPrime.
+**Owner-only, never shown to clients:** bug reports, dev notes, dev keys, Data Engine, flowcharts. Vendors/multi-vendor marketplace is deferred (separate middleware + planning session).
 
 ---
 
-## 4. Tax design (decided, not yet built)
+## 3. Multi-location & multi-currency (design locked 28 Sep 2026)
 
-- **Item tax class** is set per product and per service (standard, zero-rated, exempt), with an override. No category-level defaults.
-- **Customer tax status:** standard by default. Zero-rated, exempt and withholding-agent statuses only apply once an admin has verified them.
-- **Line-by-line result:** a standard customer buying a panga (standard) and a solar panel (exempt) pays VAT on the panga only. A verified zero-rated customer pays no VAT on the panga.
-- **The system records which treatment applied on every line**, even when the tax is 0 (zero-rated and exempt are reported differently).
-- **"Verify your tax status" form** for customers, deliberately neutral wording: "I'm VAT-registered", "My purchases are VAT exempt", "…zero-rated", "I'm a withholding agent". The ID label follows the country (KRA PIN, TIN, VAT, GST), with a document upload. It feeds an admin review queue; approving creates and verifies the certificate.
-- **Display preference:** customers choose to see prices including or excluding tax (guests: including). Tax details show on product and service pages, with a short label on cards.
-- **Later:** the backend will allow only one "standard" tax type.
+Location is **not** an e-commerce feature. It is a **cross-cutting Core
+capability** that hangs off the Purchasable contract (§9): every sellable
+inherits a location dimension. Central catalog, location-scoped everything,
+**dormant on a single branch** (one auto-created "Main" location, no UI) and
+powerful for a chain.
 
----
+### 3.1 What a location is
+`locations`: name, code, address + geo (lat/lng), phone, **timezone**, opening
+hours, `is_default`, `is_active`, `accepts_pickup`, `accepts_delivery`, delivery
+zone; **`currency_id`** and **`tax_district_id`** (references the existing tax
+districts table). Carrying currency + jurisdiction is what makes location "core."
+Backed up under Core.
 
-## 5. Modules
+### 3.2 Three orthogonal axes (all polymorphic over the morph aliases)
 
-> ### ⚠️ CONTRACT: every new module — and every change to an existing one — MUST be synced to the nav system and the backup engine.
->
-> Adding a module or a new table without doing both leaves it invisible to customers and **silently missing from every backup**. This is not optional. The full checklist is in **section 5.11**; the two non-negotiables are:
->
-> 1. **Backup engine** — register the module's tables so they are exported when the module is active. Add them to `ModuleTables::MAP` (or assign them via the `module_table_map` form in Backup settings). Anything not mapped falls into "unassigned" and is **never backed up**. New Core tables go under `core` (always backed up).
-> 2. **Nav system** — seed the module's storefront links into `nav_links`, gate its routes with the `module:` middleware, and expose them through `NavController` so the admin can show/hide them and the header renders them.
->
-> A change that adds a table, a route or a customer-facing page is a change to these two systems too.
+| Axis | Question | Table | Lives in | Applies to |
+|---|---|---|---|---|
+| **Offered-at** | Do we do this here? | `location_offering(sellable_type, sellable_id, location_id, is_available)` | **Core** | every sellable |
+| **Priced-at** | What does it cost here? (optional override) | `location_price(sellable_type, sellable_id, location_id, amount, currency_id, is_tax_inclusive)` | **Core** | every sellable |
+| **Stocked-at** | How many are here? + movement/expiry | `stock_movements` + batches | **Extras · Inventory** | only *stockable* things |
 
-### 5.1 The 12 modules
+Offered-at and priced-at are generic and Core — a service offered in Mombasa but
+not Nairobi, a room priced differently per property, a course run only at one
+campus are all just rows. "How many" splits into **stock** (Inventory) vs
+**capacity** (Bookings / enrolment / rooms).
 
-| # | Module | Contains | Exists today |
+Each sellable also has a **`location_mode`**: `all` (everywhere, no rows needed —
+solo shop or ship-anywhere), `specific` (use offering rows), `online`
+(digital/ship-anywhere online context). Keeps simple/digital cases clean.
+
+**Per-sellable axis use:**
+
+| Sellable | Offered | Priced | "How many" |
 |---|---|---|---|
-| 0 | **Core** (always on) | customers, users & roles, team (employees, leave), currency, units, tax & withholding, payments, orders & invoices, checkout, quotes & quote requests, loyalty, referral & promo codes, store credit, credit accounts, reconciliation, financial notes, reports, help desk (tickets), publications (blog, news, brochures), content pages & policies, notifications, vault, Mimi AI assistant (switchable), activity logs, themes, navigation, Module Center, **bookings** (shared capability used by multiple modules) | yes |
-| 1 | **E-commerce** | products (variants, categories, brands, bulk edit), **services** (categories), specials, wishlist, reviews; switchable sub-features: **hampers**, **auctions** | yes |
-| 2 | **Listings** | property, vehicles, rentals; enquiries; bookable paid viewings and test drives | new |
-| 3 | **Campaigns** | fundraising and crowdfunding (goal, progress, donations); marketing and awareness campaigns without payments | new |
-| 4 | **Courses** | courses, books, teaching materials, enrolment, progress | new |
-| 5 | **Accommodations** | rooms, room board (open, occupied, nights left), bookings, guest folio that settles at checkout | new |
-| 6 | **Menus** | restaurant menus and orders | new |
-| 7 | **Events** | tickets and capacity | new |
-| 8 | **Memberships** | memberships, subscriptions, plans with recurring billing | new |
-| 9 | **Careers** | job board, applicant accounts, admin, the ATS with AI screening | yes |
-| 10 | **Projects** | projects, milestones, tasks, messages, participants, "My Projects" | yes |
-| 11 | **TISL extras** | delivery (manifests, drivers, incidents, ratings, driver portal), inventory (stock, reconciliation, worksheets, work assignments), algorithm (ranking, customer pins, search analytics) | yes |
+| Product / variant | ✔ | ✔ | stock |
+| Menu item | ✔ | ✔ | stock (count, or recipe/BOM later) |
+| Service | ✔ | ✔ | Bookings capacity |
+| Room | ✔ | ✔ (rate plans) | availability calendar |
+| Listing / rental | ✔ | ✔ | rental calendar |
+| Course | ✔ | ✔ | enrolment cap |
+| Event ticket | ✔ | ✔ | capacity |
+| Membership plan | ✔ (allowed branches) | ✔ | — |
 
-**Owner-only, never shown to clients:** bug reports, dev notes, dev keys, Data Engine, flowcharts.
+### 3.3 Pricing, currency & tax — the resolution chain
+- **Canonical price is stored tax-EXCLUSIVE (net).** Inclusive is always
+  *derived per branch* (`net × (1 + branch_rate)`) — because one base price
+  flows into branches with different rates, net is the only neutral truth.
+- **Price(product, branch):** 1) `location_price` override if present (in the
+  branch's currency); 2) else base price if same currency; 3) else auto-convert
+  base → branch currency at current rate (snapshot stored). Default = **zero
+  manual work**; override only for deliberate local pricing.
+- **Override carries `is_tax_inclusive`** — admin can enter gross ("rings up at
+  6 AED incl. VAT") or net; we normalize to net internally. Same for base-price entry.
+- **Tax(product, branch):** product supplies the **tax_class**; branch supplies
+  the **rate** for that class in its `tax_district`. Multi-country tax solves
+  itself once location carries jurisdiction.
+- **Inclusive/exclusive display:** `location.price_display_default` (local norm)
+  + customer preference (guests get the branch default). Always relative to the
+  branch in context, so never ambiguous.
 
-### 5.2 Module Center (client superadmin)
+### 3.4 Branch-in-context storefront
+- Storefront always has a **current branch** (geo/nearest on first visit, else
+  Main; switchable in the header — hidden when only one location).
+- The whole storefront is scoped to it: each sellable shows **one** price, stock
+  and availability for that branch.
+- A sellable **not offered at the current branch but offered elsewhere** shows
+  "Not available at Nairobi — offered at Mombasa, Kisumu" (one-tap switch), not
+  hidden. Works for products, services, menu items, courses, rooms alike.
+- **Switching branch re-prices the cart** and drops anything the new branch
+  doesn't offer/stock, with a clear notice. Cart is tied to branch context.
+- A cross-branch "from KES 300" range is a **v2** discovery nicety, shown
+  **tax-exclusive** so rates are never mixed.
 
-- A card for each module: its name, what it contains, and a status (Active / Licensed but off / Not licensed).
-- The switch works only for licensed modules; switching one off hides it but keeps its data.
-- Unlicensed cards have a text area for a key. Pasting the key Renka provides activates the module immediately.
-- Shows "Licensed to <business name>" from the installation row, and the attempts log.
-- Every activation, switch and failed attempt is logged.
+### 3.5 Clearance (two senses)
+- **Staff clearance:** `location_user(user_id, location_id, role_scope)`. A
+  branch manager sees only their branch's orders/bookings/stock/staff;
+  admin/super_admin see all and get an **admin branch switcher**.
+- **Customer access (memberships):** a plan declares **allowed branches**
+  (single vs all-access); check-in validates the plan covers that branch. Powers
+  gym branches and class passes. (v1: single or all; "any N of M" is later.)
 
-### 5.3 Licensing (decided 27 Sep 2026)
+### 3.6 Fulfilment & pickup
+- Orders carry **fulfilment type** (pickup / delivery / dine-in / ship) + a
+  **fulfilment location**. Customer picks the pickup branch at checkout, or a
+  delivery address maps to the serving branch. "Ready for pickup at Ngong Road"
+  flows through existing order status + notifications.
 
-**Model.** Clients deploy on their own servers. The app **never calls home**; everything is checked offline. Licenses are **one-off and never expire** (no weekly/monthly/yearly keys, so winding the server clock back gains nothing). One codebase for every client: nothing client-specific lives in the code. Renka keeps the master register of clients and keys in her own Excel.
-
-**The three pieces.** A module unlocks only when all three agree:
-
-| Piece | Where | What it holds |
-|---|---|---|
-| 1. Code | Backend, same in every copy | Renka's **public key** and a secret **pepper**, each split into small chunks across a few files and disguised as ordinary config (default settings, sort weights, lookup tables). Assembled only at runtime. |
-| 2. Database | `installation` (one row) and one row per activated module | Installation: `client_uuid`, `business_name`, `purchased_at`, `ownership_signature` (Renka's signature over uuid + name + date), a hash of the uuid made with the pepper, `installed_at`. Module rows: the pasted key stored **encrypted** (lock built from pepper + client_uuid) plus its hash, `used` (0/1), `activated_at`, `activated_by`. |
-| 3. Renka's key | Given to the client on payment | Long (`TISL-XXXXX-…`), signed with Renka's private key. Carries `client_uuid`, module, serial number, issue date, a key-pair version (`v1`) and a checksum. |
-
-- The public key must stay in the code, never the database (a public key in the DB could be swapped for the attacker's own).
-- The private key never leaves Renka's machine and never goes in the repo. Keys and ownership codes are made by a small signing script kept outside this repo.
-- The installation table holds exactly one row (`CHECK (id = 1)`).
-
-**Setup.** On first install the client pastes an **ownership code** from Renka (uuid + business name + purchase date + signature). The site verifies it with the public key and writes the installation row. The row is then locked; changing it needs a new ownership code.
-
-**Pasting a module key** (checked in this order, all offline):
-
-| Check | Fails means | Message | Logged as |
-|---|---|---|---|
-| Checksum | Mistyped | "Looks mistyped, check the key" | typo (harmless) |
-| Signature (public key from code) | Edited or made-up key | "Invalid key" | fake (suspicious) |
-| `client_uuid` in key = installation's | Real key, another client's | "This key isn't for this installation" | other client (suspicious; records whose key) |
-| Module/serial already active | — | "Already active" | info |
-| All pass | — | Module activated, `used = 1` | accepted |
-
-After 10 failed attempts in an hour the key box locks for 15 minutes. Every attempt is logged (time, user, result).
-
-**The handshake (every time the site asks "is this module on?").**
-1. Assemble the public key and pepper from the code.
-2. Installation row: ownership signature valid and uuid hash matches (using the code's pepper).
-3. Module row: stored key decrypts and its hash matches.
-4. The key: signature valid, its uuid equals the installation's, its module is the one asked about.
-
-All pass means **licensed**. A module is **active** only if it is licensed **and** the client's own switch is on. The result is held in memory for a short time and never saved as "on", so there is no 0/1 flag to edit: setting a module to enabled in the database cannot turn on an unlicensed module. The `used` flag is a record, not a lock.
-
-**Where it is checked:** route middleware, module model loading, scheduled jobs and queued work, and navigation, so skipping it means patching many places.
-
-**When something doesn't add up**
-
-| Problem | Result |
-|---|---|
-| No ownership code yet | Setup screen only |
-| Installation row edited or fake | "Installation not verified": paid modules off, core keeps running |
-| One module key invalid | Only that module off |
-
-**Core never shuts down.** Orders, customers and payments keep working whatever happens to licensing. No data is ever deleted.
-
-**Recovery after a crash:** DB restored → nothing to do. DB lost → re-paste the same keys (a used key can always be re-pasted on its own installation). Key lost → Renka resends it from her register.
-
-**Honest limits and cover.** Someone with the code can still patch out the checks; the pieces make that a hassle, not impossible. A client copying their own install to a second site cannot be detected offline. Covered by: the checks spread through the code, "Licensed to <business name>" shown in admin, the Module Center and the footer (a copied site advertises whose license it is), a private repo, and the license agreement (licensed, not sold; one installation; no tampering; updates and support only with a valid license). If the private key ever leaks, a new key pair ships in an update and keys are reissued as `v2`.
-
-**TISL** is client #1 and gets its own ownership code and keys like any other client.
-
-**Still open:** whether Renka's owner tools (dev keys, bug reports, Data Engine, flowcharts) ship to clients; if they do, they unlock with Renka's own signed key, not the `super_admin` role (a client can make anyone super_admin).
-
-### 5.4 Module manifests
-
-Each module declares, in one place, its admin sidebar group, storefront nav links, account-menu links, settings tabs and dependencies. The admin sidebar, the storefront navigation manager and the Module Center all read the manifests.
-
-### 5.5 Code layout (target)
-
-- Backend: `app/Modules/<Module>/` (models, controllers, routes, service provider).
-- Frontend: `src/<module>/` with a manifest; pages are lazy-loaded only when the module is active.
-- Core stays at `src/core/` and `src/_shared/`.
-
-### 5.6 Frontend folder convention (per module)
-
+### 3.7 Stock movement & transfers (Extras · Inventory)
+Applies to **any stockable** (products, menu items, ingredients) — not just products.
 ```
-src/<module>/
-  manifest.js          ← sidebar groups, nav links, account-menu links, settings tabs, dependencies
-  pages/
-    admin/             ← admin screens
-    customer/          ← storefront pages (if module has a public face)
-  components/
-    admin/
-    storefront/
+stock_movements(sellable/ingredient, location, delta, reason, ref_type, ref_id, batch_id, at, by)
+stock_transfers(id, from_location, to_location, status, created_by, notes, dispatched_at, received_at)
+stock_transfer_lines(transfer_id, item, batch_id?, qty_sent, qty_received)
 ```
+- **One ledger** records every change: sale (−), purchase/restock (+),
+  adjustment (±), return (+), transfer (two rows: − at A, + at B).
+- **Transfer lifecycle:** draft → dispatched (qty leaves source, sits
+  in-transit, not sellable) → received (lands at destination; partial allowed;
+  `received < sent` = variance). Source dispatches, destination confirms.
+- **Batches/expiry travel** with the stock: a transfer line references
+  `batch_id`; on receipt the destination batch keeps the same batch_no + expiry.
+- **Recipe/BOM** (one latte depletes milk + beans) is a **later Inventory phase**;
+  v1 does simple counts. Ledger model already supports it.
+- **Cross-border costing** (FX revaluation, customs/landed cost on a transfer)
+  is **deferred**; v1 moves quantity at cost, no revaluation.
+
+### 3.8 "Both redundant and central"
+Source of truth = the pivot/ledger tables above. An optional **`location_ids`
+JSON cache** on a sellable (for fast "in A, B" badges) is allowed only as a
+**system-maintained, rebuildable mirror** — never hand-edited. Skip it unless a
+join actually lags.
 
 ---
 
-### 5.7 Module-by-module frontend breakdown
+## 4. Cross-cutting capabilities & locked decisions
 
-> **Key:** ✅ exists and in place · 🔀 exists but in wrong location · ❌ not built yet  
-> Bookings is a **Core** capability (used by E-commerce, Menus, Accommodations, Extras).  
-> Vendors are deferred — separate middleware, separate planning session.
-
----
-
-#### Module 0 — Core (`src/core/`)
-
-Always on. No manifest, no license key.
-
-**Admin pages** (`src/core/pages/admin/`)
-
-| Page | Status |
-|---|---|
-| Dashboard | ✅ |
-| Customers (list, detail, credit tab, discount, health, algorithm panel) | ✅ |
-| Orders (list, detail) | ✅ |
-| Quotes (list, create, detail) | ✅ |
-| Quote requests (list, detail) | ✅ |
-| Payments | 🔀 in finance/ |
-| Credit accounts (dashboard, detail, credit tab) | ✅ |
-| Reconciliation | 🔀 in finance/ |
-| Financial notes | 🔀 in finance/ |
-| Loyalty (ledger, ledger detail, settings) | ✅ |
-| Referral & promo codes | 🔀 in referrals/ |
-| Tickets (list, detail) | ✅ |
-| Publications (list) | ✅ |
-| Content pages | 🔀 in settings/ |
-| Policies | 🔀 in settings/ |
-| Reports | ✅ |
-| Activity logs + log export | ✅ |
-| Appearance (themes, fonts, icon styles) | ✅ |
-| Settings (general, currency, units, tiers, shipping, navigation, modules, users & roles, vault, algorithm) | 🔀 scattered in settings/, general/, users/, vault/ |
-| Notifications | ❌ |
-| Bookings — admin list + detail + settings | ✅ (AdminBookings, AdminBookingDetail, BookingSettings) |
-
-**Customer pages** (`src/core/pages/customer/`)
-
-| Page | Status |
-|---|---|
-| Home | ✅ |
-| About | ✅ |
-| Contact | ✅ |
-| Profile | ✅ |
-| My Orders (list, detail) | ✅ |
-| My Quotes (list) + My Quote Requests (list, detail) + Quote detail | ✅ |
-| My Tickets (list, detail) | ✅ |
-| Checkout | ✅ |
-| Cart | ✅ |
-| Customer delivery history | ✅ |
-| Customer shipment tracking | ✅ |
-| Appearance settings | ✅ |
-| My Bug Reports | ✅ |
-| Manual | ✅ |
-| My Bookings (list, detail) | ✅ |
-
-**Shared components** (`src/_shared/`)
-
-API clients, stores, hooks, common UI (Button, SmartSearchBox, Pagination, Header, Footer, Breadcrumb, etc.), layout, legal.
-
----
-
-#### Module 1 — E-commerce (`src/ecommerce/`)
-
-**Admin pages**
-
-| Page | Status |
-|---|---|
-| Products (list) | ✅ in ecommerce/pages/admin/ |
-| Product form (create/edit) | ✅ in ecommerce/pages/admin/ |
-| Product variants | ✅ in ProductForm + ecommerce/components/admin/variants/ |
-| Services (list) | ✅ in ecommerce/pages/admin/ |
-| Service form | ✅ in ecommerce/pages/admin/ |
-| Service categories | ✅ in ecommerce/pages/admin/ |
-| Categories (list, form) | ✅ in ecommerce/pages/admin/ |
-| Brands (list, form) | ✅ in ecommerce/pages/admin/ |
-| Reviews | ✅ in ecommerce/pages/admin/ |
-| Specials | ❌ |
-| Hampers (list, detail, orders) | ✅ in ecommerce/pages/admin/hampers/ |
-| Auctions (list, detail, orders) | ✅ in ecommerce/pages/admin/auctions/ |
-| Wishlists (admin view) | ❌ |
-
-**Customer pages**
-
-| Page | Status |
-|---|---|
-| Products (list) | ✅ in ecommerce/pages/customer/ |
-| Product detail | ✅ in ecommerce/pages/customer/ |
-| Services (list) | ✅ in ecommerce/pages/customer/ |
-| Service detail + Book service | ✅ in ecommerce/pages/customer/ |
-| Specials | ✅ in ecommerce/pages/customer/ |
-| Wishlist | ✅ in ecommerce/pages/customer/ |
-| Hamper list + detail + checkout + my hamper orders | ✅ in ecommerce/pages/customer/ |
-| Auction list + detail | ✅ in ecommerce/pages/customer/ |
-
-**Components**
-
-| Area | Status |
-|---|---|
-| Product card, grid, filters | ✅ in ecommerce/components/storefront/products/ |
-| Service card, grid, filters | ✅ in ecommerce/components/storefront/services/ |
-| Cart components | ✅ in core/components/cart/ (cart and checkout are Core, section 9) |
-| Hamper components | ✅ none separate (inside the hamper pages) |
-| Auction components | ✅ in ecommerce/components/ (BidModal in storefront/auctions/) |
-| Wishlist items | ✅ in ecommerce/components/storefront/wishlist/ |
-| Specials hero + polaroid card | ✅ in ecommerce/components/storefront/specials/ |
-
----
-
-#### Module 2 — Listings (`src/listings/`)
-
-For anything listed, discovered, viewed, rented, sold or enquired about — properties, vehicles, equipment, venues, directories.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Listings list | |
-| Listing form (create/edit) | Attributes differ by listing type |
-| Listing categories | |
-| Enquiries list + detail | |
-| Viewing/test-drive requests | |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Listings browse | Search, filters, map, sort |
-| Listing detail | Gallery, specs, contact/enquire, location |
-| Enquiry form | |
-| Request viewing / test drive | Plugs into Core Bookings |
-| My Enquiries | In customer account |
-
-**Components** ❌ all new
-
-Listing card, listing grid, listing filters, map view, enquiry modal, image gallery.
-
----
-
-#### Module 3 — Campaigns (`src/campaigns/`)
-
-Fundraising, crowdfunding, awareness and marketing campaigns.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Campaigns list | |
-| Campaign form | Type: fundraising / crowdfunding / awareness / marketing |
-| Donors / backers list | For money campaigns |
-| Campaign updates | |
-| Donations list | |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Campaigns browse | |
-| Campaign detail | Goal, progress bar, donate/back CTA, updates |
-| Donate / back form | Plugs into Core payments |
-| My Donations / My Backed Campaigns | In customer account |
-
-**Components** ❌ all new
-
-Campaign card, progress bar, donor list, update feed, donation form.
-
----
-
-#### Module 4 — Courses (`src/courses/`)
-
-Education, training, structured learning.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Courses list | |
-| Course form | |
-| Curriculum builder | Modules → lessons → topics |
-| Enrolments list | |
-| Student progress | |
-| Assessments | Quizzes, assignments |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Course catalogue | Browse, filter by category/level/price |
-| Course detail | Curriculum preview, instructor, enrol/buy CTA |
-| Enrol / pay | Plugs into Core checkout |
-| My Courses | Progress, resume lesson |
-| Lesson player | Video / PDF / text |
-| Quiz / assessment | |
-| My Certificates | |
-
-**Components** ❌ all new
-
-Course card, curriculum tree, lesson player, progress tracker, quiz component, certificate viewer.
-
----
-
-#### Module 5 — Accommodations (`src/accommodations/`)
-
-Hotels, lodges, guesthouses, serviced apartments, rooms.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Properties list + form | |
-| Room types list + form | |
-| Rooms list + form | |
-| Availability / rate calendar | |
-| Reservations list + detail | |
-| Room board | Live view: open / occupied / reserved / dirty |
-| Guest folios | Charges, payments, checkout |
-| Housekeeping | Cleaning status |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Property browse | |
-| Property detail | Rooms, amenities, availability |
-| Room detail + booking form | Plugs into Core Bookings + checkout |
-| My Reservations | |
-
-**Components** ❌ all new
-
-Room card, availability calendar, room board grid, folio summary, housekeeping status badge.
-
----
-
-#### Module 6 — Menus (`src/menus/`)
-
-Restaurants, cafés, catering, food ordering.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Menus list + form | Multiple menus (breakfast, lunch, dinner, happy hour) |
-| Menu sections + items | |
-| Item options / modifiers | Sizes, add-ons, allergens |
-| Tables + floor plan | |
-| Table reservations | Plugs into Core Bookings |
-| Kitchen orders | KDS view |
-| Menu orders list | |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Menu browse | By section, filter by allergen/diet |
-| Item detail | Options, add-ons |
-| Cart + order (table / takeaway / delivery) | Plugs into Core cart + checkout |
-| Table reservation form | Plugs into Core Bookings |
-| My Menu Orders | Order status, reorder |
-
-**Components** ❌ all new
-
-Menu section, item card, modifier picker, cart (menu variant), kitchen display row, floor plan grid, table badge.
-
----
-
-#### Module 7 — Events (`src/events/`)
-
-Events, tickets, registration, attendance.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Events list + form | |
-| Ticket types + pricing | |
-| Attendees list | |
-| Check-in | QR scanner or manual |
-| Seating (optional) | |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Events browse | Filter by date, category, location |
-| Event detail | Schedule, speakers, tickets |
-| Ticket purchase | Plugs into Core checkout |
-| My Tickets | QR code, event details |
-| Check-in page | QR display |
-
-**Components** ❌ all new
-
-Event card, ticket type selector, attendee badge, QR code viewer, seating map (optional).
-
----
-
-#### Module 8 — Memberships (`src/memberships/`)
-
-Membership orgs, clubs, gyms, co-working, subscriptions.
-
-**Admin pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Membership types + plans | Benefits, pricing, billing cycle |
-| Members list + detail | Status, expiry, renewal |
-| Member check-in | Attendance log |
-| Billing / renewals | Recurring payments via Core payments |
-| Access permissions | Member-only content gates |
-
-**Customer pages** ❌ all new
-
-| Page | Notes |
-|---|---|
-| Membership plans browse | |
-| Plan detail + join | Plugs into Core checkout / recurring billing |
-| My Membership | Status, expiry, benefits, renewal |
-| Member portal | Member-only content |
-| Member directory (optional) | |
-
-**Components** ❌ all new
-
-Plan card, membership status badge, renewal countdown, check-in button, member-only gate wrapper.
-
----
-
-#### Module 9 — Careers (`src/careers/`)
-
-Job board, applicant portal, ATS.
-
-**Admin pages**
-
-| Page | Status |
-|---|---|
-| Job vacancies list + form | ✅ in careers/admin/ |
-| Applications list + detail | ✅ |
-| ATS pipeline | ✅ |
-| Interview scheduling | ✅ plugs into Core Bookings |
-| Hiring decisions + offers | ✅ |
-
-**Customer / applicant pages**
-
-| Page | Status |
-|---|---|
-| Careers page (public job board) | ✅ |
-| Job detail | ✅ |
-| Apply form | ✅ |
-| Applicant portal (login, profile, my applications) | ✅ |
-
----
-
-#### Module 10 — Projects (`src/projects/`)
-
-Project portfolios and project-based collaboration.
-
-**Admin pages**
-
-| Page | Status |
-|---|---|
-| Projects list | ✅ |
-| Project detail (milestones, tasks, messages, participants, links) | ✅ |
-| Project create | ✅ |
-| AI analytics | ✅ in extras/pages/admin/ai-analytics/ |
-| Work board | ✅ in projects/pages/admin/Work.jsx |
-
-**Customer pages**
-
-| Page | Status |
-|---|---|
-| My Projects list | ✅ |
-| My Project detail | ✅ |
-
----
-
-#### Module 11 — TISL Extras (`src/extras/`)
-
-Operational toolbox — not all visible to customers.
-
-**Admin pages**
-
-| Page | Status |
-|---|---|
-| Inventory | ✅ |
-| Delivery manifests + routes + incidents + ratings | ✅ |
-| Driver management | ✅ in extras/pages/admin/delivery/ |
-| Employees + timetable | ✅ in extras/pages/admin/employees/ |
-| Worksheets + worksheet form | ✅ |
-| Algorithm / search analytics | ✅ in extras/pages/admin/ai-analytics/ |
-
-**Driver portal** (separate role, own pages)
-
-| Page | Status |
-|---|---|
-| Driver manifest | ✅ in extras/pages/driver/ |
-
----
-
-### 5.8 Pages that need to move (relocation backlog)
-
-**Done (27 Sep 2026).** File moves and import updates only, no code changes; production build passes.
-
-| What | From | To |
+| Capability | Decision | Home |
 |---|---|---|
-| Products, ProductDetail, Services, ServiceDetail, BookService, SpecialsPage, Wishlist, HamperListPage, HamperDetail, HamperCheckout, MyHamperOrders, MyHamperOrderDetail | core/pages/customer/ | ecommerce/pages/customer/ |
-| SpecialsPolaroidCard, ClockDialHero (used only by Specials) | core/pages/customer/ | ecommerce/components/storefront/specials/ |
-| Products, ProductForm, Services, ServiceForm, ServiceCategories, Categories, CategoryForm, Brands, BrandForm, Reviews (admin) | core/pages/admin/ | ecommerce/pages/admin/ |
-| Work.jsx (admin) | core/pages/admin/ | projects/pages/admin/ |
-| Service card, grid, filters, collapsed card | core/components/services/ | ecommerce/components/storefront/services/ |
-| Variant editor, options, variant form, images, unit form | core/components/admin/variants/ | ecommerce/components/admin/variants/ |
-| BidModal | core/components/auctions/ | ecommerce/components/storefront/auctions/ |
-| Project admin, customer and shared components | core/components/projects/ | projects/components/ (customer → storefront/) |
+| **Gift cards** | Same as store credit — a purchasable that issues wallet credit under a redeemable code. No new ledger. | Core |
+| **Galleries / proofing** | Shared capability any module attaches (photography galleries, architecture portfolios, wedding albums). | Core |
+| **Form builder / intake** | Shared capability (clinic/esthetician intake, law intake, event RSVP questions, consult forms). | Core |
+| **Class passes / credits** | A credits model on plans (10-session packs) valid at allowed branches. | Memberships |
+| **Digital / downloadable products** | Products can deliver a file/license (course PDFs, photo files, ebooks). | E-commerce |
+| **Deposits & installments** | Checkout supports partial/deposit payments (weddings, custom cakes, rentals, construction milestones). Extends §9. | Core checkout |
+| **Mobile money (M-Pesa)** | First-class payment method (deposits, tuition, donations, catering). High priority. | Core payments |
+| **Generalised reviews & ratings** | Reviews apply to services, listings, stays, courses — not just products. | Core |
+| **Serial / batch / expiry** | Tracked in Inventory (pharmacy meds, warranties). | Extras |
+| **Group/class bookings + waitlists** | Bookings supports many-attendees-per-slot + waitlist (yoga, dance, cooking classes). | Core Bookings |
 
-**Still in the wrong place (Core module, section 5.7):** Payments, Reconciliation and Financial notes (finance/), Referral & promo codes (referrals/), Content pages and Policies (settings/), and the scattered settings pages. These stay in `src/core/` and only need regrouping inside it, so they wait for the Settings hub work.
+**Regulated verticals — scope lines:**
+- **Pharmacy:** OTC sales + Rx **upload for pharmacist review** + batch/expiry via Inventory. **Not** full dispensing / controlled-substance workflows.
+- **Clinic:** appointments + intake forms + encrypted notes. **Full EMR is out of scope** (separate compliance track). Patient medical records are health data — treat with care.
 
----
-
-### 5.9 Build order for new modules
-
-Build one module at a time, backend + frontend together, in this order:
-
-1. **Listings** — most universally useful; no recurring billing complexity
-2. **Events** — straightforward; tickets plug into existing checkout
-3. **Campaigns** — donations plug into existing payments
-4. **Courses** — needs lesson player and progress tracking
-5. **Memberships** — needs recurring billing (most complex)
-6. **Accommodations** — needs room board, folios, availability calendar
-7. **Menus** — needs kitchen display, table management
+**Open decision:** **multi-location** is designed above (single vs all-access for membership branches in v1). Larger open item: whether per-branch price overrides are enabled per client or globally off by default — default **off**, opt-in per client.
 
 ---
 
-### 5.10 Backup & restore engine (built)
+## 5. New-module checklist — MUST sync to nav + backup + location
 
-A growing subsystem. It backs up the **client's data**, never the code, the modules table or the licensing tables (those are re-pasteable keys, not data).
-
-**What it does**
-- **Backs up only active modules' tables.** A disabled or unlicensed module's tables are skipped, and a banner in the UI explains why (so a client isn't shocked a module's data is absent). Core is always included.
-- **Table → module assignment.** `ModuleTables::MAP` is the built-in map; the `module_table_map` table (managed by an admin form in Backup settings) overrides it. `BackupPlanner::plan()` returns included / disabled / unlicensed / excluded / unassigned so the admin can see exactly what will and won't be saved.
-- **Destinations:** browser download (to the admin's own machine, not the server), FTP, SFTP, S3. Remote disks are built at run time with `Storage::build()`.
-- **Encryption:** output is a single `.wnkjba` file — magic `WNKJBAK1`, a JSON header (salt, Argon2id params, secretstream header), then framed XChaCha20-Poly1305 secretstream chunks over a ZIP payload (`manifest.json` + `data/<module>/<table>.jsonl`). The key is Argon2id(passphrase, salt); the passphrase is separate from any license key. Wrong passphrase cannot decrypt — the file is pure gibberish without it.
-- **Restore** (super-admin only): from an uploaded `.wnkjba` or pulled from a destination. The passphrase is **always required**, even for an uploaded file. Replace or merge; generated columns are stripped on insert; runs in a transaction with FK checks off.
-- **Schedule:** daily / weekly / monthly / never, gated by frequency/time/day in `backup:run` (scheduled hourly, skips `local`).
-- **Who:** admin + super-admin can back up; only super-admin can restore.
-
-**Deferred:** a standalone Streamlit viewer for `.wnkjba` files.
-
-### 5.11 New-module checklist — MUST sync to nav + backup
-
-Run through this for **every** new module and for any change that adds a table, route or customer page. See the contract callout at the top of section 5.
+> Run this for **every** new module and for any change that adds a table, route
+> or customer page. A module that skips it is invisible to customers and
+> **silently missing from every backup**.
 
 **Backend**
-- [ ] SQL script (Workbench) for the module's tables — delivered as a copyable file, not a migration.
-- [ ] **Backup:** add every new table to `ModuleTables::MAP` under the module's key (or assign via `module_table_map`). Confirm `BackupPlanner::plan()` shows them under *included* when the module is active and not under *unassigned*. New Core tables go under `core`. Anything that must never be exported (keys, secrets) goes in `ModuleTables::EXCLUDE`.
-- [ ] **Routes:** wrap the module's route group with the `module:<key>` middleware. Core routes are never gated.
-- [ ] **Nav:** seed the module's storefront links into `nav_links` (module key, label, path, sort). `NavController::index` shows them to admins only when licensed; `publicNav` returns active + visible links.
-- [ ] Models, controllers, service provider under `app/Modules/<Module>/` (target layout, 5.5).
+- [ ] SQL script (Workbench) for the module's tables — copyable file, not a migration.
+- [ ] **Backup:** add every new table to `ModuleTables::MAP` (or `module_table_map`). Confirm `BackupPlanner::plan()` shows them *included* when active, not *unassigned*. Core tables → `core`. Secrets → `ModuleTables::EXCLUDE`.
+- [ ] **Routes:** wrap the module's route group with `module:<key>` middleware. Core never gated.
+- [ ] **Nav:** seed storefront links into `nav_links`; expose via `NavController`.
+- [ ] **Location:** declare which axes each sellable uses (offered-at / priced-at / stocked-at) and its `location_mode`. Location-scoped tables carry `location_id`.
+- [ ] Models, controllers, service provider under `app/Modules/<Module>/`.
 
 **Frontend**
-- [ ] Register the module in `_shared/navigation/modules.js` (MODULES + `isModuleActive`).
+- [ ] Register in `_shared/navigation/modules.js` (MODULES + `isModuleActive`).
 - [ ] Admin pages gated by module activity; storefront routes wrapped in `ModuleRoute`.
-- [ ] Header already renders `nav_links` generically (desktop + mobile) — no hardcoding; just make sure the links are seeded.
-- [ ] Manifest (5.4) declares sidebar group, nav links, account-menu links, settings tabs, dependencies.
+- [ ] Manifest declares sidebar group, nav links, account-menu links, settings tabs, dependencies, **and location axes**.
 
 **Verify**
-- [ ] Activate the module → its data appears in a backup; deactivate → it's skipped with the banner.
-- [ ] Its links appear in the nav manager, toggle correctly, and lock when the module is switched off.
+- [ ] Activate → data in a backup; deactivate → skipped with banner.
+- [ ] Links appear in nav manager, toggle, and lock when the module is off.
+- [ ] Offered-at / priced-at behave across two locations.
 - [ ] `php -l` clean; frontend lint + full build pass.
 
 ---
 
-## 6. Admin navigation (done)
+## 6. Module manifests, code layout & folder convention
 
-**One sidebar replaces four places** (main sidebar, Settings sidebar, Settings card page, General sidebar).
+- **Manifest** (per module, one place): admin sidebar group, storefront nav links, account-menu links, settings tabs, dependencies, **location axes**. The admin sidebar, storefront nav manager and Module Center all read the manifests.
+- **Backend:** `app/Modules/<Module>/` (models, controllers, routes, service provider).
+- **Frontend:** `src/<module>/` with a manifest; pages lazy-loaded only when active. Core stays at `src/core/` and `src/_shared/`.
 
-- **Dashboard**
-- **Sales:** Orders, Payments, Credit accounts, Reconciliation, Financial notes
-- **Catalogue** (E-commerce): Products, Services, Categories, Brands, Hampers, Auctions (+ auction orders), Bookings
-- **Customers:** Customers, Loyalty, Promo & referral codes
-- **Tax & Finance:** Tax & Compliance, Withholding & Compliance, Reports
-- **Module groups** (only when active): Quotes, Projects, Help Desk, Careers, Delivery, Inventory, Publications, AI…
-- **Settings hub** with tabs: General, Currency, Units, Tiers, Shipping, Content pages, Policies, Themes, Navigation, Modules, Users & roles, Algorithm, Vault, Activity logs
-- **Developer** (owner-only): dev notes, dev keys, bug reports, Data Engine, flowcharts
-
-**As built:** Mimi AI sits under Workplace with Help desk, Team and Publications; Delivery, Inventory and the Work board are under Operations (TISL extras); drivers see only Dashboard and My deliveries; Reports has a Site analytics tab; the system docs on the Settings page are owner-only. New pages are added to the registry, not to a layout.
-
-**Other changes:**
-- The General sidebar is removed; bulk editors become a "Bulk edit" tab on Products, Customers and Employees.
-- Duplicates are removed (Users and Loyalty in two places; Delivery listed twice).
-- Orphans get entries: Bookings, Credit accounts, Auction orders, Data Engine, Financial notes.
-- Collapsible groups, a Ctrl+K quick-jump search, and the existing role rules kept.
+```
+src/<module>/
+  manifest.js          ← sidebar groups, nav links, account-menu links, settings tabs, deps, location axes
+  pages/{admin,customer}/
+  components/{admin,storefront}/
+```
 
 ---
 
-## 7. Storefront navigation manager (built)
+## 7. Modules to build (frontend breakdown)
 
-**As built:**
-- Only **licensed** modules offer their links; Core adds Home, About, Contact and the standard pages. Links live in `nav_links` and are **backed up under Core**.
-- Per link, the admin sets a **visible** switch — a green tick (visible) / red x (hidden) toggle (Lucide icons).
-- A module that is **licensed but switched off locks its links**: the customer can't see them and the admin can't toggle them (the toggle greys out and the server refuses the change). Turning the module back on unlocks them.
-- The header renders the returned links **generically** on both desktop and the mobile hamburger menu — nothing is hardcoded.
-- `NavController::index` (admin) returns groups for licensed modules with an `active` flag for the lock; `publicNav` returns active + visible links for the storefront.
+> ❌ = not built yet. Build order in §10. Each follows the §5 checklist.
+> Bookings is a Core capability (used by many). Vendors deferred.
 
-**Still to do (deferred, optional):** a **primary** switch + **sort number** with at most 7 primary links, large-screen "More" overflow dropdown, and an account-menu built from active modules.
+### Listings (`src/listings/`)
+Anything listed, viewed, rented, sold or enquired about — property, vehicles, equipment, venues, directories.
+- **Admin ❌:** listings list; listing form (attributes vary by type); categories; enquiries list + detail; viewing/test-drive requests.
+- **Customer ❌:** browse (search, filters, map, sort); detail (gallery, specs, enquire, location); enquiry form; request viewing/test drive (→ Bookings); My Enquiries.
+- **Components ❌:** listing card, grid, filters, map view, enquiry modal, gallery.
 
----
+### Campaigns (`src/campaigns/`)
+Fundraising, crowdfunding, awareness, marketing.
+- **Admin ❌:** campaigns list; form (fundraising/crowdfunding/awareness/marketing); donors/backers; updates; donations list.
+- **Customer ❌:** browse; detail (goal, progress bar, donate/back CTA, updates); donate/back form (→ payments); My Donations.
+- **Components ❌:** campaign card, progress bar, donor list, update feed, donation form.
 
-## 8. Theming
+### Courses (`src/courses/`)
+- **Admin ❌:** courses list; course form; curriculum builder (modules→lessons→topics); enrolments; student progress; assessments.
+- **Customer ❌:** catalogue; detail (curriculum preview, instructor, enrol CTA); enrol/pay (→ checkout); My Courses (resume); lesson player (video/PDF/text); quiz; My Certificates.
+- **Components ❌:** course card, curriculum tree, lesson player, progress tracker, quiz, certificate viewer.
 
-**Current state (measured):**
-- About 16,000 hex colours in 367 of 479 `.jsx` files, plus 7,700 `rgba()` values; the brand purple appears about 3,500 times.
-- About 1,800 Tailwind colour classes and 1,000 `dark:` classes.
-- **Tailwind isn't generating utilities.** The project runs Tailwind 4 (`@tailwindcss/postcss`) but `index.css` still uses the v3 `@tailwind base/components/utilities` directives, so classes like `bg-white` or `dark:bg-gray-900` produce no CSS; only the hand-written subset in `styles/layout.css` (`.flex`, `.container`, `.px-4`…) works. Switching to `@import "tailwindcss"` would suddenly switch on ~2,800 dormant colour classes and change how many pages look, so it's part of the theming work, not a quick fix.
-- `index.css` already has a variable system (brand scale, text and surface tokens, a `.dark` block) that most components ignore. `--color-text-primary` (used by 38 files) is undefined.
-- Storefront: about 67 files and 4,500 colour literals. Admin: about 260 files and 17,000.
+### Accommodations (`src/accommodations/`)
+- **Admin ❌:** properties; room types; rooms; availability/rate calendar; reservations; room board (open/occupied/reserved/dirty); guest folios; housekeeping.
+- **Customer ❌:** property browse; property detail (rooms, amenities, availability); room detail + booking (→ Bookings + checkout); My Reservations.
+- **Components ❌:** room card, availability calendar, room board grid, folio summary, housekeeping badge.
 
-**Plan (storefront first):**
-1. **Tokens:** one theme token set as CSS variables (brand, accent, background, surface, text, muted, border, success, warning, danger), each with light and dark values. The brand colour is also stored as RGB channels so `rgba(var(--brand-rgb), 0.1)` works. `theme/tokens.js` returns variables, not literals.
-2. **Tailwind remap:** the Tailwind palette points at the tokens, so existing colour classes follow the theme without per-file edits.
-3. **Themes backend:** a themes table (name, light and dark tokens, default flag, customer-selectable flag) and an admin editor with live preview and a contrast check.
-4. **Customer choice:** a theme picker in the profile and header, saved per customer and remembered in the browser for guests. It stays hidden until step 5 is complete.
-5. **Storefront conversion:** customer pages, product and service components, cart, header and footer.
-6. **All new pages**, modules included, are built on tokens from day one.
-7. **Admin conversion,** gradually and area by area.
+### Menus (`src/menus/`)
+- **Admin ❌:** menus (breakfast/lunch/…); sections + items; item options/modifiers (sizes, add-ons, allergens); tables + floor plan; table reservations (→ Bookings); kitchen orders (KDS); menu orders list.
+- **Customer ❌:** menu browse (by section, filter by allergen/diet); item detail (options); cart + order (table/takeaway/delivery → cart + checkout); table reservation; My Menu Orders (status, reorder).
+- **Components ❌:** menu section, item card, modifier picker, cart (menu variant), KDS row, floor plan grid, table badge.
 
-**Undecided:** colours only, or also fonts, corner roundness and logo?
+### Events (`src/events/`)
+- **Admin ❌:** events list + form; ticket types + pricing; attendees; check-in (QR/manual); seating (optional).
+- **Customer ❌:** browse (date/category/location); detail (schedule, speakers, tickets); ticket purchase (→ checkout); My Tickets (QR); check-in page.
+- **Components ❌:** event card, ticket selector, attendee badge, QR viewer, seating map (optional).
 
----
-
-## 9. Checkout (after navigation, theming and modules)
-
-- **Purchasable contract** implemented by every sellable type: price and currency, tax class, availability, reserve/release, fulfil.
-- **Cart and order lines** point at purchasables polymorphically.
-- **Three ways to pay:** pay now (shop); open tab or folio settled later (accommodation stays, credit accounts); recurring (memberships).
-- **Shared booking and availability service** for time slots, date ranges and seats (service bookings, viewings, rooms, events).
-- **Currency:** conversion into the customer's account currency with snapshots. Taxes come from item class × customer status. Promo, wallet and loyalty all go through the conversion helper.
-- **Also part of this work:** the customer currency-change request form and review queue, and the tax-status request form.
+### Memberships (`src/memberships/`)
+- **Admin ❌:** membership types + plans (benefits, pricing, cycle, **allowed branches**); members list + detail (status, expiry, renewal); check-in (attendance); billing/renewals (recurring via Core payments); access permissions (content gates); **class-pass/credits**.
+- **Customer ❌:** plans browse; plan detail + join (→ checkout/recurring); My Membership (status, expiry, benefits, renewal); member portal; member directory (optional).
+- **Components ❌:** plan card, status badge, renewal countdown, check-in button, member-only gate.
 
 ---
 
-## 10. Build order
-
-1. ~~**Admin navigation**~~ (done; manifests in 5.4 come with the module registry).
-2. **Theming** steps 1–5 (section 8).
-3. ~~**Module registry, Module Center, license keys, route gating**~~ (done, section 5).
-4. ~~**Backup & restore engine**~~ (done, section 5.10; Streamlit viewer deferred).
-5. ~~**Storefront navigation manager**~~ (done, section 7; primary/overflow ordering deferred).
-6. **Checkout foundations and checkout** (section 9, plus sections 3 and 4).
-7. **New modules** one at a time (Listings, Events, Campaigns, Courses, Memberships, Accommodations, Menus) — each following the section 5.11 checklist.
+## 8. Tax design (decided, not yet built)
+- **Item tax class** per product/service (standard, zero-rated, exempt), with override. No category defaults.
+- **Customer tax status:** standard by default; zero-rated/exempt/withholding-agent only once an admin verifies.
+- **Line-by-line result:** each line records the treatment applied, even at 0% (zero-rated vs exempt reported differently).
+- **"Verify your tax status" form** (neutral wording; ID label follows country — KRA PIN, TIN, VAT, GST — with document upload), feeding an admin review queue that creates and verifies the certificate on approval.
+- **Display preference:** include/exclude tax (guests: include). Resolves per branch jurisdiction (§3.3).
+- **Later:** backend allows only one "standard" tax type.
 
 ---
 
-## 11. Backlog & known issues
+## 9. Theming
+**Current state (measured):** ~16,000 hex colours across 367 of 479 `.jsx` files, ~7,700 `rgba()`, brand purple ~3,500×; ~1,800 Tailwind colour classes, ~1,000 `dark:`. **Tailwind isn't generating utilities** (v4 postcss but v3 `@tailwind` directives), so most colour classes are dormant; only hand-written `styles/layout.css` works. `index.css` has a variable system most components ignore; `--color-text-primary` (38 files) is undefined.
 
-### Checkout and money (fixed during the checkout work)
-- Checkout charges `product.price`, ignoring the chosen variant and unit.
-- The quote list merges variants of the same product.
-- Hard-coded 16% VAT in order checkout and auction orders.
-- KSh hard-coded in the cart, checkout, orders, quotes, profile credit and promo displays.
-- The auction order service defaults to KES when no currency is sent.
-- Loyalty settings still use KES-named keys (`points_per_100_kes`, `value_kes`, `referral_credit_amount`).
-- Order totals use `exchange_rate_to_kes`; this is to move to `exchange_rate_to_base` + `base_currency_id`.
+**Plan (storefront first):** 1) one token set as CSS variables (brand, accent, bg, surface, text, muted, border, success, warning, danger; brand also as RGB channels); 2) Tailwind palette points at tokens; 3) themes table + admin editor (live preview, contrast check); 4) customer theme picker (profile/header, per-customer, remembered for guests) — hidden until step 5; 5) storefront conversion; 6) all new pages on tokens from day one; 7) admin conversion area by area. **Undecided:** colours only, or also fonts/roundness/logo?
 
-### Security and enforcement
-- ~~M-Pesa callback trusted the posted body~~ **Done 27 Sep:** a success callback only confirms after Daraja's STK query agrees; the amount recorded is the amount pushed; the row is locked against duplicate callbacks; optional `DARAJA_CALLBACK_TOKEN` (callback URL must end `?token=<value>`). "Query Daraja" finishes a payment the callback couldn't verify.
-- ~~Every staff role, drivers included, reached the whole /admin API~~ **Done 27 Sep:** drivers use `/driver/*` only; catalogue deletes (products, services, categories, brands, variants, images) are manager/admin/super_admin; credit actions are finance/manager/admin/super_admin (everyone can view; loyalty points stay open to staff); bug reports, dev notes and dev keys are super_admin. The UI hides what the API refuses (`src/_shared/lib/roles.js`).
-- ~~`InventoryController` not found~~ **Done 27 Sep:** `Inventorycontroller.php`, `Purchaseorder.php`, `Purchaseorderitem.php` and `Vendorpolicy.php` renamed to match their classes (Windows ignores the case; Linux servers couldn't load them).
-- ~~Missing `QuoteController@createFromRequest` and `ReportsController@summary`~~ **Done 27 Sep:** `createFromRequest` builds a draft quote from a reviewing request's items (catalogue prices converted to base; custom items start at the customer's budget; negotiable services flagged) through `store()`, without emailing the customer. `summary` gives headline figures for the period against the previous period (revenue net of refunds in KES, paid orders, average order, orders placed, new customers, quote requests, quotes, tickets). No page calls either yet.
-- Routes that still point at methods that don't exist (500 if called; nothing in the frontend calls them): `ServiceCategoryController@adminShow`, `PaymentController@adminOrderPaymentHistory`.
-- Tax and withholding policies exist but controllers never call `authorize()` (state rules unenforced).
-- Certificate and withholding documents are on the public disk; they should move to a private disk behind an authorised download.
-- Withholding `applyClearance` needs a transaction and a row lock.
-- Tax overrides don't check that the certificate belongs to the customer.
-- Editing a verified certificate should reset it to pending.
+---
 
-### Validation
-- Tax districts: the server doesn't block a district being placed inside its own child (a loop hangs requests).
-- `applicable_module` is free text; it should be a whitelist.
-- Withholding classifications accept non-withheld (VAT) rates.
-- Manual withholding certificates are created, then deleted if the amounts don't balance, instead of validating first.
+## 10. Checkout (after modules; built with Bookings, last)
+- **Purchasable contract** per sellable type: price + currency, tax class, **location axes (§3)**, availability, reserve/release, fulfil.
+- Cart & order lines point at purchasables polymorphically.
+- **Ways to pay:** pay now; open tab/folio settled later (stays, credit accounts); recurring (memberships); **deposits/partial (§4)**; **M-Pesa (§4)**.
+- **Shared booking & availability service** for slots, date ranges, seats (services, viewings, rooms, events, classes + waitlists).
+- **Currency/tax:** convert into the customer's account currency with snapshots; tax from item class × **branch jurisdiction**; promo/wallet/loyalty via the conversion helper.
+- Also: customer currency-change request form + review queue; tax-status request form.
 
-### Currency
-- The `convert` endpoint returns an inverted rate.
-- Currencies that are in use can be deleted or deactivated.
-- Currency codes are editable, which breaks `Order.currency` history.
-- The currency create rule still requires `conversion_rate`.
+---
 
-### Variants and units
-- Variant-unit prices have no currency of their own.
-- A base unit can't be replaced.
-- Nothing checks that an alternate unit measures the same thing as the base.
-- More than one unit per variant can be the default for sale.
-- UoM dimensions are free text, with no one-base-unit rule per dimension.
-- `isInUse` misses `tax_applications`.
-- `Service.unit_of_measure` is a text column instead of a link to units.
+## 11. Build order
+1. ~~Admin navigation~~ (done)
+2. **Theming** steps 1–5 (§9)
+3. ~~Module registry, Module Center, license keys, route gating~~ (done)
+4. ~~Backup & restore engine~~ (done; Streamlit viewer done)
+5. ~~Storefront navigation manager~~ (done)
+6. **Locations / multi-branch** (Core scaffolding: locations, offered-at, priced-at, staff clearance, branch context) — §3
+7. **New modules** one at a time, each per §5: **Listings → Events → Campaigns → Courses → Memberships → Accommodations → Menus**
+8. **Bookings + Checkout foundations** (Core) — last (§10, plus tax §8)
 
-### Tax structure
-- `TaxService` isn't called from checkout and takes 14 positional parameters (planned: `Taxable` interface + `TaxContext`).
-- `TaxApplication` needs polymorphic document and line links plus a currency and rate snapshot.
-- `WithholdingService` works only for customers.
+---
 
-### Housekeeping
-- Delete `app/Models/us.php` (duplicate `UserController` class) and `app/Traits/Inventory/InventoryTraits.php` (old combined copy of three traits that now have their own files).
-- Untrack the committed `app.zip` and `src.zip`; delete the stray `backend/5.3.0` and `backend/composer` files; gitignore `frontend/dev-dist/`.
-- Move `ActivityLog`, `ProductActivityLog`, `TaxActivityLog` and `WithholdingActivityLog` into `app/Models/Logs/` to match their namespace.
-- The tax, UoM, currency and variant tables have no committed schema; add SQL scripts for them.
-- Add `->whereNumber()` to `{id}` routes; remove the duplicate project, referral and promo routes.
-- Run `npm install xlsx` (used by delivery manifest printing but missing from `package.json`).
-- Product and service stock/price columns that are `0` in the data (for example "KSh 0" gloves) need review.
+## 12. Backlog & known issues
+
+**Checkout & money** (address during checkout work)
+- Checkout charges `product.price`, ignoring chosen variant/unit.
+- Quote list merges variants of the same product.
+
+**Security & enforcement** — spread license checks through model loading, jobs, nav (done for routes + nav); confirm queued/scheduled work is gated.
+
+**Validation** — tighten server-side validation on new module forms.
+
+**Currency** — retire `exchange_rate_to_kes` naming in any remaining spots.
+
+**Variants & units** — ensure every sellable path respects variant + unit pricing.
+
+**Tax structure** — enforce single "standard" tax type (§8).
+
+**Housekeeping** — finish Core internal regrouping (Payments, Reconciliation, Financial notes, Referral/promo, Content pages, Policies) with the Settings hub.
+
+**Known latent:** PHP 8.5 vs `maatwebsite/excel`→phpspreadsheet (<8.5) dependency; FTP/SFTP/S3 need Flysystem adapters installed for remote backups.
