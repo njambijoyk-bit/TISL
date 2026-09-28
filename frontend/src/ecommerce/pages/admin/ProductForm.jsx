@@ -328,7 +328,39 @@ export default function ProductForm() {
     admin_notes: '', main_image_url: '', additional_image_urls: '',
   });
 
-  useEffect(() => { fetchCategoriesAndBrands(); if (id) fetchProduct(); }, [id]);
+  // ── Unsaved-changes draft ─────────────────────────────────────────────────
+  // Kept in sessionStorage so leaving the page and coming back restores what was
+  // typed, while a brand-new browser tab starts from a fresh load.
+  const draftKey = `productFormDraft:${id || 'new'}`;
+  const draftReady = useRef(false);
+  const serverStamp = useRef(null);
+  const draftStore = {
+    read: () => { try { return JSON.parse(sessionStorage.getItem(draftKey)); } catch { return null; } },
+    write: (v) => { try { sessionStorage.setItem(draftKey, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+    clear: () => { try { sessionStorage.removeItem(draftKey); } catch { /* storage unavailable */ } },
+  };
+  const applyDraft = () => {
+    const d = draftStore.read();
+    draftReady.current = true;
+    if (!d || d.stamp !== serverStamp.current) { if (d) draftStore.clear(); return; }
+    setFormData(p => ({ ...p, ...d.formData }));
+    setFeaturesText(d.featuresText ?? ''); setMetaKeywordsText(d.metaKeywordsText ?? '');
+    if (Array.isArray(d.specifications) && d.specifications.length) setSpecifications(d.specifications);
+    setVariantsText(d.variantsText ?? '');
+    if (d.activeTab) setActiveTab(d.activeTab);
+  };
+
+  useEffect(() => {
+    draftReady.current = false;
+    serverStamp.current = null;
+    fetchCategoriesAndBrands();
+    if (id) fetchProduct(); else applyDraft();
+  }, [id]);
+
+  useEffect(() => {
+    if (!draftReady.current || isView) return;
+    draftStore.write({ stamp: serverStamp.current, formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab });
+  }, [formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isCreate && formData.name && !formData.sku) {
@@ -367,6 +399,7 @@ export default function ProductForm() {
     console.log('type:', product.type);
 
       loadedUnits.current = { d: product.default_unit_id ?? '', a: product.alternate_unit_id ?? '' };
+      serverStamp.current = product.updated_at ?? null;
       setFormData({
         name: product.name || '', sku: product.sku || '', type: product.type || '',
         category_id: product.category_id ?? product.category?.id ?? '',
@@ -436,6 +469,7 @@ export default function ProductForm() {
           )
         );
       }
+      if (!isView) applyDraft();
     } catch { toast.error('Failed to load product'); navigate('/admin/products'); }
     finally { setLoading(false); }
   };
@@ -568,6 +602,7 @@ export default function ProductForm() {
       if (isEdit) {
         await productsAPI.updateProduct(id, fd);
         toast.success('Product updated!');
+        draftStore.clear();
         // Units feed the variant pickers — stay here and reload so they pick up the change.
         if (String(loadedUnits.current.d) !== String(formData.default_unit_id) || String(loadedUnits.current.a) !== String(formData.alternate_unit_id)) {
           await fetchProduct();
@@ -575,7 +610,7 @@ export default function ProductForm() {
           return;
         }
       }
-      else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); }
+      else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); draftStore.clear(); }
       navigate('/admin/products');
     } catch (err) {
       const errs = err.response?.data?.errors;
@@ -591,6 +626,7 @@ export default function ProductForm() {
     try {
       setDeleting(true);
       await productsAPI.deleteProduct(id);
+      draftStore.clear();
       toast.success(`"${formData.name}" deleted`);
       navigate('/admin/products');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete'); }

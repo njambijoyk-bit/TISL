@@ -24,8 +24,6 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
     name: variant?.name ?? '',
     sku: variant?.sku ?? '',
     barcode: variant?.barcode ?? '',
-    net_content_qty: variant?.net_content_qty != null ? Number(variant.net_content_qty) : '',
-    net_content_unit_id: variant?.net_content_unit_id ?? '',
     stock_quantity: variant?.stock_quantity != null ? Number(variant.stock_quantity) : 0,
     status: variant?.status ?? 'active',
     is_default: variant?.is_default ?? variants.length === 0,
@@ -57,8 +55,6 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
       name: form.name.trim() || autoName || null,
       sku: form.sku.trim() || null,
       barcode: form.barcode.trim() || null,
-      net_content_qty: form.net_content_qty === '' ? null : Number(form.net_content_qty),
-      net_content_unit_id: form.net_content_unit_id || null,
       stock_quantity: Number(form.stock_quantity) || 0,
       status: form.status,
       ...(optionsWithValues.length ? { option_value_ids: selection } : {}),
@@ -115,12 +111,6 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
           </FormGrid>
 
           <FormGrid min={150}>
-            <Field label="Contents" htmlFor="v-qty" error={errors.net_content_qty} hint="e.g. 0.5 for a 500 mL bottle in litres">
-              <NumberInput id="v-qty" min="0" step="any" value={form.net_content_qty} onChange={(e) => set('net_content_qty')(e.target.value)} />
-            </Field>
-            <Field label="Contents unit" htmlFor="v-cunit" error={errors.net_content_unit_id}>
-              <UnitSelect id="v-cunit" value={form.net_content_unit_id} onChange={set('net_content_unit_id')} emptyLabel="None" />
-            </Field>
             <Field label="Barcode" htmlFor="v-bar" error={errors.barcode}>
               <TextInput id="v-bar" maxLength={64} value={form.barcode} onChange={(e) => set('barcode')(e.target.value)} />
             </Field>
