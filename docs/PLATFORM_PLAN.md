@@ -200,8 +200,8 @@ Tax already resolves by district (`TaxService::calculateForEntity` takes
 `districtIds`), so multi-branch tax is mostly wiring.
 
 **Products (confirmed 28 Sep 2026)**
-- **Offered-at:** derived from per-branch **variant stock** (see below) — a variant is "sold at" a branch when it has a stock row there. `location_mode` (all / specific / online) still applies at product level.
-- **Priced-at:** optional per-branch override at **product** and **variant-unit** level (net); otherwise auto-convert base price → branch currency via `PriceResolver`.
+- **Offered-at:** derived from per-branch **variant stock** (see below) — a variant is "sold at" a branch when it has a stock row there. A product with no rows anywhere is legacy/global (shown everywhere) until an admin sets branch stock — **opt-in per product, non-breaking**.
+- **Price is NOT per branch.** All branches sell at the same price; price differences are expressed through **variants / variant-units** (`product_variant_units.price`). Cross-currency branches simply show the base price auto-converted for display. There is no per-branch price override (the `location_price` table stays as unused Core scaffolding for now). *(Revised 28 Sep 2026 — dropped per-branch pricing.)*
 - **Tax:** feed the branch's `tax_district_id → selfAndAncestorIds()` into `TaxService`, plus the tax-rate change below.
 - **Display:** storefront scoped to the branch in context; a product not offered at the current branch shows an "Available at <branch>" note rather than vanishing.
 
@@ -214,10 +214,9 @@ Tax already resolves by district (`TaxService::calculateForEntity` takes
 - **Definitions stay central** — options/values and variant combinations defined once; never per-branch.
 - **Stock is per variant per branch:** new table **`variant_location_stock(product_variant_id, location_id, quantity, …)`**. "Large red mug: 12 in Nairobi, 3 in Ruiru."
 - **Availability derives from stock rows:** row present = sold at that branch; `quantity = 0` = out of stock there; **no row = not offered there**.
-- **`stock_quantity` becomes an auto-calculated cache, not source of truth:** `variant.stock_quantity` = sum across branches for that variant; `product.stock_quantity` = sum across all its variants; `in_stock` = any branch qty > 0. Truth = `variant_location_stock`. Kept (not dropped) so existing reads/`isInStock()`/`scopeInStock()` keep working; **never hand-edited**, recomputed on every stock change. Per-branch "in stock" reads the current branch's rows.
-- **Price** override per branch at product / variant-unit level.
-- **Product form:** *simple mode* (no options → a Stock & price section: qty + optional price per branch, backed by the hidden default variant/unit) vs *variations mode* (add options → a variant matrix → stock + price per variant per branch).
-- **Backfill:** existing simple products (no variant rows) get a default variant + default unit, and their `stock_quantity` moves into a `variant_location_stock` row for **Main**.
+- **New variants seed across branches:** when a variant is created, the entered quantity lands in **Main** and every other branch starts at **0** (ProductVariant `created` observer). Admin adjusts other branches on the per-branch grid.
+- **`stock_quantity` is an auto-calculated cache, never hand-edited:** `variant.stock_quantity` = sum across branches; `product.stock_quantity` = sum across variants; `in_stock` = total > 0. Truth = `variant_location_stock`, recomputed on every stock change (saveQuietly). The product's Stock field in the form is **read-only when the product has variants**. Kept so existing `isInStock()`/`scopeInStock()` reads keep working.
+- **Product form:** the per-branch grid lives at the **bottom of the Variants tab**, and only shows when there is **more than one branch** and the product has variants. Simple products keep a single manual stock number (their implicit default variant carries it); they're global unless localized.
 - Basic per-branch counts are **Core/E-commerce**; **batches, expiry, transfers, reconciliation stay in Extras · Inventory** (§3.7).
 
 **Auctions & hampers — belong to ONE branch; items are VARIANTS (confirmed)**
@@ -241,7 +240,7 @@ Districts already sit on tax **rules** (`tax_rule_districts`), but a `tax_rate` 
 
 **Checkout (recorded for the checkout phase):** at checkout the customer must pick a **specific variant + unit**, and that variant's row in `variant_location_stock` **at the fulfilment branch** is decremented — "which cups, in which unit." Overselling is blocked against the branch quantity.
 
-**Build order for the E-commerce × location work:** per-branch variant stock (`variant_location_stock` + default-variant backfill) → availability derived from it → per-branch pricing (`PriceResolver`) → tax (branch district + district on rates) → auctions/hampers branch ownership + composition checks → services light wiring → [later] batches/expiry/transfers (Inventory) + services overhaul.
+**Build order for the E-commerce × location work:** ~~per-branch variant stock~~ (done — `variant_location_stock`, new-variant seeding, auto product-stock cache, branch grid in the Variants tab, branch-scoped storefront) → tax (branch district + district on rates) → auctions/hampers branch ownership + composition checks → services light wiring → [later] batches/expiry/transfers (Inventory) + services overhaul. **No per-branch pricing** — price is per variant.
 
 **Confirmed:** (a) products filter by branch, auctions/hampers belong to one branch + show-all with an owning-branch badge; (b) central variant/option definitions, **per-branch stock at the variant level**; (c) location on variants (not options); (d) tax rate gains a nullable district. **Still open:** whether the services catalog overhaul lands before or after the new modules.
 
@@ -266,7 +265,7 @@ Districts already sit on tax **rules** (`tax_rule_districts`), but a `tax_rate` 
 - **Pharmacy:** OTC sales + Rx **upload for pharmacist review** + batch/expiry via Inventory. **Not** full dispensing / controlled-substance workflows.
 - **Clinic:** appointments + intake forms + encrypted notes. **Full EMR is out of scope** (separate compliance track). Patient medical records are health data — treat with care.
 
-**Open decision:** **multi-location** is designed above (single vs all-access for membership branches in v1). Larger open item: whether per-branch price overrides are enabled per client or globally off by default — default **off**, opt-in per client.
+**Open decision:** **multi-location** is designed above (single vs all-access for membership branches in v1). Per-branch price overrides were considered and **dropped** — all branches sell at the same price; price differences are expressed through variants (§3.9).
 
 ---
 

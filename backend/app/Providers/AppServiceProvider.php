@@ -88,6 +88,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Seed new variants across branches + keep the product stock total auto-calculated.
+        \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
+
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return env('FRONTEND_URL', 'http://localhost:5173')
                 . '/reset-password?token=' . $token

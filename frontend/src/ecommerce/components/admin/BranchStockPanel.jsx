@@ -4,22 +4,18 @@ import productsAPI from '../../../_shared/api/products';
 import toast from 'react-hot-toast';
 
 /**
- * Per-branch stock + price for a product (multi-location).
+ * Per-branch stock for a product's variants (multi-location).
  *
- * Rows = variants (a simple product shows its single "Default" variant, created
- * on demand by the backend). Columns = active branches: a stock quantity per
- * (variant × branch). Below, an optional per-branch price override (entered in
- * that branch's currency; blank = use the base price, auto-converted).
- *
- * Setting any branch stock switches the product from "sold everywhere" (legacy)
- * to branch-managed, so it then only shows at branches where it has a row.
+ * Rows = variants, columns = active branches. Branches differ by quantity only —
+ * price is set per variant, not per branch. The product's total stock is
+ * auto-calculated from these numbers. Renders nothing when there's a single
+ * branch (nothing to split) or the product has no variants yet.
  */
 export default function BranchStockPanel({ productId, readOnly = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [stock, setStock] = useState({});   // { `${variantId}:${locId}`: qty }
-  const [prices, setPrices] = useState({});  // { locId: { amount, is_tax_inclusive } }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,13 +29,9 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
         });
       });
       setStock(s);
-      const p = {};
-      Object.entries(d.price_overrides || {}).forEach(([locId, o]) => {
-        p[locId] = { amount: o.amount ?? '', is_tax_inclusive: !!o.is_tax_inclusive };
-      });
-      setPrices(p);
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Could not load branch stock.');
+    } catch {
+      // stay quiet — the panel just won't show
+      setData({ locations: [], variants: [] });
     } finally { setLoading(false); }
   }, [productId]);
 
@@ -47,28 +39,20 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
 
   const setQty = (variantId, locId, val) =>
     setStock((s) => ({ ...s, [`${variantId}:${locId}`]: val }));
-  const setPrice = (locId, patch) =>
-    setPrices((p) => ({ ...p, [locId]: { amount: '', is_tax_inclusive: false, ...p[locId], ...patch } }));
 
   const save = async () => {
-    const stockRows = [];
+    const rows = [];
     (data.variants || []).forEach((v) => {
       (data.locations || []).forEach((l) => {
         const raw = stock[`${v.id}:${l.id}`];
         if (raw !== '' && raw !== null && raw !== undefined) {
-          stockRows.push({ variant_id: v.id, location_id: l.id, quantity: Number(raw) || 0 });
+          rows.push({ variant_id: v.id, location_id: l.id, quantity: Number(raw) || 0 });
         }
       });
     });
-    const priceRows = (data.locations || []).map((l) => ({
-      location_id: l.id,
-      amount: prices[l.id]?.amount === '' || prices[l.id]?.amount == null ? null : Number(prices[l.id].amount),
-      is_tax_inclusive: !!prices[l.id]?.is_tax_inclusive,
-    }));
-
     setSaving(true);
     try {
-      const res = await productsAPI.saveBranchStock(productId, { stock: stockRows, prices: priceRows });
+      const res = await productsAPI.saveBranchStock(productId, { stock: rows });
       if (res.ok === false) throw new Error(res.message);
       toast.success(res.message || 'Saved.');
       load();
@@ -77,42 +61,28 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
     } finally { setSaving(false); }
   };
 
-  if (loading) {
-    return <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af' }}><RefreshCw size={16} /> Loading…</div>;
-  }
-  if (!data) return null;
+  if (loading || !data) return null;
 
   const { locations = [], variants = [] } = data;
+  // Only meaningful with more than one branch and at least one variant.
+  if (locations.length <= 1 || variants.length === 0) return null;
+
   const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid #eee' };
   const td = { padding: '6px 10px', borderBottom: '1px solid #f6f6f6' };
   const cell = { width: 90, padding: '6px 8px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' };
 
-  if (locations.length === 0) {
-    return (
-      <div style={{ padding: 20, color: '#6b7280', fontSize: '0.85rem' }}>
-        No branches yet. Add branches under Settings → Branches first.
-      </div>
-    );
-  }
-
-  const single = locations.length === 1;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed #e5e7eb', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MapPin size={18} color="var(--color-primary-600)" />
-        <p style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Stock &amp; price by branch</p>
+        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem' }}>Stock by branch</p>
       </div>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', padding: '10px 12px', borderRadius: 9, fontSize: '0.78rem', color: '#4b5563' }}>
         <Info size={15} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-primary-500)' }} />
-        <span>
-          Enter quantity per branch. Leaving a branch blank means the product isn't sold there.
-          {single ? ' You currently have one branch — add more under Settings → Branches to sell per location.' : ' A product with any branch stock only appears at the branches where it has a quantity.'}
-        </span>
+        <span>Quantity per variant, per branch. A blank branch means the variant isn't sold there. The product's total stock is calculated from these automatically.</span>
       </div>
 
-      {/* Stock grid: variants × branches */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
           <thead>
@@ -142,31 +112,6 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Per-branch price override */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: '0.85rem' }}>Per-branch price <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional — blank uses the base price, auto-converted)</span></p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-          {locations.map((l) => (
-            <div key={l.id} style={{ border: '1px solid #eee', borderRadius: 9, padding: 10 }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>{l.name}</div>
-              <input
-                type="number" min="0" step="0.01" disabled={readOnly}
-                value={prices[l.id]?.amount ?? ''}
-                onChange={(e) => setPrice(l.id, { amount: e.target.value })}
-                placeholder="Base price"
-                style={{ ...cell, width: '100%', marginBottom: 6 }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: '#6b7280' }}>
-                <input type="checkbox" disabled={readOnly}
-                  checked={!!prices[l.id]?.is_tax_inclusive}
-                  onChange={(e) => setPrice(l.id, { is_tax_inclusive: e.target.checked })} />
-                Amount includes tax
-              </label>
-            </div>
-          ))}
-        </div>
       </div>
 
       {!readOnly && (

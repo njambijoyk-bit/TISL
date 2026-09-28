@@ -599,7 +599,7 @@ export default function ProductForm() {
     { id: 'marketing',name: 'Marketing'        },
     { id: 'seo',      name: 'SEO & advanced'   },
     // Overrides attach to a saved product, so only once it has an id
-    ...(id ? [{ id: 'tax', name: 'Tax' }, { id: 'branches', name: 'Branches' }] : []),
+    ...(id ? [{ id: 'tax', name: 'Tax' }] : []),
   ];
 
   return (
@@ -772,8 +772,18 @@ export default function ProductForm() {
                 <Field label={`Original price (${priceCurrencyCode})`} hint={!isView ? 'Used for showing discounts' : undefined}>
                   <StyledInput type="number" name="original_price" value={formData.original_price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" />
                 </Field>
-                <Field label="Stock quantity" hint={!isView ? 'Leave empty if not tracking' : undefined}>
-                  <StyledInput type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleChange} disabled={isView} placeholder="Optional" min="0" />
+                <Field
+                  label="Stock quantity"
+                  hint={formData.has_variants ? 'Auto-calculated from variant stock' : (!isView ? 'Leave empty if not tracking' : undefined)}
+                >
+                  <StyledInput
+                    type="number" name="stock_quantity"
+                    value={formData.stock_quantity}
+                    onChange={handleChange}
+                    disabled={isView || formData.has_variants}
+                    placeholder={formData.has_variants ? 'From variants' : 'Optional'}
+                    min="0"
+                  />
                 </Field>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <Toggle
@@ -953,6 +963,8 @@ export default function ProductForm() {
                   </div>
                 )}
                 <VariantEditor productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
+                {/* Per-branch stock — only renders when there is more than one branch */}
+                <BranchStockPanel productId={Number(id)} readOnly={isView} />
               </>
             ) : (
               <div style={{
@@ -967,10 +979,6 @@ export default function ProductForm() {
           {/* ── TAX ── */}
           {activeTab === 'tax' && id && (
             <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
-          )}
-
-          {activeTab === 'branches' && id && (
-            <BranchStockPanel productId={Number(id)} readOnly={isView} />
           )}
 
           {/* ── MARKETING ── */}
