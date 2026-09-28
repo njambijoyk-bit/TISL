@@ -32,4 +32,3 @@ export { default as useAdminCareersStore } from './useAdminCareersStore';
 export { default as useModuleStore } from './moduleStore';
 export { default as useNavStore } from './navStore';
 export { default as useLocationStore } from './locationStore';
-export { default as useLanguageStore } from './languageStore';

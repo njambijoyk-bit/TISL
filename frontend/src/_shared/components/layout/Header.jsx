@@ -13,7 +13,7 @@ import { ThemePicker } from '../common/ThemePicker';
 import useCurrencyStore from '../../store/currencyStore';
 import useLocationStore from '../../store/locationStore';
 import LocationPicker from '../common/LocationPicker';
-import LanguagePicker from '../common/LanguagePicker';
+import TranslateButton from '../common/TranslateButton';
 import CurrencyToggle from '../common/currency/CurrencyToggle';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
@@ -243,6 +243,12 @@ export default function Header() {
 
   const userMenuRef = useRef(null);
 
+  // Smart nav: collapse to the hamburger when the desktop links can't fit.
+  const headerRowRef = useRef(null);
+  const navRef = useRef(null);
+  const collapseAtRef = useRef(0);
+  const [navCollapsed, setNavCollapsed] = useState(false);
+
   const products = useFlyout();
   const services = useFlyout();
   const account = useFlyout();
@@ -276,6 +282,32 @@ export default function Header() {
   }, []);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Collapse the desktop nav to the hamburger the moment its links overflow the
+  // available space, and expand again once there's room (with hysteresis so it
+  // doesn't flicker). Works regardless of how many dynamic links are shown.
+  useEffect(() => {
+    const measure = () => {
+      const row = headerRowRef.current;
+      const nav = navRef.current;
+      if (!row) return;
+      const w = row.clientWidth;
+      if (!navCollapsed) {
+        if (nav && nav.scrollWidth > nav.clientWidth + 2) {
+          collapseAtRef.current = w;
+          setNavCollapsed(true);
+        }
+      } else if (w > collapseAtRef.current + 48) {
+        setNavCollapsed(false); // re-measure expanded; re-collapses if still tight
+      }
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (headerRowRef.current) ro.observe(headerRowRef.current);
+    if (navRef.current) ro.observe(navRef.current);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [navCollapsed, navLinks]);
 
   const [visible, setVisible]   = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -417,6 +449,9 @@ export default function Header() {
         @media (min-width: 900px) {
           .show-mobile { display: none !important; }
         }
+        /* Smart collapse: when the desktop links can't fit, force the hamburger. */
+        .nav-collapsed .hidden-mobile { display: none !important; }
+        .nav-collapsed .show-mobile   { display: flex !important; }
         .show-account-mobile { display: none !important; }
         @media (min-width: 480px) {
           .show-account-mobile { display: block !important; }
@@ -441,13 +476,13 @@ export default function Header() {
           borderBottom: scrolled ? '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)' : '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           boxShadow: scrolled ? '0 4px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 1px 0 color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : '0 2px 12px color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
         }}
-        className={`site-header header-animated-bg dark:border-gray-700 ${scrolled ? 'scrolled' : ''}`}
+        className={`site-header header-animated-bg dark:border-gray-700 ${scrolled ? 'scrolled' : ''} ${navCollapsed ? 'nav-collapsed' : ''}`}
       >
 
         <FloatingShapes /> 
 
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div ref={headerRowRef} style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo */}
           <Link to="/" style={{ textDecoration: 'none', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
@@ -455,7 +490,7 @@ export default function Header() {
           </Link>
 
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1 }} className="hidden-mobile">
+          <nav ref={navRef} style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }} className="hidden-mobile">
 
             {navHas('home') && (
             <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? 'var(--color-primary-500)' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">
@@ -623,8 +658,8 @@ export default function Header() {
             {/* Appearance & Currency — consolidated into ThemePicker */}
             <ThemePicker />
 
-            {/* Language switcher */}
-            <LanguagePicker dark={isDark} color={navColor} iconOnly />
+            {/* Translate (uses the browser's built-in page translation) */}
+            <TranslateButton dark={isDark} color={navColor} iconOnly />
 
             {/* Wishlist */}
             {isModuleActive(MODULES.ECOMMERCE) && navHas('wishlist') && (
@@ -725,11 +760,21 @@ export default function Header() {
                       </div>
                     </div>
 
-                    {/* Preferences — currency */}
-                    {hasCurrencyChoice && (
-                      <div style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }} className="dark:border-gray-700">
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Currency</span>
-                        <CurrencyToggle />
+                    {/* Preferences — currency + branch */}
+                    {(hasCurrencyChoice || hasBranchChoice) && (
+                      <div style={{ padding: '10px 14px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }} className="dark:border-gray-700">
+                        {hasCurrencyChoice && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Currency</span>
+                            <CurrencyToggle />
+                          </div>
+                        )}
+                        {hasBranchChoice && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Branch</span>
+                            <LocationPicker />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -851,10 +896,10 @@ export default function Header() {
                 <LocationPicker dark={isDark} color={navColor} />
               </div>}
 
-              {/* Language on mobile */}
+              {/* Translate on mobile */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Language</span>
-                <LanguagePicker dark={isDark} color={navColor} />
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Translate</span>
+                <TranslateButton dark={isDark} color={navColor} />
               </div>
 
               {isAuthenticated && (

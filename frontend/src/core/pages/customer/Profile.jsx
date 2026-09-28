@@ -15,7 +15,7 @@ import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersA
 import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
 import LocationPicker from '../../../_shared/components/common/LocationPicker';
-import LanguagePicker from '../../../_shared/components/common/LanguagePicker';
+import TranslateButton from '../../../_shared/components/common/TranslateButton';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../_shared/lib/money';
 
@@ -682,8 +682,8 @@ export default function Profile() {
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Language</span>
-                  <LanguagePicker />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Translate</span>
+                  <TranslateButton />
                 </div>
               </div>
             </div>
