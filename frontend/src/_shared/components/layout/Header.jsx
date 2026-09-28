@@ -13,7 +13,6 @@ import { ThemePicker } from '../common/ThemePicker';
 import useCurrencyStore from '../../store/currencyStore';
 import useLocationStore from '../../store/locationStore';
 import LocationPicker from '../common/LocationPicker';
-import TranslateButton from '../common/TranslateButton';
 import CurrencyToggle from '../common/currency/CurrencyToggle';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
@@ -658,9 +657,6 @@ export default function Header() {
             {/* Appearance & Currency — consolidated into ThemePicker */}
             <ThemePicker />
 
-            {/* Translate (uses the browser's built-in page translation) */}
-            <TranslateButton dark={isDark} color={navColor} iconOnly />
-
             {/* Wishlist */}
             {isModuleActive(MODULES.ECOMMERCE) && navHas('wishlist') && (
             <Link to="/wishlist" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
@@ -895,12 +891,6 @@ export default function Header() {
                 <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Branch</span>
                 <LocationPicker dark={isDark} color={navColor} />
               </div>}
-
-              {/* Translate on mobile */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-200">Translate</span>
-                <TranslateButton dark={isDark} color={navColor} />
-              </div>
 
               {isAuthenticated && (
                 <>

@@ -15,7 +15,6 @@ import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersA
 import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
 import LocationPicker from '../../../_shared/components/common/LocationPicker';
-import TranslateButton from '../../../_shared/components/common/TranslateButton';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../_shared/lib/money';
 
@@ -665,7 +664,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Preferences — currency / branch / language */}
+            {/* Preferences — currency / branch */}
+            {(hasCurrencyChoice || hasBranchChoice) && (
             <div style={{ ...card, marginBottom: 20 }}>
               <h3 style={sectionTitle}>Preferences</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -681,12 +681,9 @@ export default function Profile() {
                     <LocationPicker />
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Translate</span>
-                  <TranslateButton />
-                </div>
               </div>
             </div>
+            )}
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid #f3f4f6', flexWrap: 'wrap' }}>
