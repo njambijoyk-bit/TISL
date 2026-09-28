@@ -142,62 +142,6 @@ class ReconciliationPopulateService
             ];
         });
 
-        // ── Auction orders ────────────────────────────────────────
-        $auctionOrders = DB::table('auction_orders')
-            ->whereBetween('auction_orders.created_at', [
-                $session->period_start->startOfDay(),
-                $session->period_end->endOfDay(),
-            ])
-            ->whereNull('auction_orders.deleted_at')
-            ->select([
-                'auction_orders.id',
-                'auction_orders.order_number',
-                'auction_orders.customer_id',
-                'auction_orders.currency',
-                'auction_orders.subtotal_kes',
-                'auction_orders.total_kes',
-                'auction_orders.tax',
-                'auction_orders.tax_kes',
-                'auction_orders.exchange_rate_to_kes',
-                'auction_orders.payment_status',
-                'auction_orders.status',
-            ])
-            ->get();
-
-        $auctionCustomerMap = $this->resolveCustomers(
-            $auctionOrders->pluck('customer_id')->filter()->unique()->values()->all()
-        );
-
-        $count += $this->insertLines($session, 'auction_orders', $auctionOrders, function ($row) use ($auctionCustomerMap) {
-            $isExempt  = is_null($row->tax) || (float) $row->tax === 0.0;
-            // auction_orders always has tax_kes pre-computed
-            $taxAmount = $row->tax_kes;
-
-            $meta = [
-                'order_number'   => $row->order_number,
-                'customer_name'  => $auctionCustomerMap->get($row->customer_id) ?? null,
-                'currency'       => $row->currency,
-                'subtotal_kes'   => $row->subtotal_kes,
-                'total_kes'      => $row->total_kes,
-                'tax'            => $row->tax,
-                'tax_kes'        => $row->tax_kes,
-                'payment_status' => $row->payment_status,
-                'order_status'   => $row->status,
-                'is_exempt'      => $isExempt,
-                'source'         => 'auction_order',
-            ];
-
-            if (strtoupper($row->currency) !== 'KES') {
-                $meta['exchange_rate_to_kes'] = $row->exchange_rate_to_kes;
-            }
-
-            return [
-                'expected_amount' => $isExempt ? 0.00 : $taxAmount,
-                'actual_amount'   => null,
-                'meta'            => $meta,
-            ];
-        });
-
         return $count;
     }
 

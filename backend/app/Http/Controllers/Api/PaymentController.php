@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\AuctionOrder;
 use App\Models\Payment;
 use App\Services\DarajaService;
 use Illuminate\Http\Request;
@@ -26,23 +25,16 @@ class PaymentController extends Controller
 
         $query = Payment::with([
             'order:id,order_number,total,total_kes,payment_status',
-            'auctionOrder:id,order_number,total,total_kes,payment_status',
             'customer:id,first_name,last_name,email,phone',
             'initiatedBy:id,name'
         ])->latest('created_at');
 
         if ($request->filled('order_id'))       $query->where('order_id', $request->order_id);
-        if ($request->filled('auction_order_id'))$query->where('auction_order_id', $request->auction_order_id);
         if ($request->filled('status'))         $query->where('status', $request->status);
         if ($request->filled('dispute_status')) $query->where('dispute_status', $request->dispute_status);
         if ($request->filled('method'))         $query->where('method', $request->method);
         if ($request->filled('from_date'))      $query->whereDate('created_at', '>=', $request->from_date);
         if ($request->filled('to_date'))        $query->whereDate('created_at', '<=', $request->to_date);
-        if ($request->filled('order_type')) {
-            $request->order_type === 'auction'
-                ? $query->whereNotNull('auction_order_id')
-                : $query->whereNotNull('order_id');
-        }
 
         if ($request->user()->role === 'finance') {
             $query->where('initiated_by', $request->user()->id);
@@ -70,7 +62,7 @@ class PaymentController extends Controller
         $this->authorize('view', $payment);
 
         $payment->load([
-            'order', 'auctionOrder', 'customer', 'initiatedBy',
+            'order', 'customer', 'initiatedBy',
             'previousPayment', 'disputeRaisedBy', 'disputeResolvedBy'
         ]);
 
@@ -78,7 +70,7 @@ class PaymentController extends Controller
     }
 
     // =========================================================================
-    // INITIATE STK PUSH — polymorphic for regular & auction orders
+    // INITIATE STK PUSH
     // POST /admin/payments/initiate
     // =========================================================================
 
@@ -87,8 +79,7 @@ class PaymentController extends Controller
         $this->authorize('create', Payment::class);
 
         $validator = Validator::make($request->all(), [
-            'order_id'              => 'required_without:auction_order_id|nullable|exists:orders,id',
-            'auction_order_id'      => 'required_without:order_id|nullable|exists:auction_orders,id',
+            'order_id'              => 'required|exists:orders,id',
             'phone_override'        => 'nullable|string',
             'phone_override_reason' => 'nullable|string|max:255',
             'notes'                 => 'nullable|string|max:1000',
@@ -103,11 +94,7 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            // Resolve order (regular or auction)
-            $isAuction = $request->filled('auction_order_id');
-            $order = $isAuction
-                ? AuctionOrder::with('customer')->findOrFail($request->auction_order_id)
-                : Order::with('customer')->findOrFail($request->order_id);
+            $order = Order::with('customer')->findOrFail($request->order_id);
 
             $forceOverride = $request->boolean('force_override');
 
@@ -136,13 +123,7 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            $existingPending = Payment::where(function ($q) use ($isAuction, $order) {
-                if ($isAuction) {
-                    $q->where('auction_order_id', $order->id);
-                } else {
-                    $q->where('order_id', $order->id);
-                }
-            })->where('status', 'pending')->first();
+            $existingPending = Payment::where('order_id', $order->id)->where('status', 'pending')->first();
 
             if ($existingPending) {
                 return response()->json([
@@ -178,7 +159,7 @@ class PaymentController extends Controller
             $phone = $this->daraja->normalizePhone($phone);
 
             // ── Fire STK Push ───────────────────────────────────────────────
-            $paymentNumber = Payment::generatePaymentNumber($order->id, $isAuction ? 'auction' : 'regular');
+            $paymentNumber = Payment::generatePaymentNumber($order->id, 'regular');
             $darajaResponse = $this->daraja->stkPush($phone, $amount, $paymentNumber, (string) $order->id);
 
             // ── Create payment record ───────────────────────────────────────
@@ -206,11 +187,7 @@ class PaymentController extends Controller
                 'initiated_at'                => now(),
             ];
 
-            if ($isAuction) {
-                $paymentData['auction_order_id'] = $order->id;
-            } else {
-                $paymentData['order_id'] = $order->id;
-            }
+            $paymentData['order_id'] = $order->id;
 
             $payment = Payment::create($paymentData);
 
@@ -219,7 +196,6 @@ class PaymentController extends Controller
             Log::info('Payment: STK Push initiated', [
                 'payment_id' => $payment->id,
                 'order_id' => $order->id,
-                'auction_order' => $isAuction,
                 'amount' => $amount,
             ]);
 
@@ -228,7 +204,7 @@ class PaymentController extends Controller
                 'payment_id' => $payment->id,
                 'payment_number' => $paymentNumber,
                 'status' => 'pending',
-                'order_type' => $isAuction ? 'auction' : 'regular',
+                'order_type' => 'regular',
             ], 201);
 
         } catch (\InvalidArgumentException $e) {
@@ -550,15 +526,8 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Parent order not found.'], 404);
         }
 
-        $isAuction = $payment->auction_order_id !== null;
-
-        $existingPending = Payment::where(function ($q) use ($isAuction, $order) {
-            if ($isAuction) {
-                $q->where('auction_order_id', $order->id);
-            } else {
-                $q->where('order_id', $order->id);
-            }
-        })->where('status', 'pending')->where('id', '!=', $payment->id)->first();
+        $existingPending = Payment::where('order_id', $order->id)
+            ->where('status', 'pending')->where('id', '!=', $payment->id)->first();
 
         if ($existingPending) {
             return response()->json([
@@ -605,7 +574,7 @@ class PaymentController extends Controller
             }
 
             $phone         = $this->daraja->normalizePhone($phone);
-            $paymentNumber = Payment::generatePaymentNumber($order->id, $isAuction ? 'auction' : 'regular');
+            $paymentNumber = Payment::generatePaymentNumber($order->id, 'regular');
 
             $darajaResponse = $this->daraja->stkPush(
                 phone:         $phone,
@@ -639,11 +608,7 @@ class PaymentController extends Controller
                 'initiated_at'               => now(),
             ];
 
-            if ($isAuction) {
-                $newPaymentData['auction_order_id'] = $order->id;
-            } else {
-                $newPaymentData['order_id'] = $order->id;
-            }
+            $newPaymentData['order_id'] = $order->id;
 
             $newPayment = Payment::create($newPaymentData);
 
@@ -778,23 +743,19 @@ class PaymentController extends Controller
         $this->authorize('viewAny', Payment::class);
 
         $validator = Validator::make($request->all(), [
-            'order_id'         => 'required_without:auction_order_id|nullable|integer',
-            'auction_order_id' => 'required_without:order_id|nullable|integer',
+            'order_id' => 'required|integer',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $isAuction = $request->filled('auction_order_id');
-        $orderId = $isAuction ? $request->auction_order_id : $request->order_id;
+        $orderId = $request->order_id;
 
-        $order = $isAuction
-            ? AuctionOrder::findOrFail($orderId)
-            : Order::findOrFail($orderId);
+        $order = Order::findOrFail($orderId);
 
         $payments = Payment::with(['initiatedBy', 'previousPayment'])
-            ->where($isAuction ? 'auction_order_id' : 'order_id', $orderId)
+            ->where('order_id', $orderId)
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -804,7 +765,7 @@ class PaymentController extends Controller
         return response()->json([
             'order_id'             => $orderId,
             'order_number'         => $order->order_number,
-            'order_type'           => $isAuction ? 'auction' : 'regular',
+            'order_type'           => 'regular',
             'order_total_kes'      => $totalKes,
             'total_confirmed_kes'  => (float) $totalConfirmed,
             'balance_remaining'    => max(0, $totalKes - (float) $totalConfirmed),
@@ -820,15 +781,7 @@ class PaymentController extends Controller
     public function customerOrderPayments(Request $request, $orderId = null)
     {
         // Support both path param (/order/42) and query param (?order_id=42)
-        $isAuction = $request->filled('auction_order_id');
-        
-        if ($orderId) {
-            // Called via /payments/order/{orderId} — always a regular order
-            $resolvedId = $orderId;
-            $isAuction  = false;
-        } else {
-            $resolvedId = $isAuction ? $request->auction_order_id : $request->order_id;
-        }
+        $resolvedId = $orderId ?: $request->order_id;
 
         if (!$resolvedId) {
             return response()->json(['message' => 'Order ID is required.'], 422);
@@ -837,12 +790,11 @@ class PaymentController extends Controller
         $user     = $request->user();
         $customer = \App\Models\Customer::where('user_id', $user->id)->firstOrFail();
 
-        $orderClass = $isAuction ? AuctionOrder::class : Order::class;
-        $order = $orderClass::where('id', $resolvedId)
+        $order = Order::where('id', $resolvedId)
             ->where('customer_id', $customer->id)
             ->firstOrFail();
 
-        $payments = Payment::where($isAuction ? 'auction_order_id' : 'order_id', $resolvedId)
+        $payments = Payment::where('order_id', $resolvedId)
             ->orderBy('created_at', 'asc')
             ->get([
                 'id', 'payment_number', 'status', 'amount_expected',
@@ -856,7 +808,7 @@ class PaymentController extends Controller
         return response()->json([
             'order_id'             => $resolvedId,
             'order_number'         => $order->order_number,
-            'order_type'           => $isAuction ? 'auction' : 'regular',
+            'order_type'           => 'regular',
             'order_total_kes'      => $totalKes,
             'total_confirmed_kes'  => (float) $totalConfirmed,
             'balance_remaining'    => max(0, $totalKes - (float) $totalConfirmed),
@@ -889,7 +841,6 @@ class PaymentController extends Controller
             'open_disputes'      => (clone $query)->whereIn('dispute_status', ['raised', 'investigating'])->count(),
             'month_collected'    => (float) (clone $query)->whereMonth('confirmed_at', now()->month)->whereYear('confirmed_at', now()->year)->sum('mpesa_amount_confirmed'),
             'month_count'        => (clone $query)->whereMonth('initiated_at', now()->month)->whereYear('initiated_at', now()->year)->count(),
-            'auction_orders_count' => (clone $query)->whereNotNull('auction_order_id')->count(),
             'regular_orders_count' => (clone $query)->whereNotNull('order_id')->count(),
         ]);
     }

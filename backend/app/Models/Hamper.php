@@ -26,6 +26,7 @@ class Hamper extends Model
         'allow_store_credit',
         'earn_loyalty_points',
         'max_purchases_per_customer',
+        'location_id',
         'total_stock',
         'stock_remaining',
         'eligibility_type',
@@ -97,14 +98,15 @@ class Hamper extends Model
         return round($taxableAmount * (float) $rate->rate_value / 100, 2);
     }
 
+    /** The one branch this hamper belongs to; its items must be stocked there. */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(HamperItem::class);
-    }
-
-    public function orders(): HasMany
-    {
-        return $this->hasMany(HamperOrder::class);
     }
 
     public function eligibility(): HasMany
@@ -146,9 +148,8 @@ class Hamper extends Model
     public function getIsBackorderableAttribute(): bool
     {
         // allows up to 100 units beyond sold out
-        if ($this->total_stock === null) return false;
-        $ordersCount = $this->orders()->whereNotIn('status', ['cancelled', 'refunded'])->count();
-        return $ordersCount < ($this->total_stock + 100);
+        // Hamper sales now come from the unified sales register (not built yet).
+        return false;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -162,9 +163,7 @@ class Hamper extends Model
 
     public function purchaseCountForCustomer(int $customerId): int
     {
-        return $this->orders()
-            ->where('customer_id', $customerId)
-            ->whereNotIn('status', ['cancelled', 'refunded'])
-            ->count();
+        // Counted from the unified sales register once checkout is rebuilt.
+        return 0;
     }
 }

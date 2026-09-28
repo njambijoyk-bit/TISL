@@ -11,7 +11,6 @@ use App\Models\CustomerTier;
 use App\Models\CustomerTypeDiscount;
 use App\Models\Currency;
 use App\Models\Hamper;
-use App\Models\HamperOrder;
 use App\Models\LoyaltyPointTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -1269,26 +1268,11 @@ class ReportsController extends Controller
         [$start, $end] = $this->periodDates($request);
 
         // ── Hampers ──────────────────────────────────────────────────────────
-        // HamperOrder is the transaction record — it has its own total, hamper_id, status, etc.
-        $hamperOrders = HamperOrder::whereBetween('created_at', [$start, $end])->get();
-
-        $periodRevenue = $hamperOrders->sum(fn ($ho) => (float) ($ho->total ?? 0));
-
-        $topHampers = $hamperOrders
-            ->groupBy('hamper_id')
-            ->map(function ($group) {
-                $first = $group->first();
-                $hamper = Hamper::find($first->hamper_id);
-                return [
-                    'id'      => $first->hamper_id,
-                    'name'    => $hamper?->name ?? ($first->hamper_snapshot['name'] ?? 'Unknown'),
-                    'count'   => $group->count(),
-                    'revenue' => round($group->sum(fn ($ho) => (float) ($ho->total ?? 0)), 2),
-                ];
-            })
-            ->sortByDesc('revenue')
-            ->take(5)
-            ->values();
+        // Hampers no longer have their own orders; their sales will come from the
+        // unified sales register once checkout is rebuilt.
+        $hamperOrders = collect();
+        $periodRevenue = 0;
+        $topHampers = collect();
 
         // ── Bookings ─────────────────────────────────────────────────────────
         $bookings = Booking::whereBetween('created_at', [$start, $end])->get();

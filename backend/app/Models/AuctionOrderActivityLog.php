@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/** Auction activity log (bids etc.). Table name kept for the vault/export tooling. */
 class AuctionOrderActivityLog extends Model
 {
     protected $fillable = [
-        'auction_order_id',
         'auction_id',
         'action',
         'description',
@@ -19,11 +19,6 @@ class AuctionOrderActivityLog extends Model
     protected $casts = [
         'metadata' => 'array',
     ];
-
-    public function auctionOrder()
-    {
-        return $this->belongsTo(AuctionOrder::class);
-    }
 
     public function auction()
     {

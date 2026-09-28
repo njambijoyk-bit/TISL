@@ -9,6 +9,7 @@ use App\Models\HamperCustomerEligibility;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Services\HamperEligibilityService;
+use App\Services\Location\VariantStockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ class HamperController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $hampers = Hamper::with(['items', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])
+        $hampers = Hamper::with(['items', 'location:id,name,code', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])
             ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
             ->when($request->filled('eligibility_type'), fn($q) => $q->where('eligibility_type', $request->eligibility_type))
             ->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
@@ -53,6 +54,7 @@ class HamperController extends Controller
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'required|numeric|min:0',
             'currency_id'                => 'nullable|exists:currencies,id,is_active,1',
+            'location_id'                => 'required|integer|exists:locations,id,is_active,1',
             'tax_rate_id'                => 'nullable|integer|exists:tax_rates,id',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
@@ -100,12 +102,12 @@ class HamperController extends Controller
             ['eligibility_type' => $hamper->eligibility_type, 'price' => $hamper->price, 'status' => $hamper->status]
         );
 
-        return response()->json(['message' => 'Hamper created', 'data' => $hamper->load('currency:id,code,symbol')], 201);
+        return response()->json(['message' => 'Hamper created', 'data' => $hamper->load('currency:id,code,symbol', 'location:id,name,code')], 201);
     }
 
     public function show($id): JsonResponse
     {
-        $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->findOrFail($id);
+        $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'items.variant:id,name,sku,combination_key', 'location:id,name,code', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->findOrFail($id);
         return response()->json($hamper);
     }
 
@@ -120,6 +122,7 @@ class HamperController extends Controller
             'accent_color'               => 'nullable|string|max:7',
             'price'                      => 'sometimes|numeric|min:0',
             'currency_id'                => 'sometimes|nullable|exists:currencies,id,is_active,1',
+            'location_id'                => 'sometimes|integer|exists:locations,id,is_active,1',
             'tax_rate_id'                => 'sometimes|nullable|integer|exists:tax_rates,id',
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
@@ -135,6 +138,32 @@ class HamperController extends Controller
             'valid_from'                 => 'nullable|date|after_or_equal:valid_from',
             'valid_until'                => 'nullable|date',
         ]);
+
+        // Moving a hamper to another branch: every item must be stocked there.
+        if (isset($data['location_id']) && (int) $data['location_id'] !== (int) $hamper->location_id) {
+            $missing = [];
+            foreach ($hamper->items()->with('variant:id,name')->get() as $item) {
+                if (! $item->variant_id) {
+                    continue;
+                }
+                $a = app(VariantStockService::class)->availability($item->variant_id, (int) $data['location_id'], (float) $item->quantity);
+                if (! $a['ok']) {
+                    $missing[] = [
+                        'variant_id' => $item->variant_id,
+                        'name'       => $item->snapshot['name'] ?? $item->variant?->name,
+                        'needed'     => (float) $item->quantity,
+                        'quantity'   => $a['quantity'],
+                        'available_at' => $a['elsewhere'],
+                    ];
+                }
+            }
+            if ($missing) {
+                return response()->json([
+                    'message' => count($missing) . ' item(s) are not in stock at that branch: ' . implode(', ', array_map(fn ($m) => $m['name'], $missing)) . '.',
+                    'items'   => $missing,
+                ], 422);
+            }
+        }
 
         // sync stock_remaining when total_stock changes
         if (isset($data['total_stock']) && $hamper->total_stock !== null) {
@@ -168,7 +197,7 @@ class HamperController extends Controller
         }
 
         $watchedFields = [
-            'price', 'currency_id', 'tax_rate_id', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
+            'price', 'currency_id', 'location_id', 'tax_rate_id', 'apply_vat', 'allow_promo_codes', 'allow_store_credit',
             'earn_loyalty_points', 'total_stock', 'max_purchases_per_customer',
             'status', 'is_visible', 'eligibility_type', 'eligible_tiers',
             'eligible_customer_types', 'valid_from', 'valid_until',
@@ -252,11 +281,35 @@ class HamperController extends Controller
         $hamper = Hamper::findOrFail($id);
 
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'variant_id' => 'required_without:product_id|nullable|exists:product_variants,id',
+            'product_id' => 'required_without:variant_id|nullable|exists:products,id',
             'quantity'   => 'required|integer|min:1',
         ]);
 
-        $product = Product::findOrFail($request->product_id);
+        $stock = app(VariantStockService::class);
+        $variantId = $request->variant_id ?: $stock->defaultVariantId((int) $request->product_id);
+        $variant   = $variantId ? \App\Models\ProductVariant::with('product')->find($variantId) : null;
+        if (! $variant) {
+            return response()->json(['message' => 'That product has no variant yet — give it stock first.'], 422);
+        }
+        if ($request->filled('product_id') && (int) $request->product_id !== (int) $variant->product_id) {
+            return response()->json(['message' => 'That variant does not belong to the chosen product.'], 422);
+        }
+
+        $product = $variant->product;
+
+        // Items must be stocked at the hamper's own branch.
+        if (! $hamper->location_id) {
+            return response()->json(['message' => "Set this hamper's branch before adding items."], 422);
+        }
+        $a = $stock->availability($variant->id, (int) $hamper->location_id, (float) $request->quantity);
+        if (! $a['ok']) {
+            $where = $hamper->location?->name ?? 'this branch';
+            return response()->json([
+                'message'      => "{$where} is out of stock" . ($a['quantity'] > 0 ? " (only {$a['quantity']} left)" : '') . " for {$product->name}" . ($variant->name ? " — {$variant->name}" : '') . '.',
+                'available_at' => $a['elsewhere'],
+            ], 422);
+        }
 
         // only active visible products
         if ($product->status !== 'active' || !$product->is_visible) {
@@ -264,17 +317,18 @@ class HamperController extends Controller
         }
 
         $item = HamperItem::updateOrCreate(
-            ['hamper_id' => $hamper->id, 'product_id' => $product->id],
+            ['hamper_id' => $hamper->id, 'variant_id' => $variant->id],
             [
-                'quantity' => $request->quantity,
-                'snapshot' => HamperItem::buildSnapshot($product),
+                'product_id' => $product->id,
+                'quantity'   => $request->quantity,
+                'snapshot'   => array_merge(HamperItem::buildSnapshot($product), ['variant_id' => $variant->id, 'variant_name' => $variant->name]),
             ]
         );
         $this->logHamperActivity(
             $hamper->id, 'product_added',
             "Product '{$product->name}' added to hamper '{$hamper->name}'.",
             'info',
-            ['product_id' => $product->id, 'product_sku' => $product->sku, 'quantity' => $request->quantity]
+            ['product_id' => $product->id, 'variant_id' => $variant->id, 'product_sku' => $product->sku, 'quantity' => $request->quantity]
         );
 
         return response()->json(['message' => 'Product added to hamper', 'data' => $item], 201);
@@ -284,6 +338,7 @@ class HamperController extends Controller
     {
             $item = HamperItem::where('hamper_id', $id)
                 ->where('product_id', $productId)
+                ->when(request()->filled('variant_id'), fn ($q) => $q->where('variant_id', request('variant_id')))
                 ->firstOrFail();
 
             $productName = $item->snapshot['name'] ?? $productId;
@@ -470,19 +525,6 @@ class HamperController extends Controller
         });
 
         return response()->json($results);
-    }
-
-    // ── Orders ────────────────────────────────────────────────────────────────
-
-    public function orders(Request $request, $id): JsonResponse
-    {
-        $orders = Hamper::findOrFail($id)
-            ->orders()
-            ->with('customer:id,first_name,last_name,email')
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 20));
-
-        return response()->json($orders);
     }
 
     // GET /admin/hampers/activity

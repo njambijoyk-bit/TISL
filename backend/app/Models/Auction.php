@@ -13,7 +13,7 @@ class Auction extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'product_id', 'seller_id', 'currency_id', 'start_price', 'current_price',
+        'product_id', 'variant_id', 'location_id', 'seller_id', 'currency_id', 'start_price', 'current_price',
         'reserve_price', 'bid_increment', 'start_time', 'end_time',
         'status', 'winner_id', 'max_winners'
     ];
@@ -25,6 +25,8 @@ class Auction extends Model
     ];
 
     public function product() { return $this->belongsTo(Product::class); }
+    public function variant() { return $this->belongsTo(ProductVariant::class, 'variant_id'); }
+    public function location() { return $this->belongsTo(Location::class); }
     public function seller() { return $this->belongsTo(User::class, 'seller_id'); }
     public function winner() { return $this->belongsTo(User::class, 'winner_id'); }
     public function bids() { return $this->hasMany(AuctionBid::class)->orderByDesc('amount'); }

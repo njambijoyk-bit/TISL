@@ -28,9 +28,7 @@ use App\Http\Controllers\Api\SearchEventController;
 use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
-use App\Http\Controllers\Api\HamperOrderController;
 use App\Http\Controllers\Api\PublicHamperController;
-use App\Http\Controllers\Api\HamperCheckoutController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\NotificationController;
@@ -442,16 +440,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Customer hamper routes (auth required) ────────────────────────────────────
         Route::prefix('hampers')->middleware('module:ecommerce')->group(function () {
             Route::get('/',                              [PublicHamperController::class, 'index']);
-            Route::get('/my-orders',                    [HamperOrderController::class, 'myOrders']);
-            Route::get('/orders/{id}',                  [HamperOrderController::class, 'show']);
             Route::get('/{slug}',                       [PublicHamperController::class, 'show']);
-            Route::get('/{slug}/checkout',              [HamperCheckoutController::class, 'load']);
-            Route::post('/{slug}/checkout/validate-promo', [HamperCheckoutController::class, 'validatePromo']);
-            Route::post('/{slug}/checkout/place-order', [HamperCheckoutController::class, 'placeOrder']);
-        });
-
-        Route::middleware('module:ecommerce')->group(function () {
-            Route::get('/auction-orders', [AuctionController::class, 'myAuctionOrders']);
         });
 
         // Quotes
@@ -720,28 +709,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{auction}', [AuctionController::class, 'destroy']);
             Route::post('/{id}/restore', [AuctionController::class, 'restore']);  // ← new
             Route::delete('/{id}/force', [AuctionController::class, 'forceDestroy']); 
-            // Approve bids & create orders
-            Route::post('/{auction}/approve-bids', [AuctionController::class, 'approveBids']);
-
             // Auction activity log
             Route::get('/{auction}/activity', [AuctionController::class, 'auctionActivityLog']);
         });
 
-        // Auction order management
-        Route::prefix('auction-orders')->group(function () {
-            Route::get('/',                          [AuctionController::class, 'adminOrderIndex']);
-            Route::get('/trashed',                   [AuctionController::class, 'orderTrashedIndex']);
-            Route::get('/activity',                  [AuctionController::class, 'globalActivityLog']);
-            Route::get('/{id}',                      [AuctionController::class, 'adminOrderShow']);
-            Route::put('/{id}/status',               [AuctionController::class, 'updateOrderStatus']);
-            Route::put('/{id}/payment/paid',         [AuctionController::class, 'markOrderPaid']);
-            Route::post('/{id}/payment/partial',     [AuctionController::class, 'recordPartialPayment']);
-            Route::put('/{id}/ship',                 [AuctionController::class, 'shipOrder']);
-            Route::post('/{id}/cancel',              [AuctionController::class, 'cancelOrder']);
-            Route::post('/{id}/restore',             [AuctionController::class, 'restoreOrder']);
-            Route::post('/{id}/restore-trash',       [AuctionController::class, 'orderRestoreTrash']);
-            Route::delete('/{id}',                   [AuctionController::class, 'orderTrash']);
-        });
 
         // Categories Management
         Route::prefix('categories')->middleware('module:ecommerce')->group(function () {
@@ -1832,17 +1803,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{id}/eligibility/{customerId}',      [HamperController::class, 'updateCustomerStatus']);
         
             // orders
-            Route::get('/{id}/orders',                          [HamperController::class, 'orders']);
         });
         
-        // ── Admin hamper order management ─────────────────────────────────────────────
-        Route::prefix('hamper-orders')->group(function () {
-            Route::get('/',                                     [HamperOrderController::class, 'index']);
-            Route::get('/{id}',                                 [HamperOrderController::class, 'show']);
-            Route::patch('/{id}/status',                        [HamperOrderController::class, 'updateStatus']);
-            Route::post('/{id}/convert',                        [HamperOrderController::class, 'convertToOrder']);
-            Route::get('/{id}/activity', [HamperOrderController::class, 'activityLogs']);
-        });
         
         // ── PROMO CODES — ADMIN ────────────────────────────────────────────────────
         Route::prefix('promo-codes')->group(function () {
@@ -1975,10 +1937,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/force-delete-multiple', [OrderController::class, 'forceDeleteMultiple']); 
         });
 
-        // Auction order management
-        Route::prefix('auction-orders')->group(function () {
-            Route::delete('/{id}/force', [AuctionController::class, 'orderForceDelete']);
-        });
 
         Route::prefix('quotes')->group(function () {
             Route::delete('/{id}/force', [QuoteController::class, 'forceDelete']);

@@ -52,8 +52,8 @@ final class ModuleTables
             'categories', 'brands',
             'services', 'service_categories',
             'hamper_customer_eligibility',
-            // TODO: hampers, hamper_items, hamper_orders, auctions, bids,
-            // auction_orders, wishlists, specials…
+            // TODO: hampers, hamper_items, auctions, bids, wishlists, specials…
+            // (hamper/auction orders were retired — they sell through the normal checkout)
         ],
 
         'extras' => [

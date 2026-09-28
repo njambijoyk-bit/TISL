@@ -190,14 +190,6 @@ class Order extends Model
     }
 
     /**
-     * Get the hamper order associated with this standard order.
-     */
-    public function hamperOrder()
-    {
-        return $this->hasOne(HamperOrder::class);
-    }
-
-    /**
      * Get all payments for this order.
      */
     public function payments()
@@ -500,19 +492,13 @@ class Order extends Model
         ]);
 
         // ── Loyalty: earn points on payment ──────────────────────────────────────
-        // Skip for orders converted from hamper orders — points were already awarded
-        // during hamper checkout.
-        $isConvertedFromHamper = HamperOrder::where('order_id', $this->id)->exists();
-
-        if (!$isConvertedFromHamper) {
-            try {
-                $this->load('customer');
-                if ($this->customer) {
-                    app(\App\Services\LoyaltyService::class)->earnPointsForOrder($this);
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning("Loyalty earn failed for order {$this->id}: " . $e->getMessage());
+        try {
+            $this->load('customer');
+            if ($this->customer) {
+                app(\App\Services\LoyaltyService::class)->earnPointsForOrder($this);
             }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Loyalty earn failed for order {$this->id}: " . $e->getMessage());
         }
     }
 
@@ -665,32 +651,6 @@ class Order extends Model
         static::creating(function ($order) {
             if (!$order->order_number) {
                 $order->order_number = self::generateOrderNumber();
-            }
-        });
-
-        // Sync all changes on hamper-type orders to linked HamperOrder notes
-        static::updated(function ($order) {
-            if ($order->type !== 'hamper') {
-                return;
-            }
-
-            $hamperOrder = HamperOrder::where('order_id', $order->id)->first();
-            if (!$hamperOrder) {
-                return;
-            }
-
-            $changes = [];
-            if ($order->wasChanged('status')) {
-                $changes[] = "status → {$order->status}";
-            }
-            if ($order->wasChanged('payment_status')) {
-                $changes[] = "payment → {$order->payment_status}";
-            }
-
-            if (!empty($changes)) {
-                $note = "[" . now()->format('Y-m-d H:i:s') . "] Standard order #{$order->order_number}: " . implode(', ', $changes) . ".";
-                $hamperOrder->notes = ($hamperOrder->notes ? $hamperOrder->notes . "\n" : "") . $note;
-                $hamperOrder->save();
             }
         });
     }

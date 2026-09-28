@@ -15,6 +15,5 @@ class HamperActivityLog extends Model
     protected $casts = ['metadata' => 'array'];
 
     public function hamper()       { return $this->belongsTo(Hamper::class); }
-    public function hamperOrder()  { return $this->belongsTo(HamperOrder::class); }
     public function user()         { return $this->belongsTo(User::class); }
 }

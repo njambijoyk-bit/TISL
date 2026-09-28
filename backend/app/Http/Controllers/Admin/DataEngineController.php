@@ -37,7 +37,7 @@ class DataEngineController extends Controller
     public function export(Request $request): StreamedResponse|JsonResponse
     {
         $data = $request->validate([
-            'source'       => 'required|in:orders,payments,auction_orders,hamper_orders,customer_credit_transactions',
+            'source'       => 'required|in:orders,payments,customer_credit_transactions',
             'period_start' => 'required|date',
             'period_end'   => 'required|date|after_or_equal:period_start',
             'format'       => 'nullable|in:csv,json',
@@ -99,7 +99,7 @@ class DataEngineController extends Controller
     public function exportColumns(Request $request): JsonResponse
     {
         $source = $request->validate([
-            'source' => 'required|in:orders,payments,auction_orders,hamper_orders,customer_credit_transactions',
+            'source' => 'required|in:orders,payments,customer_credit_transactions',
         ])['source'];
 
         return response()->json([
@@ -127,7 +127,7 @@ class DataEngineController extends Controller
     {
         $request->validate([
             'file'   => 'required|file|mimes:csv,txt,xlsx,xls|max:10240',
-            'source' => 'nullable|in:orders,payments,auction_orders,hamper_orders,customer_credit_transactions',
+            'source' => 'nullable|in:orders,payments,customer_credit_transactions',
         ]);
 
         $headers = $this->parseFileHeaders($request->file('file'));
@@ -160,7 +160,7 @@ class DataEngineController extends Controller
     {
         $data = $request->validate([
             'file'           => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
-            'source'         => 'required|in:orders,payments,auction_orders,hamper_orders,customer_credit_transactions',
+            'source'         => 'required|in:orders,payments,customer_credit_transactions',
             'identifier_col' => 'required|string',
             'period_start'   => 'required|date',
             'period_end'     => 'required|date|after_or_equal:period_start',
@@ -283,21 +283,13 @@ class DataEngineController extends Controller
             ]);
 
         // Soft-delete aware
-        if (in_array($source, ['orders', 'auction_orders'])) {
+        if ($source === 'orders') {
             $query->whereNull("{$source}.deleted_at");
         }
 
         // Join customer name for tables that have customer_id
-        if (in_array($source, ['orders', 'payments', 'auction_orders', 'customer_credit_transactions'])) {
+        if (in_array($source, ['orders', 'payments', 'customer_credit_transactions'])) {
             $query->leftJoin('customers', 'customers.id', '=', "{$source}.customer_id")
-                  ->addSelect(DB::raw("CONCAT(customers.first_name, ' ', customers.last_name) AS customer_name"));
-        }
-
-        // For hamper_orders, join order_number from orders
-        if ($source === 'hamper_orders') {
-            $query->leftJoin('orders', 'orders.id', '=', 'hamper_orders.order_id')
-                  ->addSelect('orders.order_number AS linked_order_number')
-                  ->leftJoin('customers', 'customers.id', '=', 'hamper_orders.customer_id')
                   ->addSelect(DB::raw("CONCAT(customers.first_name, ' ', customers.last_name) AS customer_name"));
         }
 
@@ -312,8 +304,6 @@ class DataEngineController extends Controller
         return match($source) {
             'orders'                       => 'order_number',
             'payments'                     => 'payment_number',
-            'auction_orders'               => 'order_number',
-            'hamper_orders'                => 'order_number',
             'customer_credit_transactions' => 'id',
         };
     }
@@ -350,25 +340,6 @@ class DataEngineController extends Controller
                 'mpesa_receipt_number', 'mpesa_transaction_date', 'mpesa_amount_confirmed',
                 'dispute_status',
                 'confirmed_at', 'failed_at', 'voided_at',
-                'created_at',
-            ],
-            'auction_orders' => [
-                'order_number', 'product_name', 'product_sku', 'brand_name',
-                'winning_bid_amount', 'charged_amount', 'quantity',
-                'subtotal', 'tax', 'shipping_cost', 'total',
-                'currency', 'exchange_rate_to_kes',
-                'subtotal_kes', 'tax_kes', 'shipping_cost_kes', 'total_kes',
-                'payment_method', 'payment_status', 'payment_reference',
-                'status', 'delivery_method', 'shipping_method_name',
-                'tracking_number', 'courier_company',
-                'confirmed_at', 'shipped_at', 'delivered_at', 'cancelled_at',
-                'created_at',
-            ],
-            'hamper_orders' => [
-                'order_number', 'status',
-                'subtotal', 'vat_amount', 'discount_amount',
-                'store_credit_used', 'shipping_cost', 'total',
-                'shipping_method_name', 'loyalty_points_earned',
                 'created_at',
             ],
             'customer_credit_transactions' => [

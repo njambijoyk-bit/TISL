@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\Traits\LogsReferralActivity;
 use App\Models\ReferralCode;
 use App\Models\Customer;
 use App\Models\Order;
-use App\Models\HamperOrder;
 use App\Services\PromoCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -540,25 +539,7 @@ class PromoCodeController extends Controller
                 'redeemed_at'    => $o->created_at,
             ]);
 
-        // Hamper orders that used this promo code
-        $hamperOrders = HamperOrder::where('referral_code_id', $id)
-            ->with('customer:id,first_name,last_name,email')
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn($o) => [
-                'order_id'       => $o->id,
-                'order_number'   => $o->order_number,
-                'order_type'     => 'hamper',
-                'customer_name'  => $o->customer ? trim($o->customer->first_name . ' ' . $o->customer->last_name) : '—',
-                'customer_email' => $o->customer?->email ?? '—',
-                'subtotal_kes'   => round((float) $o->subtotal, 2),
-                'promo_discount' => round((float) $o->discount_amount, 2),
-                'total_kes'      => round((float) $o->total, 2),
-                'status'         => $o->status,
-                'redeemed_at'    => $o->created_at,
-            ]);
-
-        $redemptions = $standardOrders->concat($hamperOrders)
+        $redemptions = $standardOrders
             ->sortByDesc('redeemed_at')
             ->values();
 

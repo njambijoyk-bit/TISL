@@ -127,7 +127,7 @@ class FinancialNoteController extends Controller
     public function resolveSubject(Request $request)
     {
         $request->validate([
-            'table' => 'required|in:orders,payments,auction_orders,hamper_orders,quotes,store_credit_transactions,loyalty_point_transactions,customer_credit_transactions',
+            'table' => 'required|in:orders,payments,quotes,store_credit_transactions,loyalty_point_transactions,customer_credit_transactions',
             'q'     => 'required|string|max:100',
         ]);
 
@@ -137,8 +137,6 @@ class FinancialNoteController extends Controller
         $numberColumn = match($table) {
             'orders'         => 'order_number',
             'payments'       => 'payment_number',
-            'auction_orders' => 'order_number',
-            'hamper_orders'  => 'order_number',
             'quotes'         => 'quote_number',
             default          => null,
         };

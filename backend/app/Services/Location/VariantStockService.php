@@ -55,6 +55,39 @@ class VariantStockService
         });
     }
 
+    /**
+     * Is this variant stocked at the branch (at least $need)? Also lists the
+     * other branches that do have it, for the "in other branches" badge.
+     *
+     * @return array{ok: bool, quantity: float, location: ?string, elsewhere: array}
+     */
+    public function availability(int $variantId, int $locationId, float $need = 1): array
+    {
+        $rows = VariantLocationStock::where('product_variant_id', $variantId)
+            ->with('location:id,name,code')->get();
+
+        $here = (float) ($rows->firstWhere('location_id', $locationId)?->quantity ?? 0);
+
+        return [
+            'ok'        => $here >= $need,
+            'quantity'  => $here,
+            'location'  => Location::find($locationId)?->name,
+            'elsewhere' => $rows->filter(fn ($r) => $r->location_id !== $locationId && (float) $r->quantity > 0)
+                ->map(fn ($r) => [
+                    'location_id' => $r->location_id,
+                    'name'        => $r->location?->name,
+                    'quantity'    => (float) $r->quantity,
+                ])->values()->all(),
+        ];
+    }
+
+    /** The variant to use when none is chosen: the product's default (or first). */
+    public function defaultVariantId(int $productId): ?int
+    {
+        return ProductVariant::where('product_id', $productId)
+            ->orderByDesc('is_default')->orderBy('id')->value('id');
+    }
+
     /** Set the quantity for one (variant, branch); creates/updates the row. */
     public function setBranchStock(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
     {

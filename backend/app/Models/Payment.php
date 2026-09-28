@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Payment extends Model
 {
     protected $fillable = [
-        // Core references — order_id OR auction_order_id (mutually exclusive)
+        // Core references
         'order_id',
-        'auction_order_id',
         'customer_id',
         'initiated_by',
         'previous_payment_id',
@@ -135,11 +134,6 @@ class Payment extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function auctionOrder(): BelongsTo
-    {
-        return $this->belongsTo(AuctionOrder::class);
-    }
-
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -189,11 +183,6 @@ class Payment extends Model
         return $query->where('order_id', $orderId);
     }
 
-    public function scopeForAuctionOrder($query, int $auctionOrderId)
-    {
-        return $query->where('auction_order_id', $auctionOrderId);
-    }
-
     public function scopeHasOpenDispute($query)
     {
         return $query->whereIn('dispute_status', ['raised', 'investigating']);
@@ -238,11 +227,11 @@ class Payment extends Model
     // =========================================================================
 
     /**
-     * Get the parent order (regular or auction) for this payment.
+     * Get the parent order for this payment.
      */
-    public function parentOrder(): Order|AuctionOrder|null
+    public function parentOrder(): ?Order
     {
-        return $this->order ?? $this->auctionOrder;
+        return $this->order;
     }
 
     /**
@@ -250,7 +239,7 @@ class Payment extends Model
      */
     public function orderType(): string
     {
-        return $this->auction_order_id ? 'auction' : 'regular';
+        return 'regular';
     }
 
     /**
@@ -258,7 +247,7 @@ class Payment extends Model
      */
     public function orderNumber(): ?string
     {
-        return $this->order?->order_number ?? $this->auctionOrder?->order_number;
+        return $this->order?->order_number;
     }
 
     /**
@@ -284,14 +273,8 @@ class Payment extends Model
     public static function generatePaymentNumber(int $orderId, string $type = 'regular'): string
     {
         $year     = date('Y');
-        $prefix   = $type === 'auction' ? 'AUC' : 'PAY';
-        $sequence = static::where(function ($q) use ($orderId, $type) {
-            if ($type === 'auction') {
-                $q->where('auction_order_id', $orderId);
-            } else {
-                $q->where('order_id', $orderId);
-            }
-        })->count() + 1;
+        $prefix   = 'PAY';
+        $sequence = static::where('order_id', $orderId)->count() + 1;
         $seq = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
         return "{$prefix}-{$year}-{$orderId}-{$seq}";
@@ -301,13 +284,12 @@ class Payment extends Model
     // SNAPSHOT BUILDER — polymorphic for both order types
     // =========================================================================
 
-    public static function buildSnapshot(Order|AuctionOrder $order): array
+    public static function buildSnapshot(Order $order): array
     {
-        $isAuction = $order instanceof AuctionOrder;
         $orderId   = $order->id;
 
         $previouslyPaid = static::query()
-            ->where($isAuction ? 'auction_order_id' : 'order_id', $orderId)
+            ->where('order_id', $orderId)
             ->where('status', 'confirmed')
             ->sum('mpesa_amount_confirmed');
 
@@ -337,10 +319,8 @@ class Payment extends Model
         $order = $this->parentOrder();
         if (!$order) return;
 
-        $isAuction = $this->auction_order_id !== null;
-
         $totalConfirmed = static::query()
-            ->where($isAuction ? 'auction_order_id' : 'order_id', $order->id)
+            ->where('order_id', $order->id)
             ->where('status', 'confirmed')
             ->sum(\Illuminate\Support\Facades\DB::raw('CASE WHEN method = "refund" THEN -mpesa_amount_confirmed ELSE mpesa_amount_confirmed END'));
 
