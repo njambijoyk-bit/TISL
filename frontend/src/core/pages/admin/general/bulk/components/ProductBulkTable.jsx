@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import SearchableDropdown from '../../../../../../_shared/components/common/SearchableDropdown';
 import ImageDrawer from './ImageDrawer';
 import { productsAPI } from '../../../../../../_shared/api/index';
 import toast from 'react-hot-toast';
 import CurrencySelect from '../../../../../../_shared/components/common/currency/CurrencySelect';
 import useCurrencyStore from '../../../../../../_shared/store/currencyStore';
+import BranchStockPanel from '../../../../../../ecommerce/components/admin/BranchStockPanel';
 
 /**
  * ProductBulkTable
@@ -50,10 +51,6 @@ export default function ProductBulkTable({
     try {
       const payload = {};
       if (changes.name              !== undefined) payload.name           = changes.name;
-      if (changes.stock_quantity    !== undefined) {
-        payload.stock_quantity      = changes.stock_quantity;
-        payload.in_stock            = changes.stock_quantity > 0 ? 1 : 0;
-      }
       if (changes.price              !== undefined) payload.price              = changes.price;
       if (changes.original_price     !== undefined) payload.original_price     = changes.original_price;
       if (changes.price_is_negotiable !== undefined) payload.price_is_negotiable = changes.price_is_negotiable ? 1 : 0;
@@ -144,6 +141,7 @@ export default function ProductBulkTable({
           <thead>
             <tr style={{ background: 'var(--bg-secondary, #f9fafb)' }}>
               {/* Checkbox */}
+              <Th width={28} />
               <Th width={40}>
                 <input
                   type="checkbox"
@@ -155,7 +153,6 @@ export default function ProductBulkTable({
               <Th width={64}>Image</Th>
               <Th>Name</Th> 
               <Th width={100}>SKU</Th>
-              <Th width={110}>Stock Qty</Th>
               <Th width={160}>Category</Th>
               <Th width={140}>Brand</Th>
               <Th width={150}>Currency</Th>
@@ -182,6 +179,7 @@ export default function ProductBulkTable({
                 markDirty={(field, val) => markDirty(product.id, field, val)}
                 onSave={() => handleSave(product)}
                 onOpenDrawer={() => setDrawerProduct(product)}
+                onStockSaved={() => productsAPI.getAdminProduct(product.id).then(r => { const p = r.product || r; onProductUpdated(product.id, { ...product, stock_quantity: p.stock_quantity, in_stock: p.in_stock }); }).catch(() => {})}
                 isEven={idx % 2 === 0}
               />
             ))}
@@ -216,13 +214,14 @@ function ProductRow({
   product, categories, brands,
   isSelected, onToggleSelect,
   saving, saved, isDirty,
-  getVal, markDirty, onSave, onOpenDrawer,
+  getVal, markDirty, onSave, onOpenDrawer, onStockSaved,
   isEven,
 }) {
   const [priceInput, setPriceInput]     = useState('');
   const [origInput, setOrigInput]       = useState('');
   const [editingPrice, setEditingPrice] = useState(false);
   const [editingOrig, setEditingOrig]   = useState(false);
+  const [expanded, setExpanded]         = useState(false);
 
   const currentPrice = getVal('price');
   const currentOrig  = getVal('original_price');
@@ -244,10 +243,23 @@ function ProductRow({
         : 'var(--bg-secondary, #fafafa)';
 
   return (
+    <>
     <tr style={{
       background: rowBg,
       transition: 'background 0.3s',
     }}>
+
+      {/* Expand: stock by branch */}
+      <Td center>
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Hide stock by branch' : 'Show stock by branch'}
+          title="Stock by branch"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted, #6b7280)', fontSize: 14, lineHeight: 1, transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'none' }}
+        >▸</button>
+      </Td>
 
       {/* Checkbox */}
       <Td center>
@@ -291,18 +303,6 @@ function ProductRow({
     <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted, #9ca3af)' }}>
         {product.sku || '—'}
     </span>
-    </Td>
-
-    {/* Stock Qty — editable number */}
-    <Td>
-    <EditableCell
-        value={getVal('stock_quantity')}
-        type="number"
-        onCommit={val => {
-        const n = parseInt(val);
-        if (!isNaN(n) && n >= 0) markDirty('stock_quantity', n);
-        }}
-    />
     </Td>
 
       {/* Category */}
@@ -497,6 +497,18 @@ function ProductRow({
         </div>
       </Td>
     </tr>
+    {expanded && (
+      <tr style={{ background: 'var(--bg-secondary, #fafafa)' }}>
+        <td />
+        <td colSpan={11} style={{ padding: '10px 12px 16px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Stock by branch — {product.name}
+          </p>
+          <BranchStockPanel productId={product.id} embedded onSaved={onStockSaved} />
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 

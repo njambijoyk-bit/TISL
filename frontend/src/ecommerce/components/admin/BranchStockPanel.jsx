@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
  * auto-calculated from these numbers. Renders nothing when there's a single
  * branch (nothing to split) or the product has no variants yet.
  */
-export default function BranchStockPanel({ productId, readOnly = false }) {
+export default function BranchStockPanel({ productId, readOnly = false, embedded = false, onSaved }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,6 +66,7 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
       if (res.ok === false) throw new Error(res.message);
       toast.success(res.message || 'Saved.');
       load();
+      onSaved?.();
       // variants table + product stock read the same numbers — refresh them too
       useProductVariantStore.getState().refreshVariants();
     } catch (e) {
@@ -80,23 +81,35 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
 
   const { locations = [], variants = [] } = data;
   // Only meaningful with more than one branch and at least one variant.
-  if (locations.length <= 1 || variants.length === 0) return null;
+  if (locations.length <= 1 || variants.length === 0) {
+    return embedded ? (
+      <p style={{ margin: 0, fontSize: '0.8rem', color: '#9ca3af' }}>
+        {variants.length === 0 ? 'No variants yet — open the product to add stock.' : 'Only one branch — nothing to split.'}
+      </p>
+    ) : null;
+  }
 
   const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid #eee' };
   const td = { padding: '6px 10px', borderBottom: '1px solid #f6f6f6' };
   const cell = { width: 90, padding: '6px 8px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' };
 
   return (
-    <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed #e5e7eb', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={embedded
+      ? { display: 'flex', flexDirection: 'column', gap: 10 }
+      : { marginTop: 24, paddingTop: 20, borderTop: '1px dashed #e5e7eb', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {!embedded && (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MapPin size={18} color="var(--color-primary-600)" />
         <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem' }}>Stock by branch</p>
       </div>
+      )}
 
+      {!embedded && (
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', padding: '10px 12px', borderRadius: 9, fontSize: '0.78rem', color: '#4b5563' }}>
         <Info size={15} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-primary-500)' }} />
         <span>Quantity per variant, per branch. A blank branch means the variant isn't sold there. The product's total stock is calculated from these automatically.</span>
       </div>
+      )}
 
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
