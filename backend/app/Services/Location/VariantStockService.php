@@ -88,6 +88,28 @@ class VariantStockService
     }
 
     /**
+     * A variant's total was edited directly: keep the other branches as they
+     * are and make the default ("Main") branch carry the difference, then
+     * refresh the caches. Without branch rows the cache is just recomputed.
+     */
+    public function applyVariantTotal(ProductVariant $variant, float $total): void
+    {
+        $main = Location::default();
+        $hasRows = VariantLocationStock::where('product_variant_id', $variant->id)->exists();
+
+        if ($main && $hasRows) {
+            $others = (float) VariantLocationStock::where('product_variant_id', $variant->id)
+                ->where('location_id', '!=', $main->id)->sum('quantity');
+            $this->setBranchStock($variant->id, $main->id, max(0, $total - $others));
+        }
+
+        $variant->loadMissing('product');
+        if ($variant->product) {
+            $this->recomputeCaches($variant->product);
+        }
+    }
+
+    /**
      * Recompute the cached quantities from variant_location_stock. For any
      * product that has variants, product.stock_quantity becomes the sum of its
      * variants (and each variant.stock_quantity the sum of its branches) — so

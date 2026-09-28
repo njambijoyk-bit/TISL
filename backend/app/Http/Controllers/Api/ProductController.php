@@ -72,6 +72,17 @@ class ProductController extends Controller
     {
         $product = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction', 'defaultUnit', 'alternateUnit'])->findOrFail($id);
 
+        // Not stored yet: show the unit its variants already use (saved on the next update).
+        if (! $product->default_unit_id) {
+            $derived = \App\Models\ProductVariantUnit::query()
+                ->join('product_variants as pv', 'pv.id', '=', 'product_variant_units.variant_id')
+                ->where('pv.product_id', $product->id)->where('product_variant_units.role', 'base')
+                ->orderByDesc('pv.is_default')->orderBy('pv.id')->value('product_variant_units.unit_id');
+            if ($derived) {
+                $product->default_unit_id = $derived;
+            }
+        }
+
         $relatedProductsData = collect([]);
         if (!empty($product->related_products)) {
             $relatedProductsData = Product::with(['brand', 'category', 'currency:id,code,symbol'])

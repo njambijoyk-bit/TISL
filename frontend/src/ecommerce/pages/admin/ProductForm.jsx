@@ -328,6 +328,22 @@ export default function ProductForm() {
     admin_notes: '', main_image_url: '', additional_image_urls: '',
   });
 
+  // Product stock is derived from variants/branches — refresh it whenever their
+  // numbers change in the editors below (edits, branch saves, add/remove).
+  const stockSignature = useProductVariantStore((s) =>
+    s.productId === Number(id) ? s.variants.map((v) => `${v.id}:${v.stock_quantity}`).join('|') : null);
+  const stockSigSeen = useRef(null);
+  useEffect(() => {
+    if (!id || stockSignature === null) return;
+    if (stockSigSeen.current === null) { stockSigSeen.current = stockSignature; return; }
+    if (stockSigSeen.current === stockSignature) return;
+    stockSigSeen.current = stockSignature;
+    productsAPI.getAdminProduct(id).then((res) => {
+      const p = res.product || res;
+      setFormData((f) => ({ ...f, stock_quantity: p.stock_quantity ?? '', in_stock: p.in_stock !== undefined ? Boolean(p.in_stock) : f.in_stock }));
+    }).catch(() => {});
+  }, [stockSignature, id]);
+
   // ── Unsaved-changes draft ─────────────────────────────────────────────────
   // Kept in sessionStorage so leaving the page and coming back restores what was
   // typed, while a brand-new browser tab starts from a fresh load.
@@ -831,7 +847,7 @@ export default function ProductForm() {
                       alternate_unit_id: unitById(p.alternate_unit_id)?.dimension === unitById(v)?.dimension ? p.alternate_unit_id : '',
                     }))}
                     disabled={isView || (isEdit && Boolean(loadedUnits.current.d) && formData.has_variants)}
-                    allowEmpty={false}
+                    emptyLabel="Select a unit"
                   />
                 </Field>
                 <Field label="Alternate selling unit" hint={!isView ? 'Optional, same kind as the stock unit (e.g. dozen for pieces).' : undefined}>

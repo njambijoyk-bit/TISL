@@ -19,6 +19,18 @@ class ProductVariantObserver
         $this->stock->seedNewVariant($variant, (float) ($variant->stock_quantity ?? 0));
     }
 
+    /**
+     * Editing a variant's stock in the variant form must reach the branch rows
+     * (the source of truth) and the product total, like creation does.
+     */
+    public function updated(ProductVariant $variant): void
+    {
+        if (! $variant->wasChanged('stock_quantity')) {
+            return;
+        }
+        $this->stock->applyVariantTotal($variant, (float) $variant->stock_quantity);
+    }
+
     public function deleted(ProductVariant $variant): void
     {
         $variant->loadMissing('product');

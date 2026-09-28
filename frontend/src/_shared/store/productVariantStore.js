@@ -67,6 +67,16 @@ const useProductVariantStore = create((set, get) => {
       }, 'Failed to load variants');
     },
 
+    /** Re-read variants (stock, units) in place — no reset, so the editor doesn't flicker. */
+    refreshVariants: async () => {
+      const id = get().productId;
+      if (!id) return;
+      try {
+        const v = await productVariantsAPI.getVariants(id);
+        if (get().productId === id) set({ variants: v.variants ?? [] });
+      } catch { /* keep what we have */ }
+    },
+
     reset: () => set({ ...initialState }),
 
     // ── Options ──────────────────────────────────────────────────────────

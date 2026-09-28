@@ -65,6 +65,8 @@ export default function BranchStockPanel({ productId, readOnly = false }) {
       if (res.ok === false) throw new Error(res.message);
       toast.success(res.message || 'Saved.');
       load();
+      // variants table + product stock read the same numbers — refresh them too
+      useProductVariantStore.getState().refreshVariants();
     } catch (e) {
       toast.error(e.response?.data?.message || e.message || 'Could not save.');
     } finally { setSaving(false); }
