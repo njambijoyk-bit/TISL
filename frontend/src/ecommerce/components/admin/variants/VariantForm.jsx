@@ -4,8 +4,9 @@ import useProductVariantStore from '../../../../_shared/store/productVariantStor
 import { fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../../../../core/components/admin/ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, CheckboxRow, FormGrid, FormStack, ModalActions, FormError } from '../../../../core/components/admin/ui/Form';
+import useUomStore from '../../../../_shared/store/uomStore';
 import UnitSelect from '../../../../_shared/components/common/UnitSelect';
-import { colors } from '../../../../_shared/theme/tokens';
+import { colors, input as inputStyle } from '../../../../_shared/theme/tokens';
 
 /** Current option → value selection of a variant, as { [option_id]: value_id }. */
 const selectionOf = (variant) => Object.fromEntries(
@@ -17,7 +18,9 @@ const selectionOf = (variant) => Object.fromEntries(
  * price in the same step (prices are in the product's currency).
  */
 export default function VariantForm({ variant, currencyCode, defaultUnitId = null, onClose }) {
-  const { options, variants, createVariant, updateVariant, variantByCombination, actionLoading } = useProductVariantStore();
+  const { options, variants, createVariant, updateVariant, createUnit, updateUnit, variantByCombination, actionLoading } = useProductVariantStore();
+  const { unitById } = useUomStore();
+  const existingBase = variant?.units?.find((u) => u.role === 'base') ?? null;
   const editing = Boolean(variant);
   const [selection, setSelection] = useState(selectionOf(variant));
   const [form, setForm] = useState({
@@ -28,7 +31,13 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
     status: variant?.status ?? 'active',
     is_default: variant?.is_default ?? variants.length === 0,
   });
-  const [baseUnit, setBaseUnit] = useState({ unit_id: defaultUnitId ?? '', price: '', compare_at_price: '' });
+  const [baseUnit, setBaseUnit] = useState({
+    unit_id: existingBase?.unit_id ?? defaultUnitId ?? '',
+    price: existingBase?.price != null ? Number(existingBase.price) : '',
+    compare_at_price: existingBase?.compare_at_price != null ? Number(existingBase.compare_at_price) : '',
+  });
+  const lockedUnit = existingBase ? unitById(existingBase.unit_id) : defaultUnitId ? unitById(defaultUnitId) : null;
+  const unitLocked = Boolean(existingBase || defaultUnitId);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
@@ -71,7 +80,18 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
       }
     }
     try {
-      if (editing) await updateVariant(variant.id, payload); else await createVariant(payload);
+      const money = (v) => (v === '' ? null : Number(v));
+      if (editing) {
+        await updateVariant(variant.id, payload);
+        if (existingBase) {
+          await updateUnit(variant.id, existingBase.id, { price: money(baseUnit.price), compare_at_price: money(baseUnit.compare_at_price) });
+        } else if (baseUnit.unit_id) {
+          await createUnit(variant.id, {
+            unit_id: baseUnit.unit_id, role: 'base',
+            price: money(baseUnit.price), compare_at_price: money(baseUnit.compare_at_price), is_default_sale: true,
+          });
+        }
+      } else await createVariant(payload);
       toast.success(editing ? 'Variant saved' : 'Variant created');
       onClose();
     } catch (err) {
@@ -129,12 +149,18 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
             </Field>
           </FormGrid>
 
-          {!editing && (
+          {(
             <div style={{ padding: 14, borderRadius: 10, border: `1.5px solid ${colors.tint(0.15)}`, background: colors.tint(0.02) }}>
               <p style={{ margin: '0 0 10px', fontSize: '0.8rem', fontWeight: 700, color: colors.primaryDeep }}>How it's sold</p>
               <FormGrid min={150}>
                 <Field label="Base unit" htmlFor="v-bunit" error={errors['base_unit.unit_id']} hint={defaultUnitId ? "The product's default unit — all stock is counted in it" : "The smallest unit you sell and count stock in"}>
-                  <UnitSelect id="v-bunit" value={baseUnit.unit_id} onChange={(v) => setBaseUnit((b) => ({ ...b, unit_id: v }))} emptyLabel="Set later" disabled={Boolean(defaultUnitId)} />
+                  {unitLocked ? (
+                    <div id="v-bunit" style={{ ...inputStyle, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                      {lockedUnit ? `${lockedUnit.name} (${lockedUnit.code})` : '…'}
+                    </div>
+                  ) : (
+                    <UnitSelect id="v-bunit" value={baseUnit.unit_id} onChange={(v) => setBaseUnit((b) => ({ ...b, unit_id: v }))} emptyLabel="Set later" />
+                  )}
                 </Field>
                 <Field label={`Price (${currencyCode})`} htmlFor="v-price" error={errors['base_unit.price']}>
                   <NumberInput id="v-price" min="0" step="0.01" disabled={!baseUnit.unit_id} value={baseUnit.price} onChange={(e) => setBaseUnit((b) => ({ ...b, price: e.target.value }))} />
