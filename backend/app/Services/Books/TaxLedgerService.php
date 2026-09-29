@@ -21,25 +21,15 @@ class TaxLedgerService
 
     public function __construct(private LedgerService $ledgers) {}
 
-    private function dutiesGroup(): LedgerGroup
-    {
-        return LedgerGroup::where('name', 'Duties & Taxes')->firstOrFail();
-    }
-
     /**
+     * A tax type IS a tax group under Duties & Taxes; this gives it the ledgers that carry
+     * its opening balance (control for additive types; payable + receivable for withheld).
+     *
      * @param  array  $opening  ['control' => [amount, 'D'|'C'], 'payable' => [...], 'receivable' => [...]]
      */
     public function provisionType(TaxType $type, array $opening = []): TaxType
     {
         return DB::transaction(function () use ($type, $opening) {
-            $duties = $this->dutiesGroup();
-            $group = $type->group_id ? LedgerGroup::find($type->group_id) : null;
-            $group ??= LedgerGroup::firstOrCreate(['name' => $type->name], [
-                'parent_id' => $duties->id, 'nature' => $duties->nature, 'is_primary' => false, 'is_system' => true,
-                'affects_gross_profit' => false, 'sort_order' => 50,
-            ]);
-            $type->group_id = $group->id;
-
             $mk = function (string $name, int $groupId, string $key, string $defaultSide) use ($opening): Ledger {
                 [$amt, $side] = $opening[$key] ?? [0, $defaultSide];
 
@@ -48,14 +38,14 @@ class TaxLedgerService
 
             if ($type->application_mode === TaxType::MODE_WITHHELD) {
                 if (! $type->payable_ledger_id) {
-                    $type->payable_ledger_id = $mk("{$type->name} Payable", $group->id, 'payable', 'C')->id;
+                    $type->payable_ledger_id = $mk("{$type->name} Payable", $type->id, 'payable', 'C')->id;
                 }
                 if (! $type->receivable_ledger_id) {
                     $assets = LedgerGroup::where('name', 'Current Assets')->firstOrFail();
                     $type->receivable_ledger_id = $mk("{$type->name} Receivable", $assets->id, 'receivable', 'D')->id;
                 }
             } elseif (! $type->control_ledger_id) {
-                $type->control_ledger_id = $mk("{$type->name} Account", $group->id, 'control', 'C')->id;
+                $type->control_ledger_id = $mk("{$type->name} Account", $type->id, 'control', 'C')->id;
             }
             $type->save();
 
@@ -63,14 +53,11 @@ class TaxLedgerService
         });
     }
 
-    /** Keep the group and its ledgers' names following the type's name. */
+    /** The group carries the type's name; keep its ledgers' names following it. */
     public function renameType(TaxType $type, string $old): void
     {
         if ($old === $type->name) {
             return;
-        }
-        if ($type->group_id) {
-            LedgerGroup::whereKey($type->group_id)->where('name', $old)->update(['name' => $type->name]);
         }
         foreach ([['control_ledger_id', 'Account'], ['payable_ledger_id', 'Payable'], ['receivable_ledger_id', 'Receivable']] as [$col, $suffix]) {
             if ($type->{$col}) {
@@ -79,64 +66,39 @@ class TaxLedgerService
         }
     }
 
-    /** Create / fetch the ledgers a rate posts to and store their ids on the rate. */
+    /** A rate is its own ledger; nothing to create beyond making sure its type has its balance ledgers. */
     public function provisionRate(TaxRate $rate): TaxRate
     {
-        if ($rate->ledger_output_id && $rate->ledger_input_id) {
-            return $rate;
-        }
         $type = $rate->taxType ?? TaxType::findOrFail($rate->tax_type_id);
-        if (! $type->group_id || (! $type->control_ledger_id && ! $type->payable_ledger_id)) {
-            $type = $this->provisionType($type);
+        if (! $type->control_ledger_id && ! $type->payable_ledger_id) {
+            $this->provisionType($type);
         }
-
-        if ($type->application_mode === TaxType::MODE_WITHHELD) {
-            // We are paid net of it by customers (receivable) / we hold it back from suppliers (payable).
-            $rate->ledger_output_id ??= $type->receivable_ledger_id;
-            $rate->ledger_input_id ??= $type->payable_ledger_id;
-        } else {
-            $label = $this->rateLabel($rate, $type);
-            $rate->ledger_output_id ??= $this->uniqueLedger("{$type->code} Output {$label}", $type->group_id)->id;
-            $rate->ledger_input_id ??= $this->uniqueLedger("{$type->code} Input {$label}", $type->group_id)->id;
-        }
-        $rate->save();
 
         return $rate;
     }
 
-    private function rateLabel(TaxRate $rate, TaxType $type): string
+    /** "VAT 16%", "Excise KES 20/L (spirits)" — the ledger name of a rate; numbered when taken. */
+    public function rateName(TaxRate $rate): string
     {
+        $type = TaxType::find($rate->tax_type_id);
         $v = rtrim(rtrim((string) $rate->rate_value, '0'), '.');
-        if ($rate->rate_type === TaxRate::TYPE_PERCENTAGE) {
+        if ($rate->isPercentage()) {
             $label = $v . '%';
         } else {
-            $cur = $rate->currency?->code ?? '';
-            $label = trim("{$cur} {$v}") . ($rate->unit?->code ? "/{$rate->unit->code}" : '');
+            $cur = $rate->currency_id ? \App\Models\Currency::whereKey($rate->currency_id)->value('code') : '';
+            $unit = $rate->unit_of_measure_id ? \App\Models\UnitOfMeasure::whereKey($rate->unit_of_measure_id)->value('code') : null;
+            $label = trim("{$cur} {$v}") . ($unit ? "/{$unit}" : '');
         }
-        if ($rate->classification) {
+        if ($rate->classification && $rate->classification !== 'standard') {
             $label .= " ({$rate->classification})";
         }
-
-        return $label;
-    }
-
-    /** Re-use a same-named ledger only if it already sits in this group; otherwise number it. */
-    private function uniqueLedger(string $name, int $groupId): Ledger
-    {
-        $existing = Ledger::where('name', $name)->first();
-        if (! $existing) {
-            return Ledger::create(['group_id' => $groupId, 'name' => $name, 'is_system' => true, 'is_active' => true]);
-        }
-        if ($existing->group_id === $groupId || $this->belongsToTaxGroup($existing)) {
-            return $existing;
+        $base = trim(($type?->code ?? $type?->name ?? 'Tax') . ' ' . $label);
+        $name = $base;
+        for ($n = 2; Ledger::where('name', $name)->exists(); $n++) {
+            $name = "{$base} #{$n}";
         }
 
-        return Ledger::create(['group_id' => $groupId, 'name' => "{$name} #" . (Ledger::count() + 1), 'is_system' => true, 'is_active' => true]);
-    }
-
-    private function belongsToTaxGroup(Ledger $l): bool
-    {
-        return in_array($l->group_id, $this->dutiesGroup()->selfAndDescendantIds(), true);
+        return $name;
     }
 
     /** Live position for a tax type, base currency (positive = owed to the authority). */
@@ -150,9 +112,9 @@ class TaxLedgerService
             return ['kind' => 'withheld', 'payable' => round($payable, 2), 'receivable' => round($receivable, 2), 'net_owed' => round($payable - $receivable, 2)];
         }
         $control = -$bal($type->control_ledger_id);
-        $out = array_sum(array_map(fn ($id) => -$bal($id), TaxRate::where('tax_type_id', $type->id)->pluck('ledger_output_id')->filter()->unique()->all()));
-        $in = array_sum(array_map(fn ($id) => $bal($id), TaxRate::where('tax_type_id', $type->id)->pluck('ledger_input_id')->filter()->unique()->all()));
+        // output and input tax share each rate's ledger: a credit balance is tax we owe, a debit balance tax we can reclaim
+        $rates = array_sum(array_map(fn ($id) => -$bal($id), TaxRate::where('group_id', $type->id)->pluck('id')->all()));
 
-        return ['kind' => 'additive', 'brought_forward' => round($control, 2), 'output' => round($out, 2), 'input' => round($in, 2), 'net_owed' => round($control + $out - $in, 2)];
+        return ['kind' => 'additive', 'brought_forward' => round($control, 2), 'rates' => round($rates, 2), 'net_owed' => round($control + $rates, 2)];
     }
 }

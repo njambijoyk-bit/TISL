@@ -711,3 +711,9 @@ Group fields: default rate_type, currency, taxable?, income vs expense side, fre
 5. reconciliation reports (tax returns, withholding certificates); drop retired tables.
 ### 15.7 Decisions
 a) One ledger per rate (versioned by validity) vs one ledger per tax with a rate table. b) Single ledger for output+input vs two. c) Exemption certificates as a register (recommended) vs ledger. d) Delivery expense ledgers in the same group (recommended).
+
+### 15.8 Build status (steps 1–3)
+- Step 1 done: group `behaviour` + ledger rate attributes; behaviour-driven ledger form (SQL 23).
+- Step 2 done: shipping options are delivery ledgers; `ShippingOption` is a facade over them (SQL 24).
+- Step 3 done: tax types = tax groups directly under Duties & Taxes (code, mode, compound, active, balance ledgers are group columns); tax rates = ledgers (one per rate, versioned by validity; output and input share the ledger). `TaxType` / `TaxRate` are facades so the tax screens, rules and checkout keep working. Withheld rates are rate cards that post to the type's receivable / payable ledgers. Districts, rules, exemption certificates stay configuration pointing at them (SQL 25).
+- Still to do: withholding certificate report + credit tables retired (step 4); reconciliation and tax-return reports, drop retired tables (step 5).

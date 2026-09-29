@@ -22,7 +22,7 @@ class ShippingOptionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $options = ShippingOption::with(['currency:id,code,symbol', 'taxRate:id,tax_type_id,rate_value,rate_type'])->ordered()->get();
+        $options = ShippingOption::with(['currency:id,code,symbol', 'taxRate'])->ordered()->get();
 
         return response()->json($options);
     }
@@ -47,7 +47,7 @@ class ShippingOptionController extends Controller
             'sort_order'  => 'integer|min:0',
             'icon'        => 'nullable|string|max:30',
             'currency_id' => 'nullable|integer|exists:currencies,id',
-            'tax_rate_id' => 'nullable|integer|exists:tax_rates,id',
+            'tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
         ]);
 
         $option = ShippingOption::create([
@@ -100,7 +100,7 @@ class ShippingOptionController extends Controller
             'sort_order'  => 'sometimes|integer|min:0',
             'icon'        => 'nullable|string|max:30',
             'currency_id' => 'sometimes|integer|exists:currencies,id',
-            'tax_rate_id' => 'nullable|integer|exists:tax_rates,id',
+            'tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
         ]);
 
         $changes = [];

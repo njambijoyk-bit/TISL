@@ -34,7 +34,7 @@ class WithholdingController extends Controller
         $validator = Validator::make($request->all(), [
             'code'                => 'required|string|max:50|unique:withholding_classifications,code',
             'label'               => 'required|string|max:150',
-            'default_tax_rate_id' => 'nullable|exists:tax_rates,id',
+            'default_tax_rate_id' => ['nullable', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'is_active'           => 'boolean',
         ]);
 
@@ -55,7 +55,7 @@ class WithholdingController extends Controller
         $validator = Validator::make($request->all(), [
             'code'                => 'sometimes|required|string|max:50|unique:withholding_classifications,code,' . $id,
             'label'               => 'sometimes|required|string|max:150',
-            'default_tax_rate_id' => 'nullable|exists:tax_rates,id',
+            'default_tax_rate_id' => ['nullable', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'is_active'           => 'boolean',
         ]);
 

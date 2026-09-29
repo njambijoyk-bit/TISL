@@ -94,11 +94,11 @@ class TaxRule extends Model
     public function resolveRate($on = null): ?TaxRate
     {
         return TaxRate::query()
-            ->where('tax_type_id', $this->tax_type_id)
+            ->where('group_id', $this->tax_type_id)
             ->where('classification', $this->classification ?? 'standard')
             ->active()
             ->effectiveOn($on)
-            ->orderByDesc('valid_from')
+            ->orderByDesc('ledgers.valid_from')
             ->first();
     }
 

@@ -15,6 +15,7 @@ class Ledger extends Model
         'group_id', 'name', 'code', 'opening_balance', 'opening_side',
         'customer_id', 'supplier_id', 'currency_id', 'is_system', 'is_active', 'notes',
         'rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days', 'side', 'settings',
+        'classification', 'unit_of_measure_id', 'calculation_base', 'calculation_sequence', 'requires_certificate',
     ];
 
     protected $casts = [
@@ -28,6 +29,8 @@ class Ledger extends Model
         'valid_from'      => 'date:Y-m-d',
         'valid_until'     => 'date:Y-m-d',
         'settings'        => 'array',
+        'requires_certificate' => 'boolean',
+        'calculation_sequence' => 'integer',
     ];
 
     public const RATE_TYPES = ['percent', 'fixed', 'per_unit'];

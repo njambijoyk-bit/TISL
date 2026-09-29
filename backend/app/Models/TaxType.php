@@ -2,74 +2,74 @@
 
 namespace App\Models;
 
+use App\Models\Books\LedgerGroup;
 use App\Traits\LogsTaxActivity;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class TaxType extends Model
+/**
+ * A tax type is not a table of its own: it is a tax-behaviour group directly under
+ * Duties & Taxes. Its code, mode (additive | withheld), compounding, active flag and
+ * the ledgers that carry its opening balance are columns of that group.
+ */
+class TaxType extends LedgerGroup
 {
     use LogsTaxActivity;
 
     public const MODE_ADDITIVE = 'additive'; // added on top of the price (VAT-style)
     public const MODE_WITHHELD = 'withheld'; // deducted from the amount paid out
 
-    protected $table = 'tax_types';
+    protected $appends = ['group_id'];
 
-    protected $fillable = [
-        'name',
-        'code',
-        'application_mode',
-        'is_compound',
-        'is_active',
-        'kind',
-        'group_id',
-        'control_ledger_id',
-        'payable_ledger_id',
-        'receivable_ledger_id',
-    ];
+    protected static function booted(): void
+    {
+        static::addGlobalScope('tax_types', function (Builder $q) {
+            $q->where('ledger_groups.behaviour', 'tax')
+                ->whereIn('ledger_groups.parent_id', fn ($g) => $g->select('id')->from('ledger_groups as d')->where('d.name', 'Duties & Taxes'));
+        });
 
-    protected $casts = [
-        'is_compound' => 'boolean',
-        'is_active'   => 'boolean',
-    ];
+        static::creating(function (self $t) {
+            $duties = LedgerGroup::where('name', 'Duties & Taxes')->firstOrFail();
+            $t->parent_id = $duties->id;
+            $t->nature = $duties->nature;
+            $t->behaviour = 'tax';
+            $t->is_primary = false;
+            $t->is_system = true;
+            $t->affects_gross_profit = false;
+            $t->sort_order = $t->sort_order ?: 50;
+        });
+    }
 
-    // ========================================
-    // RELATIONSHIPS
-    // ========================================
+    /** The group is the tax type — kept for code that still asks for its group. */
+    public function getGroupIdAttribute(): ?int
+    {
+        return $this->id;
+    }
 
     public function rates(): HasMany
     {
-        return $this->hasMany(TaxRate::class);
+        return $this->hasMany(TaxRate::class, 'group_id');
     }
 
     public function rules(): HasMany
     {
-        return $this->hasMany(TaxRule::class);
+        return $this->hasMany(TaxRule::class, 'tax_type_id');
     }
-
-    // ========================================
-    // SCOPES
-    // ========================================
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('ledger_groups.is_active', true);
     }
 
     public function scopeAdditive(Builder $query): Builder
     {
-        return $query->where('application_mode', self::MODE_ADDITIVE);
+        return $query->where('ledger_groups.application_mode', self::MODE_ADDITIVE);
     }
 
     public function scopeWithheld(Builder $query): Builder
     {
-        return $query->where('application_mode', self::MODE_WITHHELD);
+        return $query->where('ledger_groups.application_mode', self::MODE_WITHHELD);
     }
-
-    // ========================================
-    // HELPERS
-    // ========================================
 
     public function isAdditive(): bool
     {

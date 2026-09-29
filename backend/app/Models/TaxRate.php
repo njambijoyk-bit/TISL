@@ -2,15 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Books\Ledger;
 use App\Traits\LogsTaxActivity;
 use App\Traits\HasCurrencyConversion;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
-class TaxRate extends Model
+/**
+ * A tax rate is not a table of its own: it is a ledger (with a rate) inside a tax group
+ * under Duties & Taxes. One ledger per rate, versioned by valid_from / valid_until. Output
+ * (sales) and input (purchase) tax post to the same ledger, its balance being what is owed.
+ * A withheld rate is a rate card: postings go to the type's receivable / payable ledgers.
+ */
+class TaxRate extends Ledger
 {
     use LogsTaxActivity, HasCurrencyConversion;
 
@@ -21,31 +28,84 @@ class TaxRate extends Model
     public const BASE_POST_DISCOUNT = 'post_discount';  // after discounts, before other taxes
     public const BASE_TOTAL_PAYABLE = 'total_payable';  // after discounts, incl. additive taxes
 
-    protected $table = 'tax_rates';
-
     protected $fillable = [
-        'tax_type_id',
-        'classification',
-        'rate_type',
-        'rate_value',
-        'unit_of_measure_id',
-        'currency_id',
-        'calculation_base',
-        'calculation_sequence',
-        'requires_certificate',
-        'valid_from',
-        'valid_until',
-        'is_active',
+        'name', 'group_id', 'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
+        'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active', 'is_system',
     ];
 
-    protected $casts = [
-        'rate_value'           => 'decimal:4',
-        'calculation_sequence' => 'integer',
-        'requires_certificate' => 'boolean',
-        'valid_from'           => 'date',
-        'valid_until'          => 'date',
-        'is_active'            => 'boolean',
-    ];
+    protected $appends = ['tax_type_id', 'ledger_output_id', 'ledger_input_id'];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('tax_rates', function (Builder $q) {
+            $q->whereNotNull('ledgers.rate_type')
+                ->whereIn('ledgers.group_id', fn ($g) => $g->select('id')->from('ledger_groups')->where('behaviour', 'tax'));
+        });
+
+        static::creating(function (self $r) {
+            $r->opening_balance = $r->opening_balance ?? 0;
+            $r->opening_side = $r->opening_side ?: 'C';
+            $r->is_system = true;   // managed from the tax screens
+            $r->side = null;
+            if (! $r->name) {
+                $r->name = app(\App\Services\Books\TaxLedgerService::class)->rateName($r);
+            }
+        });
+    }
+
+    // ── the ledger, in tax vocabulary ───────────────────────────────────────
+
+    public function getTaxTypeIdAttribute(): ?int { return $this->attributes['group_id'] ?? null; }
+    public function setTaxTypeIdAttribute($v): void { $this->attributes['group_id'] = $v; }
+
+    /** Stored percent | fixed | per_unit; the tax screens speak percentage | fixed_amount. */
+    public function getRateTypeAttribute(): ?string
+    {
+        return match ($this->attributes['rate_type'] ?? null) {
+            null => null,
+            'percent' => self::TYPE_PERCENTAGE,
+            default => self::TYPE_FIXED_AMOUNT,
+        };
+    }
+
+    public function setRateTypeAttribute($v): void
+    {
+        $this->attributes['rate_type'] = $v === self::TYPE_PERCENTAGE || $v === 'percent'
+            ? 'percent'
+            : ($v === null ? null : 'fixed');
+        $this->refreshRawType();
+    }
+
+    public function setUnitOfMeasureIdAttribute($v): void
+    {
+        $this->attributes['unit_of_measure_id'] = $v;
+        $this->refreshRawType();
+    }
+
+    private function refreshRawType(): void
+    {
+        if (($this->attributes['rate_type'] ?? null) === 'fixed' && ! empty($this->attributes['unit_of_measure_id'])) {
+            $this->attributes['rate_type'] = 'per_unit';
+        } elseif (($this->attributes['rate_type'] ?? null) === 'per_unit' && empty($this->attributes['unit_of_measure_id']) && array_key_exists('unit_of_measure_id', $this->attributes)) {
+            $this->attributes['rate_type'] = 'fixed';
+        }
+    }
+
+    /** Sales tax posts to the rate's ledger itself; a withheld rate posts to its type's receivable ledger. */
+    public function getLedgerOutputIdAttribute(): ?int
+    {
+        $type = $this->taxType;
+
+        return $type?->application_mode === TaxType::MODE_WITHHELD ? $type->receivable_ledger_id : $this->id;
+    }
+
+    /** Purchase tax posts to the same ledger; withheld from suppliers goes to the type's payable ledger. */
+    public function getLedgerInputIdAttribute(): ?int
+    {
+        $type = $this->taxType;
+
+        return $type?->application_mode === TaxType::MODE_WITHHELD ? $type->payable_ledger_id : $this->id;
+    }
 
     // ========================================
     // RELATIONSHIPS
@@ -53,7 +113,7 @@ class TaxRate extends Model
 
     public function taxType(): BelongsTo
     {
-        return $this->belongsTo(TaxType::class);
+        return $this->belongsTo(TaxType::class, 'group_id');
     }
 
     /** The unit a fixed_amount rate is quoted per (e.g. per litre). */
@@ -62,9 +122,14 @@ class TaxRate extends Model
         return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_id');
     }
 
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
     public function applications(): HasMany
     {
-        return $this->hasMany(TaxApplication::class);
+        return $this->hasMany(TaxApplication::class, 'tax_rate_id');
     }
 
     // ========================================
@@ -73,7 +138,7 @@ class TaxRate extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('ledgers.is_active', true);
     }
 
     /** Rates valid on a date (defaults to today). */
@@ -81,15 +146,16 @@ class TaxRate extends Model
     {
         $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
 
-        return $query->where('valid_from', '<=', $date)
-            ->where(function ($q) use ($date) {
-                $q->whereNull('valid_until')->orWhere('valid_until', '>=', $date);
-            });
+        return $query->where(function ($q) use ($date) {
+            $q->whereNull('ledgers.valid_from')->orWhere('ledgers.valid_from', '<=', $date);
+        })->where(function ($q) use ($date) {
+            $q->whereNull('ledgers.valid_until')->orWhere('ledgers.valid_until', '>=', $date);
+        });
     }
 
     public function scopeForClassification(Builder $query, string $classification): Builder
     {
-        return $query->where('classification', $classification);
+        return $query->where('ledgers.classification', $classification);
     }
 
     // ========================================

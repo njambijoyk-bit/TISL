@@ -78,10 +78,10 @@ class WithholdingClassification extends Model
 
         return TaxRate::query()
             ->whereHas('taxType', fn ($q) => $q->where('application_mode', TaxType::MODE_WITHHELD))
-            ->where('classification', $this->code)
+            ->where('ledgers.classification', $this->code)
             ->active()
             ->effectiveOn($on)
-            ->orderByDesc('valid_from')
+            ->orderByDesc('ledgers.valid_from')
             ->first();
     }
 

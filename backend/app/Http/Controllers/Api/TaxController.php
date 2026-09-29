@@ -58,8 +58,8 @@ class TaxController extends Controller
     public function adminStoreType(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'             => 'required|string|max:100',
-            'code'             => 'required|string|max:30|unique:tax_types,code',
+            'name'             => 'required|string|max:100|unique:ledger_groups,name',
+            'code'             => 'required|string|max:30|unique:ledger_groups,code',
             'application_mode' => 'required|in:additive,withheld',
             'kind'             => 'nullable|in:' . implode(',', \App\Services\Books\TaxLedgerService::KINDS),
             'is_compound'      => 'boolean',
@@ -102,8 +102,8 @@ class TaxController extends Controller
         $type = TaxType::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name'             => 'sometimes|required|string|max:100',
-            'code'             => 'sometimes|required|string|max:30|unique:tax_types,code,' . $id,
+            'name'             => 'sometimes|required|string|max:100|unique:ledger_groups,name,' . $id,
+            'code'             => 'sometimes|required|string|max:30|unique:ledger_groups,code,' . $id,
             'application_mode' => 'sometimes|required|in:additive,withheld',
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
@@ -132,7 +132,19 @@ class TaxController extends Controller
             ], 422);
         }
 
-        $type->delete();
+        // its balance ledgers go with it — unless something was posted to them
+        $ids = array_filter([$type->control_ledger_id, $type->payable_ledger_id, $type->receivable_ledger_id]);
+        $ledgers = \App\Models\Books\Ledger::whereIn('id', $ids)->get();
+        foreach ($ledgers as $l) {
+            if ($l->entries()->exists() || (float) $l->opening_balance != 0.0) {
+                return response()->json(['message' => "The ledger \"{$l->name}\" already has a balance or postings. Deactivate this tax type instead."], 422);
+            }
+        }
+        DB::transaction(function () use ($type, $ledgers) {
+            $type->update(['control_ledger_id' => null, 'payable_ledger_id' => null, 'receivable_ledger_id' => null]);
+            $ledgers->each->delete();
+            $type->delete();
+        });
 
         return response()->json(['message' => 'Tax type deleted.'], 200);
     }
@@ -147,7 +159,7 @@ class TaxController extends Controller
         $query = TaxRate::with(['taxType', 'unit', 'currency:id,code,symbol'])->withCount('applications');
 
         if ($request->filled('tax_type_id')) {
-            $query->where('tax_type_id', $request->tax_type_id);
+            $query->where('group_id', $request->tax_type_id);
         }
 
         if ($request->filled('classification')) {
@@ -164,7 +176,7 @@ class TaxController extends Controller
     public function adminStoreRate(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'tax_type_id'          => 'required|exists:tax_types,id',
+            'tax_type_id'          => 'required|exists:ledger_groups,id',
             'classification'       => 'nullable|string|max:50',
             'rate_type'            => 'required|in:percentage,fixed_amount',
             'rate_value'           => 'required|numeric|min:0',
@@ -264,17 +276,17 @@ class TaxController extends Controller
     {
         $rate = TaxRate::findOrFail($id);
 
-        try {
-            $rate->delete();
-            return response()->json(['message' => 'Tax rate deleted.'], 200);
-        } catch (QueryException $e) {
-            if ($this->isForeignKeyViolation($e)) {
-                return response()->json([
-                    'message' => 'This rate has been applied to orders and cannot be deleted. Deactivate it instead.',
-                ], 422);
-            }
-            throw $e;
+        // a rate that has been charged, or whose ledger has postings, is history — switch it off instead
+        if ($rate->applications()->exists() || $rate->entries()->exists() || (float) $rate->opening_balance != 0.0
+            || \App\Models\Books\VoucherItemTax::where('tax_rate_id', $rate->id)->exists()) {
+            return response()->json(['message' => 'This rate has been applied to orders or has postings and cannot be deleted. Deactivate it instead.'], 422);
         }
+        if (\App\Models\Hamper::where('tax_rate_id', $rate->id)->exists() || \App\Models\WithholdingClassification::where('default_tax_rate_id', $rate->id)->exists()) {
+            return response()->json(['message' => 'A hamper or withholding classification uses this rate. Re-point it first.'], 422);
+        }
+        $rate->delete();
+
+        return response()->json(['message' => 'Tax rate deleted.'], 200);
     }
 
     // ========================================
@@ -303,7 +315,7 @@ class TaxController extends Controller
     public function adminStoreRule(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'tax_type_id'               => 'required|exists:tax_types,id',
+            'tax_type_id'               => 'required|exists:ledger_groups,id',
             'classification'            => 'nullable|string|max:50',
             'name'                      => 'required|string|max:150',
             'applicable_module'         => 'nullable|string|max:50',

@@ -55,7 +55,7 @@ class HamperController extends Controller
             'price'                      => 'required|numeric|min:0',
             'currency_id'                => 'nullable|exists:currencies,id,is_active,1',
             'location_id'                => 'required|integer|exists:locations,id,is_active,1',
-            'tax_rate_id'                => 'nullable|integer|exists:tax_rates,id',
+            'tax_rate_id'                => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -75,7 +75,7 @@ class HamperController extends Controller
         if (! empty($data['tax_rate_id'])) {
             $ok = \App\Models\TaxRate::whereKey($data['tax_rate_id'])
                 ->active()->effectiveOn()
-                ->where('rate_type', \App\Models\TaxRate::TYPE_PERCENTAGE)
+                ->where('rate_type', 'percent')
                 ->whereHas('taxType', fn ($q) => $q->active()->additive())
                 ->exists();
             if (! $ok) {
@@ -123,7 +123,7 @@ class HamperController extends Controller
             'price'                      => 'sometimes|numeric|min:0',
             'currency_id'                => 'sometimes|nullable|exists:currencies,id,is_active,1',
             'location_id'                => 'sometimes|integer|exists:locations,id,is_active,1',
-            'tax_rate_id'                => 'sometimes|nullable|integer|exists:tax_rates,id',
+            'tax_rate_id'                => ['sometimes', 'nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'status'                     => 'in:draft,active,inactive',
             'apply_vat'                  => 'boolean',
             'allow_promo_codes'          => 'boolean',
@@ -188,7 +188,7 @@ class HamperController extends Controller
         if (! empty($data['tax_rate_id'])) {
             $ok = \App\Models\TaxRate::whereKey($data['tax_rate_id'])
                 ->active()->effectiveOn()
-                ->where('rate_type', \App\Models\TaxRate::TYPE_PERCENTAGE)
+                ->where('rate_type', 'percent')
                 ->whereHas('taxType', fn ($q) => $q->active()->additive())
                 ->exists();
             if (! $ok) {

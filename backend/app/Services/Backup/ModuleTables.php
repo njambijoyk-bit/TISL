@@ -24,7 +24,7 @@ final class ModuleTables
             'users', 'customers', 'customer_addresses', 'customer_notes',
             'currencies', 'currency_activity_logs',
             'units_of_measure', 'unit_locale_defaults',
-            'tax_rates', 'tax_types', 'tax_rules', 'tax_districts', 'tax_rule_districts',
+            'tax_rules', 'tax_districts', 'tax_rule_districts',
             'tax_applicability', 'tax_applications', 'tax_legitimacy_certificates', 'tax_activity_logs',
             'withholding_certificates', 'withholding_classifications',
             'withholding_credits', 'withholding_credit_clearances', 'withholding_activity_logs',
