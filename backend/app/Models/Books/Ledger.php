@@ -52,6 +52,6 @@ class Ledger extends Model
 
     public function entries(): HasMany
     {
-        return $this->hasMany(VoucherEntry::class);
+        return $this->hasMany(VoucherEntry::class, 'ledger_id');   // explicit: TaxRate / ShippingOption extend Ledger and would otherwise look for tax_rate_id / shipping_option_id
     }
 }
