@@ -45,7 +45,7 @@ class CheckoutController extends Controller
             'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.hamper_id' => 'nullable|integer|exists:hampers,id',
             'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
             'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
-            'delivery_method' => ['nullable', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method' => ['nullable', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'promo_code' => 'nullable|string|max:40', 'gift_voucher_code' => 'nullable|string|max:60',
         ];
     }

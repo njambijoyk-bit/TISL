@@ -139,7 +139,7 @@ class OrderController extends Controller
             'customer_email'         => 'required|email',
             'customer_phone'         => 'required|string',
             'shipping_address'       => 'required|string',
-            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'payment_method'         => 'required|in:request_invoice,pay_on_delivery,mpesa,bank_transfer,credit_card,credit',
             'customer_notes'         => 'nullable|string',
             'items'                  => 'required|array|min:1',
@@ -403,7 +403,7 @@ class OrderController extends Controller
             }
 
             // ── Shipping Calculation & Snapshot ───────────────────────────────────
-            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+            $shippingOption = ShippingOption::where('code', $request->delivery_method)
                 ->where('is_active', true)
                 ->first();
 
@@ -832,7 +832,7 @@ class OrderController extends Controller
 
         $validator = Validator::make($request->all(), [
             'payment_method'         => 'required|in:request_invoice,pay_on_delivery,mpesa,bank_transfer,credit_card,credit',
-            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'courier_company'        => 'required_if:delivery_method,courier|nullable|string',
             'order_type'             => 'required|in:standard,bulk,b2b,quotation,service,mixed,project,subscription',
             'shipping_address'       => 'required|string',
@@ -1076,7 +1076,7 @@ class OrderController extends Controller
             $promoDiscount = min((float) ($order->promo_discount    ?? 0), $subtotal - $referralDiscount);
 
             // ── Shipping Calculation & Snapshot ───────────────────────────────────
-            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+            $shippingOption = ShippingOption::where('code', $request->delivery_method)
                 ->where('is_active', true)
                 ->first();
 
@@ -1911,7 +1911,7 @@ class OrderController extends Controller
             'items.*.quantity'       => 'required|numeric|min:0.01',
             'items.*.allow_backorder' => 'boolean',
             'items.*.discount'       => 'nullable|numeric',
-            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method'        => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'shipping_address'       => 'required|string',
             'priority'               => 'nullable|in:low,medium,high,urgent',
             'order_type'             => 'nullable|in:standard,quotation,bulk,b2b,service,mixed,project,subscription',
@@ -2179,7 +2179,7 @@ class OrderController extends Controller
             $tax                   = $applyTax ? ($subtotalAfterDiscount * 0.16) : 0;
 
             // ── Shipping Calculation & Snapshot ───────────────────────────────────
-            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+            $shippingOption = ShippingOption::where('code', $request->delivery_method)
                 ->where('is_active', true)
                 ->first();
 
@@ -2503,7 +2503,7 @@ class OrderController extends Controller
             'items.*.is_custom_item'   => 'nullable|boolean',
             'items.*.quantity'         => 'required|numeric|min:0.01',
             'items.*.allow_backorder'  => 'nullable|boolean',
-            'delivery_method'          => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('slug'))],
+            'delivery_method'          => ['required', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'shipping_address'         => 'required|string',
             'billing_address'          => 'nullable|string',
             'billing_same_as_shipping' => 'nullable|boolean',
@@ -2786,7 +2786,7 @@ class OrderController extends Controller
             $tax                   = $applyTax ? ($subtotalAfterDiscount * 0.16) : 0;
 
             // ── Shipping Calculation & Snapshot ───────────────────────────────────
-            $shippingOption = ShippingOption::where('slug', $request->delivery_method)
+            $shippingOption = ShippingOption::where('code', $request->delivery_method)
                 ->where('is_active', true)
                 ->first();
 
@@ -4156,7 +4156,7 @@ class OrderController extends Controller
 
     private function calculateShippingCost(string $deliveryMethod, float $subtotal): float
     {
-        $option = ShippingOption::where('slug', $deliveryMethod)
+        $option = ShippingOption::where('code', $deliveryMethod)
             ->where('is_active', true)
             ->first();
 

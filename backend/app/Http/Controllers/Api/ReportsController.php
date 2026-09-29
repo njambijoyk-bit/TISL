@@ -1193,7 +1193,7 @@ class ReportsController extends Controller
             ->values();
 
         $shippingOptions = ShippingOption::query()
-            ->orderBy('sort_order')
+            ->ordered()
             ->get()
             ->map(fn ($option) => [
                 'id'           => $option->id,

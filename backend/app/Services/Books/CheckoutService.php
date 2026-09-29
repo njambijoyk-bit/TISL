@@ -140,7 +140,7 @@ class CheckoutService
         // delivery
         $option = null;
         if (! empty($in['delivery_method'])) {
-            $option = ShippingOption::where('slug', $in['delivery_method'])->where('is_active', true)->first()
+            $option = ShippingOption::where('code', $in['delivery_method'])->where('is_active', true)->first()
                 ?? throw new BooksException('That delivery method is not available.');
             $netSub = $sub - array_sum(array_column($discounts, 'amount'));
             $final[] = ['type' => 'charge', 'kind' => 'shipping', 'shipping_option_id' => $option->id, 'waive' => $this->tierWaivesShipping($customer, $netSub, $currency)];

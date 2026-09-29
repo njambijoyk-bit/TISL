@@ -105,6 +105,9 @@ class BooksMasterController extends Controller
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
         $this->assertBehaviourFields($d, $d['group_id']);
+        if (empty($d['code']) && ($d['side'] ?? null) === 'income' && LedgerGroup::whereKey($d['group_id'])->value('behaviour') === 'delivery') {
+            $d['code'] = \Illuminate\Support\Str::slug($d['name'], '_');   // checkout picks a delivery method by this
+        }
         $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
 
         return response()->json(['message' => 'Ledger created', 'data' => $l->load('group:id,name,nature')], 201);

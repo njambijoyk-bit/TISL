@@ -451,7 +451,7 @@ class VoucherService
             $note = "{$optCurrency->code} " . number_format($cost, 2) . " converted to {$ctx['currency']->code} @ " . rtrim(rtrim(number_format($this->money->rateOn($optCurrency, $ctx['date']) / (float) $ctx['rate'], 6, '.', ''), '0'), '.');
         }
         $line = array_merge($this->blank('charge'), [
-            'description' => 'Shipping — ' . $opt->name . ($cost == 0.0 ? ' (free)' : ''), 'quantity' => 1.0, 'base_quantity' => 1.0,
+            'description' => $opt->name . ($cost == 0.0 ? ' (free)' : ''), 'quantity' => 1.0, 'base_quantity' => 1.0,
             'rate' => $amount, 'amount' => $amount, 'ledger_id' => (int) $ledgerId, 'shipping_option_id' => $opt->id, 'notes' => $note,
         ]);
         if ($amount != 0.0 && $opt->tax_rate_id) {

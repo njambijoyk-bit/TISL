@@ -22,7 +22,7 @@ class ShippingOptionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $options = ShippingOption::with(['currency:id,code,symbol', 'taxRate:id,tax_type_id,rate_value,rate_type'])->orderBy('sort_order')->get();
+        $options = ShippingOption::with(['currency:id,code,symbol', 'taxRate:id,tax_type_id,rate_value,rate_type'])->ordered()->get();
 
         return response()->json($options);
     }
@@ -34,8 +34,12 @@ class ShippingOptionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'slug'        => 'required|string|max:50|unique:shipping_options,slug',
-            'name'        => 'required|string|max:100',
+            'slug'        => ['required', 'string', 'max:50', Rule::unique('ledgers', 'code')],
+            'rate_type'   => 'nullable|in:percent,fixed,per_unit',
+            'min_amount'  => 'nullable|numeric|min:0',
+            'max_amount'  => 'nullable|numeric|min:0',
+            'transit_days'=> 'nullable|integer|min:0|max:365',
+            'name'        => 'required|string|max:100|unique:ledgers,name',
             'description' => 'nullable|string|max:255',
             'cost'        => 'required|numeric|min:0',
             'free_above'  => 'nullable|numeric|min:0',
@@ -50,6 +54,10 @@ class ShippingOptionController extends Controller
             'currency_id' => $request->currency_id ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id,
             'tax_rate_id' => $request->tax_rate_id,
             'slug'        => $request->slug,
+            'rate_type'   => $request->rate_type ?: 'fixed',
+            'min_amount'  => $request->min_amount,
+            'max_amount'  => $request->max_amount,
+            'transit_days'=> $request->transit_days,
             'name'        => $request->name,
             'description' => $request->description,
             'cost'        => $request->cost,
@@ -80,8 +88,12 @@ class ShippingOptionController extends Controller
         $option = ShippingOption::findOrFail($id);
 
         $request->validate([
-            'slug'        => ['sometimes', 'string', 'max:50', Rule::unique('shipping_options')->ignore($id)],
-            'name'        => 'sometimes|string|max:100',
+            'slug'        => ['sometimes', 'string', 'max:50', Rule::unique('ledgers', 'code')->ignore($id)],
+            'name'        => "sometimes|string|max:100|unique:ledgers,name,{$id}",
+            'rate_type'   => 'nullable|in:percent,fixed,per_unit',
+            'min_amount'  => 'nullable|numeric|min:0',
+            'max_amount'  => 'nullable|numeric|min:0',
+            'transit_days'=> 'nullable|integer|min:0|max:365',
             'description' => 'nullable|string|max:255',
             'cost'        => 'sometimes|numeric|min:0',
             'free_above'  => 'nullable|numeric|min:0',
@@ -92,7 +104,7 @@ class ShippingOptionController extends Controller
         ]);
 
         $changes = [];
-        $fields  = ['slug', 'name', 'description', 'cost', 'free_above', 'sort_order', 'icon', 'currency_id', 'tax_rate_id'];
+        $fields  = ['slug', 'name', 'description', 'cost', 'free_above', 'sort_order', 'icon', 'currency_id', 'tax_rate_id', 'rate_type', 'min_amount', 'max_amount', 'transit_days'];
 
         foreach ($fields as $field) {
             if ($request->has($field) && $request->$field != $option->$field) {
@@ -164,18 +176,16 @@ class ShippingOptionController extends Controller
             'slug' => $option->slug,
         ]);
 
-        // its income ledger goes with it — or is switched off when it already has postings
-        $ledger = $option->income_ledger_id ? \App\Models\Books\Ledger::find($option->income_ledger_id) : null;
-        $option->delete();
-        if ($ledger) {
-            if ($ledger->entries()->exists() || (float) $ledger->opening_balance != 0.0) {
-                $ledger->update(['is_active' => false, 'is_system' => false]);
-            } else {
-                $ledger->delete();
-            }
+        // the option IS the ledger: it goes, unless money was ever posted to it — then it is switched off and kept
+        if ($option->entries()->exists() || (float) $option->opening_balance != 0.0) {
+            $option->update(['is_active' => false]);
+            $note = 'Shipping option switched off — it has postings, so its ledger is kept.';
+        } else {
+            $option->delete();
+            $note = 'Shipping option deleted successfully';
         }
 
-        return response()->json(['message' => 'Shipping option deleted successfully']);
+        return response()->json(['message' => $note ?? 'Shipping option deleted successfully']);
     }
 
     /**

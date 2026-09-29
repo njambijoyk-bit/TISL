@@ -84,13 +84,23 @@ function MoneyFields({ form, set, choices, hintFree }) {
           </select>
         </Field>
       </div>
+      <Field label="Charged as" hint="A percentage of the goods, or a fixed amount">
+        <select value={form.rate_type ?? 'fixed'} onChange={set('rate_type')} style={inputStyle}>
+          <option value="fixed">Fixed amount</option><option value="percent">Percentage of the goods</option><option value="per_unit">Per unit (kg, km…)</option>
+        </select>
+      </Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label={`Cost (${code})`}>
+        <Field label={form.rate_type === 'percent' ? 'Rate (%)' : `Cost (${code})`}>
           <input type="number" step="0.01" min="0" required value={form.cost} onChange={set('cost')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
         </Field>
         <Field label={`Free above (${code})`} hint={hintFree}>
           <input type="number" step="0.01" min="0" value={form.free_above} onChange={set('free_above')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
         </Field>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <Field label={`Minimum (${code})`}><input type="number" step="0.01" min="0" value={form.min_amount ?? ''} onChange={set('min_amount')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
+        <Field label={`Maximum (${code})`}><input type="number" step="0.01" min="0" value={form.max_amount ?? ''} onChange={set('max_amount')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
+        <Field label="Transit days"><input type="number" step="1" min="0" value={form.transit_days ?? ''} onChange={set('transit_days')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
       </div>
     </>
   );
@@ -98,7 +108,7 @@ function MoneyFields({ form, set, choices, hintFree }) {
 
 function AddShippingModal({ onClose, onSave }) {
   const choices = useCurrencyChoices();
-  const [form, setForm] = useState({ slug: '', name: '', description: '', cost: '', free_above: '', icon: 'Truck', sort_order: '0', currency_id: '', tax_rate_id: '' });
+  const [form, setForm] = useState({ slug: '', name: '', description: '', cost: '', free_above: '', icon: 'Truck', sort_order: '0', currency_id: '', tax_rate_id: '', rate_type: 'fixed', min_amount: '', max_amount: '', transit_days: '' });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
@@ -107,6 +117,9 @@ function AddShippingModal({ onClose, onSave }) {
       ...form,
       slug: form.slug.toLowerCase().replace(/\s+/g, '_'),
       free_above: form.free_above === '' ? null : form.free_above,
+      min_amount: form.min_amount === '' ? null : form.min_amount,
+      max_amount: form.max_amount === '' ? null : form.max_amount,
+      transit_days: form.transit_days === '' ? null : form.transit_days,
       currency_id: form.currency_id || undefined,
       tax_rate_id: form.tax_rate_id || null,
     });
@@ -183,6 +196,10 @@ function EditShippingModal({ option, onClose, onSave }) {
     sort_order: option.sort_order ?? 0,
     currency_id: option.currency_id ?? '',
     tax_rate_id: option.tax_rate_id ?? '',
+    rate_type: option.rate_type ?? 'fixed',
+    min_amount: option.min_amount ?? '',
+    max_amount: option.max_amount ?? '',
+    transit_days: option.transit_days ?? '',
   });
   const choices = useCurrencyChoices();
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -194,6 +211,9 @@ function EditShippingModal({ option, onClose, onSave }) {
       currency_id: form.currency_id || undefined,
       tax_rate_id: form.tax_rate_id || null,
       free_above: form.free_above === '' ? null : form.free_above,
+      min_amount: form.min_amount === '' ? null : form.min_amount,
+      max_amount: form.max_amount === '' ? null : form.max_amount,
+      transit_days: form.transit_days === '' ? null : form.transit_days,
     });
   };
 
@@ -565,7 +585,7 @@ export default function ShippingSettings() {
                     {/* Cost */}
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '0.84rem', fontWeight: 600, color: opt.cost == 0 ? '#10b981' : '#374151', fontFamily: 'monospace' }}>
-                        {opt.cost == 0 ? 'Free' : `${opt.currency?.code ?? ''} ${fmtCost(opt.cost)}`}
+                        {opt.cost == 0 ? 'Free' : opt.rate_type === 'percent' ? `${Number(opt.cost)}% of goods` : `${opt.currency?.code ?? ''} ${fmtCost(opt.cost)}`}
                       </span>
                     </td>
 
