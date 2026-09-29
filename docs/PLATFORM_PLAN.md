@@ -844,7 +844,7 @@ Defaults set here; a category may override, and a product may override again.
 |---|---|---|---|
 | **1. Fields + ledgers** | `products.is_for_sale` (default 1), `products.track_expiry` (default 0), same on variant if needed; seed ledgers *Stock, COGS, Cost of Services, Job Materials Cost, Stock Loss* and default-ledger settings | Product model + validation; product create defaults (for sale = yes, track expiry = no); "not for sale" hidden from storefront/till queries | "Stock" section on product form with the two switches |
 | **2. Batches** | `stock_batches(id, variant_id, batch_no, mfg_date, expiry_date, unit_cost, currency_id, source_voucher_item_id, status)`, `stock_batch_balances(batch_id, location_id, quantity)`, `stock_movements.batch_id` + `unit_cost`; **backfill**: one opening batch per variant/branch from current `variant_location_stock` at cost 0 (cost set by opening-stock step) | `BatchService` (create, pick FEFO/FIFO, apply, reverse); `VariantStockService::applyDelta` becomes the total of batch balances | none yet |
-| **3. Stock in (valued)** | none new | Receipt Note / Purchase lines create batches (batch no + expiry when tracked); post Dr Stock; **Opening stock** voucher | Batch no + expiry columns on receipt/purchase lines for tracked products only |
+| **3. Stock in (valued) + Purchases page** | none new | Receipt Note / Purchase lines create batches (batch no + expiry when tracked); post Dr Stock; **Opening stock** voucher; endpoint to add a variant to an existing product from a purchase | **Purchases page** (§18.1); batch no + expiry columns on purchase lines for tracked products only |
 | **4. Stock out (valued)** | none new | `VoucherService::stockPlan/applyStock` picks batches; sales post Cr Stock / Dr COGS at batch cost; cancel/edit reverses batch by batch; credit note returns to the same batch | Batch + expiry shown on invoice print for tracked products only; batch override at till |
 | **5. Settings** | `stock_settings` (single row) + per-category / per-product overrides; add to backup map | Settings model + controller + API | Settings → **Stock & expiry** page (§17.5) |
 | **6. Expiry engine** | none new | Daily `stock:expire` command (schedule it): mark expired batches; enforce settings on sale (block / override / min days); storefront hides expired; **expiry badge only when tracked + date set**; warning notifications; expired-stock list with return-to-supplier (Debit Note) and write-off (Dr Stock Loss / Cr Stock) actions | Expired-stock list, expiry dashboard (expired / 30 / 60 / 90 days), badge on product cards |
@@ -853,4 +853,20 @@ Defaults set here; a category may override, and a product may override again.
 
 **Not in this build:** transfers, stock count, stock journal, recipes/manufacturing, work-in-progress on long jobs, weighted-average costing.
 
-**Open before step 1:** confirm whether the For sale / Track expiry switches live on the **product** only or also per **variant** (recommended: product, with variant inheriting).
+**Settled:** the For sale / Track expiry switches live on the **product** only (every variant inherits them).
+
+**Status:** steps 1–2 built (SQL scripts `22_stock_fields_and_ledgers.sql`, `23_stock_batches.sql`). Stock changes now go through batches (`BatchService`); `variant_location_stock` is the total of a variant's batches. Sales already take stock first-expiring first and record the batch and its cost on each stock movement; cost-of-goods-sold posting is step 4. Known until step 6: stock on hand counts expired batches too (they are skipped when selling but stay counted until written off).
+
+### 18.1 Purchases page (E-commerce admin) — part of step 3
+
+A purchase voucher screen in the style of the existing voucher form, with a guided item picker. It reuses the Purchase voucher type, so numbering, period locks, edit limits and cancellation already apply.
+
+- **Header:** supplier (Sundry Creditors), date, branch receiving the stock, currency, supplier invoice no., due date, narration.
+- **Adding a line:** search a variant by name or SKU (the voucher lookup, `purpose=purchase`, which also finds *not for sale* materials).
+  1. **Existing variant** → quantity, unit, cost, tax. If the product tracks expiry, batch no + expiry date columns appear on that line.
+  2. **New variant of an existing product** → "Add variant" opens the existing variant form inline, saves, and returns to the line.
+  3. **Nothing found** → near matches ("did you mean…", the storefront's fuzzy search), then **"Create new product"** — always offered, even after fuzzy suggestions.
+  4. **Create new product** → the existing product form; on save the admin **returns to the purchase with the draft kept** and the new product's variant already on the line.
+- **Automatic variant:** a product saved with no variants gets a "Standard" variant (`ensureDefaultVariant`); the page does the same after "Create new product". Today that only runs when the product has a default unit — the purchase path falls back to the platform default unit so the line is never left without a variant.
+- **Saving:** posts the purchase — creates batches, adds branch stock, Dr Stock / Cr Supplier.
+- **Draft:** kept in the browser while the admin is on the product form, so nothing typed is lost.

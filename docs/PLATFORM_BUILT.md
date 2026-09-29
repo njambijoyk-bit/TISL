@@ -37,6 +37,8 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 10 | `10_backup_map_adjustments.sql` | Seed/adjust the built-in table → module map |
 | 11 | `11_backup_runs.sql` | `backup_runs` history (when, destination, result, file) |
 | 12 | `12_nav_links.sql` | `nav_links` — storefront links per module, with show/visible flags |
+| 22 | `22_stock_fields_and_ledgers.sql` | `products.is_for_sale` / `track_expiry`; ledgers *Stock, Cost of Goods Sold, Cost of Services, Job Materials Cost, Stock Loss* + their `accounting_settings` pointers |
+| 23 | `23_stock_batches.sql` | `stock_batches`, `stock_batch_balances`, `stock_movements.batch_id` / `unit_cost`; existing stock moved into opening batches (at cost 0 — set real cost in the script's PART E) |
 
 ---
 

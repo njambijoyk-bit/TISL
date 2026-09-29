@@ -49,6 +49,14 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter by stock switches (admin lists: "materials only", "tracks expiry")
+        if ($request->filled('is_for_sale')) {
+            $query->where('is_for_sale', filter_var($request->is_for_sale, FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($request->filled('track_expiry')) {
+            $query->where('track_expiry', filter_var($request->track_expiry, FILTER_VALIDATE_BOOLEAN));
+        }
+
         // Filter by native currency
         if ($request->filled('currency_id')) {
             $query->where('currency_id', $request->currency_id);
@@ -107,6 +115,7 @@ class ProductController extends Controller
     {
         $query = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction'])
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->where('status', 'active');
 
         // --- all existing filters unchanged ---
@@ -186,6 +195,7 @@ class ProductController extends Controller
             $fuzzyResults = app(FuzzySuggestService::class)->suggest(
                 Product::with(['brand:id,name', 'currency:id,code,symbol'])
                     ->where('is_visible', true)
+                    ->where('is_for_sale', true)
                     ->where('status', 'active')
                     ->select('id', 'name', 'sku', 'main_image', 'price', 'sales_ledger_id', 'currency_id', 'slug', 'brand_id'),
                 (string) $request->search,
@@ -289,6 +299,15 @@ class ProductController extends Controller
                 ? ($request->in_stock === '1' || $request->in_stock === 'true' || $request->in_stock === true)
                 : true;
 
+            // Stock switches: a product is for sale unless said otherwise, and does
+            // not track expiry unless said otherwise (uncommon — batch + expiry asked on receipt).
+            $isForSale = $request->has('is_for_sale')
+                ? filter_var($request->is_for_sale, FILTER_VALIDATE_BOOLEAN)
+                : true;
+            $trackExpiry = $request->has('track_expiry')
+                ? filter_var($request->track_expiry, FILTER_VALIDATE_BOOLEAN)
+                : false;
+
             // Create product
             $product = Product::create([
                 'name' => $request->name,
@@ -321,6 +340,8 @@ class ProductController extends Controller
                 'on_sale' => $onSale,
                 'status' => $request->status ?? 'active',
                 'is_visible' => $isActive,
+                'is_for_sale' => $isForSale,
+                'track_expiry' => $trackExpiry,
                 'meta_title' => $request->meta_title,
                 'meta_description' => $request->meta_description,
                 'meta_keywords' => $metaKeywords,
@@ -366,6 +387,7 @@ class ProductController extends Controller
                 }
             ])
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->findOrFail($id);
 
             // Increment view count
@@ -395,6 +417,7 @@ class ProductController extends Controller
             // Get related products (same category, excluding current)
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
+                ->where('is_for_sale', true)
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
                 ->limit(8)
@@ -736,6 +759,12 @@ class ProductController extends Controller
             }
 
             // Convert boolean strings
+            if ($request->has('is_for_sale')) {
+                $product->is_for_sale = filter_var($request->is_for_sale, FILTER_VALIDATE_BOOLEAN);
+            }
+            if ($request->has('track_expiry')) {
+                $product->track_expiry = filter_var($request->track_expiry, FILTER_VALIDATE_BOOLEAN);
+            }
             if ($request->has('is_visible')) {
                 $isActive = $request->is_visible;
                 if (is_string($isActive)) {
@@ -1012,6 +1041,7 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_featured', true)
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->where('status', 'active')
             ->limit(12)
             ->get();
@@ -1028,6 +1058,7 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_new', true)
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->limit(12)
             ->get();
 
@@ -1043,6 +1074,7 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('on_sale', true)
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->where('status', 'active')
             ->limit(12)
             ->get();
@@ -1066,6 +1098,7 @@ public function related($id)
         if (empty($relatedProductIds)) {
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
+                ->where('is_for_sale', true)
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
                 ->limit(8)
@@ -1074,6 +1107,7 @@ public function related($id)
             // Fetch the specific related products by their IDs
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
+                ->where('is_for_sale', true)
                 ->whereIn('id', $relatedProductIds)
                 ->get();
         }

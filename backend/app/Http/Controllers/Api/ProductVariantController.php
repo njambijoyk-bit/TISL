@@ -39,6 +39,7 @@ class ProductVariantController extends Controller
     {
         $product = Product::with(['currency:id,code,symbol', 'defaultUnit:id,code,name,dimension,to_base_factor', 'alternateUnit:id,code,name,dimension,to_base_factor'])
             ->where('is_visible', true)
+            ->where('is_for_sale', true)
             ->findOrFail($productId);
 
         $variants = $product->productVariants()

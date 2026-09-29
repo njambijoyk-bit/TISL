@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantUnit;
 use App\Models\UnitOfMeasure;
 use App\Models\VariantLocationStock;
+use App\Services\Stock\BatchService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,9 +17,15 @@ use Illuminate\Support\Facades\DB;
  *
  * Handles the "silent default variant" for simple products so stock always has
  * a variant to attach to, without ever asking the admin to invent options.
+ *
+ * Underneath, every unit sits in a batch (BatchService). variant_location_stock
+ * is always the TOTAL of a variant's batches at that branch: every write here
+ * moves the batches first, then copies their total into the row.
  */
 class VariantStockService
 {
+    public function __construct(private BatchService $batches) {}
+
     /**
      * Ensure the product has at least one variant to carry stock. For a simple
      * product (no variants) this creates ONE option-less default variant + base
@@ -91,25 +98,53 @@ class VariantStockService
     /**
      * Move a variant's stock at one branch by a signed amount (base units) and
      * refresh the variant/product caches. Used by vouchers (sales out, purchases in).
+     *
+     * Stock in creates a batch (or tops up `batch_id`); stock out is taken from
+     * the batches first-expiring first (or from `batch_id`). Returns the batch
+     * allocations so the caller can record them on its stock movements.
+     *
+     * @param  array  $opts  batch_id, unit_cost, batch_no, mfg_date, expiry_date, received_at, voucher_id, notes
+     * @return array<int, array{batch_id:int, qty:float, unit_cost:float, created:bool}>
      */
-    public function applyDelta(int $variantId, int $locationId, float $delta): void
+    public function applyDelta(int $variantId, int $locationId, float $delta, array $opts = []): array
     {
-        $row = VariantLocationStock::where('product_variant_id', $variantId)->where('location_id', $locationId)->lockForUpdate()->first();
-        $this->setBranchStock($variantId, $locationId, max(0.0, (float) ($row?->quantity ?? 0) + $delta));
+        VariantLocationStock::where('product_variant_id', $variantId)->where('location_id', $locationId)->lockForUpdate()->first();
 
+        $alloc = $delta >= 0
+            ? $this->batches->receive($variantId, $locationId, $delta, $opts)
+            : $this->batches->issue($variantId, $locationId, -$delta, $opts);
+
+        $this->writeRow($variantId, $locationId, $this->batches->total($variantId, $locationId));
+        $this->refreshCaches($variantId);
+
+        return $alloc;
+    }
+
+    /**
+     * Set the quantity for one (variant, branch): the batches are adjusted to
+     * add up to it, and the row follows. A reorder level is only touched when given.
+     */
+    public function setBranchStock(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
+    {
+        $this->batches->syncTo($variantId, $locationId, max(0.0, $quantity));
+        $this->writeRow($variantId, $locationId, $this->batches->total($variantId, $locationId), $reorder);
+    }
+
+    /** Write the shop-facing row. Callers pass the batch total; nothing else should. */
+    private function writeRow(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
+    {
+        VariantLocationStock::updateOrCreate(
+            ['product_variant_id' => $variantId, 'location_id' => $locationId],
+            ['quantity' => max(0, $quantity)] + ($reorder !== null ? ['reorder_level' => $reorder] : [])
+        );
+    }
+
+    private function refreshCaches(int $variantId): void
+    {
         $variant = ProductVariant::with('product')->find($variantId);
         if ($variant?->product) {
             $this->recomputeCaches($variant->product);
         }
-    }
-
-    /** Set the quantity for one (variant, branch); creates/updates the row. */
-    public function setBranchStock(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
-    {
-        VariantLocationStock::updateOrCreate(
-            ['product_variant_id' => $variantId, 'location_id' => $locationId],
-            ['quantity' => max(0, $quantity), 'reorder_level' => $reorder]
-        );
     }
 
     /**
@@ -124,10 +159,13 @@ class VariantStockService
             return; // no locations configured yet
         }
         foreach (Location::active()->get(['id']) as $loc) {
-            VariantLocationStock::firstOrCreate(
+            $row = VariantLocationStock::firstOrCreate(
                 ['product_variant_id' => $variant->id, 'location_id' => $loc->id],
-                ['quantity' => $loc->id === $main->id ? max(0, $mainQty) : 0]
+                ['quantity' => 0]
             );
+            if ($loc->id === $main->id && $row->wasRecentlyCreated && $mainQty > 0) {
+                $this->setBranchStock($variant->id, $loc->id, $mainQty);   // the entered stock arrives as a batch
+            }
         }
         $variant->loadMissing('product');
         if ($variant->product) {

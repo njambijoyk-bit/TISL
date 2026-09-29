@@ -38,6 +38,8 @@ class Product extends Model
         'original_price',
         'price_is_negotiable',
         'in_stock',
+        'is_for_sale',
+        'track_expiry',
         'stock_quantity',
         'description',
         'short_description',
@@ -74,6 +76,8 @@ class Product extends Model
         'original_price' => 'decimal:2',
         'price_is_negotiable' => 'boolean',
         'in_stock' => 'boolean',
+        'is_for_sale' => 'boolean',
+        'track_expiry' => 'boolean',
         'features' => 'array',
         'specifications' => 'array',
         'images' => 'array',
@@ -410,6 +414,15 @@ class Product extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active')->where('is_visible', true);
+    }
+
+    /**
+     * Sold to customers. A "not for sale" product is a material / ingredient /
+     * consumable: counted and valued, but never on the storefront or at the till.
+     */
+    public function scopeForSale($query)
+    {
+        return $query->where('is_for_sale', true);
     }
 
     /**

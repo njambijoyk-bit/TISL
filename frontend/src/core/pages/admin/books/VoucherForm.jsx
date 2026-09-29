@@ -14,19 +14,22 @@ import shippingAPI from '../../../../_shared/api/shipping';
 import taxAPI from '../../../../_shared/api/tax';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
+// Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
+const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
+
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const label = { display: 'block', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, marginBottom: 3 };
 
 /** Search-as-you-type picker over /admin/books/lookup. */
-function Picker({ api, kind, placeholder, onPick, render }) {
+function Picker({ api, kind, purpose, placeholder, onPick, render }) {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return undefined;
-    const t = setTimeout(() => { api.lookup(kind, q).then(setRows).catch(() => setRows([])); }, 200);
+    const t = setTimeout(() => { api.lookup(kind, q, purpose).then(setRows).catch(() => setRows([])); }, 200);
     return () => clearTimeout(t);
-  }, [api, q, open, kind]);
+  }, [api, q, open, kind, purpose]);
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -293,7 +296,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       <label style={label}>{{ product: 'Product / variant', service: 'Service / package', hamper: 'Hamper', charge: 'Charge', custom: 'Custom line' }[l.type]}</label>
                       {l.type === 'product' && (l.variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker api={api} kind="product" placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
+                        : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '' })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}

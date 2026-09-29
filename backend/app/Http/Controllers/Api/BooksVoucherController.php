@@ -179,7 +179,7 @@ class BooksVoucherController extends Controller
 
         if ($kind === 'product') {
             $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status', 'units.unit:id,code,name'])
-                ->whereHas('product', fn ($p) => $p->where('status', 'active'))
+                ->whereHas('product', fn ($p) => $p->where('status', 'active')->when($request->get('purpose') !== 'purchase', fn ($x) => $x->where('is_for_sale', true)))
                 ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('sku', 'like', $like)->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('sku', 'like', $like))))
                 ->orderBy('product_id')->limit(30)->get();
             foreach ($variants as $v) {

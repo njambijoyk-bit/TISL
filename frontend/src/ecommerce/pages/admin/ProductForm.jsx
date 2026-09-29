@@ -328,7 +328,7 @@ export default function ProductForm() {
   const [formData, setFormData] = useState({
     name: '', sku: '', type: '', category_id: '', brand_id: '',
     price: '', original_price: '', price_is_negotiable: false, currency_id: '', default_unit_id: '', alternate_unit_id: '',
-    stock_quantity: '', in_stock: true, has_variants: false,
+    stock_quantity: '', in_stock: true, is_for_sale: true, track_expiry: false, has_variants: false,
     short_description: '', description: '',
     badge: '', is_featured: false, is_new: false, on_sale: false,
     status: 'active', is_visible: true,
@@ -438,6 +438,8 @@ export default function ProductForm() {
         alternate_unit_id: product.alternate_unit_id ?? '',
         stock_quantity: product.stock_quantity || '',
         in_stock: product.in_stock !== undefined ? Boolean(product.in_stock) : true,
+        is_for_sale: product.is_for_sale !== undefined ? Boolean(product.is_for_sale) : true,
+        track_expiry: Boolean(product.track_expiry),
         has_variants: product.has_variants || false,
         short_description: product.short_description || '',
         description: product.description || '',
@@ -589,6 +591,7 @@ export default function ProductForm() {
       bool('price_is_negotiable', formData.price_is_negotiable);
       str('stock_quantity', formData.stock_quantity || '0');
       bool('in_stock', formData.in_stock);
+      bool('is_for_sale', formData.is_for_sale); bool('track_expiry', formData.track_expiry);
       str('description', formData.description); str('short_description', formData.short_description);
       str('status', formData.status); bool('is_visible', formData.is_visible);
       bool('is_featured', formData.is_featured); bool('is_new', formData.is_new);
@@ -927,6 +930,24 @@ export default function ProductForm() {
                     label="In stock"
                   />
                 </div>
+              </div>
+
+              <p style={{ ...sectionHeader, marginTop: 28 }}>Stock</p>
+              <div style={{ display: 'grid', gap: 14 }}>
+                <Toggle
+                  checked={formData.is_for_sale}
+                  onChange={v => setFormData(p => ({ ...p, is_for_sale: v }))}
+                  disabled={isView}
+                  label="For sale"
+                  sub="Turn off for materials and consumables you stock but never sell on their own (e.g. nail polish, steel, glass). They stay counted and valued, and are hidden from customers and the till."
+                />
+                <Toggle
+                  checked={formData.track_expiry}
+                  onChange={v => setFormData(p => ({ ...p, track_expiry: v }))}
+                  disabled={isView}
+                  label="Track expiry"
+                  sub="Only for products that expire (medicines, food). A batch number and expiry date are asked for whenever stock of this product arrives."
+                />
               </div>
             </>
           )}

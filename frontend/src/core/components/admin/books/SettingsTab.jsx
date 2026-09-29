@@ -342,6 +342,11 @@ const DEFAULTS = [
   ['breakage_income_ledger_id', 'Gift voucher breakage income', 'Expired, unspent gift vouchers.'],
   ['rewards_expense_ledger_id', 'Rewards & referral expense', 'Cost of points and referral rewards.'],
   ['interest_income_ledger_id', 'Interest income', 'Late-payment interest charged to customers.'],
+  ['stock_ledger_id', 'Stock', 'Value of goods you hold. Purchases add to it, sales and write-offs take from it.'],
+  ['cogs_ledger_id', 'Cost of goods sold', 'What the goods you sold cost you.'],
+  ['cost_of_services_ledger_id', 'Cost of services', 'Materials used up in a service but not charged to the customer.'],
+  ['job_materials_ledger_id', 'Job materials cost', 'Parts bought elsewhere for a job (a side mirror bought for one repair).'],
+  ['stock_loss_ledger_id', 'Stock loss', 'Expired, damaged or missing stock written off.'],
 ];
 
 function DefaultsSection({ isSuper }) {
