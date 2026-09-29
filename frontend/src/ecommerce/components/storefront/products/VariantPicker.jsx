@@ -144,7 +144,7 @@ export default function VariantPicker({ product, onChange, onLoaded }) {
                   style={{ ...chipStyle(selected, !soldOut), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '8px 12px', gap: 2 }}>
                   <span style={{ fontWeight: 700 }}>{unitLabel(u)}</span>
                   <span style={{ fontSize: '0.78rem', fontWeight: 600, opacity: 0.85 }}>
-                    {u.price != null ? money.itemAmount(u.price, product) : 'Price on request'}
+                    {u.price != null ? money.itemAmount(Math.round(Number(u.price) * (1 + (Number(product?.tax_info?.rate_percent) || 0) / 100) * 100) / 100, product) : 'Price on request'}
                   </span>
                   {soldOut && <span style={{ fontSize: '0.7rem', color: '#dc2626' }}>Out of stock</span>}
                 </button>

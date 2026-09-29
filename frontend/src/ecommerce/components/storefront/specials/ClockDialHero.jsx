@@ -66,6 +66,8 @@ function polarToXY(angleDeg, r, cx = 0, cy = 0) {
  * "KSh 3,000") — the carousel shows the listed price, not a conversion.
  */
 function nativePrice(amount, product) {
+  const rate = Number(product?.tax_info?.rate_percent) || 0;   // prices are stored excluding tax; shoppers see them with it
+  amount = Math.round(Number(amount) * (1 + rate / 100) * 100) / 100;
   return formatMoney(amount, product?.currency?.symbol || product?.currency?.code || 'KSh', { decimals: 'auto' });
 }
 

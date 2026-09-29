@@ -50,7 +50,7 @@ export default function ServicePackagePicker({ picker }) {
             {customs.map((c) => (
               <button key={c.id} type="button" role="radio" aria-checked={variant?.id === c.id}
                 onClick={() => { setVariantId(c.id); setSelection({}); }} style={pill(variant?.id === c.id, false)}>
-                {variant?.id === c.id && <Check size={13} />} {c.name}{c.display_price != null ? ` · ${fmt(c.display_price)}` : ''}
+                {variant?.id === c.id && <Check size={13} />} {c.name}{c.display_price != null ? ` · ${fmt(c.display_price_incl ?? c.display_price)}` : ''}
               </button>
             ))}
           </div>

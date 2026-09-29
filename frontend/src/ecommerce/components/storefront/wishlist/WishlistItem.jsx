@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import useCartStore from '../../../../_shared/store/cartStore';
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+import useMoney from '../../../../_shared/hooks/useMoney';
 
 export default function WishlistItem({ item }) {
   const navigate    = useNavigate();
+  const money       = useMoney();
   const { remove }  = useWishlistStore();
   const { addItem } = useCartStore();
 
@@ -71,7 +72,7 @@ export default function WishlistItem({ item }) {
           {item.price != null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>
-                {fmt(item.price)}
+                {money.price(item)}
               </span>
               {hasPriceDiff && (() => {
                 const orig = parseFloat(item.original_price);
@@ -81,7 +82,7 @@ export default function WishlistItem({ item }) {
                 return (
                   <>
                     <span style={{ fontSize: '0.72rem', color: '#9ca3af', textDecoration: 'line-through' }}>
-                      {fmt(item.original_price)}
+                      {money.originalPrice(item) ?? money.itemAmount(item.original_price, item)}
                     </span>
                     <span style={{
                       fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: 6,
