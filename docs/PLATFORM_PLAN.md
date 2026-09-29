@@ -373,21 +373,42 @@ Fundraising, crowdfunding, awareness, marketing.
 
 ---
 
-## 10. Checkout & orders (revised 28 Sep 2026)
+## 10. Books, vouchers & sales chain (design locked 29 Sep 2026 — replaces the old order/checkout/payments model)
 
-**Three layers, three jobs**
-| Layer | Holds | Money? |
-|---|---|---|
-| Catalogue (products, services, hampers, auctions) | What can be sold, its branch, availability, price rules | No |
-| **Checkout** (per module, customer-facing) | The particulars — who, what, where, when: lines (variant + unit + qty, or service + slot + add-ons), branch, delivery/pickup, addresses, notes, promo/referral/loyalty choices | No — it only produces a request |
-| **Orders / Sales register** (one system, Core) | Priced + taxed lines, payments (cash, bank, M-Pesa, store credit, credit account), deposits, refunds, and a **double-entry journal** | Yes — all of it |
+Modelled on double-entry voucher accounting (a Tally-style structure), built into the platform — **not** a Tally replacement. All existing order/payment/hamper-order/auction-order data is test data and is dropped.
 
-- **No separate hamper or auction orders (done 28 Sep 2026).** `hamper_orders` / `auction_orders` and their code are removed (SQL `09_retire_hamper_auction_orders.sql`). A hamper is a bundle line whose components are variants at its branch; an auction only holds bidding state (bids, winner, branch, variant) and the winner buys through the normal checkout. Hamper "Get this hamper" is disabled until checkout is rebuilt.
-- **Hampers and auctions belong to ONE branch; their items are variants stocked there (done).** `hampers.location_id`, `hamper_items.variant_id`, `auctions.location_id`, `auctions.variant_id` (SQL `10_hamper_auction_locations.sql`). Adding an item / creating an auction is refused when the variant isn't stocked at the branch, and the response lists the branches that do have it. Listings show all hampers/auctions with an owning-branch badge.
-- **Services (done 29 Sep 2026): quoted, not carted.** A service is booked/paid after the customer is quoted, then invoiced through the sales register — so services have **"Request a quote" + wishlist, no cart**. Structure mirrors products, in separate tables (`service_options`, `service_option_values`, `service_variants` = **packages**, `service_variant_options`, `service_requirements`; SQL 12 + 13): options → packages generated from option combinations (each with its own price, duration, "price covers" unit) **or hand-made**; every service auto-gets a "Standard" package; requirements are structured customer inputs collected on the quote list; duration and unit come from the units table (`duration`, `service_unit` dimensions). **Tax:** the existing tax engine already takes any item — services are taxed as module `service` (with per-service overrides on the service form); the public packages endpoint returns the tax amount/label per package (prices are tax-exclusive). Wishlist is typed (`customer_wishlists.service_ids`). Still to do: showing the package/answers in the admin quote-request screens, and quote → invoice in the sales register.
-- **Sales register foundation (next):** `order_lines` (variant + unit + qty in selling unit and base units + branch + price/tax/currency snapshots), append-only `journal_entries`/`journal_lines`, accounts (Cash, Bank, M-Pesa clearing, Receivable, Revenue, Tax payable, Discounts, Shipping income, Store-credit liability, Refunds, Withholding receivable), a small Core `stock_movements` log, and one `SalesRegister::record()` entry point that also decrements `variant_location_stock` at the fulfilment branch in base units (strict stock).
-- **Ways to pay:** pay now; open tab/folio settled later; recurring; deposits/partial; M-Pesa. **Currency/tax:** convert into the customer's account currency with snapshots; tax from item class × branch jurisdiction.
-- **Shared booking & availability service** for slots, date ranges, seats (services, viewings, rooms, events, classes + waitlists).
+**Masters**
+- `ledger_groups`: a tree. **Primary groups are fixed and locked** (Current Assets, Fixed Assets, Current Liabilities, Capital, Loans, Investments, Suspense, Sales Accounts, Purchase Accounts, Direct/Indirect Income, Direct/Indirect Expenses); each carries a *nature* (asset/liability/income/expense) that subgroups inherit. Custom groups nest to any depth under a primary (Indirect Expenses > Establishment > Rent & Rates). Seeded subgroups: Cash-in-hand, Bank Accounts, Stock-in-hand, Sundry Debtors, Sundry Creditors, **Duties & Taxes (under Current Liabilities — all tax ledgers live here, e.g. VAT Output 16%, VAT Output 8%, VAT Input)**.
+- `ledgers`: group, opening balance, optional customer/supplier link. **One ledger per customer** (created on first transaction) and a **Walk-in ledger** for guests. Payment methods map to ledgers (Cash, M-Pesa, each bank).
+
+**Vouchers** (`voucher_types` carry: posts accounts?, moves stock and which way?, numbering series per type/branch like `TISL-INV-24530`)
+| Type | Debit | Credit | Items / stock |
+|---|---|---|---|
+| Sales Order | – | – | Yes; reserves stock, no accounts |
+| Delivery Note | – | – | Yes; stock out |
+| Sales (invoice) | Customer | Sales account per line, tax ledgers | Yes |
+| Cash Sale | Cash / M-Pesa / Bank | Sales account per line, tax ledgers | Yes |
+| Purchase | Purchase account per line, VAT Input | Supplier | Yes; stock in |
+| Credit Note | Sales returns, tax | Customer | Yes; stock in |
+| Debit Note | Supplier | Purchase returns, tax | Yes; stock out |
+| Receipt | Cash/Bank | Customer | No; set against bills |
+| Payment | Supplier/expense | Cash/Bank | No |
+| Journal, Contra | any | any | No |
+Every posted voucher balances (Σ debit = Σ credit). Posted vouchers are immutable; corrections by credit/debit note or reversing entry, with an audit trail.
+
+**Item lines are dynamic** (`voucher_items`): a line is a product variant, a service package, a hamper, a hamper component, or a charge (shipping, discount, rounding). Columns adapt to the voucher/line type (product | **variant** | unit | qty | rate | discount | **tax rate** | amount; services show package/duration, no stock). Each line snapshots name/variant/sku/unit, its **own tax class and rate** (one line 16%, another 8%), the ledger it posts to, and the branch. The voucher's tax entries are the per-tax-ledger totals.
+
+**Hampers:** shown as one collapsible line ("Repmah hamper × 1 = total") with its components indented under it. Accounting, tax and stock use the **components**. When building a hamper, the admin enters a **sale price for each item** and the item prices must add up to the hamper price (auto-distribute by list price, remainder on the largest line).
+
+**Sales chain (Order and Checkout are merged into vouchers):** Checkout (particulars) creates a **Sales Order**. Paying at checkout creates a **Cash Sale**; an admin can convert a Sales Order to a **Cash Sale** or **Sales invoice**; dispatch/pickup creates a **Delivery Note**; a customer payment creates a **Receipt** set against the invoice. **Stock moves once:** a Delivery Note moves stock; documents created *from* a delivery don't; a standalone invoice/cash sale moves stock itself. Services are quoted: an accepted quote becomes a Sales Order → invoice (no stock lines). M-Pesa/gateway records stay as a transaction log linked to the Receipt.
+
+**Period control:** financial years, and a **super-admin-set edit window** (how far back a voucher can be edited/cancelled) with **per-role limits**; drafts are always editable; beyond the window only a super-admin override, logged.
+
+**Exports** from one shared layer, in **JSON, CSV, XML, HTML and PDF** (invoices, vouchers, ledger statements, day book, trial balance, P&L, balance sheet, ageing).
+
+**Data Engine → to be renamed and rebuilt after the modules exist:** clearer name (proposed "Data Exchange": Import · Export · Migration · AI assist), follows the system theme instead of its own, and gains **import** (including importing vouchers/ledgers/items from Tally exports). Not part of this build.
+
+**Build order:** 1) engine — groups, ledgers, voucher types/series, voucher + entries + items + bills + stock movements tables (SQL files), the posting service (balance check, immutability, numbering, period lock), seeders; 2) books screens — ledger tree, voucher entry, day book, ledger statement, trial balance, P&L, balance sheet, receivables ageing, exports; 3) the sales chain (checkout → order → cash sale/invoice → delivery → receipt) for products, hampers, auctions, services; 4) drop the old orders/payments/credit tables and move store credit, credit accounts, loyalty and withholding onto ledgers; 5) Data Exchange.
 
 ---
 
