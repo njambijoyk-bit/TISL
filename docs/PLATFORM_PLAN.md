@@ -685,3 +685,29 @@ Each step ships with a SQL script that **moves the existing data into the ledger
 2. Payment methods become ledgers too (one place to set M-Pesa till, bank, gateway).
 3. Points stay a units sub-ledger with a liability ledger for their value (not cash ledgers).
 4. Campaign discount ledgers are optional (default *Discounts Allowed*).
+
+## 15. Taxes, withholding and shipping as ledger groups (plan)
+
+Today: `tax_types` → `tax_rates` (rate, currency, validity, certificate flag) → `tax_rules` (module, customer types, order bands, priority) → `tax_rule_districts` / `tax_districts` (tree) → `tax_applicabilities` (per item/customer exempt + certificate) → `tax_legitimacy_certificates`; withholding: `withholding_classifications`, `withholding_certificates`, `withholding_credits`, `withholding_credit_clearances`. Rates already have output/input ledgers; the tables are still the master.
+
+### 15.1 Duties & Taxes group behaviour = "tax"
+A tax group (VAT, Excise, Withholding VAT, Withholding Income…) is a group under Duties & Taxes with behaviour `tax`. Group fields: nature (charge | withhold), direction (output/input), compound?, calculation sequence, default base (net/gross/quantity), certificate required?, authority + KRA reference, reporting return (e.g. VAT3).
+### 15.2 Tax ledger = one rate (Tally: rate on the duty ledger)
+Ledger fields: rate_type (percent | fixed | per-unit), rate_value, currency, unit of measure, valid_from/until (a rate change = new ledger version, old kept for history), opening balance (already built), applies-to nature (item/customer/module). Output and input are one ledger in Tally style with a `side` on the voucher line; we keep two only if the return needs them.
+### 15.3 Districts, rules, exemptions stay as configuration that POINTS at ledgers
+- Districts remain a tree (they are geography, not money); a ledger lists the districts it applies to.
+- Rules (module, customer type, order bands, priority) reference tax ledgers instead of tax_rates.
+- Exemption certificates stay a register (number, holder, validity, document) with holder = customer/supplier ledger; item "tax nature" (taxable/exempt/zero-rated) moves onto the sales/purchase ledger or stock item as in Tally.
+- Exempt/zero-rated lines still print with the tax ledger at 0 so returns show them.
+### 15.4 Withholding is a tax group with nature = withhold
+Receipt/Payment vouchers post net cash + withholding ledger (asset on receipts: tax receivable; liability on payments: tax payable). The withholding certificate becomes a report/document generated from those voucher lines; credit clearances become Journal/Receipt vouchers against the receivable ledger. Tables withholding_credits/clearances retire after data migration.
+### 15.5 Shipping & Delivery group behaviour = "delivery"
+Group fields: default rate_type, currency, taxable?, income vs expense side, free-above default. Ledger fields: rate_type (percent of goods | fixed | per kg/km), rate_value, currency, min/max, free_above, service area (districts), transit days, optional tax ledger. Expenses we incur delivering are ordinary ledgers in the same group with side = expense (no rate needed).
+### 15.6 Order of work
+1. group `behaviour` + ledger attribute columns + behaviour-driven ledger form.
+2. shipping options → delivery ledgers (script migrates rows, checkout/quote read ledgers).
+3. tax types/rates → tax groups/ledgers; TaxService reads ledgers; rules re-pointed.
+4. withholding → tax group + certificate report; retire credit tables.
+5. reconciliation reports (tax returns, withholding certificates); drop retired tables.
+### 15.7 Decisions
+a) One ledger per rate (versioned by validity) vs one ledger per tax with a rate table. b) Single ledger for output+input vs two. c) Exemption certificates as a register (recommended) vs ledger. d) Delivery expense ledgers in the same group (recommended).
