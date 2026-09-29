@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import useAdminCareersStore from '../../../_shared/store/useAdminCareersStore';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 const TYPES = ['full_time','part_time','contract','internship','temporary'];
 const TYPE_LABELS = { full_time:'Full Time', part_time:'Part Time', contract:'Contract', internship:'Internship', temporary:'Temporary' };
@@ -10,7 +11,7 @@ const DOC_LABELS = { cv:'CV / Résumé', cover_letter:'Cover Letter', certificat
 const EMPTY = {
     title: '', department: '', location: '', type: 'full_time', experience_level: '',
     description: '', responsibilities: [], requirements: [], nice_to_haves: [],
-    required_documents: [], salary_min: '', salary_max: '', salary_currency: 'KES',
+    required_documents: [], salary_min: '', salary_max: '', salary_currency: getBaseCode(),
     salary_visible: false, deadline: '', status: 'draft',
 };
 
@@ -88,7 +89,7 @@ export default function JobFormModal({ job, onClose, onSaved }) {
                 required_documents: job.required_documents ?? [],
                 salary_min:         job.salary_min ?? '',
                 salary_max:         job.salary_max ?? '',
-                salary_currency:    job.salary_currency ?? 'KES',
+                salary_currency:    job.salary_currency ?? getBaseCode(),
                 salary_visible:     job.salary_visible ?? false,
                 deadline:           job.deadline ? job.deadline.substring(0, 10) : '',
                 status:             job.status ?? 'draft',

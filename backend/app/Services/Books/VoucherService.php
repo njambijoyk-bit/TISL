@@ -241,7 +241,7 @@ class VoucherService
             'customer_id'       => $invoice->customer_id,
             'party_ledger_id'   => $invoice->party_ledger_id,
             'currency_id'       => $invoice->currency_id,
-            'exchange_rate'     => $invoice->exchange_rate,
+            'exchange_rate'     => $opts['exchange_rate'] ?? null,   // blank = the rate in force today; the difference vs the invoice is booked as exchange gain/loss
             'payment_method_id' => $opts['payment_method_id'] ?? null,
             'reference_no'      => $opts['reference_no'] ?? null,
             'narration'         => $opts['narration'] ?? "Payment of {$invoice->voucher_number}",
@@ -302,11 +302,14 @@ class VoucherService
         $base = $type->base_type;
         $baseCurrency = $this->money->getBaseCurrency();
         $currency = ! empty($data['currency_id']) ? $this->money->currencyFrom((int) $data['currency_id']) : $baseCurrency;
-        $rate = $currency->id === $baseCurrency->id ? 1.0 : (float) $currency->conversion_rate;
+        $date = Carbon::parse($data['date'] ?? today());
+        // A rate typed on the voucher wins; otherwise the rate in force on the voucher's date.
+        $rate = $currency->id === $baseCurrency->id
+            ? 1.0
+            : (! empty($data['exchange_rate']) ? (float) $data['exchange_rate'] : $this->money->rateOn($currency, $date));
         if ($rate <= 0) {
             throw new BooksException("No exchange rate for {$currency->code}.");
         }
-        $date = Carbon::parse($data['date'] ?? today());
         $locationId = $data['location_id'] ?? Location::default()?->id;
 
         // ── party ─────────────────────────────────────────────────────
@@ -807,6 +810,24 @@ class VoucherService
                 $bills[] = ['type' => 'advance', 'ledger_id' => $otherLedgerId, 'amount' => round($amount - $allocated, 2), 'due' => null, 'against' => null];
             }
 
+            // Foreign currency: the party is cleared at the rate the invoice was booked at; cash moves at today's
+            // rate. The difference is a realised exchange gain / loss.
+            if ($rate != 1.0) {
+                $partyBase = 0.0;
+                foreach ($bills as $b) {
+                    $partyBase += $b['type'] === 'against'
+                        ? $b['amount'] * (float) Voucher::whereKey($b['against'])->value('exchange_rate')
+                        : $b['amount'] * $rate;
+                }
+                foreach ($entries as &$e) {
+                    if ($e['is_party']) {
+                        $e['base_amount'] = round($partyBase, 2);
+                    }
+                }
+                unset($e);
+                $entries = $this->withExchangeDifference($entries);
+            }
+
             return [$entries, $bills, $amount];
         }
 
@@ -835,6 +856,33 @@ class VoucherService
         }
 
         return [$entries, [], round($debit, 2)];
+    }
+
+    /** Add the realised exchange gain / loss line that makes the base-currency side balance. */
+    private function withExchangeDifference(array $entries): array
+    {
+        $debit = $credit = 0.0;
+        foreach ($entries as $e) {
+            $e['side'] === 'D' ? $debit += $e['base_amount'] : $credit += $e['base_amount'];
+        }
+        $diff = round($debit - $credit, 2);
+        if (abs($diff) < 0.005) {
+            return $entries;
+        }
+        $s = AccountingSetting::current();
+        $gain = $diff > 0;   // debits exceed credits → we need a credit → gain
+        $ledgerId = $gain
+            ? ($s->fx_gain_ledger_id ?: Ledger::where('name', 'Exchange Gain')->value('id'))
+            : ($s->fx_loss_ledger_id ?: Ledger::where('name', 'Exchange Loss')->value('id'));
+        if (! $ledgerId) {
+            throw new BooksException('Set the Exchange Gain / Exchange Loss ledgers under Books settings (default ledgers).');
+        }
+        $entries[] = [
+            'ledger_id' => (int) $ledgerId, 'side' => $gain ? 'C' : 'D', 'amount' => 0.0, 'base_amount' => abs($diff),
+            'is_party' => false, 'is_tax' => false, 'narration' => 'Realised exchange ' . ($gain ? 'gain' : 'loss'),
+        ];
+
+        return $entries;
     }
 
     private function assertBalanced(array &$entries): void

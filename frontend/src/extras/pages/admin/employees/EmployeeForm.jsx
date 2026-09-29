@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import employeesApi from '../../../../_shared/api/employees';
 import currencyAPI from '../../../../_shared/api/currency';
+import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const EMPLOYMENT_TYPES = [
@@ -79,7 +80,7 @@ const EMPTY_FORM = {
   education_level: '',
   id_number: '', kra_pin: '', nssf_number: '', nhif_number: '',
   emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relationship: '',
-  salary_grade: '', base_salary: '', currency: 'KES', annual_leave_days: 21,
+  salary_grade: '', base_salary: '', currency: getBaseCode(), annual_leave_days: 21,
   bank_name: '', bank_account_name: '', bank_account_number: '',
   skills: [], certifications: [],
   notes: '',
@@ -258,7 +259,7 @@ export default function EmployeeForm() {
         emergency_contact_phone: emp.emergency_contact_phone || '',
         emergency_contact_relationship: emp.emergency_contact_relationship || '',
         salary_grade: emp.salary_grade || '', base_salary: emp.base_salary || '',
-        currency: emp.currency || 'KES', annual_leave_days: emp.annual_leave_days || 21,
+        currency: emp.currency || getBaseCode(), annual_leave_days: emp.annual_leave_days || 21,
         bank_name: emp.bank_name || '', bank_account_name: emp.bank_account_name || '',
         bank_account_number: emp.bank_account_number || '',
         skills: emp.skills || [], certifications: emp.certifications || [],
@@ -574,7 +575,7 @@ export default function EmployeeForm() {
               onBlur={iBlur}
             >
               {currencies.length === 0
-                ? <option value="KES">KES</option>
+                ? <option value={getBaseCode()}>{getBaseCode()}</option>
                 : currencies.map(c => (
                     <option key={c.id} value={c.code}>
                       {c.code} — {c.name}

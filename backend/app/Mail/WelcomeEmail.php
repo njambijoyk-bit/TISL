@@ -29,7 +29,7 @@ class WelcomeEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to TISL - Your Industrial Supplies Partner',
+            subject: 'Welcome to ' . \App\Models\CompanyProfile::name(),
         );
     }
 

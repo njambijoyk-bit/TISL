@@ -7,6 +7,7 @@ import useProjectStore from '../../../_shared/store/projectStore';
 import currencyAPI from '../../../_shared/api/currency';
 import customersAPI from '../../../_shared/api/customers';
 import api from '../../../_shared/api/axios';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 const STATUS_OPTIONS   = ['planning', 'active', 'on_hold'];
 const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'];
@@ -58,10 +59,10 @@ const ProjectCreate = () => {
           baseCurrencyRes.status === 'fulfilled'
             ? (baseCurrencyRes.value.data?.code || baseCurrencyRes.value?.code || '')
             : '';
-        set('base_currency', baseCode || active[0]?.code || 'KES');
+        set('base_currency', baseCode || active[0]?.code || getBaseCode());
       } else {
-        setCurrencies([{ code: 'KES', name: 'Kenyan Shilling' }]);
-        set('base_currency', 'KES');
+        setCurrencies([{ code: getBaseCode(), name: 'Kenyan Shilling' }]);
+        set('base_currency', getBaseCode());
       }
 
       // Customers

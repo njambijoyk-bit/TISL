@@ -26,9 +26,9 @@ class ApplicantResetPasswordNotification extends Notification
             . '&email=' . urlencode($notifiable->email);
 
         return (new MailMessage)
-            ->subject('Reset your TISL Careers password')
+            ->subject('Reset your ' . \App\Models\CompanyProfile::name() . ' Careers password')
             ->greeting("Hi {$notifiable->first_name},")
-            ->line('We received a request to reset your TISL Careers account password.')
+            ->line('We received a request to reset your ' . \App\Models\CompanyProfile::name() . ' Careers account password.')
             ->action('Reset Password', $url)
             ->line('This link expires in 60 minutes.')
             ->line('If you did not request a password reset, no action is needed.');

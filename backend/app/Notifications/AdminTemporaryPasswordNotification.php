@@ -22,9 +22,9 @@ class AdminTemporaryPasswordNotification extends Notification
         $loginUrl = config('app.frontend_url') . '/careers/login';
 
         return (new MailMessage)
-            ->subject('Your TISL Careers password has been reset')
+            ->subject('Your ' . \App\Models\CompanyProfile::name() . ' Careers password has been reset')
             ->greeting("Hi {$notifiable->first_name},")
-            ->line('An administrator has reset your TISL Careers account password.')
+            ->line('An administrator has reset your ' . \App\Models\CompanyProfile::name() . ' Careers account password.')
             ->line('Your temporary password is:')
             ->line("**{$this->temporaryPassword}**")
             ->action('Log in & Change Password', $loginUrl)

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import MilestoneStatusBadge from '../../../core/components/admin/MilestoneStatusBadge';
 import useProjectStore from '../../../_shared/store/projectStore';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,12 +279,12 @@ const MilestoneCard = ({
                   color: '#10b981', bg: 'rgba(16,185,129,0.06)',
                   value: milestone.amount ? money(milestone.amount, milestone.currency) : '—',
                 },
-                showFinance && milestone.amount_kes && milestone.currency !== 'KES' && {
+                showFinance && milestone.amount_kes && milestone.currency !== getBaseCode() && {
                   icon: <DollarSign className="w-3.5 h-3.5" />, label: 'Amount (KES)',
                   color: '#10b981', bg: 'rgba(16,185,129,0.06)',
                   value: (
                     <>
-                      {money(milestone.amount_kes, 'KES')}
+                      {money(milestone.amount_kes, getBaseCode())}
                       {milestone.exchange_rate_to_kes && (
                         <span style={{ color: '#9ca3af', marginLeft: 6 }}>
                           @ {parseFloat(milestone.exchange_rate_to_kes).toFixed(4)}

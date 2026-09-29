@@ -3,6 +3,8 @@ import { Plus, Trash2, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
+import api from '../../../../_shared/api/axios';
+import { resetCompany } from '../../../../_shared/lib/useCompany';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
@@ -13,6 +15,7 @@ const SUBS = [
   { id: 'methods', label: 'Payment methods' },
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
+  { id: 'company', label: 'Company' },
 ];
 
 const Section = ({ title, hint, action, children }) => (
@@ -326,6 +329,13 @@ const DEFAULTS = [
   ['shipping_income_ledger_id', 'Shipping & delivery income', 'Delivery charges on sales.'],
   ['discount_ledger_id', 'Discounts allowed', null],
   ['rounding_ledger_id', 'Rounding', null],
+  ['fx_gain_ledger_id', 'Exchange gain', 'Realised gain when a foreign payment settles at a better rate.'],
+  ['fx_loss_ledger_id', 'Exchange loss', 'Realised loss when it settles at a worse rate.'],
+  ['gift_voucher_ledger_id', 'Gift vouchers liability', 'Money held for unspent gift vouchers.'],
+  ['loyalty_liability_ledger_id', 'Loyalty points liability', 'Value of points customers have earned.'],
+  ['breakage_income_ledger_id', 'Gift voucher breakage income', 'Expired, unspent gift vouchers.'],
+  ['rewards_expense_ledger_id', 'Rewards & referral expense', 'Cost of points and referral rewards.'],
+  ['interest_income_ledger_id', 'Interest income', 'Late-payment interest charged to customers.'],
 ];
 
 function DefaultsSection({ isSuper }) {
@@ -360,6 +370,31 @@ function DefaultsSection({ isSuper }) {
   );
 }
 
+function CompanySection({ isSuper }) {
+  const [f, setF] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [errs, setErrs] = useState({});
+  useEffect(() => { api.get('/company').then((r) => setF(r.data)).catch((e) => toast.error(errMsg(e, 'Could not load company details'))); }, []);
+  if (!f) return <p style={{ color: colors.textMuted }}>Loading…</p>;
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const save = async () => {
+    setBusy(true); setErrs({});
+    try { await api.put('/admin/books/company', f); resetCompany(); toast.success('Company details saved'); }
+    catch (x) { setErrs(fieldErrors(x)); toast.error(errMsg(x, 'Could not save')); }
+    finally { setBusy(false); }
+  };
+  const rows = [['name', 'Trading name'], ['short_code', 'Short code'], ['legal_name', 'Legal name'], ['tax_pin', 'Tax PIN'], ['email', 'Email'], ['phone', 'Phone'], ['address', 'Address'], ['city', 'City'], ['country', 'Country'], ['website', 'Website'], ['tagline', 'Tagline']];
+  return (
+    <Section title="Company" hint="Emails, documents and the chat assistant use these — nothing is written into the code.">
+      <FormGrid min={240}>
+        {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!isSuper} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
+      </FormGrid>
+      {isSuper ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
+        : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>Only a super admin can change these.</p>}
+    </Section>
+  );
+}
+
 export default function SettingsTab({ isSuper }) {
   const [sub, setSub] = useState('numbering');
   const [branches, setBranches] = useState([]);
@@ -378,6 +413,7 @@ export default function SettingsTab({ isSuper }) {
       {sub === 'methods' && <MethodsSection />}
       {sub === 'period' && <PeriodSection isSuper={isSuper} />}
       {sub === 'defaults' && <DefaultsSection isSuper={isSuper} />}
+      {sub === 'company' && <CompanySection isSuper={isSuper} />}
     </div>
   );
 }

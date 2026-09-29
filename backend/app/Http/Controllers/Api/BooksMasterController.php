@@ -96,7 +96,7 @@ class BooksMasterController extends Controller
     {
         $d = $request->validate([
             'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
-            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string',
+            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'currency_id' => 'nullable|integer|exists:currencies,id',
         ]);
         $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
 
@@ -109,7 +109,7 @@ class BooksMasterController extends Controller
         $d = $request->validate([
             'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
-            'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean',
+            'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
         ]);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
@@ -301,7 +301,7 @@ class BooksMasterController extends Controller
     {
         $ledger = 'nullable|integer|exists:ledgers,id';
         $d = $request->validate([
-            'walkin_ledger_id' => $ledger, 'default_sales_ledger_id' => $ledger, 'default_purchase_ledger_id' => $ledger, 'sales_returns_ledger_id' => $ledger,
+            'walkin_ledger_id' => $ledger, 'fx_gain_ledger_id' => $ledger, 'fx_loss_ledger_id' => $ledger, 'gift_voucher_ledger_id' => $ledger, 'loyalty_liability_ledger_id' => $ledger, 'breakage_income_ledger_id' => $ledger, 'rewards_expense_ledger_id' => $ledger, 'interest_income_ledger_id' => $ledger, 'default_sales_ledger_id' => $ledger, 'default_purchase_ledger_id' => $ledger, 'sales_returns_ledger_id' => $ledger,
             'purchase_returns_ledger_id' => $ledger, 'shipping_income_ledger_id' => $ledger, 'discount_ledger_id' => $ledger, 'rounding_ledger_id' => $ledger,
             'default_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
             'edit_window_days' => 'nullable|integer|min:0|max:3650', 'locked_before' => 'nullable|date',

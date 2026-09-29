@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import employeesApi from '../../../../_shared/api/employees';
+import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -531,7 +532,7 @@ export default function EmployeeDetail() {
               </SectionCard>
               <SectionCard title="Compensation" icon={DollarSign}>
                 <InfoRow label="Salary Grade" value={employee.salary_grade} />
-                <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || 'KES'} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
+                <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || getBaseCode()} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
                 <InfoRow label="Annual Leave Days" value={employee.annual_leave_days} />
                 <InfoRow label="Leave Balance" value={`${employee.leave_balance} days`} />
               </SectionCard>

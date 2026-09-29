@@ -37,6 +37,17 @@ class Currency extends Model
         $forget = fn () => app(\App\Services\CurrencyConversionService::class)->forgetBaseCurrencyCache();
 
         static::saved($forget);
+        // Keep a dated history of every rate so old documents and reports never shift.
+        static::saved(function (self $c) {
+            if (! ($c->wasRecentlyCreated || $c->wasChanged('conversion_rate'))) {
+                return;
+            }
+            try {
+                \App\Models\CurrencyRate::create(['currency_id' => $c->id, 'rate' => $c->conversion_rate, 'effective_from' => now(), 'created_at' => now()]);
+            } catch (\Throwable) {
+                // history table not created yet — the rate itself is already saved
+            }
+        });
         static::deleted($forget);
     }
 

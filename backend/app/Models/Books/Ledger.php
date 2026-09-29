@@ -13,7 +13,7 @@ class Ledger extends Model
 
     protected $fillable = [
         'group_id', 'name', 'code', 'opening_balance', 'opening_side',
-        'customer_id', 'supplier_id', 'is_system', 'is_active', 'notes',
+        'customer_id', 'supplier_id', 'currency_id', 'is_system', 'is_active', 'notes',
     ];
 
     protected $casts = [

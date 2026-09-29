@@ -22,7 +22,7 @@ class CreditInvoiceMail extends Mailable
         $number = $this->invoice->invoice_number;
 
         return new Envelope(
-            subject: "Invoice {$number} from TISL",
+            subject: "Invoice {$number} from " . \App\Models\CompanyProfile::name(),
         );
     }
 

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { X, Loader2 } from 'lucide-react';
 import useProjectStore from '../../../_shared/store/projectStore';
 import currencyAPI from '../../../_shared/api/currency';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 const STATUS_OPTIONS = ['pending', 'ready_for_review', 'approved', 'completed', 'rejected'];
 
@@ -32,7 +33,7 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
   const { createMilestone, updateMilestone, loading } = useProjectStore();
   const isEditMode = !!editMilestone;
 
-  const [currencies,  setCurrencies]  = useState([{ code: project.base_currency || 'KES' }]);
+  const [currencies,  setCurrencies]  = useState([{ code: project.base_currency || getBaseCode() }]);
   const [currencyMap, setCurrencyMap] = useState({});
 
   const [form, setForm] = useState(() => ({
@@ -40,7 +41,7 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
     description: editMilestone?.description || '',
     due_date:    editMilestone?.due_date    ? editMilestone.due_date.slice(0, 10) : '',
     status:      editMilestone?.status      || 'pending',
-    currency:    editMilestone?.currency    || project.base_currency || 'KES',
+    currency:    editMilestone?.currency    || project.base_currency || getBaseCode(),
     amount:      editMilestone?.amount      ?? '',
   }));
 
@@ -61,8 +62,8 @@ const CreateMilestoneModal = ({ project, onClose, editMilestone = null }) => {
   // KES conversion
   const cur       = currencyMap[form.currency];
   const rate      = cur ? parseFloat(cur.exchange_rate_to_kes || cur.rate || cur.conversion_rate || 1) : null;
-  const showKes   = form.currency !== 'KES' && !!rate;
-  const noRate    = form.currency !== 'KES' && !rate;
+  const showKes   = form.currency !== getBaseCode() && !!rate;
+  const noRate    = form.currency !== getBaseCode() && !rate;
   const amountKes = showKes && form.amount ? parseFloat((parseFloat(form.amount) * rate).toFixed(2)) : null;
 
   const buildPayload = () => {

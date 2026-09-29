@@ -166,7 +166,7 @@ class PromoCodeService
 
             $code = $this->createPromoCode([
                 'name'               => "Welcome Discount — {$customer->full_name}",
-                'description'        => "Welcome to TISL! Enjoy {$template->reward_value}% off your first order.",
+                'description'        => "Welcome to " . \App\Models\CompanyProfile::name() . "! Enjoy {$template->reward_value}% off your first order.",
                 'type'               => 'first_time',
                 'event_type'         => 'first_time',
                 'target_customer_id' => $customer->id,

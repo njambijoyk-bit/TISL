@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
+use App\Http\Controllers\Api\CompanyProfileController;
 use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -403,6 +404,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('role:super_admin')->group(function () {
             Route::put('/settings',                 [BooksMasterController::class, 'updateSettings']);
+            Route::put('/company',                  [CompanyProfileController::class, 'update']);
             Route::put('/edit-limits',              [BooksMasterController::class, 'saveEditLimits']);
             Route::post('/financial-years/{id}/close', [BooksMasterController::class, 'closeYear']);
         });
@@ -2025,6 +2027,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 });
+
+Route::get('/company', [CompanyProfileController::class, 'show']);
 
 // ── Appearance / Theme ─────────────────────────────────────────────────────
 Route::get('/appearance/options', [AppearanceController::class, 'options']);

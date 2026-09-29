@@ -1,4 +1,5 @@
 import { DollarSign, TrendingUp, RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, BarChart3 } from 'lucide-react';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 // ─────────────────────────────────────────────────────────────────
 // Helpers
@@ -12,7 +13,7 @@ const fmt = (amount, currency) => {
   }).format(Number(amount));
 };
 
-const fmtKes = (amount) => fmt(amount, 'KES');
+const fmtKes = (amount) => fmt(amount, getBaseCode());
 
 const sum = (arr, key) => arr.reduce((acc, item) => acc + Number(item[key] ?? 0), 0);
 
@@ -114,7 +115,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
   // Items
   const itemsByCurrency  = groupBy(items, 'currency');
   const itemCurrencies   = Object.keys(itemsByCurrency);
-  const kesForItem       = (item) => item.currency === 'KES' ? Number(item.line_total ?? 0) : Number(item.line_total_kes ?? 0);
+  const kesForItem       = (item) => item.currency === getBaseCode() ? Number(item.line_total ?? 0) : Number(item.line_total_kes ?? 0);
   const totalItemsKes    = items.reduce((acc, i) => acc + kesForItem(i), 0);
   const itemCurrencyRows = itemCurrencies.map((currency) => ({
     currency,
@@ -126,7 +127,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
   // Milestones
   const milestonesByCurrency  = groupBy(milestones, 'currency');
   const milestoneCurrencies   = Object.keys(milestonesByCurrency);
-  const kesForMilestone       = (m) => m.currency === 'KES' ? Number(m.amount ?? 0) : Number(m.amount_kes ?? 0);
+  const kesForMilestone       = (m) => m.currency === getBaseCode() ? Number(m.amount ?? 0) : Number(m.amount_kes ?? 0);
   const totalMilestonesKes    = milestones.reduce((acc, m) => acc + kesForMilestone(m), 0);
   const milestoneCurrencyRows = milestoneCurrencies.map((currency) => ({
     currency,
@@ -296,7 +297,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                   { label: 'Currency' },
                   { label: 'Count', align: 'right' },
                   { label: 'Total', align: 'right' },
-                  { label: 'KES', align: 'right' },
+                  { label: getBaseCode(), align: 'right' },
                 ]} />
                 <tbody>
                   {milestoneCurrencyRows.map(({ currency, count, total, totalKes }, i, arr) => (
@@ -369,7 +370,7 @@ const ProjectFinanceTab = ({ project, items = [], milestones = [] }) => {
                 { label: 'Milestone' },
                 { label: 'Status' },
                 { label: 'Amount', align: 'right' },
-                { label: 'KES', align: 'right' },
+                { label: getBaseCode(), align: 'right' },
               ]} />
               <tbody>
                 {milestones.map((m, i, arr) => {

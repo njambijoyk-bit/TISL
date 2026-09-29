@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 // ── Status colour map ─────────────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -18,7 +19,7 @@ const statusCfg = (s) => STATUS_CFG[s] ?? { color: '#9ca3af', bg: 'rgba(156,163,
 const label   = (s) => s?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
 const fmt     = (n, d = 2) => parseFloat(n || 0).toFixed(d);
 const money   = (n, d = 2) => parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-const hasKes  = (item) => item.currency !== 'KES' && item.line_total_kes;
+const hasKes  = (item) => item.currency !== getBaseCode() && item.line_total_kes;
 const hasVars = (item) => item.variant_details && Object.keys(item.variant_details).length > 0;
 
 // ── Expanded detail row ───────────────────────────────────────────────────────
@@ -154,14 +155,14 @@ const ProjectItemsTable = ({ items, loading, onEdit, onDelete, readOnly = false 
   }
 
   const totals = items.reduce((acc, item) => {
-    const cur = item.currency || 'KES';
+    const cur = item.currency || getBaseCode();
     acc[cur] = (acc[cur] || 0) + parseFloat(item.line_total || 0);
     return acc;
   }, {});
 
   const totalKes = items.reduce((sum, item) => {
     if (item.line_total_kes) return sum + parseFloat(item.line_total_kes);
-    if (item.currency === 'KES') return sum + parseFloat(item.line_total || 0);
+    if (item.currency === getBaseCode()) return sum + parseFloat(item.line_total || 0);
     return sum;
   }, 0);
 

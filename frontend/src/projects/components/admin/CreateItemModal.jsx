@@ -4,6 +4,7 @@ import { Plus, X, Check, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import useProjectStore from '../../../_shared/store/projectStore';
 import currencyAPI from '../../../_shared/api/currency';
 import api from '../../../_shared/api/axios';
+import { getBaseCode } from '../../../_shared/lib/baseCurrency';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ITEM_TYPES     = ['product', 'service', 'fee', 'custom_product', 'custom_service'];
@@ -23,7 +24,7 @@ const money          = (n, d = 2) => parseFloat(n || 0).toLocaleString('en-US', 
 const isLinkedType   = (t) => t === 'product' || t === 'service';
 const isProductType  = (t) => t === 'product';
 
-const emptyItem = (currency = 'KES') => ({
+const emptyItem = (currency = getBaseCode()) => ({
   _id: Math.random().toString(36).slice(2),
   item_type: 'product', product_id: null, service_id: null,
   description: '', quantity: 1, unit_of_measure: 'each',
@@ -40,7 +41,7 @@ const itemFromExisting = (existing) => ({
   description:     existing.description     || '',
   quantity:        existing.quantity        ?? 1,
   unit_of_measure: existing.unit_of_measure || 'each',
-  currency:        existing.currency        || 'KES',
+  currency:        existing.currency        || getBaseCode(),
   unit_price:      existing.unit_price      ?? '',
   status:          existing.status          || 'planned',
   notes:           existing.notes           || '',
@@ -59,7 +60,7 @@ const calcTotals = (item, currencyMap) => {
   const price = parseFloat(item.unit_price) || 0;
   const qty   = parseFloat(item.quantity)   || 0;
   const total = parseFloat((price * qty).toFixed(2));
-  if (item.currency === 'KES' || !currencyMap[item.currency]) {
+  if (item.currency === getBaseCode() || !currencyMap[item.currency]) {
     return { line_total: total, unit_price_kes: price, line_total_kes: total, exchange_rate_to_kes: 1, converted_currency_at: null };
   }
   const cur  = currencyMap[item.currency];
@@ -153,8 +154,8 @@ const ItemRow = ({ item, index, currencies, currencyMap, onChange, onRemove, isO
     onChange(index, '_variants', item._variants.map((v, i) => i === vi ? { ...v, [field]: val } : v));
 
   const totals  = calcTotals(item, currencyMap);
-  const showKes = item.currency !== 'KES' && !!currencyMap[item.currency];
-  const noRate  = item.currency !== 'KES' && !currencyMap[item.currency];
+  const showKes = item.currency !== getBaseCode() && !!currencyMap[item.currency];
+  const noRate  = item.currency !== getBaseCode() && !currencyMap[item.currency];
   const rate    = currencyMap[item.currency]
     ? parseFloat(currencyMap[item.currency].exchange_rate_to_kes || currencyMap[item.currency].rate || currencyMap[item.currency].conversion_rate || 1)
     : null;
@@ -432,10 +433,10 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
   const { createItem, updateItem, loading } = useProjectStore();
   const isEditMode = !!editItem;
 
-  const [currencies,  setCurrencies]  = useState([{ code: project.base_currency || 'KES' }]);
+  const [currencies,  setCurrencies]  = useState([{ code: project.base_currency || getBaseCode() }]);
   const [currencyMap, setCurrencyMap] = useState({});
   const [items,       setItems]       = useState(() =>
-    isEditMode ? [itemFromExisting(editItem)] : [emptyItem(project.base_currency || 'KES')]
+    isEditMode ? [itemFromExisting(editItem)] : [emptyItem(project.base_currency || getBaseCode())]
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -455,7 +456,7 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
     setItems(prev => prev.map((item, i) => i === index ? { ...item, [key]: value } : item));
   }, []);
 
-  const addRow    = () => setItems(prev => [...prev, emptyItem(prev.at(-1)?.currency || project.base_currency || 'KES')]);
+  const addRow    = () => setItems(prev => [...prev, emptyItem(prev.at(-1)?.currency || project.base_currency || getBaseCode())]);
   const removeRow = (index) => setItems(prev => prev.filter((_, i) => i !== index));
 
   const buildPayload = (item) => {
@@ -477,7 +478,7 @@ const CreateItemModal = ({ project, onClose, editItem = null }) => {
       ...(item.product_id  && { product_id: item.product_id }),
       ...(item.service_id  && { service_id: item.service_id }),
       ...(variant_details  && { variant_details }),
-      ...(item.currency !== 'KES' && currencyMap[item.currency] && {
+      ...(item.currency !== getBaseCode() && currencyMap[item.currency] && {
         exchange_rate_to_kes:  totals.exchange_rate_to_kes,
         unit_price_kes:        totals.unit_price_kes,
         line_total_kes:        totals.line_total_kes,

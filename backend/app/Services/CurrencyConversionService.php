@@ -56,6 +56,28 @@ class CurrencyConversionService
         $this->currencies = null;
     }
 
+    /**
+     * 1 unit of $currency in base on a given date — from the rate history, so
+     * a document dated last month converts at last month's rate. Falls back to
+     * the current rate when no history exists (or the table isn't there yet).
+     */
+    public function rateOn(Currency|int|null $currency, $date = null): float
+    {
+        $currency = $this->currencyFrom($currency);
+        if ($currency->is_base) {
+            return 1.0;
+        }
+        try {
+            $rate = \App\Models\CurrencyRate::where('currency_id', $currency->id)
+                ->where('effective_from', '<=', ($date ? \Carbon\Carbon::parse($date) : now())->endOfDay())
+                ->orderByDesc('effective_from')->orderByDesc('id')->value('rate');
+        } catch (Throwable) {
+            $rate = null;
+        }
+
+        return (float) ($rate ?: $currency->conversion_rate);
+    }
+
     /** All currencies, loaded once per request. */
     public function all(): Collection
     {

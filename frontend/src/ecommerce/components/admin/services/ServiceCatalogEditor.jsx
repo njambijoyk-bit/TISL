@@ -3,6 +3,7 @@ import { Plus, Trash2, Star, Sparkles, X } from 'lucide-react';
 import serviceCatalogAPI from '../../../../_shared/api/serviceCatalog';
 import useUomStore from '../../../../_shared/store/uomStore';
 import { colors, card, input, btnPrimary, btnGhost, radius } from '../../../../_shared/theme/tokens';
+import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 const cell = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${colors.border ?? '#eee'}` };
@@ -31,7 +32,7 @@ function Section({ title, description, action, children }) {
  * with its own price, duration and unit), or hand-made. Every service always
  * has at least one — the automatic "Standard" package.
  */
-export default function ServiceCatalogEditor({ serviceId, currencyCode = 'KES', readOnly = false }) {
+export default function ServiceCatalogEditor({ serviceId, currencyCode = getBaseCode(), readOnly = false }) {
   const [cat, setCat] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
