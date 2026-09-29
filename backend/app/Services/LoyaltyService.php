@@ -464,9 +464,11 @@ class LoyaltyService
                 // Mark original transaction as expired
                 $tx->update(['expired_at' => now()]);
 
-                // Write a negative offset only if the customer still has the points
-                $toRemove = min($tx->points, $customer->loyalty_points);
-                if ($toRemove <= 0) return;
+                // the lot lapses: what is left of it (not what it started with) goes, at the value it carries
+                app(\App\Services\Books\PointLotService::class)->ensureLots($customer);
+                $tx->refresh();
+                $toRemove = min((int) ($tx->remaining ?? $tx->points), $customer->fresh()->loyalty_points);
+                if ($toRemove <= 0) { $tx->update(['remaining' => 0]); return; }
 
                 $this->writePointTransaction(
                     customer:      $customer,
@@ -476,6 +478,7 @@ class LoyaltyService
                     note:          "Points expired (original earn: {$tx->created_at->toDateString()})",
                     referenceType: LoyaltyPointTransaction::class,
                     referenceId:   $tx->id,
+                    consumeLotId:  $tx->id,
                 );
                 $expired++;
             });
@@ -502,12 +505,15 @@ class LoyaltyService
         ?int      $referenceId   = null,
         ?int      $createdBy     = null,
         array     $metadata      = [],
+        ?int      $consumeLotId  = null,
     ): LoyaltyPointTransaction {
         return DB::transaction(function () use (
             $customer, $points, $type, $pointType, $expiresAt,
-            $note, $referenceType, $referenceId, $createdBy, $metadata
+            $note, $referenceType, $referenceId, $createdBy, $metadata, $consumeLotId
         ) {
             $customer = Customer::lockForUpdate()->find($customer->id);
+            $lots = app(\App\Services\Books\PointLotService::class);
+            $lots->ensureLots($customer);
 
             $newBalance = max(0, $customer->loyalty_points + $points);
 
@@ -526,9 +532,10 @@ class LoyaltyService
             ]);
 
             $customer->update(['loyalty_points' => $newBalance]);
-            $this->bookPoints($tx, $customer);
+            $lots->apply($customer, $tx, $consumeLotId);   // earns become lots; spends release exactly what their lots carry
+            $this->bookPoints($tx->fresh(), $customer);
 
-            return $tx;
+            return $tx->fresh();
         });
     }
 
@@ -549,7 +556,7 @@ class LoyaltyService
         try {
             $voucher = app(\App\Services\Books\RewardService::class)->postPoints(abs($tx->points), $mode, "{$label} — {$this->customerLabel($customer)}", [
                 'customer_id' => $customer->id, 'point_transaction_id' => $tx->id, 'points_type' => $tx->type,
-            ]);
+            ], null, isset($tx->metadata['value']) ? (float) $tx->metadata['value'] : null);
         } catch (\App\Services\Books\BooksException $e) {
             throw \Illuminate\Validation\ValidationException::withMessages(['points' => $e->getMessage()]);
         }

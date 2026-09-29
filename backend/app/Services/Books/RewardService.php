@@ -70,8 +70,8 @@ class RewardService
             if ($points > 0) {
                 $take = min($points, (int) $customer->loyalty_points);
                 if ($take > 0) {
-                    $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$sale->voucher_number} cancelled", $sale);
-                    $this->accrue($sale, -$take);
+                    $value = $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$sale->voucher_number} cancelled", $sale);
+                    $this->accrue($sale, -$take, $value);
                 }
             }
             $customer->update([
@@ -97,8 +97,8 @@ class RewardService
         $multiplier = (float) ($customer->tier_benefits['loyalty_points_multiplier'] ?? 1.0);
         $points = (int) round($raw * $multiplier);
         $months = LoyaltySetting::get('points_expiry_months', null);
-        $this->writePoints($customer, $points, 'order_earn', "Earned on {$sale->voucher_number}", $sale, $months ? 'expiring' : 'permanent', $months ? now()->addMonths((int) $months) : null);
-        $this->accrue($sale, $points);
+        $value = $this->writePoints($customer, $points, 'order_earn', "Earned on {$sale->voucher_number}", $sale, $months ? 'expiring' : 'permanent', $months ? now()->addMonths((int) $months) : null);
+        $this->accrue($sale, $points, $value);
 
         return $points;
     }
@@ -125,10 +125,10 @@ class RewardService
     }
 
     /** Points are a liability at their value: Dr Rewards expense, Cr Loyalty Points Liability (reversed when negative). */
-    private function accrue(Voucher $sale, int $points): void
+    private function accrue(Voucher $sale, int $points, ?float $value = null): void
     {
         $this->postPoints(abs($points), $points >= 0 ? 'accrue' : 'release',
-            ($points >= 0 ? 'Loyalty points earned on ' : 'Loyalty points reversed on ') . $sale->voucher_number, ['sale_voucher_id' => $sale->id]);
+            ($points >= 0 ? 'Loyalty points earned on ' : 'Loyalty points reversed on ') . $sale->voucher_number, ['sale_voucher_id' => $sale->id], null, $value);
     }
 
     /**
@@ -136,11 +136,12 @@ class RewardService
      *   accrue  → Dr Rewards & Referral Expense,  Cr Loyalty Points Liability   (points given)
      *   release → Dr Loyalty Points Liability,    Cr Rewards & Referral Expense (points taken back / a goods reward handed over)
      *   expire  → Dr Loyalty Points Liability,    Cr Loyalty Points Breakage Income (points that lapsed unused)
-     * Returns null when there is nothing to book (no value per point, or the books are not set up).
+     * $value is what the lots carry (see PointLotService); without it the points are valued at today's point value.
+     * Returns null when there is nothing to book (no value, or the books are not set up).
      */
-    public function postPoints(int $points, string $mode, string $narration, array $meta = [], ?\App\Models\User $by = null): ?Voucher
+    public function postPoints(int $points, string $mode, string $narration, array $meta = [], ?\App\Models\User $by = null, ?float $value = null): ?Voucher
     {
-        $value = round(abs($points) * $this->pointValue(), 2);
+        $value = round($value ?? abs($points) * $this->pointValue(), 2);
         if ($value <= 0) {
             return null;
         }
@@ -175,8 +176,9 @@ class RewardService
         if (! $expense || ! $liability || ! $journal) {
             throw new BooksException('The Loyalty Points Liability or Rewards & Referral Expense ledger is not set up (Books settings).');
         }
-        $points = (int) Customer::sum('loyalty_points');
-        $target = round($points * $this->pointValue(), 2);
+        $liab = app(PointLotService::class)->liability();
+        $points = $liab['points'];
+        $target = $liab['value'];
         $diff = round($target - (-app(LedgerService::class)->balance((int) $liability)), 2);   // + = liability must grow
         if (abs($diff) < 0.01) {
             return null;
@@ -203,15 +205,20 @@ class RewardService
         return (int) app(LedgerService::class)->ensure('Loyalty Points Breakage Income', $group->id, ['is_system' => true])->id;
     }
 
-    public function writePoints(Customer $customer, int $points, string $type, string $note, ?Voucher $ref = null, string $pointType = 'permanent', $expiresAt = null): void
+    /** Writes a points movement and applies it to the lots; returns its value in base currency (what the liability moves by). */
+    public function writePoints(Customer $customer, int $points, string $type, string $note, ?Voucher $ref = null, string $pointType = 'permanent', $expiresAt = null): float
     {
         $customer = Customer::lockForUpdate()->find($customer->id);
+        $lots = app(PointLotService::class);
+        $lots->ensureLots($customer);
         $balance = max(0, (int) $customer->loyalty_points + $points);
-        LoyaltyPointTransaction::create([
+        $tx = LoyaltyPointTransaction::create([
             'customer_id' => $customer->id, 'points' => $points, 'balance_after' => $balance, 'type' => $type, 'point_type' => $pointType,
             'expires_at' => $expiresAt, 'reference_type' => $ref ? Voucher::class : null, 'reference_id' => $ref?->id, 'note' => $note,
         ]);
         $customer->update(['loyalty_points' => $balance]);
+
+        return $lots->apply($customer, $tx, null, $points < 0 ? $ref?->id : null);
     }
 
     // ── statistics, tier ─────────────────────────────────────────────────
@@ -255,8 +262,8 @@ class RewardService
             }
             $bonus = (int) \App\Services\ReferralSettings::get()['referral_referrer_points'];
             if ($bonus > 0) {
-                $this->writePoints($referrer, $bonus, 'referral_bonus', "Referral bonus — {$sale->voucher_number}", $sale);
-                $this->accrue($sale, $bonus);
+                $value = $this->writePoints($referrer, $bonus, 'referral_bonus', "Referral bonus — {$sale->voucher_number}", $sale);
+                $this->accrue($sale, $bonus, $value);
             }
         }
         $customer->update(['referral_completed_at' => now()]);
@@ -315,12 +322,20 @@ class RewardService
         $currencyId = $rule['currency_id'] ?? $this->money->getBaseCurrency()->id;
 
         return DB::transaction(function () use ($customer, $required, $value, $currencyId, $rule, $by) {
-            $this->writePoints($customer, -$required, 'redemption', 'Redeemed for: ' . ($rule['name'] ?? 'gift voucher'));
+            $released = $this->writePoints($customer, -$required, 'redemption', 'Redeemed for: ' . ($rule['name'] ?? 'gift voucher'));
             // the points were already accrued as a liability — release it into the gift voucher liability
-            return $this->gifts->issue([
+            $gv = $this->gifts->issue([
                 'amount' => $value, 'currency_id' => $currencyId, 'customer_id' => $customer->id, 'source' => 'loyalty',
                 'note' => 'Points redemption: ' . ($rule['name'] ?? ''), 'expires_at' => $this->expiry(),
             ], $by);
+            // the voucher took its full value from the liability, but only what those points were accrued at should leave it
+            $voucherBase = round($this->money->convert($value, $this->money->currencyFrom($currencyId), $this->money->getBaseCurrency()), 2);
+            $diff = round($voucherBase - $released, 2);
+            if (abs($diff) >= 0.01) {
+                $this->postPoints(0, $diff > 0 ? 'accrue' : 'release', "Points redemption difference — {$gv->code}", ['gift_voucher_id' => $gv->id], $by, abs($diff));
+            }
+
+            return $gv;
         });
     }
 }

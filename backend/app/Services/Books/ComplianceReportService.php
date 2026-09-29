@@ -164,9 +164,8 @@ class ComplianceReportService
         // loyalty points
         if ($s->loyalty_liability_ledger_id) {
             $book = -$this->ledgers->balance((int) $s->loyalty_liability_ledger_id, $asOf);
-            $points = (int) Customer::sum('loyalty_points');
-            $reg = $points * app(RewardService::class)->pointValue();
-            $add('loyalty-points', 'Loyalty points liability', $book, $reg, "{$points} points at the current value per point.");
+            $liab = app(PointLotService::class)->liability();
+            $add('loyalty-points', 'Loyalty points liability', $book, $liab['value'], "{$liab['points']} points held, each lot at the value of a point on the day it was earned.");
         }
         // withholding credits
         $recv = TaxType::withheld()->pluck('receivable_ledger_id')->filter()->unique()->all();

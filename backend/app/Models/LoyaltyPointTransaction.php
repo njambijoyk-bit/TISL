@@ -19,6 +19,8 @@ class LoyaltyPointTransaction extends Model
         'note',
         'created_by',
         'metadata',
+        'unit_value',
+        'remaining',
     ];
 
     protected $casts = [
@@ -27,6 +29,8 @@ class LoyaltyPointTransaction extends Model
         'expires_at'  => 'datetime',
         'expired_at'  => 'datetime',
         'metadata'    => 'array',
+        'unit_value'  => 'decimal:6',
+        'remaining'   => 'integer',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
