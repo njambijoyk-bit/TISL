@@ -1,0 +1,255 @@
+# How money is organised in the books
+
+This guide explains where taxes, withholding, shipping, discounts, promo and referral codes, loyalty points, gift vouchers, customer credit and currencies live in the ledgers, and what every action posts.
+Ledger names below are the defaults. The accounts a feature uses are chosen under **Books → Settings → Default ledgers**, so yours may be named differently.
+
+---
+
+## 1. The idea in five lines
+
+1. **A ledger is an account.** Anything that holds or measures money is a ledger inside a **group** (Sales Accounts, Duties & Taxes, Current Liabilities…).
+2. **A group says what its ledgers are** (its *behaviour*): ordinary, **tax** (ledgers carry a rate) or **delivery** (ledgers carry a charge). The ledger form shows only the fields that behaviour needs.
+3. **Money only moves through vouchers** (Sales Order, Sales, Cash Sale, Credit Note, Receipt, Payment, Journal…). Every voucher balances: total debits = total credits, in the voucher's currency *and* in the base currency.
+4. **Registers are detail, never money.** Gift voucher codes, loyalty point lots, withholding certificates and bill references explain a ledger balance; they never replace it.
+5. **Every register reconciles to a control ledger**: Books → Reports → **Reconciliation** shows each pair and whether they agree.
+
+---
+
+## 2. The chart at a glance
+
+| Group | Behaviour | What lives here |
+|---|---|---|
+| **Sales Accounts** | ordinary | Sales, Sales Returns, Discounts contra lines land in expenses (see §6) |
+| **Shipping & Delivery** | **delivery** | One ledger per delivery method (e.g. *Courier service*), plus any delivery *cost* ledgers |
+| **Duties & Taxes** | **tax** | One subgroup per tax type; one ledger per tax rate; the tax type's balance ledgers |
+| **Current Assets** | ordinary | Cash, Bank, M-Pesa, customers (Sundry Debtors), *Withholding Tax Receivable* |
+| **Current Liabilities** | ordinary | Suppliers (Sundry Creditors), **Gift Vouchers Liability**, **Loyalty Points Liability**, withholding payable |
+| **Indirect Expenses** | ordinary | **Discounts Allowed**, **Rewards & Referral Expense**, Exchange Loss, Withholding Tax Written Off |
+| **Indirect Incomes** | ordinary | Exchange Gain, Interest Income, **Gift Voucher Breakage Income**, **Loyalty Points Breakage Income** |
+
+---
+
+## 3. Taxes
+
+### 3.1 Structure
+
+```
+Duties & Taxes                         (group, behaviour = tax)
+└── VAT                                (a TAX TYPE = a group)
+    ├── VAT Account                    (control ledger: the opening balance / brought-forward)
+    ├── VAT 16%                        (a TAX RATE = a ledger, rate 16 %)
+    └── VAT 8%                         (another rate)
+```
+
+* A **tax type** is a group directly under Duties & Taxes. It carries: code, mode (*additive* = added to the price like VAT; *withheld* = held back from a payment), compounding, active flag.
+* A **tax rate** is a **ledger**: rate type (percentage / fixed amount / per unit), value, currency (for fixed amounts), valid from / until, classification, calculation base and order, certificate required.
+* A change of rate is **a new dated rate ledger**, so old invoices keep the rate they were charged.
+* **Output and input tax share the same rate ledger.** Selling credits it, buying debits it, so its balance is *what you owe the authority* (credit) or *can reclaim* (debit).
+* The **opening balance** you enter when creating a tax type goes on the type's control ledger (*VAT Account*) and is added to what the tax return shows as brought forward.
+
+### 3.2 What stays configuration (not money)
+
+Districts, tax rules (module / customer type / order bands / priority), exemption certificates and per-item or per-customer exemptions decide **which rate applies**. They point at rates but hold no balances.
+
+### 3.3 Postings
+
+| Event | Dr | Cr |
+|---|---|---|
+| Sale with 16 % VAT (Sales invoice / Cash Sale) | Customer (or cash / bank) | Sales ledger (net) + **VAT 16 %** |
+| Purchase with VAT | Purchase ledger (net) + **VAT 16 %** | Supplier |
+| Credit / debit note | the reverse of the original | |
+| Exempt or zero-rated line | — (the line still prints, tax 0) | |
+
+### 3.4 Withholding tax (a tax type with mode *withheld*)
+
+A customer who pays you **keeps back** part of the payment; you hold a *receivable* from the tax authority. When *you* pay a supplier you keep part back; you owe the authority a *payable*.
+
+| Event | Dr | Cr |
+|---|---|---|
+| **Receipt** from a customer with 2 % withheld (gross 1,000) | Bank 980 + **Withholding Tax Receivable** 20 | Customer 1,000 |
+| **Payment** to a supplier with 2 % withheld | Supplier 1,000 | Bank 980 + **{Type} Payable** 20 |
+| Clear the credit against tax you owe | the tax ledger you owe (e.g. VAT Account) | Withholding Tax Receivable |
+| …or a refund arrives | Bank | Withholding Tax Receivable |
+| Write off what will not be recovered | Withholding Tax Written Off | Withholding Tax Receivable |
+
+* A withheld **rate is a rate card** (it holds the percentage); the postings go to the type's Receivable / Payable ledgers.
+* Each such receipt / payment automatically creates a **withholding certificate** (number, status *pending → issued → received*, document). Cancelling the voucher voids it; a certificate whose credit was already cleared cannot be voided until the clearing journal is cancelled.
+* Clearances and write-offs are **Journal vouchers**, listed on the credit with their voucher numbers.
+
+### 3.5 Reports
+
+* **Tax return**: per tax type and rate, sales value and output tax, purchases value and input tax, brought forward, and *owed at the end*.
+* **Withholding certificates**: every certificate in a period with status and credit status.
+
+---
+
+## 4. Shipping and delivery
+
+* Group **Shipping & Delivery** (behaviour *delivery*). Each **delivery method is one ledger**: *Courier service*, *Standard delivery*…
+* The ledger carries the rate: **percentage of the goods, fixed amount or per unit**, its **currency**, minimum / maximum, free-above threshold, transit days and an optional tax rate.
+* A charge is a line on the sale. It is converted into the voucher's currency at that day's rate (e.g. a USD 500 rate on a JPY invoice) and shows the ledger name and the conversion note at the bottom of the invoice.
+* Delivery **costs you incur** are ordinary ledgers in the same group with the *expense* side (no rate needed).
+
+| Event | Dr | Cr |
+|---|---|---|
+| Customer pays delivery on a sale | Customer / cash | **the delivery ledger** (+ its tax rate if set) |
+| Free delivery (above the threshold or tier benefit) | — (line shown as *free*) | |
+| You pay a courier | Delivery cost ledger | Bank / supplier |
+
+Deleting a delivery method deletes its ledger — or, if anything was ever posted to it, switches it off and keeps it.
+
+---
+
+## 5. Payment methods and cash
+
+A payment method (Cash, M-Pesa, Bank transfer, Card, Cheque, Gift voucher…) **maps to a ledger** (bank / cash / the gift voucher liability). A receipt or a cash sale debits that ledger. Online methods with a gateway (M-Pesa) also record a **payment attempt**; the books are posted only when the payment is confirmed.
+A sale can be paid by **several methods at once** (split tenders), including a gift voucher.
+
+---
+
+## 6. Discounts, promo codes and referral codes
+
+### 6.1 Discounts on a sale (tier, customer type, promo code, referral, manual)
+
+* A discount is **not a ledger of its own**. It is a discount on the line: the sales ledger is credited with the **gross** amount and the discount posts as a **contra debit** to the discount ledger (default **Discounts Allowed**; a campaign may name its own).
+* Each discounted line records **where the discount came from** (*tier · customer type · promo · referral · manual*) and the code, so any campaign's cost can be reported.
+* Order of application at checkout: tier / customer-type % → the new customer's referral discount → a promo code.
+* Gift voucher lines are never discounted.
+
+| Event | Dr | Cr |
+|---|---|---|
+| Sale of 1,000 with 100 promo discount | Customer 900 + **Discounts Allowed** 100 | Sales 1,000 |
+
+### 6.2 Promo codes
+
+A promo code is a **rule** (percentage or fixed amount, currency, minimum order, validity, usage limits). It has **no balance**. Using it creates the discount line above; the code's usage counter is updated when the sale is paid.
+
+### 6.3 Referral codes and the referral programme
+
+Set once under **Referrals → Referral programme**:
+
+| Setting | Effect |
+|---|---|
+| **The new customer gets** a percentage or fixed discount (with currency, cap, minimum order) | A discount line on their **first sale**, as in §6.1, source *referral* |
+| **The referrer earns** loyalty points | When that first sale is **paid**: points are given and their value is booked (§7) |
+| **…plus a gift voucher** of an amount / currency | A gift voucher is issued to the referrer (§8), funded from *Rewards & Referral Expense* |
+
+Either reward, or both, or neither (0 = nothing). Other, admin-made codes may carry their own reward. Rewards are given once per referred customer, and are taken back if the paid sale is cancelled.
+
+---
+
+## 7. Loyalty points
+
+Points are **not money**. They are a **quantity**, tracked in **lots**, whose *value* is a liability.
+
+* **Lot** = one earn: points, the **value of one point on that day**, points still unspent, expiry.
+* Spending, deducting, reversing and expiring consume lots — the one being reversed first, then those expiring soonest, then the oldest — and release **exactly the value those lots carry**.
+* Therefore **Loyalty Points Liability = the sum of the lots' values**, whatever the point value does later.
+
+| Event | Dr | Cr |
+|---|---|---|
+| Points earned on a paid sale | Rewards & Referral Expense | **Loyalty Points Liability** |
+| Sale cancelled → points taken back | Loyalty Points Liability | Rewards & Referral Expense |
+| Admin grants points / referral bonus points | Rewards & Referral Expense | Loyalty Points Liability |
+| Admin deducts points | Loyalty Points Liability | Rewards & Referral Expense |
+| Points **expire** | Loyalty Points Liability | **Loyalty Points Breakage Income** |
+| Points redeemed for a **gift voucher** | Loyalty Points Liability (lots' value) | Gift Vouchers Liability (voucher value); any difference to Rewards & Referral Expense |
+| Points redeemed for a **goods reward** | Loyalty Points Liability | Rewards & Referral Expense (staff deliver the goods separately) |
+
+Settings (Loyalty Settings): points per 100 spent (base currency), tier multipliers, minimum redemption, expiry months (expiry runs **daily**), gift voucher cap %.
+**Redemption rules** each name the **currency** their value is in — the value is money, so a rule must say which currency (there is no silent "base currency" default any more).
+Points earned on *gift voucher purchases* are excluded.
+
+---
+
+## 8. Gift vouchers
+
+A gift voucher is **a claim on you for money**. One ledger, **Gift Vouchers Liability**, holds the total; each voucher (code, holder, currency, expiry, balance) is a row in the register that explains it.
+
+| Where the value comes from | Voucher / posting |
+|---|---|
+| **Sold** at the till (Gift Vouchers tab, "paid now") | Journal: Dr the payment method's ledger, Cr **Gift Vouchers Liability** |
+| **Sold** on a Cash Sale or online (customer "My wallet → Buy a voucher") | The sale's own posting: Dr cash, Cr **Gift Vouchers Liability** (never Sales, never taxed, never discounted); the code is issued **when the sale is paid**; cancelling the sale voids an unspent voucher, and is refused once it has been used |
+| **Refund of a Credit Note** ("Refund as gift voucher") | Journal: Dr the **customer's account**, Cr Gift Vouchers Liability — so the return costs *Sales Returns*, not marketing. Limited to what the note has left and what the account holds in credit |
+| **From the customer's account** | Dr customer account, Cr Gift Vouchers Liability |
+| **Loyalty redemption** | Dr Loyalty Points Liability (§7) |
+| **Promotion / referral / manual gift** | Dr Rewards & Referral Expense |
+
+| Movement | Dr | Cr |
+|---|---|---|
+| **Spent** on a sale (a payment tender; partial use allowed; several vouchers per sale) | Gift Vouchers Liability | (the sale's receivable is settled) |
+| Sale cancelled → value restored | reverses the tender | |
+| **Expires** (daily job) | Gift Vouchers Liability | Gift Voucher Breakage Income |
+| Cancelled unspent voucher | Gift Vouchers Liability | the ledger it came from |
+| Closed at a different exchange rate than issued | Gift Vouchers Liability / Exchange Loss | Exchange Gain / Gift Vouchers Liability (so a closed voucher carries **nothing**) |
+
+Every movement stores the **base value actually booked**, so Reconciliation is exact even for foreign-currency vouchers.
+Customers see their vouchers, points and every movement (linked to the order it came from) under **My wallet**.
+
+---
+
+## 9. Customer credit
+
+There is **no separate customer credit table**. A customer's account is their **ledger** under Sundry Debtors:
+
+* *Debit balance* = they owe you. *Credit balance* = you owe them (overpayment, unallocated receipt, credit note).
+* Their **credit limit, terms (days) and interest** are settings on the customer; ageing works on **bill-by-bill references** (invoice = *new reference*, receipt = *against* it, on-account receipt = *advance*).
+* Checkout **"pay on account"** raises a Sales invoice to the ledger if the limit allows.
+* Interest charged: Dr customer ledger, Cr **Interest Income**. Manual adjustments are Journals against the customer ledger.
+* Old "store credit" is now **gift vouchers**; there is no separate store-credit balance.
+
+---
+
+## 10. Currency
+
+* Every voucher is in **one currency** and stores its **exchange rate**; every entry stores both the voucher-currency amount and the **base-currency amount**. All reports use base amounts.
+* Rates come from the **dated rate history**; a rate typed on a voucher wins.
+* Settling a foreign-currency invoice at a different rate books a **realised gain or loss** (*Exchange Gain / Exchange Loss*).
+* Shipping charges, fixed-amount taxes, promo codes, referral rewards, tiers, gift vouchers and redemption rules are each stored **in their own currency** and converted at the voucher's rate — there is no hardcoded currency.
+
+---
+
+## 11. Reconciliation — proving the registers match the ledgers
+
+Books → Reports → **Reconciliation**:
+
+| Check | Books side | Register side |
+|---|---|---|
+| Trial balance | total debits | total credits |
+| **Gift vouchers** | Gift Vouchers Liability | Σ booked base value of vouchers |
+| **Loyalty points** | Loyalty Points Liability | Σ lot remaining × value at earn (a **Post correction** button fixes drift from points moved before everything was booked) |
+| **Withholding credits** | Withholding Tax Receivable | Σ open credits (an opening balance is shown as *explained*) |
+| **Receivables / payables** | Sundry Debtors / Creditors | open bills (differences = advances and non-bill-wise balances) |
+
+Also: **Tax return**, **Withholding certificates**, Trial balance, Profit & loss, Balance sheet, Ledger statement, Receivables / Payables ageing.
+
+---
+
+## 12. Cheat sheet — event → posting
+
+| Event | Debit | Credit |
+|---|---|---|
+| Cash sale, cash paid | Cash / Bank | Sales, Tax ledgers, Delivery ledger |
+| Sale on account | Customer | Sales, Tax ledgers, Delivery ledger |
+| Discount on a sale | Discounts Allowed | (reduces what is owed; sales stay at gross) |
+| Receipt from customer | Bank (+ Withholding Receivable) | Customer |
+| Payment to supplier | Supplier | Bank (+ Withholding Payable) |
+| Points earned | Rewards & Referral Expense | Loyalty Points Liability |
+| Points expire | Loyalty Points Liability | Loyalty Points Breakage Income |
+| Gift voucher sold | Cash / Bank | Gift Vouchers Liability |
+| Gift voucher spent | Gift Vouchers Liability | (sale settled) |
+| Gift voucher expires | Gift Vouchers Liability | Gift Voucher Breakage Income |
+| Credit note refunded as voucher | Customer account | Gift Vouchers Liability |
+| Referrer reward (points / voucher) | Rewards & Referral Expense | Loyalty Points Liability / Gift Vouchers Liability |
+| Interest on overdue account | Customer | Interest Income |
+| Foreign-currency settlement difference | Exchange Loss | Exchange Gain (whichever applies) |
+
+---
+
+## 13. What is not in the books (by design) and known limits
+
+* **Rules and campaigns** — tax rules, districts, exemption certificates, promo code rules, tiers, redemption rules, referral settings — are configuration; they decide amounts but hold no balances.
+* Goods rewards: the value is released, but the **cost of the goods** is not posted (the books do not value stock).
+* VAT is not charged when a gift voucher is *sold* (it is charged when the voucher is spent).
+* The code of a sold gift voucher is shown to the buyer; it is not e-mailed to a recipient yet.
+* Still on the legacy tables: delivery manifests, older reports and analytics, the chat assistant, financial notes and inventory purchase orders.
