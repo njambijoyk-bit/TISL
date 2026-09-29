@@ -246,6 +246,25 @@ Also: **Tax return**, **Withholding certificates**, Trial balance, Profit & loss
 
 ---
 
+## 12b. Account characteristics (what a ledger *is*)
+
+Like Tally, what an account is decides what the voucher does with it. The group sets the behaviour; the ledger form shows the matching fields.
+
+| Group behaviour | Where | Fields on the ledger |
+|---|---|---|
+| **Sales** | Sales Accounts | **Tax on this account**: taxable (with its tax rate) / zero-rated (with a 0 % rate) / exempt / out of scope |
+| **Purchase** | Purchase Accounts | The same tax nature, for input tax |
+| **Tax** | Duties & Taxes › tax types | Rate type and value, currency, validity, classification |
+| **Delivery** | Shipping & Delivery | Rate, currency, minimum / maximum, free above, transit days, income / expense side |
+| **Bank / cash** | Bank Accounts, Cash-in-hand | Bank, account number, branch |
+| **Party** | Sundry Debtors / Creditors | Currency; credit terms live on the customer |
+| ordinary | everything else | opening balance, currency |
+
+**How a voucher line is taxed:** the account it posts to decides. A product or service names its **sales account** (and a product its **purchase account**) on its *Tax* tab; a line typed by hand picks its account. So one invoice can carry *Batteries → Sales - VAT-able* (16 % charged) and *Solar panel → Sales - exempt* (no tax) and each line posts to its own account and its own tax ledger. A customer holding a blanket exemption is never taxed, and an item exempted on its own is never taxed. If an account has no tax nature set, the older tax rules (module / customer type / district) still apply, so nothing changes until you set one.
+The **Tax return** then shows the value of supplies split into standard-rated, zero-rated and exempt, taken from the accounts the lines posted to.
+
+---
+
 ## 13. What is not in the books (by design) and known limits
 
 * **Rules and campaigns** — tax rules, districts, exemption certificates, promo code rules, tiers, redemption rules, referral settings — are configuration; they decide amounts but hold no balances.

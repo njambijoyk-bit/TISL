@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Star } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
@@ -401,7 +402,8 @@ function CompanySection({ isSuper }) {
 }
 
 export default function SettingsTab({ isSuper }) {
-  const [sub, setSub] = useState('numbering');
+  const [params] = useSearchParams();
+  const [sub, setSub] = useState(SUBS.some((x) => x.id === params.get('sub')) ? params.get('sub') : 'numbering');
   const [branches, setBranches] = useState([]);
   useEffect(() => { locationsAPI.getAdmin().then((r) => setBranches(r.locations ?? [])).catch(() => {}); }, []);
   return (
