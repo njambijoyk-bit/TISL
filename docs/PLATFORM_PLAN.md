@@ -719,3 +719,39 @@ a) One ledger per rate (versioned by validity) vs one ledger per tax with a rate
 - Still to do: withholding certificate report + credit tables retired (step 4); reconciliation and tax-return reports, drop retired tables (step 5).
 - Step 4 done: withholding is on the vouchers. A Receipt / Payment carrying withholding posts the tax to the type's receivable / payable ledger and generates a certificate (`WithholdingRegisterService`); a receipt's credit is cleared or written off by Journal vouchers (clearances are voided when their journal is cancelled). `WithholdingCredit` is a view over the certificate; the credit / clearance tables are retired (SQL 26). Legacy `WithholdingService` (order-time withholding) removed — it was no longer called. Payables (tax we withheld from suppliers) are remitted with ordinary Payment vouchers against the payable ledger.
 - Step 5 done: Books > Reports gained Tax return (per tax type and rate: sales / purchases value, output, input, brought forward, owed), Withholding certificates (register with status and credit) and Reconciliation (trial balance; gift vouchers, loyalty points, withholding credits, receivables and payables against their registers, each with an "agrees" flag). All export like the other reports. SQL 27 drops the retired tables once you are satisfied.
+
+## 16. Gift vouchers and loyalty points inside the master voucher plan
+
+### 16.1 Where they stand today (audited against the code)
+Gift vouchers — sound: issue = Journal (debit depends on the source: `sale` the payment method's ledger, `customer_account` the party ledger, `loyalty` Loyalty Points Liability, otherwise Rewards & Referral Expense), spend = a tender that debits the liability (partial use, several vouchers per sale, cancel restores), expiry = Journal to Breakage Income. Gaps: (a) `expireDue()` has no scheduler entry, so nothing ever expires; (b) `refund` vouchers are debited to Rewards expense instead of Sales Returns / the customer's account; (c) the register value in reconciliation uses today's rates because a voucher stores no base value.
+Loyalty points — earn on a sale and reversal on cancel accrue value to Loyalty Points Liability; redemption to a gift voucher releases the liability into the gift-voucher liability. Gaps: (d) admin grant / deduct post nothing; (e) expiry removes points but leaves the liability; (f) redemption for a non-voucher ("gift" type) reward removes points and posts nothing; (g) the value per point is one live number, so changing it silently makes liability ≠ points × value; (h) the old order-time loyalty methods (`earnPointsForOrder`, `applyStoreCreditToOrder`, `spendCredit`) still exist on the legacy Order model.
+
+### 16.2 Target: every movement is a voucher, the register is only detail
+| Movement | Voucher | Posting |
+|---|---|---|
+| Points earned on a sale | Journal (auto) | Dr Rewards & Referral Expense, Cr Loyalty Points Liability |
+| Points reversed (cancel) | Journal | the opposite |
+| Admin grants points | Journal | Dr Rewards expense, Cr Loyalty liability |
+| Admin deducts points | Journal | Dr Loyalty liability, Cr Rewards expense |
+| Referral bonus points | Journal | as a grant, referenced to the sale |
+| Points expire | Journal | Dr Loyalty liability, Cr Loyalty Breakage Income |
+| Points redeemed for a gift voucher | Journal | Dr Loyalty liability, Cr Gift Vouchers Liability (+ the voucher) |
+| Points redeemed for a goods reward | Delivery Note / Journal | Dr Loyalty liability, Cr Sales (or Rewards expense) — see decision D |
+| Gift voucher sold | Receipt-style | Dr cash/bank/party, Cr Gift Vouchers Liability |
+| Gift voucher promotional / referral | Journal | Dr Rewards expense, Cr Gift Vouchers Liability |
+| Gift voucher from a return | Credit Note settled to a voucher | Dr Sales Returns (+tax), Cr Gift Vouchers Liability |
+| Gift voucher spent | tender on the sale | Dr Gift Vouchers Liability |
+| Gift voucher expires | Journal | Dr Gift Vouchers Liability, Cr Breakage Income |
+
+### 16.3 Points as a units ledger with lots
+`loyalty_point_transactions` become **lots**: each earn is a lot (points, value per point at earn, expiry). Balance = Σ lot remaining; liability = Σ remaining × lot value. Redemption and expiry consume lots oldest-expiry-first and release exactly their value, so the liability never drifts when the point value changes. Reconciliation then compares the ledger to lot values, not to a live rate.
+
+### 16.4 Order of work
+1. Points: post admin grant / deduct / referral bonus / expiry; schedule both expiry commands; goods-reward redemption.
+2. Lots with value-at-earn (migration builds lots from history at the current value).
+3. Gift vouchers: store base value per transaction; refund source posts to Sales Returns via Credit Note; sell-a-voucher screen; schedule expiry.
+4. Reconciliation switches to exact base values; customer wallet shows vouchers + points with their movements (each links to its voucher).
+5. Retire the legacy Order-based loyalty methods.
+
+### 16.5 Decisions
+A) Value points by lot (recommended) or keep one live value with a revaluation journal when it changes. B) Sell gift vouchers at the till / online (recommended yes). C) Expired points and vouchers go to breakage income (recommended), not back to expense. D) A goods reward (non-voucher) is issued as a zero-price Delivery Note plus a Journal releasing the value to Rewards expense, or a Sales line paid by points — recommend the first.
