@@ -1,3 +1,4 @@
+import CurrencySelect from '../../components/admin/books/CurrencySelect';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -57,7 +58,7 @@ const calculatePointsEarned = (orderKes, pointsPer100Kes) => {
 
 // ── Rule modal ────────────────────────────────────────────────────────────────
 
-const EMPTY_RULE = { name: '', type: 'cashback', points_required: '', value_kes: '', active: true, valid_from: '', valid_until: '' };
+const EMPTY_RULE = { name: '', type: 'cashback', points_required: '', value_kes: '', currency_id: '', active: true, valid_from: '', valid_until: '' };
 
 function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes }) {
   const [form,    setForm]    = useState(rule ? {
@@ -85,7 +86,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
     if (!form.name.trim())          return setError('Name is required.');
     if (!form.points_required || isNaN(Number(form.points_required))) return setError('Points required must be a number.');
     if (Number(form.points_required) < minPoints) return setError(`Points required must be at least ${minPoints}.`);
-    if ((form.type === 'cashback' || form.type === 'voucher') && (!form.value_kes || Number(form.value_kes) <= 0)) return setError('Cashback and voucher rules must award a KES value greater than 0.');
+    if ((form.type === 'cashback' || form.type === 'voucher') && (!form.value_kes || Number(form.value_kes) <= 0)) return setError('Cashback and voucher rules must award a value greater than 0.');
     setLoading(true); setError('');
     try {
       const payload = {
@@ -94,6 +95,8 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
         type:             form.type,
         points_required:  Number(form.points_required),
         value_kes:        Number(form.value_kes),
+        value:            Number(form.value_kes),
+        currency_id:      form.currency_id || null,
         active:           form.active,
         valid_from:       form.valid_from  || null,
         valid_until:      form.valid_until || null,
@@ -160,8 +163,9 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
               <input type="number" min="1" value={form.points_required} onChange={e => set('points_required', e.target.value)} style={inputStyle} placeholder="500" />
             </div>
             <div>
-              <p style={label}>Value (KES) <span style={{ color: '#dc2626' }}>*</span></p>
+              <p style={label}>Value <span style={{ color: '#dc2626' }}>*</span></p>
               <input type="number" min="0" value={form.value_kes} onChange={e => set('value_kes', e.target.value)} style={inputStyle} placeholder="250" />
+              <div style={{ marginTop: 8 }}><p style={label}>Currency</p><CurrencySelect value={form.currency_id} onChange={(v) => set('currency_id', v)} style={inputStyle} /></div>
             </div>
           </div>
 
@@ -360,8 +364,8 @@ export default function LoyaltySettings() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
-            { key: 'points_per_100_kes',     label: 'Points per KES 100 spent (must be an integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
-            { key: 'referral_credit_amount',  label: 'Referral reward (KES)',      type: 'number', min: 0,   placeholder: '500', hint: 'Gift voucher granted to referrer when referred customer pays first order.' },
+            { key: 'points_per_100_kes',     label: 'Points per 100 spent, in the base currency (integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
+            { key: 'referral_credit_amount',  label: 'Referral reward (base currency)',      type: 'number', min: 0,   placeholder: '500', hint: 'Gift voucher granted to referrer when referred customer pays first order.' },
             { key: 'min_redemption_points',   label: 'Min redemption threshold',   type: 'number', min: 1,   placeholder: '500', hint: 'Customer must have at least this many points to redeem.' },
             { key: 'points_expiry_months',    label: 'Points expiry (months)',     type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
             { key: 'store_credit_max_pct',    label: 'Gift voucher cap (%)',       type: 'number', min: 0,   placeholder: '50', hint: 'Max % of order total a customer can pay with gift voucher. Applies at checkout and admin orders.' },
