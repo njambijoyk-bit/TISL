@@ -7,6 +7,7 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { Helmet } from 'react-helmet-async';
 import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-react';
+import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChargesEditor';
 import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
@@ -34,6 +35,7 @@ export default function AdminAuctionCreator() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const [charges, setCharges] = useState(null);   // null until the charge accounts have loaded
   const [form, setForm] = useState({
     product_id: '', variant_id: '', location_id: '', currency_id: '', start_price: '', reserve_price: '',
     bid_increment: '50', start_time: '', end_time: '', sales_ledger_id: ''
@@ -70,7 +72,7 @@ export default function AdminAuctionCreator() {
     if (!form.sales_ledger_id) return toast.error('Choose the sales account this auction is booked under');
     setLoading(true);
     try {
-      await auctionsAPI.createAuction({ ...form, variant_id: form.variant_id || undefined });
+      await auctionsAPI.createAuction({ ...form, variant_id: form.variant_id || undefined, ...(charges ? { charges } : {}) });
       toast.success('Auction created! 🎉');
       navigate('/admin/auctions');
     } catch (err) {
@@ -152,6 +154,14 @@ export default function AdminAuctionCreator() {
             <SalesAccountSelect kind="sales" required amount={form.start_price} currencyCode={code} value={form.sales_ledger_id}
               onChange={(v) => setForm(f => ({ ...f, sales_ledger_id: v }))}
               hint="Bids are entered and shown excluding tax. Tax is added on the winning bid from this account, with any auction charges." />
+          </div>
+
+          <div style={sectionStyle}>
+            <p style={{ ...labelStyle, marginBottom: 6 }}>Charges</p>
+            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 12px' }}>
+              Added to what the winner pays, on top of the winning bid, each with its own tax. They come from the auction charge accounts; switch them on or off and change amounts for this auction.
+            </p>
+            <AuctionChargesEditor currencyId={form.currency_id} currencyCode={code} value={charges} onChange={setCharges} />
           </div>
 
           {/* ── Branch & item ── */}

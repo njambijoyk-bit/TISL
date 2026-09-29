@@ -61,6 +61,18 @@ const auctionsAPI = {
     return response.data;
   },
 
+  // Admin: the charge accounts an auction can pick from (amounts in the given currency)
+  chargeOptions: async (currencyId) => {
+    const response = await api.get('/admin/auctions/charge-options', { params: currencyId ? { currency_id: currencyId } : {} });
+    return response.data;
+  },
+
+  // Admin: what a winner would owe at a given winning bid
+  chargeQuote: async (auctionId, bid, days = 0) => {
+    const response = await api.get(`/admin/auctions/${auctionId}/quote`, { params: { bid, days } });
+    return response.data;
+  },
+
   // Admin: Create auction
   createAuction: async (data) => {
     const response = await api.post('/admin/auctions', data);

@@ -100,11 +100,13 @@ class BooksMasterController extends Controller
         $d = $request->validate([
             'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'currency_id' => 'nullable|integer|exists:currencies,id',
-            'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
+            'settings.charge_kind' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::KINDS), 'settings.timing' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TIMINGS),
+            'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
         ]);
         $this->assertBehaviourFields($d, $d['group_id']);
         if (empty($d['code']) && ($d['side'] ?? null) === 'income' && LedgerGroup::whereKey($d['group_id'])->value('behaviour') === 'delivery') {
@@ -122,11 +124,13 @@ class BooksMasterController extends Controller
             'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
             'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
-            'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
+            'settings.charge_kind' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::KINDS), 'settings.timing' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TIMINGS),
+            'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
         ]);
         $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {
@@ -142,20 +146,31 @@ class BooksMasterController extends Controller
     {
         $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
         $rated = ! empty($d['rate_type']) || ! empty($d['rate_value']);
+        if ($behaviour === 'charge') {
+            $type = array_key_exists('rate_type', $d) ? $d['rate_type'] : $existing?->rate_type;
+            $value = array_key_exists('rate_value', $d) ? $d['rate_value'] : $existing?->rate_value;
+            if (empty($type) || $value === null || $value === '') {
+                throw \Illuminate\Validation\ValidationException::withMessages(['rate_type' => 'A charge needs how it is worked out (percentage of the winning bid, fixed amount or per day) and its rate.']);
+            }
+            $cur = array_key_exists('currency_id', $d) ? $d['currency_id'] : $existing?->currency_id;
+            if ($type !== 'percent' && $type !== 'per_unit' && empty($cur)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-day charge needs a currency.']);
+            }
+        }
         if ($behaviour === 'standard' && $rated) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['rate_type' => 'Rates are only kept on ledgers in a tax or delivery group.']);
+            throw \Illuminate\Validation\ValidationException::withMessages(['rate_type' => 'Rates are only kept on ledgers in a tax, delivery or charge group.']);
         }
         if (in_array($behaviour, ['tax', 'delivery'], true) && ! empty($d['rate_type']) && $d['rate_type'] !== 'percent' && empty($d['currency_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-unit rate needs a currency.']);
         }
         // a sales / purchase account cannot exist without its tax treatment: a rate from the system, exempt or out of scope
         $nature = array_key_exists('tax_nature', $d) ? $d['tax_nature'] : $existing?->tax_nature;
-        if (in_array($behaviour, ['sales', 'purchase'], true) && empty($nature)) {
+        if (in_array($behaviour, ['sales', 'purchase', 'charge'], true) && empty($nature)) {
             throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'Choose the tax for this account — a tax rate from the system, exempt, or out of scope.']);
         }
         if (! empty($d['tax_nature'])) {
-            if (! in_array($behaviour, ['sales', 'purchase'], true)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales or purchase account.']);
+            if (! in_array($behaviour, ['sales', 'purchase', 'charge'], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales, purchase or charge account.']);
             }
             if ($d['tax_nature'] === 'taxable' && empty($d['tax_rate_ledger_id'])) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['tax_rate_ledger_id' => 'A taxable account needs its tax rate.']);

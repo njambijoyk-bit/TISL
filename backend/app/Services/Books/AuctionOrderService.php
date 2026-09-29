@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 /** A won auction becomes a Sales Order at the winning bid, in the auction's own currency; the winner pays it from My orders. */
 class AuctionOrderService
 {
-    public function __construct(private VoucherService $vouchers) {}
+    public function __construct(private VoucherService $vouchers, private AuctionChargeService $charges) {}
 
     public function existing(Auction $a): ?Voucher
     {
@@ -27,10 +27,16 @@ class AuctionOrderService
         }
         $customer = $a->winner?->customer ?? throw new BooksException('The winner has no customer account.');
 
+        // the winning bid, then each charge due on winning (buyer premium, handling…) on its own account with its own tax
+        $lines = [['type' => 'product', 'product_id' => $a->product_id, 'variant_id' => $a->variant_id, 'quantity' => 1, 'rate' => (float) $a->current_price, 'location_id' => $a->location_id, 'ledger_id' => TradingAccounts::forAuction($a)]];
+        foreach ($this->charges->quote($a, (float) $a->current_price, 0, $customer)['lines'] as $c) {
+            $lines[] = ['type' => 'custom', 'description' => $c['name'], 'quantity' => 1, 'rate' => $c['net'], 'ledger_id' => $c['ledger_id']];
+        }
+
         return DB::transaction(fn () => $this->vouchers->placeOrder([
             'date' => today()->toDateString(), 'customer_id' => $customer->id, 'currency_id' => $a->currency_id, 'location_id' => $a->location_id,
             'narration' => "Auction #{$a->id} — winning bid", 'meta' => ['auction_id' => $a->id],
-            'lines' => [['type' => 'product', 'product_id' => $a->product_id, 'variant_id' => $a->variant_id, 'quantity' => 1, 'rate' => (float) $a->current_price, 'location_id' => $a->location_id, 'ledger_id' => TradingAccounts::forAuction($a)]],
+            'lines' => $lines,
         ], $by));
     }
 }

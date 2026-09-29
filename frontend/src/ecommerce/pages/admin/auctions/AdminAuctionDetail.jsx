@@ -11,6 +11,8 @@ import {
   MapPin, Phone, Mail
 } from 'lucide-react';
 import auctionsAPI from '../../../../_shared/api/auctions';
+import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChargesEditor';
+import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
@@ -166,6 +168,8 @@ export default function AdminAuctionDetail() {
         start_time: data.auction.start_time?.slice(0, 16),
         end_time: data.auction.end_time?.slice(0, 16),
         status: data.auction.status,
+        sales_ledger_id: data.auction.sales_ledger_id ?? '',
+        charges: (data.charges ?? []).map(c => ({ ledger_id: c.ledger_id, is_enabled: Boolean(c.is_enabled), amount: c.amount })),
       });
     } catch (err) {
       toast.error('Failed to load auction');
@@ -181,7 +185,9 @@ export default function AdminAuctionDetail() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await auctionsAPI.updateAuction(id, form);
+      const body = { ...form };
+      if (hasBids) delete body.charges;   // fixed once bidding starts
+      await auctionsAPI.updateAuction(id, body);
       toast.success('Auction updated');
       setEditing(false);
       fetchAuction();
@@ -408,6 +414,15 @@ export default function AdminAuctionDetail() {
                 {hasBids && (
                   <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>Locked — bids have been placed in {auctionCode}.</p>
                 )}
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <SalesAccountSelect kind="sales" required value={form.sales_ledger_id} onChange={v => setForm(prev => ({ ...prev, sales_ledger_id: v }))}
+                  hint="Bids are entered and shown excluding tax. Tax comes from this account." />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Charges</label>
+                <AuctionChargesEditor currencyId={form.currency_id} currencyCode={adminCurrencies.find(c => String(c.id) === String(form.currency_id))?.code ?? auctionCode}
+                  value={form.charges} onChange={rows => setForm(prev => ({ ...prev, charges: rows }))} locked={hasBids} />
               </div>
               <div>
                 <label style={labelStyle}>Status</label>

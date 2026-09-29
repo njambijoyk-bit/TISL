@@ -284,3 +284,16 @@ under, and will not save without one (products may also name a purchase account)
 When a voucher is raised each line is taxed by its own account, so one invoice can
 carry VAT-able, zero-rated and exempt lines side by side. Hampers derive their
 tax from the account they are booked to.
+
+## Auction charges
+
+Auction fees are master data. A group that "behaves as" **Auction charges** holds ledgers such as Buyer's premium,
+Entry fee, Deposit, Handling, Storage, Removal, Payment fee and Import/customs. Each ledger says how it is worked out
+(% of the winning bid, fixed amount, or amount per day with free days), an optional minimum and maximum, when it is
+due (to take part, held as a deposit, on winning, after winning), whether it is refundable, whether new auctions start
+with it, and its tax (a fee is usually VAT-able; a refundable deposit is out of scope and sits in a liability group).
+
+Each auction picks its charges from these, switching them on or off and overriding amounts. They are fixed once
+bidding starts. When an auction is won, the Sales Order carries the winning bid on the auction's sales account and each
+"on winning" charge on its own account with its own tax. Deposits and entry fees are taken before bidding and storage
+builds up after winning; those are kept apart from the amount payable.

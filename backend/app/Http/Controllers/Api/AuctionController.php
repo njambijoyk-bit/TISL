@@ -48,6 +48,7 @@ class AuctionController extends Controller
 
         return response()->json([
             'auction' => $auction,
+            'charges' => $auction->charges()->with('ledger:id,name,settings,tax_nature')->get(),
             'product' => $auction->product,
             'bids'    => $auction->bids,
             'stats'   => [
@@ -57,6 +58,26 @@ class AuctionController extends Controller
                 'lowest_bid'     => $auction->bids->min('amount'),
             ],
         ]);
+    }
+
+    /** The charge accounts an auction can pick from, with how each is worked out. */
+    public function chargeOptions(Request $request)
+    {
+        $target = $request->filled('currency_id') ? \App\Models\Currency::find($request->currency_id) : null;
+        $svc = app(\App\Services\Books\AuctionChargeService::class);
+
+        return response()->json($svc->ledgers()->map(fn ($l) => ['ledger' => $l->only(['id', 'name', 'tax_nature']), 'tax_rate' => $l->taxRateLedger?->only(['id', 'name', 'rate_value']), 'kinds' => $svc::KINDS] + $svc->rowFromLedger($l, $target ?? \App\Models\Currency::find($l->currency_id) ?? app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()) + ['charge_kind' => ($l->settings ?? [])['charge_kind'] ?? 'other', 'default_on' => (bool) (($l->settings ?? [])['default_on'] ?? false)])->values());
+    }
+
+    /** What a winner would owe at a given winning bid (admin preview). */
+    public function chargeQuote(Request $request, Auction $auction)
+    {
+        $bid = (float) $request->query('bid', $auction->current_price);
+        try {
+            return response()->json(app(\App\Services\Books\AuctionChargeService::class)->quote($auction, $bid, (int) $request->query('days', 0)));
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function store(Request $request)
@@ -125,6 +146,15 @@ class AuctionController extends Controller
             'max_winners'   => $request->max_winners ?? 1,
         ]);
 
+        try {
+            $charges = app(\App\Services\Books\AuctionChargeService::class);
+            $request->has('charges') ? $charges->sync($auction, (array) $request->input('charges')) : $charges->attachDefaults($auction);
+        } catch (\App\Services\Books\BooksException $e) {
+            $auction->forceDelete();
+
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['charges' => [$e->getMessage()]]], 422);
+        }
+
         return response()->json(['message' => 'Auction created successfully', 'auction' => $auction->load('currency:id,code,symbol', 'location:id,name,code', 'variant:id,name,sku')], 201);
     }
 
@@ -191,6 +221,18 @@ class AuctionController extends Controller
             'variant_id', 'location_id', 'currency_id', 'start_price', 'reserve_price', 'bid_increment',
             'start_time', 'end_time', 'status', 'max_winners', 'sales_ledger_id',
         ]));
+
+        if ($request->has('charges')) {
+            // bidders have bid knowing the charges, so they are fixed once bidding starts
+            if ($auction->bids()->exists()) {
+                return response()->json(['message' => 'The charges can\'t change once bids have been placed.', 'errors' => ['charges' => ['Charges are fixed once bidding has started.']]], 422);
+            }
+            try {
+                app(\App\Services\Books\AuctionChargeService::class)->sync($auction, (array) $request->input('charges'));
+            } catch (\App\Services\Books\BooksException $e) {
+                return response()->json(['message' => $e->getMessage(), 'errors' => ['charges' => [$e->getMessage()]]], 422);
+            }
+        }
 
         if ($auction->status === 'active' && now()->gt($auction->end_time)) {
             $auction->update(['status' => 'ended']);

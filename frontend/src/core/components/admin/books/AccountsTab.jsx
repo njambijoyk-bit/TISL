@@ -47,18 +47,22 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     tax_nature: ledger?.tax_nature ?? '', tax_rate_ledger_id: ledger?.tax_rate_ledger_id ?? '', affects_stock: ledger?.affects_stock ?? false,
     bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
+    charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
+    default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0,
   });
   // The group decides which fields exist (Tally: the group carries the behaviour).
   const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
   const rated = behaviour === 'tax' || behaviour === 'delivery';
   const expense = behaviour === 'delivery' && f.side === 'expense';
   const trading = behaviour === 'sales' || behaviour === 'purchase';
+  const charging = behaviour === 'charge';
+  const taxed = trading || charging;
   const bankish = behaviour === 'bank';
   const [rateChoices, setRateChoices] = useState([]);
   useEffect(() => {
-    if (!trading) return;
+    if (!taxed) return;
     taxAPI.getRates({ active: true }).then((r) => setRateChoices((r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld'))).catch(() => {});
-  }, [trading]);
+  }, [taxed]);
   const taxChoice = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && f.tax_rate_ledger_id ? `rate:${f.tax_rate_ledger_id}` : (f.tax_nature || '');
   const rateGroups = rateChoices.reduce((m, r) => { const k = r.tax_type?.name || r.tax_type?.code || 'Tax rates'; (m[k] = m[k] || []).push(r); return m; }, {});
   const [busy, setBusy] = useState(false);
@@ -70,13 +74,14 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     try {
       const blank = (v) => (v === '' ? null : v);
       const body = { ...f, currency_id: blank(f.currency_id) };
-      if (rated && !expense) {
+      if ((rated && !expense) || charging) {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = blank(f[k]); });
       } else {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = null; });
       }
       if (behaviour !== 'delivery') body.side = null;
-      if (!trading) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
+      if (charging) body.settings = { charge_kind: f.charge_kind, timing: f.timing, refundable: Boolean(f.refundable), default_on: Boolean(f.default_on), free_days: Number(f.free_days) || 0 };
+      if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
       }
@@ -99,10 +104,11 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
             </SelectInput>
           </Field>
-          {trading && (
+          {taxed && (
             <>
               <Field label="Tax on this account *" error={errs.tax_nature || errs.tax_rate_ledger_id} hint={behaviour === 'sales'
                 ? 'Required. Every sale line posted here is taxed this way — keep VAT-able goods and exempt goods on separate accounts.'
+                : behaviour === 'charge' ? 'Required. Fees are often VAT-able; a refundable deposit is not — it is out of scope.'
                 : 'Required. Every purchase line posted here is treated this way.'}>
                 <SelectInput required value={taxChoice}
                   onChange={(e) => {
@@ -125,6 +131,44 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
                 </SelectInput>
                 {rateChoices.length === 0 && <span style={{ fontSize: 12, color: '#b45309' }}>No tax rates in the system yet — add them under Duties &amp; Taxes; until then only Exempt / Out of scope are available.</span>}
               </Field>
+            </>
+          )}
+          {charging && (
+            <>
+              <FormGrid>
+                <Field label="What it is" error={errs['settings.charge_kind']}>
+                  <SelectInput value={f.charge_kind} onChange={(e) => { const k = e.target.value; setF((p) => ({ ...p, charge_kind: k, timing: k === 'entry_fee' ? 'entry' : k === 'deposit' ? 'deposit' : k === 'storage' ? 'after_win' : 'on_win', refundable: k === 'deposit' ? true : p.refundable })); }}>
+                    <option value="buyer_premium">Buyer's premium / fee</option><option value="entry_fee">Entry / registration fee</option><option value="deposit">Deposit (refundable)</option>
+                    <option value="delivery">Shipping / delivery</option><option value="handling">Handling / processing fee</option><option value="storage">Storage fee</option>
+                    <option value="removal">Removal / collection fee</option><option value="payment">Payment / transaction fee</option><option value="customs">Import / customs charges</option><option value="other">Other</option>
+                  </SelectInput>
+                </Field>
+                <Field label="When it is charged" error={errs['settings.timing']} hint="Entry and deposit are taken before bidding; “on winning” is added to the winner's order; “after winning” builds up later.">
+                  <SelectInput value={f.timing} onChange={(e) => set('timing')(e.target.value)}>
+                    <option value="on_win">On winning (added to the order)</option><option value="entry">To take part (entry)</option><option value="deposit">Held as a deposit</option><option value="after_win">After winning (e.g. storage)</option>
+                  </SelectInput>
+                </Field>
+              </FormGrid>
+              <FormGrid>
+                <Field label="Worked out as" error={errs.rate_type}>
+                  <SelectInput required value={f.rate_type} onChange={(e) => set('rate_type')(e.target.value)}>
+                    <option value="">Choose…</option><option value="percent">% of the winning bid</option><option value="fixed">Fixed amount</option><option value="per_day">Amount per day</option>
+                  </SelectInput>
+                </Field>
+                <Field label={f.rate_type === 'percent' ? 'Rate (%)' : 'Amount'} error={errs.rate_value}><NumberInput required min="0" step="0.0001" value={f.rate_value} onChange={(e) => set('rate_value')(e.target.value)} /></Field>
+              </FormGrid>
+              {f.rate_type && f.rate_type !== 'percent' && (
+                <Field label="Currency" error={errs.currency_id} hint="Converted to the auction's currency when the charge is added to an auction."><CurrencySelect value={f.currency_id} onChange={set('currency_id')} /></Field>
+              )}
+              <FormGrid>
+                <Field label="Minimum" error={errs.min_amount} hint="A percentage never comes to less than this."><NumberInput min="0" step="0.01" value={f.min_amount} onChange={(e) => set('min_amount')(e.target.value)} /></Field>
+                <Field label="Maximum" error={errs.max_amount} hint="…and never more than this."><NumberInput min="0" step="0.01" value={f.max_amount} onChange={(e) => set('max_amount')(e.target.value)} /></Field>
+              </FormGrid>
+              {f.rate_type === 'per_day' && (
+                <Field label="Free days" error={errs['settings.free_days']} hint="Days before the daily charge starts."><NumberInput min="0" step="1" value={f.free_days} onChange={(e) => set('free_days')(e.target.value)} /></Field>
+              )}
+              <CheckboxRow checked={f.refundable} onChange={set('refundable')} label="Refundable" description="Given back to the bidder (or applied to what they owe) instead of kept as income." />
+              <CheckboxRow checked={f.default_on} onChange={set('default_on')} label="On for every new auction" description="New auctions start with this charge; you can still switch it off per auction." />
             </>
           )}
           {bankish && (
@@ -211,7 +255,7 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
           </Field>
           <Field label="Behaves as" hint="Leave as inherited unless this group holds tax or delivery ledgers.">
             <SelectInput value={behaviour} onChange={(e) => setBehaviour(e.target.value)}>
-              <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option><option value="sales">Sales accounts (tax nature)</option><option value="purchase">Purchase accounts (tax nature)</option><option value="bank">Bank / cash</option>
+              <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option><option value="sales">Sales accounts (tax nature)</option><option value="purchase">Purchase accounts (tax nature)</option><option value="bank">Bank / cash</option><option value="charge">Auction charges (fees, deposits)</option>
             </SelectInput>
           </Field>
           <ModalActions onCancel={onClose} submitLabel="Add group" busy={busy} />
@@ -260,8 +304,8 @@ export default function AccountsTab({ canWrite }) {
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.text, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
-    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase'].includes(l.group?.behaviour) ? 'Not set' : '')) },
-    { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : Number(l.rate_value).toLocaleString()) : '—') },
+    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')) },
+    { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : `${Number(l.rate_value).toLocaleString()}${l.rate_type === 'per_day' ? '/day' : ''}`) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
     { key: 'actions', label: '', align: 'right', render: (l) => (
       <span style={{ display: 'inline-flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>

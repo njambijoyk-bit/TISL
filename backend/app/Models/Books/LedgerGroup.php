@@ -28,7 +28,7 @@ class LedgerGroup extends Model
     ];
 
     /** What a group's ledgers *are*. Drives the ledger form and the engines that read ledgers. */
-    public const BEHAVIOURS = ['standard', 'tax', 'delivery', 'sales', 'purchase', 'party', 'bank'];
+    public const BEHAVIOURS = ['standard', 'tax', 'delivery', 'sales', 'purchase', 'party', 'bank', 'charge'];
 
     public const NATURES = ['asset', 'liability', 'income', 'expense'];
 

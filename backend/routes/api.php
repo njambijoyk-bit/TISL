@@ -801,6 +801,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [AuctionController::class, 'store']);
             Route::get('/', [AuctionController::class, 'adminIndex']);
             Route::get('/trashed', [AuctionController::class, 'trashed']);
+            Route::get('/charge-options', [AuctionController::class, 'chargeOptions']);
+            Route::get('/{auction}/quote', [AuctionController::class, 'chargeQuote']);
             Route::get('/{auction}', [AuctionController::class, 'adminShow']);
             Route::put('/{auction}', [AuctionController::class, 'update']);
             Route::post('/{auction}/create-order', [AuctionController::class, 'createOrder']);
