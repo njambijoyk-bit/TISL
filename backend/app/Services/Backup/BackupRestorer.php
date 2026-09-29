@@ -281,14 +281,20 @@ class BackupRestorer
         }
     }
 
-    /** Generated/virtual/stored columns — MySQL forbids writing values to these. */
+    /**
+     * Virtual/stored generated columns — MySQL forbids writing values to these.
+     * NOT "DEFAULT_GENERATED": that is what MySQL 8 reports for ordinary columns with
+     * DEFAULT CURRENT_TIMESTAMP, which hold real data and must be restored (skipping
+     * them stamped every row with "now" and broke unique keys such as
+     * customer_algorithm_scores.idx_customer_latest).
+     */
     private function generatedColumns(string $table): array
     {
         try {
             $rows = DB::select(
                 "SELECT column_name AS name FROM information_schema.columns
                  WHERE table_schema = DATABASE() AND table_name = ?
-                   AND extra LIKE '%GENERATED%'",
+                   AND extra REGEXP '(VIRTUAL|STORED) GENERATED'",
                 [$table]
             );
             return array_map(fn ($r) => $r->name, $rows);
