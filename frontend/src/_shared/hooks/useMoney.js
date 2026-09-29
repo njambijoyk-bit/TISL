@@ -57,13 +57,36 @@ export default function useMoney() {
   const serverFresh = (item) =>
     item?.display_price != null && (!active || item.display_currency === active.code);
 
-  /** Main price of a product (or anything with display_price). */
+  /**
+   * Prices are stored EXCLUSIVE of tax. The tax treatment comes from the sales account the item is sold
+   * under (item.tax_info, from the server); the shopper sees the inclusive amount on cards.
+   */
+  const taxInfo = (item) => item?.tax_info ?? null;
+  const rateOf = (item) => Number(item?.tax_info?.rate_percent) || 0;
+
+  /** A display-currency net amount → { net, tax, gross, info }. */
+  const withTax = (net, item) => {
+    const n = Number(net) || 0;
+    const tax = round2((n * rateOf(item)) / 100);
+    return { net: round2(n), tax, gross: round2(n + tax), info: taxInfo(item) };
+  };
+
+  /** A native (item-currency) net amount → the same breakdown in the display currency, or null. */
+  const breakdown = (nativeAmount, item) => {
+    const shown = toDisplay(nativeAmount, nativeId(item));
+    return shown === null ? null : withTax(shown, item);
+  };
+
+  /** Main price of a product (or anything with display_price), tax included when the item's account charges tax. */
   const price = (item, key = 'price') => {
     if (!item) return null;
-    if (key === 'price' && serverFresh(item)) return fmt(item.display_price, symbolFor(item.display_currency));
-    const local = itemAmount(item[key], item);
-    if (local !== null) return local;
-    return item.display_price != null ? fmt(item.display_price, symbolFor(item.display_currency)) : null;
+    const r = 1 + rateOf(item) / 100;
+    const inclusive = (n) => fmt(round2(n * r), symbolFor(item.display_currency));
+    if (key === 'price' && serverFresh(item)) return inclusive(Number(item.display_price));
+    const shown = toDisplay(item[key], nativeId(item));
+    if (shown !== null) return fmt(round2(shown * r), active.symbol || active.code);
+    if (item[key] != null && item[key] !== '') return fmt(round2(Number(item[key]) * r), item?.currency ?? '');
+    return item.display_price != null ? inclusive(Number(item.display_price)) : null;
   };
 
   /** Numeric main price in the display currency (for totals like qty × price). */
@@ -111,6 +134,9 @@ export default function useMoney() {
     toDisplay,
     itemAmount,
     price,
+    taxInfo,
+    withTax,
+    breakdown,
     priceValue,
     originalPrice,
     servicePrice,

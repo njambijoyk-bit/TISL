@@ -206,6 +206,9 @@ export default function AuctionDetailPage() {
                   <p style={{ fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 800, color: '#dc2626', margin: 0, letterSpacing: '-0.02em' }}>
                     {money(currentPrice)}
                   </p>
+                  <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '4px 0 0' }}>
+                    {auction.tax_info?.rate_percent ? `Excludes ${auction.tax_info.label} and any auction charges` : 'Excludes any auction charges'}
+                  </p>
                 </div>
                 <div style={{ padding: '16px 20px', borderRadius: 14, border: 'none', background: 'none' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 700, color: isUrgent ? '#dc2626' : 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 5 }}>

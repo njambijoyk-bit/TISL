@@ -80,7 +80,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
 
       <Section
         title="Variants"
-        description={`Each variant has its own SKU, stock and selling units. Prices are in ${currencyCode}.`}
+        description={`Each variant has its own SKU, stock and selling units. Prices are in ${currencyCode} and exclude tax — tax is added from the product's sales account.`}
         action={!readOnly && <button type="button" onClick={() => setEditingVariant('new')} style={btnPrimary}><Plus size={14} /> New variant</button>}
       >
         {variants.length === 0 ? (
@@ -92,7 +92,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colors.tint(0.1)}` }}>
-                  {['', 'Variant', 'SKU', 'Stock', 'Base price', 'Units', 'Status', ''].map((h, i) => (
+                  {['', 'Variant', 'SKU', 'Stock', 'Base price (excl. tax)', 'Units', 'Status', ''].map((h, i) => (
                     <th key={i} scope="col" style={{ padding: '8px 10px', textAlign: i === 3 || i === 4 ? 'right' : 'left', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint }}>{h}</th>
                   ))}
                 </tr>
@@ -154,7 +154,7 @@ export default function VariantEditor({ productId, currencyCode = 'KES', readOnl
                               ) : (
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', marginBottom: 8 }}>
                                   <thead>
-                                    <tr>{['Unit', 'Kind', 'Holds', 'Price', 'Sold', ''].map((h, i) => (
+                                    <tr>{['Unit', 'Kind', 'Holds', 'Price (excl. tax)', 'Sold', ''].map((h, i) => (
                                       <th key={i} scope="col" style={{ padding: '4px 8px', textAlign: i === 3 ? 'right' : 'left', fontSize: '0.62rem', color: colors.textFaint, fontWeight: 700 }}>{h}</th>
                                     ))}</tr>
                                   </thead>

@@ -74,10 +74,11 @@ class ProductVariantController extends Controller
             ])
             ->values();
 
-        $variantsOut = $variants->map(function (ProductVariant $v) use ($convert) {
+        $taxInfo = \App\Services\Books\PriceTax::forItem($product);
+        $variantsOut = $variants->map(function (ProductVariant $v) use ($convert, $taxInfo) {
             $units = $v->units
                 ->filter(fn ($u) => $u->is_sellable)
-                ->map(function (ProductVariantUnit $u) use ($v, $convert) {
+                ->map(function (ProductVariantUnit $u) use ($v, $convert, $taxInfo) {
                     $u->setRelation('variant', $v); // lets effectivePrice() use the loaded base unit
                     $price = $u->effectivePrice();
                     $compare = $u->compare_at_price !== null ? (float) $u->compare_at_price : null;
@@ -90,6 +91,8 @@ class ProductVariantController extends Controller
                         'contains_qty'       => $u->contains_qty !== null ? (float) $u->contains_qty : null,
                         'price'              => $price,
                         'display_price'      => $convert($price),
+                        'display_tax'        => $price === null ? null : $convert(\App\Services\Books\PriceTax::split((float) $price, $taxInfo)['tax']),
+                        'display_price_incl' => $price === null ? null : $convert(\App\Services\Books\PriceTax::split((float) $price, $taxInfo)['gross']),
                         'compare_at_price'   => $compare,
                         'display_compare_at' => $convert($compare),
                         'available_quantity' => $u->availableQuantity(),
@@ -122,6 +125,7 @@ class ProductVariantController extends Controller
         return response()->json([
             'currency'         => $product->currency,
             'display_currency' => $display->code,
+            'tax_info'         => $taxInfo,
             'default_unit'     => $product->defaultUnit,
             'alternate_unit'   => $product->alternateUnit,
             'alternate_factor' => $this->alternateFactor($product),

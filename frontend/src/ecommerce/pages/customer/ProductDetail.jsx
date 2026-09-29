@@ -27,6 +27,7 @@ import Footer from '../../../_shared/components/layout/Footer';
 import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
 import Button from '../../../_shared/components/common/Button';
 import Badge from '../../../_shared/components/common/Badge';
+import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import CollapsedProductCard from '../../components/storefront/products/CollapsedProductCard';
 import ReviewCard from '../../components/storefront/products/ReviewCard';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
@@ -411,12 +412,15 @@ export default function ProductDetail() {
 
   // Shown in the shopper's chosen currency. A (legacy) variant's own price is
   // in the product's currency, so it's converted the same way.
+  const currentNative = choice ? choice.unit.price : (selectedVariant?.price ?? product?.price);
+  const taxParts = currentNative != null && currentNative !== '' ? money.breakdown(currentNative, product) : null;
+  const originalParts = originalPrice != null ? money.breakdown(originalPrice, product) : null;
   const currentPriceText = choice
-    ? (choice.unit.price != null ? money.itemAmount(choice.unit.price, product) : 'Price on request')
+    ? (choice.unit.price != null ? (taxParts ? money.format(taxParts.gross) : money.itemAmount(choice.unit.price, product)) : 'Price on request')
     : selectedVariant?.price != null
-      ? money.itemAmount(selectedVariant.price, product)
+      ? (taxParts ? money.format(taxParts.gross) : money.itemAmount(selectedVariant.price, product))
       : money.price(product);
-  const originalPriceText = originalPrice != null ? money.itemAmount(originalPrice, product) : null;
+  const originalPriceText = originalPrice != null ? (originalParts ? money.format(originalParts.gross) : money.itemAmount(originalPrice, product)) : null;
   const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
   const priceDeltaPct = priceDiff
     ? Math.round(Math.abs(Number(originalPrice) - Number(currentPrice)) / Number(originalPrice) * 100)
@@ -709,6 +713,7 @@ export default function ProductDetail() {
                       </>
                     )}
                   </div>
+                  {taxParts?.info && <PriceBreakdown parts={taxParts} style={{ marginTop: 12 }} />}
 
                   {hasAuction ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: '#dc2626', marginTop: 8 }}>

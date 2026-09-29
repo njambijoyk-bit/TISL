@@ -647,21 +647,21 @@ const ServiceForm = () => {
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     {showBasePrice && (
-                      <Field label={`Base price (${priceCurrencyCode}) *`}>
+                      <Field label={`Base price (${priceCurrencyCode}, excl. tax) *`}>
                         <SI type="number" name="base_price" value={formData.base_price} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required={formData.pricing_model === 'fixed'} />
                       </Field>
                     )}
                     {showHourly && (
-                      <Field label={`Hourly rate (${priceCurrencyCode}) *`}>
+                      <Field label={`Hourly rate (${priceCurrencyCode}, excl. tax) *`}>
                         <SI type="number" name="hourly_rate" value={formData.hourly_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
                       </Field>
                     )}
                     {showDaily && (
-                      <Field label={`Daily rate (${priceCurrencyCode}) *`}>
+                      <Field label={`Daily rate (${priceCurrencyCode}, excl. tax) *`}>
                         <SI type="number" name="daily_rate" value={formData.daily_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
                       </Field>
                     )}
-                    <Field label={`Minimum charge (${priceCurrencyCode}, optional)`}>
+                    <Field label={`Minimum charge (${priceCurrencyCode}, excl. tax, optional)`}>
                       <SI type="number" name="minimum_charge" value={formData.minimum_charge} onChange={handleChange} placeholder="0.00" step="0.01" min="0" />
                     </Field>
                   </div>
@@ -682,7 +682,7 @@ const ServiceForm = () => {
 
               {/* Tax: the sales account decides it (required); overrides need a saved service */}
               <SectionCard title="Tax">
-                <SalesAccountSelect kind="sales" required value={formData.sales_ledger_id}
+                <SalesAccountSelect kind="sales" required amount={formData.base_price || formData.hourly_rate || formData.daily_rate} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
                   onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
                   hint="The account decides the tax: an exempt service goes on an exempt account, a VAT-able one on a VAT-able account." />
               </SectionCard>

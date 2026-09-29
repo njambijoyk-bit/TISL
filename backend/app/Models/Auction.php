@@ -24,6 +24,14 @@ class Auction extends Model
         'start_time' => 'datetime', 'end_time' => 'datetime',
     ];
 
+    protected $appends = ['tax_info'];
+
+    /** Tax treatment of the sales account this auction is booked under. Bids are entered and shown exclusive of it. */
+    public function getTaxInfoAttribute(): ?array
+    {
+        return \App\Services\Books\PriceTax::forAccount($this->sales_ledger_id);
+    }
+
     public function product() { return $this->belongsTo(Product::class); }
     public function variant() { return $this->belongsTo(ProductVariant::class, 'variant_id'); }
     public function location() { return $this->belongsTo(Location::class); }

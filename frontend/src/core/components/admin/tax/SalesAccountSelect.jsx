@@ -10,7 +10,7 @@ const flat = (nodes, out = []) => { nodes.forEach((g) => { out.push(g); flat(g.c
  * The account an item is sold under (or bought under). The account carries the tax, so choosing it is choosing the tax:
  * an exempt product on an exempt account, a VAT-able one on a VAT-able account. Required for anything that can be sold.
  */
-export default function SalesAccountSelect({ value, onChange, kind = 'sales', required = false, disabled = false, label, hint, error, style }) {
+export default function SalesAccountSelect({ value, onChange, kind = 'sales', required = false, disabled = false, label, hint, error, style, amount, currencyCode }) {
   const [rows, setRows] = useState(null);
 
   useEffect(() => {
@@ -27,6 +27,9 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', re
   const chosen = rows?.find((l) => Number(l.id) === Number(value));
   const usable = (rows ?? []).filter((l) => l.tax_nature);
   const untreated = (rows ?? []).filter((l) => !l.tax_nature);
+  const pct = chosen && chosen.tax_nature === 'taxable' && chosen.tax_rate_ledger?.rate_value != null ? Number(chosen.tax_rate_ledger.rate_value) : 0;
+  const net = Number(amount);
+  const nf = (n) => `${currencyCode ? `${currencyCode} ` : ''}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const text = label ?? (kind === 'sales' ? 'Sales account' : 'Purchase account');
   const sel = { padding: '9px 10px', borderRadius: 8, border: `1.5px solid ${error ? colors.danger : colors.tint(0.18)}`, fontSize: '0.85rem', width: '100%', background: 'white', ...style };
 
@@ -40,6 +43,14 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', re
         {usable.map((l) => <option key={l.id} value={l.id}>{l.name} — {NATURE[l.tax_nature]}{l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated' ? ` (${l.tax_rate_ledger?.name ?? 'rate set'})` : ''}</option>)}
       </select>
       {chosen && <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Tax on this account: <strong>{NATURE[chosen.tax_nature] ?? 'not set'}</strong>{chosen.tax_rate_ledger?.name ? ` — ${chosen.tax_rate_ledger.name}` : ''}</p>}
+      {chosen && net > 0 && (
+        <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>
+          The price you enter is <strong>excluding tax</strong>.{' '}
+          {pct > 0
+            ? <>{nf(net)} + {chosen.tax_rate_ledger?.name ?? 'tax'} {nf(net * pct / 100)} = customer pays <strong>{nf(net * (1 + pct / 100))}</strong>.</>
+            : <>No tax is added — customer pays <strong>{nf(net)}</strong>.</>}
+        </p>
+      )}
       {error && <p role="alert" style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.danger }}>{error}</p>}
       {!error && (hint || rows?.length === 0 || untreated.length > 0) && (
         <p style={{ margin: '5px 0 0', fontSize: '0.7rem', color: colors.textFaint }}>

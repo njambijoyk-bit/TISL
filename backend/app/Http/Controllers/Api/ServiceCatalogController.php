@@ -74,6 +74,7 @@ class ServiceCatalogController extends Controller
                 'display_compare_at' => $convert($compare),
                 'tax_amount'         => $tax['amount'],
                 'display_tax'        => $convert($tax['amount']),
+                'display_price_incl' => $price === null ? null : $convert($price + $tax['amount']),
                 'duration_value'     => $v->duration_value !== null ? (float) $v->duration_value : null,
                 'duration_unit'      => $v->durationUnit,
                 'price_unit'         => $v->priceUnit,
@@ -93,6 +94,7 @@ class ServiceCatalogController extends Controller
             'variants'         => $variantsOut,
             'requirements'     => $requirements,
             'tax_label'        => $taxLabel,
+            'tax_info'         => \App\Services\Books\PriceTax::forItem($service),
             'delivery_mode'    => $service->delivery_mode,
         ], 200);
     }
@@ -100,22 +102,9 @@ class ServiceCatalogController extends Controller
     /** Additive tax on one price, via the tax engine (service rules, overrides). Never throws. */
     private function taxFor(Service $service, float $price): array
     {
-        try {
-            $results = app(TaxService::class)->calculateForEntity(
-                $service, 'service', $price, $price, 1.0, null, [], null, null, null, null, false
-            );
-            $label = $results->map(function ($r) {
-                $rate = $r['rate'];
-                $name = $rate->taxType?->code ?? $rate->taxType?->name ?? 'Tax';
-                $val = rtrim(rtrim((string) $rate->rate_value, '0'), '.');
+        $info = \App\Services\Books\PriceTax::forItem($service);
 
-                return trim($name . ' ' . $val . ($rate->rate_type === \App\Models\TaxRate::TYPE_PERCENTAGE ? '%' : ''));
-            })->implode(' + ');
-
-            return ['amount' => app(TaxService::class)->totalTax($results), 'label' => $label ?: null];
-        } catch (\Throwable) {
-            return ['amount' => 0.0, 'label' => null];
-        }
+        return ['amount' => \App\Services\Books\PriceTax::split($price, $info)['tax'], 'label' => $info && $info['rate_percent'] ? $info['label'] : null, 'info' => $info];
     }
 
     // ========================================

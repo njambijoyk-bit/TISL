@@ -59,7 +59,7 @@ export default function AuctionCard({ auction }) {
       {/* Right: bid + timer + button */}
       <div className="collapsed-right">
         <div className="auction-price-group">
-          <span className="auction-label">Current Bid</span>
+          <span className="auction-label">Current Bid{auction?.tax_info?.rate_percent ? ' (excl. tax)' : ''}</span>
           <span className="auction-price">{formatMoney(currentPrice, auction?.currency?.symbol || auction?.currency?.code || 'KSh', { decimals: 'auto' })}</span>
         </div>
 

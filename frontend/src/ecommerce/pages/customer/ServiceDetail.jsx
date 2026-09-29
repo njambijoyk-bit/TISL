@@ -33,6 +33,7 @@ import CollapsedServiceCard from '../../components/storefront/services/Collapsed
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import Button from '../../../_shared/components/common/Button';
 import Badge from '../../../_shared/components/common/Badge';
+import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import useMoney from '../../../_shared/hooks/useMoney';
 
 const ServiceDetail = () => {
@@ -360,7 +361,7 @@ const ServiceDetail = () => {
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                      {pkg && pkg.display_price != null ? fmtDisp(pkg.display_price) : getPricingDisplay()}
+                      {pkg && pkg.display_price != null ? fmtDisp(pkg.display_price_incl ?? pkg.display_price) : getPricingDisplay()}
                     </span>
                     {pkg?.display_compare_at != null && pkg.display_compare_at > pkg.display_price && (
                       <span style={{ fontSize: '0.95rem', color: '#9ca3af', textDecoration: 'line-through' }}>{fmtDisp(pkg.display_compare_at)}</span>
@@ -376,9 +377,9 @@ const ServiceDetail = () => {
                   </div>
                 </div>
 
-                {pkg && picker.data?.tax_label && pkg.display_price != null && (
-                  <div style={{ padding: '8px 20px', fontSize: '0.75rem', color: '#6b7280', background: 'white', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
-                    Excludes {picker.data.tax_label}: <strong>+ {fmtDisp(pkg.display_tax)}</strong> · Total <strong>{fmtDisp(pkg.display_price + pkg.display_tax)}</strong>
+                {pkg && picker.data?.tax_info && pkg.display_price != null && (
+                  <div style={{ padding: '10px 20px', background: 'white', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
+                    <PriceBreakdown parts={{ net: pkg.display_price, tax: pkg.display_tax ?? 0, gross: pkg.display_price_incl ?? pkg.display_price, info: picker.data.tax_info }} />
                   </div>
                 )}
 

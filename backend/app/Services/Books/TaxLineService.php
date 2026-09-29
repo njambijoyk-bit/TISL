@@ -113,17 +113,12 @@ class TaxLineService
                 return [];
             }
         }
-        $rate = $account->tax_rate_ledger_id ? TaxRate::with('taxType')->find($account->tax_rate_ledger_id) : null;
+        $rate = $this->rateFor($account, $on);
         if (! $rate) {
             if ($account->tax_nature === 'zero_rated') {
                 return [];
             }
             throw new BooksException("The account \"{$account->name}\" is taxable but has no tax rate. Set it under Books → Accounts.");
-        }
-        // a rate that has been replaced by a newer one (same type and classification) follows its successor
-        if (! TaxRate::whereKey($rate->id)->active()->effectiveOn($on)->exists()) {
-            $successor = TaxRate::where('group_id', $rate->group_id)->where('classification', $rate->classification)->active()->effectiveOn($on)->orderByDesc('valid_from')->first();
-            $rate = $successor ?? $rate;
         }
         $base = $rate->baseAmount($pre, $post, $post);
         $tax = $account->tax_nature === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
@@ -136,5 +131,17 @@ class TaxLineService
             'tax_amount'  => round($tax, 2),
             'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
         ]];
+    }
+
+    /** The rate an account charges on the given date: its own rate, or the newer one that replaced it (same type and classification). */
+    public function rateFor(Ledger $account, $on = null): ?TaxRate
+    {
+        $rate = $account->tax_rate_ledger_id ? TaxRate::with('taxType')->find($account->tax_rate_ledger_id) : null;
+        if ($rate && ! TaxRate::whereKey($rate->id)->active()->effectiveOn($on)->exists()) {
+            $successor = TaxRate::where('group_id', $rate->group_id)->where('classification', $rate->classification)->active()->effectiveOn($on)->orderByDesc('valid_from')->first();
+            $rate = $successor ?? $rate;
+        }
+
+        return $rate;
     }
 }

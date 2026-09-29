@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import BranchBadge from '../../components/storefront/BranchBadge';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Package, ShoppingBag, Clock, Lock, ChevronLeft, AlertCircle, CheckCircle } from 'lucide-react';
@@ -191,6 +192,7 @@ export default function HamperDetail() {
               <div style={{ margin: '0 0 20px', padding: '16px 20px', borderRadius: 12, background: accentFade, border: `1px solid ${accentMid}` }}>
                 <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>Bundle Price</p>
                 <p style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: accent, lineHeight: 1 }}>{money.price(hamper)}</p>
+                {hamper.tax_info && <PriceBreakdown parts={money.withTax(money.priceValue(hamper), hamper)} style={{ marginTop: 12, background: 'white' }} />}
               </div>
 
               {/* Validity */}
@@ -217,7 +219,6 @@ export default function HamperDetail() {
                   hamper.allow_promo_codes   && 'Promo codes accepted',
                   hamper.allow_store_credit  && 'Gift voucher accepted',
                   hamper.earn_loyalty_points && 'Earn loyalty points',
-                  hamper.tax_label           && `${hamper.tax_label} added at checkout`,
                 ].filter(Boolean).map(perk => (
                   <div key={perk} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: '#374151' }}>
                     <CheckCircle size={13} style={{ color: accent, flexShrink: 0 }} />

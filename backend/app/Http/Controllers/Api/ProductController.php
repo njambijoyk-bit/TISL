@@ -187,7 +187,7 @@ class ProductController extends Controller
                 Product::with(['brand:id,name', 'currency:id,code,symbol'])
                     ->where('is_visible', true)
                     ->where('status', 'active')
-                    ->select('id', 'name', 'sku', 'main_image', 'price', 'currency_id', 'slug', 'brand_id'),
+                    ->select('id', 'name', 'sku', 'main_image', 'price', 'sales_ledger_id', 'currency_id', 'slug', 'brand_id'),
                 (string) $request->search,
                 ['name']
             )->toArray();
@@ -428,6 +428,9 @@ class ProductController extends Controller
                     'price' => $product->price,
                     'currency' => $product->currency,
                     'display_price' => $product->display_price,
+                    'tax_info' => $product->tax_info,
+                    'display_tax' => $product->display_tax,
+                    'display_price_incl' => $product->display_price_incl,
                     'display_original_price' => $product->convertAmount($product->original_price !== null ? (float) $product->original_price : null),
                     'display_currency' => $product->display_currency,
                     'original_price' => $product->original_price,
@@ -522,6 +525,9 @@ class ProductController extends Controller
                         'price' => $item->price,
                         'currency' => $item->currency,
                         'display_price' => $item->display_price,
+                        'tax_info' => $item->tax_info,
+                        'display_tax' => $item->display_tax,
+                        'display_price_incl' => $item->display_price_incl,
                         'display_currency' => $item->display_currency,
                         'original_price' => $item->original_price,
                         'price_is_negotiable' => $item->price_is_negotiable,
@@ -1083,6 +1089,9 @@ public function related($id)
                 'price' => $item->price,
                 'currency' => $item->currency,
                 'display_price' => $item->display_price,
+                'tax_info' => $item->tax_info,
+                'display_tax' => $item->display_tax,
+                'display_price_incl' => $item->display_price_incl,
                 'display_currency' => $item->display_currency,
                 'original_price' => $item->original_price,
                 'price_is_negotiable' => $item->price_is_negotiable ?? $item->priceisnegotiable ?? false,

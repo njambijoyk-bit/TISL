@@ -147,11 +147,11 @@ export default function VariantUnitForm({ variant, unit, currencyCode, defaultUn
           )}
 
           <FormGrid>
-            <Field label={`Price (${currencyCode})`} htmlFor="vu-price" error={errors.price}
+            <Field label={`Price (${currencyCode}, excl. tax)`} htmlFor="vu-price" error={errors.price}
               hint={form.role === 'base' ? undefined : derivedPrice != null ? `Empty = ${currencyCode} ${fmt(derivedPrice, 2)} (base price × ${fmt(factor, 4)})` : 'Empty = base price × factor'}>
               <NumberInput id="vu-price" min="0" step="0.01" value={form.price} onChange={(e) => set('price')(e.target.value)} />
             </Field>
-            <Field label={`Was (${currencyCode})`} htmlFor="vu-was" error={errors.compare_at_price}>
+            <Field label={`Was (${currencyCode}, excl. tax)`} htmlFor="vu-was" error={errors.compare_at_price}>
               <NumberInput id="vu-was" min="0" step="0.01" value={form.compare_at_price} onChange={(e) => set('compare_at_price')(e.target.value)} />
             </Field>
           </FormGrid>

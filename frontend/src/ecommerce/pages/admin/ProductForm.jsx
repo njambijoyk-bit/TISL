@@ -893,10 +893,10 @@ export default function ProductForm() {
                     emptyLabel="None"
                   />
                 </Field>
-                <Field label={`Price (${priceCurrencyCode}) *`}>
+                <Field label={`Price (${priceCurrencyCode}, excl. tax) *`} hint={!isView ? "Enter the price before tax. Tax is added from the sales account chosen in the Tax tab." : undefined}>
                   <StyledInput type="number" name="price" value={formData.price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" required={!isView} />
                 </Field>
-                <Field label={`Original price (${priceCurrencyCode})`} hint={!isView ? 'Used for showing discounts' : undefined}>
+                <Field label={`Original price (${priceCurrencyCode}, excl. tax)`} hint={!isView ? 'Used for showing discounts' : undefined}>
                   <StyledInput type="number" name="original_price" value={formData.original_price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" />
                 </Field>
                 <Field
@@ -1108,7 +1108,7 @@ export default function ProductForm() {
             <>
               <p style={sectionHeader}>Tax</p>
               <div style={{ display: 'grid', gap: 14, gridTemplateColumns: '1fr 1fr' }}>
-                <SalesAccountSelect kind="sales" required={!isView} disabled={isView} value={formData.sales_ledger_id}
+                <SalesAccountSelect kind="sales" required={!isView} disabled={isView} amount={formData.price} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
                   onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
                   hint="The account decides the tax: an exempt product goes on an exempt account, a VAT-able one on a VAT-able account. One invoice can mix both." />
                 <SalesAccountSelect kind="purchase" disabled={isView} value={formData.purchase_ledger_id}

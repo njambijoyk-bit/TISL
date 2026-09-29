@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class Service extends Model
 {
-    use HasFactory, SoftDeletes, HasCurrencyConversion;
+    use HasFactory, SoftDeletes, HasCurrencyConversion, \App\Traits\HasSalesTax;
 
     /**
      * The attributes that are mass assignable.
@@ -119,6 +119,9 @@ class Service extends Model
         'is_published',
         'display_price',
         'display_currency',
+        'tax_info',
+        'display_price_incl',
+        'display_tax',
     ];
 
     // ========================================

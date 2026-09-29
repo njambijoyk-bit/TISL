@@ -11,13 +11,16 @@ use Illuminate\Support\Str;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes, HasCurrencyConversion;
+    use HasFactory, SoftDeletes, HasCurrencyConversion, \App\Traits\HasSalesTax;
     
     protected $appends = [
         'main_image_url',
         'image_urls',
         'display_price',
         'display_currency',
+        'tax_info',
+        'display_price_incl',
+        'display_tax',
     ];
 
     protected $fillable = [

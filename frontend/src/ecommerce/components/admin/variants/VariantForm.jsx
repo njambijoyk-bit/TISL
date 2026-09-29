@@ -162,10 +162,10 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
                     <UnitSelect id="v-bunit" value={baseUnit.unit_id} onChange={(v) => setBaseUnit((b) => ({ ...b, unit_id: v }))} emptyLabel="Set later" />
                   )}
                 </Field>
-                <Field label={`Price (${currencyCode})`} htmlFor="v-price" error={errors['base_unit.price']}>
+                <Field label={`Price (${currencyCode}, excl. tax)`} htmlFor="v-price" error={errors['base_unit.price']}>
                   <NumberInput id="v-price" min="0" step="0.01" disabled={!baseUnit.unit_id} value={baseUnit.price} onChange={(e) => setBaseUnit((b) => ({ ...b, price: e.target.value }))} />
                 </Field>
-                <Field label={`Was (${currencyCode})`} htmlFor="v-was" error={errors['base_unit.compare_at_price']} hint="Optional, shows a discount">
+                <Field label={`Was (${currencyCode}, excl. tax)`} htmlFor="v-was" error={errors['base_unit.compare_at_price']} hint="Optional, shows a discount">
                   <NumberInput id="v-was" min="0" step="0.01" disabled={!baseUnit.unit_id} value={baseUnit.compare_at_price} onChange={(e) => setBaseUnit((b) => ({ ...b, compare_at_price: e.target.value }))} />
                 </Field>
               </FormGrid>

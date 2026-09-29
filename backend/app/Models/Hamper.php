@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Hamper extends Model
 {
-    use HasCurrencyConversion;
+    use HasCurrencyConversion, \App\Traits\HasSalesTax;
 
     protected $fillable = [
         'sales_ledger_id',
@@ -41,7 +41,7 @@ class Hamper extends Model
     ];
 
     // Price in the shopper's chosen currency, like products
-    protected $appends = ['display_price', 'display_currency', 'tax_label'];
+    protected $appends = ['display_price', 'display_currency', 'tax_label', 'tax_info', 'display_price_incl', 'display_tax'];
 
     protected $casts = [
         'price'                      => 'decimal:2',
@@ -77,15 +77,9 @@ class Hamper extends Model
     /** e.g. "VAT 16%" — null when no tax applies. */
     public function getTaxLabelAttribute(): ?string
     {
-        if (! $this->tax_rate_id) {
-            return null;
-        }
-        $rate = $this->relationLoaded('taxRate') ? $this->taxRate : $this->taxRate()->with('taxType:id,name,code')->first();
-        if (! $rate) {
-            return null;
-        }
+        $info = $this->tax_info;
 
-        return trim(($rate->taxType?->code ?? $rate->taxType?->name ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . '%');
+        return $info && $info['rate_percent'] ? $info['label'] : null;
     }
 
     /** Tax on an amount in the hamper's currency (percentage rates only). */

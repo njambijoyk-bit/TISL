@@ -405,11 +405,11 @@ export default function AdminHamperCreate() {
                         emptyLabel="Base currency"
                       />
                     </Field>
-                    <Field label={`Price (${priceCode}) *`} error={errors.price}>
+                    <Field label={`Price (${priceCode}, excl. tax) *`} error={errors.price} hint="Before tax — tax is added from the sales account">
                       <Input name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" error={errors.price} />
                     </Field>
                     <Field label="Sales account *" error={errors.sales_ledger_id} hint="Its tax treatment is what gets charged">
-                      <SalesAccountSelect kind="sales" required value={form.sales_ledger_id} onChange={v => setForm(f => ({ ...f, sales_ledger_id: v }))} />
+                      <SalesAccountSelect kind="sales" required amount={form.price} currencyCode={priceCode} value={form.sales_ledger_id} onChange={v => setForm(f => ({ ...f, sales_ledger_id: v }))} />
                     </Field>
                     <Field label="Status">
                       <select name="status" value={form.status} onChange={handleChange}

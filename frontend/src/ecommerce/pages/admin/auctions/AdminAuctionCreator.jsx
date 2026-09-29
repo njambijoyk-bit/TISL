@@ -149,9 +149,9 @@ export default function AdminAuctionCreator() {
 
           <div style={sectionStyle}>
             <p style={{ ...labelStyle, marginBottom: 14 }}>Sales account *</p>
-            <SalesAccountSelect kind="sales" required value={form.sales_ledger_id}
+            <SalesAccountSelect kind="sales" required amount={form.start_price} currencyCode={code} value={form.sales_ledger_id}
               onChange={(v) => setForm(f => ({ ...f, sales_ledger_id: v }))}
-              hint="The winning bid is booked here and taxed by this account's treatment." />
+              hint="Bids are entered and shown excluding tax. Tax is added on the winning bid from this account, with any auction charges." />
           </div>
 
           {/* ── Branch & item ── */}
@@ -198,7 +198,7 @@ export default function AdminAuctionCreator() {
                 </p>
               </div>
               <div>
-                <label style={labelStyle}>Start Price ({code}) <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>Starting bid ({code}, excl. tax) <span style={{ color: '#ef4444' }}>*</span></label>
                 <input type="number" name="start_price" value={form.start_price} onChange={handleChange}
                   style={inputStyle} min="0" placeholder="e.g. 500"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
@@ -206,7 +206,7 @@ export default function AdminAuctionCreator() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Reserve Price ({code}) <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
+                <label style={labelStyle}>Reserve price ({code}, excl. tax) <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
                 <input type="number" name="reserve_price" value={form.reserve_price} onChange={handleChange}
                   style={inputStyle} min="0" placeholder="Leave empty for no reserve"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
