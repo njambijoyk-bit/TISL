@@ -39,6 +39,13 @@ const booksAPI = {
   exportVoucher: (id, format) => saveBlob(`/admin/books/vouchers/${id}/export`, { format }, `voucher.${format}`),
   exportVouchers: (params) => saveBlob('/admin/books/vouchers/export', params, `vouchers.${params.format}`),
 
+  // customer accounts (credit)
+  creditOverview: () => get('/admin/books/credit/overview'),
+  customerAccount: (id) => get(`/admin/books/customer-accounts/${id}`),
+  saveCreditTerms: (id, d) => send('put', `/admin/books/customer-accounts/${id}/terms`, d),
+  adjustAccount: (id, d) => send('post', `/admin/books/customer-accounts/${id}/adjust`, d),
+  chargeInterest: (id, d) => send('post', `/admin/books/customer-accounts/${id}/interest`, d),
+
   // gift vouchers
   giftVouchers: (params) => get('/admin/books/gift-vouchers', params),
   giftVoucher: (id) => get(`/admin/books/gift-vouchers/${id}`),

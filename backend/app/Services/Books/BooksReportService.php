@@ -182,7 +182,7 @@ class BooksReportService
     }
 
     /** Open bills per party, bucketed by days past due. kind: receivables | payables. */
-    public function ageing(string $kind, ?string $asOf = null): array
+    public function ageing(string $kind, ?string $asOf = null, ?int $ledgerId = null): array
     {
         $asOf = Carbon::parse($asOf ?? today());
         $bases = $kind === 'payables' ? ['purchase', 'credit_note'] : ['sales', 'debit_note'];
@@ -190,6 +190,7 @@ class BooksReportService
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->join('ledgers as l', 'l.id', '=', 'b.ledger_id')
             ->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $bases)
             ->where('v.date', '<=', $asOf->toDateString())
+            ->when($ledgerId, fn ($q) => $q->where('b.ledger_id', $ledgerId))
             ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount']);
         $paid = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
             ->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)->where('v.date', '<=', $asOf->toDateString())

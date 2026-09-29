@@ -78,6 +78,7 @@ class Customer extends Model
         'policy_flagged_policy_key',
         'policy_flagged_version',
         'credit_interest_rate',
+        'credit_terms_days',
         'credit_currency_id',   // always mirrors currency_id (kept for the credit service)
         'currency_id',          // the customer's pinned account currency
     ];

@@ -399,7 +399,7 @@ export default function CustomerDetail() {
 
   const [customer,    setCustomer]    = useState(null);
   const [loading,     setLoading]     = useState(true);
-  const [tab,         setTab]         = useState('overview');
+  const [tab,         setTab]         = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');
   const [editing,     setEditing]     = useState(false);
   const [form,        setForm]        = useState({});
   const [saving,      setSaving]      = useState(false);
