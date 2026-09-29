@@ -9,6 +9,7 @@ import { formatMoney } from '../../../_shared/lib/money';
 import { Helmet } from 'react-helmet-async';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
+import AuctionCostPanel from '../../components/storefront/auctions/AuctionCostPanel';
 import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
 
 // ── responsive hook ──────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ export default function AuctionDetailPage() {
   const navigate = useNavigate();
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 768;
+  const [regState, setRegState] = useState(null);   // { required, can_bid, … } once the registration has loaded
 
   const [auction, setAuction] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -254,14 +256,15 @@ export default function AuctionDetailPage() {
               {/* Place bid button */}
               <button
                 onClick={() => setShowModal(true)}
-                disabled={isEnded}
+                disabled={isEnded || (regState?.required && !regState?.can_bid)}
+                title={regState?.required && !regState?.can_bid ? 'Register and pay the entry fee / deposit first' : undefined}
                 style={{
                   width: '100%', height: 52, borderRadius: 14, border: 'none',
-                  background: isEnded ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                  color: isEnded ? '#9ca3af' : 'white',
-                  fontSize: '1rem', fontWeight: 800, cursor: isEnded ? 'not-allowed' : 'pointer',
+                  background: isEnded || (regState?.required && !regState?.can_bid) ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  color: (isEnded || (regState?.required && !regState?.can_bid)) ? '#9ca3af' : 'white',
+                  fontSize: '1rem', fontWeight: 800, cursor: (isEnded || (regState?.required && !regState?.can_bid)) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  boxShadow: isEnded ? 'none' : '0 4px 20px rgba(220,38,38,0.35)',
+                  boxShadow: (isEnded || (regState?.required && !regState?.can_bid)) ? 'none' : '0 4px 20px rgba(220,38,38,0.35)',
                   transition: 'all 200ms ease', letterSpacing: '0.02em',
                 }}
                 onMouseEnter={e => { if (!isEnded) e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -273,6 +276,8 @@ export default function AuctionDetailPage() {
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', margin: '-12px 0 0' }}>
                 {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>{money(minBid)}</strong></>}
               </p>
+
+              <AuctionCostPanel auctionId={id} bid={Math.max(currentPrice, Number(auction.start_price) || 0)} money={money} ended={isEnded} onRegistrationChange={setRegState} />
 
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>

@@ -61,6 +61,32 @@ const auctionsAPI = {
     return response.data;
   },
 
+  // Public: what the winner would owe at a winning bid — bid, VAT, each charge, amount payable
+  getQuote: async (auctionId, bid) => {
+    const response = await api.get(`/auctions/${auctionId}/quote`, { params: { bid } });
+    return response.data;
+  },
+
+  // Protected: registration for an auction that takes an entry fee / deposit
+  getRegistration: async (auctionId) => {
+    const response = await api.get(`/auctions/${auctionId}/registration`);
+    return response.data;
+  },
+  register: async (auctionId) => {
+    const response = await api.post(`/auctions/${auctionId}/register`);
+    return response.data;
+  },
+
+  // Admin: registrations and deposits
+  listRegistrations: async (auctionId) => {
+    const response = await api.get(`/admin/auctions/${auctionId}/registrations`);
+    return response.data;
+  },
+  releaseDeposits: async (auctionId) => {
+    const response = await api.post(`/admin/auctions/${auctionId}/release-deposits`);
+    return response.data;
+  },
+
   // Admin: the charge accounts an auction can pick from (amounts in the given currency)
   chargeOptions: async (currencyId) => {
     const response = await api.get('/admin/auctions/charge-options', { params: currencyId ? { currency_id: currencyId } : {} });

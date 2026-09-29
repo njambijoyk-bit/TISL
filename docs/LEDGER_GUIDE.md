@@ -300,3 +300,12 @@ builds up after winning; those are kept apart from the amount payable.
 
 A charge normally carries its own tax. Setting "Tax on this charge follows → the auction's sales account" makes it taxed
 exactly like the item being sold instead (exempt on an exempt auction, VAT-able on a VAT-able one).
+
+### Entry fees and deposits
+
+An auction with an entry fee or deposit switched on makes bidders register first. Registering raises a Sales Order for
+those amounts (the entry fee is income, taxed as its account says; the deposit goes to the "Auction Deposits"
+liability). When the order is paid it becomes a Cash Sale and the bidder may bid. When the auction is settled the
+deposit is released to the bidder's own account (Dr Auction Deposits, Cr the customer) — from there it is refunded or
+set against what they owe. Bidders see the winning bid, VAT, each charge and the amount payable, worked out by the
+server for the bid shown, before they bid.

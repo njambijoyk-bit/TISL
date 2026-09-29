@@ -253,6 +253,7 @@ Route::post('/reviews/{id}/helpful', [ProductReviewController::class, 'markHelpf
 Route::get('/auctions', [AuctionController::class, 'index']);
 Route::get('/auctions/{id}', [AuctionController::class, 'show']);
 Route::get('/auctions/{id}/stream', [AuctionController::class, 'stream']);
+Route::get('/auctions/{id}/quote', [AuctionController::class, 'publicQuote']);
     });
 
 Route::get('/content', [ContentPageController::class, 'publicIndex']);
@@ -303,6 +304,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/profile-picture', [AuthController::class, 'uploadProfilePicture']);
 
     Route::post('/auctions/{auction}/bid', [AuctionController::class, 'placeBid']);
+    Route::get('/auctions/{auction}/registration', [AuctionController::class, 'registration']);
+    Route::post('/auctions/{auction}/register', [AuctionController::class, 'register']);
 
     // ============================================
     // CAREERS — APPLICANT PORTAL (auth:sanctum resolves Applicant model)
@@ -803,6 +806,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/trashed', [AuctionController::class, 'trashed']);
             Route::get('/charge-options', [AuctionController::class, 'chargeOptions']);
             Route::get('/{auction}/quote', [AuctionController::class, 'chargeQuote']);
+            Route::get('/{auction}/registrations', [AuctionController::class, 'registrations']);
+            Route::post('/{auction}/release-deposits', [AuctionController::class, 'releaseDeposits']);
             Route::get('/{auction}', [AuctionController::class, 'adminShow']);
             Route::put('/{auction}', [AuctionController::class, 'update']);
             Route::post('/{auction}/create-order', [AuctionController::class, 'createOrder']);

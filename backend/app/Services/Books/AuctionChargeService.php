@@ -149,8 +149,8 @@ class AuctionChargeService
         $lines = $upfront = $accruing = [];
         foreach ($a->charges()->with('ledger')->where('is_enabled', true)->orderBy('sort_order')->get() as $c) {
             $net = $this->amountFor($c, $bid, $daysHeld);
-            if ($net <= 0 || ! $c->ledger) {
-                continue;
+            if (! $c->ledger || ($net <= 0 && $c->timing !== 'after_win')) {
+                continue;   // a per-day charge is listed even before it has started to accrue
             }
             $taxAccount = $this->taxAccountFor($a, $c);
             $t = $taxAccount->tax_nature ? ($this->taxLines->fromAccount($taxAccount, $net, $net, 1.0, 'output', $customer, $currency)[0] ?? null) : null;
@@ -159,6 +159,7 @@ class AuctionChargeService
                 'charge_id' => $c->id, 'ledger_id' => $c->ledger_id, 'name' => $c->ledger->name,
                 'kind' => ($c->ledger->settings ?? [])['charge_kind'] ?? 'other', 'timing' => $c->timing, 'basis' => $c->basis,
                 'tax_account_id' => $taxAccount->id, 'net' => $net, 'tax' => $tax, 'tax_label' => $t['label'] ?? null, 'gross' => round($net + $tax, 2), 'refundable' => (bool) $c->refundable,
+                'rate' => (float) $c->amount, 'free_days' => (int) $c->free_days,
             ];
             match ($c->timing) { 'entry', 'deposit' => $upfront[] = $row, 'after_win' => $accruing[] = $row, default => $lines[] = $row };
         }

@@ -32,6 +32,7 @@ class Auction extends Model
         return \App\Services\Books\PriceTax::forAccount($this->sales_ledger_id);
     }
 
+    public function registrations() { return $this->hasMany(AuctionRegistration::class); }
     public function charges() { return $this->hasMany(AuctionCharge::class)->orderBy('sort_order'); }
 
     public function product() { return $this->belongsTo(Product::class); }

@@ -69,6 +69,67 @@ class AuctionController extends Controller
         return response()->json($svc->ledgers()->map(fn ($l) => ['ledger' => $l->only(['id', 'name', 'tax_nature']), 'tax_rate' => $l->taxRateLedger?->only(['id', 'name', 'rate_value']), 'kinds' => $svc::KINDS] + $svc->rowFromLedger($l, $target ?? \App\Models\Currency::find($l->currency_id) ?? app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()) + ['charge_kind' => ($l->settings ?? [])['charge_kind'] ?? 'other', 'default_on' => (bool) (($l->settings ?? [])['default_on'] ?? false), 'tax_follows' => ($l->settings ?? [])['tax_follows'] ?? 'own'])->values());
     }
 
+    /** What a winner would owe at a given winning bid — public, so bidders see the full cost before they bid. */
+    public function publicQuote(Request $request, $id)
+    {
+        $auction = Auction::findOrFail($id);
+        $bid = max((float) $request->query('bid', $auction->current_price), (float) $auction->start_price);
+        try {
+            return response()->json(app(\App\Services\Books\AuctionChargeService::class)->quote($auction, $bid, 0, $request->user()?->customer));
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** A bidder's registration state and what registering costs. */
+    public function registration(Request $request, Auction $auction)
+    {
+        $svc = app(\App\Services\Books\AuctionRegistrationService::class);
+        $customer = $request->user()?->customer;
+        $reg = $customer ? $svc->forCustomer($auction, $customer) : null;
+
+        return response()->json([
+            'required' => $svc->required($auction),
+            'upfront' => app(\App\Services\Books\AuctionChargeService::class)->quote($auction, (float) $auction->start_price, 0, $customer)['upfront'],
+            'registration' => $reg ? ['status' => $reg->status, 'order_id' => $reg->order_voucher_id, 'entry_amount' => $reg->entry_amount, 'deposit_amount' => $reg->deposit_amount, 'deposit_status' => $reg->deposit_status] : null,
+            'can_bid' => $svc->blockReason($auction, $customer) === null,
+        ]);
+    }
+
+    public function register(Request $request, Auction $auction)
+    {
+        $customer = $request->user()?->customer;
+        if (! $customer) {
+            return response()->json(['message' => 'Only customers can register to bid.'], 403);
+        }
+        try {
+            $reg = app(\App\Services\Books\AuctionRegistrationService::class)->register($auction, $customer, $request->user());
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Registered — pay the registration in My orders to start bidding.', 'registration' => $reg], 201);
+    }
+
+    /** Admin: who registered, what they paid, and where their deposit is. */
+    public function registrations(Auction $auction)
+    {
+        $svc = app(\App\Services\Books\AuctionRegistrationService::class);
+
+        return response()->json($auction->registrations()->with('customer:id,first_name,last_name,email')->get()->map(fn ($r) => $svc->refresh($r)));
+    }
+
+    public function releaseDeposits(Request $request, Auction $auction)
+    {
+        try {
+            $n = app(\App\Services\Books\AuctionRegistrationService::class)->releaseDeposits($auction, $request->user());
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => $n ? "{$n} deposit(s) released to the bidders' accounts" : 'No paid deposits were waiting to be released.', 'released' => $n]);
+    }
+
     /** What a winner would owe at a given winning bid (admin preview). */
     public function chargeQuote(Request $request, Auction $auction)
     {
@@ -349,6 +410,10 @@ class AuctionController extends Controller
             return response()->json(['message' => 'Auction is closed.'], 422);
         }
 
+        if ($why = app(\App\Services\Books\AuctionRegistrationService::class)->blockReason($auction, $request->user()?->customer)) {
+            return response()->json(['message' => $why, 'requires_registration' => true], 422);
+        }
+
         $maxBid  = (float) $request->input('max_bid');
         $nextMin = $auction->current_price + $auction->bid_increment;
 
@@ -486,6 +551,7 @@ class AuctionController extends Controller
         try {
             $a = Auction::with('winner.customer')->findOrFail($id);
             $v = app(\App\Services\Books\AuctionOrderService::class)->fromAuction($a, $request->user());
+            app(\App\Services\Books\AuctionRegistrationService::class)->releaseDeposits($a, $request->user());   // the auction is settled: deposits go back to the bidders' accounts
 
             return response()->json(['message' => "Order {$v->voucher_number} created for the winner", 'voucher_id' => $v->id], 201);
         } catch (\App\Services\Books\BooksException $e) {

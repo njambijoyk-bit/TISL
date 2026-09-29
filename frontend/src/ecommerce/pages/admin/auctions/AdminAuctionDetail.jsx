@@ -150,6 +150,8 @@ export default function AdminAuctionDetail() {
   const fetchAdminCurrencies = useCurrencyStore(s => s.fetchAdminCurrencies);
   useEffect(() => { if (!adminCurrencies.length) fetchAdminCurrencies().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [stats, setStats] = useState({});
+  const [registrations, setRegistrations] = useState([]);
+  const [releasing, setReleasing] = useState(false);
   const [activityLogs] = useState([]);
 
   const fetchAuction = async () => {
@@ -158,6 +160,7 @@ export default function AdminAuctionDetail() {
       const data = await auctionsAPI.getAdminAuction(id);
       setAuction(data.auction);
       setStats(data.stats);
+      auctionsAPI.listRegistrations(id).then(setRegistrations).catch(() => setRegistrations([]));
       setForm({
         currency_id: data.auction.currency_id ?? data.auction.currency?.id ?? '',
         location_id: data.auction.location_id ?? '',
@@ -179,6 +182,16 @@ export default function AdminAuctionDetail() {
   };
   
   useEffect(() => { fetchAuction(); }, [id]);
+
+  const releaseDeposits = async () => {
+    setReleasing(true);
+    try {
+      const res = await auctionsAPI.releaseDeposits(id);
+      toast.success(res.message);
+      fetchAuction();
+    } catch (err) { toast.error(err.response?.data?.message || 'Could not release the deposits'); }
+    finally { setReleasing(false); }
+  };
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -433,6 +446,42 @@ export default function AdminAuctionDetail() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Registrations & deposits ── */}
+        {registrations.length > 0 && (
+          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Registrations &amp; deposits</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>{registrations.length}</span>
+              {registrations.some(r => r.deposit_status === 'held') && ['ended', 'cancelled'].includes(auction.status) && (
+                <button onClick={releaseDeposits} disabled={releasing}
+                  style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {releasing ? 'Releasing…' : 'Release deposits to bidders’ accounts'}
+                </button>
+              )}
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
+                    {['Bidder', 'Status', 'Entry fee', 'Deposit', 'Deposit is'].map(h => <th key={h} style={{ padding: '8px 14px', fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase' }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {registrations.map(r => (
+                    <tr key={r.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '8px 14px' }}>{[r.customer?.first_name, r.customer?.last_name].filter(Boolean).join(' ') || r.customer?.email || `#${r.customer_id}`}</td>
+                      <td style={{ padding: '8px 14px' }}>{r.status === 'registered' ? 'Paid — may bid' : r.status === 'awaiting_payment' ? 'Awaiting payment' : r.status}</td>
+                      <td style={{ padding: '8px 14px' }}>{formatMoney(Number(r.entry_amount), auctionCode, { decimals: 'auto' })}</td>
+                      <td style={{ padding: '8px 14px' }}>{Number(r.deposit_amount) ? formatMoney(Number(r.deposit_amount), auctionCode, { decimals: 'auto' }) : '—'}</td>
+                      <td style={{ padding: '8px 14px' }}>{{ held: 'Held', released: 'Released to their account', none: '—' }[r.deposit_status] ?? r.deposit_status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
