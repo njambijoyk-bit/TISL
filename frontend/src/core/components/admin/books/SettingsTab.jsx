@@ -148,7 +148,7 @@ function NumberingSection({ branches }) {
 
 // ── payment methods ─────────────────────────────────────────────────────
 
-const KINDS = ['cash', 'bank', 'mobile', 'card', 'cheque', 'online', 'gift_voucher', 'other'];
+const KINDS = ['cash', 'bank', 'mobile', 'mobile_money', 'card', 'cheque', 'online', 'gift_voucher', 'other'];
 
 function MethodForm({ method, ledgers, onClose, onSaved }) {
   const editing = Boolean(method);

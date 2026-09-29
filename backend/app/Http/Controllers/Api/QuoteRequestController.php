@@ -438,12 +438,17 @@ class QuoteRequestController extends Controller
             ], 422);
         }
 
-        // This will be handled by the QuoteController::store method
-        // Just return the quote request data for the admin to create a quote
+        try {
+            $voucher = app(\App\Services\Books\QuotationService::class)->fromRequest($quoteRequest, $request->user());
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
         return response()->json([
-            'message' => 'Use this data to create a quote',
-            'quote_request' => $quoteRequest
-        ], 200);
+            'message' => "Quotation {$voucher->voucher_number} created — price it, then send it",
+            'quotation_id' => $voucher->id,
+            'quote_request' => $quoteRequest->fresh(),
+        ], 201);
     }
 
     /**

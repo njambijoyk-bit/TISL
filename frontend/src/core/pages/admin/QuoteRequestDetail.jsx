@@ -38,8 +38,7 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import AssignModal from '../../../ecommerce/components/admin/quotes/AssignModal';
 import RejectModal from '../../../ecommerce/components/admin/quotes/RejectModal';
 import ClarificationModal from '../../../ecommerce/components/admin/quotes/ClarificationModal';
-import QuoteCreate from '../../../ecommerce/components/admin/quotes/QuoteCreate';
-import { quotesAPI } from '../../../_shared/api/quotes';
+import quotationsAPI from '../../../_shared/api/quotations';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -176,47 +175,17 @@ const QuoteRequestDetail = () => {
   const [showAssignModal,        setShowAssignModal]        = useState(false);
   const [showRejectModal,        setShowRejectModal]        = useState(false);
   const [showClarificationModal, setShowClarificationModal] = useState(false);
-  const [showQuoteCreateModal,   setShowQuoteCreateModal]   = useState(false);
-  const [enrichedItems,          setEnrichedItems]          = useState([]);
 
   useEffect(() => { fetchAdminQuoteRequestById(id); }, [id]);
 
-  useEffect(() => {
-    if (currentQuoteRequest?.requested_items) {
-      enrichItemsWithPricing(currentQuoteRequest.requested_items);
-    }
-  }, [currentQuoteRequest]);
-
-  const enrichItemsWithPricing = async (items) => {
-    const enriched = await Promise.all(items.map(async (item) => {
-      let unitPrice = 0;
-      if (item.product_id) {
-        try {
-          const r = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/products/${item.product_id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-          if (r.ok) { const d = await r.json(); unitPrice = parseFloat(d.product?.price || 0); }
-        } catch {}
-      } else if (item.service_id) {
-        try {
-          const r = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/services/${item.service_id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-          if (r.ok) { const d = await r.json(); unitPrice = parseFloat(d.service?.base_price || d.service?.hourly_rate || d.service?.daily_rate || 0); }
-        } catch {}
-      } else if (item.item_type === 'custom_product' || item.item_type === 'custom_service') {
-        unitPrice = parseFloat(item.budget_per_unit || 0);
-      }
-      return { ...item, unit_price: unitPrice };
-    }));
-    setEnrichedItems(enriched);
-  };
-
-  const handleCreateQuote = async (quoteData) => {
+  // A request becomes a Quotation in the books: unpriced lines the admin prices, then sends.
+  const startQuotation = async () => {
     try {
-      const response = await quotesAPI.createQuote(quoteData);
-      toast.success('Quote created successfully!');
-      setShowQuoteCreateModal(false);
-      navigate(`/admin/quotes/${response.quote.id}`);
+      const res = await quotationsAPI.fromRequest(id);
+      toast.success(res.message || 'Quotation created');
+      navigate(`/admin/quotes/${res.data.id}/edit`);
     } catch (error) {
-      toast.error('Failed to create quote');
-      throw error;
+      toast.error(error?.response?.data?.message || 'Could not start the quotation', { duration: 7000 });
     }
   };
 
@@ -280,7 +249,7 @@ const QuoteRequestDetail = () => {
   );
 
   const request = currentQuoteRequest;
-  const canAct  = request.status !== 'rejected' && !request.quote_id;
+  const canAct  = request.status !== 'rejected' && !request.quote_id && !request.quotation_voucher_id;
 
   return (
     <AdminLayout>
@@ -382,15 +351,15 @@ const QuoteRequestDetail = () => {
           {canAct && (
             <>
               {(request.status === 'pending' || request.status === 'reviewing') && (
-                <Btn variant="success" icon={<FileText size={15} />} onClick={() => setShowQuoteCreateModal(true)}>Convert to Quote</Btn>
+                <Btn variant="success" icon={<FileText size={15} />} onClick={startQuotation}>Convert to Quote</Btn>
               )}
               <Btn variant="primary"  icon={<UserCheck size={15} />} onClick={() => setShowAssignModal(true)}>Assign</Btn>
               <Btn variant="ghost"    icon={<MessageCircle size={15} />} onClick={() => setShowClarificationModal(true)}>Clarify</Btn>
               <Btn variant="danger"   icon={<XCircle size={15} />} onClick={() => setShowRejectModal(true)}>Reject</Btn>
             </>
           )}
-          {request.quote_id && (
-            <Btn variant="success" icon={<CheckCircle size={15} />} onClick={() => navigate(`/admin/quotes/${request.quote_id}`)}>View Quote</Btn>
+          {(request.quotation_voucher_id || request.quote_id) && (
+            <Btn variant="success" icon={<CheckCircle size={15} />} onClick={() => navigate(`/admin/quotes/${request.quotation_voucher_id || request.quote_id}`)}>View Quotation</Btn>
           )}
         </div>
       </div>
@@ -577,7 +546,7 @@ const QuoteRequestDetail = () => {
           {(request.status === 'pending' || request.status === 'reviewing') && (
             <Panel className="qr-panel" accent>
               <div style={{ padding: '18px 20px' }}>
-                <Btn variant="success" icon={<FileText size={15} />} onClick={() => setShowQuoteCreateModal(true)} style={{ fullWidth: true, width: '100%', justifyContent: 'center', marginBottom: 10 }}>
+                <Btn variant="success" icon={<FileText size={15} />} onClick={startQuotation} style={{ fullWidth: true, width: '100%', justifyContent: 'center', marginBottom: 10 }}>
                   Convert to Quote
                 </Btn>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, textAlign: 'center', lineHeight: 1.5 }}>
@@ -704,8 +673,8 @@ const QuoteRequestDetail = () => {
                   <Btn variant="danger"  size="sm" icon={<XCircle size={14} />}       onClick={() => setShowRejectModal(true)}        style={{ width: '100%', justifyContent: 'center' }}>Reject Request</Btn>
                 </div>
               )}
-              {request.quote_id && (
-                <Btn variant="success" size="sm" icon={<CheckCircle size={14} />} onClick={() => navigate(`/admin/quotes/${request.quote_id}`)} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>
+              {(request.quotation_voucher_id || request.quote_id) && (
+                <Btn variant="success" size="sm" icon={<CheckCircle size={14} />} onClick={() => navigate(`/admin/quotes/${request.quotation_voucher_id || request.quote_id}`)} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>
                   View Quote
                 </Btn>
               )}
@@ -768,25 +737,6 @@ const QuoteRequestDetail = () => {
       {showRejectModal        && <RejectModal        onClose={() => setShowRejectModal(false)}        onReject={handleReject} />}
       {showClarificationModal && <ClarificationModal onClose={() => setShowClarificationModal(false)} onRequest={handleClarification} />}
 
-      {showQuoteCreateModal && (
-        <QuoteCreate
-          isOpen={showQuoteCreateModal}
-          onClose={() => setShowQuoteCreateModal(false)}
-          onSuccess={handleCreateQuote}
-          prefilledData={{
-            id: request.id,
-            customer_id: request.customer_id,
-            request_type: request.request_type,
-            priority: request.priority,
-            customer_notes: request.customer_notes,
-            admin_notes: request.admin_notes,
-            request_number: request.request_number,
-            assigned_to: request.assigned_to,
-            delivery_location: request.delivery_location,
-            items: enrichedItems.length > 0 ? enrichedItems : request.requested_items || [],
-          }}
-        />
-      )}
     </div>
     </AdminLayout>
   );

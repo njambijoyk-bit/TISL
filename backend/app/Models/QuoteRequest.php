@@ -29,6 +29,7 @@ class QuoteRequest extends Model
         'assigned_to',
         'assigned_at',
         'quote_id',
+        'quotation_voucher_id',
         'quoted_at',
         'customer_notes',
         'admin_notes',
@@ -147,7 +148,7 @@ class QuoteRequest extends Model
      */
     public function getHasQuoteAttribute(): bool
     {
-        return $this->quote_id !== null;
+        return $this->quote_id !== null || $this->quotation_voucher_id !== null;
     }
 
     // ========================================

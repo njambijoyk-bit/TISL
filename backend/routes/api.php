@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
 use App\Http\Controllers\Api\CompanyProfileController;
+use App\Http\Controllers\Api\QuotationController;
 use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -508,6 +509,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/convert-to-order', [QuoteController::class, 'convertToOrder']);
         });
 
+        // Quotations (Customer) — priced quotes for a request, accept / decline / ask for changes
+        Route::prefix('quotations')->group(function () {
+            Route::get('/', [QuotationController::class, 'myIndex']);
+            Route::get('/{id}', [QuotationController::class, 'myShow']);
+            Route::post('/{id}/accept', [QuotationController::class, 'accept']);
+            Route::post('/{id}/decline', [QuotationController::class, 'decline']);
+            Route::post('/{id}/revision', [QuotationController::class, 'revision']);
+        });
+
         // Quote Requests (Customer)
         Route::prefix('quote-requests')->group(function () {
             Route::get('/', [QuoteRequestController::class, 'myQuoteRequests']);
@@ -933,6 +943,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore', [QuoteController::class, 'restore']); // restore single
         });
         
+        // Quotations (Admin) — the priced document; requests stay the intake
+        Route::prefix('quotations')->group(function () {
+            Route::get('/', [QuotationController::class, 'index']);
+            Route::get('/meta', [QuotationController::class, 'meta']);
+            Route::get('/lookup', [QuotationController::class, 'lookup']);
+            Route::post('/preview', [QuotationController::class, 'preview']);
+            Route::post('/from-request/{requestId}', [QuotationController::class, 'fromRequest']);
+            Route::get('/{id}', [QuotationController::class, 'show']);
+            Route::put('/{id}', [QuotationController::class, 'update']);
+            Route::post('/{id}/send', [QuotationController::class, 'send']);
+            Route::post('/{id}/withdraw', [QuotationController::class, 'withdraw']);
+            Route::get('/{id}/export', [QuotationController::class, 'export']);
+        });
+
         // Quote Requests Management (Admin)
         Route::prefix('quote-requests')->group(function () {
             Route::get('/', [QuoteRequestController::class, 'index']);

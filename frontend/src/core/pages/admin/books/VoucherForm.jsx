@@ -17,15 +17,15 @@ const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const label = { display: 'block', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, marginBottom: 3 };
 
 /** Search-as-you-type picker over /admin/books/lookup. */
-function Picker({ kind, placeholder, onPick, render }) {
+function Picker({ api, kind, placeholder, onPick, render }) {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return undefined;
-    const t = setTimeout(() => { booksAPI.lookup(kind, q).then(setRows).catch(() => setRows([])); }, 200);
+    const t = setTimeout(() => { api.lookup(kind, q).then(setRows).catch(() => setRows([])); }, 200);
     return () => clearTimeout(t);
-  }, [q, open, kind]);
+  }, [api, q, open, kind]);
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -46,12 +46,14 @@ function Picker({ kind, placeholder, onPick, render }) {
 
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
-export default function VoucherForm() {
+export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const nav = useNavigate();
   const { id } = useParams();
   const [params] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const canWrite = canWriteFinance(user);
+  const canWrite = mode === 'quotation' ? ['finance', 'manager', 'admin', 'super_admin', 'sales_rep'].includes(user?.role) : canWriteFinance(user);
+  const home = mode === 'quotation' ? '/admin/quotes' : '/admin/books';
+  const viewPath = (vid) => (mode === 'quotation' ? `/admin/quotes/${vid}` : `/admin/books/vouchers/${vid}`);
   const editing = Boolean(id);
 
   const [types, setTypes] = useState([]);
@@ -62,7 +64,7 @@ export default function VoucherForm() {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', narration: '', due_date: '', series_id: '', voucher_number: '', amount: '', ledger_id: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', narration: '', due_date: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [manual, setManual] = useState(false);
@@ -81,10 +83,10 @@ export default function VoucherForm() {
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
 
   useEffect(() => {
-    booksAPI.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
+    api.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
     shippingAPI.getActiveOptions().then(setShipOptions).catch(() => {});
-    booksAPI.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {});
-    booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
+    api.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {});
+    api.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
     locationsAPI.getAdmin().then((r) => {
       const act = (r.locations ?? []).filter((l) => l.is_active !== false);
       setBranches(act);
@@ -95,10 +97,10 @@ export default function VoucherForm() {
   // Load an existing voucher for editing
   useEffect(() => {
     if (!editing) return;
-    booksAPI.voucher(id).then((v) => {
+    api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
-        payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+        payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id).map((i) => {
           const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
@@ -117,7 +119,7 @@ export default function VoucherForm() {
   // numbering options for the chosen type
   useEffect(() => {
     if (!typeId || editing) { setSeries([]); return; }
-    booksAPI.nextNumbers({ voucher_type_id: typeId, date: h.date, location_id: h.location_id || undefined })
+    api.nextNumbers({ voucher_type_id: typeId, date: h.date, location_id: h.location_id || undefined })
       .then((s) => { setSeries(s); setH((x) => ({ ...x, series_id: s.find((y) => y.location_id && String(y.location_id) === String(x.location_id))?.id ?? s.find((y) => y.is_default)?.id ?? s[0]?.id ?? '' })); })
       .catch(() => setSeries([]));
   }, [typeId, h.date, h.location_id, editing]);
@@ -126,6 +128,7 @@ export default function VoucherForm() {
     const p = {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
+      valid_until: h.valid_until || undefined,
     };
     if (hasItems) {
       p.lines = lines.map((l) => {
@@ -158,7 +161,7 @@ export default function VoucherForm() {
     const ready = hasItems ? lines.length > 0 : isMoney ? Number(h.amount) > 0 : entries.length >= 2 && entries.every((e) => e.ledger_id && Number(e.amount) > 0);
     if (!ready) { setPreview(null); setPreviewErr(null); return undefined; }
     const t = setTimeout(() => {
-      booksAPI.previewVoucher(payload).then((p) => { setPreview(p); setPreviewErr(null); }).catch((e) => { setPreview(null); setPreviewErr(errMsg(e, 'Could not work out this voucher')); });
+      api.previewVoucher(payload).then((p) => { setPreview(p); setPreviewErr(null); }).catch((e) => { setPreview(null); setPreviewErr(errMsg(e, 'Could not work out this voucher')); });
     }, 500);
     return () => clearTimeout(t);
   }, [payload, type, hasItems, isMoney, entries, lines.length, h.amount]);
@@ -172,9 +175,9 @@ export default function VoucherForm() {
   const save = async () => {
     setSaving(true); setSaveErr(null);
     try {
-      const res = editing ? await booksAPI.updateVoucher(id, payload) : await booksAPI.createVoucher(payload);
+      const res = editing ? await api.updateVoucher(id, payload) : await api.createVoucher(payload);
       toast.success(res.message ?? 'Saved');
-      nav(`/admin/books/vouchers/${res.data.id}`);
+      nav(viewPath(res.data.id));
     } catch (e) { const m = errMsg(e, 'Could not save the voucher'); setSaveErr(m); toast.error(m, { duration: 7000 }); }
     finally { setSaving(false); }
   };
@@ -187,7 +190,7 @@ export default function VoucherForm() {
   return (
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <Link to="/admin/books" style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> Books</Link>
+        <Link to={home} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> {mode === 'quotation' ? 'Quotations' : 'Books'}</Link>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: '0 0 16px' }}>{editing ? `Edit ${h.voucher_number}` : type ? `New ${type.name}` : 'New voucher'}</h1>
         {loading ? <p style={{ color: colors.textMuted }}>Loading…</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16 }}>
@@ -221,7 +224,7 @@ export default function VoucherForm() {
                 <div>
                   <label style={label}>Customer {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
                   {h.customer ? <div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div>
-                    : <Picker kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
+                    : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
               )}
               {(type?.party_kind === 'supplier' || isMoney) && (
@@ -271,6 +274,7 @@ export default function VoucherForm() {
                 </div>
               )}
               <div><label style={label}>Reference</label><input value={h.reference_no} onChange={(e) => setH((x) => ({ ...x, reference_no: e.target.value }))} style={small} placeholder="PO no., M-Pesa code…" /></div>
+              {base === 'quotation' && <div><label style={label}>Valid until</label><input type="date" value={h.valid_until} onChange={(e) => setH((x) => ({ ...x, valid_until: e.target.value }))} style={small} /></div>}
               {['sales', 'purchase'].includes(base) && <div><label style={label}>Due date</label><input type="date" value={h.due_date} onChange={(e) => setH((x) => ({ ...x, due_date: e.target.value }))} style={small} /></div>}
             </div>
 
@@ -284,13 +288,13 @@ export default function VoucherForm() {
                       <label style={label}>{{ product: 'Product / variant', service: 'Service / package', hamper: 'Hamper', charge: 'Charge', custom: 'Custom line' }[l.type]}</label>
                       {l.type === 'product' && (l.variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker kind="product" placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
+                        : <Picker api={api} kind="product" placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '' })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
+                        : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '' })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
                       {l.type === 'hamper' && (l.hamper_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker kind="hamper" placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span></>} />)}
+                        : <Picker api={api} kind="hamper" placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span></>} />)}
                       {l.type === 'charge' && (
                         <select value={l.kind} onChange={(e) => setLine(l.key, { kind: e.target.value })} style={small}>
                           <option value="shipping">Shipping / delivery</option><option value="discount">Discount</option><option value="rounding">Rounding</option><option value="other">Other charge</option>
@@ -324,7 +328,7 @@ export default function VoucherForm() {
                         {l.type !== 'hamper' && (
                           <div><label style={label}>Rate</label>
                             <input type="number" step="0.01" min="0" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value })} style={small}
-                              placeholder={ ['sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'].includes(base) && l.type !== 'custom' ? 'catalogue' : '0.00'} /></div>
+                              placeholder={ ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'].includes(base) && l.type !== 'custom' ? 'catalogue' : '0.00'} /></div>
                         )}
                         {l.type === 'custom' && (
                           <div><label style={label}>Ledger</label>
@@ -421,7 +425,7 @@ export default function VoucherForm() {
             {saveErr && <p role="alert" style={{ margin: 0, padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.85rem' }}>{saveErr}</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" style={btnGhost} onClick={() => nav(-1)}>Cancel</button>
-              <button type="button" style={{ ...btnPrimary, opacity: saving || !type ? 0.6 : 1 }} disabled={saving || !type} onClick={save}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Post voucher'}</button>
+              <button type="button" style={{ ...btnPrimary, opacity: saving || !type ? 0.6 : 1 }} disabled={saving || !type} onClick={save}>{saving ? 'Saving…' : mode === 'quotation' ? 'Save prices' : editing ? 'Save changes' : 'Post voucher'}</button>
             </div>
           </div>
         )}

@@ -43,8 +43,8 @@ const SpecialsPage         = lazy(() => import('./ecommerce/pages/customer/Speci
 const RequestQuote         = lazy(() => import('./core/pages/customer/RequestQuote'));
 const MyQuoteRequests      = lazy(() => import('./core/pages/customer/MyQuoteRequests'));
 const MyQuoteRequestDetail = lazy(() => import('./core/pages/customer/MyQuoteRequestDetail'));
-const MyQuotes             = lazy(() => import('./core/pages/customer/MyQuotes'));
-const CustomerQuoteDetail  = lazy(() => import('./core/pages/customer/CustomerQuoteDetail'));
+const MyQuotes             = lazy(() => import('./core/pages/customer/MyQuotations'));
+const CustomerQuoteDetail  = lazy(() => import('./core/pages/customer/CustomerQuotationDetail'));
 const MyProjects           = lazy(() => import('./projects/pages/customer/MyProjects'));
 const MyProjectDetail      = lazy(() => import('./projects/pages/customer/MyProjectDetail'));
 const Profile              = lazy(() => import('./core/pages/customer/Profile'));
@@ -132,10 +132,10 @@ const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCat
 const Work               = lazy(() => import('./projects/pages/admin/Work'));
 const QuoteRequests      = lazy(() => import('./core/pages/admin/QuoteRequests'));
 const QuoteRequestDetail = lazy(() => import('./core/pages/admin/QuoteRequestDetail'));
-const Quotes             = lazy(() => import('./core/pages/admin/Quotes'));
-const QuoteCreatePage    = lazy(() => import('./core/pages/admin/QuoteCreatePage.jsx'));
-const QuoteDetail        = lazy(() => import('./ecommerce/components/admin/quotes/QuoteDetail'));
-const QuoteEdit          = lazy(() => import('./ecommerce/components/admin/quotes/QuoteEdit'));
+const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
+const QuoteCreatePage    = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
+const QuoteDetail        = lazy(() => import('./core/pages/admin/quotations/QuotationDetailPage'));
+const QuoteEdit          = lazy(() => import('./core/pages/admin/quotations/QuotationEditPage'));
 const AdminCustomers     = lazy(() => import('./core/pages/admin/Customers'));
 const CustomerDetail     = lazy(() => import('./core/pages/admin/CustomerDetail'));
 const CreditDashboard    = lazy(() => import('./core/pages/admin/CreditDashboard'));
@@ -1125,11 +1125,7 @@ function App() {
               />
               <Route
                 path="/admin/quotes/new"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <QuoteEdit />
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/quote-requests" replace />}
               />
               <Route
                 path="/admin/quotes/:id"

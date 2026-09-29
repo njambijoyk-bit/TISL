@@ -22,6 +22,8 @@ class VoucherType extends Model
         'is_active'      => 'boolean',
     ];
 
+    public const QUOTATION     = 'quotation';
+    public const PURCHASE_ORDER = 'purchase_order';
     public const SALES_ORDER   = 'sales_order';
     public const DELIVERY_NOTE = 'delivery_note';
     public const SALES         = 'sales';
@@ -53,6 +55,6 @@ class VoucherType extends Model
     /** Sales-side types put revenue on the credit side of the line ledger; purchase-side on the debit side. */
     public function isSalesSide(): bool
     {
-        return in_array($this->base_type, [self::SALES_ORDER, self::DELIVERY_NOTE, self::SALES, self::CASH_SALE, self::CREDIT_NOTE], true);
+        return in_array($this->base_type, [self::QUOTATION, self::SALES_ORDER, self::DELIVERY_NOTE, self::SALES, self::CASH_SALE, self::CREDIT_NOTE], true);
     }
 }

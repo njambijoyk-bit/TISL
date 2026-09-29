@@ -136,8 +136,11 @@ class VoucherService
     public function convert(Voucher $source, string $targetBase, array $opts = [], ?User $user = null): Voucher
     {
         $allowed = [
+            VoucherType::QUOTATION     => [VoucherType::SALES_ORDER, VoucherType::SALES],
             VoucherType::SALES_ORDER   => [VoucherType::DELIVERY_NOTE, VoucherType::SALES, VoucherType::CASH_SALE],
             VoucherType::DELIVERY_NOTE => [VoucherType::SALES, VoucherType::CASH_SALE],
+            VoucherType::PURCHASE_ORDER => [VoucherType::RECEIPT_NOTE, VoucherType::PURCHASE],
+            VoucherType::RECEIPT_NOTE  => [VoucherType::PURCHASE],
         ];
         $sourceBase = $source->type->base_type;
         if (! in_array($targetBase, $allowed[$sourceBase] ?? [], true)) {
@@ -153,12 +156,14 @@ class VoucherService
             $items = $source->items()->with('taxes')->get();
             $top = $items->whereNull('parent_item_id');
             $pick = $opts['lines'] ?? null;
-            $field = $targetBase === VoucherType::DELIVERY_NOTE ? 'delivered_quantity' : 'invoiced_quantity';
+            // a quotation is simply taken up in full; otherwise track what has gone out / been invoiced
+            $field = $sourceBase === VoucherType::QUOTATION ? null
+                : (in_array($targetBase, [VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE], true) ? 'delivered_quantity' : 'invoiced_quantity');
 
             $lines = [];
             $moves = false;
             foreach ($top as $it) {
-                $remaining = max(0.0, (float) $it->quantity - (float) $it->{$field});
+                $remaining = max(0.0, (float) $it->quantity - ($field ? (float) $it->{$field} : 0.0));
                 $qty = $pick !== null ? min($remaining, (float) ($pick[$it->id] ?? 0)) : $remaining;
                 if ($qty <= 0) {
                     continue;
@@ -187,7 +192,8 @@ class VoucherService
             }
 
             // Stock moves for a delivery note; for an invoice/cash sale only when made straight from an order (and only the undelivered part).
-            $moves = $targetBase === VoucherType::DELIVERY_NOTE || ($sourceBase === VoucherType::SALES_ORDER && $target->stock_effect !== 'none');
+            $moves = in_array($targetBase, [VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE], true)
+                || (in_array($sourceBase, [VoucherType::SALES_ORDER, VoucherType::PURCHASE_ORDER], true) && $target->stock_effect !== 'none');
 
             $data = [
                 'voucher_type_id'   => $target->id,
@@ -211,6 +217,9 @@ class VoucherService
 
             $child = $this->create($data, $user);
             $this->bumpSources($child, +1);
+            if ($sourceBase === VoucherType::QUOTATION) {
+                $source->update(['doc_status' => 'accepted', 'responded_at' => now()]);
+            }
             $this->audit($source, 'converted', $user, ['to' => $child->voucher_number, 'type' => $target->name]);
 
             return $child->load($this->relations());
@@ -449,7 +458,7 @@ class VoucherService
             'sku' => null, 'unit_code' => null, 'unit_factor' => 1.0, 'quantity' => 1.0, 'base_quantity' => 1.0, 'rate' => 0.0,
             'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
-            'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null,
+            'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
         ];
     }
@@ -531,6 +540,7 @@ class VoucherService
         $qty = $this->qty($l, $product->name);
         $factor = (float) $unitRow->base_factor;
 
+        $pending = false;
         if (isset($l['rate']) && $l['rate'] !== '') {
             $rate = (float) $l['rate'];
         } else {
@@ -540,9 +550,12 @@ class VoucherService
             $unitRow->setRelation('variant', $variant);
             $price = $unitRow->effectivePrice();
             if ($price === null) {
-                throw new BooksException("{$product->name} has no price for that unit.");
+                if ($ctx['type']->base_type !== VoucherType::QUOTATION) {
+                    throw new BooksException("{$product->name} has no price for that unit.");
+                }
+                $pending = true;   // a quotation can go out unpriced; the admin prices it before sending
             }
-            $rate = $this->convertPrice($price, $product->currency_id, $ctx);
+            $rate = $price === null ? 0.0 : $this->convertPrice($price, $product->currency_id, $ctx);
         }
 
         $line = array_merge($line, [
@@ -554,6 +567,7 @@ class VoucherService
             'location_id' => $l['location_id'] ?? null, 'notes' => $l['notes'] ?? null,
         ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
+        $line['pending_price'] = $pending;
         $this->finishAmounts($line, $product, 'product', $unitRow->unit_id, $ctx);
 
         return $line;
@@ -567,9 +581,17 @@ class VoucherService
         }
         $service = $pkg->service;
         $qty = $this->qty($l, $service->name);
-        $rate = isset($l['rate']) && $l['rate'] !== ''
-            ? (float) $l['rate']
-            : ($pkg->price !== null ? $this->convertPrice((float) $pkg->price, $service->currency_id, $ctx) : throw new BooksException("{$service->name} — {$pkg->name} has no price."));
+        $pending = false;
+        if (isset($l['rate']) && $l['rate'] !== '') {
+            $rate = (float) $l['rate'];
+        } elseif ($pkg->price !== null) {
+            $rate = $this->convertPrice((float) $pkg->price, $service->currency_id, $ctx);
+        } elseif ($ctx['type']->base_type === VoucherType::QUOTATION) {
+            $rate = 0.0;
+            $pending = true;
+        } else {
+            throw new BooksException("{$service->name} — {$pkg->name} has no price.");
+        }
 
         $line = array_merge($this->blank('service'), [
             'service_id' => $service->id, 'service_variant_id' => $pkg->id, 'description' => $service->name,
@@ -577,6 +599,7 @@ class VoucherService
             'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round($rate, 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
         ] + $this->discountMeta($l));
+        $line['pending_price'] = $pending;
         $this->finishAmounts($line, $service, 'service', $pkg->price_unit_id, $ctx);
 
         return $line;
@@ -674,6 +697,7 @@ class VoucherService
         $line = array_merge($this->blank('custom'), [
             'description' => $l['description'], 'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round((float) ($l['rate'] ?? 0), 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => (int) $l['ledger_id'], 'notes' => $l['notes'] ?? null,
+            'pending_price' => ! empty($l['pending_price']) && $ctx['type']->base_type === VoucherType::QUOTATION,
         ] + $this->discountMeta($l));
         $line['amount'] = round($qty * $line['rate'] - $line['discount_amount'], 2);
         $line['taxes'] = ! empty($l['tax_rate_id']) ? $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx)) : [];
@@ -687,7 +711,7 @@ class VoucherService
         $line = $this->blank($it->item_type);
         foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
                   'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent',
-                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id'] as $k) {
+                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price'] as $k) {
             $line[$k] = $it->{$k};
         }
         $line['unit_factor'] = (float) $it->unit_factor;
@@ -714,10 +738,10 @@ class VoucherService
         if (! $src->variant_id) {
             return 0.0;
         }
-        if ($targetBase === VoucherType::DELIVERY_NOTE) {
+        if (in_array($targetBase, [VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE], true)) {
             return $qty;
         }
-        if ($sourceBase === VoucherType::SALES_ORDER) {
+        if (in_array($sourceBase, [VoucherType::SALES_ORDER, VoucherType::PURCHASE_ORDER], true)) {
             $undelivered = max(0.0, (float) $src->quantity - (float) $src->delivered_quantity);
 
             return min($qty, $undelivered);
@@ -1115,7 +1139,9 @@ class VoucherService
             $voucher = Voucher::create($fields + [
                 'voucher_type_id' => $type->id, 'series_id' => $series->id, 'voucher_number' => $number, 'sequence_number' => $seq,
                 'status' => Voucher::POSTED, 'posted_at' => now(), 'created_by' => $user?->id,
-                'fulfilment_status' => in_array($type->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE], true) ? 'open' : null,
+                'fulfilment_status' => in_array($type->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::PURCHASE_ORDER, VoucherType::RECEIPT_NOTE], true) ? 'open' : null,
+                'doc_status' => $type->base_type === VoucherType::QUOTATION ? ($data['doc_status'] ?? 'quoted') : null,
+                'valid_until' => $data['valid_until'] ?? null, 'quote_request_id' => $data['quote_request_id'] ?? null,
             ]);
         }
 
@@ -1177,6 +1203,7 @@ class VoucherService
             'location_id' => $l['location_id'] ?? $voucher->location_id, 'source_item_id' => $l['source_item_id'], 'notes' => $l['notes'],
             'discount_ledger_id' => $l['discount_ledger_id'] ?? null, 'discount_source' => $l['discount_source'] ?? null,
             'discount_ref' => $l['discount_ref'] ?? null, 'shipping_option_id' => $l['shipping_option_id'] ?? null,
+            'pending_price' => ! empty($l['pending_price']),
         ]);
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
@@ -1238,8 +1265,8 @@ class VoucherService
     {
         $child->loadMissing('type', 'items', 'source');
         $field = match ($child->type->base_type) {
-            VoucherType::DELIVERY_NOTE => 'delivered_quantity',
-            VoucherType::SALES, VoucherType::CASH_SALE => 'invoiced_quantity',
+            VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE => 'delivered_quantity',
+            VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::PURCHASE => 'invoiced_quantity',
             default => null,
         };
         if (! $field || ! $child->source) {
@@ -1272,7 +1299,7 @@ class VoucherService
 
     private function refreshFulfilment(?Voucher $v): void
     {
-        if (! $v || ! in_array($v->type?->base_type ?? VoucherType::find($v->voucher_type_id)?->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE], true)) {
+        if (! $v || ! in_array($v->type?->base_type ?? VoucherType::find($v->voucher_type_id)?->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::PURCHASE_ORDER, VoucherType::RECEIPT_NOTE], true)) {
             return;
         }
         $items = $v->items()->where('is_header', false)->get();
