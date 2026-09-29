@@ -10,7 +10,7 @@ import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, ExportMenu } from './booksUi';
 import { money, filterStyle } from './booksFmt';
 
-export default function VouchersTab({ canWrite }) {
+export default function VouchersTab({ canWrite, baseType = '' }) {
   const nav = useNavigate();
   const [types, setTypes] = useState([]);
   const [rows, setRows] = useState([]);
@@ -24,12 +24,12 @@ export default function VouchersTab({ canWrite }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await booksAPI.vouchers({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), page });
+      const res = await booksAPI.vouchers({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), ...(baseType ? { type: baseType } : {}), page });
       setRows(res.data ?? []);
       setMeta({ current_page: res.current_page, last_page: res.last_page, total: res.total });
     } catch (e) { toast.error(errMsg(e, 'Could not load vouchers')); }
     finally { setLoading(false); }
-  }, [f, page]);
+  }, [f, page, baseType]);
 
   useEffect(() => { const t = setTimeout(load, f.search ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -55,7 +55,7 @@ export default function VouchersTab({ canWrite }) {
             <select value="" onChange={(e) => e.target.value && nav(`/admin/books/vouchers/new?type=${e.target.value}`)} aria-label="New voucher"
               style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}>
               <option value="">Choose a type…</option>
-              {types.filter((t) => t.is_active).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {types.filter((t) => t.is_active && (!baseType || t.base_type === baseType)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </label>
         )}
@@ -64,10 +64,10 @@ export default function VouchersTab({ canWrite }) {
           <Search size={14} style={{ position: 'absolute', left: 10, top: 10, color: colors.textFaint }} />
           <input value={f.search} onChange={set('search')} placeholder="Number, party, reference…" style={{ ...filterStyle, paddingLeft: 30, width: 220 }} />
         </div>
-        <select value={f.voucher_type_id} onChange={set('voucher_type_id')} style={filterStyle} aria-label="Type">
+        {!baseType && <select value={f.voucher_type_id} onChange={set('voucher_type_id')} style={filterStyle} aria-label="Type">
           <option value="">All types</option>
           {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
+        </select>}
         <select value={f.status} onChange={set('status')} style={filterStyle} aria-label="Status">
           <option value="">Any status</option>
           <option value="posted">Posted</option>

@@ -191,7 +191,7 @@ export default function ReconciliationPage() {
                 style={{ ...S.newBtn, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)' }}
                 onClick={() => navigate('/admin/data-engine')}
             >
-                Data Engine
+                Data Exchange
             </button>
             <ThemeSwitcher />
         </div>

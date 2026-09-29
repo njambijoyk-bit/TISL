@@ -35,7 +35,7 @@ export default function DataEngineIndex({ audio, onSelectExport, onSelectDiff })
                             background: `linear-gradient(90deg, ${F.amber}, ${F.green})`,
                             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                         }}>
-                            DATA ENGINE
+                            DATA EXCHANGE
                         </h1>
                         <p style={{ margin: 0, fontSize: '0.72rem', color: F.textDim, fontFamily: F.mono, letterSpacing: '0.04em' }}>
                             FINANCIAL RECONCILIATION SUITE v2

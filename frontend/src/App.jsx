@@ -144,6 +144,7 @@ const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'))
 const BooksHub           = lazy(() => import('./core/pages/admin/books/BooksHub'));
 const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherForm'));
 const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherView'));
+const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
 const Reports            = lazy(() => import('./core/pages/admin/Reports'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
@@ -1063,22 +1064,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/orders"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminOrders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders/:id"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <OrderDetail />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/orders" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister /></ProtectedRoute>} />
+              <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
               <Route
                 path="/admin/orders/:id/ship"
                 element={
@@ -1145,14 +1132,7 @@ function App() {
               />
 
               {/* Payments Dashboard */}
-              <Route
-                path="/admin/finance/payments"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <PaymentsDashboard />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister initial="receipt" /></ProtectedRoute>} />
               {/* Payment Detail */}
               <Route
                 path="/admin/finance/payments/:id"

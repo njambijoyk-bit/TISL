@@ -459,7 +459,7 @@ export function FinancialDivider() {
 const TICKER_ITEMS = [
     'ORDERS +2.4%', 'PAYMENTS ▲ 847', 'VARIANCE KES 0.00', 'RECONCILED ✓',
     'SESSION OPEN', 'TISL LIVE', 'DIFF ENGINE v2', 'AUDIT TRAIL ON',
-    'EXPORT READY', 'MISMATCHES: 0', 'CLEAN MATCH 100%', 'DATA ENGINE',
+    'EXPORT READY', 'MISMATCHES: 0', 'CLEAN MATCH 100%', 'DATA EXCHANGE',
 ];
 
 export function TickerTape() {

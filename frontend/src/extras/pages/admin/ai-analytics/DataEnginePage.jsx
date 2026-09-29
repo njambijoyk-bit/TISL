@@ -76,7 +76,7 @@ export default function DataEnginePage() {
 
     // ── Breadcrumb builder ────────────────────────────────────────────────────
     const buildBreadcrumb = () => {
-        const base = [{ label: 'ADMIN' }, { label: 'DATA ENGINE', onClick: handleBackToIndex }];
+        const base = [{ label: 'ADMIN' }, { label: 'DATA EXCHANGE', onClick: handleBackToIndex }];
 
         if (view === VIEW.INDEX)  return [...base];
         if (view === VIEW.EXPORT) return [...base, { label: 'SMART EXPORT' }];
