@@ -761,3 +761,96 @@ A) Value points by lot (recommended) or keep one live value with a revaluation j
 - Not yet: e-mailing the code to a recipient; VAT is not charged on the sale of a voucher (taxed when it is spent).
 - §16 step 4 done: customer wallet. `GET /wallet` (CustomerWalletController) returns points (balance, value from the lots, what expires next, redemption rules), every gift voucher with its movements, and a merged history; each movement links to the customer's Sales Order it came from (walking up the voucher chain), and the books' internal journals (exchange differences etc.) are hidden. Storefront "My wallet" page (/gift-vouchers): points card with Redeem buttons, vouchers (tap for movements), history, buy a voucher. Reconciliation was made exact in step 3.
 - §16 step 5 done: the old order-based loyalty and store-credit code is gone. Removed from `LoyaltyService`: earning / reversing / restoring points per legacy Order, referral point and credit grants, refund credit, spend and apply of "store credit", and their credit-transaction writer. The legacy Order model no longer earns points when paid, the Customer model no longer grants referral credit, and the legacy cancel / restore endpoints no longer touch loyalty or store credit. The two legacy order-creation endpoints (customer `store`, admin `adminCreateOrder`) now answer 410 "retired" — orders are created through checkout or Books. A legacy referral reward paid as "store credit" now issues a gift voucher (and reversal takes back the unspent part). What remains in `LoyaltyService` is the books-facing part: settings and redemption rules, admin grant / deduct points, gift voucher grant / deduct, redeem, expiry, and the booking of every points movement. §16 is complete.
+
+---
+
+## 17. Stock, batches, expiry and materials used by services (settled 29 Sep 2026)
+
+Planned with the owner and cut down to the simplest version that works. Products and services **stay in E-commerce**; **Extras stays Extras** (assets, delivery, analytics). Only **batches, expiry and valued stock are new, and they live in Core**, so Menus and any future module can use them without E-commerce or Extras.
+
+### 17.1 Two settings on every product (and variant)
+| Setting | Default | Meaning |
+|---|---|---|
+| **For sale** | **Yes** | No = a material, ingredient or consumable (nail polish, steel, glass). Hidden from customers and the till, still counted and valued. |
+| **Track expiry** | **No** | Uncommon, so off unless ticked. Yes = a batch number and an expiry date are asked for when stock arrives. |
+
+### 17.2 Batches (Core)
+- Every receipt of stock creates a **batch**: quantity per branch, unit cost, and — only when the product tracks expiry — batch number and expiry date.
+- Products that do not track expiry still get batches **behind the scenes**, because that is how valued stock knows what each item cost. Staff never see them.
+- A sale takes stock from the batch expiring first (expiry products) or the oldest batch (everything else). The item is costed at the batch it came from. The invoice shows batch number and expiry only for expiry products.
+- `variant_location_stock` stays the number the shop reads; it is always the total of that variant's batches at that branch.
+- Stock transfers between branches, stock counts and stock journals (write-offs, breaking bulk) are later steps; batches travel with the goods.
+
+### 17.3 Materials under a service line
+A service line on a sale carries **materials underneath**, the same way a hamper carries its components.
+
+| Case | Entered as |
+|---|---|
+| Car door fitted | Material **charged** — a priced line sold from stock (cost of goods sold) |
+| Materials used up but not itemised (nail polish, file) | Material **included** — no charge to the customer, leaves stock, cost posts to *Cost of services* |
+| Side mirror bought elsewhere for the job | **Bought outside** — type what was paid and what is charged; never enters stock; cost posts to *Job materials cost* |
+| Customer brings their own | Nothing to enter (or a note) |
+| Fabrication (mirror from own steel and glass) | Same thing: a service whose materials are steel and glass |
+
+- A service package may carry a **default materials list** (e.g. manicure: polish, file), filled in on every sale and editable there.
+- **Tools and consumables that need no invoice line** (a mechanic's spanner, a bottle of polish shared across many jobs) simply are not listed. They are **assets** (Extras) or ordinary purchases expensed when bought. A material is only listed when it is worth tracking — for example a whole bottle used on one job.
+
+### 17.4 Valued stock in the books
+| Event | Dr | Cr |
+|---|---|---|
+| Buy stock | Stock | Supplier / cash |
+| Sell | Customer + Cost of goods sold | Sales + Stock |
+| Material included in a service | Cost of services | Stock |
+| Bought outside for a job | Job materials cost | Supplier / cash |
+| Expired or damaged write-off | Stock loss | Stock |
+| Opening stock (one-off at go-live) | Stock | Opening balance |
+
+New ledgers seeded: *Stock* (Current Assets), *Cost of Goods Sold*, *Cost of Services*, *Job Materials Cost*, *Stock Loss*. Chosen under Books → Settings → Default ledgers like every other default. Costing is **first-in first-out by batch** (no separate average-cost setting in v1).
+
+### 17.5 Settings page — Settings → Stock & expiry
+| Setting | Options |
+|---|---|
+| Expired stock on the storefront | Hide (default) · show as unavailable |
+| **Expiry badge** ("Expires dd/mm") | Show / don't show. **Only ever appears on products with Track expiry = yes AND an expiry date set on the batch being sold** |
+| Selling expired stock | Never · manager override with a reason (logged) · allowed |
+| Minimum days left before a sale | One value for online orders, one for the till |
+| When a batch expires | Block it and put it in an **expired-stock list** for someone to decide (return to supplier / write off) · write off automatically after N days |
+| Warnings | Days before expiry to warn; who is told, per branch |
+| Picking order | First-expiring first · oldest first |
+
+Defaults set here; a category may override, and a product may override again.
+
+### 17.6 Where things live
+| Module | Holds |
+|---|---|
+| **Core** | Batches, valued stock, stock settings, expiry job and list, stock ledgers |
+| **E-commerce** | Products, variants, services, storefront (unchanged); the For sale / Track expiry fields sit on the product form |
+| **Extras** | Assets and equipment (unchanged) |
+| **Menus (later)** | Menu items using Core stock and batches |
+
+### 17.7 Build order
+1. Product settings + batches + valued stock on purchases and sales (§18 steps 1–4).
+2. Expiry settings, blocking sales, daily expiry check, expired-stock list (steps 5–6).
+3. Materials under service lines (step 7).
+4. Later: transfers, stock count, stock journal, recipes for Menus.
+
+---
+
+## 18. Coding plan — stock, batches, expiry, materials
+
+**Rules:** database changes are **plain SQL scripts to run in Workbench — no Laravel migrations** (read-only checks first, `SQL_SAFE_UPDATES` off/on, transaction, result check, safe to re-run), delivered as files and not run by the app. Each step updates `ModuleTables::MAP` for any new table and pushes to both `tisl_v2` and `feat/module-structure`. `php -l` on PHP, frontend build + lint before handing over.
+
+| Step | SQL script | Backend | Frontend |
+|---|---|---|---|
+| **1. Fields + ledgers** | `products.is_for_sale` (default 1), `products.track_expiry` (default 0), same on variant if needed; seed ledgers *Stock, COGS, Cost of Services, Job Materials Cost, Stock Loss* and default-ledger settings | Product model + validation; product create defaults (for sale = yes, track expiry = no); "not for sale" hidden from storefront/till queries | "Stock" section on product form with the two switches |
+| **2. Batches** | `stock_batches(id, variant_id, batch_no, mfg_date, expiry_date, unit_cost, currency_id, source_voucher_item_id, status)`, `stock_batch_balances(batch_id, location_id, quantity)`, `stock_movements.batch_id` + `unit_cost`; **backfill**: one opening batch per variant/branch from current `variant_location_stock` at cost 0 (cost set by opening-stock step) | `BatchService` (create, pick FEFO/FIFO, apply, reverse); `VariantStockService::applyDelta` becomes the total of batch balances | none yet |
+| **3. Stock in (valued)** | none new | Receipt Note / Purchase lines create batches (batch no + expiry when tracked); post Dr Stock; **Opening stock** voucher | Batch no + expiry columns on receipt/purchase lines for tracked products only |
+| **4. Stock out (valued)** | none new | `VoucherService::stockPlan/applyStock` picks batches; sales post Cr Stock / Dr COGS at batch cost; cancel/edit reverses batch by batch; credit note returns to the same batch | Batch + expiry shown on invoice print for tracked products only; batch override at till |
+| **5. Settings** | `stock_settings` (single row) + per-category / per-product overrides; add to backup map | Settings model + controller + API | Settings → **Stock & expiry** page (§17.5) |
+| **6. Expiry engine** | none new | Daily `stock:expire` command (schedule it): mark expired batches; enforce settings on sale (block / override / min days); storefront hides expired; **expiry badge only when tracked + date set**; warning notifications; expired-stock list with return-to-supplier (Debit Note) and write-off (Dr Stock Loss / Cr Stock) actions | Expired-stock list, expiry dashboard (expired / 30 / 60 / 90 days), badge on product cards |
+| **7. Service materials** | `service_variant_materials(service_variant_id, variant_id, quantity, mode: charged/included)`; `voucher_items` gets `material_mode` (charged/included/bought_outside) + `parent_item_id` reuse | Service line resolves default materials; included → Dr Cost of Services / Cr Stock; bought outside → Dr Job Materials Cost / Cr supplier or cash; charged → normal sale line | Materials editor on service package; materials rows under a service line in the voucher form |
+| **8. Reconciliation + docs** | none | Stock reconciliation: Σ batch value = *Stock* ledger balance (added to Books → Reconciliation) | Reconciliation card; update `PLATFORM_BUILT.md` and `LEDGER_GUIDE.md` |
+
+**Not in this build:** transfers, stock count, stock journal, recipes/manufacturing, work-in-progress on long jobs, weighted-average costing.
+
+**Open before step 1:** confirm whether the For sale / Track expiry switches live on the **product** only or also per **variant** (recommended: product, with variant inheriting).
