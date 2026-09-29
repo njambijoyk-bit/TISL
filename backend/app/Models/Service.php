@@ -17,6 +17,7 @@ class Service extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'sales_ledger_id',
         'name',
         'slug',
         'sku',

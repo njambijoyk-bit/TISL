@@ -12,6 +12,7 @@ class Hamper extends Model
     use HasCurrencyConversion;
 
     protected $fillable = [
+        'sales_ledger_id',
         'name',
         'slug',
         'description',

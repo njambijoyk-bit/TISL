@@ -16,6 +16,7 @@ class Ledger extends Model
         'customer_id', 'supplier_id', 'currency_id', 'is_system', 'is_active', 'notes',
         'rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days', 'side', 'settings',
         'classification', 'unit_of_measure_id', 'calculation_base', 'calculation_sequence', 'requires_certificate',
+        'tax_nature', 'tax_rate_ledger_id', 'affects_stock', 'bank_name', 'account_number', 'branch',
     ];
 
     protected $casts = [
@@ -30,10 +31,14 @@ class Ledger extends Model
         'valid_until'     => 'date:Y-m-d',
         'settings'        => 'array',
         'requires_certificate' => 'boolean',
+        'affects_stock'    => 'boolean',
         'calculation_sequence' => 'integer',
     ];
 
     public const RATE_TYPES = ['percent', 'fixed', 'per_unit'];
+
+    /** What a sales / purchase account does about tax (Tally: the ledger carries the tax nature). */
+    public const TAX_NATURES = ['taxable', 'zero_rated', 'exempt', 'out_of_scope'];
 
     public function group(): BelongsTo
     {

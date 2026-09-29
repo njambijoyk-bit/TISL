@@ -102,6 +102,8 @@ class BooksMasterController extends Controller
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
+            'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
+            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
         $this->assertBehaviourFields($d, $d['group_id']);
@@ -122,6 +124,8 @@ class BooksMasterController extends Controller
             'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
+            'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
+            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
         $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id);
@@ -144,6 +148,14 @@ class BooksMasterController extends Controller
         if (in_array($behaviour, ['tax', 'delivery'], true) && ! empty($d['rate_type']) && $d['rate_type'] !== 'percent' && empty($d['currency_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-unit rate needs a currency.']);
         }
+        if (! empty($d['tax_nature'])) {
+            if (! in_array($behaviour, ['sales', 'purchase'], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales or purchase account.']);
+            }
+            if ($d['tax_nature'] === 'taxable' && empty($d['tax_rate_ledger_id'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['tax_rate_ledger_id' => 'A taxable account needs its tax rate.']);
+            }
+        }
         if (! empty($d['rate_type']) && $d['rate_type'] === 'percent' && (float) ($d['rate_value'] ?? 0) > 100) {
             throw \Illuminate\Validation\ValidationException::withMessages(['rate_value' => 'A percentage cannot exceed 100.']);
         }
@@ -164,6 +176,36 @@ class BooksMasterController extends Controller
         $l->delete();
 
         return response()->json(['message' => 'Ledger deleted']);
+    }
+
+    // ── Which account an item sells to / buys from ───────────────────────
+
+    private function itemModel(string $type): string
+    {
+        return ['product' => \App\Models\Product::class, 'service' => \App\Models\Service::class, 'hamper' => \App\Models\Hamper::class][$type]
+            ?? abort(422, 'Unknown item type.');
+    }
+
+    public function itemAccounts(Request $request): JsonResponse
+    {
+        $request->validate(['type' => 'required|in:product,service,hamper', 'id' => 'required|integer']);
+        $m = $this->itemModel($request->type)::findOrFail($request->id);
+
+        return response()->json(['sales_ledger_id' => $m->sales_ledger_id, 'purchase_ledger_id' => $m->purchase_ledger_id ?? null]);
+    }
+
+    public function updateItemAccounts(Request $request): JsonResponse
+    {
+        $d = $request->validate(['type' => 'required|in:product,service,hamper', 'id' => 'required|integer', 'sales_ledger_id' => 'nullable|integer|exists:ledgers,id', 'purchase_ledger_id' => 'nullable|integer|exists:ledgers,id']);
+        $m = $this->itemModel($d['type'])::findOrFail($d['id']);
+        foreach (['sales_ledger_id' => 'sales', 'purchase_ledger_id' => 'purchase'] as $col => $behaviour) {
+            if (! empty($d[$col]) && LedgerGroup::whereKey(Ledger::whereKey($d[$col])->value('group_id'))->value('behaviour') !== $behaviour) {
+                return response()->json(['message' => 'Choose an account from a ' . $behaviour . ' group.', 'errors' => [$col => ['Not a ' . $behaviour . ' account.']]], 422);
+            }
+        }
+        $m->forceFill(['sales_ledger_id' => $d['sales_ledger_id'] ?? null] + ($d['type'] === 'product' ? ['purchase_ledger_id' => $d['purchase_ledger_id'] ?? null] : []))->save();
+
+        return response()->json(['message' => 'Accounts saved']);
     }
 
     // ── Voucher types & numbering ────────────────────────────────────────

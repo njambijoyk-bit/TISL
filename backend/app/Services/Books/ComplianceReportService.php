@@ -105,7 +105,33 @@ class ComplianceReportService
         }
         $totals['net'] = $totals['output'] - $totals['input'];
 
-        return ['from' => $from, 'to' => $to, 'types' => $types, 'totals' => array_map(fn ($v) => round($v, 2), $totals)];
+        return ['from' => $from, 'to' => $to, 'types' => $types, 'supplies' => $this->supplies($from, $to), 'totals' => array_map(fn ($v) => round($v, 2), $totals)];
+    }
+
+    /**
+     * Value of what was sold and bought, by the tax nature of the account each line posted to — the split a VAT
+     * return asks for (standard-rated, zero-rated, exempt). Credit / debit notes reduce it; gift voucher lines are not supplies.
+     *
+     * @return array{sales: array<string, float>, purchases: array<string, float>}
+     */
+    private function supplies(?string $from, ?string $to): array
+    {
+        $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as vt', 'vt.id', '=', 'v.voucher_type_id')
+            ->leftJoin('ledgers as l', 'l.id', '=', 'i.ledger_id')
+            ->where('v.status', Voucher::POSTED)->where('i.is_header', false)->whereNull('i.gift_meta')
+            ->whereIn('vt.base_type', ['sales', 'cash_sale', 'credit_note', 'purchase', 'debit_note'])
+            ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->groupBy('vt.base_type', 'l.tax_nature')
+            ->selectRaw('vt.base_type as base, l.tax_nature as nature, SUM(i.amount * v.exchange_rate) as value')->get();
+        $out = ['sales' => [], 'purchases' => []];
+        foreach ($rows as $r) {
+            $side = in_array($r->base, ['sales', 'cash_sale', 'credit_note'], true) ? 'sales' : 'purchases';
+            $sign = in_array($r->base, ['credit_note', 'debit_note'], true) ? -1 : 1;
+            $nature = $r->nature ?: 'unclassified';
+            $out[$side][$nature] = round(($out[$side][$nature] ?? 0) + $sign * (float) $r->value, 2);
+        }
+
+        return $out;
     }
 
     /** Owed to the authority (positive) at the end of the period, everything the books hold for this type. */

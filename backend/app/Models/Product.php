@@ -21,6 +21,7 @@ class Product extends Model
     ];
 
     protected $fillable = [
+        'sales_ledger_id', 'purchase_ledger_id',
         'name',
         'slug',
         'sku',

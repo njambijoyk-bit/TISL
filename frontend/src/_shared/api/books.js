@@ -57,6 +57,8 @@ const booksAPI = {
 
   // reports
   report: (name, params) => get(`/admin/books/reports/${name}`, params),
+  itemAccounts: (type, id) => get('/admin/books/item-accounts', { type, id }),
+  saveItemAccounts: (d) => send('put', '/admin/books/item-accounts', d),
   loyaltyTrueUp: () => send('post', '/admin/books/reconciliation/loyalty-true-up'),
   exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),
 

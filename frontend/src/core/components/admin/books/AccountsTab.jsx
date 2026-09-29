@@ -8,6 +8,7 @@ import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import SimpleTable from '../ui/SimpleTable';
 import CurrencySelect from './CurrencySelect';
+import taxAPI from '../../../../_shared/api/tax';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 const NATURE = { asset: 'Asset', liability: 'Liability', income: 'Income', expense: 'Expense' };
@@ -43,12 +44,21 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     name: ledger?.name ?? '', group_id: ledger?.group_id ?? defaultGroupId ?? '', code: ledger?.code ?? '',
     opening_balance: ledger?.opening_balance ?? 0, opening_side: ledger?.opening_side ?? 'D', notes: ledger?.notes ?? '', is_active: ledger?.is_active ?? true,
     currency_id: ledger?.currency_id ?? '', rate_type: ledger?.rate_type ?? '', rate_value: ledger?.rate_value ?? '', valid_from: ledger?.valid_from ?? '', valid_until: ledger?.valid_until ?? '',
+    tax_nature: ledger?.tax_nature ?? '', tax_rate_ledger_id: ledger?.tax_rate_ledger_id ?? '', affects_stock: ledger?.affects_stock ?? false,
+    bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
   });
   // The group decides which fields exist (Tally: the group carries the behaviour).
   const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
   const rated = behaviour === 'tax' || behaviour === 'delivery';
   const expense = behaviour === 'delivery' && f.side === 'expense';
+  const trading = behaviour === 'sales' || behaviour === 'purchase';
+  const bankish = behaviour === 'bank';
+  const [rateChoices, setRateChoices] = useState([]);
+  useEffect(() => {
+    if (!trading) return;
+    taxAPI.getRates({ active: true }).then((r) => setRateChoices((r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld'))).catch(() => {});
+  }, [trading]);
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
@@ -64,6 +74,11 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = null; });
       }
       if (behaviour !== 'delivery') body.side = null;
+      if (!trading) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
+        body.tax_nature = f.tax_nature || null;
+        body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
+      }
+      if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; }
       if (editing) await booksAPI.updateLedger(ledger.id, body); else await booksAPI.createLedger(body);
       toast.success(editing ? 'Ledger saved' : 'Ledger created');
       onSaved(); onClose();
@@ -82,6 +97,36 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
             </SelectInput>
           </Field>
+          {trading && (
+            <>
+              <Field label="Tax on this account" error={errs.tax_nature} hint={behaviour === 'sales'
+                ? 'Every sale line posted here is taxed this way — put exempt goods on an exempt account and VAT-able goods on a VAT-able one.'
+                : 'Every purchase line posted here is treated this way.'}>
+                <SelectInput value={f.tax_nature} onChange={(e) => set('tax_nature')(e.target.value)}>
+                  <option value="">Not set (use the tax rules)</option>
+                  <option value="taxable">VAT-able / taxable</option>
+                  <option value="zero_rated">Zero-rated</option>
+                  <option value="exempt">Exempt</option>
+                  <option value="out_of_scope">Out of scope</option>
+                </SelectInput>
+              </Field>
+              {(f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && (
+                <Field label="Tax rate" error={errs.tax_rate_ledger_id} hint={f.tax_nature === 'zero_rated' ? 'A 0 % rate, so the return shows the value.' : 'The rate charged on these lines.'}>
+                  <SelectInput required value={f.tax_rate_ledger_id} onChange={(e) => set('tax_rate_ledger_id')(e.target.value ? Number(e.target.value) : '')}>
+                    <option value="">Choose…</option>
+                    {rateChoices.filter((r) => (f.tax_nature === 'zero_rated' ? Number(r.rate_value) === 0 : true)).map((r) => <option key={r.id} value={r.id}>{r.name} — {r.tax_type?.code}</option>)}
+                  </SelectInput>
+                </Field>
+              )}
+            </>
+          )}
+          {bankish && (
+            <FormGrid>
+              <Field label="Bank"><TextInput value={f.bank_name} onChange={(e) => set('bank_name')(e.target.value)} /></Field>
+              <Field label="Account number"><TextInput value={f.account_number} onChange={(e) => set('account_number')(e.target.value)} /></Field>
+              <Field label="Branch"><TextInput value={f.branch} onChange={(e) => set('branch')(e.target.value)} /></Field>
+            </FormGrid>
+          )}
           {behaviour === 'delivery' && (
             <Field label="This ledger is" error={errs.side} hint="Charges we bill customers are income; what the courier costs us is an expense.">
               <SelectInput value={f.side} onChange={(e) => set('side')(e.target.value)}><option value="income">A delivery charge (income)</option><option value="expense">A delivery cost (expense)</option></SelectInput>
@@ -159,7 +204,7 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
           </Field>
           <Field label="Behaves as" hint="Leave as inherited unless this group holds tax or delivery ledgers.">
             <SelectInput value={behaviour} onChange={(e) => setBehaviour(e.target.value)}>
-              <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option>
+              <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option><option value="sales">Sales accounts (tax nature)</option><option value="purchase">Purchase accounts (tax nature)</option><option value="bank">Bank / cash</option>
             </SelectInput>
           </Field>
           <ModalActions onCancel={onClose} submitLabel="Add group" busy={busy} />
@@ -208,6 +253,7 @@ export default function AccountsTab({ canWrite }) {
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.text, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
+    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? '') },
     { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : Number(l.rate_value).toLocaleString()) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
     { key: 'actions', label: '', align: 'right', render: (l) => (

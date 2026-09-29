@@ -9,6 +9,7 @@ import CurrencySelect from '../../../_shared/components/common/currency/Currency
 import UnitSelect from '../../../_shared/components/common/UnitSelect';
 import useUomStore from '../../../_shared/store/uomStore';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
+import ItemAccountsPanel from '../../../core/components/admin/tax/ItemAccountsPanel';
 import BranchStockPanel from '../../components/admin/BranchStockPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import useProductVariantStore from '../../../_shared/store/productVariantStore';
@@ -1101,7 +1102,10 @@ export default function ProductForm() {
 
           {/* ── TAX ── */}
           {activeTab === 'tax' && id && (
-            <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
+            <>
+              <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
+              <ItemAccountsPanel type="product" id={id} readOnly={isView} />
+            </>
           )}
 
           {/* ── MARKETING ── */}

@@ -317,6 +317,11 @@ class BooksVoucherController extends Controller
                     }
                     $rows[] = ['tax' => $t['name'], 'rate' => 'Owed at the end', 'sales_base' => '', 'output' => '', 'purchases_base' => '', 'input' => '', 'net' => $t['closing_owed']];
                 }
+                foreach (['standard' => 'taxable', 'zero-rated' => 'zero_rated', 'exempt' => 'exempt', 'out of scope' => 'out_of_scope', 'unclassified' => 'unclassified'] as $label => $key) {
+                    if (! empty($d['supplies']['sales'][$key]) || ! empty($d['supplies']['purchases'][$key])) {
+                        $rows[] = ['tax' => 'Supplies', 'rate' => ucfirst($label), 'sales_base' => $d['supplies']['sales'][$key] ?? 0, 'output' => '', 'purchases_base' => $d['supplies']['purchases'][$key] ?? 0, 'input' => '', 'net' => ''];
+                    }
+                }
 
                 return [$d, ['title' => 'Tax return', 'subtitle' => $period, 'columns' => ['tax' => 'Tax', 'rate' => 'Rate', 'sales_base' => 'Sales value', 'output' => 'Output tax', 'purchases_base' => 'Purchases value', 'input' => 'Input tax', 'net' => 'Net'], 'rows' => $rows, 'totals' => ['rate' => 'Total', 'output' => $d['totals']['output'], 'input' => $d['totals']['input'], 'net' => $d['totals']['owed']]]];
             case 'withholding':

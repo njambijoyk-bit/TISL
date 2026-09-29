@@ -2,7 +2,9 @@
 
 namespace App\Services\Books;
 
+use App\Models\Books\Ledger;
 use App\Models\Currency;
+use App\Models\TaxApplicability;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\TaxDistrict;
@@ -24,8 +26,11 @@ class TaxLineService
      * @param  string  $side    output (sales) | input (purchases)
      * @return array<int, array{tax_rate_id:int, ledger_id:int, label:string, base_amount:float, tax_amount:float}>
      */
-    public function forLine(?Model $taxable, string $module, float $pre, float $post, float $qty, ?int $unitId, string $side, ?Customer $customer, ?int $locationId, ?Currency $currency = null): array
+    public function forLine(?Model $taxable, string $module, float $pre, float $post, float $qty, ?int $unitId, string $side, ?Customer $customer, ?int $locationId, ?Currency $currency = null, ?Ledger $account = null): array
     {
+        if ($account?->tax_nature) {
+            return $this->fromAccount($account, $pre, $post, $qty, $side, $customer, $currency, null, $taxable);
+        }
         if (! $taxable || $post == 0.0) {
             return [];
         }
@@ -86,6 +91,50 @@ class TaxLineService
             'base_amount' => round($base, 2),
             'tax_amount'  => $tax,
             'percent'     => (float) $rate->rate_value,
+        ]];
+    }
+
+    /**
+     * The tax a sales / purchase ACCOUNT carries (its tax nature), the way the books' masters say it:
+     *   taxable      → the account's tax rate is charged;
+     *   zero_rated   → a 0 % line is kept so the return shows the value;
+     *   exempt / out_of_scope → no tax.
+     * A customer holding a blanket exemption is never taxed. So one invoice can mix a VAT-able account and an
+     * exempt one, each line taxed by the account it posts to.
+     */
+    public function fromAccount(Ledger $account, float $pre, float $post, float $qty, string $side, ?Customer $customer, ?Currency $currency = null, $on = null, ?Model $taxable = null): array
+    {
+        if (in_array($account->tax_nature, ['exempt', 'out_of_scope'], true) || $post == 0.0) {
+            return [];
+        }
+        // a blanket exemption on the customer, or on the item itself (an exempt product / service), always wins
+        foreach (array_filter([$customer, $taxable]) as $holder) {
+            if (TaxApplicability::forTaxable($holder)->whereNull('tax_rule_id')->get()->contains(fn ($o) => $o->isEffectivelyExempt($on))) {
+                return [];
+            }
+        }
+        $rate = $account->tax_rate_ledger_id ? TaxRate::with('taxType')->find($account->tax_rate_ledger_id) : null;
+        if (! $rate) {
+            if ($account->tax_nature === 'zero_rated') {
+                return [];
+            }
+            throw new BooksException("The account \"{$account->name}\" is taxable but has no tax rate. Set it under Books → Accounts.");
+        }
+        // a rate that has been replaced by a newer one (same type and classification) follows its successor
+        if (! TaxRate::whereKey($rate->id)->active()->effectiveOn($on)->exists()) {
+            $successor = TaxRate::where('group_id', $rate->group_id)->where('classification', $rate->classification)->active()->effectiveOn($on)->orderByDesc('valid_from')->first();
+            $rate = $successor ?? $rate;
+        }
+        $base = $rate->baseAmount($pre, $post, $post);
+        $tax = $account->tax_nature === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
+
+        return [[
+            'tax_rate_id' => $rate->id,
+            'ledger_id'   => (int) ($side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id),
+            'label'       => trim(($rate->taxType?->code ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . ($rate->isPercentage() ? '%' : '')),
+            'base_amount' => round($base, 2),
+            'tax_amount'  => round($tax, 2),
+            'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
         ]];
     }
 }

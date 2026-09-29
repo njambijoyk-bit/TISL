@@ -383,6 +383,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/gift-vouchers/reconcile',  [GiftVoucherController::class, 'reconcile']);
         Route::get('/gift-vouchers/{id}',       [GiftVoucherController::class, 'show']);
         Route::get('/groups',                   [BooksMasterController::class, 'groups']);
+        Route::get('/item-accounts',            [BooksMasterController::class, 'itemAccounts']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
         Route::get('/payment-methods',          [BooksMasterController::class, 'paymentMethods']);
@@ -404,6 +405,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
             Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);
+            Route::put('/item-accounts',            [BooksMasterController::class, 'updateItemAccounts']);
             Route::post('/groups',                  [BooksMasterController::class, 'storeGroup']);
             Route::put('/groups/{id}',              [BooksMasterController::class, 'updateGroup']);
             Route::delete('/groups/{id}',           [BooksMasterController::class, 'destroyGroup']);

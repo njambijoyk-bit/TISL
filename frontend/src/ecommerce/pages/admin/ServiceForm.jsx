@@ -11,6 +11,7 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import ServiceCatalogEditor from '../../components/admin/services/ServiceCatalogEditor';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
+import ItemAccountsPanel from '../../../core/components/admin/tax/ItemAccountsPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import { getAvailableServices, getAvailableProducts } from '../../../_shared/api/services';
 
@@ -678,7 +679,10 @@ const ServiceForm = () => {
 
               {/* Tax overrides — only once the service exists */}
               {isEditMode && id && (
-                <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
+                <>
+                  <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
+                  <ItemAccountsPanel type="service" id={id} />
+                </>
               )}
 
               {/* Service details */}

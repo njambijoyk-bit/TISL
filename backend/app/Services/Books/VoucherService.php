@@ -525,10 +525,30 @@ class VoucherService
     {
         $gross = round($line['quantity'] * $line['rate'], 2);
         $line['amount'] = round($gross - $line['discount_amount'], 2);
+        // the account this line posts to (its own, else the item's, else the voucher type's default) decides the tax
+        $account = $this->lineAccount($line, $taxable, $ctx);
+        if ($account && empty($line['ledger_id'])) {
+            $line['ledger_id'] = $account->id;
+        }
         $line['taxes'] = $taxable
-            ? $this->taxes->forLine($taxable, $module, $gross, $line['amount'], $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'])
+            ? $this->taxes->forLine($taxable, $module, $gross, $line['amount'], $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'], $account)
             : [];
         $this->summariseTaxes($line);
+    }
+
+    /** The sales / purchase account a line will post to — only used to read its tax nature. */
+    private function lineAccount(array $line, ?\Illuminate\Database\Eloquent\Model $taxable, array $ctx): ?Ledger
+    {
+        $id = $line['ledger_id'] ?? null;
+        if (! $id && $taxable) {
+            $id = $ctx['type']->isSalesSide() ? ($taxable->sales_ledger_id ?? null) : ($taxable->purchase_ledger_id ?? null);
+        }
+        if (! $id) {
+            $s = AccountingSetting::current();
+            $id = $ctx['type']->default_ledger_id ?? ($ctx['type']->isSalesSide() ? $s->default_sales_ledger_id : $s->default_purchase_ledger_id);
+        }
+
+        return $id ? Ledger::find($id) : null;
     }
 
     private function summariseTaxes(array &$line): void
@@ -736,7 +756,14 @@ class VoucherService
             'pending_price' => ! empty($l['pending_price']) && $ctx['type']->base_type === VoucherType::QUOTATION,
         ] + $this->discountMeta($l));
         $line['amount'] = round($qty * $line['rate'] - $line['discount_amount'], 2);
-        $line['taxes'] = ! empty($l['tax_rate_id']) ? $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx)) : [];
+        if (! empty($l['tax_rate_id'])) {
+            $line['taxes'] = $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx));
+        } else {
+            $account = Ledger::find($line['ledger_id']);
+            $line['taxes'] = $account?->tax_nature
+                ? $this->taxes->fromAccount($account, $line['amount'] + $line['discount_amount'], $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
+                : [];
+        }
         $this->summariseTaxes($line);
 
         return $line;
