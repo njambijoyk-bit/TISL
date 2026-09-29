@@ -1,4 +1,4 @@
-import CurrencySelect from '../../components/admin/books/CurrencySelect';
+import CurrencySelect from '../../../components/admin/books/CurrencySelect';
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import customerTiersAPI from '../../../../_shared/api/customerTiers';
