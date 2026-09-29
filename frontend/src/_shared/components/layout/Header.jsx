@@ -6,7 +6,7 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug, Volume2, VolumeX,
+  Bug, Volume2, VolumeX, Gift,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
@@ -406,6 +406,7 @@ export default function Header() {
   const customerLinks = [
     { label: 'My Profile',        icon: User,          to: profilePath },
     { label: 'My Orders',         icon: ShoppingBag,   to: '/orders' },
+    { label: 'Gift Vouchers',      icon: Gift,          to: '/gift-vouchers' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
     { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects', module: MODULES.PROJECTS },

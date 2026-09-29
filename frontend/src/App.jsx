@@ -43,6 +43,7 @@ const SpecialsPage         = lazy(() => import('./ecommerce/pages/customer/Speci
 const RequestQuote         = lazy(() => import('./core/pages/customer/RequestQuote'));
 const MyQuoteRequests      = lazy(() => import('./core/pages/customer/MyQuoteRequests'));
 const MyQuoteRequestDetail = lazy(() => import('./core/pages/customer/MyQuoteRequestDetail'));
+const MyGiftVouchers       = lazy(() => import('./core/pages/customer/MyGiftVouchers'));
 const MyQuotes             = lazy(() => import('./core/pages/customer/MyQuotations'));
 const CustomerQuoteDetail  = lazy(() => import('./core/pages/customer/CustomerQuotationDetail'));
 const MyProjects           = lazy(() => import('./projects/pages/customer/MyProjects'));
@@ -552,6 +553,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyQuoteRequestDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gift-vouchers"
+              element={
+                <ProtectedRoute>
+                  <MyGiftVouchers />
                 </ProtectedRoute>
               }
             />

@@ -400,6 +400,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers',                [BooksVoucherController::class, 'store']);
             Route::put('/vouchers/{id}',            [BooksVoucherController::class, 'update']);
             Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
+            Route::post('/vouchers/{id}/refund-to-gift-voucher', [BooksVoucherController::class, 'refundToGiftVoucher']);
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
             Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);

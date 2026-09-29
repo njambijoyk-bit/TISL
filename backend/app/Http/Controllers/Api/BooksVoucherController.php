@@ -223,6 +223,18 @@ class BooksVoucherController extends Controller
 
     // ── Reports ──────────────────────────────────────────────────────────
 
+    /** Refund (part of) a Credit Note as a gift voucher. */
+    public function refundToGiftVoucher(Request $request, $id)
+    {
+        $d = $request->validate(['amount' => 'nullable|numeric|min:0.01', 'expires_at' => 'nullable|date|after:today']);
+
+        return $this->guard(function () use ($request, $id, $d) {
+            $gv = app(\App\Services\Books\GiftVoucherService::class)->issueFromCreditNote(Voucher::findOrFail($id), isset($d['amount']) ? (float) $d['amount'] : null, $d['expires_at'] ?? null, $request->user());
+
+            return response()->json(['message' => "Gift voucher {$gv->code} issued", 'data' => $gv->load('currency:id,code,symbol')], 201);
+        });
+    }
+
     /** Post the one-off Journal that brings the Loyalty Points Liability in line with the points customers hold. */
     public function loyaltyTrueUp(Request $request)
     {

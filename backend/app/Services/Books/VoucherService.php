@@ -73,6 +73,7 @@ class VoucherService
             $this->audit($voucher, 'created', $user);
             $this->rewardHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
+            app(GiftVoucherService::class)->activateFromSale($voucher, $user);
 
             return $voucher->load($this->relations());
         });
@@ -103,6 +104,7 @@ class VoucherService
             $voucher = $this->persist($plan, $data, $user, $voucher);
             $this->audit($voucher, 'altered', $user, ['before' => $before]);
             app(WithholdingRegisterService::class)->sync($voucher);
+            app(GiftVoucherService::class)->activateFromSale($voucher, $user);
 
             return $voucher->load($this->relations());
         });
@@ -117,6 +119,9 @@ class VoucherService
             }
             $this->guard->assertVoucher('cancel', $voucher, $user);
             $this->assertNoLiveChildren($voucher, 'cancel');
+            if ((float) ($voucher->meta['gift_refunded'] ?? 0) > 0.005) {
+                throw new BooksException('Part of this credit note was refunded as a gift voucher (' . implode(', ', $voucher->meta['gift_vouchers'] ?? []) . '). Cancel those gift vouchers first.');
+            }
 
             app(WithholdingRegisterService::class)->void($voucher);   // refuses when part of its credit was already cleared
             $this->reverseEffects($voucher);
@@ -474,6 +479,7 @@ class VoucherService
             'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
+            'gift_meta' => null,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
         ];
     }
@@ -679,6 +685,21 @@ class VoucherService
         }
         $s = AccountingSetting::current();
         $kind = $l['kind'] ?? 'other';
+        if ($kind === 'gift_voucher') {
+            // selling a gift voucher: the money is a liability, not sales — and the code is issued when the sale is paid
+            $amt = round((float) ($l['amount'] ?? 0), 2);
+            if ($amt <= 0) {
+                throw new BooksException('Enter the gift voucher amount.');
+            }
+            $liab = $s->gift_voucher_ledger_id ?: Ledger::where('name', 'Gift Vouchers Liability')->value('id')
+                ?: throw new BooksException('Gift vouchers are not set up (Gift Vouchers Liability ledger).');
+
+            return array_merge($this->blank('charge'), [
+                'description' => 'Gift voucher' . (! empty($l['recipient_name']) ? ' for ' . $l['recipient_name'] : ''), 'quantity' => 1.0, 'base_quantity' => 1.0,
+                'rate' => $amt, 'amount' => $amt, 'ledger_id' => (int) $liab,
+                'gift_meta' => array_filter(['recipient_name' => $l['recipient_name'] ?? null, 'recipient_email' => $l['recipient_email'] ?? null, 'message' => $l['message'] ?? null]) ?: ['plain' => true],
+            ]);
+        }
         $amount = round((float) ($l['amount'] ?? 0), 2);
         if ($amount == 0.0) {
             throw new BooksException('Enter an amount for the ' . $kind . ' line.');
@@ -726,7 +747,7 @@ class VoucherService
         $line = $this->blank($it->item_type);
         foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
                   'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent',
-                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price'] as $k) {
+                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price', 'gift_meta'] as $k) {
             $line[$k] = $it->{$k};
         }
         $line['unit_factor'] = (float) $it->unit_factor;
@@ -1223,7 +1244,7 @@ class VoucherService
                 'gift_voucher_id' => $t['gift']?->id, 'gift_amount' => $t['gift_amount'] ?? null, 'created_at' => now(),
             ]);
             if ($t['gift']) {
-                app(GiftVoucherService::class)->redeem($t['gift'], (float) $t['gift_amount'], $voucher, $user);
+                app(GiftVoucherService::class)->redeem($t['gift'], (float) $t['gift_amount'], $voucher, $user, round((float) $t['amount'] * (float) $voucher->exchange_rate, 2));
             }
         }
 
@@ -1251,7 +1272,7 @@ class VoucherService
             'location_id' => $l['location_id'] ?? $voucher->location_id, 'source_item_id' => $l['source_item_id'], 'notes' => $l['notes'],
             'discount_ledger_id' => $l['discount_ledger_id'] ?? null, 'discount_source' => $l['discount_source'] ?? null,
             'discount_ref' => $l['discount_ref'] ?? null, 'shipping_option_id' => $l['shipping_option_id'] ?? null,
-            'pending_price' => ! empty($l['pending_price']),
+            'pending_price' => ! empty($l['pending_price']), 'gift_meta' => $l['gift_meta'] ?? null,
         ]);
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
@@ -1304,6 +1325,7 @@ class VoucherService
         }
         StockMovement::where('voucher_id', $voucher->id)->delete();
         app(GiftVoucherService::class)->restoreFor($voucher);
+        app(GiftVoucherService::class)->voidForSale($voucher);   // vouchers this sale issued (refused if any was already spent)
         VoucherTender::where('voucher_id', $voucher->id)->delete();
         $voucher->load('items');
         $this->bumpSources($voucher, -1);

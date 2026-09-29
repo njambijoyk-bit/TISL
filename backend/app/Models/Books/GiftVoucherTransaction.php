@@ -10,12 +10,12 @@ class GiftVoucherTransaction extends Model
 
     protected $table = 'gift_voucher_transactions';
 
-    protected $fillable = ['gift_voucher_id', 'type', 'amount', 'balance_after', 'voucher_id', 'note', 'created_by', 'created_at'];
+    protected $fillable = ['gift_voucher_id', 'type', 'amount', 'base_amount', 'balance_after', 'voucher_id', 'note', 'created_by', 'created_at'];
 
     public function giftVoucher()
     {
         return $this->belongsTo(GiftVoucher::class);
     }
 
-    protected $casts = ['amount' => 'decimal:2', 'balance_after' => 'decimal:2', 'created_at' => 'datetime'];
+    protected $casts = ['amount' => 'decimal:2', 'base_amount' => 'decimal:2', 'balance_after' => 'decimal:2', 'created_at' => 'datetime'];
 }

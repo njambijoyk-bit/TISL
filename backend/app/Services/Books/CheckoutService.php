@@ -57,9 +57,18 @@ class CheckoutService
                 throw new BooksException('Services are requested as quotes, not bought from the cart.');
             }
         }
+        // gift vouchers bought for someone (or for later): a money line, paid online, code issued on payment
+        foreach ($in['gift_vouchers'] ?? [] as $g) {
+            if (! $customer) {
+                throw new BooksException('Sign in to buy a gift voucher.');
+            }
+            $lines[] = ['type' => 'charge', 'kind' => 'gift_voucher', 'amount' => $g['amount'] ?? 0, 'recipient_name' => $g['recipient_name'] ?? null,
+                'recipient_email' => $g['recipient_email'] ?? null, 'message' => $g['message'] ?? null];
+        }
         if (! $lines) {
             throw new BooksException('Your cart is empty.');
         }
+        $hasGift = collect($lines)->contains(fn ($l) => ($l['kind'] ?? null) === 'gift_voucher');
 
         $base = [
             'voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $locationId, 'currency_id' => $currency->id,
@@ -70,7 +79,8 @@ class CheckoutService
         $pre = $this->vouchers->preview($base + ['lines' => $lines], null);
         $gross = [];
         foreach ($pre['lines'] as $i => $l) {
-            $gross[$i] = ! empty($l['is_header']) ? 0.0 : (float) $l['amount'];   // hampers carry their own fixed price
+            $isGift = ($lines[$i]['kind'] ?? null) === 'gift_voucher';
+            $gross[$i] = (! empty($l['is_header']) || $isGift) ? 0.0 : (float) $l['amount'];   // hampers carry their own fixed price; a gift voucher is never discounted
         }
         $sub = array_sum($gross);
 
@@ -158,7 +168,7 @@ class CheckoutService
             ], fn ($v) => $v !== null),
         ];
 
-        return compact('data', 'customer', 'currency', 'discounts') + ['option' => $option];
+        return compact('data', 'customer', 'currency', 'discounts', 'hasGift') + ['option' => $option];
     }
 
     private function tierWaivesShipping(?Customer $customer, float $netSubtotal, Currency $currency): bool
@@ -227,6 +237,14 @@ class CheckoutService
         }
         if ($mode === 'account' && ! $customer) {
             throw new BooksException('Sign in to pay on account.');
+        }
+        if ($a['hasGift']) {
+            if ($mode === 'account') {
+                throw new BooksException('A gift voucher can\'t be put on account — pay for it online; the code is issued when the payment arrives.');
+            }
+            if (! empty($in['gift_voucher_code'])) {
+                throw new BooksException('A gift voucher can\'t be paid for with another gift voucher.');
+            }
         }
         if (! $customer && (empty($in['customer_email']) || empty($in['customer_phone']))) {
             throw new BooksException('Enter your email and phone so we can reach you about your order.');

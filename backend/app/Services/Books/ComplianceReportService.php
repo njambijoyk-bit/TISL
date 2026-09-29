@@ -155,11 +155,8 @@ class ComplianceReportService
         // gift vouchers
         if ($s->gift_voucher_ledger_id) {
             $book = -$this->ledgers->balance((int) $s->gift_voucher_ledger_id, $asOf);
-            $reg = 0.0;
-            foreach (GiftVoucher::whereIn('status', ['active', 'partially_used'])->get() as $gv) {
-                $reg += (float) $gv->balance * $this->money->rateOn($gv->currency_id, $asOf);
-            }
-            $add('gift-vouchers', 'Gift vouchers outstanding', $book, $reg, 'Register value uses today\'s exchange rates, so a foreign-currency voucher can differ by exchange movement.');
+            $reg = app(GiftVoucherService::class)->registerValue();
+            $add('gift-vouchers', 'Gift vouchers outstanding', $book, $reg, 'Each voucher at the value actually booked; an exchange difference on a spent foreign-currency voucher is journalled when it closes.');
         }
         // loyalty points
         if ($s->loyalty_liability_ledger_id) {

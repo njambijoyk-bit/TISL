@@ -22,11 +22,11 @@ class GiftVoucher extends Model
     public const EXPIRED = 'expired';
     public const CANCELLED = 'cancelled';
 
-    public const SOURCES = ['sale', 'customer_account', 'loyalty', 'referral', 'promo', 'manual', 'migration'];
+    public const SOURCES = ['sale', 'customer_account', 'refund', 'loyalty', 'referral', 'promo', 'manual', 'migration'];
 
-    protected $fillable = ['code', 'customer_id', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'source', 'issued_voucher_id', 'note', 'created_by'];
+    protected $fillable = ['code', 'customer_id', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'source', 'issued_voucher_id', 'note', 'created_by', 'base_balance'];
 
-    protected $casts = ['initial_amount' => 'decimal:2', 'balance' => 'decimal:2', 'expires_at' => 'date:Y-m-d'];
+    protected $casts = ['initial_amount' => 'decimal:2', 'balance' => 'decimal:2', 'base_balance' => 'decimal:2', 'expires_at' => 'date:Y-m-d'];
 
     public function customer(): BelongsTo
     {

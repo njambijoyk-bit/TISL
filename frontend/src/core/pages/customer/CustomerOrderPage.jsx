@@ -82,6 +82,19 @@ export default function CustomerOrderPage() {
           </table>
         </div>
 
+        {o.gift_vouchers?.length > 0 && (
+          <div style={{ margin: '14px 0', padding: 14, borderRadius: 12, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <p style={{ margin: '0 0 8px', fontWeight: 800, fontSize: '0.9rem' }}>Your gift voucher{o.gift_vouchers.length > 1 ? 's' : ''}</p>
+            {o.gift_vouchers.map((g) => (
+              <p key={g.id} style={{ margin: '4px 0', fontSize: '0.85rem' }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, userSelect: 'all' }}>{g.code}</span> — {m(g.initial_amount)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}
+                {g.note && <span style={{ color: '#6b7280' }}> · {g.note.replace(/^Sold on \S+\s*/, '')}</span>}
+              </p>
+            ))}
+            <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: '#6b7280' }}>Use the code at checkout, or give it to someone. It is also listed under <Link to="/gift-vouchers">Gift vouchers</Link>.</p>
+          </div>
+        )}
+
         {o.documents?.length > 0 && <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>Documents: {o.documents.map((d) => `${d.type} ${d.number}`).join(' · ')}</p>}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>

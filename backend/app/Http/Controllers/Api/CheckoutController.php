@@ -41,7 +41,9 @@ class CheckoutController extends Controller
     private function rules(): array
     {
         return [
-            'items' => 'required|array|min:1', 'items.*.quantity' => 'required|numeric|min:0.01',
+            'items' => 'required_without:gift_vouchers|array', 'items.*.quantity' => 'required|numeric|min:0.01',
+            'gift_vouchers' => 'nullable|array|max:10', 'gift_vouchers.*.amount' => 'required|numeric|min:1|max:1000000', 'gift_vouchers.*.recipient_name' => 'nullable|string|max:120',
+            'gift_vouchers.*.recipient_email' => 'nullable|email', 'gift_vouchers.*.message' => 'nullable|string|max:300',
             'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.hamper_id' => 'nullable|integer|exists:hampers,id',
             'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
             'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
@@ -83,7 +85,7 @@ class CheckoutController extends Controller
     public function place(Request $request): JsonResponse
     {
         $request->validate($this->rules() + [
-            'customer_email' => 'required|email', 'customer_phone' => 'required|string', 'shipping_address' => 'required|string',
+            'customer_email' => 'required|email', 'customer_phone' => 'required|string', 'shipping_address' => [\Illuminate\Validation\Rule::requiredIf(! empty($request->items)), 'nullable', 'string'],
             'payment_mode' => 'required|in:online,pay_later,account', 'payment_method_id' => 'nullable|integer|exists:payment_methods,id',
             'phone' => 'nullable|string', 'customer_notes' => 'nullable|string|max:1000',
             'policy_acceptances' => 'nullable|array', 'policy_acceptances.*.key' => 'required_with:policy_acceptances|string',
@@ -173,6 +175,8 @@ class CheckoutController extends Controller
             'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'tax_total' => (float) $v->tax_total, 'discount_total' => $footer['discount_total'],
             'charges' => array_map(fn ($c) => ['description' => $c['description'], 'amount' => $c['amount'], 'note' => $c['note']], $footer['charges']),
             'contact' => $v->meta['contact'] ?? null, 'branch' => $v->location?->name, 'narration' => $v->narration,
+            'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
+                ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
             'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'total' => (float) $c->total_amount])->values(),
         ]);
     }

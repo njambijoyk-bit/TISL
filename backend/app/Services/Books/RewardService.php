@@ -43,7 +43,9 @@ class RewardService
                 return;
             }
             $customer = Customer::lockForUpdate()->find($sale->customer_id);
-            $baseTotal = (float) $sale->base_total;
+            // gift vouchers bought on this sale are money held for later, not a purchase that earns points or counts as spend
+            $giftBase = round((float) $sale->items()->whereNotNull('gift_meta')->sum('amount') * (float) $sale->exchange_rate, 2);
+            $baseTotal = max(0.0, (float) $sale->base_total - $giftBase);
 
             $points = $this->earnPoints($sale, $customer, $baseTotal);
             $this->recordStats($customer, $baseTotal);

@@ -63,7 +63,7 @@ class GiftVoucherService
         // the debit side depends on where the value comes from
         $debit = match ($source) {
             'sale'             => PaymentMethod::findOrFail($d['payment_method_id'] ?? 0)->ledger_id,
-            'customer_account' => $d['party_ledger_id'] ?? throw new BooksException('Choose the customer account the value comes from.'),
+            'customer_account', 'refund' => $d['party_ledger_id'] ?? throw new BooksException('Choose the customer account the value comes from.'),
             'loyalty'          => $settings->loyalty_liability_ledger_id ?: Ledger::where('name', 'Loyalty Points Liability')->value('id'),
             default            => $settings->rewards_expense_ledger_id ?: Ledger::where('name', 'Rewards & Referral Expense')->value('id'),
         };
@@ -80,21 +80,150 @@ class GiftVoucherService
             ]);
             $v = app(VoucherService::class)->create([
                 'voucher_type_id' => $journal->id, 'date' => $d['date'] ?? today()->toDateString(), 'currency_id' => $gv->currency_id,
-                'narration' => "Gift voucher {$gv->code} issued ({$source})", 'meta' => ['gift_voucher_id' => $gv->id],
+                'narration' => "Gift voucher {$gv->code} issued ({$source})", 'meta' => ['gift_voucher_id' => $gv->id] + (empty($d['credit_note_id']) ? [] : ['credit_note_id' => $d['credit_note_id']]),
                 'entries' => [
                     ['ledger_id' => $debit, 'side' => 'D', 'amount' => $amount],
                     ['ledger_id' => $liability, 'side' => 'C', 'amount' => $amount],
                 ],
             ], $user);
             $gv->update(['issued_voucher_id' => $v->id]);
-            $this->log($gv, 'issue', $amount, $v->id, $d['note'] ?? null, $user);
+            $this->log($gv, 'issue', $amount, $v->id, $d['note'] ?? null, $user, (float) $v->base_total);
+
+            return $gv->fresh();
+        });
+    }
+
+    /**
+     * Refund a Credit Note as a gift voucher instead of cash: Dr the customer's account (which the credit
+     * note left in credit), Cr Gift Vouchers Liability. So the return costs Sales Returns, not Rewards expense.
+     */
+    public function issueFromCreditNote(Voucher $note, ?float $amount = null, ?string $expiresAt = null, ?User $user = null): GiftVoucher
+    {
+        $note->loadMissing('type');
+        if ($note->type->base_type !== VoucherType::CREDIT_NOTE || $note->status !== Voucher::POSTED || ! $note->party_ledger_id) {
+            throw new BooksException('Only a live Credit Note with a customer can be refunded as a gift voucher.');
+        }
+        $refunded = (float) ($note->meta['gift_refunded'] ?? 0);
+        $available = round((float) $note->total_amount - $refunded, 2);
+        $amount = round($amount ?? $available, 2);
+        if ($amount <= 0 || $amount - $available > 0.005) {
+            throw new BooksException('That is more than the ' . number_format($available, 2) . ' left to refund on ' . $note->voucher_number . '.');
+        }
+        // the customer's account must actually hold that much in credit (an unpaid invoice is settled by the note itself)
+        $credit = -$this->ledgers->balance((int) $note->party_ledger_id);
+        $inNoteCurrency = $credit / max((float) $note->exchange_rate, 0.00000001);
+        if ($amount - $inNoteCurrency > 0.005) {
+            throw new BooksException('The customer\'s account has only ' . number_format(max(0, $inNoteCurrency), 2) . ' in credit — the rest of this note is still settling an unpaid invoice.');
+        }
+
+        return DB::transaction(function () use ($note, $amount, $expiresAt, $user) {
+            $gv = $this->issue([
+                'amount' => $amount, 'currency_id' => $note->currency_id, 'customer_id' => $note->customer_id ?: Ledger::whereKey($note->party_ledger_id)->value('customer_id'),
+                'source' => 'refund', 'party_ledger_id' => $note->party_ledger_id, 'credit_note_id' => $note->id,
+                'note' => "Refund of {$note->voucher_number}", 'expires_at' => $expiresAt,
+            ], $user);
+            $meta = $note->meta ?? [];
+            $meta['gift_refunded'] = round((float) ($meta['gift_refunded'] ?? 0) + $amount, 2);
+            $meta['gift_vouchers'] = array_merge($meta['gift_vouchers'] ?? [], [$gv->code]);
+            $note->update(['meta' => $meta]);
+
+            return $gv;
+        });
+    }
+
+    /** Default life of a new voucher, from the loyalty settings (months); none = never. */
+    public function defaultExpiry(): ?string
+    {
+        $months = \App\Models\LoyaltySetting::get('gift_voucher_expiry_months', null);
+
+        return $months ? now()->addMonths((int) $months)->toDateString() : null;
+    }
+
+    /**
+     * A paid Cash Sale that carries gift voucher lines makes the vouchers: the sale's own posting (Dr cash,
+     * Cr Gift Vouchers Liability) is the issue, so no separate Journal is booked.
+     */
+    public function activateFromSale(Voucher $sale, ?User $user = null): void
+    {
+        $sale->loadMissing('type');
+        if ($sale->type->base_type !== VoucherType::CASH_SALE || $sale->status !== Voucher::POSTED) {
+            return;
+        }
+        foreach ($sale->items()->whereNotNull('gift_meta')->whereNull('gift_voucher_id')->get() as $it) {
+            $amount = round((float) $it->amount, 2);
+            $meta = $it->gift_meta ?? [];
+            $gv = GiftVoucher::create([
+                'code' => $this->newCode(), 'customer_id' => $sale->customer_id, 'currency_id' => $sale->currency_id, 'initial_amount' => $amount, 'balance' => $amount,
+                'expires_at' => $this->defaultExpiry(), 'status' => GiftVoucher::ACTIVE, 'source' => 'sale', 'issued_voucher_id' => $sale->id,
+                'note' => trim('Sold on ' . $sale->voucher_number . (! empty($meta['recipient_name']) ? ' for ' . $meta['recipient_name'] : '') . (! empty($meta['message']) ? ' — ' . $meta['message'] : '')),
+                'created_by' => $user?->id,
+            ]);
+            $this->log($gv, 'issue', $amount, $sale->id, "Sold on {$sale->voucher_number}", $user, round($amount * (float) $sale->exchange_rate, 2));
+            $it->update(['gift_voucher_id' => $gv->id]);
+        }
+    }
+
+    /** The sale that issued vouchers is being cancelled or altered: they are voided — refused if any has been spent. */
+    public function voidForSale(Voucher $sale, ?User $user = null): void
+    {
+        foreach ($sale->items()->whereNotNull('gift_voucher_id')->get() as $it) {
+            $gv = GiftVoucher::whereKey($it->gift_voucher_id)->lockForUpdate()->first();
+            if (! $gv) {
+                continue;
+            }
+            if ($gv->status !== GiftVoucher::ACTIVE || abs((float) $gv->balance - (float) $gv->initial_amount) > 0.005) {
+                throw new BooksException("Gift voucher {$gv->code} sold on {$sale->voucher_number} has already been used, so the sale can't be changed or cancelled.");
+            }
+            $gv->update(['status' => GiftVoucher::CANCELLED, 'balance' => 0]);
+            $this->log($gv, 'cancel', -(float) $gv->initial_amount, $sale->id, "{$sale->voucher_number} cancelled", $user, -round((float) $gv->initial_amount * (float) $sale->exchange_rate, 2));
+            $this->settleResidual($gv->fresh(), $user);
+            $it->update(['gift_voucher_id' => null]);
+        }
+    }
+
+    /** Void an active voucher: what is unspent goes back to where the value came from. */
+    public function cancel(GiftVoucher $gv, ?User $user = null): GiftVoucher
+    {
+        return DB::transaction(function () use ($gv, $user) {
+            $gv = GiftVoucher::whereKey($gv->id)->lockForUpdate()->firstOrFail();
+            if ($gv->status !== GiftVoucher::ACTIVE) {
+                throw new BooksException('Only an active gift voucher can be cancelled.');
+            }
+            $issued = $gv->issued_voucher_id ? Voucher::with('type')->find($gv->issued_voucher_id) : null;
+            if ($issued && $issued->type->base_type !== VoucherType::JOURNAL) {
+                throw new BooksException("This gift voucher was sold on {$issued->voucher_number}. Cancel that sale to void it.");
+            }
+            $back = (float) $gv->balance;
+            $backBase = 0.0;
+            if ($issued && $back > 0) {
+                // reverse the unspent part of the issue journal
+                $source = $issued->entries()->where('side', 'D')->first();
+                $liab = $issued->entries()->where('side', 'C')->first();
+                if ($source && $liab) {
+                    $rv = app(VoucherService::class)->create([
+                        'voucher_type_id' => $issued->voucher_type_id, 'date' => today()->toDateString(), 'currency_id' => $gv->currency_id,
+                        'narration' => "Gift voucher {$gv->code} cancelled", 'meta' => ['gift_voucher_id' => $gv->id],
+                        'entries' => [['ledger_id' => $liab->ledger_id, 'side' => 'D', 'amount' => $back], ['ledger_id' => $source->ledger_id, 'side' => 'C', 'amount' => $back]],
+                    ], $user);
+                    $backBase = (float) $rv->base_total;
+                }
+            }
+            $gv->update(['status' => GiftVoucher::CANCELLED, 'balance' => 0]);
+            $this->log($gv, 'cancel', -$back, null, null, $user, -$backBase);
+            if ($issued && ! empty($issued->meta['credit_note_id']) && ($note = Voucher::find($issued->meta['credit_note_id']))) {
+                $meta = $note->meta ?? [];
+                $meta['gift_refunded'] = max(0, round((float) ($meta['gift_refunded'] ?? 0) - $back, 2));
+                $meta['gift_vouchers'] = array_values(array_diff($meta['gift_vouchers'] ?? [], [$gv->code]));
+                $note->update(['meta' => $meta]);
+            }
+            $this->settleResidual($gv->fresh(), $user);
 
             return $gv->fresh();
         });
     }
 
     /** Take value off a gift voucher for a sale. Returns the amount taken in the gift voucher's own currency. */
-    public function redeem(GiftVoucher $gv, float $amountInGvCurrency, Voucher $sale, ?User $user = null): void
+    public function redeem(GiftVoucher $gv, float $amountInGvCurrency, Voucher $sale, ?User $user = null, ?float $baseAmount = null): void
     {
         $gv = GiftVoucher::whereKey($gv->id)->lockForUpdate()->firstOrFail();
         if (! $gv->isSpendable()) {
@@ -105,7 +234,10 @@ class GiftVoucherService
         }
         $new = round((float) $gv->balance - $amountInGvCurrency, 2);
         $gv->update(['balance' => $new, 'status' => $new <= 0 ? GiftVoucher::USED : GiftVoucher::ACTIVE]);
-        $this->log($gv, 'redeem', -$amountInGvCurrency, $sale->id, null, $user);
+        // the base value that left the liability ledger with this sale's tender
+        $base = $baseAmount ?? round($amountInGvCurrency * $this->money->rateOn($gv->currency_id, $sale->date), 2);
+        $this->log($gv, 'redeem', -$amountInGvCurrency, $sale->id, null, $user, -$base);
+        $this->settleResidual($gv->fresh(), $user);
     }
 
     /** Give back whatever a cancelled / altered sale had taken. */
@@ -120,7 +252,7 @@ class GiftVoucherService
             $back = abs((float) $t->amount);
             $new = round((float) $gv->balance + $back, 2);
             $gv->update(['balance' => $new, 'status' => $gv->status === GiftVoucher::USED ? GiftVoucher::ACTIVE : $gv->status]);
-            $this->log($gv, 'restore', $back, $sale->id, "Restored from {$sale->voucher_number}", $user);
+            $this->log($gv, 'restore', $back, $sale->id, "Restored from {$sale->voucher_number}", $user, abs((float) ($t->base_amount ?? $back * $this->money->rateOn($gv->currency_id))));
             $t->update(['type' => 'redeem_reversed']);
         }
     }
@@ -138,7 +270,7 @@ class GiftVoucherService
         foreach (GiftVoucher::where('status', GiftVoucher::ACTIVE)->where('balance', '>', 0)->whereDate('expires_at', '<', today())->get() as $gv) {
             DB::transaction(function () use ($gv, $breakage, $journal, $user, &$n) {
                 $amt = (float) $gv->balance;
-                app(VoucherService::class)->create([
+                $ev = app(VoucherService::class)->create([
                     'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $gv->currency_id,
                     'narration' => "Gift voucher {$gv->code} expired", 'meta' => ['gift_voucher_id' => $gv->id],
                     'entries' => [
@@ -147,7 +279,8 @@ class GiftVoucherService
                     ],
                 ], $user);
                 $gv->update(['balance' => 0, 'status' => GiftVoucher::EXPIRED]);
-                $this->log($gv, 'expire', -$amt, null, null, $user);
+                $this->log($gv, 'expire', -$amt, $ev->id, null, $user, -(float) $ev->base_total);
+                $this->settleResidual($gv->fresh(), $user);
                 $n++;
             });
         }
@@ -195,7 +328,7 @@ class GiftVoucherService
                 $take = round($takeBase / max($rate, 0.00000001), 2);
                 $new = round((float) $gv->balance - $take, 2);
                 $gv->update(['balance' => max(0, $new), 'status' => $new <= 0.004 ? GiftVoucher::USED : GiftVoucher::ACTIVE]);
-                app(VoucherService::class)->create([
+                $av = app(VoucherService::class)->create([
                     'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $gv->currency_id,
                     'narration' => "Gift voucher {$gv->code} reduced" . ($note ? " — {$note}" : ''), 'meta' => ['gift_voucher_id' => $gv->id],
                     'entries' => [
@@ -203,7 +336,8 @@ class GiftVoucherService
                         ['ledger_id' => $rewards, 'side' => 'C', 'amount' => $take],
                     ],
                 ], $user);
-                $this->log($gv, 'adjust', -$take, null, $note, $user);
+                $this->log($gv, 'adjust', -$take, $av->id, $note, $user, -(float) $av->base_total);
+                $this->settleResidual($gv->fresh(), $user);
                 $left = round($left - $takeBase, 2);
                 $taken += $takeBase;
             }
@@ -212,23 +346,73 @@ class GiftVoucherService
         });
     }
 
+    /**
+     * A voucher that is used up, expired or cancelled but still carries base value was issued and spent at
+     * different exchange rates. That difference is a realised exchange gain / loss: Journal it against the
+     * liability so the closed voucher carries nothing.
+     */
+    public function settleResidual(GiftVoucher $gv, ?User $user = null): void
+    {
+        if ((float) $gv->balance > 0.004) {
+            return;
+        }
+        $residual = round((float) $gv->base_balance, 2);
+        if (abs($residual) < 0.01) {
+            return;
+        }
+        $s = AccountingSetting::current();
+        $fx = $residual > 0 ? $s->fx_gain_ledger_id : $s->fx_loss_ledger_id;   // liability left over = we gained
+        $journal = VoucherType::byBase(VoucherType::JOURNAL);
+        if (! $fx || ! $journal) {
+            return;   // shows in Reconciliation until the exchange gain / loss ledgers are set
+        }
+        $amt = abs($residual);
+        $v = app(VoucherService::class)->create([
+            'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id,
+            'narration' => "Gift voucher {$gv->code} — exchange difference", 'meta' => ['gift_voucher_id' => $gv->id],
+            'entries' => [
+                ['ledger_id' => $residual > 0 ? $this->liabilityLedgerId() : $fx, 'side' => 'D', 'amount' => $amt],
+                ['ledger_id' => $residual > 0 ? $fx : $this->liabilityLedgerId(), 'side' => 'C', 'amount' => $amt],
+            ],
+        ], $user);
+        $this->log($gv, 'fx', 0, $v->id, 'Exchange difference on closing', $user, -$residual);
+    }
+
+    /** Give older vouchers (recorded before base values were kept) their base value at today's rates. Idempotent. */
+    public function ensureBase(): void
+    {
+        foreach (GiftVoucher::whereNull('base_balance')->get() as $gv) {
+            $gv->update(['base_balance' => round((float) $gv->balance * $this->money->rateOn($gv->currency_id), 2)]);
+        }
+        GiftVoucherTransaction::whereNull('base_amount')->with('giftVoucher:id,currency_id')->get()->each(function ($t) {
+            $t->update(['base_amount' => round((float) $t->amount * $this->money->rateOn($t->giftVoucher?->currency_id), 2)]);
+        });
+    }
+
+    /** What the vouchers are worth, in base currency, from the values actually booked. */
+    public function registerValue(): float
+    {
+        $this->ensureBase();
+
+        return round((float) GiftVoucher::sum('base_balance'), 2);
+    }
+
     /** Does the sub-ledger agree with the liability ledger? */
     public function reconcile(): array
     {
-        $sub = 0.0;
-        foreach (GiftVoucher::where('status', GiftVoucher::ACTIVE)->get() as $gv) {
-            $sub += (float) $gv->balance * $this->money->rateOn($gv->currency_id);
-        }
+        $sub = $this->registerValue();
         $ledger = -$this->ledgers->balance($this->liabilityLedgerId());
 
-        return ['sub_ledger' => round($sub, 2), 'ledger' => round($ledger, 2), 'difference' => round($ledger - $sub, 2), 'balanced' => abs($ledger - $sub) < 1.0];
+        return ['sub_ledger' => $sub, 'ledger' => round($ledger, 2), 'difference' => round($ledger - $sub, 2), 'balanced' => abs($ledger - $sub) < 0.01];
     }
 
-    private function log(GiftVoucher $gv, string $type, float $amount, ?int $voucherId, ?string $note, ?User $user): void
+    private function log(GiftVoucher $gv, string $type, float $amount, ?int $voucherId, ?string $note, ?User $user, ?float $base = null): void
     {
+        $base ??= round($amount * $this->money->rateOn($gv->currency_id), 2);
         GiftVoucherTransaction::create([
-            'gift_voucher_id' => $gv->id, 'type' => $type, 'amount' => $amount, 'balance_after' => $gv->fresh()->balance ?? $gv->balance,
+            'gift_voucher_id' => $gv->id, 'type' => $type, 'amount' => $amount, 'base_amount' => round($base, 2), 'balance_after' => $gv->fresh()->balance ?? $gv->balance,
             'voucher_id' => $voucherId, 'note' => $note, 'created_by' => $user?->id, 'created_at' => now(),
         ]);
+        GiftVoucher::whereKey($gv->id)->update(['base_balance' => DB::raw('COALESCE(base_balance, 0) + ' . round($base, 2))]);
     }
 }

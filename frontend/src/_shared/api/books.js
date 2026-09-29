@@ -50,6 +50,7 @@ const booksAPI = {
   giftVouchers: (params) => get('/admin/books/gift-vouchers', params),
   giftVoucher: (id) => get(`/admin/books/gift-vouchers/${id}`),
   issueGiftVoucher: (d) => send('post', '/admin/books/gift-vouchers', d),
+  refundToGiftVoucher: (voucherId, d) => send('post', `/admin/books/vouchers/${voucherId}/refund-to-gift-voucher`, d),
   cancelGiftVoucher: (id) => send('post', `/admin/books/gift-vouchers/${id}/cancel`),
   reconcileGiftVouchers: () => get('/admin/books/gift-vouchers/reconcile'),
   expireGiftVouchers: () => send('post', '/admin/books/gift-vouchers/expire-due'),

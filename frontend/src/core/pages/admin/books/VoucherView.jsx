@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Pencil, Ban, ArrowRightLeft, Banknote } from 'lucide-react';
+import { ArrowLeft, Pencil, Ban, ArrowRightLeft, Banknote, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -44,6 +44,33 @@ function ConvertModal({ v, methods, onClose, onDone }) {
           )}
           <Field label="Date"><TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           <ModalActions onCancel={onClose} submitLabel="Convert" busy={busy} />
+        </FormStack>
+      </form>
+    </Modal>
+  );
+}
+
+/** Refund a credit note as a gift voucher instead of cash: Dr the customer's account, Cr Gift Vouchers Liability. */
+function RefundVoucherModal({ v, onClose, onDone }) {
+  const left = Math.max(0, Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0));
+  const [amount, setAmount] = useState(left.toFixed(2));
+  const [expires, setExpires] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const go = async (e) => {
+    e.preventDefault(); setBusy(true); setErr(null);
+    try { const res = await booksAPI.refundToGiftVoucher(v.id, { amount: Number(amount), expires_at: expires || undefined }); toast.success(res.message); onDone(res.data); }
+    catch (x) { setErr(errMsg(x, 'Could not issue the gift voucher')); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Modal title="Refund as a gift voucher" subtitle={`${money(left)} of ${v.voucher_number} can still be refunded. The customer's account must hold that much in credit.`} onClose={onClose}>
+      <form onSubmit={go}>
+        <FormStack>
+          <FormError message={err} />
+          <Field label="Amount"><NumberInput required min="0.01" max={left} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+          <Field label="Expires (optional)"><TextInput type="date" value={expires} onChange={(e) => setExpires(e.target.value)} /></Field>
+          <ModalActions onCancel={onClose} submitLabel="Issue gift voucher" busy={busy} />
         </FormStack>
       </form>
     </Modal>
@@ -115,6 +142,7 @@ export default function VoucherView() {
   const base = v.type.base_type;
   const live = v.status === 'posted';
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
+  const refundable = live && base === 'credit_note' && Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0) > 0.005;
   const receivable = live && ['sales', 'debit_note'].includes(base) && Number(v.outstanding) > 0.005;
   const children = (id2) => (v.items ?? []).filter((i) => i.parent_item_id === id2);
   const top = (v.items ?? []).filter((i) => !i.parent_item_id);
@@ -134,6 +162,7 @@ export default function VoucherView() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
             {canWrite && convertible && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
+            {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
             {canWrite && live && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={cancel}><Ban size={14} /> Cancel</button>}
@@ -207,6 +236,7 @@ export default function VoucherView() {
         )}
       </div>
       {modal === 'convert' && <ConvertModal v={v} methods={methods} onClose={() => setModal(null)} onDone={(c) => nav(`/admin/books/vouchers/${c.id}`)} />}
+      {modal === 'refund' && <RefundVoucherModal v={v} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal === 'receive' && <ReceiveModal v={v} methods={methods} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </AdminLayout>
   );

@@ -62,27 +62,9 @@ class GiftVoucherController extends Controller
     public function cancel(Request $request, $id): JsonResponse
     {
         return $this->guard(function () use ($request, $id) {
-            $gv = GiftVoucher::findOrFail($id);
-            if ($gv->status !== GiftVoucher::ACTIVE) {
-                throw new BooksException('Only an active gift voucher can be cancelled.');
-            }
-            $issued = $gv->issued_voucher_id ? Voucher::find($gv->issued_voucher_id) : null;
-            $back = (float) $gv->balance;
-            if ($issued && $back > 0) {
-                // reverse the unspent part of the issue journal
-                $source = $issued->entries()->where('side', 'D')->first();
-                $liab = $issued->entries()->where('side', 'C')->first();
-                if ($source && $liab) {
-                    app(VoucherService::class)->create([
-                        'voucher_type_id' => $issued->voucher_type_id, 'date' => today()->toDateString(), 'currency_id' => $gv->currency_id,
-                        'narration' => "Gift voucher {$gv->code} cancelled", 'meta' => ['gift_voucher_id' => $gv->id],
-                        'entries' => [['ledger_id' => $liab->ledger_id, 'side' => 'D', 'amount' => $back], ['ledger_id' => $source->ledger_id, 'side' => 'C', 'amount' => $back]],
-                    ], $request->user());
-                }
-            }
-            $gv->update(['status' => GiftVoucher::CANCELLED, 'balance' => 0]);
+            $gv = $this->gifts->cancel(GiftVoucher::findOrFail($id), $request->user());
 
-            return response()->json(['message' => "{$gv->code} cancelled", 'data' => $gv->fresh()]);
+            return response()->json(['message' => "{$gv->code} cancelled", 'data' => $gv]);
         });
     }
 

@@ -20,9 +20,11 @@ class VoucherItem extends Model
         'sku', 'unit_code', 'unit_factor', 'quantity', 'base_quantity', 'rate', 'discount_amount', 'amount',
         'tax_rate_id', 'tax_rate_percent', 'tax_amount', 'ledger_id', 'location_id', 'delivered_quantity',
         'invoiced_quantity', 'source_item_id', 'notes', 'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price',
+        'gift_voucher_id', 'gift_meta',
     ];
 
     protected $casts = [
+        'gift_meta'          => 'array',
         'is_header'          => 'boolean',
         'pending_price'      => 'boolean',
         'unit_factor'        => 'decimal:6',
@@ -60,5 +62,11 @@ class VoucherItem extends Model
     public function ledger(): BelongsTo
     {
         return $this->belongsTo(Ledger::class);
+    }
+
+    /** The gift voucher this line sold (set once the sale is paid). */
+    public function giftVoucher(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(GiftVoucher::class, 'gift_voucher_id');
     }
 }
