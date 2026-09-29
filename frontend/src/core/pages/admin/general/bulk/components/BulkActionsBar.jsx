@@ -39,10 +39,13 @@ export default function BulkActionsBar({
   onSetFlags,
   onSetStatus, 
   onSetSalesAccount,
+  onSetPurchaseAccount,
   onClear,
 }) {
   const salesAccounts = useTradingAccounts('sales');
   const [account, setAccount] = useState('');
+  const purchaseAccounts = useTradingAccounts('purchase');
+  const [purchase, setPurchase] = useState('');
   const [bulkPrice, setBulkPrice] = useState('');
 
   const handleSetPrice = () => {
@@ -153,6 +156,31 @@ export default function BulkActionsBar({
               onClick={() => { onSetSalesAccount(Number(account)); setAccount(''); }}
               disabled={!account}
               style={{ padding: '5px 12px', background: account ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: account ? 'pointer' : 'not-allowed', color: '#fff' }}
+            >Apply</button>
+          </div>
+
+          <Divider />
+        </>
+      )}
+
+      {/* ── Purchase account ───────────────────────────────────────────── */}
+      {onSetPurchaseAccount && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--color-primary-600)', fontSize: 15, fontWeight: 700 }}>Purchase account:</span>
+            <select
+              value={purchase}
+              onChange={e => setPurchase(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--color-primary-600)', background: '#fff', color: '#270330', fontSize: 13, maxWidth: 260 }}
+            >
+              <option value="">Choose…</option>
+              <option value="0">Default purchase account</option>
+              {(purchaseAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
+            </select>
+            <button
+              onClick={() => { onSetPurchaseAccount(Number(purchase) || null); setPurchase(''); }}
+              disabled={purchase === ''}
+              style={{ padding: '5px 12px', background: purchase !== '' ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: purchase !== '' ? 'pointer' : 'not-allowed', color: '#fff' }}
             >Apply</button>
           </div>
 

@@ -416,11 +416,11 @@ export default function ProductDetail() {
   const taxParts = currentNative != null && currentNative !== '' ? money.breakdown(currentNative, product) : null;
   const originalParts = originalPrice != null ? money.breakdown(originalPrice, product) : null;
   const currentPriceText = choice
-    ? (choice.unit.price != null ? (taxParts ? money.format(taxParts.gross) : money.itemAmount(choice.unit.price, product)) : 'Price on request')
+    ? (choice.unit.price != null ? (taxParts ? money.formatIn(taxParts.gross, taxParts.symbol) : money.itemAmount(choice.unit.price, product)) : 'Price on request')
     : selectedVariant?.price != null
-      ? (taxParts ? money.format(taxParts.gross) : money.itemAmount(selectedVariant.price, product))
+      ? (taxParts ? money.formatIn(taxParts.gross, taxParts.symbol) : money.itemAmount(selectedVariant.price, product))
       : money.price(product);
-  const originalPriceText = originalPrice != null ? (originalParts ? money.format(originalParts.gross) : money.itemAmount(originalPrice, product)) : null;
+  const originalPriceText = originalPrice != null ? (originalParts ? money.formatIn(originalParts.gross, originalParts.symbol) : money.itemAmount(originalPrice, product)) : null;
   const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
   const priceDeltaPct = priceDiff
     ? Math.round(Math.abs(Number(originalPrice) - Number(currentPrice)) / Number(originalPrice) * 100)

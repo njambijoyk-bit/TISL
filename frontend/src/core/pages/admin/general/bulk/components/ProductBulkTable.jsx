@@ -27,6 +27,7 @@ export default function ProductBulkTable({
   const [saved, setSaved]         = useState({});   // { [id]: bool } — green flash
   const [drawerProduct, setDrawerProduct] = useState(null);
   const salesAccounts = useTradingAccounts('sales');
+  const purchaseAccounts = useTradingAccounts('purchase');
 
   const markDirty = (id, field, value) => {
     setDirty(prev => ({
@@ -60,6 +61,7 @@ export default function ProductBulkTable({
       if (changes.brand_id           !== undefined) payload.brand_id           = changes.brand_id;
       if (changes.currency_id        !== undefined) payload.currency_id        = changes.currency_id;
       if (changes.sales_ledger_id    !== undefined) payload.sales_ledger_id    = changes.sales_ledger_id;
+      if (changes.purchase_ledger_id !== undefined) payload.purchase_ledger_id = changes.purchase_ledger_id;
 
       await productsAPI.updateProduct(product.id, payload);
 
@@ -160,6 +162,7 @@ export default function ProductBulkTable({
               <Th width={140}>Brand</Th>
               <Th width={150}>Currency</Th>
               <Th width={200}>Sales account</Th>
+              <Th width={200}>Purchase account</Th>
               <Th width={110}>Price (excl. tax)</Th>
               <Th width={110}>Original</Th>
               <Th width={90}>Negotiable</Th>
@@ -174,6 +177,7 @@ export default function ProductBulkTable({
                 categories={categories}
                 brands={brands}
                 salesAccounts={salesAccounts}
+                purchaseAccounts={purchaseAccounts}
                 isSelected={selectedIds.has(product.id)}
                 onToggleSelect={() => onToggleSelect(product.id)}
                 dirtyData={dirty[product.id]}
@@ -190,7 +194,7 @@ export default function ProductBulkTable({
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={13} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: 13 }}>
+                <td colSpan={14} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: 13 }}>
                   No products found
                 </td>
               </tr>
@@ -216,7 +220,7 @@ export default function ProductBulkTable({
 
 // ── Single Row ────────────────────────────────────────────────────────────────
 function ProductRow({
-  product, categories, brands, salesAccounts,
+  product, categories, brands, salesAccounts, purchaseAccounts,
   isSelected, onToggleSelect,
   saving, saved, isDirty,
   getVal, markDirty, onSave, onOpenDrawer, onStockSaved,
@@ -351,6 +355,19 @@ function ProductRow({
         >
           <option value="">{getVal('sales_ledger_id') ? '— none —' : 'Choose account…'}</option>
           {(salesAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
+        </select>
+      </Td>
+
+      {/* Purchase account — how it is treated when bought in (optional; blank uses the default purchase account) */}
+      <Td>
+        <select
+          value={getVal('purchase_ledger_id') ?? ''}
+          onChange={e => markDirty('purchase_ledger_id', e.target.value ? Number(e.target.value) : null)}
+          title="The account this product is bought under. Leave blank for the default purchase account."
+          style={{ padding: '5px 8px', fontSize: 12, minWidth: 180, width: '100%', borderRadius: 6, border: '1px solid var(--border-color, #e5e7eb)', background: 'var(--bg-primary, #fff)' }}
+        >
+          <option value="">Default purchase account</option>
+          {(purchaseAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
         </select>
       </Td>
 
@@ -518,7 +535,7 @@ function ProductRow({
     {expanded && (
       <tr style={{ background: 'var(--bg-secondary, #fafafa)' }}>
         <td />
-        <td colSpan={12} style={{ padding: '10px 12px 16px' }}>
+        <td colSpan={13} style={{ padding: '10px 12px 16px' }}>
           <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Stock by branch — {product.name}
           </p>

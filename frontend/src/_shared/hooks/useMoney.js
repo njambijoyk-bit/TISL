@@ -68,12 +68,15 @@ export default function useMoney() {
   const withTax = (net, item) => {
     const n = Number(net) || 0;
     const tax = round2((n * rateOf(item)) / 100);
-    return { net: round2(n), tax, gross: round2(n + tax), info: taxInfo(item) };
+    return { net: round2(n), tax, gross: round2(n + tax), info: taxInfo(item), symbol: symbolFor(item?.display_currency) || active?.symbol || active?.code || '' };
   };
 
   /** A native (item-currency) net amount → the same breakdown in the display currency, or null. */
   const breakdown = (nativeAmount, item) => {
-    const shown = toDisplay(nativeAmount, nativeId(item));
+    if (nativeAmount === null || nativeAmount === undefined || nativeAmount === '') return null;
+    // The server has already converted this item's price: reuse its ratio so screen and server agree
+    const ratio = serverFresh(item) && Number(item.price) > 0 ? Number(item.display_price) / Number(item.price) : null;
+    const shown = ratio !== null ? Number(nativeAmount) * ratio : toDisplay(nativeAmount, nativeId(item));
     return shown === null ? null : withTax(shown, item);
   };
 
@@ -99,10 +102,12 @@ export default function useMoney() {
   /** Strike-through price, only when it's actually higher. */
   const originalPrice = (item) => {
     if (!item?.original_price || Number(item.original_price) <= Number(item.price)) return null;
+    const r = 1 + rateOf(item) / 100;
     if (item.display_original_price != null && serverFresh(item)) {
-      return fmt(item.display_original_price, symbolFor(item.display_currency));
+      return fmt(round2(Number(item.display_original_price) * r), symbolFor(item.display_currency));
     }
-    return itemAmount(item.original_price, item);
+    const shown = toDisplay(item.original_price, nativeId(item));
+    return shown !== null ? fmt(round2(shown * r), active.symbol || active.code) : itemAmount(item.original_price, item);
   };
 
   /**
@@ -117,9 +122,10 @@ export default function useMoney() {
     if (service.price_is_negotiable) return 'Negotiable';
     const model = service.pricing_model;
     const nativeAmount = service[SERVICE_RATE_KEY[model] ?? 'base_price'];
+    const r = 1 + rateOf(service) / 100;
     const amount = serverFresh(service)
-      ? fmt(service.display_price, symbolFor(service.display_currency))
-      : (itemAmount(nativeAmount, service)
+      ? fmt(round2(Number(service.display_price) * r), symbolFor(service.display_currency))
+      : (itemAmount(nativeAmount != null ? round2(Number(nativeAmount) * r) : nativeAmount, service)
          ?? (service.display_price != null ? fmt(service.display_price, symbolFor(service.display_currency)) : null));
     if (!amount || (nativeAmount == null && service.display_price == null)) return contactLabel;
     const prefix = fromModels.includes(model) ? 'From ' : '';
@@ -131,6 +137,7 @@ export default function useMoney() {
     code: active?.code ?? null,
     symbol: active?.symbol || active?.code || '',
     format: (n) => fmt(n, active?.symbol || active?.code || ''),
+    formatIn: (n, symbol) => fmt(n, symbol || active?.symbol || active?.code || ''),
     toDisplay,
     itemAmount,
     price,
