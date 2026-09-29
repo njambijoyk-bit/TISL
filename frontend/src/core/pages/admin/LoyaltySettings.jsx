@@ -6,6 +6,9 @@ import {
   AlertCircle, Loader2, ToggleLeft, ToggleRight, Settings2,
 } from 'lucide-react';
 import { loyaltyAPI } from '../../../_shared/api/index';
+import useCurrencyStore from '../../../_shared/store/currencyStore';
+import { useBaseCode } from '../../../_shared/lib/baseCurrency';
+import { formatMoney } from '../../../_shared/lib/money';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
@@ -48,11 +51,19 @@ const RULE_TYPE_COLORS = {
   gift:     { bg: 'rgba(245,158,11,0.08)',  color: '#d97706' },
 };
 
-const fmtKes = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+/** A rule's value in the rule's own currency (blank = the base currency). */
+const useRuleMoney = () => {
+  const base = useBaseCode();
+  const currencies = useCurrencyStore((st) => st.currencies);
+  return (amount, currencyId) => {
+    const code = currencyId ? currencies.find((c) => Number(c.id) === Number(currencyId))?.code : base;
+    return formatMoney(amount, code ?? base);
+  };
+};
 
-const calculatePointsEarned = (orderKes, pointsPer100Kes) => {
-  const spend = Math.max(0, Number(orderKes || 0));
-  const rate = Math.max(1, Number(pointsPer100Kes || 1));
+const calculatePointsEarned = (orderAmount, pointsPer100) => {
+  const spend = Math.max(0, Number(orderAmount || 0));
+  const rate = Math.max(1, Number(pointsPer100 || 1));
   return Math.floor(spend / 100) * rate;
 };
 
@@ -61,6 +72,7 @@ const calculatePointsEarned = (orderKes, pointsPer100Kes) => {
 const EMPTY_RULE = { name: '', type: 'cashback', points_required: '', value_kes: '', currency_id: '', active: true, valid_from: '', valid_until: '' };
 
 function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes }) {
+  const money = useRuleMoney();
   const [form,    setForm]    = useState(rule ? {
     ...rule,
     valid_from:  rule.valid_from  ? rule.valid_from.slice(0, 10)  : '',
@@ -68,15 +80,17 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
   } : EMPTY_RULE);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
-  const [exampleOrderKes] = useState(() => Math.ceil((Math.floor(Math.random() * 9) + 1) * 100));
+  const [exampleOrder] = useState(() => Math.ceil((Math.floor(Math.random() * 9) + 1) * 100));
 
   const minPoints = Math.max(1, Number(minRedemptionPoints ?? 1));
   const pointsRate = Math.max(1, Number(pointsPer100Kes ?? 1));
   const pointsRequired = Number(form.points_required || 0);
   const valueKes = Number(form.value_kes || 0);
-  const examplePoints = calculatePointsEarned(exampleOrderKes, pointsRate);
+  const examplePoints = calculatePointsEarned(exampleOrder, pointsRate);
   const estimatedSpendToReachRule = pointsRequired > 0 ? Math.ceil(pointsRequired / pointsRate) * 100 : 0;
-  const rewardMath = estimatedSpendToReachRule > 0 && valueKes > 0
+  // the spend is in the base currency; a value in another currency can't be compared with it without converting
+  const sameCurrency = !form.currency_id;
+  const rewardMath = sameCurrency && estimatedSpendToReachRule > 0 && valueKes > 0
     ? (valueKes > estimatedSpendToReachRule ? 'loss' : valueKes < estimatedSpendToReachRule ? 'profit' : 'break-even')
     : null;
 
@@ -184,7 +198,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
           <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(5,150,105,0.04)', border: '1.5px solid rgba(5,150,105,0.12)' }}>
             <p style={{ fontSize: '0.76rem', fontWeight: 800, color: '#065f46', margin: '0 0 6px' }}>Simple rule math</p>
             <p style={{ fontSize: '0.72rem', color: '#374151', lineHeight: 1.5, margin: 0 }}>
-              Example order: <strong>{fmtKes(exampleOrderKes)}</strong> spent on an order earns about <strong>{examplePoints}</strong> point{examplePoints !== 1 ? 's' : ''} at <strong>{pointsRate}</strong> point{pointsRate !== 1 ? 's' : ''} per KES 100. To reach <strong>{pointsRequired || 0}</strong> points, a customer usually needs about <strong>{estimatedSpendToReachRule ? fmtKes(estimatedSpendToReachRule) : '—'}</strong> in spending. If this rule awards <strong>{fmtKes(valueKes)}</strong>, that is usually a <strong>{rewardMath ?? '—'}</strong> compared with that spend.
+              Example order: <strong>{money(exampleOrder)}</strong> spent on an order earns about <strong>{examplePoints}</strong> point{examplePoints !== 1 ? 's' : ''} at <strong>{pointsRate}</strong> point{pointsRate !== 1 ? 's' : ''} per {money(100)}. To reach <strong>{pointsRequired || 0}</strong> points, a customer usually needs about <strong>{estimatedSpendToReachRule ? money(estimatedSpendToReachRule) : '—'}</strong> in spending. If this rule awards <strong>{money(valueKes, form.currency_id)}</strong>{sameCurrency ? <>, that is usually a <strong>{rewardMath ?? '—'}</strong> compared with that spend.</> : <> (in {money(0, form.currency_id).split(' ')[0]}), it is not compared with the spend because the currencies differ.</>}
             </p>
           </div>
 
@@ -252,6 +266,7 @@ function DeleteConfirm({ rule, onClose, onConfirm }) {
 
 export default function LoyaltySettings() {
   const navigate = useNavigate();
+  const money = useRuleMoney();
 
   const [settings,   setSettings]   = useState(null);
   const [rules,      setRules]      = useState([]);
@@ -268,7 +283,6 @@ export default function LoyaltySettings() {
       setRules(res.redemption_rules ?? []);
       setForm({
         points_per_100_kes:     res.settings.points_per_100_kes     ?? 1,
-        referral_credit_amount: res.settings.referral_credit_amount ?? 500,
         min_redemption_points:  res.settings.min_redemption_points  ?? 500,
         points_expiry_months:   res.settings.points_expiry_months   ?? '',
         store_credit_max_pct:   res.settings.store_credit_max_pct   ?? 50,
@@ -286,7 +300,6 @@ export default function LoyaltySettings() {
     try {
       const payload = {
         points_per_100_kes:     Number(form.points_per_100_kes),
-        referral_credit_amount: Number(form.referral_credit_amount),
         min_redemption_points:  Number(form.min_redemption_points),
         points_expiry_months:   form.points_expiry_months ? Number(form.points_expiry_months) : null,
         store_credit_max_pct:   Number(form.store_credit_max_pct),
@@ -365,9 +378,8 @@ export default function LoyaltySettings() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
             { key: 'points_per_100_kes',     label: 'Points per 100 spent, in the base currency (integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
-            { key: 'referral_credit_amount',  label: 'Referral reward (base currency)',      type: 'number', min: 0,   placeholder: '500', hint: 'Gift voucher granted to referrer when referred customer pays first order.' },
             { key: 'min_redemption_points',   label: 'Min redemption threshold',   type: 'number', min: 1,   placeholder: '500', hint: 'Customer must have at least this many points to redeem.' },
-            { key: 'points_expiry_months',    label: 'Points expiry (months)',     type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
+            { key: 'points_expiry_months',    label: 'Points expiry (months)',     type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expired points are cleared daily.' },
             { key: 'store_credit_max_pct',    label: 'Gift voucher cap (%)',       type: 'number', min: 0,   placeholder: '50', hint: 'Max % of order total a customer can pay with gift voucher. Applies at checkout and admin orders.' },
           ].map(({ key, label: lbl, type, min, placeholder, hint }) => (
             <div key={key}>
@@ -386,6 +398,11 @@ export default function LoyaltySettings() {
           ))}
         </div>
 
+        <p style={{ fontSize: '0.74rem', color: '#6b7280', margin: '16px 0 0', lineHeight: 1.5 }}>
+          What a referrer earns (loyalty points and/or a gift voucher, and what the new customer gets off) is set in
+          {' '}<button type="button" onClick={() => navigate('/admin/referrals')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--color-primary-600)', fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>Referrals → Referral programme</button>.
+        </p>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
           <button onClick={saveSettings} disabled={saving} style={btn('primary')}>
             {saving ? <Loader2 size={14} style={{ animation: 'spin 700ms linear infinite' }} /> : <Check size={14} />}
@@ -401,7 +418,7 @@ export default function LoyaltySettings() {
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
             <p style={{ fontSize: '0.76rem', color: '#6b7280', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
-              Gift redemptions deduct the customer's points but do not add gift voucher. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules convert points into KES credit automatically.
+              Gift redemptions deduct the customer's points but do not add gift voucher. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules turn points into a gift voucher automatically, in the currency of the rule.
             </p>
           </div>
           <button onClick={() => setRuleModal('new')} style={btn('primary', 'sm')}>
@@ -454,7 +471,7 @@ export default function LoyaltySettings() {
                     {/* Value */}
                     <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                       <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
-                        {r.value_kes > 0 ? fmtKes(r.value_kes) : '—'}
+                        {Number(r.value ?? r.value_kes) > 0 ? money(r.value ?? r.value_kes, r.currency_id) : '—'}
                       </span>
                     </td>
 
@@ -462,7 +479,7 @@ export default function LoyaltySettings() {
                     <td style={{ padding: '11px 16px' }}>
                       <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap' }}>
                         {r.valid_from || r.valid_until
-                          ? `${r.valid_from ? new Date(r.valid_from).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '∞'} → ${r.valid_until ? new Date(r.valid_until).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '∞'}`
+                          ? `${r.valid_from ? new Date(r.valid_from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '∞'} → ${r.valid_until ? new Date(r.valid_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '∞'}`
                           : 'Always active'}
                       </p>
                     </td>

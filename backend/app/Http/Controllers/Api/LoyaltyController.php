@@ -355,13 +355,25 @@ class LoyaltyController extends Controller
         $customer = $request->user()->customer;
         abort_unless($customer, 404);
 
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $base = $money->getBaseCurrency();
+        $code = fn ($id) => $id ? (\App\Models\Currency::whereKey($id)->value('code') ?? $base->code) : $base->code;
+        $prog = \App\Services\ReferralSettings::get();
+
         return response()->json([
+            'base_currency'      => $base->code,
+            // the referral programme in words a customer can read: what a friend gets and what the referrer earns
+            'referral_programme' => [
+                'friend_discount' => ['type' => $prog['referral_discount_type'], 'value' => $prog['referral_discount_value'], 'currency' => $code($prog['referral_discount_currency_id'])],
+                'referrer_points' => $prog['referral_referrer_points'],
+                'referrer_gift'   => $prog['referral_referrer_gift_amount'] > 0 ? ['amount' => $prog['referral_referrer_gift_amount'], 'currency' => $code($prog['referral_referrer_gift_currency_id'])] : null,
+            ],
             'loyalty_points'     => $customer->loyalty_points,
             'store_credit'       => $customer->store_credit,
             'gift_vouchers'      => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->where('customer_id', $customer->id)->where('status', 'active')->orderBy('expires_at')->get(),
             'tier'               => $customer->tier,
             'tier_benefits'      => $customer->tier_benefits,
-            'redemption_rules'   => $this->loyalty->getRedemptionRules(activeOnly: true),
+            'redemption_rules'   => array_map(fn ($r) => $r + ['currency_code' => $code($r['currency_id'] ?? null)], $this->loyalty->getRedemptionRules(activeOnly: true)),
             'min_redemption_points' => $this->loyalty->getSetting('min_redemption_points', 500),
             'store_credit_max_pct'  => (float) $this->loyalty->getSetting('store_credit_max_pct', 50), 
         ]);

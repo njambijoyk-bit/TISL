@@ -108,6 +108,16 @@ function Input({ value, onChange, type = 'text', disabled, placeholder, icon }) 
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+/** "you earn 100 points and a gift voucher of USD 5 when a friend's first order is paid" from the programme settings. */
+const referrerEarns = (p, short = false) => {
+  if (!p) return short ? '—' : 'earn rewards for every friend who joins';
+  const parts = [];
+  if (p.referrer_points > 0) parts.push(`${Number(p.referrer_points).toLocaleString()} points`);
+  if (p.referrer_gift) parts.push(`a ${p.referrer_gift.currency} ${Number(p.referrer_gift.amount).toLocaleString()} gift voucher`);
+  if (!parts.length) return short ? '—' : 'a reward is not set up yet';
+  return short ? parts.join(' + ') : `you earn ${parts.join(' and ')} when a friend's first order is paid`;
+};
+
 export default function Profile() {
   const { user, updateUser } = useAuthStore();
   const { myCodes, fetchMyCodes } = usePromoCodeStore();
@@ -176,7 +186,7 @@ export default function Profile() {
   useEffect(() => { loadProfile(); }, []);
 
   useEffect(() => {
-    if (activeTab === 'rewards') fetchMyCodes();
+    if (activeTab === 'rewards') { fetchMyCodes(); if (!wallet) loadWallet(); }
   }, [activeTab]);
 
   useEffect(() => {
@@ -997,8 +1007,8 @@ export default function Profile() {
                                   </div>
                                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 7px' }}>
                                     <span style={{ fontWeight: 700, color: canRedeem ? 'var(--color-primary-600)' : '#9ca3af' }}>{Number(rule.points_required).toLocaleString()} pts</span>
-                                    {rule.value_kes > 0 && (
-                                      <> → <span style={{ fontWeight: 700, color: canRedeem ? '#059669' : '#9ca3af' }}>KES {Number(rule.value_kes).toLocaleString()}</span></>
+                                    {Number(rule.value ?? rule.value_kes) > 0 && (
+                                      <> → <span style={{ fontWeight: 700, color: canRedeem ? '#059669' : '#9ca3af' }}>{rule.currency_code ?? wallet?.base_currency ?? ''} {Number(rule.value ?? rule.value_kes).toLocaleString()}</span></>
                                     )}
                                   </p>
 
@@ -1171,7 +1181,7 @@ export default function Profile() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
                       <div>
                         <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Share this code and earn KES 500 gift voucher per referral
+                          Share this code — {referrerEarns(wallet?.referral_programme)}
                         </p>
                         <span style={{
                           fontFamily: 'monospace', fontWeight: 900, fontSize: '1.4rem',
@@ -1196,7 +1206,7 @@ export default function Profile() {
                       {[
                         { label: 'Total Referrals',   value: customer.referral_code.times_used ?? 0 },
                         { label: 'Referee Gets',      value: `${customer.referral_code.reward_value ?? 0}% off` },
-                        { label: 'You Earn',          value: `KES ${Number(customer.referral_code.referrer_reward_value ?? 500).toLocaleString()}` },
+                        { label: 'You Earn',          value: referrerEarns(wallet?.referral_programme, true) },
                       ].map(({ label, value }) => (
                         <div key={label} style={{
                           padding: '10px 12px', borderRadius: 8,
@@ -1246,7 +1256,7 @@ export default function Profile() {
                           Total earned from referrals
                         </span>
                         <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#15803d' }}>
-                          KES {Number(customer.referral_code.total_referrer_rewards).toLocaleString()}
+                          {wallet?.base_currency ?? ''} {Number(customer.referral_code.total_referrer_rewards).toLocaleString()}
                         </span>
                       </div>
                     )}
