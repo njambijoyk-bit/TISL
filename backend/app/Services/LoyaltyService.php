@@ -5,8 +5,6 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\LoyaltyPointTransaction;
 use App\Models\LoyaltySetting;
-use App\Models\Order;
-use App\Models\StoreCreditTransaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -81,98 +79,8 @@ class LoyaltyService
     // LOYALTY POINTS
     // =========================================================================
 
-    /**
-     * Auto-earn points when an order is paid.
-     * Trigger: Order::markAsPaid()
-     */
-    public function earnPointsForOrder(Order $order): void
-    {
-        $customer = $order->customer;
-        if (!$customer) return;
 
-        if ($order->loyalty_points_earned > 0) return;
 
-        $totalKes = (float) ($order->total_kes ?? 0);
-
-        if ($totalKes <= 0) {
-            $creditAccountKes = (float) ($order->metadata['credit_account_deduction'] ?? 0);
-            $totalKes         = $creditAccountKes;
-        }
-
-        if ($totalKes <= 0) return;
-
-        $rate      = (int) LoyaltySetting::get('points_per_100_kes', 1);
-        $rawPoints = (int) floor($totalKes / 100) * $rate;
-        if ($rawPoints <= 0) return;
-
-        $multiplier = 1.0;
-        if (method_exists($customer, 'getTierBenefitsAttribute')) {
-            $multiplier = $customer->tier_benefits['loyalty_points_multiplier'] ?? 1.0;
-        }
-
-        $points = (int) round($rawPoints * $multiplier);
-
-        $expiryMonths = LoyaltySetting::get('points_expiry_months', null);
-        $pointType    = $expiryMonths ? 'expiring' : 'permanent';
-        $expiresAt    = $expiryMonths ? now()->addMonths((int) $expiryMonths) : null;
-
-        DB::transaction(function () use ($order, $customer, $points, $pointType, $expiresAt) {
-            // Re-check inside transaction against a locked order row
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            if ($lockedOrder->loyalty_points_earned > 0) return;
-
-            $this->writePointTransaction(
-                customer:      $customer,
-                points:        $points,
-                type:          'order_earn',
-                pointType:     $pointType,
-                expiresAt:     $expiresAt,
-                note:          "Earned on order {$order->order_number}",
-                referenceType: Order::class,
-                referenceId:   $order->id,
-            );
-
-            $lockedOrder->update(['loyalty_points_earned' => $points]);
-        });
-    }
-
-    /**
-     * Reverse earned points when a paid order is cancelled.
-     * Idempotent: compares cancel vs restore counts to handle cancel-restore-cancel cycles.
-     */
-    public function reversePointsForCancelledOrder(Order $order): void
-    {
-        $customer = $order->customer;
-        if (!$customer) return;
-
-        $pointsToReverse = (int) $order->loyalty_points_earned;
-        if ($pointsToReverse <= 0) return; // nothing earned, nothing to reverse
-
-        $toDeduct = min($pointsToReverse, $customer->loyalty_points);
-        if ($toDeduct <= 0) return;
-
-        DB::transaction(function () use ($order, $customer, $toDeduct) {
-            $this->writePointTransaction(
-                customer:      $customer,
-                points:        -$toDeduct,
-                type:          'order_cancel',
-                pointType:     'permanent',
-                note:          "Points reversed — order {$order->order_number} cancelled",
-                referenceType: Order::class,
-                referenceId:   $order->id,
-            );
-
-            // Zero out so markAsPaid can re-earn if order is restored and re-paid
-            $order->update(['loyalty_points_earned' => 0]);
-        });
-    }
-
-    public function restorePointsForRestoredOrder(Order $order): void
-    {
-        // Points are no longer restored on order restore.
-        // They will be re-earned automatically when the order is marked as paid again.
-        return;
-    }
 
     /**
      * Admin manually grants points to a customer.
@@ -221,36 +129,9 @@ class LoyaltyService
         );
     }
 
-    /**
-     * Grant referral bonus points.
-     * Called when a referred customer completes their first order.
-     */
-    public function grantReferralPointBonus(Customer $referrer, Order $triggerOrder): void
-    {
-        $points = (int) LoyaltySetting::get('referral_bonus_points', 0);
-        if ($points <= 0) return;
-
-        // Idempotency: only grant once per trigger order
-        $alreadyGranted = LoyaltyPointTransaction::where('reference_type', Order::class)
-            ->where('reference_id', $triggerOrder->id)
-            ->where('type', 'referral_bonus')
-            ->exists();
-
-        if ($alreadyGranted) return;
-
-        $this->writePointTransaction(
-            customer:      $referrer,
-            points:        $points,
-            type:          'referral_bonus',
-            pointType:     'permanent',
-            note:          "Referral bonus — referred customer placed order {$triggerOrder->order_number}",
-            referenceType: Order::class,
-            referenceId:   $triggerOrder->id,
-        );
-    }
 
     // =========================================================================
-    // STORE CREDIT
+    // GIFT VOUCHERS (formerly store credit)
     // =========================================================================
 
     /**
@@ -292,93 +173,9 @@ class LoyaltyService
         return $tx;
     }
 
-    /**
-     * Grant referral reward credit to referrer when referred customer pays first order.
-     */
-    public function grantReferralCredit(Customer $referrer, Order $triggerOrder): void
-    {
-        $amount = (float) LoyaltySetting::get('referral_credit_amount', 500);
-        if ($amount <= 0) return;
 
-        $this->writeCreditTransaction(
-            customer:      $referrer,
-            amount:        $amount,
-            type:          'referral_reward',
-            note:          "Referral reward — referred customer placed order {$triggerOrder->order_number}",
-            referenceType: Order::class,
-            referenceId:   $triggerOrder->id,
-        );
-    }
 
-    /**
-     * Grant store credit as part of a refund.
-     */
-    public function grantRefundCredit(Customer $customer, float $amount, Order $order, ?User $admin = null): void
-    {
-        $this->writeCreditTransaction(
-            customer:      $customer,
-            amount:        $amount,
-            type:          'order_refund',
-            note:          "Refund credit for order {$order->order_number}",
-            referenceType: Order::class,
-            referenceId:   $order->id,
-            createdBy:     $admin?->id,
-        );
-    }
 
-    /**
-     * Spend store credit at checkout.
-     * Returns false if insufficient balance.
-     */
-    public function spendCredit(Customer $customer, float $amount, Order $order): bool
-    {
-        if ((float) $customer->store_credit < $amount) return false;
-
-        $this->writeCreditTransaction(
-            customer:      $customer,
-            amount:        -$amount,
-            type:          'order_spend',
-            note:          "Used at checkout — order {$order->order_number}",
-            referenceType: Order::class,
-            referenceId:   $order->id,
-        );
-
-        return true;
-    }
-
-    /**
-     * Apply store credit to an order at checkout.
-     */
-    public function applyStoreCreditToOrder(
-        Customer $customer,
-        float    $requestedKes,   // how much KES credit customer wants to use
-        float    $totalKes,       // order total in KES (cap)
-        float    $exchangeRate,   // order exchange_rate_to_kes (1.0 if KES)
-    ): array {
-        $available = (float) $customer->store_credit;
-        if ($available <= 0) {
-            return ['deduction_kes' => 0, 'deduction_order_currency' => 0];
-        }
-        $maxPct     = (float) LoyaltySetting::get('store_credit_max_pct', 50); // ← was hardcoded 0.50
-        $maxAllowed = round($totalKes * ($maxPct / 100), 2);
-
-        // Cap: can't use more than available or more than the order total
-        $deductionKes = min($requestedKes, $available, $totalKes, $maxAllowed);
-        $deductionKes = round($deductionKes, 2);
-
-        if ($deductionKes <= 0) {
-            return ['deduction_kes' => 0, 'deduction_order_currency' => 0];
-        }
-
-        // Convert to order currency
-        $rate = $exchangeRate > 0 ? $exchangeRate : 1;
-        $deductionOrderCurrency = round($deductionKes / $rate, 2);
-
-        return [
-            'deduction_kes'            => $deductionKes,
-            'deduction_order_currency' => $deductionOrderCurrency,
-        ];
-    }
 
     // =========================================================================
     // REDEMPTION  (Points → value)
@@ -570,74 +367,6 @@ class LoyaltyService
         return trim((string) ($c->company_name ?: trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')))) ?: "customer #{$c->id}";
     }
 
-    private function writeCreditTransaction(
-        Customer $customer,
-        float    $amount,
-        string   $type,
-        ?string  $note          = null,
-        ?string  $referenceType = null,
-        ?int     $referenceId   = null,
-        ?int     $createdBy     = null,
-        mixed    $expiresAt     = null,
-        array    $metadata      = [],
-    ): StoreCreditTransaction {
-        return DB::transaction(function () use (
-            $customer, $amount, $type, $note,
-            $referenceType, $referenceId, $createdBy, $expiresAt, $metadata
-        ) {
-            $customer = Customer::lockForUpdate()->find($customer->id);
-
-            $newBalance = max(0, (float) $customer->store_credit + $amount);
-
-            $tx = StoreCreditTransaction::create([
-                'customer_id'    => $customer->id,
-                'amount'         => $amount,
-                'balance_after'  => $newBalance,
-                'type'           => $type,
-                'reference_type' => $referenceType,
-                'reference_id'   => $referenceId,
-                'note'           => $note,
-                'created_by'     => $createdBy,
-                'expires_at'     => $expiresAt,
-                'metadata'       => $metadata ?: null,
-            ]);
-
-            $customer->update(['store_credit' => $newBalance]);
-
-            return $tx;
-        });
-    }
     // LoyaltyService.php — new public method
-    public function grantReferralCreditExact(
-        Customer $referrer,
-        float    $amount,
-        Order    $order
-    ): void {
-        $this->writeCreditTransaction(
-            customer:      $referrer,
-            amount:        $amount,
-            type:          'referral_reward',
-            note:          "Referral reward — referred customer placed order {$order->order_number}",
-            referenceType: Order::class,
-            referenceId:   $order->id,
-        );
-    }
 
-    public function reverseReferralCreditExact(
-        Customer $referrer,
-        float    $amount,
-        Order    $order
-    ): void {
-        $toReverse = min($amount, (float) $referrer->store_credit);
-        if ($toReverse <= 0) return;
-
-        $this->writeCreditTransaction(
-            customer:      $referrer,
-            amount:        -$toReverse,
-            type:          'referral_reward', // or a new 'referral_reversal' type if you want it distinct
-            note:          "Referral reward reversed — order {$order->order_number} cancelled",
-            referenceType: Order::class,
-            referenceId:   $order->id,
-        );
-    }
 }

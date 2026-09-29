@@ -281,11 +281,11 @@ class ReferralCodeUsage extends Model
 
         switch ($this->referrer_reward_type) {
             case 'store_credit':
-                app(\App\Services\LoyaltyService::class)->grantReferralCreditExact(
-                    $referrer,
-                    $rewardAmount,  // <-- live from settings
-                    $this->order
-                );
+                // "store credit" is a gift voucher now, booked through the books
+                app(\App\Services\Books\GiftVoucherService::class)->issue([
+                    'amount' => $rewardAmount, 'customer_id' => $referrer->id, 'source' => 'referral',
+                    'note' => 'Referral reward' . ($this->order?->order_number ? " — {$this->order->order_number}" : ''),
+                ], null);
                 break;
 
             case 'percentage':
@@ -327,12 +327,12 @@ class ReferralCodeUsage extends Model
         // SUBTRACT the reward, floored at zero for each type
         switch ($this->referrer_reward_type) {
             case 'store_credit':
-                // Was: $referrer->update(['store_credit' => max(0, ...)]) — no tx record
-                app(\App\Services\LoyaltyService::class)->reverseReferralCreditExact(
-                    $referrer,
-                    (float) $this->referrer_reward_amount,
-                    $this->order
-                );
+                // take back what is still unspent of the reward (it may already have been used)
+                try {
+                    app(\App\Services\Books\GiftVoucherService::class)->deductFromCustomer($referrer->id, min((float) $this->referrer_reward_amount, app(\App\Services\Books\GiftVoucherService::class)->customerBalanceBase($referrer->id)), 'Referral reward reversed', null);
+                } catch (\App\Services\Books\BooksException $e) {
+                    \Illuminate\Support\Facades\Log::warning('Referral reward reversal: ' . $e->getMessage());
+                }
                 break;
 
             case 'percentage':

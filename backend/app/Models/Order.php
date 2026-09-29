@@ -490,16 +490,6 @@ class Order extends Model
             'paid_at'           => now(),
             'payment_reference' => $reference ?? $this->payment_reference,
         ]);
-
-        // ── Loyalty: earn points on payment ──────────────────────────────────────
-        try {
-            $this->load('customer');
-            if ($this->customer) {
-                app(\App\Services\LoyaltyService::class)->earnPointsForOrder($this);
-            }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("Loyalty earn failed for order {$this->id}: " . $e->getMessage());
-        }
     }
 
     /**  

@@ -917,23 +917,6 @@ class Customer extends Model
 
         $this->checkTierUpgrade();
         $this->triggerLoyaltyPromoIfEligible();
-
-        // ── Loyalty: referral credit to referrer on first completed order ─────────
-        try {
-            if (
-                $this->referred_by_customer_id &&
-                !$this->referral_completed_at  &&
-                $this->total_orders === 1
-            ) {
-                $referrer = Customer::find($this->referred_by_customer_id);
-                if ($referrer) {
-                    app(\App\Services\LoyaltyService::class)->grantReferralCredit($referrer, $order);
-                }
-                $this->update(['referral_completed_at' => now()]);
-            }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("Referral credit failed for customer {$this->id}: " . $e->getMessage());
-        }
     }
 
     // Customer model
