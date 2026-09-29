@@ -450,3 +450,53 @@ Every posted voucher balances (Σ debit = Σ credit). Posted vouchers are immuta
 Built: chart of accounts, voucher types with dynamic numbering series (prefix / suffix / start / width / reset / per-branch / manual override), payment methods mapped to any asset ledger, period control (company edit window, per-role limits, financial-year close), the voucher engine (order → delivery → invoice / cash sale → receipt, per-line tax, hamper components, stock moves once), reports (day book, ledger, trial balance, P&L, balance sheet, receivables / payables ageing), exports (JSON, CSV, XML, HTML; PDF once `dompdf/dompdf` is installed), the admin Books area, and per-item hamper sale prices.
 
 Not yet: storefront checkout still uses the old order/payment tables; the legacy order / payment / credit tables are not dropped; store credit, loyalty and withholding are not yet moved onto ledgers; Data Engine rename ("Data Exchange").
+
+## 11. Books phase 2 — quotations, checkout, and everything that carries money
+
+### 11.1 Quotation voucher
+- New voucher type **Quotation** (`quotation`, no accounting, no stock, has items, customer party, own numbering series, `TISL-QT-`). Statuses: `requested` → `quoted` → `accepted` / `declined` / `expired`.
+- A customer's quote request (today's `quote_requests` + quote list) becomes a Quotation in state `requested`: lines carry the chosen service package / product variant and answers to requirements, **no price yet**.
+- Admin opens the request, prices each line (or the catalogue price pre-fills), adds charges/discounts, sets validity, and sends it: state → `quoted`, customer notified.
+- Customer accepts on the storefront → chain continues: **Quotation → Sales Order → (Delivery Note) → Invoice / Cash Sale → Receipt**. Quotation joins the chain as the first link (`source_voucher_id`); acceptance converts it, it never posts.
+- Retires `quotes`, `quote_items`, `quote_requests` (data is test data).
+
+### 11.2 Checkout rewiring
+- Checkout collects particulars (address, branch, delivery method, promo/referral code, payment method) and calls `placeOrder` → Sales Order; if paid at checkout (M-Pesa/card confirmation callback) → `settleOrder` → Cash Sale + payment ledger by the method's mapped ledger.
+- Guests → Walk-in ledger; signed-in customers → their own ledger. Payment methods offered = `payment_methods.is_online`.
+- Orders/sales register in admin = the Vouchers list filtered to Sales Order / Cash Sale / Invoice. Order detail page becomes the voucher page. Legacy `orders`, `order_items`, `payments` retire after this lands (SQL drop script delivered separately, not a migration).
+
+### 11.3 Duties & Taxes becomes the tax ledger home
+- `tax_types.application_mode` already separates **additive** (VAT, excise, customs — charged on top) from **withheld** (deducted from what is paid). Keep it. Add a `kind` (vat, excise, customs, withholding_income, withholding_vat, other) for reports.
+- **Creating a tax type** asks for an **opening balance** (and Dr/Cr). Saving creates (or links) a ledger under Duties & Taxes named after it — one control ledger per type, plus per-rate ledgers as today (`tax_rates.ledger_output_id/ledger_input_id`). The opening balance is the ledger's opening balance; every posting then moves it. Editing later never rewrites history — changes to opening balance go through a Journal.
+- **Additive tax** (VAT): sale credits *Output* ledger, purchase debits *Input* ledger; the balance owed = Output − Input.
+- **Withholding — two sides, never added to the price:**
+  - *Customer withholds from us* (they pay 95,000 of 100,000): receipt = Dr Cash 95,000, Dr **Withholding Tax Receivable** 5,000 (asset, a credit against our income-tax), Cr Customer 100,000. The certificate (existing `withholding_certificates`) later clears the receivable.
+  - *We withhold from a supplier*: payment = Dr Supplier 100,000, Cr Cash 95,000, Cr **Withholding Tax Payable** (Duties & Taxes) 5,000, remitted to KRA by a Payment voucher.
+- Rates are **rules**, not fields on the type: the existing classification/rule tables pick 5% / 3% / 20% by payment nature and resident status. Withholding VAT (2%) is its own type.
+- Existing tax and withholding screens get an "Opening balance" field and a live ledger balance next to each type; the Books trial balance is the source of truth.
+
+### 11.4 Other money things become vouchers
+| Thing | Posts as | Ledger |
+|---|---|---|
+| **Store credit** (refund to credit, top-up) | Credit Note → to Store Credit Liability; spending it = Journal/Receipt Dr Store Credit Liability, Cr Customer | Store Credit Liability (Current Liabilities) |
+| **Loyalty points** | Earned: Journal Dr Loyalty Expense, Cr Loyalty Points Liability (points × value); redeemed: Dr Liability, Cr Sales discount | Loyalty Points Liability |
+| **Customer credit / credit accounts** | Simply the customer's Sundry Debtors ledger + invoices with due dates and bill-by-bill settlement; credit limit and terms live on the customer; schedules/instalments generate due dates on the invoice bill refs | customer ledger |
+| **Withholding credit** | See 11.3 — receivable ledger + certificates clearing it | Withholding Tax Receivable |
+| **Promo & referral codes** | Not vouchers themselves: they produce a **discount line** on the Sales Order (Discounts Allowed ledger). Referral rewards post as store credit or loyalty via the rows above. Usage rows keep pointing at the voucher | Discounts Allowed |
+| **Delivery / shipping** | Charge line → Shipping Income ledger | as built |
+| **Refunds** | Credit Note (goods back → stock in) then Payment voucher if cash is returned | Sales Returns |
+
+Customer-facing balances (credit, points, store credit) are read from ledgers/bill refs, so there is one source of truth; the old transaction tables retire after their history is migrated (or dropped — all test data).
+
+### 11.5 Order of work
+1. Tax type/withholding opening balance + ledger link (small, isolates Duties & Taxes).
+2. Quotation type + request workflow (admin pricing screen, customer accept).
+3. Checkout → Sales Order / Cash Sale; promo & referral as discount lines.
+4. Store credit, loyalty, customer credit, withholding credit as voucher postings.
+5. Drop legacy tables (SQL script), then Data Exchange rename/import.
+
+### 11.6 Open questions
+1. Quotation numbering prefix `TISL-QT-` and validity default (14 days)?
+2. Loyalty: value of a point for accounting (use existing loyalty setting's redeem rate)?
+3. Withholding receivable: recognise at receipt time (recommended) or when the certificate arrives?
+4. One ledger per tax *type* or per tax *rate* as the "opening balance" holder? (Recommended: per type for the balance, per rate only for output/input split.)
