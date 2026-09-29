@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useTradingAccounts, { accountLabel } from '../../../../../../core/components/admin/tax/useTradingAccounts';
 
 // ─── flag definitions ────────────────────────────────────────────────────────
 // Each entry describes one toggle button in the "Flags" section.
@@ -37,8 +38,11 @@ export default function BulkActionsBar({
   onMarkNegotiable,
   onSetFlags,
   onSetStatus, 
+  onSetSalesAccount,
   onClear,
 }) {
+  const salesAccounts = useTradingAccounts('sales');
+  const [account, setAccount] = useState('');
   const [bulkPrice, setBulkPrice] = useState('');
 
   const handleSetPrice = () => {
@@ -131,6 +135,30 @@ export default function BulkActionsBar({
       </div>
 
       <Divider />
+
+      {/* ── Sales account ──────────────────────────────────────────────── */}
+      {onSetSalesAccount && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--color-primary-600)', fontSize: 15, fontWeight: 700 }}>Sales account:</span>
+            <select
+              value={account}
+              onChange={e => setAccount(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--color-primary-600)', background: '#fff', color: '#270330', fontSize: 13, maxWidth: 260 }}
+            >
+              <option value="">Choose…</option>
+              {(salesAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
+            </select>
+            <button
+              onClick={() => { onSetSalesAccount(Number(account)); setAccount(''); }}
+              disabled={!account}
+              style={{ padding: '5px 12px', background: account ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: account ? 'pointer' : 'not-allowed', color: '#fff' }}
+            >Apply</button>
+          </div>
+
+          <Divider />
+        </>
+      )}
 
       {/* ── Mark negotiable ────────────────────────────────────────────── */}
       <button

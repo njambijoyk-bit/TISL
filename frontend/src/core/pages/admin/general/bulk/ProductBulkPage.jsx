@@ -175,6 +175,23 @@ export default function ProductBulkPage() {
     }
   };
 
+  const handleBulkSalesAccount = async (ledgerId) => {
+    const ids = [...selectedIds];
+    if (!ids.length || !ledgerId) return;
+    setBulkActionLoading(true);
+    try {
+      const results = await Promise.allSettled(ids.map(id => productsAPI.updateProduct(id, { sales_ledger_id: ledgerId })));
+      const okIds = ids.filter((_, i) => results[i].status === 'fulfilled');
+      const failed = results.find(r => r.status === 'rejected');
+      setProducts(prev => prev.map(p => okIds.includes(p.id) ? { ...p, sales_ledger_id: ledgerId } : p));
+      if (okIds.length) toast.success(`Sales account set for ${okIds.length} product(s)`);
+      if (failed) toast.error(`${ids.length - okIds.length} failed: ${failed.reason?.response?.data?.message || 'could not save'}`);
+      setSelectedIds(new Set(ids.filter(id => !okIds.includes(id))));
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const handleBulkNegotiable = async () => {
     const ids = [...selectedIds];
 
@@ -247,7 +264,7 @@ export default function ProductBulkPage() {
             Bulk Product Manager
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted, #6b7280)', marginTop: 4 }}>
-            {loading ? 'Loading…' : `${pagination.total.toLocaleString()} products — edit prices, categories, brands and images inline`}
+            {loading ? 'Loading…' : `${pagination.total.toLocaleString()} products — edit prices (excluding tax), sales accounts, categories, brands and images inline`}
           </p>
         </div>
 
@@ -411,7 +428,8 @@ export default function ProductBulkPage() {
         onSetPrice={handleBulkPrice}
         onMarkNegotiable={handleBulkNegotiable}
         onSetFlags={(flags) => bulkUpdateFlags([...selectedIds], flags)} // ✅ Spread Set to array
-        onSetStatus={handleBulkStatus}  
+        onSetStatus={handleBulkStatus}
+        onSetSalesAccount={handleBulkSalesAccount}
         onClear={() => setSelectedIds(new Set())}
         disabled={bulkActionLoading}
       />
