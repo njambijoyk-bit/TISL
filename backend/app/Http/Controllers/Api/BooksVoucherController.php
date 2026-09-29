@@ -51,6 +51,7 @@ class BooksVoucherController extends Controller
     {
         $v = Voucher::with($this->vouchers->relations())->findOrFail($id);
         $out = $v->toArray();
+        $out['footer'] = $this->export->footer($v);
         $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::DEBIT_NOTE], true) ? $this->vouchers->outstanding($v) : null;
 
         return response()->json($out);
@@ -95,7 +96,7 @@ class BooksVoucherController extends Controller
     {
         $data = $request->validate([
             'to' => 'required|string', 'date' => 'nullable|date', 'payment_method_id' => 'nullable|integer',
-            'lines' => 'nullable|array', 'reference_no' => 'nullable|string|max:100', 'narration' => 'nullable|string',
+            'lines' => 'nullable|array', 'tenders' => 'nullable|array', 'reference_no' => 'nullable|string|max:100', 'narration' => 'nullable|string',
         ]);
 
         return $this->guard(function () use ($request, $id, $data) {
@@ -108,7 +109,7 @@ class BooksVoucherController extends Controller
     /** Record a receipt against an invoice. */
     public function receive(Request $request, $id): JsonResponse
     {
-        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
+        $request->validate(['payment_method_id' => 'required_without:tenders|nullable|integer|exists:payment_methods,id', 'tenders' => 'nullable|array', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
 
         return $this->guard(function () use ($request, $id) {
             $v = $this->vouchers->receive(Voucher::findOrFail($id), $request->all(), $request->user());

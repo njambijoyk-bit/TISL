@@ -22,7 +22,7 @@ class ShippingOptionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $options = ShippingOption::orderBy('sort_order')->get();
+        $options = ShippingOption::with(['currency:id,code,symbol', 'taxRate:id,tax_type_id,rate_value,rate_type'])->orderBy('sort_order')->get();
 
         return response()->json($options);
     }
@@ -42,9 +42,13 @@ class ShippingOptionController extends Controller
             'is_active'   => 'boolean',
             'sort_order'  => 'integer|min:0',
             'icon'        => 'nullable|string|max:30',
+            'currency_id' => 'nullable|integer|exists:currencies,id',
+            'tax_rate_id' => 'nullable|integer|exists:tax_rates,id',
         ]);
 
         $option = ShippingOption::create([
+            'currency_id' => $request->currency_id ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id,
+            'tax_rate_id' => $request->tax_rate_id,
             'slug'        => $request->slug,
             'name'        => $request->name,
             'description' => $request->description,
@@ -83,10 +87,12 @@ class ShippingOptionController extends Controller
             'free_above'  => 'nullable|numeric|min:0',
             'sort_order'  => 'sometimes|integer|min:0',
             'icon'        => 'nullable|string|max:30',
+            'currency_id' => 'sometimes|integer|exists:currencies,id',
+            'tax_rate_id' => 'nullable|integer|exists:tax_rates,id',
         ]);
 
         $changes = [];
-        $fields  = ['slug', 'name', 'description', 'cost', 'free_above', 'sort_order', 'icon'];
+        $fields  = ['slug', 'name', 'description', 'cost', 'free_above', 'sort_order', 'icon', 'currency_id', 'tax_rate_id'];
 
         foreach ($fields as $field) {
             if ($request->has($field) && $request->$field != $option->$field) {
@@ -184,7 +190,15 @@ class ShippingOptionController extends Controller
      */
     public function publicIndex(): JsonResponse
     {
-        $options = ShippingOption::active()->get();
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $options = ShippingOption::active()->with('currency:id,code,symbol')->get()->map(function ($o) use ($money) {
+            $row = $o->toArray();
+            // show the cost in the shopper's currency (the books convert again, at the order's own rate, when it is placed)
+            $row['display_cost'] = $money->convertForDisplay((float) $o->cost, $o->currency_id);
+            $row['display_free_above'] = $o->free_above !== null ? $money->convertForDisplay((float) $o->free_above, $o->currency_id) : null;
+
+            return $row;
+        });
 
         return response()->json($options);
     }

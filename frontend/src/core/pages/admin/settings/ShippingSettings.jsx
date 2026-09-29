@@ -9,6 +9,9 @@ import {
   Power, PowerOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import taxAPI from '../../../../_shared/api/tax';
+import useCurrencyStore from '../../../../_shared/store/currencyStore';
+import { useBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -52,8 +55,50 @@ function Field({ label, children, hint }) {
   );
 }
 
+/** Currency + tax for a shipping option. The cost is entered in that currency and converted on each order. */
+function useCurrencyChoices() {
+  useBaseCode();   // makes sure currencies are loaded
+  const currencies = useCurrencyStore((s) => s.currencies);
+  const [rates, setRates] = useState([]);
+  useEffect(() => {
+    taxAPI.getRates({ active: true }).then((r) => setRates((r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld'))).catch(() => {});
+  }, []);
+  return { currencies, rates };
+}
+
+function MoneyFields({ form, set, choices, hintFree }) {
+  const code = choices.currencies.find((c) => String(c.id) === String(form.currency_id))?.code
+    ?? choices.currencies.find((c) => c.is_base)?.code ?? '';
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Currency" hint="Entered here, converted at each order's rate">
+          <select value={form.currency_id ?? ''} onChange={set('currency_id')} style={inputStyle}>
+            {choices.currencies.map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
+          </select>
+        </Field>
+        <Field label="Tax on delivery" hint="Adds this tax to the shipping charge">
+          <select value={form.tax_rate_id ?? ''} onChange={set('tax_rate_id')} style={inputStyle}>
+            <option value="">No tax</option>
+            {choices.rates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.code} {Number(r.rate_value)}%</option>)}
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label={`Cost (${code})`}>
+          <input type="number" step="0.01" min="0" required value={form.cost} onChange={set('cost')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
+        </Field>
+        <Field label={`Free above (${code})`} hint={hintFree}>
+          <input type="number" step="0.01" min="0" value={form.free_above} onChange={set('free_above')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
+        </Field>
+      </div>
+    </>
+  );
+}
+
 function AddShippingModal({ onClose, onSave }) {
-  const [form, setForm] = useState({ slug: '', name: '', description: '', cost: '', free_above: '', icon: 'Truck', sort_order: '0' });
+  const choices = useCurrencyChoices();
+  const [form, setForm] = useState({ slug: '', name: '', description: '', cost: '', free_above: '', icon: 'Truck', sort_order: '0', currency_id: '', tax_rate_id: '' });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
@@ -62,6 +107,8 @@ function AddShippingModal({ onClose, onSave }) {
       ...form,
       slug: form.slug.toLowerCase().replace(/\s+/g, '_'),
       free_above: form.free_above === '' ? null : form.free_above,
+      currency_id: form.currency_id || undefined,
+      tax_rate_id: form.tax_rate_id || null,
     });
   };
 
@@ -93,18 +140,7 @@ function AddShippingModal({ onClose, onSave }) {
               placeholder="1 business day" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
             />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Cost (KES)">
-              <input type="number" step="0.01" required value={form.cost} onChange={set('cost')}
-                placeholder="500" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
-              />
-            </Field>
-            <Field label="Free above (KES)" hint="Leave empty = never free">
-              <input type="number" step="0.01" value={form.free_above} onChange={set('free_above')}
-                placeholder="50000" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
-              />
-            </Field>
-          </div>
+          <MoneyFields form={form} set={set} choices={choices} hintFree="Leave empty = never free" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Icon" hint="Lucide icon name">
               <input type="text" value={form.icon} onChange={set('icon')}
@@ -145,13 +181,18 @@ function EditShippingModal({ option, onClose, onSave }) {
     free_above: option.free_above ?? '',
     icon: option.icon || 'Truck',
     sort_order: option.sort_order ?? 0,
+    currency_id: option.currency_id ?? '',
+    tax_rate_id: option.tax_rate_id ?? '',
   });
+  const choices = useCurrencyChoices();
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(option.id, {
       ...form,
+      currency_id: form.currency_id || undefined,
+      tax_rate_id: form.tax_rate_id || null,
       free_above: form.free_above === '' ? null : form.free_above,
     });
   };
@@ -177,18 +218,7 @@ function EditShippingModal({ option, onClose, onSave }) {
               style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
             />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Cost (KES)">
-              <input type="number" step="0.01" required value={form.cost} onChange={set('cost')}
-                style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
-              />
-            </Field>
-            <Field label="Free above (KES)" hint="Empty = never free">
-              <input type="number" step="0.01" value={form.free_above} onChange={set('free_above')}
-                style={inputStyle} onFocus={inputFocus} onBlur={inputBlur}
-              />
-            </Field>
-          </div>
+          <MoneyFields form={form} set={set} choices={choices} hintFree="Empty = never free" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Icon">
               <input type="text" value={form.icon} onChange={set('icon')}
@@ -492,7 +522,7 @@ export default function ShippingSettings() {
                     { label: 'ID',         w: 60  },
                     { label: 'Name',       w: 180 },
                     { label: 'Slug',       w: 140 },
-                    { label: 'Cost (KES)', w: 110 },
+                    { label: 'Cost', w: 110 },
                     { label: 'Free above', w: 110 },
                     { label: 'Status',     w: 100 },
                     { label: '',           w: 120 },
@@ -535,14 +565,14 @@ export default function ShippingSettings() {
                     {/* Cost */}
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '0.84rem', fontWeight: 600, color: opt.cost == 0 ? '#10b981' : '#374151', fontFamily: 'monospace' }}>
-                        {opt.cost == 0 ? 'Free' : `KES ${fmtCost(opt.cost)}`}
+                        {opt.cost == 0 ? 'Free' : `${opt.currency?.code ?? ''} ${fmtCost(opt.cost)}`}
                       </span>
                     </td>
 
                     {/* Free above */}
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '0.8rem', color: opt.free_above ? '#374151' : '#d1d5db', fontFamily: 'monospace' }}>
-                        {opt.free_above ? `KES ${fmtCost(opt.free_above)}` : '—'}
+                        {opt.free_above ? `${opt.currency?.code ?? ''} ${fmtCost(opt.free_above)}` : '—'}
                       </span>
                     </td>
 

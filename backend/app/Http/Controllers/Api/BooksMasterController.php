@@ -232,18 +232,21 @@ class BooksMasterController extends Controller
         $s = $new ? 'required' : 'sometimes';
 
         return [
-            'name' => "$s|string|max:80", 'code' => 'nullable|string|max:30', 'kind' => "$s|in:cash,bank,mobile,card,cheque,online,other",
+            'name' => "$s|string|max:80", 'code' => 'nullable|string|max:30', 'kind' => "$s|in:cash,bank,mobile,card,cheque,online,gift_voucher,other",
             'ledger_id' => "$s|integer|exists:ledgers,id", 'is_online' => 'boolean', 'requires_reference' => 'boolean',
             'instructions' => 'nullable|string', 'sort_order' => 'nullable|integer', 'is_active' => 'boolean',
         ];
     }
 
-    private function assertMoneyLedger(?int $ledgerId): ?JsonResponse
+    private function assertMoneyLedger(?int $ledgerId, ?string $kind = null): ?JsonResponse
     {
         if (! $ledgerId) {
             return null;
         }
         $l = Ledger::with('group:id,nature')->find($ledgerId);
+        if ($kind === 'gift_voucher') {
+            return $l && $l->group?->nature === 'liability' ? null : response()->json(['message' => 'A gift voucher method spends from the Gift Vouchers Liability ledger.'], 422);
+        }
 
         return $l && $l->group?->nature === 'asset' ? null : response()->json(['message' => 'Map a payment method to an asset ledger (cash, bank, wallet…).'], 422);
     }
@@ -251,7 +254,7 @@ class BooksMasterController extends Controller
     public function storeMethod(Request $request): JsonResponse
     {
         $d = $request->validate($this->methodRules(true));
-        if ($err = $this->assertMoneyLedger($d['ledger_id'])) {
+        if ($err = $this->assertMoneyLedger($d['ledger_id'], $d['kind'])) {
             return $err;
         }
         $d['code'] = $d['code'] ?? \Illuminate\Support\Str::slug($d['name'], '_');
@@ -266,7 +269,7 @@ class BooksMasterController extends Controller
     {
         $m = PaymentMethod::findOrFail($id);
         $d = $request->validate($this->methodRules(false));
-        if (isset($d['ledger_id']) && ($err = $this->assertMoneyLedger($d['ledger_id']))) {
+        if (isset($d['ledger_id']) && ($err = $this->assertMoneyLedger($d['ledger_id'], $d['kind'] ?? $m->kind))) {
             return $err;
         }
         $m->update($d);

@@ -10,6 +10,7 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
+import shippingAPI from '../../../../_shared/api/shipping';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
@@ -43,7 +44,7 @@ function Picker({ kind, placeholder, onPick, render }) {
   );
 }
 
-const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '' });
+const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm() {
   const nav = useNavigate();
@@ -65,6 +66,8 @@ export default function VoucherForm() {
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [manual, setManual] = useState(false);
+  const [shipOptions, setShipOptions] = useState([]);
+  const [tenders, setTenders] = useState([]);
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -79,6 +82,7 @@ export default function VoucherForm() {
 
   useEffect(() => {
     booksAPI.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
+    shippingAPI.getActiveOptions().then(setShipOptions).catch(() => {});
     booksAPI.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {});
     booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
     locationsAPI.getAdmin().then((r) => {
@@ -129,7 +133,9 @@ export default function VoucherForm() {
         if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate) };
         if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
-        if (l.type === 'charge') return { type: 'charge', kind: l.kind, amount: Number(l.amount) || 0, description: l.description || undefined, ledger_id: l.ledger_id || undefined };
+        if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
+          ? { type: 'charge', kind: 'shipping', shipping_option_id: l.shipping_option_id }
+          : { type: 'charge', kind: l.kind, amount: Number(l.amount) || 0, description: l.description || undefined, ledger_id: l.ledger_id || undefined };
         return { ...b, type: 'custom', description: l.description, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined };
       });
     } else if (isMoney) {
@@ -138,12 +144,13 @@ export default function VoucherForm() {
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
+    if (tenders.length) p.tenders = tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount === '' ? undefined : Number(t.amount), gift_voucher_code: t.code || undefined, reference: t.reference || undefined }));
     if (!editing) {
       if (manual && h.voucher_number) p.voucher_number = h.voucher_number;
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, hasItems, isMoney, isEntries, manual, editing]);
+  }, [typeId, h, lines, entries, tenders, hasItems, isMoney, isEntries, manual, editing]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -243,6 +250,26 @@ export default function VoucherForm() {
                   </select>
                 </div>
               )}
+              {needsMethod && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <button type="button" onClick={() => setTenders((t) => (t.length ? [] : [{ payment_method_id: h.payment_method_id || '', amount: '', code: '', reference: '' }, { payment_method_id: '', amount: '', code: '', reference: '' }]))}
+                    style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }}>{tenders.length ? 'Pay one way' : 'Split payment (e.g. gift voucher + M-Pesa)'}</button>
+                  {tenders.map((t, i) => {
+                    const m = methods.find((x) => String(x.id) === String(t.payment_method_id));
+                    const set = (k, v) => setTenders((ts) => ts.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+                    return (
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) 110px minmax(120px,1fr) auto', gap: 8, marginTop: 8, alignItems: 'end' }}>
+                        <select value={t.payment_method_id} onChange={(e) => set('payment_method_id', e.target.value)} style={small}><option value="">Method…</option>{methods.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                        <input type="number" step="0.01" min="0" placeholder={i === tenders.length - 1 ? 'the rest' : 'amount'} value={t.amount} onChange={(e) => set('amount', e.target.value)} style={small} />
+                        {m?.kind === 'gift_voucher'
+                          ? <input placeholder="Gift voucher code" value={t.code} onChange={(e) => set('code', e.target.value)} style={small} />
+                          : <input placeholder="Reference" value={t.reference} onChange={(e) => set('reference', e.target.value)} style={small} />}
+                        <button type="button" aria-label="Remove" onClick={() => setTenders((ts) => ts.filter((_, j) => j !== i))} style={{ ...btnGhost, padding: '6px 8px' }}><Trash2 size={14} /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div><label style={label}>Reference</label><input value={h.reference_no} onChange={(e) => setH((x) => ({ ...x, reference_no: e.target.value }))} style={small} placeholder="PO no., M-Pesa code…" /></div>
               {['sales', 'purchase'].includes(base) && <div><label style={label}>Due date</label><input type="date" value={h.due_date} onChange={(e) => setH((x) => ({ ...x, due_date: e.target.value }))} style={small} /></div>}
             </div>
@@ -271,7 +298,15 @@ export default function VoucherForm() {
                       )}
                       {l.type === 'custom' && <input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} placeholder="Description" style={small} />}
                     </div>
-                    {l.type === 'charge' ? (
+                    {l.type === 'charge' && l.kind === 'shipping' ? (
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={label}>Delivery method</label>
+                        <select value={l.shipping_option_id} onChange={(e) => setLine(l.key, { shipping_option_id: e.target.value ? Number(e.target.value) : '' })} style={small}>
+                          <option value="">Choose…</option>
+                          {shipOptions.map((o) => <option key={o.id} value={o.id}>{o.name} — {o.currency?.code} {money(o.cost)}</option>)}
+                        </select>
+                      </div>
+                    ) : l.type === 'charge' ? (
                       <>
                         <div><label style={label}>Amount</label><input type="number" step="0.01" min="0" value={l.amount} onChange={(e) => setLine(l.key, { amount: e.target.value })} style={small} /></div>
                         <div><label style={label}>Ledger{l.kind === 'other' ? '' : ' (auto)'}</label>

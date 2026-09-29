@@ -40,7 +40,19 @@ class TaxController extends Controller
             $query->where('application_mode', $request->application_mode);
         }
 
-        return response()->json(['tax_types' => $query->get()], 200);
+        $ledgers = app(\App\Services\Books\TaxLedgerService::class);
+        $types = $query->get()->map(function ($t) use ($ledgers) {
+            $row = $t->toArray();
+            try {
+                $row['position'] = $ledgers->position($t);
+            } catch (\Throwable) {
+                $row['position'] = null;   // books tables not created yet
+            }
+
+            return $row;
+        });
+
+        return response()->json(['tax_types' => $types], 200);
     }
 
     public function adminStoreType(Request $request)
@@ -49,8 +61,12 @@ class TaxController extends Controller
             'name'             => 'required|string|max:100',
             'code'             => 'required|string|max:30|unique:tax_types,code',
             'application_mode' => 'required|in:additive,withheld',
+            'kind'             => 'nullable|in:' . implode(',', \App\Services\Books\TaxLedgerService::KINDS),
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
+            // opening balances: additive types have one control balance; withholding has a payable and a receivable
+            'opening_balance'    => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
+            'opening_payable'    => 'nullable|numeric|min:0', 'opening_receivable' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -61,9 +77,22 @@ class TaxController extends Controller
             'name'             => $request->name,
             'code'             => $request->code,
             'application_mode' => $request->application_mode,
+            'kind'             => $request->kind ?: ($request->application_mode === 'withheld' ? 'withholding_income' : 'other'),
             'is_compound'      => $request->boolean('is_compound'),
             'is_active'        => $request->boolean('is_active', true),
         ]);
+
+        try {
+            $type = app(\App\Services\Books\TaxLedgerService::class)->provisionType($type, [
+                'control'    => [(float) $request->input('opening_balance', 0), $request->input('opening_side', 'C')],
+                'payable'    => [(float) $request->input('opening_payable', 0), 'C'],
+                'receivable' => [(float) $request->input('opening_receivable', 0), 'D'],
+            ]);
+        } catch (\Throwable $e) {
+            $type->delete();
+
+            return response()->json(['message' => 'Could not create the tax ledgers: ' . $e->getMessage() . ' (has the books SQL been run?)'], 422);
+        }
 
         return response()->json(['tax_type' => $type], 201);
     }
@@ -84,7 +113,9 @@ class TaxController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $type->update($request->only(['name', 'code', 'application_mode', 'is_compound', 'is_active']));
+        $oldName = $type->name;
+        $type->update($request->only(['name', 'code', 'application_mode', 'is_compound', 'is_active', 'kind']));
+        app(\App\Services\Books\TaxLedgerService::class)->renameType($type, $oldName);
 
         return response()->json(['tax_type' => $type], 200);
     }
@@ -163,6 +194,13 @@ class TaxController extends Controller
             : null;
 
         $rate = TaxRate::create($data);
+        try {
+            app(\App\Services\Books\TaxLedgerService::class)->provisionRate($rate->load(['taxType', 'currency', 'unit']));
+        } catch (\Throwable $e) {
+            $rate->delete();
+
+            return response()->json(['message' => 'Could not create the rate\'s ledgers: ' . $e->getMessage()], 422);
+        }
 
         return response()->json(['tax_rate' => $rate->load(['taxType', 'unit', 'currency:id,code,symbol'])], 201);
     }

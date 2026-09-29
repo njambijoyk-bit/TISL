@@ -20,6 +20,14 @@ export default function TaxTypesSection({ canWrite }) {
     { key: 'application_mode', label: 'Applied as', render: (t) => <StatusBadge status={t.application_mode} dot={false} /> },
     { key: 'rates', label: 'Rates', align: 'right', render: (t) => rates.filter((r) => r.tax_type_id === t.id).length },
     { key: 'rules', label: 'Rules', align: 'right', render: (t) => rules.filter((r) => r.tax_type_id === t.id).length },
+    { key: 'position', label: 'Position (in books)', align: 'right', render: (t) => {
+      const p = t.position;
+      if (!p) return <span style={{ color: colors.textFaint }}>—</span>;
+      const n = (v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return p.kind === 'withheld'
+        ? <span title={`Payable ${n(p.payable)} · Receivable ${n(p.receivable)}`}>{n(p.net_owed)}</span>
+        : <span title={`Brought forward ${n(p.brought_forward)} · Output ${n(p.output)} · Input ${n(p.input)}`}>{n(p.net_owed)}</span>;
+    } },
     { key: 'is_active', label: 'Status', render: (t) => <StatusBadge status={t.is_active ? 'active' : 'inactive'} /> },
     ...(canWrite ? [{
       key: 'actions', label: '', align: 'right',

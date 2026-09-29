@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TaxLineService
 {
-    public function __construct(private TaxService $tax) {}
+    public function __construct(private TaxService $tax, private TaxLedgerService $ledgers) {}
 
     /**
      * @param  string  $module  product | service (the tax rule module)
@@ -45,6 +45,9 @@ class TaxLineService
         foreach ($results as $r) {
             /** @var TaxRate $rate */
             $rate = $r['rate'];
+            if (! $rate->ledger_output_id || ! $rate->ledger_input_id) {
+                $rate = $this->ledgers->provisionRate($rate);   // ledgers are created on first use
+            }
             $ledgerId = $side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id;
             if (! $ledgerId) {
                 $name = $rate->taxType?->name ?? 'Tax';
@@ -67,6 +70,9 @@ class TaxLineService
     public function manual(int $taxRateId, float $base, string $side): array
     {
         $rate = TaxRate::with('taxType')->findOrFail($taxRateId);
+        if (! $rate->ledger_output_id || ! $rate->ledger_input_id) {
+            $rate = $this->ledgers->provisionRate($rate);
+        }
         $ledgerId = $side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id;
         if (! $ledgerId) {
             throw new BooksException('That tax rate has no ' . $side . ' tax ledger. Set it under Tax & Compliance.');

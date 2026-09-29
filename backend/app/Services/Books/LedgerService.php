@@ -43,4 +43,28 @@ class LedgerService
 
         return $group ? in_array($ledger->group_id, $group->selfAndDescendantIds(), true) : false;
     }
+
+    /** Signed closing balance of a ledger in base currency (debit +, credit −): opening + posted entries. */
+    public function balance(int $ledgerId, ?string $asOf = null): float
+    {
+        $l = Ledger::find($ledgerId);
+        if (! $l) {
+            return 0.0;
+        }
+        $q = \Illuminate\Support\Facades\DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
+            ->where('e.ledger_id', $ledgerId)->where('v.status', 'posted');
+        if ($asOf) {
+            $q->where('v.date', '<=', $asOf);
+        }
+        $row = $q->selectRaw("COALESCE(SUM(CASE WHEN e.side='D' THEN e.base_amount ELSE 0 END),0) dr, COALESCE(SUM(CASE WHEN e.side='C' THEN e.base_amount ELSE 0 END),0) cr")->first();
+        $open = (float) $l->opening_balance * ($l->opening_side === 'C' ? -1 : 1);
+
+        return round($open + (float) $row->dr - (float) $row->cr, 2);
+    }
+
+    /** Find or create a ledger by name inside a group; returns it. */
+    public function ensure(string $name, int $groupId, array $extra = []): Ledger
+    {
+        return Ledger::firstOrCreate(['name' => $name], $extra + ['group_id' => $groupId, 'is_active' => true]);
+    }
 }

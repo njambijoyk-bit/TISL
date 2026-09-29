@@ -160,13 +160,31 @@ export default function VoucherView() {
           </div>
         )}
 
+        {v.footer && (v.footer.charges.length > 0 || v.footer.taxes.length > 0 || v.footer.discount_total > 0) && (
+          <div style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>
+            <p style={{ margin: 0, padding: '12px 14px', fontWeight: 700, fontSize: '0.85rem' }}>Charges &amp; taxes</p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr style={{ background: colors.tint(0.02) }}><th style={th}>Description</th><th style={th}>Ledger</th><th style={{ ...th, textAlign: 'right' }}>Amount</th></tr></thead>
+              <tbody>
+                {v.footer.charges.map((c, i) => (
+                  <tr key={`c${i}`}><td style={td}>{c.description}{c.note && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{c.note}</div>}</td><td style={td}>{c.ledger}</td><td style={{ ...td, ...r }}>{money(c.amount)}</td></tr>
+                ))}
+                {v.footer.discount_total > 0 && <tr><td style={td}>Discounts allowed</td><td style={td} /><td style={{ ...td, ...r }}>-{money(v.footer.discount_total)}</td></tr>}
+                {v.footer.taxes.map((t, i) => (
+                  <tr key={`t${i}`}><td style={td}>{t.label} <span style={{ color: colors.textFaint }}>on {money(t.base)}</span></td><td style={td}>{t.ledger}</td><td style={{ ...td, ...r }}>{money(t.amount)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>
           <p style={{ margin: 0, padding: '12px 14px', fontWeight: 700, fontSize: '0.85rem' }}>Accounting</p>
           {(v.entries ?? []).length === 0 ? <p style={{ padding: '0 14px 14px', margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This voucher doesn't post to the books{v.moves_stock ? ' (it moves stock)' : ''}.</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: colors.tint(0.02) }}><th style={th}>Ledger</th><th style={{ ...th, textAlign: 'right' }}>Debit</th><th style={{ ...th, textAlign: 'right' }}>Credit</th></tr></thead>
               <tbody>{v.entries.map((e) => (
-                <tr key={e.id}><td style={td}>{e.ledger?.name}</td><td style={{ ...td, ...r }}>{e.side === 'D' ? money(e.amount) : ''}</td><td style={{ ...td, ...r }}>{e.side === 'C' ? money(e.amount) : ''}</td></tr>
+                <tr key={e.id}><td style={td}>{e.ledger?.name}</td><td style={{ ...td, ...r }}>{e.side === 'D' ? money(Number(e.amount) || e.base_amount) : ''}</td><td style={{ ...td, ...r }}>{e.side === 'C' ? money(Number(e.amount) || e.base_amount) : ''}</td></tr>
               ))}</tbody>
             </table>
           )}

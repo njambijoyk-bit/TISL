@@ -19,7 +19,7 @@ class VoucherItem extends Model
         'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id', 'description', 'variant_label',
         'sku', 'unit_code', 'unit_factor', 'quantity', 'base_quantity', 'rate', 'discount_amount', 'amount',
         'tax_rate_id', 'tax_rate_percent', 'tax_amount', 'ledger_id', 'location_id', 'delivered_quantity',
-        'invoiced_quantity', 'source_item_id', 'notes',
+        'invoiced_quantity', 'source_item_id', 'notes', 'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id',
     ];
 
     protected $casts = [

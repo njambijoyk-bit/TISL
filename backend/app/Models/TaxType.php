@@ -22,6 +22,11 @@ class TaxType extends Model
         'application_mode',
         'is_compound',
         'is_active',
+        'kind',
+        'group_id',
+        'control_ledger_id',
+        'payable_ledger_id',
+        'receivable_ledger_id',
     ];
 
     protected $casts = [

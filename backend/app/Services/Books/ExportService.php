@@ -55,6 +55,29 @@ class ExportService
         }
     }
 
+    /** Charges (with the ledger each posts to), tax per ledger and total discount — the footer of every document. */
+    public function footer(Voucher $v): array
+    {
+        $v->loadMissing('items.taxes');
+        $ledgerNames = \App\Models\Books\Ledger::whereIn('id', $v->items->pluck('ledger_id')->filter()->merge($v->items->flatMap(fn ($i) => $i->taxes->pluck('ledger_id')))->unique())->pluck('name', 'id');
+        $charges = [];
+        foreach ($v->items->where('item_type', 'charge')->sortBy('line_no') as $i) {
+            $charges[] = ['description' => $i->description, 'ledger' => $ledgerNames[$i->ledger_id] ?? null, 'amount' => (float) $i->amount, 'note' => $i->notes];
+        }
+        $taxes = [];
+        foreach ($v->items as $i) {
+            foreach ($i->taxes as $t) {
+                $k = $t->ledger_id;
+                $taxes[$k] ??= ['label' => $t->label, 'ledger' => $ledgerNames[$k] ?? null, 'base' => 0.0, 'amount' => 0.0];
+                $taxes[$k]['base'] += (float) $t->base_amount;
+                $taxes[$k]['amount'] += (float) $t->tax_amount;
+            }
+        }
+        $discount = round((float) $v->items->sum('discount_amount'), 2);
+
+        return ['charges' => $charges, 'taxes' => array_values($taxes), 'discount_total' => $discount];
+    }
+
     // ── voucher shape ────────────────────────────────────────────────────
 
     private function voucherArray(Voucher $v): array
@@ -71,6 +94,7 @@ class ExportService
         }
 
         return [
+            ...$this->footer($v),
             'voucher_number' => $v->voucher_number, 'type' => $v->type?->name, 'date' => $v->date?->toDateString(), 'status' => $v->status,
             'party' => $v->partyLedger?->name, 'branch' => $v->location?->name, 'currency' => $cur, 'payment_method' => $v->paymentMethod?->name,
             'reference' => $v->reference_no, 'narration' => $v->narration,
@@ -98,6 +122,19 @@ class ExportService
                     . "<td class='r'>" . ($l['tax_rate'] !== null ? $e($l['tax_rate'] + 0) : '') . "</td><td class='r'>{$n($l['tax'])}</td></tr>";
             }
             $h .= '</tbody></table>';
+            if ($d['charges'] || $d['taxes'] || $d['discount_total'] > 0) {
+                $h .= '<h2>Charges &amp; taxes</h2><table><thead><tr><th>Description</th><th>Ledger</th><th class="r">Amount</th></tr></thead><tbody>';
+                foreach ($d['charges'] as $c) {
+                    $h .= "<tr><td>{$e($c['description'])}" . ($c['note'] ? "<br><span class='ind'>{$e($c['note'])}</span>" : '') . "</td><td>{$e($c['ledger'])}</td><td class='r'>{$n($c['amount'])}</td></tr>";
+                }
+                if ($d['discount_total'] > 0) {
+                    $h .= "<tr><td>Discounts allowed</td><td></td><td class='r'>-{$n($d['discount_total'])}</td></tr>";
+                }
+                foreach ($d['taxes'] as $t) {
+                    $h .= "<tr><td>{$e($t['label'])} on {$n($t['base'])}</td><td>{$e($t['ledger'])}</td><td class='r'>{$n($t['amount'])}</td></tr>";
+                }
+                $h .= '</tbody></table>';
+            }
             $h .= "<p class='tot'>Subtotal {$n($d['subtotal'])} · Tax {$n($d['tax_total'])} · <b>Total {$e($d['currency'])} {$n($d['total'])}</b></p>";
         }
         $h .= '<h2>Accounting</h2><table><thead><tr><th>Ledger</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>';

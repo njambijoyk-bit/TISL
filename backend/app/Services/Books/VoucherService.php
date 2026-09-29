@@ -12,7 +12,10 @@ use App\Models\Books\VoucherBillRef;
 use App\Models\Books\VoucherEntry;
 use App\Models\Books\VoucherItem;
 use App\Models\Books\VoucherItemTax;
+use App\Models\Books\GiftVoucher;
+use App\Models\Books\VoucherTender;
 use App\Models\Books\VoucherType;
+use App\Models\ShippingOption;
 use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Hamper;
@@ -196,6 +199,7 @@ class VoucherService
                 'currency_id'       => $source->currency_id,
                 'exchange_rate'     => $source->exchange_rate,
                 'payment_method_id' => $opts['payment_method_id'] ?? $source->payment_method_id,
+                'tenders'           => $opts['tenders'] ?? null,
                 'reference_no'      => $opts['reference_no'] ?? $source->reference_no,
                 'narration'         => $opts['narration'] ?? $source->narration,
                 'channel'           => $source->channel,
@@ -243,6 +247,7 @@ class VoucherService
             'currency_id'       => $invoice->currency_id,
             'exchange_rate'     => $opts['exchange_rate'] ?? null,   // blank = the rate in force today; the difference vs the invoice is booked as exchange gain/loss
             'payment_method_id' => $opts['payment_method_id'] ?? null,
+            'tenders'           => $opts['tenders'] ?? null,
             'reference_no'      => $opts['reference_no'] ?? null,
             'narration'         => $opts['narration'] ?? "Payment of {$invoice->voucher_number}",
             'amount'            => $amount,
@@ -329,12 +334,14 @@ class VoucherService
         }
 
         $method = ! empty($data['payment_method_id']) ? PaymentMethod::with('ledger')->findOrFail($data['payment_method_id']) : null;
+        $tenders = $this->rawTenders($data);
+        $method ??= $tenders[0]['method'] ?? null;
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
 
         $plan = [
             'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
             'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
-            'method' => $method, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
+            'method' => $method, 'tenders' => $tenders, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
             'subtotal' => 0.0, 'tax_total' => 0.0, 'total' => 0.0,
         ];
 
@@ -348,7 +355,7 @@ class VoucherService
             $plan['total'] = round($plan['subtotal'] + $plan['tax_total'], 2);
 
             if ($type->posts_accounts) {
-                $plan['entries'] = $this->itemEntries($plan, $type, $method);
+                $plan['entries'] = $this->itemEntries($plan, $type, $method);   // also settles $plan['tenders']
                 $plan['bills'] = $this->itemBills($plan, $type, $data);
             }
 
@@ -358,7 +365,7 @@ class VoucherService
                 $plan['stock'] = $this->stockPlan($lines, $type, $locationId);
             }
         } else {
-            [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);
+            [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);   // also settles $plan['tenders']
             $plan['moves_stock'] = false;
         }
 
@@ -387,7 +394,51 @@ class VoucherService
             };
         }
 
+        // Shipping charges are worked out last: free-above thresholds depend on the rest of the order.
+        $subtotal = 0.0;
+        foreach ($out as $line) {
+            if (empty($line['_shipping'])) {
+                $subtotal += array_sum(array_map(fn ($x) => $x['amount'], $line['is_header'] ? $line['children'] : [$line]));
+            }
+        }
+        foreach ($out as $k => $line) {
+            if (! empty($line['_shipping'])) {
+                $out[$k] = $this->shippingLine($line['_shipping'], $ctx, $subtotal);
+            }
+        }
+
         return $out;
+    }
+
+    /** A shipping option becomes a charge line: its cost converted into the voucher's currency, posted to its own income ledger, taxed if it says so. */
+    private function shippingLine(array $l, array $ctx, float $subtotal): array
+    {
+        $opt = ShippingOption::find($l['shipping_option_id']) ?? throw new BooksException('That shipping option no longer exists.');
+        if (! $opt->is_active) {
+            throw new BooksException("Shipping option \"{$opt->name}\" is switched off.");
+        }
+        $optCurrency = $this->money->currencyFrom($opt->currency_id);
+        $subInOpt = round($subtotal * (float) $ctx['rate'] / max($this->money->rateOn($optCurrency, $ctx['date']), 0.00000001), 2);
+        $cost = ! empty($l['waive']) ? 0.0 : $opt->costForSubtotal($subInOpt);
+        $amount = $this->convertPrice($cost, $opt->currency_id, $ctx);
+        $ledgerId = $opt->income_ledger_id ?: AccountingSetting::current()->shipping_income_ledger_id;
+        if (! $ledgerId) {
+            throw new BooksException("Shipping option \"{$opt->name}\" has no income ledger.");
+        }
+        $note = null;
+        if ($cost > 0 && $optCurrency->id !== $ctx['currency']->id) {
+            $note = "{$optCurrency->code} " . number_format($cost, 2) . " converted to {$ctx['currency']->code} @ " . rtrim(rtrim(number_format($this->money->rateOn($optCurrency, $ctx['date']) / (float) $ctx['rate'], 6, '.', ''), '0'), '.');
+        }
+        $line = array_merge($this->blank('charge'), [
+            'description' => 'Shipping — ' . $opt->name . ($cost == 0.0 ? ' (free)' : ''), 'quantity' => 1.0, 'base_quantity' => 1.0,
+            'rate' => $amount, 'amount' => $amount, 'ledger_id' => (int) $ledgerId, 'shipping_option_id' => $opt->id, 'notes' => $note,
+        ]);
+        if ($amount != 0.0 && $opt->tax_rate_id) {
+            $line['taxes'] = $this->taxes->manual((int) $opt->tax_rate_id, $amount, $this->side($ctx));
+            $this->summariseTaxes($line);
+        }
+
+        return $line;
     }
 
     private function blank(string $itemType): array
@@ -398,7 +449,18 @@ class VoucherService
             'sku' => null, 'unit_code' => null, 'unit_factor' => 1.0, 'quantity' => 1.0, 'base_quantity' => 1.0, 'rate' => 0.0,
             'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
+            'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
+        ];
+    }
+
+    /** Where a line's discount came from (tier, customer type, promo code, manual) and which ledger it posts to. */
+    private function discountMeta(array $l): array
+    {
+        return [
+            'discount_ledger_id' => $l['discount_ledger_id'] ?? null,
+            'discount_source' => $l['discount_source'] ?? (($l['discount'] ?? 0) > 0 ? 'manual' : null),
+            'discount_ref' => $l['discount_ref'] ?? null,
         ];
     }
 
@@ -419,7 +481,14 @@ class VoucherService
 
     private function convertPrice(float $amount, ?int $fromCurrencyId, array $ctx): float
     {
-        return $this->money->convert($amount, $this->money->currencyFrom($fromCurrencyId), $ctx['currency']);
+        $from = $this->money->currencyFrom($fromCurrencyId);
+        if ($from->id === $ctx['currency']->id) {
+            return round($amount, 2);
+        }
+        // via base, at the rate in force on the voucher's date (and the voucher's own rate for its currency)
+        $inBase = $amount * $this->money->rateOn($from, $ctx['date']);
+
+        return round($inBase / max((float) $ctx['rate'], 0.00000001), 2);
     }
 
     private function finishAmounts(array &$line, ?\Illuminate\Database\Eloquent\Model $taxable, string $module, ?int $unitId, array $ctx): void
@@ -483,7 +552,7 @@ class VoucherService
             'quantity' => $qty, 'base_quantity' => round($qty * $factor, 4), 'rate' => round($rate, 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null,
             'location_id' => $l['location_id'] ?? null, 'notes' => $l['notes'] ?? null,
-        ]);
+        ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
         $this->finishAmounts($line, $product, 'product', $unitRow->unit_id, $ctx);
 
@@ -507,7 +576,7 @@ class VoucherService
             'variant_label' => $pkg->name, 'sku' => $service->sku, 'unit_code' => $pkg->priceUnit?->code,
             'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round($rate, 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
-        ]);
+        ] + $this->discountMeta($l));
         $this->finishAmounts($line, $service, 'service', $pkg->price_unit_id, $ctx);
 
         return $line;
@@ -567,6 +636,9 @@ class VoucherService
 
     private function chargeLine(array $l, array $ctx): array
     {
+        if (! empty($l['shipping_option_id'])) {
+            return array_merge($this->blank('charge'), ['_shipping' => $l]);
+        }
         $s = AccountingSetting::current();
         $kind = $l['kind'] ?? 'other';
         $amount = round((float) ($l['amount'] ?? 0), 2);
@@ -602,7 +674,7 @@ class VoucherService
         $line = array_merge($this->blank('custom'), [
             'description' => $l['description'], 'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round((float) ($l['rate'] ?? 0), 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => (int) $l['ledger_id'], 'notes' => $l['notes'] ?? null,
-        ]);
+        ] + $this->discountMeta($l));
         $line['amount'] = round($qty * $line['rate'] - $line['discount_amount'], 2);
         $line['taxes'] = ! empty($l['tax_rate_id']) ? $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx)) : [];
         $this->summariseTaxes($line);
@@ -614,7 +686,8 @@ class VoucherService
     {
         $line = $this->blank($it->item_type);
         foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
-                  'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent'] as $k) {
+                  'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent',
+                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id'] as $k) {
             $line[$k] = $it->{$k};
         }
         $line['unit_factor'] = (float) $it->unit_factor;
@@ -682,7 +755,7 @@ class VoucherService
 
     // ── accounting ─────────────────────────────────────────────────────
 
-    private function itemEntries(array $plan, VoucherType $type, ?PaymentMethod $method): array
+    private function itemEntries(array &$plan, VoucherType $type, ?PaymentMethod $method): array
     {
         $base = $type->base_type;
         $settings = AccountingSetting::current();
@@ -692,12 +765,21 @@ class VoucherService
 
         $byLedger = [];
         $taxByLedger = [];
+        $discByLedger = [];
         foreach ($this->postingLines($plan['lines']) as $l) {
             $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? $settings->default_sales_ledger_id : $settings->default_purchase_ledger_id);
             if (! $ledgerId) {
                 throw new BooksException('Choose a ledger for "' . $l['description'] . '" (or set a default under Books settings).');
             }
-            $byLedger[$ledgerId] = ($byLedger[$ledgerId] ?? 0) + $l['amount'];
+            // Sales-side discounts post gross + contra: the sale at list price, the discount to its own ledger.
+            $disc = (float) ($l['discount_amount'] ?? 0);
+            $discLedger = $l['discount_ledger_id'] ?? $settings->discount_ledger_id;
+            if ($disc > 0 && $type->isSalesSide() && $discLedger && $l['item_type'] !== 'charge') {
+                $byLedger[$ledgerId] = ($byLedger[$ledgerId] ?? 0) + $l['amount'] + $disc;
+                $discByLedger[$discLedger] = ($discByLedger[$discLedger] ?? 0) + $disc;
+            } else {
+                $byLedger[$ledgerId] = ($byLedger[$ledgerId] ?? 0) + $l['amount'];
+            }
             foreach ($l['taxes'] as $t) {
                 $taxByLedger[$t['ledger_id']] = ($taxByLedger[$t['ledger_id']] ?? 0) + $t['tax_amount'];
             }
@@ -721,6 +803,10 @@ class VoucherService
             $add((int) $ledgerId, $side, abs($amt));
             $total += $amt;
         }
+        foreach ($discByLedger as $ledgerId => $amt) {
+            $add((int) $ledgerId, $flip($lineSide), abs($amt), ['narration' => 'Discount allowed']);
+            $total -= $amt;
+        }
         foreach ($taxByLedger as $ledgerId => $amt) {
             $side = $amt >= 0 ? $lineSide : $flip($lineSide);
             $add((int) $ledgerId, $side, abs($amt), ['is_tax' => true]);
@@ -729,12 +815,20 @@ class VoucherService
 
         // The other side: customer / supplier ledger, or cash for a cash sale.
         if ($base === VoucherType::CASH_SALE) {
-            $method ??= AccountingSetting::current()->default_payment_method_id
-                ? PaymentMethod::with('ledger')->find(AccountingSetting::current()->default_payment_method_id) : null;
-            if (! $method) {
-                throw new BooksException('Choose how the cash sale was paid.');
+            if (! $plan['tenders']) {
+                $method ??= AccountingSetting::current()->default_payment_method_id
+                    ? PaymentMethod::with('ledger')->find(AccountingSetting::current()->default_payment_method_id) : null;
+                if (! $method) {
+                    throw new BooksException('Choose how the cash sale was paid.');
+                }
+                $plan['tenders'] = [['method' => $method, 'amount' => null, 'reference' => null, 'gift' => null]];
             }
-            $partyLedgerId = $method->ledger_id;
+            $plan['tenders'] = $this->finalizeTenders($plan['tenders'], round(abs($total), 2), $plan);
+            foreach ($plan['tenders'] as $t) {
+                $add((int) $t['method']->ledger_id, $total >= 0 ? $partySide : $flip($partySide), $t['amount'], ['is_party' => true]);
+            }
+
+            return $entries;
         } else {
             $partyLedgerId = $plan['party']?->id ?? throw new BooksException('Choose the party.');
         }
@@ -765,7 +859,7 @@ class VoucherService
     }
 
     /** Receipt / Payment / Journal / Contra. @return array{0: array, 1: array, 2: float} */
-    private function directEntries(array $data, VoucherType $type, array $plan, ?PaymentMethod $method): array
+    private function directEntries(array $data, VoucherType $type, array &$plan, ?PaymentMethod $method): array
     {
         $rate = $plan['rate'];
         $mk = fn (int $ledgerId, string $side, float $amt, array $extra = []) => array_merge([
@@ -780,14 +874,20 @@ class VoucherService
                 throw new BooksException('Enter the amount.');
             }
             $cashLedgerId = $method?->ledger_id ?? ($data['ledger_id'] ?? null);
-            if (! $cashLedgerId) {
+            if (! $cashLedgerId && ! $plan['tenders']) {
                 throw new BooksException('Choose how it was ' . ($base === VoucherType::RECEIPT ? 'received' : 'paid') . ' (payment method or cash/bank ledger).');
             }
             // Payments may go to any expense / supplier ledger; receipts come from the party.
             $otherLedgerId = $plan['party']?->id ?? ($data['counter_ledger_id'] ?? null) ?? throw new BooksException('Choose the party ledger.');
-            $entries = $base === VoucherType::RECEIPT
-                ? [$mk($cashLedgerId, 'D', $amount), $mk($otherLedgerId, 'C', $amount, ['is_party' => true])]
-                : [$mk($otherLedgerId, 'D', $amount, ['is_party' => true]), $mk($cashLedgerId, 'C', $amount)];
+            $cashSide = $base === VoucherType::RECEIPT ? 'D' : 'C';
+            $partySide = $base === VoucherType::RECEIPT ? 'C' : 'D';
+            if ($plan['tenders']) {
+                $plan['tenders'] = $this->finalizeTenders($plan['tenders'], $amount, $plan);
+                $cash = array_map(fn ($t) => $mk((int) $t['method']->ledger_id, $cashSide, $t['amount']), $plan['tenders']);
+            } else {
+                $cash = [$mk($cashLedgerId, $cashSide, $amount)];
+            }
+            $entries = array_merge($cash, [$mk($otherLedgerId, $partySide, $amount, ['is_party' => true])]);
 
             $bills = [];
             $allocated = 0.0;
@@ -856,6 +956,62 @@ class VoucherService
         }
 
         return [$entries, [], round($debit, 2)];
+    }
+
+    // ── tenders (paying one voucher several ways) ───────────────────────
+
+    /** @return array<int, array{method: PaymentMethod, amount: ?float, reference: ?string, gift: ?GiftVoucher}> */
+    private function rawTenders(array $data): array
+    {
+        $out = [];
+        foreach ($data['tenders'] ?? [] as $t) {
+            $method = PaymentMethod::with('ledger')->find($t['payment_method_id'] ?? null)
+                ?? throw new BooksException('One of the payment methods is not valid.');
+            $gift = null;
+            if ($method->kind === 'gift_voucher') {
+                $code = trim((string) ($t['gift_voucher_code'] ?? ''));
+                $gift = GiftVoucher::where('code', $code)->first() ?? throw new BooksException($code === '' ? 'Enter the gift voucher code.' : "Gift voucher {$code} was not found.");
+            }
+            $out[] = ['method' => $method, 'amount' => isset($t['amount']) && $t['amount'] !== '' ? round((float) $t['amount'], 2) : null, 'reference' => $t['reference'] ?? null, 'gift' => $gift];
+        }
+
+        return $out;
+    }
+
+    /** Work out each tender's amount (one may take the remainder), convert gift vouchers to their own currency, check the total. */
+    private function finalizeTenders(array $tenders, float $total, array $plan): array
+    {
+        $open = array_keys(array_filter($tenders, fn ($t) => $t['amount'] === null));
+        if (count($open) > 1) {
+            throw new BooksException('Only one payment method can take "the rest".');
+        }
+        $given = array_sum(array_map(fn ($t) => $t['amount'] ?? 0, $tenders));
+        if ($open) {
+            $tenders[$open[0]]['amount'] = round($total - $given, 2);
+        }
+        $sum = round(array_sum(array_column($tenders, 'amount')), 2);
+        if (abs($sum - $total) > 0.005) {
+            throw new BooksException('The payments add up to ' . number_format($sum, 2) . ' but ' . number_format($total, 2) . ' is due.');
+        }
+        foreach ($tenders as &$t) {
+            if ($t['amount'] <= 0) {
+                throw new BooksException('Every payment needs an amount above zero.');
+            }
+            if ($t['gift']) {
+                $gv = $t['gift'];
+                if ($gv->customer_id && $plan['customer'] && (int) $gv->customer_id !== (int) $plan['customer']->id) {
+                    throw new BooksException("Gift voucher {$gv->code} belongs to another customer.");
+                }
+                $baseAmt = $t['amount'] * $plan['rate'];
+                $t['gift_amount'] = round($baseAmt / max($this->money->rateOn($gv->currency_id, $plan['date']), 0.00000001), 2);
+                if (! $gv->isSpendable() || $t['gift_amount'] - (float) $gv->balance > 0.005) {
+                    throw new BooksException("Gift voucher {$gv->code} can't cover " . number_format($t['amount'], 2) . ' (balance ' . number_format((float) $gv->balance, 2) . ' ' . ($gv->currency?->code ?? '') . ').');
+                }
+            }
+        }
+        unset($t);
+
+        return $tenders;
     }
 
     /** Add the realised exchange gain / loss line that makes the base-currency side balance. */
@@ -984,6 +1140,19 @@ class VoucherService
             ]);
         }
 
+        foreach ($plan['tenders'] ?? [] as $t) {
+            if (! isset($t['amount'])) {
+                continue;
+            }
+            VoucherTender::create([
+                'voucher_id' => $voucher->id, 'payment_method_id' => $t['method']->id, 'amount' => $t['amount'], 'reference' => $t['reference'] ?? null,
+                'gift_voucher_id' => $t['gift']?->id, 'gift_amount' => $t['gift_amount'] ?? null, 'created_at' => now(),
+            ]);
+            if ($t['gift']) {
+                app(GiftVoucherService::class)->redeem($t['gift'], (float) $t['gift_amount'], $voucher, $user);
+            }
+        }
+
         // stock movement rows (line ids are known now)
         foreach ($applied as $m) {
             StockMovement::create([
@@ -1006,6 +1175,8 @@ class VoucherService
             'rate' => $l['rate'], 'discount_amount' => $l['discount_amount'], 'amount' => $l['amount'], 'tax_rate_id' => $l['tax_rate_id'],
             'tax_rate_percent' => $l['tax_rate_percent'], 'tax_amount' => $l['tax_amount'], 'ledger_id' => $l['ledger_id'],
             'location_id' => $l['location_id'] ?? $voucher->location_id, 'source_item_id' => $l['source_item_id'], 'notes' => $l['notes'],
+            'discount_ledger_id' => $l['discount_ledger_id'] ?? null, 'discount_source' => $l['discount_source'] ?? null,
+            'discount_ref' => $l['discount_ref'] ?? null, 'shipping_option_id' => $l['shipping_option_id'] ?? null,
         ]);
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
@@ -1057,6 +1228,8 @@ class VoucherService
             $m->update(['reversed' => true]);
         }
         StockMovement::where('voucher_id', $voucher->id)->delete();
+        app(GiftVoucherService::class)->restoreFor($voucher);
+        VoucherTender::where('voucher_id', $voucher->id)->delete();
         $voucher->load('items');
         $this->bumpSources($voucher, -1);
     }
