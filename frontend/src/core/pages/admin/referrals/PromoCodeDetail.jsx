@@ -199,7 +199,7 @@ export default function PromoCodeDetail() {
       ? `KES ${Number(code.reward_value).toLocaleString()} off`
       : code.reward_type === 'free_shipping'
         ? 'Free Shipping'
-        : 'Store Credit';
+        : 'Gift Voucher';
 
   const usagePct = code.max_uses
     ? Math.min((code.times_used / code.max_uses) * 100, 100)

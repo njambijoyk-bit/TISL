@@ -160,12 +160,12 @@ function OrderPricingAppendix() {
     { step: 3, name: 'Promo Discount',    field: '− promo_discount',    color: 'var(--color-primary-400)', note: 'Validated and applied via PromoCodeService' },
     { step: 4, name: 'Tax (16%)',         field: '+ tax',               color: '#ef4444', note: 'Computed on taxable_amount after all discounts' },
     { step: 5, name: 'Shipping',          field: '+ shipping_cost',     color: '#3b82f6', note: 'From the active shipping option record' },
-    { step: 6, name: 'Store Credit',      field: '− store_credit',      color: '#10b981', note: 'Cap: KES 500 for hamper orders' },
+    { step: 6, name: 'Gift Voucher',      field: '− store_credit',      color: '#10b981', note: 'Cap: KES 500 for hamper orders' },
   ];
  
   return (
     <div style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db' }}>
-      {p('Every order total is assembled through a staged math pipeline. The controller uses calcPricing() to compute per-line amounts, sums them into a subtotal, then applies discounts, tax, shipping, and store credit in a fixed sequence.')}
+      {p('Every order total is assembled through a staged math pipeline. The controller uses calcPricing() to compute per-line amounts, sums them into a subtotal, then applies discounts, tax, shipping, and gift voucher in a fixed sequence.')}
  
       {h('Line Item Formula')}
       <div style={box}>
@@ -220,16 +220,16 @@ function OrderCreationFlowAppendix() {
   const p = (text, style = {}) => <p style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db', margin: '0 0 10px', ...style }}>{text}</p>;
  
   const STEPS = [
-    { n: 'A', title: 'Validate Input',           color: '#6366f1', detail: 'Customer identity, contact, shipping address, delivery method, payment method, line items, optional promo and store credit fields' },
+    { n: 'A', title: 'Validate Input',           color: '#6366f1', detail: 'Customer identity, contact, shipping address, delivery method, payment method, line items, optional promo and gift voucher fields' },
     { n: 'B', title: 'Resolve Customer',         color: 'var(--color-primary-400)', detail: 'Uses authenticated customer or finds/creates a guest by email. Order always ends up attached to a customers.id — no anonymous orders' },
     { n: 'C', title: 'Inspect Each Item',        color: 'var(--color-primary-500)', detail: 'Each item is classified: custom (no IDs), service (service_id only), or product (product_id present). Item type determines what DB tables are read and whether stock is touched' },
     { n: 'D', title: 'Build Line Totals',        color: 'var(--color-primary-400)', detail: 'calcPricing() runs per item. line_total_after_discount and line_total computed. Subtotal = Σ line_total_after_discount across all items' },
-    { n: 'E', title: 'Apply Order-Level Math',   color: '#ec4899', detail: 'Sequential deductions: customer discount → referral discount → promo discount → tax (16%) → shipping → store credit. Produces the final payable total' },
+    { n: 'E', title: 'Apply Order-Level Math',   color: '#ec4899', detail: 'Sequential deductions: customer discount → referral discount → promo discount → tax (16%) → shipping → gift voucher. Produces the final payable total' },
     { n: 'F', title: 'Generate Order Number',    color: '#f97316', detail: 'Unique order reference number generated before the row is saved. Used as the human-readable identifier across all communications' },
     { n: 'G', title: 'Save Order Row',           color: '#f59e0b', detail: 'orders row created with all financial fields, shipping snapshot, status = pending, payment_status = unpaid' },
     { n: 'H', title: 'Save Order Items',         color: '#10b981', detail: 'createOrderItems() writes order_items rows. Simultaneously reserves stock, decrements products.stock_quantity, marks products out-of-stock when depleted' },
     { n: 'I', title: 'Record Promo / Referral',  color: '#06b6d4', detail: 'recordPromoUsage() increments usage metrics on the code row. referral_code_usage row is created/updated with order reference and reward details' },
-    { n: 'J', title: 'Record Transactions',      color: '#3b82f6', detail: 'Payment, loyalty, and store credit transactions are written when applicable. Hamper-converted orders skip loyalty earning — it was already processed at hamper checkout' },
+    { n: 'J', title: 'Record Transactions',      color: '#3b82f6', detail: 'Payment, loyalty, and gift voucher transactions are written when applicable. Hamper-converted orders skip loyalty earning — it was already processed at hamper checkout' },
     { n: 'K', title: 'Send Confirmation Email',  color: '#ef4444', detail: 'Confirmation email dispatched to the customer. Order is live.' },
   ];
  
@@ -288,7 +288,7 @@ order_items                ← N rows (one per line item)
 products                   ← stock_quantity updated per product line
 payments                   ← only if payment is recorded at creation time
 loyalty_point_transactions ← if loyalty points are awarded
-store_credit_transactions  ← if store credit was applied or refunded
+store_credit_transactions  ← if gift voucher was applied or refunded
 referral_code_usage        ← if a referral or promo code was used`}</div>
       </div>
     </div>
@@ -453,12 +453,12 @@ function TransactionLedgersAppendix() {
     ['order_spend',     'Credit deducted when applied to an order',        '#ef4444'],
     ['admin_grant',     'Manual admin credit grant',                       'var(--color-primary-500)'],
     ['admin_deduct',    'Manual admin deduction',                          '#f97316'],
-    ['redemption',      'Customer redeems their store credit balance',     '#f59e0b'],
+    ['redemption',      'Customer redeems their gift voucher balance',     '#f59e0b'],
   ];
  
   return (
     <div style={{ fontSize: '0.82rem', lineHeight: 1.8, color: '#d1d5db' }}>
-      {p('The system maintains three separate financial ledgers. Each owns a different kind of value: real money (payments), reward points (loyalty), and spendable balance (store credit). All three are append-only — balance and status are always derived from the ledger, never stored directly.')}
+      {p('The system maintains three separate financial ledgers. Each owns a different kind of value: real money (payments), reward points (loyalty), and spendable balance (gift voucher). All three are append-only — balance and status are always derived from the ledger, never stored directly.')}
  
       {h('Ledger 1 — Payments')}
       <div style={box}>
@@ -508,10 +508,10 @@ function TransactionLedgersAppendix() {
         ))}
       </div>
  
-      {h('Ledger 3 — Store Credit Transactions')}
+      {h('Ledger 3 — Gift Voucher Transactions')}
       <div style={box}>
         <span style={label}>store_credit_transactions — also managed by LoyaltyService</span>
-        {p('Store credit is a spendable balance separate from loyalty points. Hamper orders cap store credit usage at KES 500. Standard orders have no cap. The actual balance on customers.store_credit is derived from this ledger.', { fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 10px' })}
+        {p('Gift voucher is a spendable balance separate from loyalty points. Hamper orders cap gift voucher usage at KES 500. Standard orders have no cap. The actual balance on customers.store_credit is derived from this ledger.', { fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 10px' })}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8 }}>
         {CREDIT_EVENTS.map(([type, desc, color]) => (
@@ -538,7 +538,7 @@ function ReferralPromoAppendix() {
     { step: '1', label: 'Referred customer places order',   color: '#ec4899', detail: 'Controller validates the referral code and links it to the order via orders.referral_code_id' },
     { step: '2', label: 'Usage recorded',                   color: '#f97316', detail: 'referral_code_usage row created with status = completed. Stores order_id and financial snapshot' },
     { step: '3', label: 'Referral discount applied',        color: '#f59e0b', detail: 'referral_discount deducted from taxable_amount in the final total calculation' },
-    { step: '4', label: 'Referrer rewarded',                color: '#10b981', detail: 'If reward is configured, referrer receives store credit, loyalty points, or discount benefit via LoyaltyService' },
+    { step: '4', label: 'Referrer rewarded',                color: '#10b981', detail: 'If reward is configured, referrer receives gift voucher, loyalty points, or discount benefit via LoyaltyService' },
     { step: '5', label: 'On cancellation',                  color: '#6b7280', detail: 'adminCancel() calls cancelReferralUsage() — reverses the usage record and the referrer\'s reward' },
   ];
  
@@ -1361,7 +1361,7 @@ function RouteMapAppendix() {
           <li><strong>Profile Routing:</strong> The <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/profile</code> path auto-switches between Admin and Customer views via <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>RoleBasedProfile</code>.</li>
           <li><strong>Admin Access:</strong> All <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/*</code> routes are role-gated to staff (Admin, Manager, Finance, Logistics, Sales Rep).</li>
           <li><strong>Ship View:</strong> <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/orders/:id/ship</code> uses <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>OrderDetail</code> with a specialised context mode.</li>
-          <li><strong>Hamper Checkout:</strong> Store credit is capped at KES 500 and financials are locked post-conversion.</li>
+          <li><strong>Hamper Checkout:</strong> Gift voucher is capped at KES 500 and financials are locked post-conversion.</li>
           <li><strong>Careers Portal:</strong> Applicant auth is separate from the main customer auth system.</li>
         </ul>
       </div>
@@ -1503,11 +1503,11 @@ const APPENDIX_SECTIONS = [
  
 **Hamper Orders** — Loyalty points are calculated based on the **total** (after tax, shipping, and discounts). Points are awarded **at checkout** — they come precalculated and are applied immediately. This is intentional because hampers are competitive deals and the full total reflects the customer's actual spend.
  
-### Store Credit
+### Gift Voucher
  
-**Standard Orders** — Store credit is deducted **on order confirmation**. If the order is cancelled, store credit is refunded back to the customer.
+**Standard Orders** — Gift voucher is deducted **on order confirmation**. If the order is cancelled, gift voucher is refunded back to the customer.
  
-**Hamper Orders** — Store credit is deducted **at checkout** (precalculated). The maximum store credit that can be applied to a hamper order is **KES 500**. If the order is cancelled, store credit is refunded.
+**Hamper Orders** — Gift voucher is deducted **at checkout** (precalculated). The maximum gift voucher that can be applied to a hamper order is **KES 500**. If the order is cancelled, gift voucher is refunded.
  
 ### Promo Codes / Referral Codes
  
@@ -1521,7 +1521,7 @@ When a hamper order is converted to a standard order:
 - **Financials are copied as-is** (subtotal, tax, total, shipping) — no recalculation
 - **Type is set to \`hamper\`** — the order is locked from item modifications
 - **Status starts as \`confirmed\`** — never \`pending\`
-- **Store credit, loyalty, promo stats are NOT re-applied** — they were already processed at hamper checkout
+- **Gift voucher, loyalty, promo stats are NOT re-applied** — they were already processed at hamper checkout
 - **Customer stats** (total_orders, total_spent) are updated via \`recalculateStatistics()\`
 - All actions on the converted order are logged to the original hamper order's notes`,
   },
@@ -1538,7 +1538,7 @@ When a hamper order is converted to a standard order:
     component: InventoryReservationAppendix,
   },
   {
-    title: 'Transaction Ledgers — Payments, Loyalty & Store Credit',
+    title: 'Transaction Ledgers — Payments, Loyalty & Gift Voucher',
     component: TransactionLedgersAppendix,
   },
   {

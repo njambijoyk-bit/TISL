@@ -148,7 +148,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
             </div>
             {form.type === 'gift' && (
               <p style={{ fontSize: '0.7rem', color: '#d97706', margin: '5px 0 0' }}>
-                Gift redemptions don't grant store credit — handle fulfilment manually.
+                Gift redemptions don't grant gift voucher — handle fulfilment manually.
               </p>
             )}
           </div>
@@ -361,10 +361,10 @@ export default function LoyaltySettings() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
             { key: 'points_per_100_kes',     label: 'Points per KES 100 spent (must be an integer)',  type: 'number', min: 1,   placeholder: '1',   hint: 'Applied on order payment. Multiplied by tier.' },
-            { key: 'referral_credit_amount',  label: 'Referral reward (KES)',      type: 'number', min: 0,   placeholder: '500', hint: 'Store credit granted to referrer when referred customer pays first order.' },
+            { key: 'referral_credit_amount',  label: 'Referral reward (KES)',      type: 'number', min: 0,   placeholder: '500', hint: 'Gift voucher granted to referrer when referred customer pays first order.' },
             { key: 'min_redemption_points',   label: 'Min redemption threshold',   type: 'number', min: 1,   placeholder: '500', hint: 'Customer must have at least this many points to redeem.' },
             { key: 'points_expiry_months',    label: 'Points expiry (months)',     type: 'number', min: 1,   placeholder: 'Never', hint: 'Leave blank for no expiry. Expiry runs monthly via scheduler.' },
-            { key: 'store_credit_max_pct',    label: 'Store credit cap (%)',       type: 'number', min: 0,   placeholder: '50', hint: 'Max % of order total a customer can pay with store credit. Applies at checkout and admin orders.' },
+            { key: 'store_credit_max_pct',    label: 'Gift voucher cap (%)',       type: 'number', min: 0,   placeholder: '50', hint: 'Max % of order total a customer can pay with gift voucher. Applies at checkout and admin orders.' },
           ].map(({ key, label: lbl, type, min, placeholder, hint }) => (
             <div key={key}>
               <p style={label}>{lbl}</p>
@@ -397,7 +397,7 @@ export default function LoyaltySettings() {
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
             <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
             <p style={{ fontSize: '0.76rem', color: '#6b7280', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
-              Gift redemptions deduct the customer's points but do not add store credit. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules convert points into KES credit automatically.
+              Gift redemptions deduct the customer's points but do not add gift voucher. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules convert points into KES credit automatically.
             </p>
           </div>
           <button onClick={() => setRuleModal('new')} style={btn('primary', 'sm')}>

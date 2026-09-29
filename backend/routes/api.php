@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\BooksMasterController;
 use App\Http\Controllers\Api\CompanyProfileController;
 use App\Http\Controllers\Api\QuotationController;
 use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\GiftVoucherController;
 use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -375,6 +376,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
         Route::get('/vouchers/{id}/export',     [BooksVoucherController::class, 'export']);
         Route::get('/reports/{name}',           [BooksVoucherController::class, 'report']);
+        Route::get('/gift-vouchers',            [GiftVoucherController::class, 'index']);
+        Route::get('/gift-vouchers/reconcile',  [GiftVoucherController::class, 'reconcile']);
+        Route::get('/gift-vouchers/{id}',       [GiftVoucherController::class, 'show']);
         Route::get('/groups',                   [BooksMasterController::class, 'groups']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
@@ -383,6 +387,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/series/preview',          [BooksMasterController::class, 'previewSeries']);
 
         Route::middleware('role:admin,super_admin,finance')->group(function () {
+            Route::post('/gift-vouchers',              [GiftVoucherController::class, 'store']);
+            Route::post('/gift-vouchers/{id}/cancel',  [GiftVoucherController::class, 'cancel']);
+            Route::post('/gift-vouchers/expire-due',   [GiftVoucherController::class, 'expireDue']);
             Route::post('/vouchers',                [BooksVoucherController::class, 'store']);
             Route::put('/vouchers/{id}',            [BooksVoucherController::class, 'update']);
             Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
@@ -486,6 +493,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/attempts/{id}', [CheckoutController::class, 'attempt']);
             Route::post('/orders/{id}/pay', [CheckoutController::class, 'payOrder']);
         });
+        Route::get('/gift-vouchers', [GiftVoucherController::class, 'mine']);
         Route::prefix('sales-orders')->group(function () {
             Route::get('/', [CheckoutController::class, 'orders']);
             Route::get('/{id}', [CheckoutController::class, 'order']);

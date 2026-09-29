@@ -55,7 +55,7 @@ const SORT_FIELDS = [
   { key: 'total_orders',        label: 'Orders'        },
   { key: 'last_order_date',     label: 'Last order'    },
   { key: 'discount_percentage', label: 'Personal Discount'},
-  { key: 'store_credit',        label: 'Store credit'  },
+  { key: 'store_credit',        label: 'Gift voucher'  },
   { key: 'loyalty_points',      label: 'Points'        },
 ];
 
@@ -513,7 +513,7 @@ export default function Customers() {
                   <SortButton field={SORT_FIELDS[5]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} align="right" />
                 </th>
 
-                {/* Store credit — sortable */}
+                {/* Gift voucher — sortable */}
                 <th style={{ padding: '10px 16px', textAlign: 'right', minWidth: 110 }}>
                   <SortButton field={SORT_FIELDS[6]} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} align="right" />
                 </th>
@@ -651,7 +651,7 @@ export default function Customers() {
                             }
                           </td>
 
-                          {/* ── Store credit ── */}
+                          {/* ── Gift voucher ── */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             {Number(c.store_credit) > 0
                               ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>

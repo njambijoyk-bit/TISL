@@ -48,7 +48,7 @@ function calcEffective(customer, tiers = [], types = []) {
 const TAB2_SORT_FIELDS = [
   { key: 'first_name',          label: 'Customer'     },
   { key: 'discount_percentage', label: 'Discount'     },
-  { key: 'store_credit',        label: 'Store Credit' },
+  { key: 'store_credit',        label: 'Gift Voucher' },
   { key: 'loyalty_points',      label: 'Points'       },
 ];
 
@@ -305,7 +305,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
           <div>
             <SectionHeading icon={<CreditCard size={13} />} label="Wallet & Savings" color="#059669" />
             <div style={{ display: 'flex', gap: 8 }}>
-              <StatPill label="Store credit"   value={fmt(storeCredit)}                                               accent="#059669" bg="rgba(5,150,105,0.06)"   />
+              <StatPill label="Gift voucher"   value={fmt(storeCredit)}                                               accent="#059669" bg="rgba(5,150,105,0.06)"   />
               <StatPill label="Loyalty points" value={fmtPts(loyaltyPoints) + ' pts'}                                 accent="#d97706" bg="rgba(217,119,6,0.06)"   />
               <StatPill label="Points → KES"   value={redemptionRate > 0 ? fmt(pointsKesValue) : '—'}                accent="var(--color-primary-600)" bg="color-mix(in srgb, var(--color-primary-600) 6%, transparent)"  />
               <StatPill label="Discount"       value={pct(effectiveDiscount)}                                         accent="var(--color-primary-500)" bg="color-mix(in srgb, var(--color-primary-500) 6%, transparent)"  />
@@ -314,10 +314,10 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
               <TrendingUp size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
               <p style={{ fontSize: '0.7rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
                 {redemptionRate > 0
-                  ? <><strong>{fmtPts(loyaltyPoints)} pts</strong> redeemable for up to <strong>{fmt(pointsKesValue)}</strong> store credit{bestRateRule ? <> via <strong>{bestRateRule.name}</strong></> : null}{canRedeem ? ' · eligible to redeem now' : ` · needs ${fmtPts(minRedeem - loyaltyPoints)} more pts to unlock (min ${fmtPts(minRedeem)})`}.</>
+                  ? <><strong>{fmtPts(loyaltyPoints)} pts</strong> redeemable for up to <strong>{fmt(pointsKesValue)}</strong> gift voucher{bestRateRule ? <> via <strong>{bestRateRule.name}</strong></> : null}{canRedeem ? ' · eligible to redeem now' : ` · needs ${fmtPts(minRedeem - loyaltyPoints)} more pts to unlock (min ${fmtPts(minRedeem)})`}.</>
                   : <><strong>{fmtPts(loyaltyPoints)} pts</strong> accrued · no active cashback or voucher rules configured for redemption.</>
                 }
-                {' '}Store credit is applied directly at checkout.
+                {' '}Gift voucher is applied directly at checkout.
               </p>
             </div>
             <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)' }}>
@@ -371,7 +371,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                   <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(5,150,105,0.05)', border: '1px solid rgba(5,150,105,0.15)', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
                     <ShieldCheck size={13} style={{ color: '#059669', flexShrink: 0 }} />
                     <p style={{ fontSize: '0.7rem', color: '#065f46', margin: 0 }}>
-                      Customer can redeem <strong>{affordableRules.length} rule{affordableRules.length > 1 ? 's' : ''}</strong> now, earning up to <strong>{fmt(Math.max(...affordableRules.map(r => r.value_kes)))}</strong> store credit.
+                      Customer can redeem <strong>{affordableRules.length} rule{affordableRules.length > 1 ? 's' : ''}</strong> now, earning up to <strong>{fmt(Math.max(...affordableRules.map(r => r.value_kes)))}</strong> gift voucher.
                     </p>
                   </div>
                 )}
@@ -631,7 +631,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <StatPill label="Avg discount"       value={pct(avgEffective)}                accent="var(--color-primary-500)" bg="color-mix(in srgb, var(--color-primary-500) 6%, transparent)" />
           <StatPill label="With any discount"  value={customersWithDiscount + ' cust.'} accent="var(--color-primary-600)" bg="color-mix(in srgb, var(--color-primary-600) 6%, transparent)" />
-          <StatPill label="Total store credit" value={fmt(totalStoreCredit)}            accent="#059669" bg="rgba(5,150,105,0.06)"  />
+          <StatPill label="Total gift voucher" value={fmt(totalStoreCredit)}            accent="#059669" bg="rgba(5,150,105,0.06)"  />
           <StatPill label="Total pts (loaded)" value={fmtPts(totalLoyaltyPoints)}       accent="#d97706" bg="rgba(217,119,6,0.06)"  />
         </div>
         <div style={{ position: 'relative', marginTop: 10 }}>
@@ -698,7 +698,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                   </Tooltip>
                 </div>
 
-                {/* store credit */}
+                {/* gift voucher */}
                 <p style={{ fontSize: '0.75rem', fontWeight: 600, color: Number(c.store_credit) > 0 ? '#059669' : '#9ca3af', margin: 0, textAlign: 'center' }}>
                   {Number(c.store_credit) > 0 ? fmt(c.store_credit) : '—'}
                 </p>

@@ -177,7 +177,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const [orderDiscount,  setOrderDiscount]  = useState(0);
   const [discountPct,    setDiscountPct]    = useState('0');
 
-  // ── Store credit ──────────────────────────────────────────────────────────
+  // ── Gift voucher ──────────────────────────────────────────────────────────
   const availableCredit  = parseFloat(selectedCustomer?.store_credit ?? 0);
   const [applyCredit,       setApplyCredit]       = useState(false);
   const [creditInput,       setCreditInput]       = useState('');
@@ -444,7 +444,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
   const shipping         = parseFloat(shippingCost) || 0;
   const preCredit        = afterOrderDisc + taxAmount + shipping;
 
-  // Store credit: input is always KES, convert to order currency for display/total
+  // Gift voucher: input is always KES, convert to order currency for display/total
   const maxStoreCreditKes  = (toKes(preCredit) || preCredit) * (storeCreditMaxPct / 100);
   const creditDeductionKes = applyCredit
     ? Math.min(parseFloat(creditInput) || 0, availableCredit, maxStoreCreditKes)
@@ -1707,11 +1707,11 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                 )}
               </div>
 
-              {/* Store credit */}
+              {/* Gift voucher */}
               {selectedCustomer && availableCredit > 0 && (
                 <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid #e5e7eb', background: 'white' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: purple, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Wallet size={11} /> Store Credit
+                    <Wallet size={11} /> Gift Voucher
                   </p>
 
                   {/* Toggle row */}
@@ -1744,7 +1744,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                       }}>
                         {applyCredit && <CheckCircle size={10} color="white" />}
                       </div>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>Apply store credit</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>Apply gift voucher</span>
                     </div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
                       KSh {fmt(availableCredit)} available
@@ -1787,7 +1787,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                         )}
                       </div>
                       <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 6, lineHeight: 1.5 }}>
-                        Store credit is capped at {storeCreditMaxPct}% of order value (configured in Loyalty Settings). The server enforces this limit.
+                        Gift voucher is capped at {storeCreditMaxPct}% of order value (configured in Loyalty Settings). The server enforces this limit.
                       </p>
                       {!isBaseCurrency && creditDeductionOrderCurrency > 0 && (
                         <p style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, marginTop: 5 }}>
@@ -1796,7 +1796,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                       )}
                       {editMode && (
                         <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 6 }}>
-                          Store credit cannot be changed after order creation.
+                          Gift voucher cannot be changed after order creation.
                         </p>
                       )}
                       <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
@@ -1885,7 +1885,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess, editMode 
                     { label: 'After Item Discounts', value: money(itemsSubtotal),                    show: totalItemDisc > 0, divider: true },
                     { label: 'Order Discount',       value: `-${money(parseFloat(orderDiscount)||0)}`, show: parseFloat(orderDiscount) > 0, color: '#10b981' },
                     { label: 'Promo Discount',  value: `-${money(promoDiscountAmt)}`,              show: promoDiscountAmt > 0, color: 'var(--color-primary-500)' },
-                    { label: 'Store Credit',    value: `-KSh ${fmt(creditDeductionKes)}`,           show: creditDeductionKes > 0, color: '#059669' },
+                    { label: 'Gift Voucher',    value: `-KSh ${fmt(creditDeductionKes)}`,           show: creditDeductionKes > 0, color: '#059669' },
                     { label: 'Credit Account', value: `-${money(creditAccountDeduction)}`, show: creditAccountDeduction > 0, color: purpleDk },
                     { label: 'VAT (16%)',            value: money(taxAmount),                        show: applyTax },
                     { label: 'Shipping',             value: money(shipping),                         show: shipping > 0 },

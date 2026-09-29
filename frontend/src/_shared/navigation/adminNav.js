@@ -53,7 +53,7 @@ export const ADMIN_NAV = [
           { title: 'Quote requests', path: '/admin/quote-requests' },
         ],
       },
-      { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'store credit invoices' },
+      { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'gift voucher invoices' },
       { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
       { id: 'financial-notes', title: 'Financial notes', icon: NotebookPen, color: '#0ea5e9', path: '/admin/financial-notes', keywords: 'credit note debit note' },
     ],

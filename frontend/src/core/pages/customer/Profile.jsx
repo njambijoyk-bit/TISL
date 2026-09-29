@@ -452,7 +452,7 @@ export default function Profile() {
   const tier    = customer.tier ?? 'bronze';
   const tierClr = tierStyle(tier, tierOptions);
   const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-  // Store credit lives in the customer's account currency
+  // Gift voucher lives in the customer's account currency
   const acctCode  = customer?.currency?.code ?? 'KES';
   const acctMoney = (n) => formatMoney(Number(n ?? 0), customer?.currency?.symbol || acctCode, { decimals: 'auto' });
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -911,7 +911,7 @@ export default function Profile() {
                     <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{wallet?.tier ?? customer.tier} tier · ×{wallet?.tier_benefits?.loyalty_points_multiplier ?? 1} multiplier</p>
                   </div>
                   <div style={{ ...card, padding: '16px 20px' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Store Credit</p>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Gift Voucher</p>
                     <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#059669', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                       {walletLoading ? '…' : acctMoney(wallet?.store_credit ?? customer.store_credit ?? 0)}
                     </p>
@@ -1171,7 +1171,7 @@ export default function Profile() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
                       <div>
                         <p style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Share this code and earn KES 500 store credit per referral
+                          Share this code and earn KES 500 gift voucher per referral
                         </p>
                         <span style={{
                           fontFamily: 'monospace', fontWeight: 900, fontSize: '1.4rem',
@@ -1503,7 +1503,7 @@ export default function Profile() {
                 { label: 'Avg order value',  value: fmt(customer.average_order_value) },
                 { label: 'First order',      value: fmtDate(customer.first_order_date) },
                 { label: 'Last order',       value: fmtDate(customer.last_order_date) },
-                { label: 'Store credit',  value: acctMoney(customer.store_credit) },
+                { label: 'Gift voucher',  value: acctMoney(customer.store_credit) },
                 { label: 'Account currency', value: customer.currency ? `${customer.currency.code} — ${customer.currency.name}` : acctCode },
                 { label: 'Loyalty pts',   value: `${(customer.loyalty_points ?? 0).toLocaleString()} pts` },
               ].map(({ label, value, mono }) => (
@@ -1675,7 +1675,7 @@ export default function Profile() {
         ? `KES ${Number(code.reward_value).toLocaleString()} off`
         : code.reward_type === 'free_shipping'
           ? 'Free shipping'
-          : 'Store credit';
+          : 'Gift voucher';
 
     const handleCopy = () => {
       navigator.clipboard.writeText(code.code);

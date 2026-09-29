@@ -39,6 +39,14 @@ const booksAPI = {
   exportVoucher: (id, format) => saveBlob(`/admin/books/vouchers/${id}/export`, { format }, `voucher.${format}`),
   exportVouchers: (params) => saveBlob('/admin/books/vouchers/export', params, `vouchers.${params.format}`),
 
+  // gift vouchers
+  giftVouchers: (params) => get('/admin/books/gift-vouchers', params),
+  giftVoucher: (id) => get(`/admin/books/gift-vouchers/${id}`),
+  issueGiftVoucher: (d) => send('post', '/admin/books/gift-vouchers', d),
+  cancelGiftVoucher: (id) => send('post', `/admin/books/gift-vouchers/${id}/cancel`),
+  reconcileGiftVouchers: () => get('/admin/books/gift-vouchers/reconcile'),
+  expireGiftVouchers: () => send('post', '/admin/books/gift-vouchers/expire-due'),
+
   // reports
   report: (name, params) => get(`/admin/books/reports/${name}`, params),
   exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),

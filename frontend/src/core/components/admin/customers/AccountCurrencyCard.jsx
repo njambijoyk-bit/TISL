@@ -106,7 +106,7 @@ export default function AccountCurrencyCard({ customer, onChanged }) {
         {currency ? <>{currency.code} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: colors.textMuted }}>{currency.name}</span></> : '—'}
       </p>
       <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: colors.textFaint }}>
-        Store credit, the credit account and checkout are in this currency.
+        Gift voucher, the credit account and checkout are in this currency.
       </p>
 
       {showHistory && history && (
@@ -137,7 +137,7 @@ export default function AccountCurrencyCard({ customer, onChanged }) {
             <FormStack>
               <FormError message={formError} />
               <Field label="New currency" htmlFor="acct-cur" error={errors.currency_id}
-                hint="Only possible with no store credit, no credit balance and no unpaid invoices — balances are never converted.">
+                hint="Only possible with no gift voucher, no credit balance and no unpaid invoices — balances are never converted.">
                 <CurrencySelect id="acct-cur" value={form.currency_id} onChange={(v) => setForm((f) => ({ ...f, currency_id: v }))}
                   disabled={Boolean(history?.blocker)} />
               </Field>

@@ -494,7 +494,7 @@ export default function VaultArchiverView() {
                         </div>
                         <div className="vault-archiver__info-row">
                             <span className="vault-archiver__info-chip">365 days</span>
-                            <span style={{ flex: 1, minWidth: 0 }}>Policy Change Logs, Reconciliation Lines, Employee Leave Logs, Loyalty Point Transactions, Policy Acceptances, Store Credit Transactions, Customer Credit Transactions, Product Reviews, Customer Algorithm Scores</span>
+                            <span style={{ flex: 1, minWidth: 0 }}>Policy Change Logs, Reconciliation Lines, Employee Leave Logs, Loyalty Point Transactions, Policy Acceptances, Gift Voucher Transactions, Customer Credit Transactions, Product Reviews, Customer Algorithm Scores</span>
                         </div>
                         </div>
                     <p className="vault-archiver__info-text vault-archiver__info-text--muted">

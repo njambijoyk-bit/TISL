@@ -89,14 +89,14 @@ function TierBadge({ tier, tierOptions = [] }) {
  * LOYALTY SYSTEM — DESIGNED BEHAVIOUR (read before editing dev notes)
  *
  * Standard orders:
- *   • Store credit deducted at order creation (checkout), order stores deduction_kes
+ *   • Gift voucher deducted at order creation (checkout), order stores deduction_kes
  *   • Loyalty points earned ONLY on full payment — Order::markAsPaid() →
  *     LoyaltyService::earnPointsForOrder(). markAsPaid() is called by
  *     Payment::syncOrderPaymentStatus() when confirmed payments reach the full total.
- *   • Cancel (unpaid): store credit refunded, no points to reverse.
- *   • Cancel (paid): store credit refunded, earned points reversed via
+ *   • Cancel (unpaid): gift voucher refunded, no points to reverse.
+ *   • Cancel (paid): gift voucher refunded, earned points reversed via
  *     reversePointsForCancelledOrder(). loyalty_points_earned is zeroed out.
- *   • Restore: store credit re-deducted (rechargeOrderStoreCredit), points NOT
+ *   • Restore: gift voucher re-deducted (rechargeOrderStoreCredit), points NOT
  *     re-awarded. Order is back to unpaid — points re-earn naturally on next payment.
  *
  * Hamper orders (discount campaign — customer pays upfront):
@@ -117,16 +117,16 @@ const LOYALTY_DEV_NOTES = {
       outcome: "If a hamper cancellation and an admin point grant (or another hamper cancel) hit the same customer simultaneously, both read the same balance, both compute a new_balance from it, and the second write silently overwrites the first. Fix: route reverseFinancials() and restoreFinancials() through LoyaltyService methods instead of raw creates. All balance mutation should flow through the service.",
     },
     {
-      title: "Store credit deduction at checkout is committed outside the order's DB transaction",
+      title: "Gift voucher deduction at checkout is committed outside the order's DB transaction",
       severity: "critical",
       detail: "In OrderController::store(), DB::commit() is called after the order and its items are created, and then spendCredit() is called in a separate try/catch that only logs a Warning on failure. If spendCredit() throws post-commit, the order record exists with store_credit_deduction_kes > 0 but the customer balance was never debited. The admin store() path has the same structure at line ~2176.",
-      outcome: "Customer gets a store credit discount applied to a confirmed order without the balance actually moving. On a subsequent cancel, refundOrderStoreCredit() will add the deduction amount back — double-crediting the customer. Fix: move spendCredit() inside the DB::transaction() block before commit(). writeCreditTransaction() uses its own inner lockForUpdate transaction so nesting is safe.",
+      outcome: "Customer gets a gift voucher discount applied to a confirmed order without the balance actually moving. On a subsequent cancel, refundOrderStoreCredit() will add the deduction amount back — double-crediting the customer. Fix: move spendCredit() inside the DB::transaction() block before commit(). writeCreditTransaction() uses its own inner lockForUpdate transaction so nesting is safe.",
     },
     {
       title: "grantReferralCredit and grantReferralCreditExact have no idempotency guard",
       severity: "critical",
       detail: "grantReferralPointBonus() correctly checks for an existing referral_bonus transaction keyed on reference_type + reference_id before writing. Neither grantReferralCredit() nor grantReferralCreditExact() perform this check. Both methods write unconditionally. The two methods are also partially redundant — grantReferralCreditExact() takes an explicit amount while grantReferralCredit() reads from settings, but both write a 'referral_reward' StoreCreditTransaction with the same reference fields.",
-      outcome: "If the triggering payment event is re-delivered (M-Pesa callback retry, queue failure, or admin double-click on mark-as-paid), the referrer receives duplicate store credit with no visibility in the ledger that one entry is a duplicate. Fix: add the same exists() check as grantReferralPointBonus(), keyed on reference_type = Order::class, reference_id = order->id, type = 'referral_reward'.",
+      outcome: "If the triggering payment event is re-delivered (M-Pesa callback retry, queue failure, or admin double-click on mark-as-paid), the referrer receives duplicate gift voucher with no visibility in the ledger that one entry is a duplicate. Fix: add the same exists() check as grantReferralPointBonus(), keyed on reference_type = Order::class, reference_id = order->id, type = 'referral_reward'.",
     },
     {
       title: "reverseReferralCreditExact uses type 'referral_reward' for reversals — indistinguishable from grants",
@@ -137,7 +137,7 @@ const LOYALTY_DEV_NOTES = {
     {
       title: "reversePointsForCancelledOrder can take points the customer earned elsewhere",
       severity: "warning",
-      detail: "The method computes toDeduct = min(loyalty_points_earned_on_order, customer.loyalty_points). If the customer has since redeemed those specific points for store credit, their balance is now 0 and toDeduct = 0 — correct. But if they earned additional points from other orders after the redemption, toDeduct will take from those unrelated points. The reversal is not scoped to the original earn transaction; it just looks at the current balance as a cap.",
+      detail: "The method computes toDeduct = min(loyalty_points_earned_on_order, customer.loyalty_points). If the customer has since redeemed those specific points for gift voucher, their balance is now 0 and toDeduct = 0 — correct. But if they earned additional points from other orders after the redemption, toDeduct will take from those unrelated points. The reversal is not scoped to the original earn transaction; it just looks at the current balance as a cap.",
       outcome: "Cancel of order A reverses up to A's earned points from whatever balance happens to exist — even if that balance came entirely from orders B and C. This is a known tradeoff of running a flat balance rather than per-earn buckets. Document this as intentional or add a metadata flag on the earn transaction that tracks whether those specific points were redeemed, and skip reversal if they were.",
     },
     {
@@ -173,12 +173,12 @@ const LOYALTY_DEV_NOTES = {
       detail: "Order::markAsPaid() checks HamperOrder::where('order_id', $this->id)->exists() before calling earnPointsForOrder(). Since hamper orders award points directly at checkout, this guard prevents double-earning when the converted standard order is later marked as paid. The skip is also noted in the order's admin_notes at conversion time.",
     },
     {
-      title: "Store credit restore on cancel is proportional — never exceeds what was deducted",
+      title: "Gift voucher restore on cancel is proportional — never exceeds what was deducted",
       detail: "refundOrderStoreCredit() reads store_credit_deduction_kes directly from the order row — the exact amount that was deducted at checkout — and grants exactly that back. It does not recompute from current prices or customer state. Combined with writeCreditTransaction()'s lockForUpdate pattern, the refund is both accurate and concurrency-safe.",
     },
     {
       title: "Hamper financials_reversed_at flag is a robust idempotency gate for a complex reversal sequence",
-      detail: "reverseFinancials() touches five things: store credit, loyalty points, promo code stats, promo usage status, and hamper stock. Rather than tracking each reversal individually, a single financials_reversed_at timestamp gates the entire method. reverseFinancials() exits immediately if the flag is set; restoreFinancials() exits immediately if it is not. This makes double-cancel and double-restore safe without per-field tracking.",
+      detail: "reverseFinancials() touches five things: gift voucher, loyalty points, promo code stats, promo usage status, and hamper stock. Rather than tracking each reversal individually, a single financials_reversed_at timestamp gates the entire method. reverseFinancials() exits immediately if the flag is set; restoreFinancials() exits immediately if it is not. This makes double-cancel and double-restore safe without per-field tracking.",
     },
     {
       title: "restorePointsForRestoredOrder is a deliberate no-op — correct by design",
@@ -397,7 +397,7 @@ export default function LoyaltyLedger() {
             Loyalty Ledger
           </h1>
           <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
-            Store credit & loyalty points across all customers
+            Gift voucher & loyalty points across all customers
           </p>
         </div>
         {canConfig && (
@@ -488,7 +488,7 @@ export default function LoyaltyLedger() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
-              {['Customer','Tier','Loyalty Points','Store Credit','Orders','Last Order'].map(h => (
+              {['Customer','Tier','Loyalty Points','Gift Voucher','Orders','Last Order'].map(h => (
                 <th key={h} style={{
                   padding: '10px 16px', fontSize: '0.65rem', fontWeight: 700,
                   color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.07em',

@@ -155,6 +155,63 @@ class GiftVoucherService
         return $n;
     }
 
+    /** A customer's spendable gift voucher balance, in base currency. */
+    public function customerBalanceBase(int $customerId): float
+    {
+        $sum = 0.0;
+        foreach (GiftVoucher::where('customer_id', $customerId)->where('status', GiftVoucher::ACTIVE)->where('balance', '>', 0)->get() as $gv) {
+            if ($gv->isSpendable()) {
+                $sum += (float) $gv->balance * $this->money->rateOn($gv->currency_id);
+            }
+        }
+
+        return round($sum, 2);
+    }
+
+    /**
+     * Take value back from a customer's gift vouchers (an admin correction): oldest expiry first.
+     * Journal Dr Gift Vouchers Liability, Cr Rewards & Referral Expense. $amount is in base currency.
+     */
+    public function deductFromCustomer(int $customerId, float $amountBase, ?string $note, ?User $user = null): float
+    {
+        $settings = AccountingSetting::current();
+        $rewards = $settings->rewards_expense_ledger_id ?: Ledger::where('name', 'Rewards & Referral Expense')->value('id');
+        $journal = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
+        $left = round($amountBase, 2);
+        if ($this->customerBalanceBase($customerId) + 0.005 < $left) {
+            throw new BooksException('The customer only has ' . number_format($this->customerBalanceBase($customerId), 2) . ' in gift vouchers.');
+        }
+
+        return DB::transaction(function () use ($customerId, $left, $note, $user, $rewards, $journal) {
+            $taken = 0.0;
+            $vouchers = GiftVoucher::where('customer_id', $customerId)->where('status', GiftVoucher::ACTIVE)->where('balance', '>', 0)
+                ->orderByRaw('expires_at IS NULL, expires_at ASC')->orderBy('id')->lockForUpdate()->get();
+            foreach ($vouchers as $gv) {
+                if ($left <= 0.004) {
+                    break;
+                }
+                $rate = $this->money->rateOn($gv->currency_id);
+                $takeBase = min($left, (float) $gv->balance * $rate);
+                $take = round($takeBase / max($rate, 0.00000001), 2);
+                $new = round((float) $gv->balance - $take, 2);
+                $gv->update(['balance' => max(0, $new), 'status' => $new <= 0.004 ? GiftVoucher::USED : GiftVoucher::ACTIVE]);
+                app(VoucherService::class)->create([
+                    'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $gv->currency_id,
+                    'narration' => "Gift voucher {$gv->code} reduced" . ($note ? " — {$note}" : ''), 'meta' => ['gift_voucher_id' => $gv->id],
+                    'entries' => [
+                        ['ledger_id' => $this->liabilityLedgerId(), 'side' => 'D', 'amount' => $take],
+                        ['ledger_id' => $rewards, 'side' => 'C', 'amount' => $take],
+                    ],
+                ], $user);
+                $this->log($gv, 'adjust', -$take, null, $note, $user);
+                $left = round($left - $takeBase, 2);
+                $taken += $takeBase;
+            }
+
+            return round($taken, 2);
+        });
+    }
+
     /** Does the sub-ledger agree with the liability ledger? */
     public function reconcile(): array
     {

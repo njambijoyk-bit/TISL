@@ -254,7 +254,8 @@ class LoyaltyService
     // =========================================================================
 
     /**
-     * Admin manually grants store credit.
+     * Admin issues a gift voucher to a customer (this replaces "store credit").
+     * $amount is in the base currency.
      */
     public function grantCredit(
         Customer $customer,
@@ -262,39 +263,33 @@ class LoyaltyService
         string   $note,
         User     $admin,
         ?string  $expiresAt = null
-    ): StoreCreditTransaction {
-        return $this->writeCreditTransaction(
-            customer:  $customer,
-            amount:    abs($amount),
-            type:      'admin_grant',
-            note:      $note ?: 'Admin grant',
-            createdBy: $admin->id,
-            expiresAt: $expiresAt ? now()->parse($expiresAt) : null,
-        );
+    ) {
+        $gv = app(\App\Services\Books\GiftVoucherService::class)->issue([
+            'amount' => abs($amount), 'customer_id' => $customer->id, 'source' => 'manual', 'note' => $note ?: 'Admin grant', 'expires_at' => $expiresAt,
+        ], $admin);
+        $tx = $gv->transactions()->first();
+        $tx->balance_after = app(\App\Services\Books\GiftVoucherService::class)->customerBalanceBase($customer->id);
+
+        return $tx;
     }
 
-    /**
-     * Admin manually deducts store credit.
-     */
+    /** Admin takes value back off a customer's gift vouchers (base currency). */
     public function deductCredit(
         Customer $customer,
         float    $amount,
         string   $note,
         User     $admin
-    ): StoreCreditTransaction {
-        $amount = abs($amount);
-
-        if ((float) $customer->store_credit < $amount) {
-            throw new \InvalidArgumentException("Customer only has KES {$customer->store_credit} store credit.");
+    ) {
+        $svc = app(\App\Services\Books\GiftVoucherService::class);
+        try {
+            $svc->deductFromCustomer($customer->id, abs($amount), $note ?: 'Admin deduct', $admin);
+        } catch (\App\Services\Books\BooksException $e) {
+            throw new \InvalidArgumentException($e->getMessage());
         }
+        $tx = \App\Models\Books\GiftVoucherTransaction::whereHas('giftVoucher', fn ($q) => $q->where('customer_id', $customer->id))->latest('id')->first();
+        $tx->balance_after = $svc->customerBalanceBase($customer->id);
 
-        return $this->writeCreditTransaction(
-            customer:  $customer,
-            amount:    -$amount,
-            type:      'admin_deduct',
-            note:      $note ?: 'Admin deduct',
-            createdBy: $admin->id,
-        );
+        return $tx;
     }
 
     /**
@@ -414,12 +409,23 @@ class LoyaltyService
             );
         }
 
-        $valueKes = (float) ($rule['value_kes'] ?? 0);
+        $valueKes = (float) ($rule['value'] ?? $rule['value_kes'] ?? 0);   // the rule's value, in the rule's own currency
         $ruleName = $rule['name'] ?? 'Redemption';
         $ruleType = $rule['type'] ?? 'cashback';
 
-        DB::transaction(function () use ($customer, $required, $valueKes, $ruleId, $ruleName, $ruleType, $initiatedBy) {
-            // Deduct points
+        if (in_array($ruleType, ['cashback', 'voucher'], true) && $valueKes > 0) {
+            // points become a gift voucher (points are not money; the voucher is)
+            $gv = app(\App\Services\Books\RewardService::class)->redeemForGiftVoucher($customer, $rule, $initiatedBy);
+            $cur = $gv->currency?->code ?? '';
+
+            return [
+                'rule' => $ruleName, 'rule_type' => $ruleType, 'points_used' => $required, 'credit_granted' => $valueKes,
+                'gift_voucher_code' => $gv->code,
+                'message' => "Your gift voucher {$gv->code} for {$cur} " . number_format($valueKes, 2) . ' is ready to use at checkout.',
+            ];
+        }
+
+        DB::transaction(function () use ($customer, $required, $ruleId, $ruleName, $ruleType, $initiatedBy) {
             $this->writePointTransaction(
                 customer:  $customer,
                 points:    -$required,
@@ -429,28 +435,11 @@ class LoyaltyService
                 createdBy: $initiatedBy?->id,
                 metadata:  ['rule_id' => $ruleId, 'rule_name' => $ruleName, 'rule_type' => $ruleType],
             );
-
-            // Grant store credit
-            if ($valueKes > 0 && in_array($ruleType, ['cashback', 'voucher'])) {
-                $this->writeCreditTransaction(
-                    customer:  $customer,
-                    amount:    $valueKes,
-                    type:      'points_redemption',
-                    note:      "Redemption: {$ruleName}",
-                    createdBy: $initiatedBy?->id,
-                    metadata:  ['rule_id' => $ruleId, 'rule_name' => $ruleName],
-                );
-            }
         });
 
         return [
-            'rule'       => $ruleName,
-            'rule_type'  => $ruleType,
-            'points_used' => $required,
-            'credit_granted' => ($ruleType !== 'gift') ? $valueKes : 0,
-            'message'    => $ruleType === 'gift'
-                ? "Your gift redemption request has been placed."
-                : "KES {$valueKes} store credit has been added to your account.",
+            'rule' => $ruleName, 'rule_type' => $ruleType, 'points_used' => $required, 'credit_granted' => 0,
+            'message' => 'Your gift redemption request has been placed.',
         ];
     }
 

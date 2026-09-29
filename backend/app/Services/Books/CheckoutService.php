@@ -287,8 +287,6 @@ class CheckoutService
             $sale = $this->vouchers->convert($order, VoucherType::CASH_SALE, ['tenders' => $tenders, 'reference_no' => $order->voucher_number, 'moves_stock' => false,
                 'meta' => ['stock_pending' => true]], null);
         }
-        $this->afterSale($sale);
-
         return $sale;
     }
 
@@ -307,21 +305,7 @@ class CheckoutService
         }
         $days = (int) ($customer->credit_terms_days ?: 30);
         $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->addDays($days)->toDateString()], null);
-        $this->afterSale($invoice);
-
         return $invoice;
-    }
-
-    /** Hook for rewards (loyalty, referral) once a sale is real. */
-    public function afterSale(Voucher $sale): void
-    {
-        if (class_exists(RewardService::class)) {
-            try {
-                app(RewardService::class)->onSale($sale);
-            } catch (\Throwable $e) {
-                report($e);   // a reward problem must never undo a paid sale
-            }
-        }
     }
 
     private function orderSummary(Voucher $v): array

@@ -302,7 +302,7 @@ export default function OrderCard({ order, onCancel, isAdmin = false }) {
             {Number(order.store_credit_deduction) > 0 && (
               <div className="flex justify-between items-center" style={{ color: '#e48213' }}>
                 <span className="flex items-center gap-1">
-                  💳 Store credit
+                  💳 Gift voucher
                 </span>
                 <div className="text-right">
                   <span className="font-semibold">-{money(order.store_credit_deduction)}</span>

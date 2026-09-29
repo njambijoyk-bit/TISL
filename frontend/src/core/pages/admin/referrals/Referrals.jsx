@@ -37,7 +37,7 @@ const REWARD_META = {
   percentage:    { label: 'Percentage'    },
   fixed_amount:  { label: 'Fixed Amount'  },
   free_shipping: { label: 'Free Shipping' },
-  store_credit:  { label: 'Store Credit'  },
+  store_credit:  { label: 'Gift Voucher'  },
 };
 
 const REFERRAL_ACTION_META = {
@@ -453,7 +453,7 @@ const REFERRAL_DEV_NOTES = {
     },
     {
       title: "Referrer reward payout pipeline",
-      detail: "referrer_reward_paid and referrer_reward_amount exist on usage rows. The earnings() endpoint correctly tracks what's owed. But the actual disbursement mechanism — store credit, M-Pesa push, wallet credit — hasn't been built yet. This is the missing half of the referral program.",
+      detail: "referrer_reward_paid and referrer_reward_amount exist on usage rows. The earnings() endpoint correctly tracks what's owed. But the actual disbursement mechanism — gift voucher, M-Pesa push, wallet credit — hasn't been built yet. This is the missing half of the referral program.",
       horizon: "near",
     },
     {

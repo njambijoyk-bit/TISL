@@ -225,7 +225,7 @@ function OverviewTab({ hamper }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Toggle value={Boolean(hamper.tax_label)}  label={hamper.tax_label ? `Tax: ${hamper.tax_label}` : 'No tax'} />
           <Toggle value={hamper.allow_promo_codes}   label="Allow Promo Codes" />
-          <Toggle value={hamper.allow_store_credit}  label="Allow Store Credit" />
+          <Toggle value={hamper.allow_store_credit}  label="Allow Gift Voucher" />
           <Toggle value={hamper.earn_loyalty_points} label="Earn Loyalty Points" />
           <Toggle value={hamper.is_visible}          label="Visible to Customers" />
         </div>

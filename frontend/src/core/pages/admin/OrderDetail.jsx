@@ -565,7 +565,7 @@ export default function OrderDetail() {
     ...(Number(o?.promo_discount || order.promo_discount) > 0
       ? [['Promo Discount',    `-${fmt(o?.promo_discount    || order.promo_discount)}`]]    : []),
     ...(Number(o?.store_credit_deduction || order.store_credit_deduction) > 0
-      ? [['Store Credit',      `-${fmt(o?.store_credit_deduction || order.store_credit_deduction)}`]] : []),
+      ? [['Gift Voucher',      `-${fmt(o?.store_credit_deduction || order.store_credit_deduction)}`]] : []),
     ...(Number(o?.credit_account_deduction || order.credit_account_deduction) > 0
     ? [['Credit Account',   `-${fmt(o?.credit_account_deduction || order.credit_account_deduction)}`]] : []),
     ['VAT (16%)', fmt(o?.tax           || order.tax)],
@@ -670,7 +670,7 @@ export default function OrderDetail() {
   };
   const handleDelete = async () => {
     
-    if (!window.confirm(`Move order ${order.order_number} to Trash?\n\nAny store credit used will not be returned to customer wallet.\n\nDelete Anyway? Then restore the points in customer/loyalties or consider cancelling first then deleting to handle this automatically`)) 
+    if (!window.confirm(`Move order ${order.order_number} to Trash?\n\nAny gift voucher used will not be returned to customer wallet.\n\nDelete Anyway? Then restore the points in customer/loyalties or consider cancelling first then deleting to handle this automatically`)) 
       return;
     try { await useOrderStore.getState().trashOrder(order.id); toast.success('Moved to trash'); navigate('/admin/orders'); }
     catch (e) { toast.error(e.response?.data?.message || 'Failed'); }
@@ -1356,7 +1356,7 @@ export default function OrderDetail() {
                   Number(order.store_credit_deduction) > 0 && {
                     label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        💳 Store Credit
+                        💳 Gift Voucher
                       </span>
                     ),
                     value:  `-${money(order.store_credit_deduction)}`,

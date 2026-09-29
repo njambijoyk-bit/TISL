@@ -215,7 +215,7 @@ export default function HamperDetail() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 24 }}>
                 {[
                   hamper.allow_promo_codes   && 'Promo codes accepted',
-                  hamper.allow_store_credit  && 'Store credit accepted',
+                  hamper.allow_store_credit  && 'Gift voucher accepted',
                   hamper.earn_loyalty_points && 'Earn loyalty points',
                   hamper.tax_label           && `${hamper.tax_label} added at checkout`,
                 ].filter(Boolean).map(perk => (

@@ -218,7 +218,7 @@ function TabCustomer({ item }) {
                     {customer.alternate_phone && <FL label="Alt Phone" value={customer.alternate_phone} />}
                     <FL label="Total orders" value={customer.total_orders ?? '—'} />
                     <FL label="Total spent" value={fmtMoney(customer.total_spent, 'KES')} accent={M.accent} />
-                    <FL label="Store credit" value={fmtMoney(customer.store_credit, 'KES')} />
+                    <FL label="Gift voucher" value={fmtMoney(customer.store_credit, 'KES')} />
                     <FL label="Loyalty points" value={customer.loyalty_points?.toLocaleString() ?? '—'} />
                     {customer.has_credit_account && (
                         <FL label="Credit available" value={fmtMoney(customer.available_credit, 'KES')} accent={M.teal} />
@@ -285,7 +285,7 @@ function TabCustomer({ item }) {
                         { label: 'Subtotal',     value: fmtMoney(order.subtotal_kes, 'KES') },
                         { label: 'Tax',          value: fmtMoney(order.tax, 'KES') },
                         { label: 'Discount',     value: order.discount > 0 ? `- ${fmtMoney(order.discount, 'KES')}` : '—', accent: M.green },
-                        { label: 'Store credit', value: order.store_credit_deduction > 0 ? `- ${fmtMoney(order.store_credit_deduction_kes, 'KES')}` : '—', accent: M.teal },
+                        { label: 'Gift voucher', value: order.store_credit_deduction > 0 ? `- ${fmtMoney(order.store_credit_deduction_kes, 'KES')}` : '—', accent: M.teal },
                         { label: 'Shipping',     value: fmtMoney(order.shipping_cost, 'KES') },
                     ].map(({ label, value, accent }, i) => (
                         <div key={i} style={{

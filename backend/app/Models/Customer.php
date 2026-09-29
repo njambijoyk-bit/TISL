@@ -672,6 +672,42 @@ class Customer extends Model
     /**
      * Check if customer has referral discount (first order).
      */
+    /**
+     * "Store credit" is now gift vouchers: this reads the spendable gift voucher balance
+     * (base currency) so every screen that showed store credit keeps working.
+     */
+    public function getStoreCreditAttribute($value)
+    {
+        static $memo = [];
+        if (! $this->exists) {
+            return $value;
+        }
+        try {
+            return $memo[$this->id] ??= app(\App\Services\Books\GiftVoucherService::class)->customerBalanceBase($this->id);
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
+    /** What the customer owes on account is their ledger balance (the old "credit used" counter is retired). */
+    public function getCreditUsedAttribute($value)
+    {
+        static $memo = [];
+        if (! $this->exists) {
+            return $value;
+        }
+        try {
+            if (! array_key_exists($this->id, $memo)) {
+                $ledger = \App\Models\Books\Ledger::where('customer_id', $this->id)->first();
+                $memo[$this->id] = $ledger ? max(0.0, app(\App\Services\Books\LedgerService::class)->balance($ledger->id)) : 0.0;
+            }
+
+            return $memo[$this->id];
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
     public function hasReferralDiscount(): bool
     {
         // No referral code attached — not a referred customer

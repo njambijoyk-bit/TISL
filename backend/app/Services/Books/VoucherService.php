@@ -71,6 +71,7 @@ class VoucherService
 
             $voucher = $this->persist($plan, $data, $user, null);
             $this->audit($voucher, 'created', $user);
+            $this->rewardHook($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -121,6 +122,16 @@ class VoucherService
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
+            try {
+                app(RewardService::class)->onCancel($voucher);
+                foreach ($voucher->billRefs()->where('ref_type', 'against')->whereNotNull('against_voucher_id')->pluck('against_voucher_id')->unique() as $invId) {
+                    if (($inv = Voucher::find($invId)) && ! empty($inv->meta['rewarded_at']) && $this->outstanding($inv) > 0.005) {
+                        app(RewardService::class)->onCancel($inv);   // a paid invoice that is no longer paid loses its rewards
+                    }
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
             return $voucher->load($this->relations());
         });
@@ -1354,6 +1365,27 @@ class VoucherService
             'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total' => $plan['total'],
             'stock' => array_map(fn ($m) => ['variant_id' => $m['variant_id'], 'location_id' => $m['location_id'], 'qty' => $m['qty']], $plan['stock']),
         ];
+    }
+
+    /** Cash sales earn at once; an invoice earns when its last receipt lands. A reward problem never undoes a sale. */
+    private function rewardHook(Voucher $voucher): void
+    {
+        try {
+            $voucher->loadMissing('type');
+            $rewards = app(RewardService::class);
+            $base = $voucher->type->base_type;
+            if ($base === VoucherType::CASH_SALE) {
+                $rewards->onSale($voucher);
+            } elseif ($base === VoucherType::RECEIPT) {
+                foreach ($voucher->billRefs()->where('ref_type', 'against')->pluck('against_voucher_id')->filter()->unique() as $invoiceId) {
+                    if ($invoice = Voucher::find($invoiceId)) {
+                        $rewards->onSale($invoice);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function audit(Voucher $voucher, string $action, ?User $user, array $detail = []): void

@@ -531,7 +531,7 @@ export default function AdminHamperCreate() {
                 <p style={sectionTitle}>Feature Toggles</p>
                 <div>
                   <ToggleRow name="allow_promo_codes"   value={form.allow_promo_codes}   onChange={handleToggle} label="Allow Promo Codes"    hint="Referral/promo codes accepted" />
-                  <ToggleRow name="allow_store_credit"  value={form.allow_store_credit}  onChange={handleToggle} label="Allow Store Credit"   hint="Customers can redeem store credit" />
+                  <ToggleRow name="allow_store_credit"  value={form.allow_store_credit}  onChange={handleToggle} label="Allow Gift Voucher"   hint="Customers can redeem gift voucher" />
                   <ToggleRow name="earn_loyalty_points" value={form.earn_loyalty_points} onChange={handleToggle} label="Earn Loyalty Points"  hint="1pt per 100 spent, in the base currency" />
                   <ToggleRow name="is_visible"          value={form.is_visible}          onChange={handleToggle} label="Visible to Customers" hint="Show on the hampers page" />
                 </div>

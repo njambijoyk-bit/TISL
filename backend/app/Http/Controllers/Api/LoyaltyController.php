@@ -356,6 +356,7 @@ class LoyaltyController extends Controller
         return response()->json([
             'loyalty_points'     => $customer->loyalty_points,
             'store_credit'       => $customer->store_credit,
+            'gift_vouchers'      => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->where('customer_id', $customer->id)->where('status', 'active')->orderBy('expires_at')->get(),
             'tier'               => $customer->tier,
             'tier_benefits'      => $customer->tier_benefits,
             'redemption_rules'   => $this->loyalty->getRedemptionRules(activeOnly: true),
@@ -376,7 +377,7 @@ class LoyaltyController extends Controller
         $perPage = $request->input('per_page', 20);
 
         if ($ledger === 'credit') {
-            $txs = StoreCreditTransaction::forCustomer($customer->id)->latest()->paginate($perPage);
+            $txs = \App\Models\Books\GiftVoucherTransaction::whereHas('giftVoucher', fn ($q) => $q->where('customer_id', $customer->id))->latest('id')->paginate($perPage);
         } else {
             $txs = LoyaltyPointTransaction::forCustomer($customer->id)->latest()->paginate($perPage);
         }

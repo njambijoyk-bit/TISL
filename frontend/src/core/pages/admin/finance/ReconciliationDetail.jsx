@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const LEDGER_META = {
   payments:       { label: 'Payments',       color: '#10b981', icon: '💳', amountLabel: 'KES' },
-  store_credit:   { label: 'Store Credit',   color: '#3b82f6', icon: '🎟', amountLabel: 'KES' },
+  store_credit:   { label: 'Gift Voucher',   color: '#3b82f6', icon: '🎟', amountLabel: 'KES' },
   loyalty_points: { label: 'Loyalty Points', color: 'var(--color-primary-500)', icon: '⭐', amountLabel: 'PTS' },
   credit_account: { label: 'Credit Account', color: '#f59e0b', icon: '🏦', amountLabel: 'KES' },
   vat:            { label: 'VAT',            color: '#ef4444', icon: '🧾', amountLabel: 'KES' },

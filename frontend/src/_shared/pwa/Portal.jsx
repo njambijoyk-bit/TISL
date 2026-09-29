@@ -874,7 +874,7 @@ function CustomerWalletTab({ wallet, navigate }) {
     <div style={{ padding: '14px 14px 8px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
         {[
-          { label: 'Store Credit', value: fmt(credit), color: '#10b981', icon: CreditCard },
+          { label: 'Gift Voucher', value: fmt(credit), color: '#10b981', icon: CreditCard },
           { label: 'Loyalty Points', value: points.toLocaleString(), color: PURPLE, icon: Star },
         ].map(({ label, value, color, icon: Icon }) => (
           <div 

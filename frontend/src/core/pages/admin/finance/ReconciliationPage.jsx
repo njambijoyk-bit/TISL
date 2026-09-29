@@ -9,7 +9,7 @@ const FINANCE_ROLES = ['super_admin', 'finance', 'admin'];
 
 const LEDGER_META = {
   payments:       { label: 'Payments',       color: '#10b981', icon: '💳' },
-  store_credit:   { label: 'Store Credit',   color: '#3b82f6', icon: '🎟' },
+  store_credit:   { label: 'Gift Voucher',   color: '#3b82f6', icon: '🎟' },
   loyalty_points: { label: 'Loyalty Points', color: 'var(--color-primary-500)', icon: '⭐' },
   credit_account: { label: 'Credit Account', color: '#f59e0b', icon: '🏦' },
   vat:            { label: 'VAT',            color: '#ef4444', icon: '🧾' },

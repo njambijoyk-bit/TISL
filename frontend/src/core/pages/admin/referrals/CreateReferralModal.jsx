@@ -16,12 +16,12 @@ const REWARD_TYPES = [
   { value: 'percentage',   label: '% Discount'    },
   { value: 'fixed_amount', label: 'Fixed Amount'  },
   { value: 'free_shipping',label: 'Free Shipping' },
-  { value: 'store_credit', label: 'Store Credit'  },
+  { value: 'store_credit', label: 'Gift Voucher'  },
 ];
 
 const REFERRER_REWARD_TYPES = [
   { value: 'none',         label: 'None'          },
-  { value: 'store_credit', label: 'Store Credit'  },
+  { value: 'store_credit', label: 'Gift Voucher'  },
   { value: 'points',       label: 'Loyalty Points'},
   { value: 'fixed_amount', label: 'Fixed Amount'  },
   { value: 'percentage',   label: '% of Order'   },

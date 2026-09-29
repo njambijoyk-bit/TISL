@@ -235,7 +235,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
               { label: 'Total Orders', value: fmt(c.total_orders), color: '#3b82f6' },
               { label: 'Total Spent',  value: fmtKES(c.total_spent), color: '#10b981' },
               { label: 'Loyalty Pts',  value: fmt(c.loyalty_points), color: '#f59e0b' },
-              { label: 'Store Credit', value: fmtKES(c.store_credit), color: 'var(--color-primary-500)' },
+              { label: 'Gift Voucher', value: fmtKES(c.store_credit), color: 'var(--color-primary-500)' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color }} className="dark:text-white">{value}</div>

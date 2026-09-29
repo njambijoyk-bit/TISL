@@ -291,7 +291,7 @@ export default function AdminHampers() {
                           <div style={{ display: 'flex', gap: 4 }}>
                             <TogglePill value={Boolean(hamper.tax_label)}  label={hamper.tax_label ?? 'No tax'} icon={Tag} />
                             <TogglePill value={hamper.allow_promo_codes}   label="Promos"        icon={Tag} />
-                            <TogglePill value={hamper.allow_store_credit}  label="Store Credit"  icon={Wallet} />
+                            <TogglePill value={hamper.allow_store_credit}  label="Gift Voucher"  icon={Wallet} />
                             <TogglePill value={hamper.earn_loyalty_points} label="Loyalty"       icon={Star} />
                           </div>
                         </td>

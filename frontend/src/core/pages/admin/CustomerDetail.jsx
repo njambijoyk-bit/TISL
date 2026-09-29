@@ -171,7 +171,7 @@ function QuickAddPanel({ type, onSubmit, onClose }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
-          Add {type === 'credit' ? 'store credit' : 'loyalty points'}
+          Add {type === 'credit' ? 'gift voucher' : 'loyalty points'}
         </p>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
@@ -457,7 +457,7 @@ export default function CustomerDetail() {
     return `${currency} ${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Store credit and the credit account are in the customer's account currency
+  // Gift voucher and the credit account are in the customer's account currency
   const acct = customer?.currency?.code ?? 'KES';
 
   // Add new state for stats loading
@@ -1056,10 +1056,10 @@ export default function CustomerDetail() {
                   />
                 </div>
 
-                {/* Store credit Account */}
+                {/* Gift voucher Account */}
                 <div style={card}>
 
-                  {/* Store credit balance */}
+                  {/* Gift voucher balance */}
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
                     {fmt(customer.credit_limit, acct)}
                   </p>
@@ -1175,7 +1175,7 @@ export default function CustomerDetail() {
                     />
                     <StatBlock
                       icon={<CreditCard size={14} />}
-                      label="Store credit"
+                      label="Gift voucher"
                       value={fmt(customer.store_credit, acct)}
                     />
                     <StatBlock
@@ -1204,10 +1204,10 @@ export default function CustomerDetail() {
                   onChanged={(patch) => setCustomer(c => ({ ...c, ...patch }))}
                 />
 
-                {/* Store credit */}
+                {/* Gift voucher */}
                 <div style={card}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <p style={{ ...sectionHeader, margin: 0 }}><CreditCard size={14} style={{ color: '#c4b5fd' }} /> Store credit</p>
+                    <p style={{ ...sectionHeader, margin: 0 }}><CreditCard size={14} style={{ color: '#c4b5fd' }} /> Gift voucher</p>
                     {canAct && (<div style={{ position: 'relative' }}>
                       <button
                         onClick={() => { setShowCredit(v => !v); setShowPoints(false); setShowStatus(false); }}

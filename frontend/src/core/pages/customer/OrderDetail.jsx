@@ -320,7 +320,7 @@ export default function CustomerOrderDetail() {
 
   const handleDeleteOrder = async () => {
     const trashMessage = Number(order?.store_credit_deduction) > 0
-      ? `⚠️ This order used ${moneyKes(order.store_credit_deduction_kes || order.store_credit_deduction)} in store credit.\n\nStore credit is NOT restored when an order is trashed — cancel the order instead to restore the credit in your wallet.\n\nMove to trash anyway?`
+      ? `⚠️ This order used ${moneyKes(order.store_credit_deduction_kes || order.store_credit_deduction)} in gift voucher.\n\nGift voucher is NOT restored when an order is trashed — cancel the order instead to restore the credit in your wallet.\n\nMove to trash anyway?`
       : 'Move this order to trash?';
 
     if (!window.confirm(trashMessage)) return;
@@ -713,7 +713,7 @@ export default function CustomerOrderDetail() {
         order.tax > 0           && { label: 'VAT (16%)',  value: money(order.tax) },
         order.shipping_cost > 0 && { label: 'Shipping',  value: money(order.shipping_cost) },
         Number(order.store_credit_deduction) > 0 && {
-          label: `Store Credit${showKes && Number(order.store_credit_deduction_kes) > 0 ? ` (${moneyKes(order.store_credit_deduction_kes)})` : ''}`,
+          label: `Gift Voucher${showKes && Number(order.store_credit_deduction_kes) > 0 ? ` (${moneyKes(order.store_credit_deduction_kes)})` : ''}`,
           value: `-${money(order.store_credit_deduction)}`,
           color: '#059669',
         },
@@ -1526,7 +1526,7 @@ export default function CustomerOrderDetail() {
                   Number(order.store_credit_deduction) > 0 && {
                     label: (
                       <span className="flex items-center gap-1.5">
-                        💳 Store Credit
+                        💳 Gift Voucher
                       </span>
                     ),
                     value: `-${money(order.store_credit_deduction)}`,

@@ -24,7 +24,7 @@ const NOTE_TYPES = [
 const SUBJECT_TABLES = [
   { value: 'payments',                     label: 'Payment' },
   { value: 'orders',                       label: 'Order' },
-  { value: 'store_credit_transactions',    label: 'Store Credit' },
+  { value: 'store_credit_transactions',    label: 'Gift Voucher' },
   { value: 'loyalty_point_transactions',   label: 'Loyalty Points' },
   { value: 'customer_credit_transactions', label: 'Credit Account' },
   { value: 'auction_orders',               label: 'Auction Order' },

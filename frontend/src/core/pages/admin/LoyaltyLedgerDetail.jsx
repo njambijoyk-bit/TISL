@@ -214,7 +214,7 @@ function GrantCreditModal({ customerId, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Grant Store Credit" onClose={onClose}>
+    <Modal title="Grant Gift Voucher" onClose={onClose}>
       <Field label="Amount (KES)" required>
         <input type="number" min="1" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} style={inputStyle} placeholder="e.g. 500" />
       </Field>
@@ -254,7 +254,7 @@ function DeductCreditModal({ customerId, currentCredit, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Deduct Store Credit" onClose={onClose}>
+    <Modal title="Deduct Gift Voucher" onClose={onClose}>
       <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 14px' }}>Current balance: <strong style={{ color: '#059669' }}>{fmtKes(currentCredit)}</strong></p>
       <Field label="Amount (KES)" required>
         <input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} style={inputStyle} />
@@ -560,7 +560,7 @@ export default function LoyaltyLedgerDetail() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <CreditCard size={14} style={{ color: '#059669' }} />
-              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Store Credit</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Gift Voucher</p>
             </div>
             <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#059669', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
               {fmtKes(customer.store_credit)}
@@ -586,7 +586,7 @@ export default function LoyaltyLedgerDetail() {
         <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
           {[
             { key: 'points', label: 'Loyalty Points', icon: <Coins size={14} /> },
-            { key: 'credit', label: 'Store Credit',   icon: <CreditCard size={14} /> },
+            { key: 'credit', label: 'Gift Voucher',   icon: <CreditCard size={14} /> },
           ].map(tab => (
             <button key={tab.key} onClick={() => { setLedger(tab.key); setPage(1); }} style={{
               display: 'flex', alignItems: 'center', gap: 6,

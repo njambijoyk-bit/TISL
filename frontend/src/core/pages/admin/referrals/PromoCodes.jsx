@@ -38,7 +38,7 @@ const REWARD_META = {
   percentage:    { label: 'Percentage'    },
   fixed_amount:  { label: 'Fixed Amount'  },
   free_shipping: { label: 'Free Shipping' },
-  store_credit:  { label: 'Store Credit'  },
+  store_credit:  { label: 'Gift Voucher'  },
 };
 
 const STAT_META = [

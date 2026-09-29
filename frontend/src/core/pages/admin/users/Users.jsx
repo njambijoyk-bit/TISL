@@ -254,7 +254,7 @@ const USERS_DEV_NOTES = {
     {
       title: "handleRoleTransition() soft-deletes the old profile with no data warning",
       severity: "low",
-      detail: "When a customer is converted to a staff role, their customer record is soft-deleted including referral codes, usage history, and store credit. No warning is shown, no confirmation required. Reversing the transition (staff back to customer) restores everything — which is correct but surprising.",
+      detail: "When a customer is converted to a staff role, their customer record is soft-deleted including referral codes, usage history, and gift voucher. No warning is shown, no confirmation required. Reversing the transition (staff back to customer) restores everything — which is correct but surprising.",
       outcome: "Admins converting roles don't know they're suspending a customer's full purchase history and active promo codes. Add a check and a warning response if the customer has active orders, unused codes, or a positive credit balance before proceeding.",
     },
     {
