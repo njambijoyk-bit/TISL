@@ -619,3 +619,69 @@ Not built yet (be honest with yourself before dropping tables):
 - Payment plans (instalments) on invoices; period-end revaluation of foreign balances; withholding *certificates* are not yet created from receipts (the certificate number is kept on the voucher).
 - Data Exchange: renamed only — the theme restyle and import remain.
 - KES still appears in the legacy order/quote/delivery/report screens and in DB column names such as `*_kes`.
+
+## 14. One source of truth — everything financial is a ledger or a voucher
+
+**What went wrong.** §12 made ledgers *for* shipping options, tax rates, gift vouchers — but the option/rate/voucher **tables stayed as the masters**, and the ledger was a shadow copy. Delete the option and the ledger lingers; rename one and the other drifts. The fix is not more syncing; it is to make the **ledger the master** and delete the twin.
+
+### 14.1 What Tally teaches us (from the uploaded Master.json: 43 groups, 507 ledgers)
+- A **group** is the type. Groups form a tree; *Duties & Taxes* sits under Current Liabilities; behaviour is on the group (`isbillwiseon`, `affectsgrossprofit`, `isrevenue`).
+- A **ledger is one wide record** whose fields depend on its group. `Input VAT @16%` is just a ledger in Duties & Taxes with `taxtype = VAT` and `rateoftaxcalculation = 16`; `Housing Levy` and `NITA Levy` are ledgers with no rate (the amount is typed on the voucher). Rate lives **on the ledger**, not in a separate rates table.
+- The **sales ledger says the tax nature** (`vatdetails`: Taxable (Standard) / Exempt / Zero Rated); the **duty ledger says the rate**. Parties (debtors/creditors, 109 + 300 here) carry `currencyname`, `incometaxnumber` (PIN), `vatdealertype`, credit days, addresses, bank details, and **bill-wise** tracking.
+- **Opening balance is on the ledger** (with bill allocations for parties). Currency is a property of the ledger (`currencyname`).
+- Nothing financial lives outside ledgers and vouchers. Tally has no "shipping options" or "tax rates" tables.
+
+### 14.2 The model
+1. **Group behaviour.** Add a `behaviour` to `ledger_groups` (inherited by subgroups): `party | bank_cash | tax | delivery_charge | discount | expense | income | liability_control | plain`. The ledger form shows only the fields that behaviour needs.
+2. **Ledger attributes** (nullable columns on `ledgers`, exactly like Tally's wide record): `rate_type` (percentage | fixed), `rate_value`, `rate_currency_id`, `rate_unit_id`, `effective_from/to`, `tax_mode` (additive | withheld), `calc_base`, `calc_sequence`, `requires_certificate`, `tax_ledger_id` (VAT charged on this charge), `free_above` + currency, `is_offered` (shown at checkout), `sort_order`, `description`, `icon`, `gateway`, `instructions`, plus party fields (PIN, credit terms). One JSON `settings` column for anything group-specific.
+3. **Currency everywhere:** every ledger has a currency; every rate/threshold/limit on it is `(value, currency)`; every voucher entry stores `amount`, `currency`, `rate`, `base_amount`.
+4. **Delete = delete the ledger** (allowed only with no postings; otherwise switch it off). No twins to drift.
+
+### 14.3 What dissolves into ledgers (tables retire)
+| Today | Becomes |
+|---|---|
+| `shipping_options` | ledgers under **Shipping & Delivery** — "Courier Service": rate (percentage of goods or fixed), currency, free-above, optional "VAT on this charge" (a link to a tax ledger), shown at checkout |
+| `tax_types` | **groups** under Duties & Taxes (behaviour `tax`, mode additive/withheld) |
+| `tax_rates` | **ledgers** in that group (`Output VAT @16%`, `Input VAT @8%`, `WHT 5%`): rate, fixed-amount currency/unit, effective dates, calc base/sequence |
+| `payment_methods` | ledgers under **Cash-in-hand / Bank Accounts** (behaviour `bank_cash`): `gateway`, `is_offered`, `requires_reference`, `instructions` — the method *is* the ledger |
+| `store_credit_*` | **Gift Vouchers Liability** ledger (+ instrument sub-ledger, 14.5) |
+| customer credit tables | the customer's ledger (done) |
+| loyalty money | **Loyalty Points Liability** ledger (+ points sub-ledger, 14.5) |
+| `payments` | receipts/payments; the gateway attempt stays a technical record |
+| `orders`, `quotes`, `financial_notes`, `purchase_orders` | vouchers (SO/CSH/INV, QT, CN/DBN, PO) |
+
+### 14.4 What stays outside ledgers — configuration, not money
+Only **rules that decide which ledger/amount to use**, each pointing at ledgers rather than holding money of its own:
+- **Tax rules** (which product/service/customer type/district/certificate gets which tax ledger) — assignments, not amounts. They reference the rate *ledger*.
+- **Customer tiers & type discounts** (percent, thresholds in a currency) → resolve to a *Discounts Allowed* ledger.
+- **Promo & referral codes, loyalty rules, referral programme** → rules that produce discount lines / points; each may name a discount ledger (a campaign can have its own ledger under *Discounts*, Tally-style, for reporting).
+- Customers, products, services, hampers (catalogue) and gateway attempts.
+
+### 14.5 Gift vouchers and loyalty points, plainly
+- **Gift voucher = a claim on us for money.** One ledger, *Gift Vouchers Liability*, holds the total. Each voucher is an *instrument* (code, holder, currency, expiry, balance) — a **sub-ledger** like Tally's bill-by-bill allocations. Issue = Journal (Dr what funded it, Cr liability); spend = it is a payment method that debits the liability; expiry = breakage income. Every movement is a voucher; the instrument table is only the detail, and a reconciliation report proves instruments = ledger.
+- **Loyalty points = a quantity, not money.** They are a **units ledger**: a per-customer points balance with expiry lots (a sub-ledger, like stock quantity). When points are earned, a Journal accrues their **value** to *Loyalty Points Liability* (Dr Rewards expense); redeeming points into a gift voucher moves value from *Loyalty liability* to *Gift voucher liability*. Points never appear as cash.
+- Both therefore have a control ledger in the books and a detail table that must always reconcile.
+
+### 14.6 Promo and referral codes
+A code is a **rule**, not money. Applying one puts a discount line on the order posting to a discount ledger (the campaign's own, or *Discounts Allowed*); the referrer's reward is a Journal (points accrual / gift voucher issue). Usage is the voucher reference. Nothing else is stored as a balance.
+
+### 14.7 Tax, carefully (planned before built)
+- Keep the tax **engine** (rules, districts, applicability, certificates, effective dates, calculation sequence) — but its *rates* are ledgers. `TaxService` reads the rate from the ledger instead of a `tax_rates` row; `voucher_item_taxes` already stores `ledger_id`.
+- Sales/purchase **item ledgers** carry the tax *nature* (Taxable standard / Exempt / Zero-rated) like Tally's `vatdetails`, so a product's sales account decides which tax applies; rules still override per customer/district/certificate.
+- Withholding: same ledgers, `tax_mode = withheld`; receivable/payable pair per type (already built).
+- Fixed-amount taxes (excise per litre) carry currency + unit on the ledger.
+
+### 14.8 Order of work
+1. Group `behaviour` + ledger attribute columns + the ledger form driven by behaviour (this is the master screen for everything below).
+2. Shipping options → delivery-charge ledgers (checkout reads ledgers; drop `shipping_options`).
+3. Payment methods → bank/cash ledgers with gateway attributes (drop `payment_methods`).
+4. Tax types/rates → tax groups/ledgers; `TaxService` and the tax screens read ledgers; keep rules.
+5. Gift-voucher / points sub-ledger reconciliation reports; campaign discount ledgers.
+6. Retire the emptied legacy tables (finally drop them).
+Each step ships with a SQL script that **moves the existing data into the ledger** before the old table is dropped.
+
+### 14.9 Decisions needed
+1. Approve "ledger = master, wide record, behaviour on the group".
+2. Payment methods become ledgers too (one place to set M-Pesa till, bank, gateway).
+3. Points stay a units sub-ledger with a liability ledger for their value (not cash ledgers).
+4. Campaign discount ledgers are optional (default *Discounts Allowed*).

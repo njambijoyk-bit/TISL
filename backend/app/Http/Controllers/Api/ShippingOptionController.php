@@ -164,7 +164,16 @@ class ShippingOptionController extends Controller
             'slug' => $option->slug,
         ]);
 
+        // its income ledger goes with it — or is switched off when it already has postings
+        $ledger = $option->income_ledger_id ? \App\Models\Books\Ledger::find($option->income_ledger_id) : null;
         $option->delete();
+        if ($ledger) {
+            if ($ledger->entries()->exists() || (float) $ledger->opening_balance != 0.0) {
+                $ledger->update(['is_active' => false, 'is_system' => false]);
+            } else {
+                $ledger->delete();
+            }
+        }
 
         return response()->json(['message' => 'Shipping option deleted successfully']);
     }
