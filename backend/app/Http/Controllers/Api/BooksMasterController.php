@@ -106,7 +106,7 @@ class BooksMasterController extends Controller
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::KINDS), 'settings.timing' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TIMINGS),
-            'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
+            'settings.refundable' => 'nullable|boolean', 'settings.tax_follows' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TAX_FOLLOWS), 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
         ]);
         $this->assertBehaviourFields($d, $d['group_id']);
         if (empty($d['code']) && ($d['side'] ?? null) === 'income' && LedgerGroup::whereKey($d['group_id'])->value('behaviour') === 'delivery') {

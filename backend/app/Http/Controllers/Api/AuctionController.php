@@ -66,7 +66,7 @@ class AuctionController extends Controller
         $target = $request->filled('currency_id') ? \App\Models\Currency::find($request->currency_id) : null;
         $svc = app(\App\Services\Books\AuctionChargeService::class);
 
-        return response()->json($svc->ledgers()->map(fn ($l) => ['ledger' => $l->only(['id', 'name', 'tax_nature']), 'tax_rate' => $l->taxRateLedger?->only(['id', 'name', 'rate_value']), 'kinds' => $svc::KINDS] + $svc->rowFromLedger($l, $target ?? \App\Models\Currency::find($l->currency_id) ?? app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()) + ['charge_kind' => ($l->settings ?? [])['charge_kind'] ?? 'other', 'default_on' => (bool) (($l->settings ?? [])['default_on'] ?? false)])->values());
+        return response()->json($svc->ledgers()->map(fn ($l) => ['ledger' => $l->only(['id', 'name', 'tax_nature']), 'tax_rate' => $l->taxRateLedger?->only(['id', 'name', 'rate_value']), 'kinds' => $svc::KINDS] + $svc->rowFromLedger($l, $target ?? \App\Models\Currency::find($l->currency_id) ?? app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()) + ['charge_kind' => ($l->settings ?? [])['charge_kind'] ?? 'other', 'default_on' => (bool) (($l->settings ?? [])['default_on'] ?? false), 'tax_follows' => ($l->settings ?? [])['tax_follows'] ?? 'own'])->values());
     }
 
     /** What a winner would owe at a given winning bid (admin preview). */

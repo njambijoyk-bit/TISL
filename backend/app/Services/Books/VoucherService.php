@@ -759,7 +759,8 @@ class VoucherService
         if (! empty($l['tax_rate_id'])) {
             $line['taxes'] = $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx));
         } else {
-            $account = Ledger::find($line['ledger_id']);
+            // normally the account the line posts to decides the tax; a line may name another account to be taxed as (e.g. an auction charge that follows the auction's sales account)
+            $account = Ledger::find(! empty($l['tax_account_id']) ? (int) $l['tax_account_id'] : $line['ledger_id']);
             $line['taxes'] = $account?->tax_nature
                 ? $this->taxes->fromAccount($account, $line['amount'] + $line['discount_amount'], $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
                 : [];

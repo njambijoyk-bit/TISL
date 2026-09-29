@@ -297,3 +297,6 @@ Each auction picks its charges from these, switching them on or off and overridi
 bidding starts. When an auction is won, the Sales Order carries the winning bid on the auction's sales account and each
 "on winning" charge on its own account with its own tax. Deposits and entry fees are taken before bidding and storage
 builds up after winning; those are kept apart from the amount payable.
+
+A charge normally carries its own tax. Setting "Tax on this charge follows → the auction's sales account" makes it taxed
+exactly like the item being sold instead (exempt on an exempt auction, VAT-able on a VAT-able one).

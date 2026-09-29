@@ -30,7 +30,7 @@ class AuctionOrderService
         // the winning bid, then each charge due on winning (buyer premium, handling…) on its own account with its own tax
         $lines = [['type' => 'product', 'product_id' => $a->product_id, 'variant_id' => $a->variant_id, 'quantity' => 1, 'rate' => (float) $a->current_price, 'location_id' => $a->location_id, 'ledger_id' => TradingAccounts::forAuction($a)]];
         foreach ($this->charges->quote($a, (float) $a->current_price, 0, $customer)['lines'] as $c) {
-            $lines[] = ['type' => 'custom', 'description' => $c['name'], 'quantity' => 1, 'rate' => $c['net'], 'ledger_id' => $c['ledger_id']];
+            $lines[] = ['type' => 'custom', 'description' => $c['name'], 'quantity' => 1, 'rate' => $c['net'], 'ledger_id' => $c['ledger_id'], 'tax_account_id' => $c['tax_account_id']];
         }
 
         return DB::transaction(fn () => $this->vouchers->placeOrder([

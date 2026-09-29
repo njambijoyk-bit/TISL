@@ -48,7 +48,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
     charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
-    default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0,
+    default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0, tax_follows: ledger?.settings?.tax_follows ?? 'own',
   });
   // The group decides which fields exist (Tally: the group carries the behaviour).
   const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
@@ -80,7 +80,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = null; });
       }
       if (behaviour !== 'delivery') body.side = null;
-      if (charging) body.settings = { charge_kind: f.charge_kind, timing: f.timing, refundable: Boolean(f.refundable), default_on: Boolean(f.default_on), free_days: Number(f.free_days) || 0 };
+      if (charging) body.settings = { charge_kind: f.charge_kind, timing: f.timing, refundable: Boolean(f.refundable), default_on: Boolean(f.default_on), free_days: Number(f.free_days) || 0, tax_follows: f.tax_follows };
       if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
@@ -167,6 +167,11 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               {f.rate_type === 'per_day' && (
                 <Field label="Free days" error={errs['settings.free_days']} hint="Days before the daily charge starts."><NumberInput min="0" step="1" value={f.free_days} onChange={(e) => set('free_days')(e.target.value)} /></Field>
               )}
+              <Field label="Tax on this charge follows" error={errs['settings.tax_follows']} hint="Usually a fee has its own tax (chosen above). Choose the auction's sales account if this charge should be taxed exactly like the item — exempt on an exempt auction, VAT-able on a VAT-able one.">
+                <SelectInput value={f.tax_follows} onChange={(e) => set('tax_follows')(e.target.value)}>
+                  <option value="own">This charge's own tax</option><option value="auction">The auction's sales account</option>
+                </SelectInput>
+              </Field>
               <CheckboxRow checked={f.refundable} onChange={set('refundable')} label="Refundable" description="Given back to the bidder (or applied to what they owe) instead of kept as income." />
               <CheckboxRow checked={f.default_on} onChange={set('default_on')} label="On for every new auction" description="New auctions start with this charge; you can still switch it off per auction." />
             </>

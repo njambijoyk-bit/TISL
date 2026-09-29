@@ -20,6 +20,9 @@ class AuctionChargeService
     public const KINDS = ['buyer_premium', 'entry_fee', 'deposit', 'delivery', 'handling', 'storage', 'removal', 'payment', 'customs', 'other'];
 
     /** entry: paid to take part · deposit: held, refundable · on_win: added to the winner's order · after_win: accrues later (storage) */
+    /** Which account decides the tax on a charge: its own setting, or the sales account the auction is booked to. */
+    public const TAX_FOLLOWS = ['own', 'auction'];
+
     public const TIMINGS = ['entry', 'deposit', 'on_win', 'after_win'];
 
     public function __construct(private TaxLineService $taxLines) {}
@@ -100,6 +103,16 @@ class AuctionChargeService
         }
     }
 
+    /** The account whose tax treatment applies to this charge on this auction. */
+    public function taxAccountFor(Auction $a, AuctionCharge $c): ?Ledger
+    {
+        if ((($c->ledger?->settings ?? [])['tax_follows'] ?? 'own') === 'auction' && $a->sales_ledger_id) {
+            return Ledger::find($a->sales_ledger_id) ?? $c->ledger;
+        }
+
+        return $c->ledger;
+    }
+
     /** Net amount of one charge for a winning bid (and, for per-day charges, days held). */
     public function amountFor(AuctionCharge $c, float $bid, int $days = 0): float
     {
@@ -139,12 +152,13 @@ class AuctionChargeService
             if ($net <= 0 || ! $c->ledger) {
                 continue;
             }
-            $t = $this->taxLines->fromAccount($c->ledger, $net, $net, 1.0, 'output', $customer, $currency)[0] ?? null;
+            $taxAccount = $this->taxAccountFor($a, $c);
+            $t = $taxAccount->tax_nature ? ($this->taxLines->fromAccount($taxAccount, $net, $net, 1.0, 'output', $customer, $currency)[0] ?? null) : null;
             $tax = (float) ($t['tax_amount'] ?? 0);
             $row = [
                 'charge_id' => $c->id, 'ledger_id' => $c->ledger_id, 'name' => $c->ledger->name,
                 'kind' => ($c->ledger->settings ?? [])['charge_kind'] ?? 'other', 'timing' => $c->timing, 'basis' => $c->basis,
-                'net' => $net, 'tax' => $tax, 'tax_label' => $t['label'] ?? null, 'gross' => round($net + $tax, 2), 'refundable' => (bool) $c->refundable,
+                'tax_account_id' => $taxAccount->id, 'net' => $net, 'tax' => $tax, 'tax_label' => $t['label'] ?? null, 'gross' => round($net + $tax, 2), 'refundable' => (bool) $c->refundable,
             ];
             match ($c->timing) { 'entry', 'deposit' => $upfront[] = $row, 'after_win' => $accruing[] = $row, default => $lines[] = $row };
         }

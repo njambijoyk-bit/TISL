@@ -87,7 +87,7 @@ export default function AuctionChargesEditor({ currencyId, currencyCode, value, 
                     style={{ width: 90, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, textAlign: 'right', fontSize: '0.8rem' }} />
                   <span style={{ marginLeft: 6, color: '#6b7280', fontSize: '0.72rem' }}>{unit}</span>
                 </td>
-                <td style={cell}>{TAX[o.ledger.tax_nature] ?? '—'}{o.tax_rate?.rate_value != null && o.ledger.tax_nature === 'taxable' ? ` ${Number(o.tax_rate.rate_value)}%` : ''}</td>
+                <td style={cell}>{o.tax_follows === 'auction' ? 'As the auction\'s account' : `${TAX[o.ledger.tax_nature] ?? '—'}${o.tax_rate?.rate_value != null && o.ledger.tax_nature === 'taxable' ? ` ${Number(o.tax_rate.rate_value)}%` : ''}`}</td>
               </tr>
             );
           })}
