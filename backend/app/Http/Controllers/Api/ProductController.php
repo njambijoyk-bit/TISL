@@ -817,6 +817,7 @@ class ProductController extends Controller
             
             $product->updated_by = Auth::id();
             $product->save();
+            \App\Services\Books\TradingAccounts::save($product, $request);   // sales / purchase account
 
             return response()->json([
                 'message' => 'Product updated successfully',

@@ -22,6 +22,7 @@ class TaxController extends Controller
     private const TAXABLE_MODELS = [
         'product'  => Product::class,
         'customer' => Customer::class,
+        'service'  => \App\Models\Service::class,
     ];
 
     // ========================================
@@ -525,7 +526,7 @@ class TaxController extends Controller
         $query = TaxApplicability::with(['taxRule', 'certificate']);
 
         if ($request->filled('taxable_type')) {
-            $query->where('taxable_type', self::TAXABLE_MODELS[$request->taxable_type]);
+            $query->where('taxable_type', (new (self::TAXABLE_MODELS[$request->taxable_type]))->getMorphClass());   // rows store the morph alias, not the class name
         }
 
         if ($request->filled('taxable_id')) {
