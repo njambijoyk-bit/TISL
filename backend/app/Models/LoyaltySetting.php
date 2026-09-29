@@ -23,6 +23,13 @@ class LoyaltySetting extends Model
 
     public static function set(string $key, mixed $value, ?int $updatedBy = null): void
     {
+        // "not set" is stored as no row (the column can't hold NULL); get() then returns the caller's default
+        if ($value === null) {
+            self::where('key', $key)->delete();
+            Cache::forget(self::CACHE_KEY);
+
+            return;
+        }
         self::updateOrCreate(
             ['key' => $key],
             ['value' => $value, 'updated_by' => $updatedBy]

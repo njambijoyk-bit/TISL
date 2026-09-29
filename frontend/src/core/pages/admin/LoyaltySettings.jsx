@@ -1,4 +1,3 @@
-import CurrencySelect from '../../components/admin/books/CurrencySelect';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -61,6 +60,18 @@ const useRuleMoney = () => {
   };
 };
 
+/** Every currency, the base one included, so a rule always names the currency its value is in. */
+function RuleCurrencySelect({ value, onChange, style }) {
+  useBaseCode();   // makes sure the list is loaded
+  const currencies = useCurrencyStore((st) => st.currencies);
+  return (
+    <select value={value ?? ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')} style={style} aria-label="Currency of the value">
+      <option value="">Choose the currency…</option>
+      {currencies.map((c) => <option key={c.id} value={c.id}>{c.code}{c.is_base ? ' (base)' : ''}</option>)}
+    </select>
+  );
+}
+
 const calculatePointsEarned = (orderAmount, pointsPer100) => {
   const spend = Math.max(0, Number(orderAmount || 0));
   const rate = Math.max(1, Number(pointsPer100 || 1));
@@ -73,11 +84,12 @@ const EMPTY_RULE = { name: '', type: 'cashback', points_required: '', value_kes:
 
 function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes }) {
   const money = useRuleMoney();
+  const baseCurrencyId = useCurrencyStore((st) => st.currencies.find((c) => c.is_base)?.id ?? '');
   const [form,    setForm]    = useState(rule ? {
     ...rule,
     valid_from:  rule.valid_from  ? rule.valid_from.slice(0, 10)  : '',
     valid_until: rule.valid_until ? rule.valid_until.slice(0, 10) : '',
-  } : EMPTY_RULE);
+  } : { ...EMPTY_RULE, currency_id: baseCurrencyId });
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [exampleOrder] = useState(() => Math.ceil((Math.floor(Math.random() * 9) + 1) * 100));
@@ -89,7 +101,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
   const examplePoints = calculatePointsEarned(exampleOrder, pointsRate);
   const estimatedSpendToReachRule = pointsRequired > 0 ? Math.ceil(pointsRequired / pointsRate) * 100 : 0;
   // the spend is in the base currency; a value in another currency can't be compared with it without converting
-  const sameCurrency = !form.currency_id;
+  const sameCurrency = !form.currency_id || Number(form.currency_id) === Number(baseCurrencyId);
   const rewardMath = sameCurrency && estimatedSpendToReachRule > 0 && valueKes > 0
     ? (valueKes > estimatedSpendToReachRule ? 'loss' : valueKes < estimatedSpendToReachRule ? 'profit' : 'break-even')
     : null;
@@ -100,6 +112,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
     if (!form.name.trim())          return setError('Name is required.');
     if (!form.points_required || isNaN(Number(form.points_required))) return setError('Points required must be a number.');
     if (Number(form.points_required) < minPoints) return setError(`Points required must be at least ${minPoints}.`);
+    if (!form.currency_id) return setError('Choose the currency the value is in.');
     if ((form.type === 'cashback' || form.type === 'voucher') && (!form.value_kes || Number(form.value_kes) <= 0)) return setError('Cashback and voucher rules must award a value greater than 0.');
     setLoading(true); setError('');
     try {
@@ -179,7 +192,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
             <div>
               <p style={label}>Value <span style={{ color: '#dc2626' }}>*</span></p>
               <input type="number" min="0" value={form.value_kes} onChange={e => set('value_kes', e.target.value)} style={inputStyle} placeholder="250" />
-              <div style={{ marginTop: 8 }}><p style={label}>Currency</p><CurrencySelect value={form.currency_id} onChange={(v) => set('currency_id', v)} style={inputStyle} /></div>
+              <div style={{ marginTop: 8 }}><p style={label}>Currency</p><RuleCurrencySelect value={form.currency_id} onChange={(v) => set('currency_id', v)} style={inputStyle} /></div>
             </div>
           </div>
 
@@ -426,6 +439,12 @@ export default function LoyaltySettings() {
           </button>
         </div>
 
+        {rules.some((r) => !r.currency_id) && (
+          <p role="alert" style={{ margin: 0, padding: '10px 20px', fontSize: '0.75rem', background: 'rgba(245,158,11,0.1)', color: '#92400e' }}>
+            {rules.filter((r) => !r.currency_id).length} rule(s) have no currency, so their value follows whichever currency is the base. Edit each one and choose the currency its value is in.
+          </p>
+        )}
+
         {rules.length === 0 ? (
           <div style={{ padding: '48px 0', textAlign: 'center' }}>
             <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No redemption rules yet. Create one to let customers redeem points.</p>
@@ -472,6 +491,7 @@ export default function LoyaltySettings() {
                     <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                       <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
                         {Number(r.value ?? r.value_kes) > 0 ? money(r.value ?? r.value_kes, r.currency_id) : '—'}
+                        {!r.currency_id && <span title="No currency was set on this rule, so it follows the base currency. Edit it to choose one." style={{ display: 'block', fontSize: '0.6rem', color: '#d97706', fontWeight: 700 }}>no currency set</span>}
                       </span>
                     </td>
 

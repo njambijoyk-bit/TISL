@@ -314,7 +314,7 @@ class LoyaltyController extends Controller
             'points_required' => 'required|integer|min:1',
             'value'           => 'required_without:value_kes|nullable|numeric|min:0',
             'value_kes'       => 'required_without:value|nullable|numeric|min:0',
-            'currency_id'     => 'nullable|integer|exists:currencies,id',
+            'currency_id'     => 'required|integer|exists:currencies,id',   // the value is money: say which currency it is in
             'active'          => 'boolean',
             'valid_from'      => 'nullable|date',
             'valid_until'     => 'nullable|date|after:valid_from',
