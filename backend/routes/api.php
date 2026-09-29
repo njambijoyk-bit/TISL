@@ -375,6 +375,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers',                 [BooksVoucherController::class, 'index']);
         Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList']);
         Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
+        Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);
         Route::get('/vouchers/next-number',     [BooksVoucherController::class, 'nextNumber']);
         Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);

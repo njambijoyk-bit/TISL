@@ -10,7 +10,8 @@ import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, ExportMenu } from './booksUi';
 import { money, filterStyle } from './booksFmt';
 
-export default function VouchersTab({ canWrite, baseType = '' }) {
+/** `newPath` swaps the "choose a type" button for a plain button to a dedicated screen (e.g. the Purchases page). */
+export default function VouchersTab({ canWrite, baseType = '', newPath = null, newLabel = 'New voucher', viewPath = null }) {
   const nav = useNavigate();
   const [types, setTypes] = useState([]);
   const [rows, setRows] = useState([]);
@@ -49,7 +50,10 @@ export default function VouchersTab({ canWrite, baseType = '' }) {
     <div>
       <Toolbar right={<>
         <ExportMenu label="Export list" onExport={(format) => booksAPI.exportVouchers({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), format })} />
-        {canWrite && (
+        {canWrite && newPath && (
+          <button type="button" style={btnPrimary} onClick={() => nav(newPath)}><Plus size={14} /> {newLabel}</button>
+        )}
+        {canWrite && !newPath && (
           <label style={{ ...btnPrimary, position: 'relative' }}>
             <Plus size={14} /> New voucher
             <select value="" onChange={(e) => e.target.value && nav(`/admin/books/vouchers/new?type=${e.target.value}`)} aria-label="New voucher"
@@ -76,7 +80,7 @@ export default function VouchersTab({ canWrite, baseType = '' }) {
         <input type="date" value={f.from} onChange={set('from')} style={filterStyle} aria-label="From" />
         <input type="date" value={f.to} onChange={set('to')} style={filterStyle} aria-label="To" />
       </Toolbar>
-      <SimpleTable columns={columns} rows={rows} loading={loading} onRowClick={(v) => nav(`/admin/books/vouchers/${v.id}`)}
+      <SimpleTable columns={columns} rows={rows} loading={loading} onRowClick={(v) => nav(viewPath ? viewPath(v) : `/admin/books/vouchers/${v.id}`)}
         empty="No vouchers match. Create the first one with “New voucher”." />
       {meta.last_page > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, alignItems: 'center', marginTop: 14, fontSize: '0.8rem', color: colors.textMuted }}>

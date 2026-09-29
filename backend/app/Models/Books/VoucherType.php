@@ -36,6 +36,7 @@ class VoucherType extends Model
     public const PAYMENT       = 'payment';
     public const JOURNAL       = 'journal';
     public const CONTRA        = 'contra';
+    public const OPENING_STOCK = 'opening_stock';
 
     public function series(): HasMany
     {

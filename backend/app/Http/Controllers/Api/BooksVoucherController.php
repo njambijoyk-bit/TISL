@@ -178,17 +178,27 @@ class BooksVoucherController extends Controller
         $out = [];
 
         if ($kind === 'product') {
-            $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status', 'units.unit:id,code,name'])
-                ->whereHas('product', fn ($p) => $p->where('status', 'active')->when($request->get('purpose') !== 'purchase', fn ($x) => $x->where('is_for_sale', true)))
+            $purchase = $request->get('purpose') === 'purchase';
+            $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
+                ->whereHas('product', fn ($p) => $p->where('status', 'active')->when(! $purchase, fn ($x) => $x->where('is_for_sale', true)))
                 ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('sku', 'like', $like)->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('sku', 'like', $like))))
                 ->orderBy('product_id')->limit(30)->get();
-            foreach ($variants as $v) {
-                $units = $v->units->map(function ($u) use ($v) {
-                    $u->setRelation('variant', $v);
 
-                    return ['id' => $u->id, 'code' => $u->unit?->code, 'role' => $u->role, 'sellable' => (bool) $u->is_sellable, 'is_default_sale' => (bool) $u->is_default_sale, 'price' => $u->effectivePrice()];
-                })->values();
-                $out[] = ['type' => 'product', 'variant_id' => $v->id, 'product_id' => $v->product_id, 'product' => $v->product?->name, 'variant' => $v->name, 'sku' => $v->sku, 'units' => $units];
+            // Nothing matches: offer near matches ("did you mean…"), flagged so the picker can say so.
+            $fuzzy = false;
+            if ($variants->isEmpty() && mb_strlen($q) >= 3) {
+                $near = app(\App\Services\FuzzySuggestService::class)->suggest(
+                    \App\Models\Product::query()->where('status', 'active')->when(! $purchase, fn ($x) => $x->where('is_for_sale', true)),
+                    $q, ['name', 'sku'], 6
+                );
+                if ($near->isNotEmpty()) {
+                    $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
+                        ->whereIn('product_id', $near->pluck('id'))->orderBy('product_id')->limit(30)->get();
+                    $fuzzy = true;
+                }
+            }
+            foreach ($variants as $v) {
+                $out[] = $this->productRow($v) + ['fuzzy' => $fuzzy];
             }
         } elseif ($kind === 'service') {
             $variants = \App\Models\ServiceVariant::with('service:id,name,status')
@@ -214,6 +224,41 @@ class BooksVoucherController extends Controller
         }
 
         return response()->json($out);
+    }
+
+    /** One product variant as the pickers show it: names, units with prices, and what a purchase line needs (expiry tracking, last cost). */
+    private function productRow(\App\Models\ProductVariant $v): array
+    {
+        $units = $v->units->map(function ($u) use ($v) {
+            $u->setRelation('variant', $v);
+
+            return ['id' => $u->id, 'code' => $u->unit?->code, 'role' => $u->role, 'sellable' => (bool) $u->is_sellable, 'is_default_sale' => (bool) $u->is_default_sale,
+                'is_purchasable' => (bool) $u->is_purchasable, 'base_factor' => (float) $u->base_factor, 'price' => $u->effectivePrice()];
+        })->values();
+
+        return ['type' => 'product', 'variant_id' => $v->id, 'product_id' => $v->product_id, 'product' => $v->product?->name, 'variant' => $v->name, 'sku' => $v->sku, 'units' => $units,
+            'track_expiry' => (bool) $v->product?->track_expiry, 'for_sale' => (bool) $v->product?->is_for_sale,
+            'last_cost' => app(\App\Services\Stock\BatchService::class)->lastCost($v->id)];   // base currency, per base unit; 0 = never bought
+    }
+
+    /**
+     * Every variant of a product, for the Purchases page after the admin creates or edits a product from it.
+     * A product with no variant gets its "Standard" one first — the same silent default variant product
+     * creation makes — so the purchase line always has something to attach stock to.
+     */
+    public function productVariants($productId): JsonResponse
+    {
+        $product = \App\Models\Product::findOrFail($productId);
+        if ($product->productVariants()->doesntExist()) {
+            try {
+                app(\App\Services\Location\VariantStockService::class)->ensureDefaultVariant($product);
+            } catch (\RuntimeException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+        }
+        $variants = $product->productVariants()->with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])->orderByDesc('is_default')->orderBy('id')->get();
+
+        return response()->json($variants->map(fn ($v) => $this->productRow($v))->values());
     }
 
     public function paymentMethods(): JsonResponse

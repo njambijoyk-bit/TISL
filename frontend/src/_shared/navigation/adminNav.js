@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, DollarSign, FileText, CreditCard, Scale, NotebookPen,
-  Package, Wrench, Award, Gift, Gavel, CalendarCheck,
+  Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
@@ -72,6 +72,14 @@ export const ADMIN_NAV = [
           { title: 'Categories', path: '/admin/categories' },
           { title: 'Brands', path: '/admin/brands' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
+        ],
+      },
+      {
+        id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', roles: FINANCE_READ,
+        keywords: 'buy stock supplier receive batch expiry opening stock', also: ['/admin/stock/opening'],
+        tabs: [
+          { title: 'Purchases', path: '/admin/purchases', exact: true },
+          { title: 'Opening stock', path: '/admin/stock/opening' },
         ],
       },
       {

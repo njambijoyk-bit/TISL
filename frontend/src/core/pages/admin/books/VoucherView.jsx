@@ -164,7 +164,7 @@ export default function VoucherView() {
             {canWrite && convertible && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
-            {canWrite && live && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
+            {canWrite && live && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={cancel}><Ban size={14} /> Cancel</button>}
           </div>
         </div>
@@ -247,7 +247,14 @@ function FragmentRows({ item: i, kids, showDone }) {
   const row = (x, child) => (
     <tr key={x.id} style={{ background: x.is_header ? colors.tint(0.03) : 'transparent', color: child ? colors.textMuted : colors.text }}>
       <td style={{ ...td, paddingLeft: child ? 28 : 10, fontWeight: x.is_header ? 700 : 500 }}>{child && '└ '}{x.description}</td>
-      <td style={td}>{x.variant_label && x.variant_label !== 'Standard' ? x.variant_label : ''}</td>
+      <td style={td}>
+        {x.variant_label && x.variant_label !== 'Standard' ? x.variant_label : ''}
+        {(x.batch_no || x.expiry_date) && (
+          <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>
+            {x.batch_no ? `Batch ${x.batch_no}` : ''}{x.batch_no && x.expiry_date ? ' · ' : ''}{x.expiry_date ? `exp ${new Date(x.expiry_date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+          </div>
+        )}
+      </td>
       <td style={{ ...td, ...r }}>{Number(x.quantity)} {x.unit_code}</td>
       <td style={{ ...td, ...r }}>{money(x.rate)}</td>
       <td style={{ ...td, ...r }}>{money(x.amount)}</td>

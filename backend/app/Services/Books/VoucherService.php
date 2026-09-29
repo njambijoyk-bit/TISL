@@ -369,6 +369,7 @@ class VoucherService
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
 
         $plan = [
+            'opening_ledger_id' => ! empty($data['opening_ledger_id']) ? (int) $data['opening_ledger_id'] : null,
             'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
             'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
             'method' => $method, 'tenders' => $tenders, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
@@ -392,7 +393,7 @@ class VoucherService
             $moves = array_key_exists('moves_stock', $data) ? (bool) $data['moves_stock'] : $type->stock_effect !== 'none';
             $plan['moves_stock'] = $moves && $type->stock_effect !== 'none';
             if ($plan['moves_stock']) {
-                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate);
+                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date);
             }
         } else {
             [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);   // also settles $plan['tenders']
@@ -480,7 +481,7 @@ class VoucherService
             'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
-            'gift_meta' => null,
+            'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
         ];
     }
@@ -531,7 +532,7 @@ class VoucherService
         if ($account && empty($line['ledger_id'])) {
             $line['ledger_id'] = $account->id;
         }
-        $line['taxes'] = $taxable
+        $line['taxes'] = $taxable && $ctx['type']->base_type !== VoucherType::OPENING_STOCK
             ? $this->taxes->forLine($taxable, $module, $gross, $line['amount'], $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'], $account)
             : [];
         $this->summariseTaxes($line);
@@ -611,6 +612,10 @@ class VoucherService
             'quantity' => $qty, 'base_quantity' => round($qty * $factor, 4), 'rate' => round($rate, 4),
             'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null,
             'location_id' => $l['location_id'] ?? null, 'notes' => $l['notes'] ?? null,
+            'batch_no' => filled($l['batch_no'] ?? null) ? trim((string) $l['batch_no']) : null,
+            'mfg_date' => filled($l['mfg_date'] ?? null) ? $l['mfg_date'] : null,
+            'expiry_date' => filled($l['expiry_date'] ?? null) ? $l['expiry_date'] : null,
+            'track_expiry' => (bool) $product->track_expiry,
         ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
         $line['pending_price'] = $pending;
@@ -780,9 +785,11 @@ class VoucherService
         $line = $this->blank($it->item_type);
         foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
                   'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent',
-                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price', 'gift_meta'] as $k) {
+                  'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price', 'gift_meta',
+                  'batch_no', 'mfg_date', 'expiry_date'] as $k) {
             $line[$k] = $it->{$k};
         }
+        $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Product::whereKey($it->product_id)->value('track_expiry') : false;
         $line['unit_factor'] = (float) $it->unit_factor;
         $line['quantity'] = $qty;
         $line['base_quantity'] = round($qty * (float) $it->unit_factor, 4);
@@ -859,8 +866,17 @@ class VoucherService
         $byLedger = [];
         $taxByLedger = [];
         $discByLedger = [];
+        // Valued stock: stock bought (or returned to the supplier) posts to the Stock ledger, not the purchase account.
+        // The purchase account still decides the line's tax; and when no Stock ledger is set, purchases post as before.
+        $stockLedgerId = in_array($base, [VoucherType::PURCHASE, VoucherType::DEBIT_NOTE, VoucherType::OPENING_STOCK], true) ? $settings->stock_ledger_id : null;
+        if ($base === VoucherType::OPENING_STOCK && ! $stockLedgerId) {
+            throw new BooksException('Choose the Stock ledger under Books → Settings → Default ledgers first.');
+        }
         foreach ($this->postingLines($plan['lines']) as $l) {
             $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? $settings->default_sales_ledger_id : $settings->default_purchase_ledger_id);
+            if ($stockLedgerId && $l['item_type'] === 'product' && ! empty($l['variant_id'])) {
+                $ledgerId = $stockLedgerId;
+            }
             if (! $ledgerId) {
                 throw new BooksException('Choose a ledger for "' . $l['description'] . '" (or set a default under Books settings).');
             }
@@ -907,6 +923,13 @@ class VoucherService
         }
 
         // The other side: customer / supplier ledger, or cash for a cash sale.
+        if ($base === VoucherType::OPENING_STOCK) {
+            $opening = $plan['opening_ledger_id'] ?? $settings->opening_balance_ledger_id
+                ?? throw new BooksException('Choose the ledger the opening stock is balanced against.');
+            $add((int) $opening, $total >= 0 ? $partySide : $flip($partySide), abs($total), ['is_party' => true]);
+
+            return $entries;
+        }
         if ($base === VoucherType::CASH_SALE) {
             if (! $plan['tenders']) {
                 $method ??= AccountingSetting::current()->default_payment_method_id
@@ -1190,7 +1213,7 @@ class VoucherService
 
     // ── stock ──────────────────────────────────────────────────────────
 
-    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0): array
+    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0, ?Carbon $date = null): array
     {
         $sign = $type->stock_effect === 'out' ? -1 : 1;
         $moves = [];
@@ -1206,11 +1229,41 @@ class VoucherService
             if ($sign > 0) {
                 // what this stock cost: the line's net amount (after discount, before tax) in base currency, per base unit
                 $move['unit_cost'] = round((float) ($l['amount'] ?? 0) * $rate / (float) $l['stock_qty'], 4);
+                $move['batch'] = $this->batchInfo($l, $date);
             }
             $moves[] = $move;
         }
 
         return $moves;
+    }
+
+    /**
+     * Batch number / dates for stock arriving on a line. A product that tracks
+     * expiry must have a batch number and an expiry date; any other product may
+     * still carry them. Returns null when the line names no batch at all.
+     */
+    private function batchInfo(array $l, ?Carbon $date): ?array
+    {
+        $no = $l['batch_no'] ?? null;
+        $mfg = $l['mfg_date'] ?? null;
+        $exp = $l['expiry_date'] ?? null;
+        $name = $l['description'] ?? 'this product';
+
+        if (! empty($l['track_expiry'])) {
+            if (! filled($no) || ! filled($exp)) {
+                throw new BooksException("{$name} expires — enter its batch number and expiry date. (Stock of expiry products arrives through a Receipt Note or the Purchases page, where the batch can be entered.)");
+            }
+        }
+        if (filled($exp) && filled($mfg) && Carbon::parse($exp)->lt(Carbon::parse($mfg))) {
+            throw new BooksException("{$name}: the expiry date is before the manufacture date.");
+        }
+        if (filled($exp) && $date && Carbon::parse($exp)->startOfDay()->lt($date->copy()->startOfDay())) {
+            throw new BooksException("{$name}: batch " . ($no ?: '') . ' had already expired on ' . Carbon::parse($exp)->format('d M Y') . ' — it can not be received.');
+        }
+
+        return (filled($no) || filled($mfg) || filled($exp))
+            ? ['batch_no' => filled($no) ? $no : null, 'mfg_date' => filled($mfg) ? $mfg : null, 'expiry_date' => filled($exp) ? $exp : null]
+            : null;
     }
 
     // =====================================================================
@@ -1315,6 +1368,7 @@ class VoucherService
             'discount_ledger_id' => $l['discount_ledger_id'] ?? null, 'discount_source' => $l['discount_source'] ?? null,
             'discount_ref' => $l['discount_ref'] ?? null, 'shipping_option_id' => $l['shipping_option_id'] ?? null,
             'pending_price' => ! empty($l['pending_price']), 'gift_meta' => $l['gift_meta'] ?? null,
+            'batch_no' => $l['batch_no'] ?? null, 'mfg_date' => $l['mfg_date'] ?? null, 'expiry_date' => $l['expiry_date'] ?? null,
         ]);
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
@@ -1328,7 +1382,12 @@ class VoucherService
     {
         $needs = [];
         $costs = [];
+        $arrivals = [];   // stock arriving with its own batch number / dates: each becomes its own batch
         foreach ($moves as $m) {
+            if ($m['qty'] > 0 && ! empty($m['batch'])) {
+                $arrivals[] = $m;
+                continue;
+            }
             $key = $m['variant_id'] . ':' . $m['location_id'];
             $needs[$key] = ($needs[$key] ?? 0) + $m['qty'];
             if (isset($m['unit_cost']) && $m['qty'] > 0) {
@@ -1351,15 +1410,22 @@ class VoucherService
         }
 
         $out = [];
+        $record = function (int $variantId, int $locId, array $allocs) use (&$out) {
+            foreach ($allocs as $alloc) {
+                $out[] = ['variant_id' => $variantId, 'location_id' => $locId, 'qty' => $alloc['qty'], 'batch_id' => $alloc['batch_id'], 'unit_cost' => $alloc['unit_cost'], 'created' => $alloc['created']];
+            }
+        };
         foreach ($needs as $key => $qty) {
             [$variantId, $locId] = array_map('intval', explode(':', $key));
             $opts = ['received_at' => $date];
             if (! empty($costs[$key]['qty'])) {
                 $opts['unit_cost'] = round($costs[$key]['amount'] / $costs[$key]['qty'], 4);   // lines of one arrival share a batch at their average cost
             }
-            foreach ($this->stock->applyDelta($variantId, $locId, $qty, $opts) as $alloc) {
-                $out[] = ['variant_id' => $variantId, 'location_id' => $locId, 'qty' => $alloc['qty'], 'batch_id' => $alloc['batch_id'], 'unit_cost' => $alloc['unit_cost'], 'created' => $alloc['created']];
-            }
+            $record($variantId, $locId, $this->stock->applyDelta($variantId, $locId, $qty, $opts));
+        }
+        foreach ($arrivals as $m) {
+            $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], (float) $m['qty'],
+                ['received_at' => $date, 'unit_cost' => $m['unit_cost'] ?? null] + $m['batch']));
         }
 
         return $out;
@@ -1368,6 +1434,15 @@ class VoucherService
     /** Undo a voucher's stock and chain effects (before an edit or a cancel). */
     private function reverseEffects(Voucher $voucher): void
     {
+        // Stock this voucher brought in cannot be taken back once some of it has been sold or used.
+        foreach (StockMovement::where('voucher_id', $voucher->id)->where('reversed', false)->where('quantity', '>', 0)->whereNotNull('batch_id')->get() as $m) {
+            $left = (float) DB::table('stock_batch_balances')->where('batch_id', $m->batch_id)->where('location_id', $m->location_id)->value('quantity');
+            if ($left + 0.00005 < (float) $m->quantity) {
+                $b = StockBatch::find($m->batch_id);
+                $what = $b?->batch_no ? "batch {$b->batch_no}" : 'a batch';
+                throw new BooksException("Some of the stock this voucher brought in ({$what}) has already been sold or used, so it can not be changed. Return it to the supplier with a Debit Note instead.");
+            }
+        }
         foreach (StockMovement::where('voucher_id', $voucher->id)->where('reversed', false)->get() as $m) {
             // back into / out of the very batch it went through (movements from before batches have none)
             $this->stock->applyDelta($m->variant_id, $m->location_id, -(float) $m->quantity, $m->batch_id ? ['batch_id' => $m->batch_id] : []);

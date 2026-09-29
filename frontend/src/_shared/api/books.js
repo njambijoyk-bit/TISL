@@ -36,6 +36,7 @@ const booksAPI = {
   receive: (id, data) => send('post', `/admin/books/vouchers/${id}/receive`, data),
   nextNumbers: (params) => get('/admin/books/vouchers/next-number', params),
   lookup: (kind, q, purpose) => get('/admin/books/lookup', { kind, q, purpose }),
+  productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),
   exportVoucher: (id, format) => saveBlob(`/admin/books/vouchers/${id}/export`, { format }, `voucher.${format}`),
   exportVouchers: (params) => saveBlob('/admin/books/vouchers/export', params, `vouchers.${params.format}`),
 

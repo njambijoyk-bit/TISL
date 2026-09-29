@@ -284,6 +284,9 @@ export default function ProductForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
+  // Arrived from another admin page (the Purchases page) to create or change a product: go back there after saving.
+  const rawReturn = searchParams.get('returnTo');
+  const returnTo = rawReturn && rawReturn.startsWith('/admin/') && !rawReturn.startsWith('//') ? rawReturn : null;
 
   const mode    = searchParams.get('mode');
   const isView  = mode === 'view';
@@ -306,7 +309,7 @@ export default function ProductForm() {
   const [categories, setCategories] = useState([]);
   const [brands,     setBrands]     = useState([]);
   const [showProductSelector, setShowProductSelector] = useState(false);
-  const [activeTab, setActiveTab]   = useState('basic');
+  const [activeTab, setActiveTab]   = useState(searchParams.get('tab') === 'variants' ? 'variants' : 'basic');
   const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
   // Structured variants loaded by the Variants tab (only counts for this product)
   const structuredVariantCount = useProductVariantStore(s =>
@@ -326,7 +329,7 @@ export default function ProductForm() {
   const [selectedRelated,  setSelectedRelated]  = useState([]);
 
   const [formData, setFormData] = useState({
-    name: '', sku: '', type: '', category_id: '', brand_id: '',
+    name: searchParams.get('name') || '', sku: '', type: '', category_id: '', brand_id: '',
     price: '', original_price: '', price_is_negotiable: false, currency_id: '', default_unit_id: '', alternate_unit_id: '',
     stock_quantity: '', in_stock: true, is_for_sale: true, track_expiry: false, has_variants: false,
     short_description: '', description: '',
@@ -633,6 +636,7 @@ export default function ProductForm() {
       if (selectedRelated.length > 0)
         fd.append('related_products', JSON.stringify(selectedRelated.map(p => p.id ?? p)));
 
+      let savedId = null;
       if (isEdit) {
         await productsAPI.updateProduct(id, fd);
         toast.success('Product updated!');
@@ -644,8 +648,8 @@ export default function ProductForm() {
           return;
         }
       }
-      else        { await productsAPI.createProduct(fd);     toast.success('Product created!'); draftStore.clear(); }
-      navigate('/admin/products');
+      else        { savedId = (await productsAPI.createProduct(fd))?.product?.id;     toast.success('Product created!'); draftStore.clear(); }
+      navigate(returnTo ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}product=${savedId ?? id}` : '/admin/products');
     } catch (err) {
       const data = err.response?.data;
       const lines = data?.errors
@@ -702,7 +706,7 @@ export default function ProductForm() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
             <button
-              onClick={() => navigate('/admin/products')}
+              onClick={() => navigate(returnTo ?? '/admin/products')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
@@ -711,7 +715,7 @@ export default function ProductForm() {
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
             >
-              <ChevronLeft size={14} /> Products
+              <ChevronLeft size={14} /> {returnTo ? 'Back to the purchase' : 'Products'}
             </button>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isView ? 'View product' : isEdit ? 'Edit product' : 'New product'}
@@ -735,7 +739,7 @@ export default function ProductForm() {
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/admin/products')} disabled={loading || deleting} style={{
+                <button onClick={() => navigate(returnTo ?? '/admin/products')} disabled={loading || deleting} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
                   background: 'transparent', color: '#9ca3af',

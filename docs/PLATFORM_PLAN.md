@@ -855,7 +855,9 @@ Defaults set here; a category may override, and a product may override again.
 
 **Settled:** the For sale / Track expiry switches live on the **product** only (every variant inherits them).
 
-**Status:** steps 1–2 built (SQL scripts `22_stock_fields_and_ledgers.sql`, `23_stock_batches.sql`). Stock changes now go through batches (`BatchService`); `variant_location_stock` is the total of a variant's batches. Sales already take stock first-expiring first and record the batch and its cost on each stock movement; cost-of-goods-sold posting is step 4. Known until step 6: stock on hand counts expired batches too (they are skipped when selling but stay counted until written off).
+**Status (step 3):** built — the Purchases page (§18.1), batch number / manufacture / expiry entry on purchase, goods-received and opening-stock lines (asked only for products that track expiry), purchases posting **Dr Stock** (not the purchase account) once the Stock ledger is set, the **Opening Stock** voucher (Dr Stock / Cr *Opening Stock Balance*), and SQL script `24_purchase_batches_and_opening_stock.sql`. Stock a voucher brought in can no longer be edited or cancelled once some of it has been sold or used (the message points to a Debit Note). Until step 4 posts cost of goods sold, profit reports overstate profit on stocked goods: purchases no longer reach the P&L, and sales do not yet post their cost.
+
+**Status (steps 1–2):** built (SQL scripts `22_stock_fields_and_ledgers.sql`, `23_stock_batches.sql`). Stock changes now go through batches (`BatchService`); `variant_location_stock` is the total of a variant's batches. Sales already take stock first-expiring first and record the batch and its cost on each stock movement; cost-of-goods-sold posting is step 4. Known until step 6: stock on hand counts expired batches too (they are skipped when selling but stay counted until written off).
 
 ### 18.1 Purchases page (E-commerce admin) — part of step 3
 
