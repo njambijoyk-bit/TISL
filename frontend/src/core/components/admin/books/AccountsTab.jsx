@@ -260,8 +260,8 @@ export default function AccountsTab({ canWrite }) {
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.text, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
-    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? '') },
-    { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : Number(l.rate_value).toLocaleString()) : '—') },
+    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase'].includes(l.group?.behaviour) ? 'Not set' : '')) },
+    { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : Number(l.rate_value).toLocaleString()) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
     { key: 'actions', label: '', align: 'right', render: (l) => (
       <span style={{ display: 'inline-flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>

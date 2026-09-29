@@ -82,7 +82,7 @@ class BooksMasterController extends Controller
 
     public function ledgers(Request $request): JsonResponse
     {
-        $q = Ledger::with(['group:id,name,nature', 'taxRateLedger:id,name,rate_value'])
+        $q = Ledger::with(['group:id,name,nature,behaviour', 'taxRateLedger:id,name,rate_value'])
             ->when($request->filled('group_id'), function ($q) use ($request) {
                 $g = LedgerGroup::find($request->group_id);
                 $q->whereIn('group_id', $g ? $g->selfAndDescendantIds() : [0]);
