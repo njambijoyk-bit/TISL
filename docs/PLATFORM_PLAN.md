@@ -591,10 +591,12 @@ Decisions taken: numbering prefix **WNKJ-** (WNKJ-SO-, -DEL-, -INV-, -CSH-, -CN-
 9. Purchase Order chain; bookings/projects/auctions/delivery hooks; financial notes; reconciliation.
 10. Reports/dashboards/AI re-pointed → drop legacy tables → Data Exchange.
 
-### 12.12 Open decisions
-1. Gift-voucher accounting: **one control ledger + sub-ledger** (recommended) vs a ledger per voucher.
-2. Tax opening balances on the **control ledger**; rate ledgers start at zero (recommended).
-3. Discounts: **gross + contra** ledger (recommended) vs net.
-4. Add **Purchase Order** as a voucher type (recommended).
-5. Realised + unrealised **FX gain/loss** in the engine (recommended).
-6. "No TISL … even on the namespace": I read this as no brand in code identifiers, strings, config keys or numbering — with the company name coming from settings. Confirm, or tell me if you also want PHP namespace / folder / repo renamed (that is a much bigger mechanical change).
+### 12.12 Decisions (settled)
+1. Gift vouchers: **one control ledger + coded sub-ledger**.
+2. Discounts post **gross + contra** (Discounts Allowed).
+3. **Purchase Order** is a voucher type.
+4. FX: **realised** gain/loss on settlement is built into the engine; **unrealised** revaluation ships later as a manual "Revalue foreign balances" Journal action (not automatic) — enough for correct books without surprising month-end postings.
+5. "No TISL" means the **frontend and product text** — e.g. the numbering form's placeholder read `TISL-INV-{YY}-`. Fixed to `WNKJ-INV-{YY}-`; every other brand string moves to the company profile (12.1). PHP namespace/repo are untouched.
+
+### 12.13 Scale of the redo
+This touches most money-handling modules (see 12.10). Ship it as small vertical slices in the order of 12.11, each with its own SQL script and each leaving the platform working, rather than one big cut-over: the old order/payment/credit screens keep running until checkout is rewired (step 6), and only step 10 drops legacy tables.

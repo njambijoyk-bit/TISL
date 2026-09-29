@@ -66,7 +66,7 @@ function SeriesForm({ type, series, branches, onClose, onSaved }) {
           <FormError message={err} />
           <Field label="Series name" error={errs.name}><TextInput required value={f.name} onChange={(e) => set('name')(e.target.value)} /></Field>
           <FormGrid>
-            <Field label="Prefix" error={errs.prefix}><TextInput value={f.prefix} onChange={(e) => set('prefix')(e.target.value)} placeholder="TISL-INV-{YY}-" /></Field>
+            <Field label="Prefix" error={errs.prefix}><TextInput value={f.prefix} onChange={(e) => set('prefix')(e.target.value)} placeholder="WNKJ-INV-{YY}-" /></Field>
             <Field label="Suffix" error={errs.suffix}><TextInput value={f.suffix} onChange={(e) => set('suffix')(e.target.value)} placeholder="/{BR}" /></Field>
           </FormGrid>
           <FormGrid min={140}>
