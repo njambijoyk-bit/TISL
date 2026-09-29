@@ -106,7 +106,9 @@ class CheckoutService
 
             $referralDiscount = 0.0;
             if ($customer->hasReferralDiscount() && ($rc = $customer->referralCode) && $rc->is_valid) {
-                $referralDiscount = min($net, $this->promos->discountFor($rc, $net, $currency));
+                $referralDiscount = $rc->type === 'customer_referral'
+                    ? $this->promos->referralDiscount($net, $currency)
+                    : min($net, $this->promos->discountFor($rc, $net, $currency));
                 $share($referralDiscount, 'referral', $rc->code);
                 $referralCodeId = $rc->id;
                 $net -= $referralDiscount;

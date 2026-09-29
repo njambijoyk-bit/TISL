@@ -1157,6 +1157,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/analytics',             [ReferralController::class, 'analytics']);
             Route::get('/top-performers',        [ReferralController::class, 'topPerformers']);
             Route::get('/activity',              [ReferralController::class, 'activityLog']);
+            Route::get('/programme-settings',    [ReferralController::class, 'programmeSettings']);
             Route::get('/{id}',                  [ReferralController::class, 'show']);
             Route::post('/{id}/pause',           [ReferralController::class, 'pause']);
             Route::post('/{id}/archive',         [ReferralController::class, 'archive']);
@@ -1942,6 +1943,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Referral Codes Management
         Route::prefix('referrals')->group(function () {
             Route::post('/',                     [ReferralController::class, 'store']);
+            Route::put('/programme-settings',    [ReferralController::class, 'updateProgrammeSettings']);
             Route::put('/{id}',                  [ReferralController::class, 'update']);
             Route::delete('/{id}',               [ReferralController::class, 'destroy']);
             Route::post('/{id}/activate',        [ReferralController::class, 'activate']);

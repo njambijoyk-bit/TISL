@@ -198,7 +198,7 @@ class RewardService
                     'note' => "Referral reward — {$sale->voucher_number}", 'expires_at' => $this->expiry(),
                 ], null);
             }
-            $bonus = (int) LoyaltySetting::get('referral_bonus_points', 0);
+            $bonus = (int) \App\Services\ReferralSettings::get()['referral_referrer_points'];
             if ($bonus > 0) {
                 $this->writePoints($referrer, $bonus, 'referral_bonus', "Referral bonus — {$sale->voucher_number}", $sale);
                 $this->accrue($sale, $bonus);
@@ -216,16 +216,19 @@ class RewardService
     /** @return array{amount: float, currency_id: ?int}|null */
     private function referrerReward(?ReferralCode $code, Voucher $sale): ?array
     {
-        if ($code && in_array($code->referrer_reward_type, ['store_credit', 'gift_voucher', 'fixed_amount'], true) && (float) $code->referrer_reward_value > 0) {
+        // personal referral codes follow the programme settings; other codes may carry their own reward
+        if (! $code || $code->type === 'customer_referral') {
+            $s = \App\Services\ReferralSettings::get();
+
+            return $s['referral_referrer_gift_amount'] > 0
+                ? ['amount' => (float) $s['referral_referrer_gift_amount'], 'currency_id' => $s['referral_referrer_gift_currency_id'] ?: $this->money->getBaseCurrency()->id]
+                : null;
+        }
+        if (in_array($code->referrer_reward_type, ['store_credit', 'gift_voucher', 'fixed_amount'], true) && (float) $code->referrer_reward_value > 0) {
             return ['amount' => (float) $code->referrer_reward_value, 'currency_id' => $code->currency_id ?: $this->money->getBaseCurrency()->id];
         }
-        if ($code && $code->referrer_reward_type === 'percentage' && (float) $code->referrer_reward_value > 0) {
+        if ($code->referrer_reward_type === 'percentage' && (float) $code->referrer_reward_value > 0) {
             return ['amount' => round((float) $sale->total_amount * (float) $code->referrer_reward_value / 100, 2), 'currency_id' => $sale->currency_id];
-        }
-        if (! $code) {
-            $amount = (float) LoyaltySetting::get('referral_credit_amount', 0);
-
-            return $amount > 0 ? ['amount' => $amount, 'currency_id' => $this->money->getBaseCurrency()->id] : null;
         }
 
         return null;

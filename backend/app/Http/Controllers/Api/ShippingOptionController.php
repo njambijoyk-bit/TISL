@@ -149,7 +149,7 @@ class ShippingOptionController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        if (auth()->user()->role !== 'superadmin') {
+        if (auth()->user()->role !== 'super_admin') {
             return response()->json(['message' => 'Only superadmin can delete shipping options'], 403);
         }
 

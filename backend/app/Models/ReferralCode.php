@@ -573,10 +573,13 @@ class ReferralCode extends Model
             'description' => "Personal referral code for {$customer->full_name}",
             'type' => 'customer_referral',
             'customer_id' => $customer->id,
-            'reward_type' => 'percentage',
-            'reward_value' => 5, // 5% for referee
-            'referrer_reward_type' => 'store_credit',
-            'referrer_reward_value' => (float) \App\Models\LoyaltySetting::get('referral_credit_amount', 500),
+            // the programme is set under Referrals → Programme settings; nothing is fixed here
+            'reward_type' => \App\Services\ReferralSettings::get()['referral_discount_type'],
+            'reward_value' => \App\Services\ReferralSettings::get()['referral_discount_value'],
+            'currency_id' => \App\Services\ReferralSettings::get()['referral_discount_currency_id'],
+            'min_order_value' => \App\Services\ReferralSettings::get()['referral_min_order'],
+            'referrer_reward_type' => \App\Services\ReferralSettings::get()['referral_referrer_gift_amount'] > 0 ? 'store_credit' : 'none',
+            'referrer_reward_value' => \App\Services\ReferralSettings::get()['referral_referrer_gift_amount'],
             'status' => 'active',
             'is_public' => false,
             'max_uses_per_customer' => 1,

@@ -585,4 +585,30 @@ class ReferralController extends Controller
 
         return response()->json($query->paginate($perPage));
     }
+
+    /** GET /admin/referrals/programme-settings */
+    public function programmeSettings(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(\App\Services\ReferralSettings::get());
+    }
+
+    /** PUT /admin/referrals/programme-settings */
+    public function updateProgrammeSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $d = $request->validate([
+            'referral_discount_type' => 'required|in:percentage,fixed_amount',
+            'referral_discount_value' => 'required|numeric|min:0',
+            'referral_discount_currency_id' => 'nullable|integer|exists:currencies,id',
+            'referral_discount_max' => 'nullable|numeric|min:0',
+            'referral_min_order' => 'nullable|numeric|min:0',
+            'referral_referrer_points' => 'required|integer|min:0',
+            'referral_referrer_gift_amount' => 'nullable|numeric|min:0',
+            'referral_referrer_gift_currency_id' => 'nullable|integer|exists:currencies,id',
+        ]);
+        if ($d['referral_discount_type'] === 'percentage' && $d['referral_discount_value'] > 100) {
+            return response()->json(['errors' => ['referral_discount_value' => ['A percentage can not be more than 100.']]], 422);
+        }
+
+        return response()->json(['message' => 'Referral programme saved', 'settings' => \App\Services\ReferralSettings::save($d, $request->user()->id)]);
+    }
 }

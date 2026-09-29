@@ -1,3 +1,4 @@
+import ReferralSettingsModal from './ReferralSettingsModal';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -566,6 +567,7 @@ export default function Referrals() {
   } = useReferralsStore();
 
   const [showInfo,    setShowInfo]    = useState(false);
+  const [showProgramme, setShowProgramme] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [activity,    setActivity]    = useState([]);
   const [activityPag, setActivityPag] = useState(null);
@@ -638,6 +640,7 @@ export default function Referrals() {
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <button type="button" onClick={() => setShowProgramme(true)} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'white', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', color: 'var(--color-primary-600)' }}>Programme settings</button>
           <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setDevNotesOpen(true)}
@@ -1076,6 +1079,7 @@ export default function Referrals() {
       </div>
       {devNotesOpen && <ReferralDevNotesModal onClose={() => setDevNotesOpen(false)} />}
     </div>
+    {showProgramme && <ReferralSettingsModal onClose={() => setShowProgramme(false)} />}
     </SettingsLayout>
   );
 }

@@ -507,6 +507,28 @@ class PromoCodeService
     }
 
     /**
+     * What the referral programme takes off a referred customer's first order, in the order's currency,
+     * from the live programme settings (so changing them changes every personal referral code).
+     */
+    public function referralDiscount(float $orderValue, \App\Models\Currency $orderCurrency): float
+    {
+        $s = \App\Services\ReferralSettings::get();
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $settingCurrency = $money->currencyFrom($s['referral_discount_currency_id']);
+        if ($s['referral_min_order'] !== null && $s['referral_min_order'] !== '' && $money->convert($orderValue, $orderCurrency, $settingCurrency) < (float) $s['referral_min_order']) {
+            return 0.0;
+        }
+        $d = $s['referral_discount_type'] === 'percentage'
+            ? $orderValue * $s['referral_discount_value'] / 100
+            : $money->convert($s['referral_discount_value'], $settingCurrency, $orderCurrency);
+        if ($s['referral_discount_max'] !== null && $s['referral_discount_max'] !== '') {
+            $d = min($d, $money->convert((float) $s['referral_discount_max'], $settingCurrency, $orderCurrency));
+        }
+
+        return round(min($d, $orderValue), 2);
+    }
+
+    /**
      * Validate a promo code for a checkout in any currency.
      *
      * @return array{ valid: bool, message: string, code?: ReferralCode, discount?: float }
