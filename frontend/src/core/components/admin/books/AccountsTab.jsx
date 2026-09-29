@@ -7,6 +7,7 @@ import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState'
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import SimpleTable from '../ui/SimpleTable';
+import CurrencySelect from './CurrencySelect';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 const NATURE = { asset: 'Asset', liability: 'Liability', income: 'Income', expense: 'Expense' };
@@ -41,7 +42,13 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const [f, setF] = useState({
     name: ledger?.name ?? '', group_id: ledger?.group_id ?? defaultGroupId ?? '', code: ledger?.code ?? '',
     opening_balance: ledger?.opening_balance ?? 0, opening_side: ledger?.opening_side ?? 'D', notes: ledger?.notes ?? '', is_active: ledger?.is_active ?? true,
+    currency_id: ledger?.currency_id ?? '', rate_type: ledger?.rate_type ?? '', rate_value: ledger?.rate_value ?? '', valid_from: ledger?.valid_from ?? '', valid_until: ledger?.valid_until ?? '',
+    min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
   });
+  // The group decides which fields exist (Tally: the group carries the behaviour).
+  const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
+  const rated = behaviour === 'tax' || behaviour === 'delivery';
+  const expense = behaviour === 'delivery' && f.side === 'expense';
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
@@ -49,7 +56,15 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErrs({}); setErr(null);
     try {
-      if (editing) await booksAPI.updateLedger(ledger.id, f); else await booksAPI.createLedger(f);
+      const blank = (v) => (v === '' ? null : v);
+      const body = { ...f, currency_id: blank(f.currency_id) };
+      if (rated && !expense) {
+        ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = blank(f[k]); });
+      } else {
+        ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = null; });
+      }
+      if (behaviour !== 'delivery') body.side = null;
+      if (editing) await booksAPI.updateLedger(ledger.id, body); else await booksAPI.createLedger(body);
       toast.success(editing ? 'Ledger saved' : 'Ledger created');
       onSaved(); onClose();
     } catch (x) { setErrs(fieldErrors(x)); if (!x.response?.data?.errors) setErr(errMsg(x, 'Could not save the ledger')); }
@@ -67,6 +82,42 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
             </SelectInput>
           </Field>
+          {behaviour === 'delivery' && (
+            <Field label="This ledger is" error={errs.side} hint="Charges we bill customers are income; what the courier costs us is an expense.">
+              <SelectInput value={f.side} onChange={(e) => set('side')(e.target.value)}><option value="income">A delivery charge (income)</option><option value="expense">A delivery cost (expense)</option></SelectInput>
+            </Field>
+          )}
+          {rated && !expense && (
+            <>
+              <FormGrid>
+                <Field label="Rate type" error={errs.rate_type}>
+                  <SelectInput value={f.rate_type} onChange={(e) => set('rate_type')(e.target.value)}>
+                    <option value="">Choose…</option><option value="percent">Percentage</option><option value="fixed">Fixed amount</option><option value="per_unit">Per unit (kg, km…)</option>
+                  </SelectInput>
+                </Field>
+                <Field label={f.rate_type === 'percent' ? 'Rate (%)' : 'Amount'} error={errs.rate_value}><NumberInput min="0" step="0.0001" value={f.rate_value} onChange={(e) => set('rate_value')(e.target.value)} /></Field>
+              </FormGrid>
+              {f.rate_type && f.rate_type !== 'percent' && (
+                <Field label="Currency" error={errs.currency_id} hint="Converted to the invoice currency on the day of the voucher."><CurrencySelect value={f.currency_id} onChange={set('currency_id')} /></Field>
+              )}
+              <FormGrid>
+                <Field label="Valid from" error={errs.valid_from}><TextInput type="date" value={f.valid_from ?? ''} onChange={(e) => set('valid_from')(e.target.value)} /></Field>
+                <Field label="Valid until" error={errs.valid_until}><TextInput type="date" value={f.valid_until ?? ''} onChange={(e) => set('valid_until')(e.target.value)} /></Field>
+              </FormGrid>
+              {behaviour === 'delivery' && (
+                <>
+                  <FormGrid>
+                    <Field label="Minimum charge" error={errs.min_amount}><NumberInput min="0" step="0.01" value={f.min_amount} onChange={(e) => set('min_amount')(e.target.value)} /></Field>
+                    <Field label="Maximum charge" error={errs.max_amount}><NumberInput min="0" step="0.01" value={f.max_amount} onChange={(e) => set('max_amount')(e.target.value)} /></Field>
+                  </FormGrid>
+                  <FormGrid>
+                    <Field label="Free above (order value)" error={errs.free_above}><NumberInput min="0" step="0.01" value={f.free_above} onChange={(e) => set('free_above')(e.target.value)} /></Field>
+                    <Field label="Transit days" error={errs.transit_days}><NumberInput min="0" step="1" value={f.transit_days} onChange={(e) => set('transit_days')(e.target.value)} /></Field>
+                  </FormGrid>
+                </>
+              )}
+            </>
+          )}
           <FormGrid>
             <Field label="Opening balance" error={errs.opening_balance}><NumberInput min="0" step="0.01" value={f.opening_balance} onChange={(e) => set('opening_balance')(e.target.value)} /></Field>
             <Field label="Debit / credit" error={errs.opening_side}>
@@ -85,11 +136,12 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
 function GroupForm({ groups, parentId, onClose, onSaved }) {
   const [name, setName] = useState('');
   const [parent, setParent] = useState(parentId ?? '');
+  const [behaviour, setBehaviour] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { await booksAPI.createGroup({ name, parent_id: parent }); toast.success('Group added'); onSaved(); onClose(); }
+    try { await booksAPI.createGroup({ name, parent_id: parent, behaviour: behaviour || undefined }); toast.success('Group added'); onSaved(); onClose(); }
     catch (x) { setErr(errMsg(x, 'Could not add the group')); }
     finally { setBusy(false); }
   };
@@ -103,6 +155,11 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
             <SelectInput required value={parent} onChange={(e) => setParent(e.target.value)}>
               <option value="">Choose…</option>
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
+            </SelectInput>
+          </Field>
+          <Field label="Behaves as" hint="Leave as inherited unless this group holds tax or delivery ledgers.">
+            <SelectInput value={behaviour} onChange={(e) => setBehaviour(e.target.value)}>
+              <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option>
             </SelectInput>
           </Field>
           <ModalActions onCancel={onClose} submitLabel="Add group" busy={busy} />
@@ -151,6 +208,7 @@ export default function AccountsTab({ canWrite }) {
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.text, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
+    { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : Number(l.rate_value).toLocaleString()) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
     { key: 'actions', label: '', align: 'right', render: (l) => (
       <span style={{ display: 'inline-flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>

@@ -34,9 +34,10 @@ class BooksMasterController extends Controller
 
     public function storeGroup(Request $request): JsonResponse
     {
-        $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id']);
+        $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id', 'behaviour' => 'nullable|in:' . implode(',', LedgerGroup::BEHAVIOURS), 'settings' => 'nullable|array']);
         $parent = LedgerGroup::findOrFail($d['parent_id']);   // primary groups are fixed — new groups always hang under one
-        $g = LedgerGroup::create(['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit]);
+        $g = LedgerGroup::create(['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit,
+            'behaviour' => $d['behaviour'] ?? $parent->behaviour ?? 'standard', 'settings' => $d['settings'] ?? $parent->settings]);   // a subgroup inherits how its parent behaves
 
         return response()->json(['message' => 'Group added', 'data' => $g], 201);
     }
@@ -44,16 +45,18 @@ class BooksMasterController extends Controller
     public function updateGroup(Request $request, $id): JsonResponse
     {
         $g = LedgerGroup::findOrFail($id);
-        if ($g->is_system) {
-            return response()->json(['message' => 'System groups cannot be changed.'], 422);
+        $d = $request->validate(['name' => "sometimes|string|max:120|unique:ledger_groups,name,{$g->id}", 'parent_id' => 'sometimes|integer|exists:ledger_groups,id',
+            'settings' => 'sometimes|nullable|array', 'behaviour' => 'sometimes|in:' . implode(',', LedgerGroup::BEHAVIOURS)]);
+        if ($g->is_system) {   // a system group keeps its name and place; only its defaults can be tuned
+            $d = array_intersect_key($d, ['settings' => 1]);
         }
-        $d = $request->validate(['name' => "sometimes|string|max:120|unique:ledger_groups,name,{$g->id}", 'parent_id' => 'sometimes|integer|exists:ledger_groups,id']);
         if (isset($d['parent_id'])) {
             if ($g->isSelfOrAncestorOf($d['parent_id'])) {
                 return response()->json(['message' => 'A group cannot sit inside itself.'], 422);
             }
             $p = LedgerGroup::findOrFail($d['parent_id']);
             $d['nature'] = $p->nature;
+            $d['behaviour'] = $d['behaviour'] ?? $p->behaviour ?? 'standard';
             $d['affects_gross_profit'] = $p->affects_gross_profit;
         }
         $g->update($d);
@@ -97,7 +100,11 @@ class BooksMasterController extends Controller
         $d = $request->validate([
             'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'currency_id' => 'nullable|integer|exists:currencies,id',
+            'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
+            'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
+        $this->assertBehaviourFields($d, $d['group_id']);
         $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
 
         return response()->json(['message' => 'Ledger created', 'data' => $l->load('group:id,name,nature')], 201);
@@ -110,13 +117,33 @@ class BooksMasterController extends Controller
             'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
             'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
+            'rate_type' => 'nullable|in:percent,fixed,per_unit', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
+            'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
+        $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
         }
         $l->update($d);
 
         return response()->json(['message' => 'Ledger updated', 'data' => $l->load('group:id,name,nature')]);
+    }
+
+    /** Rate fields only make sense in a group that behaves as tax or delivery, and a percentage cannot be a foreign-currency amount. */
+    private function assertBehaviourFields(array $d, int $groupId): void
+    {
+        $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
+        $rated = ! empty($d['rate_type']) || ! empty($d['rate_value']);
+        if ($behaviour === 'standard' && $rated) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['rate_type' => 'Rates are only kept on ledgers in a tax or delivery group.']);
+        }
+        if (in_array($behaviour, ['tax', 'delivery'], true) && ! empty($d['rate_type']) && $d['rate_type'] !== 'percent' && empty($d['currency_id'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-unit rate needs a currency.']);
+        }
+        if (! empty($d['rate_type']) && $d['rate_type'] === 'percent' && (float) ($d['rate_value'] ?? 0) > 100) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['rate_value' => 'A percentage cannot exceed 100.']);
+        }
     }
 
     public function destroyLedger($id): JsonResponse
