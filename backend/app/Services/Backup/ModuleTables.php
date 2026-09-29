@@ -41,8 +41,37 @@ final class ModuleTables
             // Multi-location (Core): branches + staff clearance + offered-at/priced-at.
             // Stock movement/transfers live in the Inventory (Extras) tier.
             'locations', 'location_user', 'location_offering', 'location_price',
-            // TODO: loyalty, payments, credit accounts, tickets, content pages,
-            // policies, publications, notifications, bookings, reconciliation…
+            // Loyalty: the point lots are the register behind Loyalty Points Liability.
+            'loyalty_point_transactions', 'loyalty_settings',
+            'customer_tiers', 'customer_tier_activities', 'customer_type_discounts',
+            'referral_activity_logs',
+            // Payments: gateway attempts (linked to receipt vouchers) and the legacy
+            // payment / credit / store-credit tables until they are dropped.
+            'payment_attempts', 'payments', 'store_credit_transactions',
+            'customer_credit_invoices', 'customer_credit_invoice_items',
+            'customer_credit_schedules', 'customer_credit_schedule_items', 'customer_credit_transactions',
+            'order_activity_logs', 'order_shipments', 'shipping_activities',
+            'financial_notes', 'reconciliation_sessions', 'reconciliation_lines',
+            // Bookings (Core capability) and their worksheets
+            'bookings', 'booking_settings', 'booking_staff', 'booking_orders',
+            'booking_disqualifications', 'booking_activity_logs',
+            'booking_worksheets', 'worksheet_items',
+            // Help desk, content, policies, publications, notifications
+            'tickets', 'ticket_replies',
+            'content_pages', 'content_sections', 'component_layouts',
+            'policies', 'policy_acceptances', 'policy_change_logs',
+            'publications', 'publication_blocks', 'publication_comments', 'publication_authors',
+            'notifications',
+            // Themes / appearance
+            'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',
+            // Mimi AI
+            'mimi_sessions', 'mimi_query_logs', 'mimi_blocked_actors',
+            // Vault
+            'vault_folders', 'vault_documents', 'vault_document_versions',
+            'vault_policies', 'vault_policy_assignments', 'vault_policy_conditions',
+            'vault_access_logs', 'vault_archiver_configs', 'vault_archive_runs', 'vault_archived_items',
+            // Bug reports + developer notes
+            'bug_reports', 'bug_report_status_history', 'dev_notes',
         ],
 
         'ecommerce' => [
@@ -61,9 +90,11 @@ final class ModuleTables
             'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements',
             // saved services (wishlist.service_ids) and quote-list lines with their chosen package + answers
             'customer_wishlists', 'customer_quote_lists',
-            'hamper_customer_eligibility',
-            // TODO: hampers, hamper_items, auctions, bids, wishlists, specials…
+            'customer_carts', 'review_helpful_votes',
+            'hampers', 'hamper_items', 'hamper_customer_eligibility', 'hamper_activity_logs',
             // (hamper/auction orders were retired — they sell through the normal checkout)
+            'auctions', 'auction_bids', 'auction_charges', 'auction_registrations', 'auction_order_activity_logs',
+            'vendors', 'vendor_products',
         ],
 
         'extras' => [
@@ -73,11 +104,22 @@ final class ModuleTables
             'inventory_repairs', 'inventory_disputes',
             'inventory_return_audits', 'inventory_return_audit_items',
             'inventory_export_logs', 'inventory_export_presets',
-            // TODO: delivery_*, drivers, employees, worksheets, search analytics, algorithm…
+            'purchase_orders', 'purchase_order_items',
+            // Delivery + drivers (drivers are users, backed up under Core)
+            'delivery_manifests', 'delivery_items', 'delivery_incidents', 'delivery_ratings',
+            'delivery_activity_logs', 'driver_location_pings', 'driver_rating_adjustments',
+            'employees', 'leave_logs',
+            // Algorithm, search and AI analytics
+            'algorithm_config', 'algorithm_segment_rules', 'algorithm_bonus_content',
+            'customer_algorithm_scores', 'customer_product_pins', 'search_events',
+            'ai_analytics_modules', 'ai_analytics_sessions', 'ai_analytics_outputs',
         ],
 
-        'careers'        => ['application_status_history' /* TODO: job_vacancies, applicants, applications, application_documents… */],
-        'projects'       => [/* TODO: projects, milestones, tasks, project_messages, participants, links, items */],
+        'careers'        => ['job_postings', 'applicants', 'applications', 'application_documents', 'application_status_history'],
+        'projects'       => [
+            'projects', 'project_milestones', 'project_tasks', 'project_messages',
+            'project_participants', 'project_links', 'project_items', 'project_activities',
+        ],
         'listings'       => [/* built later */],
         'campaigns'      => [/* built later */],
         'courses'        => [/* built later */],
@@ -96,7 +138,11 @@ final class ModuleTables
         'installation', 'modules', 'module_locks', 'license_attempts',
         // Backup feature's own state
         'backup_settings', 'backup_runs', 'module_table_map',
+        // Secrets tied to this server: AI keys are encrypted with its APP_KEY (unreadable
+        // after a restore elsewhere), developer access keys hold raw keys.
+        'ai_provider_keys', 'dev_access_keys', 'dev_access_key_logs',
         // Framework / transient
+        'vault_unlock_sessions',
         'migrations', 'sessions', 'cache', 'cache_locks',
         'jobs', 'job_batches', 'failed_jobs',
         'password_reset_tokens', 'personal_access_tokens',
