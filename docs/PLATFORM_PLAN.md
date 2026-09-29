@@ -47,7 +47,7 @@ leans on them, so they benefit from seeing all callers first).
 
 | # | Module | Should contain |
 |---|---|---|
-| 0 | **Core** (always on) | customers, users & roles, team, currency, units, tax & withholding, payments, orders & invoices, checkout, quotes, loyalty, referral & promo, store credit (**+ gift cards**), credit accounts, reconciliation, financial notes, reports, help desk, publications, content pages, notifications, vault, Mimi AI, activity logs, themes, navigation, Module Center, **bookings**, **locations**, **galleries**, **form builder** |
+| 0 | **Core** (always on) | customers, users & roles, team, currency, units, tax & withholding, payments, orders & invoices, checkout, quotes, loyalty, referral & promo, gift voucher (**+ gift cards**), credit accounts, reconciliation, financial notes, reports, help desk, publications, content pages, notifications, vault, Mimi AI, activity logs, themes, navigation, Module Center, **bookings**, **locations**, **galleries**, **form builder** |
 | 1 | **E-commerce** | products (variants, categories, brands, bulk), **services & packages** (add-ons, duration, deposit %), specials, wishlist, reviews; **digital/downloadable products**; hampers, auctions |
 | 2 | **Listings** | property, vehicles, equipment, rentals; rental periods (daily/weekly/monthly), availability calendar, security deposit, pickup/return, enquiries, paid viewings/test drives |
 | 3 | **Campaigns** | fundraising & crowdfunding (goal, progress, donations), awareness/marketing campaigns without payments |
@@ -250,7 +250,7 @@ Districts already sit on tax **rules** (`tax_rule_districts`), but a `tax_rate` 
 
 | Capability | Decision | Home |
 |---|---|---|
-| **Gift cards** | Same as store credit — a purchasable that issues wallet credit under a redeemable code. No new ledger. | Core |
+| **Gift cards** | Same as gift voucher — a purchasable that issues wallet credit under a redeemable code. No new ledger. | Core |
 | **Galleries / proofing** | Shared capability any module attaches (photography galleries, architecture portfolios, wedding albums). | Core |
 | **Form builder / intake** | Shared capability (clinic/esthetician intake, law intake, event RSVP questions, consult forms). | Core |
 | **Class passes / credits** | A credits model on plans (10-session packs) valid at allowed branches. | Memberships |
@@ -381,7 +381,7 @@ Modelled on double-entry voucher accounting (a Tally-style structure), built int
 - `ledger_groups`: a tree. **Primary groups are fixed and locked** (Current Assets, Fixed Assets, Current Liabilities, Capital, Loans, Investments, Suspense, Sales Accounts, Purchase Accounts, Direct/Indirect Income, Direct/Indirect Expenses); each carries a *nature* (asset/liability/income/expense) that subgroups inherit. Custom groups nest to any depth under a primary (Indirect Expenses > Establishment > Rent & Rates). Seeded subgroups: Cash-in-hand, Bank Accounts, Stock-in-hand, Sundry Debtors, Sundry Creditors, **Duties & Taxes (under Current Liabilities — all tax ledgers live here, e.g. VAT Output 16%, VAT Output 8%, VAT Input)**.
 - `ledgers`: group, opening balance, optional customer/supplier link. **One ledger per customer** (created on first transaction) and a **Walk-in ledger** for guests. Payment methods map to ledgers (Cash, M-Pesa, each bank).
 
-**Vouchers** (`voucher_types` carry: posts accounts?, moves stock and which way?, numbering series per type/branch like `TISL-INV-24530`)
+**Vouchers** (`voucher_types` carry: posts accounts?, moves stock and which way?, numbering series per type/branch like `WNKJ-INV-24530`)
 | Type | Debit | Credit | Items / stock |
 |---|---|---|---|
 | Sales Order | – | – | Yes; reserves stock, no accounts |
@@ -408,7 +408,7 @@ Every posted voucher balances (Σ debit = Σ credit). Posted vouchers are immuta
 
 **Data Engine → to be renamed and rebuilt after the modules exist:** clearer name (proposed "Data Exchange": Import · Export · Migration · AI assist), follows the system theme instead of its own, and gains **import** (including importing vouchers/ledgers/items from Tally exports). Not part of this build.
 
-**Build order:** 1) engine — groups, ledgers, voucher types/series, voucher + entries + items + bills + stock movements tables (SQL files), the posting service (balance check, immutability, numbering, period lock), seeders; 2) books screens — ledger tree, voucher entry, day book, ledger statement, trial balance, P&L, balance sheet, receivables ageing, exports; 3) the sales chain (checkout → order → cash sale/invoice → delivery → receipt) for products, hampers, auctions, services; 4) drop the old orders/payments/credit tables and move store credit, credit accounts, loyalty and withholding onto ledgers; 5) Data Exchange.
+**Build order:** 1) engine — groups, ledgers, voucher types/series, voucher + entries + items + bills + stock movements tables (SQL files), the posting service (balance check, immutability, numbering, period lock), seeders; 2) books screens — ledger tree, voucher entry, day book, ledger statement, trial balance, P&L, balance sheet, receivables ageing, exports; 3) the sales chain (checkout → order → cash sale/invoice → delivery → receipt) for products, hampers, auctions, services; 4) drop the old orders/payments/credit tables and move gift voucher, credit accounts, loyalty and withholding onto ledgers; 5) Data Exchange.
 
 ---
 
@@ -449,12 +449,12 @@ Every posted voucher balances (Σ debit = Σ credit). Posted vouchers are immuta
 
 Built: chart of accounts, voucher types with dynamic numbering series (prefix / suffix / start / width / reset / per-branch / manual override), payment methods mapped to any asset ledger, period control (company edit window, per-role limits, financial-year close), the voucher engine (order → delivery → invoice / cash sale → receipt, per-line tax, hamper components, stock moves once), reports (day book, ledger, trial balance, P&L, balance sheet, receivables / payables ageing), exports (JSON, CSV, XML, HTML; PDF once `dompdf/dompdf` is installed), the admin Books area, and per-item hamper sale prices.
 
-Not yet: storefront checkout still uses the old order/payment tables; the legacy order / payment / credit tables are not dropped; store credit, loyalty and withholding are not yet moved onto ledgers; Data Engine rename ("Data Exchange").
+Not yet: storefront checkout still uses the old order/payment tables; the legacy order / payment / credit tables are not dropped; gift voucher, loyalty and withholding are not yet moved onto ledgers; Data Engine rename ("Data Exchange").
 
 ## 11. Books phase 2 — quotations, checkout, and everything that carries money
 
 ### 11.1 Quotation voucher
-- New voucher type **Quotation** (`quotation`, no accounting, no stock, has items, customer party, own numbering series, `TISL-QT-`). Statuses: `requested` → `quoted` → `accepted` / `declined` / `expired`.
+- New voucher type **Quotation** (`quotation`, no accounting, no stock, has items, customer party, own numbering series, `WNKJ-QT-`). Statuses: `requested` → `quoted` → `accepted` / `declined` / `expired`.
 - A customer's quote request (today's `quote_requests` + quote list) becomes a Quotation in state `requested`: lines carry the chosen service package / product variant and answers to requirements, **no price yet**.
 - Admin opens the request, prices each line (or the catalogue price pre-fills), adds charges/discounts, sets validity, and sends it: state → `quoted`, customer notified.
 - Customer accepts on the storefront → chain continues: **Quotation → Sales Order → (Delivery Note) → Invoice / Cash Sale → Receipt**. Quotation joins the chain as the first link (`source_voucher_id`); acceptance converts it, it never posts.
@@ -478,25 +478,123 @@ Not yet: storefront checkout still uses the old order/payment tables; the legacy
 ### 11.4 Other money things become vouchers
 | Thing | Posts as | Ledger |
 |---|---|---|
-| **Store credit** (refund to credit, top-up) | Credit Note → to Store Credit Liability; spending it = Journal/Receipt Dr Store Credit Liability, Cr Customer | Store Credit Liability (Current Liabilities) |
+| **Gift voucher** (refund to credit, top-up) | Credit Note → to Gift Voucher Liability; spending it = Journal/Receipt Dr Gift Voucher Liability, Cr Customer | Gift Voucher Liability (Current Liabilities) |
 | **Loyalty points** | Earned: Journal Dr Loyalty Expense, Cr Loyalty Points Liability (points × value); redeemed: Dr Liability, Cr Sales discount | Loyalty Points Liability |
 | **Customer credit / credit accounts** | Simply the customer's Sundry Debtors ledger + invoices with due dates and bill-by-bill settlement; credit limit and terms live on the customer; schedules/instalments generate due dates on the invoice bill refs | customer ledger |
 | **Withholding credit** | See 11.3 — receivable ledger + certificates clearing it | Withholding Tax Receivable |
-| **Promo & referral codes** | Not vouchers themselves: they produce a **discount line** on the Sales Order (Discounts Allowed ledger). Referral rewards post as store credit or loyalty via the rows above. Usage rows keep pointing at the voucher | Discounts Allowed |
+| **Promo & referral codes** | Not vouchers themselves: they produce a **discount line** on the Sales Order (Discounts Allowed ledger). Referral rewards post as gift voucher or loyalty via the rows above. Usage rows keep pointing at the voucher | Discounts Allowed |
 | **Delivery / shipping** | Charge line → Shipping Income ledger | as built |
 | **Refunds** | Credit Note (goods back → stock in) then Payment voucher if cash is returned | Sales Returns |
 
-Customer-facing balances (credit, points, store credit) are read from ledgers/bill refs, so there is one source of truth; the old transaction tables retire after their history is migrated (or dropped — all test data).
+Customer-facing balances (credit, points, gift voucher) are read from ledgers/bill refs, so there is one source of truth; the old transaction tables retire after their history is migrated (or dropped — all test data).
 
 ### 11.5 Order of work
 1. Tax type/withholding opening balance + ledger link (small, isolates Duties & Taxes).
 2. Quotation type + request workflow (admin pricing screen, customer accept).
 3. Checkout → Sales Order / Cash Sale; promo & referral as discount lines.
-4. Store credit, loyalty, customer credit, withholding credit as voucher postings.
+4. Gift voucher, loyalty, customer credit, withholding credit as voucher postings.
 5. Drop legacy tables (SQL script), then Data Exchange rename/import.
 
 ### 11.6 Open questions
-1. Quotation numbering prefix `TISL-QT-` and validity default (14 days)?
+1. Quotation numbering prefix `WNKJ-QT-` and validity default (14 days)?
 2. Loyalty: value of a point for accounting (use existing loyalty setting's redeem rate)?
 3. Withholding receivable: recognise at receipt time (recommended) or when the certificate arrives?
 4. One ledger per tax *type* or per tax *rate* as the "opening balance" holder? (Recommended: per type for the balance, per rate only for output/input split.)
+
+
+## 12. Money everywhere — currency, ledgers and what else has to change
+
+Decisions taken: numbering prefix **WNKJ-** (WNKJ-SO-, -DEL-, -INV-, -CSH-, -CN-, -GRN-, -PUR-, -DBN-, -RCT-, -PMT-, -JV-, -CTR-, -QT-); quotation validity **14 days**; loyalty value from the loyalty redeem rule; withholding receivable booked **at receipt**; one **control ledger per tax type** for the opening balance, per-rate ledgers for the output/input split; **"store credit" is renamed "Gift voucher"** everywhere (screens, emails, tables, ledgers). Loyalty points are not money — they redeem *into* a gift voucher.
+
+### 12.1 Naming — no TISL in the product
+- Voucher prefixes are WNKJ-… (numbering is data, editable in Books → Settings). A follow-up SQL script rewrites the seeded prefixes from script 14.
+- No brand string in code. Company name / short code / legal name / tax PIN come from one settings row (`company_profile`) that emails, PDFs, order numbers and notifications read. Today "TISL" is hard-coded in: `Order` number generator, credit-invoice and careers mails, welcome email, promo descriptions, Data Engine, licensing, CORS/mail/daraja config, chat. All move to the profile; the repo/folder name is untouched.
+
+### 12.2 One currency rule for the whole platform
+1. **Master data** that holds money stores `(amount, currency_id)`: shipping cost and free-shipping threshold, tier thresholds (`free_shipping_threshold`, `min_spent`), promo/referral minimum order and fixed rewards, type discounts when fixed, loyalty redemption values, tax rates with a fixed amount, credit limits, gift vouchers, fixed fees on bookings, delivery costs.
+2. **Documents** (vouchers) carry their own currency and the **exchange rate used**, fixed at posting. Every charge/discount/tax defined in another currency is converted at the voucher's date rate into the voucher currency; each entry stores `amount` (voucher currency) and `base_amount`.
+3. **Base currency** = the currency flagged `is_base`. All `'KES'` defaults and `Currency::rateToKes()` (≈30 backend places, 115 frontend files) are replaced by base-currency helpers and one `<Money>` / `useMoney()` formatter. No screen may assume KES.
+4. **Rate history**: add `currency_rates(currency_id, rate, effective_from)` so old documents and reports never shift when a rate is updated. Vouchers keep their own rate regardless.
+5. **Foreign-currency ledgers**: `ledgers.currency_id` (nullable = base). Customer ledgers default to the customer's pinned currency. Statements show foreign and base columns.
+6. **Exchange differences**: when a receipt/payment is settled at a different rate from the invoice, the difference posts to *Exchange Gain/Loss* (realised). A period-end revaluation Journal handles open foreign balances (unrealised). Both are engine features, not manual.
+
+### 12.3 Shipping & delivery
+- `shipping_options` gains `currency_id`, `free_above_currency_id` (or the same), `income_ledger_id`, optional `tax_rate_id` (delivery is normally VATable), `expense_ledger_id`.
+- **Creating a shipping option auto-creates its ledger** under *Shipping & Delivery Income* (a subgroup of Income) — e.g. "Shipping — Nairobi Standard". Editing the name renames the ledger; deleting is blocked once posted.
+- On a voucher, a shipping charge is a charge line linked to the option; amount = option cost converted USD→voucher currency (500 USD on a JPY invoice shows JPY at the day's rate, with the original "USD 500.00 @ rate" noted). The document footer lists **Charges & taxes: ledger — amount**, then Total.
+- **Delivery costs we incur** (fuel, courier, driver pay) post as *expenses*: a Payment/Journal voucher Dr *Delivery Expenses* (Direct Expenses), Cr Cash/Bank/Supplier. Delivery manifests get a "record cost" action that creates it. Report: shipping income vs delivery expense = delivery margin.
+- Free-shipping-by-tier/threshold compares in a single currency (converted to base at checkout).
+
+### 12.4 Customer tiers and types
+- Percent discounts stay currency-free. Anything monetary (thresholds, fixed discounts) gets a currency. Tier progress (`total_spent`, orders) is computed from **posted vouchers' `base_total`**, not from orders.
+- Discounts post **gross + contra**: revenue at list price, the discount to *Discounts Allowed* (engine change — today a line discount just reduces the sale). Each discount source (tier, type, promo, referral, manual) can have its own ledger under Discounts Allowed for reporting.
+
+### 12.5 Taxes and withholding
+- **Tax type** = subgroup under Duties & Taxes + a control ledger; creation asks **opening balance + Dr/Cr**. **Tax rate** creation auto-creates its ledger(s): Output/Input for additive types, Payable/Receivable for withholding. Percentage or fixed amount; fixed amounts carry a currency and convert like any charge.
+- Position report: control balance + output − input (+ withholding payable − receivable). Settlement to the revenue authority is a Payment voucher.
+- Withholding rules (5%/3%/20%, resident/non-resident) stay rules; certificates link to the **receipt voucher** that booked the receivable.
+- All tax screens show the live ledger balance; the tax application log points to voucher lines.
+
+### 12.6 Customer credit is abolished — the customer ledger is the account
+- Remove `has_credit_account`, `credit_used`, `store_credit`, the credit transactions table, credit invoices and their services. Keep only **terms on the customer**: credit limit (+currency), payment terms (days), interest rate.
+- Balance = customer ledger (Sundry Debtors). Credit sale = Invoice with due date; instalments = a **payment plan** attached to an invoice (generates due dates on the bill); interest/late fees = an *Interest* charge voucher (Dr customer, Cr Interest Income); manual adjustments = Journal (Dr/Cr customer); overdue = receivables ageing; credit-limit check happens when a Sales Order/Invoice is created.
+- Admin "Customer credit" screens become customer-ledger views (statement, ageing, limit, plan) inside the customer page.
+
+### 12.7 Gift vouchers (was store credit) and loyalty
+- **Gift voucher** = a coded balance with currency, holder (customer or bearer), expiry. Accounting: one liability control ledger *Gift Vouchers Liability* (Current Liabilities) + a `gift_vouchers` sub-ledger reconciled to it in Books.
+  - Sold → Cash Sale line (Dr Cash, Cr Liability; no VAT until redeemed).
+  - Refund to voucher → Credit Note settled to it (Dr Sales Returns, Cr Liability).
+  - Loyalty redemption → Journal Dr *Loyalty Liability*, Cr *Gift Voucher Liability*.
+  - Referral/promo reward → Journal Dr *Rewards Expense*, Cr Liability.
+  - Spent at checkout → a **payment tender** (payment method kind `gift_voucher` mapped to the liability ledger): Dr Liability. Can be combined with M-Pesa on one order (multi-tender receipt).
+  - Expiry → Journal Dr Liability, Cr *Gift Voucher Breakage Income*.
+- **Loyalty points** are not money: points lots (earn/expiry) stay in a small sub-ledger; their accounting value (points × redemption rule) sits in *Loyalty Points Liability*; redeeming converts them into a gift voucher; cancelled orders reverse the earn.
+
+### 12.8 Promo codes and referral codes
+- A code is a **rule** that yields a discount line (and, for referrals, a reward). It never posts by itself. Applying one creates a *Discount — CODE* line on the Sales Order posting to that campaign's discount ledger (default Discounts Allowed).
+- `promo_code_usages` rows point to the **voucher and line**, storing discount amount in voucher currency and base; cancelling the voucher reverses usage counts.
+- Referrer rewards: created when the referred customer's first sale is *settled* (Cash Sale, or Invoice fully paid), as a gift voucher / points Journal (12.7). Reversed if the sale is cancelled.
+- Monetary fields (min order value, fixed reward) get currency and convert at checkout.
+- **Logging**: (a) usage log per application (voucher, customer, code, amounts, currency); (b) settings-change audit for shipping options, tax rates, tiers, codes — who changed what, old/new — whenever a change affects posting (currency, ledger, rate); (c) vouchers keep their own audit trail. Existing per-module activity logs stay and feed one admin "activity" view.
+
+### 12.9 Engine additions this needs
+1. Discount ledger posting (gross + contra). 2. Payment tenders (multiple methods per receipt, gift voucher tender). 3. Exchange gain/loss on settlement + revaluation. 4. Ledger currency. 5. Charge lines linked to shipping options with currency conversion and tax. 6. Payment plans on invoices. 7. Purchase Order voucher (Order → Receipt Note → Purchase → Payment), replacing `purchase_orders`. 8. Quotation voucher (§11.1). 9. Gift-voucher and loyalty sub-ledgers with reconciliation checks. 10. Company-profile settings.
+
+### 12.10 Other modules that must be redone or re-pointed
+| Module | Change |
+|---|---|
+| Checkout, Orders, Payments (Daraja/M-Pesa) | Checkout → Sales Order / Cash Sale; `payments` shrinks to gateway attempts (currency-aware) linked to the receipt voucher |
+| Quotes / quote requests | Become the Quotation voucher; existing admin quote pricing UI is reused |
+| Financial notes | Credit/debit notes become vouchers |
+| Reconciliation | Reconciles bank/M-Pesa statements against the payment-method ledgers (bank reconciliation) |
+| Purchase orders / inventory buying | Purchase Order voucher chain |
+| Reports & dashboards | Rebuilt on vouchers/ledgers, base currency; no KES assumptions |
+| Customer algorithm scores, Mimi analytics, search/AI analytics | Read spend/orders from vouchers |
+| Bookings & worksheets | Deposits, cancellation fees and worksheets → Sales Order/Invoice vouchers; fee currency dynamic |
+| Auctions | Winning bid → Sales Order at the bid currency |
+| Projects finance | Milestone invoices as Sales vouchers; project costs as Purchase/Payment vouchers |
+| Delivery manifests | COD collected → Receipt; costs → expense voucher |
+| Employees / careers | Salary currency dynamic; payroll journals later |
+| Data Engine → "Data Exchange" | Rename, follow theme, read vouchers not orders; import last |
+| Backup | Add new tables (gift_vouchers, loyalty lots, payment plans, currency_rates, company_profile, promo usages) |
+
+### 12.11 Suggested order (each step ships with a plain SQL script)
+0. Rename prefixes to WNKJ- + company profile + `<Money>`/base-currency helpers.
+1. Currency foundation: `currency_rates`, ledger currency, FX differences, convert helper.
+2. Tax types/rates/withholding → ledgers with opening balances.
+3. Shipping options → currency + ledger + tax; delivery cost vouchers.
+4. Engine additions 1, 2, 5, 6.
+5. Quotation voucher + request workflow.
+6. Checkout rewiring (Sales Order / Cash Sale, multi-tender, promo/referral lines).
+7. Gift vouchers, loyalty, customer-ledger credit terms, promo/referral posting.
+8. Tiers/types currency + spend from vouchers.
+9. Purchase Order chain; bookings/projects/auctions/delivery hooks; financial notes; reconciliation.
+10. Reports/dashboards/AI re-pointed → drop legacy tables → Data Exchange.
+
+### 12.12 Open decisions
+1. Gift-voucher accounting: **one control ledger + sub-ledger** (recommended) vs a ledger per voucher.
+2. Tax opening balances on the **control ledger**; rate ledgers start at zero (recommended).
+3. Discounts: **gross + contra** ledger (recommended) vs net.
+4. Add **Purchase Order** as a voucher type (recommended).
+5. Realised + unrealised **FX gain/loss** in the engine (recommended).
+6. "No TISL … even on the namespace": I read this as no brand in code identifiers, strings, config keys or numbering — with the company name coming from settings. Confirm, or tell me if you also want PHP namespace / folder / repo renamed (that is a much bigger mechanical change).
