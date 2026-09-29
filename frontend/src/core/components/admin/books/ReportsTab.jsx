@@ -15,6 +15,9 @@ const REPORTS = [
   { id: 'balance-sheet', label: 'Balance sheet', asOf: true },
   { id: 'receivables', label: 'Receivables ageing', asOf: true },
   { id: 'payables', label: 'Payables ageing', asOf: true },
+  { id: 'tax-return', label: 'Tax return', range: true },
+  { id: 'withholding', label: 'Withholding certificates', range: true },
+  { id: 'reconciliation', label: 'Reconciliation', asOf: true },
 ];
 
 const th = { padding: '8px 12px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -99,6 +102,58 @@ function View({ id, data, nav }) {
         <Total><td style={td}>Total liabilities & capital</td><td style={{ ...td, ...num }}>{money(data.total_liabilities)}</td></Total>
       </Table>
       {!data.balanced && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>The two sides differ — usually an unbalanced opening balance.</p>}
+    </>
+  );
+  if (id === 'tax-return') return (
+    <>
+      {data.types.length === 0 && <Table head={[['Tax']]}><Empty cols={1} /></Table>}
+      {data.types.map((t) => (
+        <div key={t.id} style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: colors.text, fontSize: '0.85rem' }}>{t.name} <span style={{ color: colors.textFaint, fontWeight: 500 }}>· {t.mode === 'withheld' ? 'withheld' : 'charged on top'}</span></p>
+          <Table head={[['Rate'], ['Sales value', true], ['Output tax', true], ['Purchases value', true], ['Input tax', true], ['Net', true]]}>
+            {t.brought_forward !== 0 && <tr><td style={td} colSpan={5}>Brought forward</td><td style={{ ...td, ...num }}>{money(t.brought_forward)}</td></tr>}
+            {t.rows.length ? t.rows.map((r, i) => (
+              <tr key={i}><td style={td}>{r.label}</td>
+                <td style={{ ...td, ...num }}>{r.sales_base == null ? '' : money(r.sales_base)}</td><td style={{ ...td, ...num }}>{r.output ? money(r.output) : ''}</td>
+                <td style={{ ...td, ...num }}>{r.purchases_base == null ? '' : money(r.purchases_base)}</td><td style={{ ...td, ...num }}>{r.input ? money(r.input) : ''}</td>
+                <td style={{ ...td, ...num }}>{money(r.net)}</td></tr>
+            )) : <Empty cols={6} />}
+            <Total><td style={td} colSpan={5}>Owed to the authority at the end</td><td style={{ ...td, ...num }}>{money(t.closing_owed)}</td></Total>
+          </Table>
+        </div>
+      ))}
+      <p style={{ fontSize: '0.78rem', color: colors.textMuted }}>Output {money(data.totals.output)} · Input {money(data.totals.input)} · Owed {money(data.totals.owed)}. Values are in the base currency.</p>
+    </>
+  );
+  if (id === 'withholding') return (
+    <>
+      <Table head={[['Date'], ['Certificate'], ['Voucher'], ['Direction'], ['Party'], ['Tax'], ['Gross', true], ['Withheld', true], ['Certificate'], ['Credit']]}>
+        {data.rows.length ? data.rows.map((r) => (
+          <tr key={r.id} onClick={() => nav(`/admin/books/vouchers/${r.voucher_id}`)} style={{ cursor: 'pointer' }}>
+            <td style={td}>{r.date}</td><td style={{ ...td, fontFamily: 'monospace' }}>{r.certificate_number}</td><td style={{ ...td, fontFamily: 'monospace' }}>{r.voucher_number}</td>
+            <td style={td}>{r.direction === 'receivable' ? 'Held from us' : 'Held by us'}</td><td style={td}>{r.party ?? '—'}</td><td style={td}>{r.tax ?? '—'}</td>
+            <td style={{ ...td, ...num }}>{money(r.gross_amount)}</td><td style={{ ...td, ...num }}>{money(r.withheld_amount)}</td><td style={td}>{r.status}</td><td style={td}>{r.credit_status?.replace('_', ' ') ?? '—'}</td>
+          </tr>
+        )) : <Empty cols={10} />}
+      </Table>
+      <p style={{ fontSize: '0.78rem', color: colors.textMuted }}>Held from us {money(data.totals.receivable)} · Held by us {money(data.totals.payable)} · {data.totals.awaiting_certificate} certificate(s) still awaited.</p>
+    </>
+  );
+  if (id === 'reconciliation') return (
+    <>
+      <Table head={[['Check'], ['Books', true], ['Register', true], ['Difference', true], ['Explained', true], ['Agrees']]}>
+        {data.checks.map((c) => (
+          <tr key={c.key}>
+            <td style={td}>{c.title}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{c.note}</div></td>
+            <td style={{ ...td, ...num }}>{money(c.book)}</td><td style={{ ...td, ...num }}>{money(c.register)}</td>
+            <td style={{ ...td, ...num, color: c.ok ? undefined : colors.danger }}>{money(c.difference)}</td><td style={{ ...td, ...num }}>{c.explained ? money(c.explained) : ''}</td>
+            <td style={{ ...td, fontWeight: 700, color: c.ok ? colors.successText : colors.dangerText }}>{c.ok ? 'Yes' : 'No'}</td>
+          </tr>
+        ))}
+      </Table>
+      <p role={data.all_ok ? undefined : 'alert'} style={{ fontSize: '0.8rem', color: data.all_ok ? colors.successText : colors.dangerText }}>
+        {data.all_ok ? 'Every register agrees with its control ledger.' : 'At least one register does not agree with the books — open the ledger and look for postings made outside the normal vouchers.'}
+      </p>
     </>
   );
   // ageing

@@ -281,6 +281,28 @@ class BooksVoucherController extends Controller
                 $d = $this->reports->ageing($name, $to);
 
                 return [$d, ['title' => ucfirst($name) . ' ageing', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['party' => 'Party', 'current' => 'Current', 'd1_30' => '1–30', 'd31_60' => '31–60', 'd61_90' => '61–90', 'd90_plus' => '90+', 'total' => 'Total'], 'rows' => array_map(fn ($x) => array_diff_key($x, ['bills' => 1]), $d['rows']), 'totals' => ['party' => 'Total'] + $d['totals']]];
+            case 'tax-return':
+                $d = app(\App\Services\Books\ComplianceReportService::class)->taxReturn($from, $to);
+                $rows = [];
+                foreach ($d['types'] as $t) {
+                    if ($t['brought_forward'] != 0) {
+                        $rows[] = ['tax' => $t['name'], 'rate' => 'Brought forward', 'sales_base' => '', 'output' => '', 'purchases_base' => '', 'input' => '', 'net' => $t['brought_forward']];
+                    }
+                    foreach ($t['rows'] as $x) {
+                        $rows[] = ['tax' => $t['name'], 'rate' => $x['label'], 'sales_base' => $x['sales_base'], 'output' => $x['output'], 'purchases_base' => $x['purchases_base'], 'input' => $x['input'], 'net' => $x['net']];
+                    }
+                    $rows[] = ['tax' => $t['name'], 'rate' => 'Owed at the end', 'sales_base' => '', 'output' => '', 'purchases_base' => '', 'input' => '', 'net' => $t['closing_owed']];
+                }
+
+                return [$d, ['title' => 'Tax return', 'subtitle' => $period, 'columns' => ['tax' => 'Tax', 'rate' => 'Rate', 'sales_base' => 'Sales value', 'output' => 'Output tax', 'purchases_base' => 'Purchases value', 'input' => 'Input tax', 'net' => 'Net'], 'rows' => $rows, 'totals' => ['rate' => 'Total', 'output' => $d['totals']['output'], 'input' => $d['totals']['input'], 'net' => $d['totals']['owed']]]];
+            case 'withholding':
+                $d = app(\App\Services\Books\ComplianceReportService::class)->withholdingRegister($from, $to);
+
+                return [$d, ['title' => 'Withholding certificates', 'subtitle' => $period, 'columns' => ['date' => 'Date', 'certificate_number' => 'Certificate', 'voucher_number' => 'Voucher', 'direction' => 'Direction', 'party' => 'Party', 'tax' => 'Tax', 'gross_amount' => 'Gross', 'withheld_amount' => 'Withheld', 'status' => 'Certificate', 'credit_status' => 'Credit'], 'rows' => $d['rows'], 'totals' => ['party' => 'Withheld from us / by us', 'gross_amount' => $d['totals']['receivable'], 'withheld_amount' => $d['totals']['payable']]]];
+            case 'reconciliation':
+                $d = app(\App\Services\Books\ComplianceReportService::class)->reconciliation($to);
+
+                return [$d, ['title' => 'Reconciliation', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['title' => 'Check', 'book' => 'Books', 'register' => 'Register', 'difference' => 'Difference', 'explained' => 'Explained', 'ok' => 'Agrees'], 'rows' => array_map(fn ($c) => $c + ['ok' => $c['ok'] ? 'Yes' : 'No'], $d['checks'])]];
         }
         abort(404, 'Unknown report.');
     }
