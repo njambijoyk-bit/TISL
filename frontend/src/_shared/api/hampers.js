@@ -62,6 +62,18 @@ const hampersAPI = {
     return response.data;
   },
 
+  // Change one component's sale price / quantity
+  updateItem: async (id, itemId, data) => {
+    const response = await api.patch(`/admin/hampers/${id}/items/${itemId}`, data);
+    return response.data;
+  },
+
+  // Split the hamper price across its components so item prices add up to it
+  distributePrices: async (id) => {
+    const response = await api.post(`/admin/hampers/${id}/distribute-prices`);
+    return response.data;
+  },
+
   // Suggest products based on related_products of current items
   suggestProducts: async (id) => {
     const response = await api.get(`/admin/hampers/${id}/suggest-products`);

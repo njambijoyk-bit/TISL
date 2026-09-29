@@ -15,11 +15,13 @@ class HamperItem extends Model
         'product_id',
         'variant_id',
         'quantity',
+        'sale_price',
         'snapshot',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'sale_price' => 'decimal:2',
         'snapshot' => 'array',
     ];
 

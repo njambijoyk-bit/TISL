@@ -265,7 +265,44 @@ function OverviewTab({ hamper }) {
 
 // ── Tab: Products ─────────────────────────────────────────────────────────────
 
+/** Sale price of one hamper component — saved when the field loses focus. */
+function SalePriceInput({ hamperId, item, onSaved }) {
+  const [val, setVal] = useState(item.sale_price ?? '');
+  useEffect(() => { setVal(item.sale_price ?? ''); }, [item.sale_price]);
+  const save = async () => {
+    if (val === '' || Number(val) === Number(item.sale_price)) return;
+    try {
+      await hampersAPI.updateItem(hamperId, item.id, { sale_price: Number(val) });
+      onSaved();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not save the price');
+      setVal(item.sale_price ?? '');
+    }
+  };
+  return (
+    <input type="number" min="0" step="0.01" value={val} onChange={(e) => setVal(e.target.value)} onBlur={save}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      aria-label="Sale price each"
+      style={{ width: 96, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--color-border-tertiary)', fontSize: '0.8rem', textAlign: 'right' }} />
+  );
+}
+
 function ProductsTab({ hamper, onRefresh }) {
+  const [distributing, setDistributing] = useState(false);
+  const itemsTotal = Math.round((hamper.items ?? []).reduce((s, i) => s + Number(i.sale_price ?? 0) * Number(i.quantity ?? 1), 0) * 100) / 100;
+  const hamperPrice = Math.round(Number(hamper.price ?? 0) * 100) / 100;
+  const diff = Math.round((hamperPrice - itemsTotal) * 100) / 100;
+  const balanced = Math.abs(diff) < 0.005;
+
+  const distribute = async () => {
+    setDistributing(true);
+    try {
+      await hampersAPI.distributePrices(hamper.id);
+      toast.success('Hamper price split across the items');
+      onRefresh();
+    } catch (err) { toast.error(err?.response?.data?.message || 'Could not distribute the price'); }
+    finally { setDistributing(false); }
+  };
   const [showSelector, setShowSelector]     = useState(false);
   const [showQtyModal, setShowQtyModal]     = useState(false);
   const [pendingProducts, setPendingProducts] = useState([]);
@@ -362,8 +399,8 @@ function ProductsTab({ hamper, onRefresh }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: 'var(--color-primary-500)' }}>
-                  {['Product', 'SKU', 'Qty', 'Snapshot Price', ''].map((h, i) => (
-                    <th key={i} style={{ ...thStyle, textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>
+                  {['Product', 'SKU', 'Qty', 'Sale price (each)', 'Line total', ''].map((h, i) => (
+                    <th key={i} style={{ ...thStyle, textAlign: i === 5 ? 'right' : 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -390,7 +427,8 @@ function ProductsTab({ hamper, onRefresh }) {
                       </td>
                       <td style={tdStyle}><span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>{snap.sku || '—'}</span></td>
                       <td style={tdStyle}><span style={{ fontWeight: 700 }}>×{item.quantity}</span></td>
-                      <td style={tdStyle}>{snap.price ? fmt(snap.price, snap.currency ?? item.product?.currency) : '—'}</td>
+                      <td style={tdStyle}><SalePriceInput hamperId={hamper.id} item={item} onSaved={onRefresh} /></td>
+                      <td style={tdStyle}>{Number(item.sale_price ?? 0) * Number(item.quantity ?? 1) ? (Number(item.sale_price) * Number(item.quantity)).toFixed(2) : '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         <DangerBtn onClick={() => handleRemove(item.product_id, item.variant_id)} disabled={removingId === item.id}>
                           <Trash2 size={13} /> {removingId === item.id ? 'Removing…' : 'Remove'}
@@ -401,6 +439,17 @@ function ProductsTab({ hamper, onRefresh }) {
                 })}
               </tbody>
             </table>
+          )}
+          {!!hamper.items?.length && (
+            <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '12px 16px', borderTop: '1px solid var(--color-border-tertiary)', background: balanced ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.1)' }}>
+              <span style={{ fontSize: '0.8rem', color: balanced ? '#065f46' : '#92400e', fontWeight: 600 }}>
+                Items total {itemsTotal.toFixed(2)} · Hamper price {hamperPrice.toFixed(2)} ·{' '}
+                {balanced ? 'prices add up' : diff > 0 ? `${diff.toFixed(2)} still to allocate` : `${Math.abs(diff).toFixed(2)} over the hamper price`}
+              </span>
+              {!balanced && (
+                <Btn onClick={distribute} disabled={distributing}>{distributing ? 'Splitting…' : 'Auto-distribute'}</Btn>
+              )}
+            </div>
           )}
         </div>
 

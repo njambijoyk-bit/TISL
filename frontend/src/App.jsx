@@ -15,7 +15,7 @@ import FloatingJournalModal from './core/components/finance/FloatingJournalModal
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ } from './_shared/lib/roles';
+import { FINANCE_READ, FINANCE_WRITE } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -141,6 +141,9 @@ const CustomerDetail     = lazy(() => import('./core/pages/admin/CustomerDetail'
 const CreditDashboard    = lazy(() => import('./core/pages/admin/CreditDashboard'));
 const CreditDetail       = lazy(() => import('./core/pages/admin/CustomerCreditDetail'));
 const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'));
+const BooksHub           = lazy(() => import('./core/pages/admin/books/BooksHub'));
+const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherForm'));
+const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherView'));
 const Reports            = lazy(() => import('./core/pages/admin/Reports'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
@@ -1533,6 +1536,11 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Books — finance roles only (mirrors the API) */}
+              <Route path="/admin/books" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><BooksHub /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
               {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
               <Route
                 path="/admin/tax"

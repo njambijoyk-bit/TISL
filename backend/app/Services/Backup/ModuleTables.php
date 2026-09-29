@@ -29,6 +29,11 @@ final class ModuleTables
             'withholding_certificates', 'withholding_classifications',
             'withholding_credits', 'withholding_credit_clearances', 'withholding_activity_logs',
             'orders', 'order_items',
+            // Books: chart of accounts, numbering, vouchers and everything they post.
+            'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',
+            'financial_years', 'accounting_settings', 'voucher_edit_limits',
+            'vouchers', 'voucher_items', 'voucher_item_taxes', 'voucher_entries', 'voucher_bill_refs',
+            'stock_movements', 'voucher_audit_logs',
             'quotes', 'quote_items', 'quote_requests',
             'referral_codes', 'referral_code_usage',
             'admin_saved_notes', 'vault_settings', 'nav_links',

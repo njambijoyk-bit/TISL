@@ -1,0 +1,351 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Books\AccountingSetting;
+use App\Models\Books\FinancialYear;
+use App\Models\Books\Ledger;
+use App\Models\Books\LedgerGroup;
+use App\Models\Books\PaymentMethod;
+use App\Models\Books\VoucherEditLimit;
+use App\Models\Books\VoucherSeries;
+use App\Models\Books\VoucherType;
+use App\Services\Books\NumberingService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/** Chart of accounts, voucher types & numbering, payment methods, period control. */
+class BooksMasterController extends Controller
+{
+    // ── Groups ───────────────────────────────────────────────────────────
+
+    public function groups(): JsonResponse
+    {
+        $all = LedgerGroup::orderBy('sort_order')->orderBy('name')->get();
+        $counts = Ledger::select('group_id', DB::raw('COUNT(*) c'))->groupBy('group_id')->pluck('c', 'group_id');
+        $build = function ($parent) use (&$build, $all, $counts) {
+            return $all->where('parent_id', $parent)->map(fn ($g) => $g->toArray() + ['ledger_count' => (int) ($counts[$g->id] ?? 0), 'children' => $build($g->id)->values()->all()])->values();
+        };
+
+        return response()->json($build(null));
+    }
+
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id']);
+        $parent = LedgerGroup::findOrFail($d['parent_id']);   // primary groups are fixed — new groups always hang under one
+        $g = LedgerGroup::create(['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit]);
+
+        return response()->json(['message' => 'Group added', 'data' => $g], 201);
+    }
+
+    public function updateGroup(Request $request, $id): JsonResponse
+    {
+        $g = LedgerGroup::findOrFail($id);
+        if ($g->is_system) {
+            return response()->json(['message' => 'System groups cannot be changed.'], 422);
+        }
+        $d = $request->validate(['name' => "sometimes|string|max:120|unique:ledger_groups,name,{$g->id}", 'parent_id' => 'sometimes|integer|exists:ledger_groups,id']);
+        if (isset($d['parent_id'])) {
+            if ($g->isSelfOrAncestorOf($d['parent_id'])) {
+                return response()->json(['message' => 'A group cannot sit inside itself.'], 422);
+            }
+            $p = LedgerGroup::findOrFail($d['parent_id']);
+            $d['nature'] = $p->nature;
+            $d['affects_gross_profit'] = $p->affects_gross_profit;
+        }
+        $g->update($d);
+
+        return response()->json(['message' => 'Group updated', 'data' => $g]);
+    }
+
+    public function destroyGroup($id): JsonResponse
+    {
+        $g = LedgerGroup::findOrFail($id);
+        if ($g->is_system) {
+            return response()->json(['message' => 'System groups cannot be deleted.'], 422);
+        }
+        if ($g->children()->exists() || $g->ledgers()->exists()) {
+            return response()->json(['message' => 'Move or delete the ledgers and subgroups inside it first.'], 422);
+        }
+        $g->delete();
+
+        return response()->json(['message' => 'Group deleted']);
+    }
+
+    // ── Ledgers ──────────────────────────────────────────────────────────
+
+    public function ledgers(Request $request): JsonResponse
+    {
+        $q = Ledger::with('group:id,name,nature')
+            ->when($request->filled('group_id'), function ($q) use ($request) {
+                $g = LedgerGroup::find($request->group_id);
+                $q->whereIn('group_id', $g ? $g->selfAndDescendantIds() : [0]);
+            })
+            ->when($request->filled('group'), fn ($q) => $q->whereHas('group', fn ($g) => $g->where('name', $request->group)))
+            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->search . '%'))
+            ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
+            ->orderBy('name');
+
+        return response()->json($request->boolean('all') ? $q->get() : $q->paginate(min((int) $request->get('per_page', 50), 500)));
+    }
+
+    public function storeLedger(Request $request): JsonResponse
+    {
+        $d = $request->validate([
+            'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
+            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string',
+        ]);
+        $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
+
+        return response()->json(['message' => 'Ledger created', 'data' => $l->load('group:id,name,nature')], 201);
+    }
+
+    public function updateLedger(Request $request, $id): JsonResponse
+    {
+        $l = Ledger::findOrFail($id);
+        $d = $request->validate([
+            'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
+            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
+            'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean',
+        ]);
+        if ($l->is_system) {
+            unset($d['group_id']);   // the system relies on where these sit
+        }
+        $l->update($d);
+
+        return response()->json(['message' => 'Ledger updated', 'data' => $l->load('group:id,name,nature')]);
+    }
+
+    public function destroyLedger($id): JsonResponse
+    {
+        $l = Ledger::findOrFail($id);
+        if ($l->is_system || $l->customer_id) {
+            return response()->json(['message' => 'System and customer ledgers cannot be deleted — switch them off instead.'], 422);
+        }
+        if ($l->entries()->exists()) {
+            return response()->json(['message' => 'This ledger has postings. Switch it off instead of deleting it.'], 422);
+        }
+        if (PaymentMethod::where('ledger_id', $l->id)->exists()) {
+            return response()->json(['message' => 'A payment method points at this ledger. Re-map it first.'], 422);
+        }
+        $l->delete();
+
+        return response()->json(['message' => 'Ledger deleted']);
+    }
+
+    // ── Voucher types & numbering ────────────────────────────────────────
+
+    public function types(): JsonResponse
+    {
+        return response()->json(VoucherType::with(['series' => fn ($q) => $q->orderByDesc('is_default')->orderBy('id')])->orderBy('id')->get());
+    }
+
+    public function updateType(Request $request, $id): JsonResponse
+    {
+        $t = VoucherType::findOrFail($id);
+        $d = $request->validate(['name' => 'sometimes|string|max:80', 'is_active' => 'sometimes|boolean', 'default_ledger_id' => 'sometimes|nullable|exists:ledgers,id']);
+        $t->update($d);
+
+        return response()->json(['message' => 'Voucher type updated', 'data' => $t]);
+    }
+
+    private function seriesRules(): array
+    {
+        return [
+            'name' => 'required|string|max:80', 'prefix' => 'nullable|string|max:40', 'suffix' => 'nullable|string|max:40',
+            'number_width' => 'required|integer|min:0|max:12', 'start_number' => 'required|integer|min:0',
+            'reset_period' => 'required|in:' . implode(',', VoucherSeries::RESETS), 'location_id' => 'nullable|integer|exists:locations,id',
+            'allow_manual' => 'boolean', 'is_default' => 'boolean', 'is_active' => 'boolean',
+        ];
+    }
+
+    public function storeSeries(Request $request, $typeId): JsonResponse
+    {
+        $type = VoucherType::findOrFail($typeId);
+        $d = $request->validate($this->seriesRules());
+        $s = DB::transaction(function () use ($d, $type) {
+            if (! empty($d['is_default'])) {
+                VoucherSeries::where('voucher_type_id', $type->id)->update(['is_default' => false]);
+            }
+
+            return VoucherSeries::create($d + ['voucher_type_id' => $type->id, 'next_number' => $d['start_number']]);
+        });
+
+        return response()->json(['message' => 'Numbering series added', 'data' => $s, 'example' => app(NumberingService::class)->preview($s, now(), $s->location_id)], 201);
+    }
+
+    public function updateSeries(Request $request, $id): JsonResponse
+    {
+        $s = VoucherSeries::findOrFail($id);
+        $rules = $this->seriesRules();
+        $rules['next_number'] = 'sometimes|integer|min:0';
+        $d = $request->validate(array_map(fn ($r) => str_replace('required|', 'sometimes|', $r), $rules));
+        DB::transaction(function () use ($s, $d) {
+            if (! empty($d['is_default'])) {
+                VoucherSeries::where('voucher_type_id', $s->voucher_type_id)->where('id', '!=', $s->id)->update(['is_default' => false]);
+            }
+            $s->update($d);
+        });
+
+        return response()->json(['message' => 'Numbering series updated', 'data' => $s->fresh(), 'example' => app(NumberingService::class)->preview($s->fresh(), now(), $s->location_id)]);
+    }
+
+    public function destroySeries($id): JsonResponse
+    {
+        $s = VoucherSeries::findOrFail($id);
+        if (DB::table('vouchers')->where('series_id', $s->id)->exists()) {
+            return response()->json(['message' => 'Vouchers already use this series. Switch it off instead.'], 422);
+        }
+        if (VoucherSeries::where('voucher_type_id', $s->voucher_type_id)->count() <= 1) {
+            return response()->json(['message' => 'Every voucher type needs at least one series.'], 422);
+        }
+        $s->delete();
+
+        return response()->json(['message' => 'Series deleted']);
+    }
+
+    /** Live "what will the numbers look like" for the form. */
+    public function previewSeries(Request $request): JsonResponse
+    {
+        $d = $request->validate(['prefix' => 'nullable|string', 'suffix' => 'nullable|string', 'number_width' => 'required|integer|min:0|max:12', 'start_number' => 'required|integer|min:0', 'location_id' => 'nullable|integer']);
+        $s = new VoucherSeries($d);
+        $svc = app(NumberingService::class);
+
+        return response()->json(['examples' => [
+            $svc->format($s, (int) $d['start_number'], now(), $d['location_id'] ?? null),
+            $svc->format($s, (int) $d['start_number'] + 1, now(), $d['location_id'] ?? null),
+        ]]);
+    }
+
+    // ── Payment methods ──────────────────────────────────────────────────
+
+    public function paymentMethods(): JsonResponse
+    {
+        return response()->json(PaymentMethod::with('ledger:id,name')->orderBy('sort_order')->orderBy('name')->get());
+    }
+
+    private function methodRules(bool $new): array
+    {
+        $s = $new ? 'required' : 'sometimes';
+
+        return [
+            'name' => "$s|string|max:80", 'code' => 'nullable|string|max:30', 'kind' => "$s|in:cash,bank,mobile,card,cheque,online,other",
+            'ledger_id' => "$s|integer|exists:ledgers,id", 'is_online' => 'boolean', 'requires_reference' => 'boolean',
+            'instructions' => 'nullable|string', 'sort_order' => 'nullable|integer', 'is_active' => 'boolean',
+        ];
+    }
+
+    private function assertMoneyLedger(?int $ledgerId): ?JsonResponse
+    {
+        if (! $ledgerId) {
+            return null;
+        }
+        $l = Ledger::with('group:id,nature')->find($ledgerId);
+
+        return $l && $l->group?->nature === 'asset' ? null : response()->json(['message' => 'Map a payment method to an asset ledger (cash, bank, wallet…).'], 422);
+    }
+
+    public function storeMethod(Request $request): JsonResponse
+    {
+        $d = $request->validate($this->methodRules(true));
+        if ($err = $this->assertMoneyLedger($d['ledger_id'])) {
+            return $err;
+        }
+        $d['code'] = $d['code'] ?? \Illuminate\Support\Str::slug($d['name'], '_');
+        if (PaymentMethod::where('code', $d['code'])->exists()) {
+            return response()->json(['message' => "A payment method with code '{$d['code']}' already exists."], 422);
+        }
+
+        return response()->json(['message' => 'Payment method added', 'data' => PaymentMethod::create($d + ['is_active' => true])->load('ledger:id,name')], 201);
+    }
+
+    public function updateMethod(Request $request, $id): JsonResponse
+    {
+        $m = PaymentMethod::findOrFail($id);
+        $d = $request->validate($this->methodRules(false));
+        if (isset($d['ledger_id']) && ($err = $this->assertMoneyLedger($d['ledger_id']))) {
+            return $err;
+        }
+        $m->update($d);
+
+        return response()->json(['message' => 'Payment method updated', 'data' => $m->load('ledger:id,name')]);
+    }
+
+    public function destroyMethod($id): JsonResponse
+    {
+        $m = PaymentMethod::findOrFail($id);
+        if (DB::table('vouchers')->where('payment_method_id', $m->id)->exists()) {
+            return response()->json(['message' => 'Vouchers already use this method. Switch it off instead.'], 422);
+        }
+        $m->delete();
+
+        return response()->json(['message' => 'Payment method deleted']);
+    }
+
+    // ── Settings, period control, financial years ────────────────────────
+
+    public function settings(): JsonResponse
+    {
+        return response()->json([
+            'settings' => AccountingSetting::current(),
+            'edit_limits' => VoucherEditLimit::orderBy('role')->orderBy('voucher_type_id')->get(),
+            'years' => FinancialYear::orderByDesc('start_date')->get(),
+            'roles' => DB::table('users')->whereNotNull('role')->distinct()->pluck('role')->merge(['super_admin', 'admin', 'finance', 'manager'])->unique()->values(),
+        ]);
+    }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $ledger = 'nullable|integer|exists:ledgers,id';
+        $d = $request->validate([
+            'walkin_ledger_id' => $ledger, 'default_sales_ledger_id' => $ledger, 'default_purchase_ledger_id' => $ledger, 'sales_returns_ledger_id' => $ledger,
+            'purchase_returns_ledger_id' => $ledger, 'shipping_income_ledger_id' => $ledger, 'discount_ledger_id' => $ledger, 'rounding_ledger_id' => $ledger,
+            'default_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
+            'edit_window_days' => 'nullable|integer|min:0|max:3650', 'locked_before' => 'nullable|date',
+        ]);
+        $s = AccountingSetting::current();
+        $s->fill($d + ['updated_by' => $request->user()->id, 'updated_at' => now()])->save();
+
+        return response()->json(['message' => 'Settings saved', 'data' => $s->fresh()]);
+    }
+
+    /** Per-role edit windows. Body: {limits: [{role, voucher_type_id?, max_days_back (null = unlimited), can_edit, can_cancel}]} — replaces the set. */
+    public function saveEditLimits(Request $request): JsonResponse
+    {
+        $d = $request->validate([
+            'limits' => 'required|array', 'limits.*.role' => 'required|string|max:40', 'limits.*.voucher_type_id' => 'nullable|integer|exists:voucher_types,id',
+            'limits.*.max_days_back' => 'nullable|integer|min:0|max:36500', 'limits.*.can_edit' => 'boolean', 'limits.*.can_cancel' => 'boolean',
+        ]);
+        DB::transaction(function () use ($d) {
+            VoucherEditLimit::query()->delete();
+            foreach ($d['limits'] as $l) {
+                VoucherEditLimit::create(['role' => $l['role'], 'voucher_type_id' => $l['voucher_type_id'] ?? null, 'max_days_back' => $l['max_days_back'] ?? null,
+                    'can_edit' => $l['can_edit'] ?? true, 'can_cancel' => $l['can_cancel'] ?? true]);
+            }
+        });
+
+        return response()->json(['message' => 'Edit limits saved', 'data' => VoucherEditLimit::orderBy('role')->get()]);
+    }
+
+    public function storeYear(Request $request): JsonResponse
+    {
+        $d = $request->validate(['name' => 'required|string|max:40|unique:financial_years,name', 'start_date' => 'required|date', 'end_date' => 'required|date|after:start_date']);
+        if (FinancialYear::where('start_date', '<=', $d['end_date'])->where('end_date', '>=', $d['start_date'])->exists()) {
+            return response()->json(['message' => 'That overlaps an existing financial year.'], 422);
+        }
+
+        return response()->json(['message' => 'Financial year added', 'data' => FinancialYear::create($d)], 201);
+    }
+
+    public function closeYear(Request $request, $id): JsonResponse
+    {
+        $y = FinancialYear::findOrFail($id);
+        $close = $request->boolean('closed', true);
+        $y->update(['is_closed' => $close, 'closed_by' => $close ? $request->user()->id : null, 'closed_at' => $close ? now() : null]);
+
+        return response()->json(['message' => $close ? 'Year closed — no voucher in it can change.' : 'Year reopened.', 'data' => $y]);
+    }
+}

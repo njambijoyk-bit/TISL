@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  Database, GitBranch,
+  Database, GitBranch, BookOpen,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ } from '../lib/roles';
@@ -131,6 +131,7 @@ export const ADMIN_NAV = [
     id: 'finance',
     label: 'Tax & Finance',
     items: [
+      { id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], roles: FINANCE_READ, keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss' },
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       {

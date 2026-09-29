@@ -88,6 +88,21 @@ class VariantStockService
             ->orderByDesc('is_default')->orderBy('id')->value('id');
     }
 
+    /**
+     * Move a variant's stock at one branch by a signed amount (base units) and
+     * refresh the variant/product caches. Used by vouchers (sales out, purchases in).
+     */
+    public function applyDelta(int $variantId, int $locationId, float $delta): void
+    {
+        $row = VariantLocationStock::where('product_variant_id', $variantId)->where('location_id', $locationId)->lockForUpdate()->first();
+        $this->setBranchStock($variantId, $locationId, max(0.0, (float) ($row?->quantity ?? 0) + $delta));
+
+        $variant = ProductVariant::with('product')->find($variantId);
+        if ($variant?->product) {
+            $this->recomputeCaches($variant->product);
+        }
+    }
+
     /** Set the quantity for one (variant, branch); creates/updates the row. */
     public function setBranchStock(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
     {

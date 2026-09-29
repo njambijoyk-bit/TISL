@@ -443,3 +443,10 @@ Every posted voucher balances (Σ debit = Σ credit). Posted vouchers are immuta
 **Housekeeping** — finish Core internal regrouping (Payments, Reconciliation, Financial notes, Referral/promo, Content pages, Policies) with the Settings hub.
 
 **Known latent:** PHP 8.5 vs `maatwebsite/excel`→phpspreadsheet (<8.5) dependency; FTP/SFTP/S3 need Flysystem adapters installed for remote backups.
+
+
+## 10a. Books — build status
+
+Built: chart of accounts, voucher types with dynamic numbering series (prefix / suffix / start / width / reset / per-branch / manual override), payment methods mapped to any asset ledger, period control (company edit window, per-role limits, financial-year close), the voucher engine (order → delivery → invoice / cash sale → receipt, per-line tax, hamper components, stock moves once), reports (day book, ledger, trial balance, P&L, balance sheet, receivables / payables ageing), exports (JSON, CSV, XML, HTML; PDF once `dompdf/dompdf` is installed), the admin Books area, and per-item hamper sale prices.
+
+Not yet: storefront checkout still uses the old order/payment tables; the legacy order / payment / credit tables are not dropped; store credit, loyalty and withholding are not yet moved onto ledgers; Data Engine rename ("Data Exchange").

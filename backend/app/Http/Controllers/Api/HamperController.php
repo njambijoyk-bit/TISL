@@ -108,7 +108,7 @@ class HamperController extends Controller
     public function show($id): JsonResponse
     {
         $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'items.variant:id,name,sku,combination_key', 'location:id,name,code', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->findOrFail($id);
-        return response()->json($hamper);
+        return response()->json(array_merge($hamper->toArray(), ['price_check' => $this->priceCheck($hamper)]));
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -138,6 +138,14 @@ class HamperController extends Controller
             'valid_from'                 => 'nullable|date|after_or_equal:valid_from',
             'valid_until'                => 'nullable|date',
         ]);
+
+        // Going live: component prices must add up to the hamper price, or the books can't split the sale.
+        if (($data['status'] ?? null) === 'active' && $hamper->status !== 'active') {
+            $check = $this->priceCheck($hamper->fresh('items'));
+            if ($hamper->items()->count() && ! $check['balanced'] && ! isset($data['price'])) {
+                return response()->json(['message' => "Item prices total {$check['items_total']} but the hamper price is {$check['hamper_price']}. Adjust the item prices or use Auto-distribute."], 422);
+            }
+        }
 
         // Moving a hamper to another branch: every item must be stocked there.
         if (isset($data['location_id']) && (int) $data['location_id'] !== (int) $hamper->location_id) {
@@ -284,6 +292,7 @@ class HamperController extends Controller
             'variant_id' => 'required_without:product_id|nullable|exists:product_variants,id',
             'product_id' => 'required_without:variant_id|nullable|exists:products,id',
             'quantity'   => 'required|integer|min:1',
+            'sale_price' => 'nullable|numeric|min:0',
         ]);
 
         $stock = app(VariantStockService::class);
@@ -321,6 +330,7 @@ class HamperController extends Controller
             [
                 'product_id' => $product->id,
                 'quantity'   => $request->quantity,
+                'sale_price' => $request->filled('sale_price') ? $request->sale_price : ($variant->price ?? $product->price),
                 'snapshot'   => array_merge(HamperItem::buildSnapshot($product), ['variant_id' => $variant->id, 'variant_name' => $variant->name]),
             ]
         );
@@ -332,6 +342,62 @@ class HamperController extends Controller
         );
 
         return response()->json(['message' => 'Product added to hamper', 'data' => $item], 201);
+    }
+
+    /** Change one component's sale price and/or quantity. */
+    public function updateItem(Request $request, $id, $itemId): JsonResponse
+    {
+        $data = $request->validate([
+            'sale_price' => 'sometimes|numeric|min:0',
+            'quantity'   => 'sometimes|integer|min:1',
+        ]);
+        $item = HamperItem::where('hamper_id', $id)->findOrFail($itemId);
+        $item->update($data);
+
+        return response()->json(['message' => 'Item updated', 'data' => $item, 'price_check' => $this->priceCheck(Hamper::findOrFail($id))]);
+    }
+
+    /**
+     * Split the hamper price across its components in proportion to their current
+     * sale prices (falling back to product price), so Σ price × qty = hamper price.
+     * Rounding drift lands on the last component.
+     */
+    public function distributePrices($id): JsonResponse
+    {
+        $hamper = Hamper::with('items')->findOrFail($id);
+        $items  = $hamper->items;
+        if ($items->isEmpty()) {
+            return response()->json(['message' => 'Add products first.'], 422);
+        }
+        $weights = $items->map(fn ($i) => max(0.0, (float) ($i->sale_price ?? $i->variant?->price ?? $i->product?->price ?? 0)) * $i->quantity);
+        $totalW  = $weights->sum();
+        if ($totalW <= 0) {
+            $weights = $items->map(fn ($i) => (float) $i->quantity);
+            $totalW  = $weights->sum();
+        }
+        $target = round((float) $hamper->price, 2);
+        $left   = $target;
+        foreach ($items->values() as $n => $item) {
+            if ($n === $items->count() - 1) {
+                $line = $left;
+            } else {
+                $line = round($target * $weights[$n] / $totalW, 2);
+                $left = round($left - $line, 2);
+            }
+            $item->update(['sale_price' => round(max(0, $line) / $item->quantity, 2)]);
+        }
+        $this->logHamperActivity($hamper->id, 'prices_distributed', "Hamper price split across components.", 'info', []);
+
+        return response()->json(['message' => 'Prices distributed', 'data' => $hamper->fresh('items')->items, 'price_check' => $this->priceCheck($hamper->fresh('items'))]);
+    }
+
+    private function priceCheck(Hamper $hamper): array
+    {
+        $hamper->loadMissing('items');
+        $sum = round($hamper->items->sum(fn ($i) => (float) $i->sale_price * $i->quantity), 2);
+        $price = round((float) $hamper->price, 2);
+
+        return ['items_total' => $sum, 'hamper_price' => $price, 'difference' => round($price - $sum, 2), 'balanced' => abs($price - $sum) < 0.005];
     }
 
     public function removeProduct($id, $productId): JsonResponse

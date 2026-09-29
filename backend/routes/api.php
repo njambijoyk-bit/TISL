@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\SearchEventController;
 use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
+use App\Http\Controllers\Api\BooksMasterController;
+use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\CustomerAddressController;
@@ -358,6 +360,52 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,super_admin')->prefix('admin/navigation')->group(function () {
         Route::get('/',        [\App\Http\Controllers\Admin\NavController::class, 'index']);
         Route::put('/{id}',    [\App\Http\Controllers\Admin\NavController::class, 'update']);
+    });
+
+    // BOOKS (vouchers, ledgers, reports) — finance roles; period control is super_admin
+    Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/books')->group(function () {
+        Route::get('/vouchers',                 [BooksVoucherController::class, 'index']);
+        Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList']);
+        Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
+        Route::get('/vouchers/next-number',     [BooksVoucherController::class, 'nextNumber']);
+        Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);
+        Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
+        Route::get('/vouchers/{id}/export',     [BooksVoucherController::class, 'export']);
+        Route::get('/reports/{name}',           [BooksVoucherController::class, 'report']);
+        Route::get('/groups',                   [BooksMasterController::class, 'groups']);
+        Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
+        Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
+        Route::get('/payment-methods',          [BooksMasterController::class, 'paymentMethods']);
+        Route::get('/settings',                 [BooksMasterController::class, 'settings']);
+        Route::post('/series/preview',          [BooksMasterController::class, 'previewSeries']);
+
+        Route::middleware('role:admin,super_admin,finance')->group(function () {
+            Route::post('/vouchers',                [BooksVoucherController::class, 'store']);
+            Route::put('/vouchers/{id}',            [BooksVoucherController::class, 'update']);
+            Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
+            Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
+            Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
+            Route::post('/groups',                  [BooksMasterController::class, 'storeGroup']);
+            Route::put('/groups/{id}',              [BooksMasterController::class, 'updateGroup']);
+            Route::delete('/groups/{id}',           [BooksMasterController::class, 'destroyGroup']);
+            Route::post('/ledgers',                 [BooksMasterController::class, 'storeLedger']);
+            Route::put('/ledgers/{id}',             [BooksMasterController::class, 'updateLedger']);
+            Route::delete('/ledgers/{id}',          [BooksMasterController::class, 'destroyLedger']);
+            Route::put('/voucher-types/{id}',       [BooksMasterController::class, 'updateType']);
+            Route::post('/voucher-types/{typeId}/series', [BooksMasterController::class, 'storeSeries']);
+            Route::put('/series/{id}',              [BooksMasterController::class, 'updateSeries']);
+            Route::delete('/series/{id}',           [BooksMasterController::class, 'destroySeries']);
+            Route::post('/payment-methods',         [BooksMasterController::class, 'storeMethod']);
+            Route::put('/payment-methods/{id}',     [BooksMasterController::class, 'updateMethod']);
+            Route::delete('/payment-methods/{id}',  [BooksMasterController::class, 'destroyMethod']);
+            Route::post('/financial-years',         [BooksMasterController::class, 'storeYear']);
+        });
+
+        Route::middleware('role:super_admin')->group(function () {
+            Route::put('/settings',                 [BooksMasterController::class, 'updateSettings']);
+            Route::put('/edit-limits',              [BooksMasterController::class, 'saveEditLimits']);
+            Route::post('/financial-years/{id}/close', [BooksMasterController::class, 'closeYear']);
+        });
     });
 
     // Branches / multi-location (Core) — admin/super_admin
@@ -1811,6 +1859,8 @@ Route::middleware('auth:sanctum')->group(function () {
             // products
             Route::post('/{id}/products',                       [HamperController::class, 'addProduct']);
             Route::delete('/{id}/products/{productId}',         [HamperController::class, 'removeProduct']);
+            Route::patch('/{id}/items/{itemId}',                [HamperController::class, 'updateItem']);
+            Route::post('/{id}/distribute-prices',              [HamperController::class, 'distributePrices']);
             Route::post('/{id}/cover-image',                    [HamperController::class, 'uploadCoverImage']);
             Route::get('/{id}/suggest-products',                [HamperController::class, 'suggestProducts']);
         

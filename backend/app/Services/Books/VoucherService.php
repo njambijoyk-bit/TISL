@@ -1,0 +1,1122 @@
+<?php
+
+namespace App\Services\Books;
+
+use App\Models\Books\AccountingSetting;
+use App\Models\Books\Ledger;
+use App\Models\Books\PaymentMethod;
+use App\Models\Books\StockMovement;
+use App\Models\Books\Voucher;
+use App\Models\Books\VoucherAuditLog;
+use App\Models\Books\VoucherBillRef;
+use App\Models\Books\VoucherEntry;
+use App\Models\Books\VoucherItem;
+use App\Models\Books\VoucherItemTax;
+use App\Models\Books\VoucherType;
+use App\Models\Currency;
+use App\Models\Customer;
+use App\Models\Hamper;
+use App\Models\Location;
+use App\Models\ProductVariant;
+use App\Models\Service;
+use App\Models\ServiceVariant;
+use App\Models\User;
+use App\Services\CurrencyConversionService;
+use App\Services\Location\VariantStockService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * The voucher engine. One place that turns "what was sold / paid / journalled"
+ * into a numbered, balanced, period-checked voucher: item lines (products, services,
+ * hampers with their components, charges), per-line tax onto the right tax ledgers,
+ * the ledger entries, bill-by-bill references, stock movements, and the order →
+ * delivery → invoice / cash sale → receipt chain.
+ */
+class VoucherService
+{
+    public function __construct(
+        private NumberingService $numbering,
+        private PeriodGuard $guard,
+        private LedgerService $ledgers,
+        private TaxLineService $taxes,
+        private VariantStockService $stock,
+        private CurrencyConversionService $money,
+    ) {}
+
+    // =====================================================================
+    // PUBLIC API
+    // =====================================================================
+
+    /** Everything a save would produce — lines, tax, entries, totals — without saving. */
+    public function preview(array $data, ?User $user = null): array
+    {
+        $type = $this->typeFrom($data);
+        $plan = $this->plan($data, $type, null);
+        $this->guard->assert('create', $plan['date'], $user, $type->id);
+
+        return $this->describe($plan);
+    }
+
+    public function create(array $data, ?User $user = null): Voucher
+    {
+        $type = $this->typeFrom($data);
+
+        return DB::transaction(function () use ($data, $type, $user) {
+            $plan = $this->plan($data, $type, null);
+            $this->guard->assert('create', $plan['date'], $user, $type->id);
+
+            $voucher = $this->persist($plan, $data, $user, null);
+            $this->audit($voucher, 'created', $user);
+
+            return $voucher->load($this->relations());
+        });
+    }
+
+    public function alter(Voucher $voucher, array $data, ?User $user): Voucher
+    {
+        return DB::transaction(function () use ($voucher, $data, $user) {
+            $voucher = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+            if ($voucher->status === Voucher::CANCELLED) {
+                throw new BooksException('A cancelled voucher can not be edited.');
+            }
+            $this->guard->assertVoucher('edit', $voucher, $user);
+            $this->assertNoLiveChildren($voucher, 'edit');
+
+            $type = $voucher->type;
+            $data['voucher_type_id'] = $type->id;
+            $data['source_voucher_id'] = $data['source_voucher_id'] ?? $voucher->source_voucher_id;
+            $plan = $this->plan($data, $type, $voucher);
+            $this->guard->assert('edit', $plan['date'], $user, $type->id);
+
+            $this->reverseEffects($voucher);
+            $voucher->items()->delete();
+            $voucher->entries()->delete();
+            $voucher->billRefs()->delete();
+
+            $before = $voucher->only(['date', 'total_amount', 'party_ledger_id', 'narration']);
+            $voucher = $this->persist($plan, $data, $user, $voucher);
+            $this->audit($voucher, 'altered', $user, ['before' => $before]);
+
+            return $voucher->load($this->relations());
+        });
+    }
+
+    public function cancel(Voucher $voucher, ?string $reason, ?User $user): Voucher
+    {
+        return DB::transaction(function () use ($voucher, $reason, $user) {
+            $voucher = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+            if ($voucher->status === Voucher::CANCELLED) {
+                throw new BooksException('That voucher is already cancelled.');
+            }
+            $this->guard->assertVoucher('cancel', $voucher, $user);
+            $this->assertNoLiveChildren($voucher, 'cancel');
+
+            $this->reverseEffects($voucher);
+            $voucher->update([
+                'status' => Voucher::CANCELLED, 'cancelled_at' => now(), 'cancelled_by' => $user?->id,
+                'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
+            ]);
+            $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
+
+            return $voucher->load($this->relations());
+        });
+    }
+
+    /**
+     * Sales Order → Delivery Note | Sales | Cash Sale, or Delivery Note → Sales | Cash Sale.
+     * Stock moves once: a delivery note moves it; documents made from a delivery don't;
+     * an invoice/cash sale from an order moves only what wasn't delivered.
+     *
+     * @param  array  $opts  date, payment_method_id, lines: {sourceItemId: quantity}, narration, reference_no
+     */
+    public function convert(Voucher $source, string $targetBase, array $opts = [], ?User $user = null): Voucher
+    {
+        $allowed = [
+            VoucherType::SALES_ORDER   => [VoucherType::DELIVERY_NOTE, VoucherType::SALES, VoucherType::CASH_SALE],
+            VoucherType::DELIVERY_NOTE => [VoucherType::SALES, VoucherType::CASH_SALE],
+        ];
+        $sourceBase = $source->type->base_type;
+        if (! in_array($targetBase, $allowed[$sourceBase] ?? [], true)) {
+            throw new BooksException("A {$source->type->name} can't be converted to that.");
+        }
+        if ($source->status !== Voucher::POSTED) {
+            throw new BooksException('Only a live voucher can be converted.');
+        }
+        $target = VoucherType::byBase($targetBase) ?? throw new BooksException('That voucher type is switched off.');
+
+        return DB::transaction(function () use ($source, $target, $targetBase, $sourceBase, $opts, $user) {
+            $source = Voucher::whereKey($source->id)->lockForUpdate()->firstOrFail();
+            $items = $source->items()->with('taxes')->get();
+            $top = $items->whereNull('parent_item_id');
+            $pick = $opts['lines'] ?? null;
+            $field = $targetBase === VoucherType::DELIVERY_NOTE ? 'delivered_quantity' : 'invoiced_quantity';
+
+            $lines = [];
+            $moves = false;
+            foreach ($top as $it) {
+                $remaining = max(0.0, (float) $it->quantity - (float) $it->{$field});
+                $qty = $pick !== null ? min($remaining, (float) ($pick[$it->id] ?? 0)) : $remaining;
+                if ($qty <= 0) {
+                    continue;
+                }
+                $ratio = (float) $it->quantity > 0 ? $qty / (float) $it->quantity : 1.0;
+                $children = $it->is_header ? $items->where('parent_item_id', $it->id) : collect();
+
+                if ($it->is_header) {
+                    $child = [];
+                    foreach ($children as $c) {
+                        $cq = round((float) $c->quantity * $ratio, 4);
+                        $child[] = $this->cloneLine($c, $cq, $ratio, $this->stockQtyFor($c, $cq, $sourceBase, $targetBase));
+                    }
+                    $line = $this->cloneLine($it, $qty, $ratio, 0.0);
+                    $line['children'] = $child;
+                    $line['amount'] = round(array_sum(array_column($child, 'amount')), 2);
+                    $line['tax_amount'] = round(array_sum(array_column($child, 'tax_amount')), 2);
+                    $line['taxes'] = [];
+                    $lines[] = $line;
+                } else {
+                    $lines[] = $this->cloneLine($it, $qty, $ratio, $this->stockQtyFor($it, $qty, $sourceBase, $targetBase));
+                }
+            }
+            if (! $lines) {
+                throw new BooksException('Nothing left to convert — every line is already ' . ($field === 'delivered_quantity' ? 'delivered' : 'invoiced') . '.');
+            }
+
+            // Stock moves for a delivery note; for an invoice/cash sale only when made straight from an order (and only the undelivered part).
+            $moves = $targetBase === VoucherType::DELIVERY_NOTE || ($sourceBase === VoucherType::SALES_ORDER && $target->stock_effect !== 'none');
+
+            $data = [
+                'voucher_type_id'   => $target->id,
+                'date'              => $opts['date'] ?? Carbon::today()->toDateString(),
+                'due_date'          => $opts['due_date'] ?? null,
+                'location_id'       => $source->location_id,
+                'customer_id'       => $source->customer_id,
+                'party_ledger_id'   => $source->party_ledger_id,
+                'currency_id'       => $source->currency_id,
+                'exchange_rate'     => $source->exchange_rate,
+                'payment_method_id' => $opts['payment_method_id'] ?? $source->payment_method_id,
+                'reference_no'      => $opts['reference_no'] ?? $source->reference_no,
+                'narration'         => $opts['narration'] ?? $source->narration,
+                'channel'           => $source->channel,
+                'source_voucher_id' => $source->id,
+                'lines_resolved'    => $lines,
+                'moves_stock'       => $moves,
+                'meta'              => array_merge($source->meta ?? [], ['converted_from' => $source->voucher_number]),
+            ];
+
+            $child = $this->create($data, $user);
+            $this->bumpSources($child, +1);
+            $this->audit($source, 'converted', $user, ['to' => $child->voucher_number, 'type' => $target->name]);
+
+            return $child->load($this->relations());
+        });
+    }
+
+    /**
+     * Record a payment against an invoice: creates a Receipt (Dr the payment method's
+     * ledger, Cr the customer) settled against that invoice.
+     *
+     * @param  array  $opts  payment_method_id (required), amount (default: what's outstanding), date, reference_no, narration
+     */
+    public function receive(Voucher $invoice, array $opts, ?User $user = null): Voucher
+    {
+        if (! in_array($invoice->type->base_type, [VoucherType::SALES, VoucherType::DEBIT_NOTE], true) || $invoice->status !== Voucher::POSTED) {
+            throw new BooksException('Payments are recorded against a live sales invoice.');
+        }
+        $outstanding = $this->outstanding($invoice);
+        $amount = isset($opts['amount']) ? round((float) $opts['amount'], 2) : $outstanding;
+        if ($amount <= 0) {
+            throw new BooksException($outstanding <= 0 ? 'That invoice is already fully paid.' : 'Enter an amount to receive.');
+        }
+        if ($amount - $outstanding > 0.005) {
+            throw new BooksException('That is more than the ' . number_format($outstanding, 2) . ' outstanding on ' . $invoice->voucher_number . '.');
+        }
+        $type = VoucherType::byBase(VoucherType::RECEIPT) ?? throw new BooksException('The Receipt voucher type is switched off.');
+
+        return $this->create([
+            'voucher_type_id'   => $type->id,
+            'date'              => $opts['date'] ?? Carbon::today()->toDateString(),
+            'location_id'       => $invoice->location_id,
+            'customer_id'       => $invoice->customer_id,
+            'party_ledger_id'   => $invoice->party_ledger_id,
+            'currency_id'       => $invoice->currency_id,
+            'exchange_rate'     => $invoice->exchange_rate,
+            'payment_method_id' => $opts['payment_method_id'] ?? null,
+            'reference_no'      => $opts['reference_no'] ?? null,
+            'narration'         => $opts['narration'] ?? "Payment of {$invoice->voucher_number}",
+            'amount'            => $amount,
+            'allocations'       => [['against_voucher_id' => $invoice->id, 'amount' => $amount]],
+            'source_voucher_id' => $invoice->id,
+            'channel'           => $opts['channel'] ?? 'admin',
+        ], $user);
+    }
+
+    /** Checkout: a customer's cart becomes a Sales Order. */
+    public function placeOrder(array $data, ?User $user = null): Voucher
+    {
+        $type = VoucherType::byBase(VoucherType::SALES_ORDER) ?? throw new BooksException('The Sales Order voucher type is switched off.');
+
+        return $this->create(array_merge($data, ['voucher_type_id' => $type->id, 'channel' => $data['channel'] ?? 'storefront']), $user);
+    }
+
+    /** Payment arrives for an order: the order becomes a Cash Sale (full payment). */
+    public function settleOrder(Voucher $order, PaymentMethod $method, ?string $reference = null, ?User $user = null): Voucher
+    {
+        return $this->convert($order, VoucherType::CASH_SALE, ['payment_method_id' => $method->id, 'reference_no' => $reference], $user);
+    }
+
+    /** What is still owed on a sales invoice / purchase (new bill minus receipts / payments against it). */
+    public function outstanding(Voucher $invoice): float
+    {
+        $new = (float) VoucherBillRef::where('voucher_id', $invoice->id)->where('ref_type', 'new')->sum('amount');
+        $paid = (float) DB::table('voucher_bill_refs as b')
+            ->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
+            ->where('b.against_voucher_id', $invoice->id)->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)
+            ->sum('b.amount');
+
+        return round($new - $paid, 2);
+    }
+
+    // =====================================================================
+    // PLANNING (nothing is saved here)
+    // =====================================================================
+
+    private function typeFrom(array $data): VoucherType
+    {
+        $type = null;
+        if (! empty($data['voucher_type_id'])) {
+            $type = VoucherType::find($data['voucher_type_id']);
+        } elseif (! empty($data['type'])) {
+            $type = VoucherType::where('code', $data['type'])->orWhere('base_type', $data['type'])->orderByDesc('is_system')->first();
+        }
+        if (! $type || ! $type->is_active) {
+            throw new BooksException('Pick a voucher type.');
+        }
+
+        return $type;
+    }
+
+    private function plan(array $data, VoucherType $type, ?Voucher $existing): array
+    {
+        $base = $type->base_type;
+        $baseCurrency = $this->money->getBaseCurrency();
+        $currency = ! empty($data['currency_id']) ? $this->money->currencyFrom((int) $data['currency_id']) : $baseCurrency;
+        $rate = $currency->id === $baseCurrency->id ? 1.0 : (float) $currency->conversion_rate;
+        if ($rate <= 0) {
+            throw new BooksException("No exchange rate for {$currency->code}.");
+        }
+        $date = Carbon::parse($data['date'] ?? today());
+        $locationId = $data['location_id'] ?? Location::default()?->id;
+
+        // ── party ─────────────────────────────────────────────────────
+        $customer = ! empty($data['customer_id']) ? Customer::findOrFail($data['customer_id']) : null;
+        $party = null;
+        if (! empty($data['party_ledger_id'])) {
+            $party = Ledger::findOrFail($data['party_ledger_id']);
+            $customer ??= $party->customer_id ? Customer::find($party->customer_id) : null;
+        } elseif ($customer) {
+            $party = $this->ledgers->customerLedger($customer);
+        }
+        if (! $party && $type->party_kind === 'customer' && $base !== VoucherType::CASH_SALE) {
+            $party = $this->ledgers->walkinLedger();
+        }
+        if (! $party && $type->party_kind === 'supplier') {
+            throw new BooksException("Choose the supplier's ledger for a {$type->name}.");
+        }
+
+        $method = ! empty($data['payment_method_id']) ? PaymentMethod::with('ledger')->findOrFail($data['payment_method_id']) : null;
+        $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
+
+        $plan = [
+            'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
+            'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
+            'method' => $method, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
+            'subtotal' => 0.0, 'tax_total' => 0.0, 'total' => 0.0,
+        ];
+
+        if ($type->has_items) {
+            $lines = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
+            if (! $lines) {
+                throw new BooksException('Add at least one line.');
+            }
+            $plan['lines'] = $lines;
+            [$plan['subtotal'], $plan['tax_total']] = $this->totals($lines);
+            $plan['total'] = round($plan['subtotal'] + $plan['tax_total'], 2);
+
+            if ($type->posts_accounts) {
+                $plan['entries'] = $this->itemEntries($plan, $type, $method);
+                $plan['bills'] = $this->itemBills($plan, $type, $data);
+            }
+
+            $moves = array_key_exists('moves_stock', $data) ? (bool) $data['moves_stock'] : $type->stock_effect !== 'none';
+            $plan['moves_stock'] = $moves && $type->stock_effect !== 'none';
+            if ($plan['moves_stock']) {
+                $plan['stock'] = $this->stockPlan($lines, $type, $locationId);
+            }
+        } else {
+            [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);
+            $plan['moves_stock'] = false;
+        }
+
+        // Every posting voucher balances — in the voucher's currency and in base.
+        if ($type->posts_accounts) {
+            $this->assertBalanced($plan['entries']);
+        }
+
+        return $plan;
+    }
+
+    // ── lines ───────────────────────────────────────────────────────────
+
+    private function resolveLines(array $raw, array $ctx): array
+    {
+        $out = [];
+        foreach ($raw as $i => $l) {
+            $kind = $l['type'] ?? 'product';
+            $out[] = match ($kind) {
+                'product' => $this->productLine($l, $ctx),
+                'service' => $this->serviceLine($l, $ctx),
+                'hamper'  => $this->hamperLines($l, $ctx),
+                'charge'  => $this->chargeLine($l, $ctx),
+                'custom'  => $this->customLine($l, $ctx),
+                default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
+            };
+        }
+
+        return $out;
+    }
+
+    private function blank(string $itemType): array
+    {
+        return [
+            'item_type' => $itemType, 'is_header' => false, 'product_id' => null, 'variant_id' => null, 'variant_unit_id' => null,
+            'service_id' => null, 'service_variant_id' => null, 'hamper_id' => null, 'description' => '', 'variant_label' => null,
+            'sku' => null, 'unit_code' => null, 'unit_factor' => 1.0, 'quantity' => 1.0, 'base_quantity' => 1.0, 'rate' => 0.0,
+            'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
+            'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
+            'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
+        ];
+    }
+
+    private function side(array $ctx): string
+    {
+        return $ctx['type']->isSalesSide() ? 'output' : 'input';
+    }
+
+    private function qty(array $l, string $what): float
+    {
+        $q = round((float) ($l['quantity'] ?? 1), 4);
+        if ($q <= 0) {
+            throw new BooksException("Enter a quantity for {$what}.");
+        }
+
+        return $q;
+    }
+
+    private function convertPrice(float $amount, ?int $fromCurrencyId, array $ctx): float
+    {
+        return $this->money->convert($amount, $this->money->currencyFrom($fromCurrencyId), $ctx['currency']);
+    }
+
+    private function finishAmounts(array &$line, ?\Illuminate\Database\Eloquent\Model $taxable, string $module, ?int $unitId, array $ctx): void
+    {
+        $gross = round($line['quantity'] * $line['rate'], 2);
+        $line['amount'] = round($gross - $line['discount_amount'], 2);
+        $line['taxes'] = $taxable
+            ? $this->taxes->forLine($taxable, $module, $gross, $line['amount'], $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'])
+            : [];
+        $this->summariseTaxes($line);
+    }
+
+    private function summariseTaxes(array &$line): void
+    {
+        $line['tax_amount'] = round(array_sum(array_column($line['taxes'], 'tax_amount')), 2);
+        $first = $line['taxes'][0] ?? null;
+        $line['tax_rate_id'] = $first['tax_rate_id'] ?? null;
+        $line['tax_rate_percent'] = $first['percent'] ?? null;
+    }
+
+    private function productLine(array $l, array $ctx): array
+    {
+        $variantId = $l['variant_id'] ?? null;
+        if (! $variantId && ! empty($l['product_id'])) {
+            $variantId = app(VariantStockService::class)->defaultVariantId((int) $l['product_id']);
+        }
+        $variant = ProductVariant::with(['product.currency', 'units.unit'])->find($variantId);
+        if (! $variant) {
+            throw new BooksException('Pick a product variant.');
+        }
+        $product = $variant->product;
+        $unitRow = ! empty($l['variant_unit_id'])
+            ? $variant->units->firstWhere('id', (int) $l['variant_unit_id'])
+            : ($variant->units->firstWhere('is_default_sale', true) ?? $variant->units->firstWhere('role', 'base'));
+        if (! $unitRow) {
+            throw new BooksException("{$product->name}: no selling unit — set one on the variant.");
+        }
+
+        $line = $this->blank('product');
+        $qty = $this->qty($l, $product->name);
+        $factor = (float) $unitRow->base_factor;
+
+        if (isset($l['rate']) && $l['rate'] !== '') {
+            $rate = (float) $l['rate'];
+        } else {
+            if (! $ctx['type']->isSalesSide()) {
+                throw new BooksException("Enter the purchase rate for {$product->name}.");
+            }
+            $unitRow->setRelation('variant', $variant);
+            $price = $unitRow->effectivePrice();
+            if ($price === null) {
+                throw new BooksException("{$product->name} has no price for that unit.");
+            }
+            $rate = $this->convertPrice($price, $product->currency_id, $ctx);
+        }
+
+        $line = array_merge($line, [
+            'product_id' => $product->id, 'variant_id' => $variant->id, 'variant_unit_id' => $unitRow->id,
+            'description' => $product->name, 'variant_label' => $variant->name ?: ($variant->combination_key !== 'default' ? $variant->combination_key : null),
+            'sku' => $variant->sku ?: $product->sku, 'unit_code' => $unitRow->unit?->code, 'unit_factor' => $factor,
+            'quantity' => $qty, 'base_quantity' => round($qty * $factor, 4), 'rate' => round($rate, 4),
+            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null,
+            'location_id' => $l['location_id'] ?? null, 'notes' => $l['notes'] ?? null,
+        ]);
+        $line['stock_qty'] = $line['base_quantity'];
+        $this->finishAmounts($line, $product, 'product', $unitRow->unit_id, $ctx);
+
+        return $line;
+    }
+
+    private function serviceLine(array $l, array $ctx): array
+    {
+        $pkg = ServiceVariant::with(['service', 'priceUnit'])->find($l['service_variant_id'] ?? null);
+        if (! $pkg) {
+            throw new BooksException('Pick a service package.');
+        }
+        $service = $pkg->service;
+        $qty = $this->qty($l, $service->name);
+        $rate = isset($l['rate']) && $l['rate'] !== ''
+            ? (float) $l['rate']
+            : ($pkg->price !== null ? $this->convertPrice((float) $pkg->price, $service->currency_id, $ctx) : throw new BooksException("{$service->name} — {$pkg->name} has no price."));
+
+        $line = array_merge($this->blank('service'), [
+            'service_id' => $service->id, 'service_variant_id' => $pkg->id, 'description' => $service->name,
+            'variant_label' => $pkg->name, 'sku' => $service->sku, 'unit_code' => $pkg->priceUnit?->code,
+            'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round($rate, 4),
+            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
+        ]);
+        $this->finishAmounts($line, $service, 'service', $pkg->price_unit_id, $ctx);
+
+        return $line;
+    }
+
+    /** A hamper: one display header + its components. Item prices must add up to the hamper price. */
+    private function hamperLines(array $l, array $ctx): array
+    {
+        $hamper = Hamper::with(['items.variant', 'items.product.currency'])->find($l['hamper_id'] ?? null);
+        if (! $hamper) {
+            throw new BooksException('Pick a hamper.');
+        }
+        if ($hamper->items->isEmpty()) {
+            throw new BooksException("{$hamper->name} has no items.");
+        }
+        $hq = $this->qty($l, $hamper->name);
+
+        $sum = 0.0;
+        foreach ($hamper->items as $it) {
+            if ($it->sale_price === null) {
+                throw new BooksException("{$hamper->name}: set a sale price for every item (Hampers → Products).");
+            }
+            $sum += (float) $it->sale_price * (int) $it->quantity;
+        }
+        if (abs(round($sum, 2) - round((float) $hamper->price, 2)) > 0.01) {
+            throw new BooksException("{$hamper->name}: the item prices add up to " . number_format($sum, 2) . ' but the hamper price is ' . number_format((float) $hamper->price, 2) . '. Fix it on the hamper.');
+        }
+
+        $children = [];
+        foreach ($hamper->items as $it) {
+            $product = $it->product;
+            $variant = $it->variant ?? ProductVariant::find(app(VariantStockService::class)->defaultVariantId($it->product_id));
+            $cq = round((float) $it->quantity * $hq, 4);
+            $c = array_merge($this->blank('hamper_component'), [
+                'product_id' => $product->id, 'variant_id' => $variant?->id, 'hamper_id' => $hamper->id,
+                'description' => $product->name, 'variant_label' => $variant?->name, 'sku' => $variant?->sku ?: $product->sku,
+                'unit_code' => 'pc', 'quantity' => $cq, 'base_quantity' => $cq,
+                'rate' => round($this->convertPrice((float) $it->sale_price, $hamper->currency_id, $ctx), 4),
+                'ledger_id' => $l['ledger_id'] ?? null, 'location_id' => $hamper->location_id,
+            ]);
+            $c['stock_qty'] = $variant ? $cq : 0.0;
+            $this->finishAmounts($c, $product, 'product', null, $ctx);
+            $children[] = $c;
+        }
+
+        $header = array_merge($this->blank('hamper'), [
+            'is_header' => true, 'hamper_id' => $hamper->id, 'description' => $hamper->name, 'quantity' => $hq, 'base_quantity' => $hq,
+            'notes' => $l['notes'] ?? null,
+        ]);
+        $header['children'] = $children;
+        $header['amount'] = round(array_sum(array_column($children, 'amount')), 2);
+        $header['tax_amount'] = round(array_sum(array_column($children, 'tax_amount')), 2);
+        $header['rate'] = $hq > 0 ? round($header['amount'] / $hq, 4) : 0.0;
+
+        return $header;
+    }
+
+    private function chargeLine(array $l, array $ctx): array
+    {
+        $s = AccountingSetting::current();
+        $kind = $l['kind'] ?? 'other';
+        $amount = round((float) ($l['amount'] ?? 0), 2);
+        if ($amount == 0.0) {
+            throw new BooksException('Enter an amount for the ' . $kind . ' line.');
+        }
+        $ledgerId = $l['ledger_id'] ?? match ($kind) {
+            'shipping' => $s->shipping_income_ledger_id,
+            'discount' => $s->discount_ledger_id,
+            'rounding' => $s->rounding_ledger_id,
+            default    => null,
+        };
+        if (! $ledgerId) {
+            throw new BooksException("Choose a ledger for the {$kind} line (or set a default under Books settings).");
+        }
+        if ($kind === 'discount') {
+            $amount = -abs($amount); // a discount reduces what is owed
+        }
+        $line = array_merge($this->blank('charge'), [
+            'description' => $l['description'] ?? ucfirst($kind), 'quantity' => 1.0, 'base_quantity' => 1.0,
+            'rate' => $amount, 'amount' => $amount, 'ledger_id' => (int) $ledgerId,
+        ]);
+
+        return $line;
+    }
+
+    private function customLine(array $l, array $ctx): array
+    {
+        if (empty($l['description']) || empty($l['ledger_id'])) {
+            throw new BooksException('A custom line needs a description and a ledger.');
+        }
+        $qty = $this->qty($l, $l['description']);
+        $line = array_merge($this->blank('custom'), [
+            'description' => $l['description'], 'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round((float) ($l['rate'] ?? 0), 4),
+            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => (int) $l['ledger_id'], 'notes' => $l['notes'] ?? null,
+        ]);
+        $line['amount'] = round($qty * $line['rate'] - $line['discount_amount'], 2);
+        $line['taxes'] = ! empty($l['tax_rate_id']) ? $this->taxes->manual((int) $l['tax_rate_id'], $line['amount'], $this->side($ctx)) : [];
+        $this->summariseTaxes($line);
+
+        return $line;
+    }
+
+    private function cloneLine(VoucherItem $it, float $qty, float $ratio, float $stockSellingQty): array
+    {
+        $line = $this->blank($it->item_type);
+        foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
+                  'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent'] as $k) {
+            $line[$k] = $it->{$k};
+        }
+        $line['unit_factor'] = (float) $it->unit_factor;
+        $line['quantity'] = $qty;
+        $line['base_quantity'] = round($qty * (float) $it->unit_factor, 4);
+        $line['rate'] = (float) $it->rate;
+        $line['discount_amount'] = round((float) $it->discount_amount * $ratio, 2);
+        $line['amount'] = round((float) $it->amount * $ratio, 2);
+        $line['source_item_id'] = $it->id;
+        $line['taxes'] = $it->taxes->map(fn ($t) => [
+            'tax_rate_id' => $t->tax_rate_id, 'ledger_id' => $t->ledger_id, 'label' => $t->label,
+            'base_amount' => round((float) $t->base_amount * $ratio, 2), 'tax_amount' => round((float) $t->tax_amount * $ratio, 2),
+            'percent' => $it->tax_rate_percent !== null ? (float) $it->tax_rate_percent : null,
+        ])->all();
+        $line['tax_amount'] = round(array_sum(array_column($line['taxes'], 'tax_amount')), 2);
+        $line['stock_qty'] = round($stockSellingQty * (float) $it->unit_factor, 4);
+
+        return $line;
+    }
+
+    /** Selling-unit quantity that should move stock when converting (0 = none). */
+    private function stockQtyFor(VoucherItem $src, float $qty, string $sourceBase, string $targetBase): float
+    {
+        if (! $src->variant_id) {
+            return 0.0;
+        }
+        if ($targetBase === VoucherType::DELIVERY_NOTE) {
+            return $qty;
+        }
+        if ($sourceBase === VoucherType::SALES_ORDER) {
+            $undelivered = max(0.0, (float) $src->quantity - (float) $src->delivered_quantity);
+
+            return min($qty, $undelivered);
+        }
+
+        return 0.0; // invoicing a delivery: the delivery already moved the stock
+    }
+
+    private function totals(array $lines): array
+    {
+        $sub = 0.0;
+        $tax = 0.0;
+        foreach ($lines as $l) {
+            foreach ($l['is_header'] ? $l['children'] : [$l] as $x) {
+                $sub += $x['amount'];
+                $tax += $x['tax_amount'];
+            }
+        }
+
+        return [round($sub, 2), round($tax, 2)];
+    }
+
+    /** Flatten header + children into posting lines. */
+    private function postingLines(array $lines): array
+    {
+        $out = [];
+        foreach ($lines as $l) {
+            foreach ($l['is_header'] ? $l['children'] : [$l] as $x) {
+                $out[] = $x;
+            }
+        }
+
+        return $out;
+    }
+
+    // ── accounting ─────────────────────────────────────────────────────
+
+    private function itemEntries(array $plan, VoucherType $type, ?PaymentMethod $method): array
+    {
+        $base = $type->base_type;
+        $settings = AccountingSetting::current();
+        // Lines go on the primary side; the party (or cash) takes the opposite side.
+        $lineSide = in_array($base, [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::DEBIT_NOTE], true) ? 'C' : 'D';
+        $partySide = $lineSide === 'C' ? 'D' : 'C';
+
+        $byLedger = [];
+        $taxByLedger = [];
+        foreach ($this->postingLines($plan['lines']) as $l) {
+            $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? $settings->default_sales_ledger_id : $settings->default_purchase_ledger_id);
+            if (! $ledgerId) {
+                throw new BooksException('Choose a ledger for "' . $l['description'] . '" (or set a default under Books settings).');
+            }
+            $byLedger[$ledgerId] = ($byLedger[$ledgerId] ?? 0) + $l['amount'];
+            foreach ($l['taxes'] as $t) {
+                $taxByLedger[$t['ledger_id']] = ($taxByLedger[$t['ledger_id']] ?? 0) + $t['tax_amount'];
+            }
+        }
+
+        $entries = [];
+        $add = function (int $ledgerId, string $side, float $amount, array $extra = []) use (&$entries, $plan) {
+            if (round($amount, 2) == 0.0) {
+                return;
+            }
+            $entries[] = array_merge([
+                'ledger_id' => $ledgerId, 'side' => $side, 'amount' => round($amount, 2),
+                'base_amount' => round($amount * $plan['rate'], 2), 'is_party' => false, 'is_tax' => false, 'narration' => null,
+            ], $extra);
+        };
+        $flip = fn (string $s) => $s === 'C' ? 'D' : 'C';
+
+        $total = 0.0;
+        foreach ($byLedger as $ledgerId => $amt) {
+            $side = $amt >= 0 ? $lineSide : $flip($lineSide);
+            $add((int) $ledgerId, $side, abs($amt));
+            $total += $amt;
+        }
+        foreach ($taxByLedger as $ledgerId => $amt) {
+            $side = $amt >= 0 ? $lineSide : $flip($lineSide);
+            $add((int) $ledgerId, $side, abs($amt), ['is_tax' => true]);
+            $total += $amt;
+        }
+
+        // The other side: customer / supplier ledger, or cash for a cash sale.
+        if ($base === VoucherType::CASH_SALE) {
+            $method ??= AccountingSetting::current()->default_payment_method_id
+                ? PaymentMethod::with('ledger')->find(AccountingSetting::current()->default_payment_method_id) : null;
+            if (! $method) {
+                throw new BooksException('Choose how the cash sale was paid.');
+            }
+            $partyLedgerId = $method->ledger_id;
+        } else {
+            $partyLedgerId = $plan['party']?->id ?? throw new BooksException('Choose the party.');
+        }
+        $add($partyLedgerId, $total >= 0 ? $partySide : $flip($partySide), abs($total), ['is_party' => true]);
+
+        return $entries;
+    }
+
+    private function itemBills(array $plan, VoucherType $type, array $data): array
+    {
+        $base = $type->base_type;
+        if (! $plan['party'] || $base === VoucherType::CASH_SALE) {
+            return [];
+        }
+        if (in_array($base, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
+            return [['type' => 'new', 'ledger_id' => $plan['party']->id, 'amount' => $plan['total'], 'due' => $plan['due'], 'against' => null]];
+        }
+        if (in_array($base, [VoucherType::CREDIT_NOTE, VoucherType::DEBIT_NOTE], true)) {
+            $src = ! empty($data['source_voucher_id']) ? Voucher::find($data['source_voucher_id']) : null;
+            if ($src && in_array($src->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
+                return [['type' => 'against', 'ledger_id' => $plan['party']->id, 'amount' => $plan['total'], 'due' => null, 'against' => $src->id]];
+            }
+
+            return [['type' => 'advance', 'ledger_id' => $plan['party']->id, 'amount' => $plan['total'], 'due' => null, 'against' => null]];
+        }
+
+        return [];
+    }
+
+    /** Receipt / Payment / Journal / Contra. @return array{0: array, 1: array, 2: float} */
+    private function directEntries(array $data, VoucherType $type, array $plan, ?PaymentMethod $method): array
+    {
+        $rate = $plan['rate'];
+        $mk = fn (int $ledgerId, string $side, float $amt, array $extra = []) => array_merge([
+            'ledger_id' => $ledgerId, 'side' => $side, 'amount' => round($amt, 2), 'base_amount' => round($amt * $rate, 2),
+            'is_party' => false, 'is_tax' => false, 'narration' => null,
+        ], $extra);
+        $base = $type->base_type;
+
+        if (in_array($base, [VoucherType::RECEIPT, VoucherType::PAYMENT], true)) {
+            $amount = round((float) ($data['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                throw new BooksException('Enter the amount.');
+            }
+            $cashLedgerId = $method?->ledger_id ?? ($data['ledger_id'] ?? null);
+            if (! $cashLedgerId) {
+                throw new BooksException('Choose how it was ' . ($base === VoucherType::RECEIPT ? 'received' : 'paid') . ' (payment method or cash/bank ledger).');
+            }
+            // Payments may go to any expense / supplier ledger; receipts come from the party.
+            $otherLedgerId = $plan['party']?->id ?? ($data['counter_ledger_id'] ?? null) ?? throw new BooksException('Choose the party ledger.');
+            $entries = $base === VoucherType::RECEIPT
+                ? [$mk($cashLedgerId, 'D', $amount), $mk($otherLedgerId, 'C', $amount, ['is_party' => true])]
+                : [$mk($otherLedgerId, 'D', $amount, ['is_party' => true]), $mk($cashLedgerId, 'C', $amount)];
+
+            $bills = [];
+            $allocated = 0.0;
+            foreach ($data['allocations'] ?? [] as $a) {
+                $inv = Voucher::with('type')->find($a['against_voucher_id'] ?? null);
+                $amt = round((float) ($a['amount'] ?? 0), 2);
+                if (! $inv || $inv->status !== Voucher::POSTED || $amt <= 0) {
+                    throw new BooksException('One of the invoices being settled is not valid.');
+                }
+                if ($inv->party_ledger_id !== $otherLedgerId) {
+                    throw new BooksException("{$inv->voucher_number} belongs to a different party.");
+                }
+                if ($amt - $this->outstanding($inv) > 0.005) {
+                    throw new BooksException("{$inv->voucher_number} has only " . number_format($this->outstanding($inv), 2) . ' outstanding.');
+                }
+                $bills[] = ['type' => 'against', 'ledger_id' => $otherLedgerId, 'amount' => $amt, 'due' => null, 'against' => $inv->id];
+                $allocated += $amt;
+            }
+            if ($amount - $allocated > 0.005) {
+                $bills[] = ['type' => 'advance', 'ledger_id' => $otherLedgerId, 'amount' => round($amount - $allocated, 2), 'due' => null, 'against' => null];
+            }
+
+            return [$entries, $bills, $amount];
+        }
+
+        // Journal / Contra: the entries are given.
+        $entries = [];
+        $debit = 0.0;
+        foreach ($data['entries'] ?? [] as $e) {
+            $amt = round((float) ($e['amount'] ?? 0), 2);
+            $side = strtoupper((string) ($e['side'] ?? ''));
+            if (! in_array($side, ['D', 'C'], true) || $amt <= 0 || empty($e['ledger_id'])) {
+                throw new BooksException('Every entry needs a ledger, a debit/credit side and an amount.');
+            }
+            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null]);
+            $debit += $side === 'D' ? $amt : 0;
+        }
+        if (count($entries) < 2) {
+            throw new BooksException('A ' . $type->name . ' needs at least two entries.');
+        }
+        if ($base === VoucherType::CONTRA) {
+            foreach ($entries as $e) {
+                $l = Ledger::find($e['ledger_id']);
+                if (! $l || ! ($this->ledgers->isUnderGroup($l, 'Cash-in-hand') || $this->ledgers->isUnderGroup($l, 'Bank Accounts'))) {
+                    throw new BooksException('A Contra moves money between cash and bank ledgers only.');
+                }
+            }
+        }
+
+        return [$entries, [], round($debit, 2)];
+    }
+
+    private function assertBalanced(array &$entries): void
+    {
+        $d = $c = $bd = $bc = 0.0;
+        foreach ($entries as $e) {
+            if ($e['side'] === 'D') { $d += $e['amount']; $bd += $e['base_amount']; } else { $c += $e['amount']; $bc += $e['base_amount']; }
+        }
+        if (abs($d - $c) > 0.005) {
+            throw new BooksException('The voucher does not balance: debits ' . number_format($d, 2) . ' vs credits ' . number_format($c, 2) . '.');
+        }
+        // Rounding in base currency lands on the party / cash entry so base balances too.
+        if (abs($bd - $bc) > 0.0) {
+            foreach ($entries as &$e) {
+                if ($e['is_party'] || $e === end($entries)) {
+                    $e['base_amount'] = round($e['base_amount'] + ($e['side'] === 'D' ? ($bc - $bd) : ($bd - $bc)), 2);
+                    break;
+                }
+            }
+            unset($e);
+        }
+    }
+
+    // ── stock ──────────────────────────────────────────────────────────
+
+    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId): array
+    {
+        $sign = $type->stock_effect === 'out' ? -1 : 1;
+        $moves = [];
+        foreach ($this->postingLines($lines) as $l) {
+            if (empty($l['variant_id']) || ($l['stock_qty'] ?? 0) <= 0) {
+                continue;
+            }
+            $loc = $l['location_id'] ?? $voucherLocationId;
+            if (! $loc) {
+                throw new BooksException('Choose the branch stock moves from.');
+            }
+            $moves[] = ['variant_id' => $l['variant_id'], 'location_id' => (int) $loc, 'qty' => $sign * (float) $l['stock_qty'], 'product' => $l['description']];
+        }
+
+        return $moves;
+    }
+
+    // =====================================================================
+    // PERSISTING
+    // =====================================================================
+
+    private function persist(array $plan, array $data, ?User $user, ?Voucher $existing): Voucher
+    {
+        /** @var VoucherType $type */
+        $type = $plan['type'];
+        $currency = $plan['currency'];
+
+        // stock first — a shortage aborts before anything is written
+        $applied = $plan['moves_stock'] ? $this->applyStock($plan['stock'], $plan['location_id']) : [];
+
+        $fields = [
+            'date' => $plan['date']->toDateString(), 'effective_date' => $data['effective_date'] ?? null,
+            'due_date' => $plan['due']?->toDateString(), 'location_id' => $plan['location_id'],
+            'party_ledger_id' => $plan['party']?->id, 'customer_id' => $plan['customer']?->id,
+            'payment_method_id' => $plan['method']?->id, 'currency_id' => $currency->id, 'exchange_rate' => $plan['rate'],
+            'reference_no' => $data['reference_no'] ?? null, 'narration' => $data['narration'] ?? null,
+            'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total_amount' => $plan['total'],
+            'base_total' => round($plan['total'] * $plan['rate'], 2), 'moves_stock' => $plan['moves_stock'],
+            'source_voucher_id' => $data['source_voucher_id'] ?? null, 'channel' => $data['channel'] ?? 'admin',
+            'meta' => $data['meta'] ?? null,
+        ];
+
+        if ($existing) {
+            $existing->update($fields);
+            $voucher = $existing;
+        } else {
+            [$series, $seq, $number] = $this->numbering->allocate($type, $plan['location_id'], $plan['date'], $data['series_id'] ?? null, $data['voucher_number'] ?? null);
+            $voucher = Voucher::create($fields + [
+                'voucher_type_id' => $type->id, 'series_id' => $series->id, 'voucher_number' => $number, 'sequence_number' => $seq,
+                'status' => Voucher::POSTED, 'posted_at' => now(), 'created_by' => $user?->id,
+                'fulfilment_status' => in_array($type->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE], true) ? 'open' : null,
+            ]);
+        }
+
+        // items (headers first so children can point at them)
+        $n = 0;
+        foreach ($plan['lines'] as $l) {
+            $header = $this->createItem($voucher, $l, ++$n, null);
+            foreach ($l['is_header'] ? $l['children'] : [] as $c) {
+                $this->createItem($voucher, $c, ++$n, $header->id);
+            }
+        }
+
+        $i = 0;
+        foreach ($plan['entries'] as $e) {
+            VoucherEntry::create(array_merge($e, ['voucher_id' => $voucher->id, 'line_no' => ++$i, 'created_at' => now()]));
+        }
+        foreach ($plan['bills'] as $b) {
+            VoucherBillRef::create([
+                'voucher_id' => $voucher->id, 'ledger_id' => $b['ledger_id'], 'ref_type' => $b['type'],
+                'ref_name' => $b['against'] ? (Voucher::whereKey($b['against'])->value('voucher_number') ?? $voucher->voucher_number) : $voucher->voucher_number,
+                'against_voucher_id' => $b['against'], 'amount' => $b['amount'], 'due_date' => $b['due']?->toDateString(), 'created_at' => now(),
+            ]);
+        }
+
+        // stock movement rows (line ids are known now)
+        foreach ($applied as $m) {
+            StockMovement::create([
+                'voucher_id' => $voucher->id, 'voucher_item_id' => null, 'variant_id' => $m['variant_id'], 'location_id' => $m['location_id'],
+                'quantity' => $m['qty'], 'movement_type' => $type->base_type, 'movement_date' => $voucher->date, 'created_at' => now(),
+            ]);
+        }
+
+        return $voucher;
+    }
+
+    private function createItem(Voucher $voucher, array $l, int $lineNo, ?int $parentId): VoucherItem
+    {
+        $item = VoucherItem::create([
+            'voucher_id' => $voucher->id, 'parent_item_id' => $parentId, 'line_no' => $lineNo, 'item_type' => $l['item_type'],
+            'is_header' => $l['is_header'], 'product_id' => $l['product_id'], 'variant_id' => $l['variant_id'],
+            'variant_unit_id' => $l['variant_unit_id'], 'service_id' => $l['service_id'], 'service_variant_id' => $l['service_variant_id'],
+            'hamper_id' => $l['hamper_id'], 'description' => $l['description'], 'variant_label' => $l['variant_label'], 'sku' => $l['sku'],
+            'unit_code' => $l['unit_code'], 'unit_factor' => $l['unit_factor'], 'quantity' => $l['quantity'], 'base_quantity' => $l['base_quantity'],
+            'rate' => $l['rate'], 'discount_amount' => $l['discount_amount'], 'amount' => $l['amount'], 'tax_rate_id' => $l['tax_rate_id'],
+            'tax_rate_percent' => $l['tax_rate_percent'], 'tax_amount' => $l['tax_amount'], 'ledger_id' => $l['ledger_id'],
+            'location_id' => $l['location_id'] ?? $voucher->location_id, 'source_item_id' => $l['source_item_id'], 'notes' => $l['notes'],
+        ]);
+        foreach ($l['taxes'] as $t) {
+            VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
+        }
+
+        return $item;
+    }
+
+    /** Check availability for stock going out, then move it. @return array applied movements */
+    private function applyStock(array $moves, ?int $defaultLocation): array
+    {
+        $needs = [];
+        foreach ($moves as $m) {
+            $key = $m['variant_id'] . ':' . $m['location_id'];
+            $needs[$key] = ($needs[$key] ?? 0) + $m['qty'];
+        }
+        foreach ($needs as $key => $qty) {
+            if ($qty >= 0) {
+                continue;
+            }
+            [$variantId, $locId] = array_map('intval', explode(':', $key));
+            $a = $this->stock->availability($variantId, $locId, abs($qty));
+            if (! $a['ok']) {
+                $name = collect($moves)->firstWhere('variant_id', $variantId)['product'] ?? "variant #{$variantId}";
+                $where = $a['location'] ?? 'that branch';
+                $elsewhere = $a['elsewhere'] ? ' Available at: ' . collect($a['elsewhere'])->map(fn ($e) => "{$e['name']} ({$e['quantity']})")->implode(', ') . '.' : '';
+                throw new BooksException("Not enough stock of {$name} at {$where}: need " . abs($qty) . ", have {$a['quantity']}.{$elsewhere}");
+            }
+        }
+        foreach ($needs as $key => $qty) {
+            [$variantId, $locId] = array_map('intval', explode(':', $key));
+            $this->stock->applyDelta($variantId, $locId, $qty);
+        }
+
+        $out = [];
+        foreach ($needs as $key => $qty) {
+            [$variantId, $locId] = array_map('intval', explode(':', $key));
+            $out[] = ['variant_id' => $variantId, 'location_id' => $locId, 'qty' => $qty];
+        }
+
+        return $out;
+    }
+
+    /** Undo a voucher's stock and chain effects (before an edit or a cancel). */
+    private function reverseEffects(Voucher $voucher): void
+    {
+        foreach (StockMovement::where('voucher_id', $voucher->id)->where('reversed', false)->get() as $m) {
+            $this->stock->applyDelta($m->variant_id, $m->location_id, -(float) $m->quantity);
+            $m->update(['reversed' => true]);
+        }
+        StockMovement::where('voucher_id', $voucher->id)->delete();
+        $voucher->load('items');
+        $this->bumpSources($voucher, -1);
+    }
+
+    private function bumpSources(Voucher $child, int $sign): void
+    {
+        $child->loadMissing('type', 'items', 'source');
+        $field = match ($child->type->base_type) {
+            VoucherType::DELIVERY_NOTE => 'delivered_quantity',
+            VoucherType::SALES, VoucherType::CASH_SALE => 'invoiced_quantity',
+            default => null,
+        };
+        if (! $field || ! $child->source) {
+            return;
+        }
+        $touched = [$child->source_voucher_id];
+        foreach ($child->items as $it) {
+            if (! $it->source_item_id || $it->is_header && false) {
+                continue;
+            }
+            $src = VoucherItem::find($it->source_item_id);
+            if (! $src) {
+                continue;
+            }
+            $src->{$field} = max(0, (float) $src->{$field} + $sign * (float) $it->quantity);
+            $src->save();
+            if ($field === 'invoiced_quantity' && $src->source_item_id) {
+                $order = VoucherItem::find($src->source_item_id);
+                if ($order) {
+                    $order->invoiced_quantity = max(0, (float) $order->invoiced_quantity + $sign * (float) $it->quantity);
+                    $order->save();
+                    $touched[] = $order->voucher_id;
+                }
+            }
+        }
+        foreach (array_unique($touched) as $vid) {
+            $this->refreshFulfilment(Voucher::find($vid));
+        }
+    }
+
+    private function refreshFulfilment(?Voucher $v): void
+    {
+        if (! $v || ! in_array($v->type?->base_type ?? VoucherType::find($v->voucher_type_id)?->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE], true)) {
+            return;
+        }
+        $items = $v->items()->where('is_header', false)->get();
+        if ($items->isEmpty()) {
+            return;
+        }
+        $closed = $items->every(fn ($i) => (float) $i->invoiced_quantity + 0.00001 >= (float) $i->quantity);
+        $touched = $items->contains(fn ($i) => (float) $i->invoiced_quantity > 0 || (float) $i->delivered_quantity > 0);
+        $v->update(['fulfilment_status' => $closed ? 'closed' : ($touched ? 'partial' : 'open')]);
+    }
+
+    private function assertNoLiveChildren(Voucher $voucher, string $action): void
+    {
+        $live = Voucher::where('source_voucher_id', $voucher->id)->where('status', Voucher::POSTED)->first();
+        if ($live) {
+            throw new BooksException("Can't {$action} {$voucher->voucher_number} — {$live->voucher_number} was made from it. " . ucfirst($action) . ' that first.');
+        }
+        // anything that settles a bill of this voucher
+        $settled = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
+            ->where('b.against_voucher_id', $voucher->id)->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)
+            ->where('v.id', '!=', $voucher->id)->value('v.voucher_number');
+        if ($settled) {
+            throw new BooksException("Can't {$action} {$voucher->voucher_number} — {$settled} settles it. " . ucfirst($action) . ' that first.');
+        }
+    }
+
+    // ── describe / audit ───────────────────────────────────────────────
+
+    private function describe(array $plan): array
+    {
+        $flat = fn (array $l) => [
+            'item_type' => $l['item_type'], 'is_header' => $l['is_header'], 'description' => $l['description'], 'variant_label' => $l['variant_label'],
+            'sku' => $l['sku'], 'unit_code' => $l['unit_code'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'discount_amount' => $l['discount_amount'],
+            'amount' => $l['amount'], 'tax_rate_percent' => $l['tax_rate_percent'], 'tax_amount' => $l['tax_amount'],
+            'taxes' => array_map(fn ($t) => ['label' => $t['label'], 'tax_amount' => $t['tax_amount'], 'ledger_id' => $t['ledger_id']], $l['taxes']),
+        ];
+        $lines = [];
+        foreach ($plan['lines'] as $l) {
+            $row = $flat($l);
+            if ($l['is_header']) {
+                $row['children'] = array_map($flat, $l['children']);
+            }
+            $lines[] = $row;
+        }
+        $ledgerNames = Ledger::whereIn('id', array_column($plan['entries'], 'ledger_id'))->pluck('name', 'id');
+
+        return [
+            'type' => $plan['type']->only(['id', 'code', 'name', 'base_type']),
+            'currency' => $plan['currency']->code, 'exchange_rate' => $plan['rate'],
+            'party' => $plan['party']?->name, 'lines' => $lines,
+            'entries' => array_map(fn ($e) => $e + ['ledger' => $ledgerNames[$e['ledger_id']] ?? null], $plan['entries']),
+            'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total' => $plan['total'],
+            'stock' => array_map(fn ($m) => ['variant_id' => $m['variant_id'], 'location_id' => $m['location_id'], 'qty' => $m['qty']], $plan['stock']),
+        ];
+    }
+
+    private function audit(Voucher $voucher, string $action, ?User $user, array $detail = []): void
+    {
+        VoucherAuditLog::create(['voucher_id' => $voucher->id, 'action' => $action, 'user_id' => $user?->id, 'detail' => $detail ?: null, 'created_at' => now()]);
+    }
+
+    public function relations(): array
+    {
+        return ['type', 'series', 'partyLedger', 'customer:id,first_name,last_name,email', 'location:id,name,code', 'currency:id,code,symbol',
+                'paymentMethod', 'source:id,voucher_number,voucher_type_id', 'children:id,voucher_number,voucher_type_id,source_voucher_id,status,total_amount',
+                'items.taxes', 'entries.ledger:id,name', 'billRefs', 'audit.user:id,name'];
+    }
+}
