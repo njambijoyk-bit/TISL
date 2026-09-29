@@ -502,6 +502,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/orders/{id}/pay', [CheckoutController::class, 'payOrder']);
         });
         Route::get('/gift-vouchers', [GiftVoucherController::class, 'mine']);
+        Route::get('/wallet', [\App\Http\Controllers\Api\CustomerWalletController::class, 'show']);
         Route::prefix('sales-orders')->group(function () {
             Route::get('/', [CheckoutController::class, 'orders']);
             Route::get('/{id}', [CheckoutController::class, 'order']);
