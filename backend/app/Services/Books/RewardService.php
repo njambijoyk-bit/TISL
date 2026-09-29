@@ -127,25 +127,80 @@ class RewardService
     /** Points are a liability at their value: Dr Rewards expense, Cr Loyalty Points Liability (reversed when negative). */
     private function accrue(Voucher $sale, int $points): void
     {
+        $this->postPoints(abs($points), $points >= 0 ? 'accrue' : 'release',
+            ($points >= 0 ? 'Loyalty points earned on ' : 'Loyalty points reversed on ') . $sale->voucher_number, ['sale_voucher_id' => $sale->id]);
+    }
+
+    /**
+     * Books the value of a number of points as a Journal. Points are not money; their value is a liability.
+     *   accrue  → Dr Rewards & Referral Expense,  Cr Loyalty Points Liability   (points given)
+     *   release → Dr Loyalty Points Liability,    Cr Rewards & Referral Expense (points taken back / a goods reward handed over)
+     *   expire  → Dr Loyalty Points Liability,    Cr Loyalty Points Breakage Income (points that lapsed unused)
+     * Returns null when there is nothing to book (no value per point, or the books are not set up).
+     */
+    public function postPoints(int $points, string $mode, string $narration, array $meta = [], ?\App\Models\User $by = null): ?Voucher
+    {
         $value = round(abs($points) * $this->pointValue(), 2);
         if ($value <= 0) {
-            return;
+            return null;
         }
         $s = AccountingSetting::current();
         $expense = $s->rewards_expense_ledger_id ?: Ledger::where('name', 'Rewards & Referral Expense')->value('id');
         $liability = $s->loyalty_liability_ledger_id ?: Ledger::where('name', 'Loyalty Points Liability')->value('id');
         $journal = VoucherType::byBase(VoucherType::JOURNAL);
         if (! $expense || ! $liability || ! $journal) {
-            return;   // books not fully set up — points still work, they just aren't accrued
+            return null;   // books not fully set up — points still work, they just aren't booked
         }
-        $this->vouchers->create([
+        $other = $mode === 'expire' ? $this->breakageLedger() : (int) $expense;
+        [$dr, $cr] = $mode === 'accrue' ? [(int) $expense, (int) $liability] : [(int) $liability, $other];
+
+        return $this->vouchers->create([
             'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id,
-            'narration' => ($points >= 0 ? 'Loyalty points earned on ' : 'Loyalty points reversed on ') . $sale->voucher_number, 'meta' => ['sale_voucher_id' => $sale->id],
+            'narration' => $narration, 'meta' => $meta + ['points' => $points, 'points_mode' => $mode],
+            'entries' => [['ledger_id' => $dr, 'side' => 'D', 'amount' => $value], ['ledger_id' => $cr, 'side' => 'C', 'amount' => $value]],
+        ], $by);
+    }
+
+    /**
+     * One-off correction for points moved before every movement was booked: a single Journal that brings the
+     * Loyalty Points Liability to points held × value per point, the other side being Rewards & Referral Expense.
+     * Returns the Journal, or null when the books already agree.
+     */
+    public function trueUpLiability(?\App\Models\User $by = null): ?Voucher
+    {
+        $s = AccountingSetting::current();
+        $expense = $s->rewards_expense_ledger_id ?: Ledger::where('name', 'Rewards & Referral Expense')->value('id');
+        $liability = $s->loyalty_liability_ledger_id ?: Ledger::where('name', 'Loyalty Points Liability')->value('id');
+        $journal = VoucherType::byBase(VoucherType::JOURNAL);
+        if (! $expense || ! $liability || ! $journal) {
+            throw new BooksException('The Loyalty Points Liability or Rewards & Referral Expense ledger is not set up (Books settings).');
+        }
+        $points = (int) Customer::sum('loyalty_points');
+        $target = round($points * $this->pointValue(), 2);
+        $diff = round($target - (-app(LedgerService::class)->balance((int) $liability)), 2);   // + = liability must grow
+        if (abs($diff) < 0.01) {
+            return null;
+        }
+        $amt = abs($diff);
+        $grow = $diff > 0;
+
+        return $this->vouchers->create([
+            'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id,
+            'narration' => "Loyalty points liability corrected to {$points} points", 'meta' => ['points_mode' => 'true_up', 'points' => $points],
             'entries' => [
-                ['ledger_id' => $points >= 0 ? $expense : $liability, 'side' => 'D', 'amount' => $value],
-                ['ledger_id' => $points >= 0 ? $liability : $expense, 'side' => 'C', 'amount' => $value],
+                ['ledger_id' => $grow ? (int) $expense : (int) $liability, 'side' => 'D', 'amount' => $amt],
+                ['ledger_id' => $grow ? (int) $liability : (int) $expense, 'side' => 'C', 'amount' => $amt],
             ],
-        ], null);
+        ], $by);
+    }
+
+    /** Income from points that lapse unused — created on first use. */
+    private function breakageLedger(): int
+    {
+        $group = \App\Models\Books\LedgerGroup::where('name', 'Indirect Incomes')->first()
+            ?? throw new BooksException('The Indirect Incomes group is missing, so expired points cannot be booked.');
+
+        return (int) app(LedgerService::class)->ensure('Loyalty Points Breakage Income', $group->id, ['is_system' => true])->id;
     }
 
     public function writePoints(Customer $customer, int $points, string $type, string $note, ?Voucher $ref = null, string $pointType = 'permanent', $expiresAt = null): void

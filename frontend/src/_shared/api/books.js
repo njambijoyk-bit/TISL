@@ -56,6 +56,7 @@ const booksAPI = {
 
   // reports
   report: (name, params) => get(`/admin/books/reports/${name}`, params),
+  loyaltyTrueUp: () => send('post', '/admin/books/reconciliation/loyalty-true-up'),
   exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),
 
   // masters

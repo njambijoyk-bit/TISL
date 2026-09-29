@@ -40,7 +40,7 @@ function Table({ head, children }) {
 const Empty = ({ cols }) => <tr><td colSpan={cols} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing posted for this period.</td></tr>;
 const Total = ({ children }) => <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}>{children}</tr>;
 
-function View({ id, data, nav }) {
+function View({ id, data, nav, onRefresh }) {
   if (id === 'day-book') return (
     <Table head={[['Date'], ['Number'], ['Type'], ['Party'], ['Status'], ['Total', true]]}>
       {data.rows.length ? data.rows.map((r) => (
@@ -147,7 +147,17 @@ function View({ id, data, nav }) {
             <td style={td}>{c.title}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{c.note}</div></td>
             <td style={{ ...td, ...num }}>{money(c.book)}</td><td style={{ ...td, ...num }}>{money(c.register)}</td>
             <td style={{ ...td, ...num, color: c.ok ? undefined : colors.danger }}>{money(c.difference)}</td><td style={{ ...td, ...num }}>{c.explained ? money(c.explained) : ''}</td>
-            <td style={{ ...td, fontWeight: 700, color: c.ok ? colors.successText : colors.dangerText }}>{c.ok ? 'Yes' : 'No'}</td>
+            <td style={{ ...td, fontWeight: 700, color: c.ok ? colors.successText : colors.dangerText }}>
+              {c.ok ? 'Yes' : 'No'}
+              {!c.ok && c.key === 'loyalty-points' && (
+                <button type="button" style={{ ...filterStyle, cursor: 'pointer', marginLeft: 8, fontWeight: 600 }}
+                  onClick={async () => {
+                    if (!confirm('Post one Journal that brings the Loyalty Points Liability in line with the points customers hold?')) return;
+                    try { const r = await booksAPI.loyaltyTrueUp(); toast.success(r.message); onRefresh(); }
+                    catch (e) { toast.error(errMsg(e, 'Could not post the correction')); }
+                  }}>Post correction</button>
+              )}
+            </td>
           </tr>
         ))}
       </Table>
@@ -219,7 +229,7 @@ export default function ReportsTab() {
       </div>
       {error && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>{error}</p>}
       {loading && !data ? <p style={{ color: colors.textMuted }}>Running…</p>
-        : data ? <View id={id} data={data} nav={nav} />
+        : data ? <View id={id} data={data} nav={nav} onRefresh={run} />
         : id === 'ledger' && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>Choose a ledger to see its statement.</p>}
     </div>
   );

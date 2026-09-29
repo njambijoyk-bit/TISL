@@ -223,6 +223,18 @@ class BooksVoucherController extends Controller
 
     // ── Reports ──────────────────────────────────────────────────────────
 
+    /** Post the one-off Journal that brings the Loyalty Points Liability in line with the points customers hold. */
+    public function loyaltyTrueUp(Request $request)
+    {
+        return $this->guard(function () use ($request) {
+            $v = app(\App\Services\Books\RewardService::class)->trueUpLiability($request->user());
+
+            return response()->json($v
+                ? ['message' => "Posted {$v->voucher_number}", 'voucher_id' => $v->id]
+                : ['message' => 'The liability already agrees with the points held.']);
+        });
+    }
+
     public function report(Request $request, string $name)
     {
         return $this->guard(function () use ($request, $name) {

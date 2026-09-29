@@ -459,6 +459,7 @@ class LoyaltyService
             $customer = $tx->customer;
             if (!$customer) continue;
 
+            try {
             DB::transaction(function () use ($tx, $customer, &$expired) {
                 // Mark original transaction as expired
                 $tx->update(['expired_at' => now()]);
@@ -478,6 +479,9 @@ class LoyaltyService
                 );
                 $expired++;
             });
+            } catch (\Throwable $e) {
+                report($e);   // one lot that cannot be booked must not stop the rest
+            }
         }
 
         return $expired;
@@ -522,9 +526,41 @@ class LoyaltyService
             ]);
 
             $customer->update(['loyalty_points' => $newBalance]);
+            $this->bookPoints($tx, $customer);
 
             return $tx;
         });
+    }
+
+    /**
+     * Every points movement made here is booked, so the liability always follows the points:
+     * grants and earnings accrue it, deductions and goods rewards release it, expiry turns it into breakage income.
+     */
+    private function bookPoints(LoyaltyPointTransaction $tx, Customer $customer): void
+    {
+        $mode = match (true) {
+            $tx->type === 'expiry'     => 'expire',
+            $tx->type === 'redemption' => 'release',   // a goods reward: the value leaves the liability
+            $tx->points > 0            => 'accrue',
+            default                    => 'release',
+        };
+        $label = ['admin_grant' => 'Points granted', 'admin_deduct' => 'Points deducted', 'expiry' => 'Points expired', 'redemption' => 'Points redeemed for a reward',
+            'referral_bonus' => 'Referral bonus points', 'order_earn' => 'Points earned'][$tx->type] ?? 'Loyalty points';
+        try {
+            $voucher = app(\App\Services\Books\RewardService::class)->postPoints(abs($tx->points), $mode, "{$label} — {$this->customerLabel($customer)}", [
+                'customer_id' => $customer->id, 'point_transaction_id' => $tx->id, 'points_type' => $tx->type,
+            ]);
+        } catch (\App\Services\Books\BooksException $e) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['points' => $e->getMessage()]);
+        }
+        if ($voucher) {
+            $tx->update(['metadata' => array_merge($tx->metadata ?? [], ['journal_voucher_id' => $voucher->id, 'journal_number' => $voucher->voucher_number])]);
+        }
+    }
+
+    private function customerLabel(Customer $c): string
+    {
+        return trim((string) ($c->company_name ?: trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')))) ?: "customer #{$c->id}";
     }
 
     private function writeCreditTransaction(
