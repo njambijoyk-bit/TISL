@@ -16,6 +16,7 @@ class ReferralCode extends Model
     protected $fillable = [
         'name',
         'code',
+        'currency_id',
         'description',
         'type',
         'customer_id',

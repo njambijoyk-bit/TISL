@@ -211,8 +211,8 @@ class VoucherService
                 'channel'           => $source->channel,
                 'source_voucher_id' => $source->id,
                 'lines_resolved'    => $lines,
-                'moves_stock'       => $moves,
-                'meta'              => array_merge($source->meta ?? [], ['converted_from' => $source->voucher_number]),
+                'moves_stock'       => $opts['moves_stock'] ?? $moves,
+                'meta'              => array_merge($source->meta ?? [], ['converted_from' => $source->voucher_number], $opts['meta'] ?? []),
             ];
 
             $child = $this->create($data, $user);

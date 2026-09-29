@@ -1,0 +1,331 @@
+<?php
+
+namespace App\Services\Books;
+
+use App\Models\Books\GiftVoucher;
+use App\Models\Books\PaymentMethod;
+use App\Models\Books\Voucher;
+use App\Models\Books\VoucherType;
+use App\Models\Currency;
+use App\Models\Customer;
+use App\Models\CustomerTier;
+use App\Models\Location;
+use App\Models\ShippingOption;
+use App\Models\User;
+use App\Services\CurrencyConversionService;
+use App\Services\PromoCodeService;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * The storefront checkout on the books. Nothing is priced in the browser: the cart's
+ * ids and quantities come in, the engine prices them (catalogue price, unit, tax, hamper
+ * components), customer discounts / promo / referral become discount lines, delivery
+ * becomes a shipping charge, and the result is a Sales Order. Paid at checkout → it is
+ * converted to a Cash Sale; paid later → it stays an order for the admin to invoice.
+ */
+class CheckoutService
+{
+    public function __construct(
+        private VoucherService $vouchers,
+        private CurrencyConversionService $money,
+        private PromoCodeService $promos,
+        private GiftVoucherService $gifts,
+        private GatewayPaymentService $gateway,
+    ) {}
+
+    // ── Assembling ───────────────────────────────────────────────────────
+
+    /** @return array{data: array, customer: ?Customer, currency: Currency, discounts: array, notes: array} */
+    private function assemble(array $in, ?User $user): array
+    {
+        $customer = $user?->customer;
+        $currency = ! empty($in['currency'])
+            ? ($this->money->findByCode($in['currency']) ?? $this->money->getBaseCurrency())
+            : $this->money->currencyFrom($customer?->currency_id);
+        $locationId = $in['location_id'] ?? Location::default()?->id;
+        $type = VoucherType::byBase(VoucherType::SALES_ORDER) ?? throw new BooksException('Ordering is switched off (the Sales Order voucher type is off).');
+
+        $lines = [];
+        foreach ($in['items'] ?? [] as $it) {
+            $qty = (float) ($it['quantity'] ?? 1);
+            if (! empty($it['hamper_id'])) {
+                $lines[] = ['type' => 'hamper', 'hamper_id' => (int) $it['hamper_id'], 'quantity' => $qty];
+            } elseif (! empty($it['product_id'])) {
+                $lines[] = ['type' => 'product', 'product_id' => (int) $it['product_id'], 'variant_id' => $it['variant_id'] ?? null,
+                    'variant_unit_id' => $it['variant_unit_id'] ?? null, 'quantity' => $qty, 'location_id' => $locationId];
+            } else {
+                throw new BooksException('Services are requested as quotes, not bought from the cart.');
+            }
+        }
+        if (! $lines) {
+            throw new BooksException('Your cart is empty.');
+        }
+
+        $base = [
+            'voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $locationId, 'currency_id' => $currency->id,
+            'customer_id' => $customer?->id, 'channel' => 'storefront',
+        ];
+
+        // pass 1 — price the lines with no discounts so we know each line's gross
+        $pre = $this->vouchers->preview($base + ['lines' => $lines], null);
+        $gross = [];
+        foreach ($pre['lines'] as $i => $l) {
+            $gross[$i] = ! empty($l['is_header']) ? 0.0 : (float) $l['amount'];   // hampers carry their own fixed price
+        }
+        $sub = array_sum($gross);
+
+        // customer discount (personal + tier + type), then referral, then promo — each a share of each line
+        $discounts = [];
+        $perLine = array_fill(0, count($lines), []);
+        $notes = [];
+        $share = function (float $amount, string $source, ?string $ref) use (&$perLine, $gross, &$discounts) {
+            $amount = round($amount, 2);
+            if ($amount <= 0) {
+                return;
+            }
+            $sumG = array_sum($gross) ?: 1.0;
+            $given = 0.0;
+            $keys = array_keys(array_filter($gross, fn ($g) => $g > 0));
+            foreach ($keys as $n => $k) {
+                $part = $n === count($keys) - 1 ? round($amount - $given, 2) : round($amount * $gross[$k] / $sumG, 2);
+                $given += $part;
+                $perLine[$k][] = ['amount' => $part, 'source' => $source, 'ref' => $ref];
+            }
+            $discounts[] = ['source' => $source, 'ref' => $ref, 'amount' => $amount];
+        };
+
+        $referralCodeId = null;
+        $promoCodeId = null;
+        if ($customer && $sub > 0) {
+            $pct = (float) $customer->calculateTotalDiscount();
+            if ($pct > 0) {
+                $tierPct = (float) ($customer->tier_benefits['discount'] ?? 0);
+                $share($sub * $pct / 100, $tierPct > 0 ? 'tier' : 'customer_type', $customer->tier);
+            }
+            $net = $sub - array_sum(array_column($discounts, 'amount'));
+
+            $referralDiscount = 0.0;
+            if ($customer->hasReferralDiscount() && ($rc = $customer->referralCode) && $rc->is_valid) {
+                $referralDiscount = min($net, $this->promos->discountFor($rc, $net, $currency));
+                $share($referralDiscount, 'referral', $rc->code);
+                $referralCodeId = $rc->id;
+                $net -= $referralDiscount;
+            }
+            if (! empty($in['promo_code'])) {
+                $res = $this->promos->validateForCheckout($in['promo_code'], $customer, $net, $currency, $referralDiscount);
+                if (! $res['valid']) {
+                    throw new BooksException($res['message']);
+                }
+                $share(min($net, $res['discount']), 'promo', $res['code']->code);
+                $promoCodeId = $res['code']->id;
+            }
+        } elseif (! empty($in['promo_code'])) {
+            throw new BooksException('Sign in to use a promo code.');
+        }
+
+        $final = [];
+        foreach ($lines as $i => $l) {
+            $parts = $perLine[$i];
+            if ($parts) {
+                usort($parts, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+                $l['discount'] = round(array_sum(array_column($parts, 'amount')), 2);
+                $l['discount_source'] = $parts[0]['source'];
+                $l['discount_ref'] = $parts[0]['ref'];
+            }
+            $final[] = $l;
+        }
+
+        // delivery
+        $option = null;
+        if (! empty($in['delivery_method'])) {
+            $option = ShippingOption::where('slug', $in['delivery_method'])->where('is_active', true)->first()
+                ?? throw new BooksException('That delivery method is not available.');
+            $netSub = $sub - array_sum(array_column($discounts, 'amount'));
+            $final[] = ['type' => 'charge', 'kind' => 'shipping', 'shipping_option_id' => $option->id, 'waive' => $this->tierWaivesShipping($customer, $netSub, $currency)];
+        }
+
+        $contact = [
+            'email' => $in['customer_email'] ?? $user?->email, 'phone' => $in['customer_phone'] ?? $customer?->phone, 'name' => $in['customer_name'] ?? null,
+            'shipping_address' => $in['shipping_address'] ?? null, 'delivery_method' => $option?->slug,
+        ];
+        $data = $base + [
+            'lines' => $final, 'narration' => $in['customer_notes'] ?? null,
+            'meta' => array_filter([
+                'contact' => $contact, 'discounts' => $discounts, 'promo_code_id' => $promoCodeId, 'referral_code_id' => $referralCodeId,
+                'policy_acceptances' => $in['policy_acceptances'] ?? null, 'guest' => $customer ? null : true,
+            ], fn ($v) => $v !== null),
+        ];
+
+        return compact('data', 'customer', 'currency', 'discounts') + ['option' => $option];
+    }
+
+    private function tierWaivesShipping(?Customer $customer, float $netSubtotal, Currency $currency): bool
+    {
+        if (! $customer || ! $customer->tier) {
+            return false;
+        }
+        $tier = CustomerTier::where('slug', $customer->tier)->first();
+        if (! $tier || (float) $tier->free_shipping_threshold <= 0) {
+            return false;
+        }
+        $inTier = $this->money->convert($netSubtotal, $currency, $this->money->currencyFrom($tier->currency_id));
+
+        return $inTier >= (float) $tier->free_shipping_threshold;
+    }
+
+    // ── Public API ───────────────────────────────────────────────────────
+
+    /** What the customer will be charged, worked out by the engine — nothing is saved. */
+    public function quote(array $in, ?User $user): array
+    {
+        $a = $this->assemble($in, $user);
+        $p = $this->vouchers->preview($a['data'], null);
+
+        $gift = null;
+        if (! empty($in['gift_voucher_code'])) {
+            $gift = $this->giftApplication($in['gift_voucher_code'], (float) $p['total'], $a['currency'], $a['customer'], now());
+        }
+
+        return [
+            'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'],
+            'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift,
+            'due_now' => round($p['total'] - ($gift['applied'] ?? 0), 2),
+        ];
+    }
+
+    /** How much of a gift voucher can go on this order, in the order's currency. */
+    private function giftApplication(string $code, float $total, Currency $currency, ?Customer $customer, $date): array
+    {
+        $gv = GiftVoucher::with('currency')->where('code', trim($code))->first() ?? throw new BooksException('That gift voucher code was not found.');
+        if ($gv->customer_id && (! $customer || (int) $gv->customer_id !== (int) $customer->id)) {
+            throw new BooksException('That gift voucher belongs to another customer.');
+        }
+        if (! $gv->isSpendable()) {
+            throw new BooksException('That gift voucher can not be used (' . ($gv->status !== 'active' ? $gv->status : ((float) $gv->balance <= 0 ? 'no balance left' : 'expired')) . ').');
+        }
+        $balanceHere = $this->money->convert((float) $gv->balance, $gv->currency, $currency);
+
+        return ['code' => $gv->code, 'balance' => $balanceHere, 'applied' => round(min($balanceHere, $total), 2)];
+    }
+
+    /**
+     * Place the order. $in adds: payment_method_id | pay_later | account, gift_voucher_code, phone (for M-Pesa).
+     *
+     * @return array{order: array, status: string, sale?: array, attempt?: array, message: string}
+     */
+    public function place(array $in, ?User $user): array
+    {
+        $a = $this->assemble($in, $user);
+        $customer = $a['customer'];
+        $mode = $in['payment_mode'] ?? 'pay_later';   // online | pay_later | account
+        $method = ! empty($in['payment_method_id']) ? PaymentMethod::find($in['payment_method_id']) : null;
+
+        if ($mode === 'online' && (! $method || ! $method->is_online || ! $method->is_active)) {
+            throw new BooksException('Choose a payment method.');
+        }
+        if ($mode === 'account' && ! $customer) {
+            throw new BooksException('Sign in to pay on account.');
+        }
+        if (! $customer && (empty($in['customer_email']) || empty($in['customer_phone']))) {
+            throw new BooksException('Enter your email and phone so we can reach you about your order.');
+        }
+
+        return DB::transaction(function () use ($a, $in, $user, $customer, $mode, $method) {
+            $order = $this->vouchers->placeOrder($a['data'], null);
+            $total = (float) $order->total_amount;
+
+            $giftApplied = 0.0;
+            $tenders = [];
+            if (! empty($in['gift_voucher_code'])) {
+                $g = $this->giftApplication($in['gift_voucher_code'], $total, $a['currency'], $customer, now());
+                $giftApplied = $g['applied'];
+                $giftMethod = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first() ?? throw new BooksException('Gift vouchers are not set up yet (payment method missing).');
+                $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $giftApplied, 'gift_voucher_code' => $g['code']];
+            }
+            $due = round($total - $giftApplied, 2);
+
+            // 1. a gift voucher covers everything → paid now
+            if ($giftApplied > 0 && $due <= 0.005) {
+                $sale = $this->settle($order, $tenders, $user);
+
+                return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($sale), 'status' => 'paid', 'message' => 'Paid with your gift voucher. Thank you!'];
+            }
+            // 2. pay online
+            if ($mode === 'online') {
+                if ($method->gateway === 'mpesa_stk') {
+                    $attempt = $this->gateway->initiateMpesa($order, $method, (string) ($in['phone'] ?? $order->meta['contact']['phone'] ?? ''), $tenders, $due, $user);
+
+                    return ['order' => $this->orderSummary($order), 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
+                        'message' => 'Check your phone and enter your M-Pesa PIN to finish paying.'];
+                }
+                // any other online method with no gateway: the customer pays offline and we confirm it
+                throw new BooksException("{$method->name} can't be charged automatically yet — choose another way to pay.");
+            }
+            if ($giftApplied > 0) {
+                throw new BooksException('A gift voucher must cover the whole order, or be paired with an online payment.');
+            }
+            // 3. on account
+            if ($mode === 'account') {
+                $invoice = $this->onAccount($order, $customer, $user);
+
+                return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'status' => 'invoiced', 'message' => 'Invoiced to your account.'];
+            }
+
+            return ['order' => $this->orderSummary($order), 'status' => 'placed', 'message' => 'Order placed. We will confirm payment and delivery with you.'];
+        });
+    }
+
+    /** Paid at checkout: the order becomes a Cash Sale. If stock can't be taken right now the sale is still recorded; delivery moves the stock. */
+    public function settle(Voucher $order, array $tenders, ?User $user): Voucher
+    {
+        try {
+            $sale = $this->vouchers->convert($order, VoucherType::CASH_SALE, ['tenders' => $tenders, 'reference_no' => $order->voucher_number], null);
+        } catch (BooksException $e) {
+            if (! str_contains(strtolower($e->getMessage()), 'stock')) {
+                throw $e;
+            }
+            $sale = $this->vouchers->convert($order, VoucherType::CASH_SALE, ['tenders' => $tenders, 'reference_no' => $order->voucher_number, 'moves_stock' => false,
+                'meta' => ['stock_pending' => true]], null);
+        }
+        $this->afterSale($sale);
+
+        return $sale;
+    }
+
+    private function onAccount(Voucher $order, Customer $customer, ?User $user): Voucher
+    {
+        $limit = (float) ($customer->credit_limit ?? 0);
+        if (! $customer->has_credit_account || $limit <= 0) {
+            throw new BooksException('You do not have a credit account. Choose another way to pay.');
+        }
+        $ledger = \App\Models\Books\Ledger::where('customer_id', $customer->id)->first();
+        $owed = $ledger ? app(LedgerService::class)->balance($ledger->id) : 0.0;   // debit balance = what they owe (base)
+        $orderBase = (float) $order->base_total;
+        $limitBase = $this->money->convert($limit, $this->money->currencyFrom($customer->credit_currency_id ?? $customer->currency_id), $this->money->getBaseCurrency());
+        if ($owed + $orderBase - $limitBase > 0.005) {
+            throw new BooksException('This order would take you over your credit limit. Pay part now or settle an outstanding invoice first.');
+        }
+        $days = (int) ($customer->credit_terms_days ?: 30);
+        $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->addDays($days)->toDateString()], null);
+        $this->afterSale($invoice);
+
+        return $invoice;
+    }
+
+    /** Hook for rewards (loyalty, referral) once a sale is real. */
+    public function afterSale(Voucher $sale): void
+    {
+        if (class_exists(RewardService::class)) {
+            try {
+                app(RewardService::class)->onSale($sale);
+            } catch (\Throwable $e) {
+                report($e);   // a reward problem must never undo a paid sale
+            }
+        }
+    }
+
+    private function orderSummary(Voucher $v): array
+    {
+        return ['id' => $v->id, 'number' => $v->voucher_number, 'type' => $v->type?->name ?? null, 'total' => (float) $v->total_amount, 'currency' => $v->currency?->code ?? null];
+    }
+}

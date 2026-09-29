@@ -686,10 +686,17 @@ class Customer extends Model
 
         // Check if any active/pending order already has this referral code applied
         // Prevents placing multiple pending orders all with the discount
-        $alreadyApplied = \App\Models\Order::where('customer_id', $this->id)
-            ->where('referral_code_id', $this->referred_by_code_id)
-            ->whereNotIn('status', ['cancelled', 'failed'])
-            ->exists();
+        try {
+            $alreadyApplied = \Illuminate\Support\Facades\DB::table('vouchers')
+                ->where('customer_id', $this->id)->where('status', 'posted')
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.referral_code_id')) = ?", [(string) $this->referred_by_code_id])
+                ->exists();
+        } catch (\Throwable) {
+            $alreadyApplied = \App\Models\Order::where('customer_id', $this->id)
+                ->where('referral_code_id', $this->referred_by_code_id)
+                ->whereNotIn('status', ['cancelled', 'failed'])
+                ->exists();
+        }
 
         return !$alreadyApplied;
     }

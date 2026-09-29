@@ -1,749 +1,250 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, AlertTriangle, Tag, ChevronRight, Package, Truck, CreditCard, X, Wallet, Loader2 } from 'lucide-react';
+import { Lock, Package, Truck, CreditCard, Tag, Loader2, Gift } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
-import PromoCodeInput from '../../../_shared/components/common/PromoCodeInput';
 import { useCartStore, useAuthStore } from '../../../_shared/store/index';
-import useOrderStore from '../../../_shared/store/orderStore';
-import usePromoCodeStore from '../../../_shared/store/promoCodeStore';
-import api from '../../../_shared/api/axios';
-import shippingAPI from '../../../_shared/api/shipping';
-import toast from 'react-hot-toast';
+import useCurrencyStore from '../../../_shared/store/currencyStore';
+import checkoutAPI from '../../../_shared/api/checkout';
+import { formatMoney } from '../../../_shared/lib/money';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+const input = { width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem', border: '1.5px solid #e5e7eb', fontFamily: 'inherit', boxSizing: 'border-box', background: 'white' };
+const label = { fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 };
+const card = { background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', padding: 20, minWidth: 0 };
+const title = { fontSize: '0.875rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px', paddingBottom: 12, borderBottom: '1px solid #f3f4f6' };
 
-const inputStyle = {
-  width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem',
-  border: '1.5px solid #e5e7eb', color: '#111827', outline: 'none',
-  transition: 'border-color 150ms, box-shadow 150ms',
-  fontFamily: 'inherit', boxSizing: 'border-box', background: 'white',
-};
-const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
-const inputBlur  = (e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; };
-const inputError = (e) => { e.currentTarget.style.borderColor = '#ef4444'; };
-
-const labelStyle = {
-  fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4,
-};
-
-const sectionTitle = {
-  fontSize: '0.875rem', fontWeight: 700, color: '#111827',
-  display: 'flex', alignItems: 'center', gap: 8,
-  margin: '0 0 18px', paddingBottom: 12,
-  borderBottom: '1px solid #f3f4f6',
-};
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Field({ label, error, children }) {
+function Choice({ active, onClick, label: text, sub, disabled }) {
   return (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      {children}
-      {error && <p style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: 3 }}>{error}</p>}
-    </div>
-  );
-}
-
-function Input({ name, type = 'text', value, onChange, placeholder, error, required }) {
-  return (
-    <input
-      type={type} name={name} value={value} onChange={onChange}
-      placeholder={placeholder} required={required}
-      style={{ ...inputStyle, borderColor: error ? '#ef4444' : '#e5e7eb' }}
-      onFocus={inputFocus} onBlur={inputBlur}
-    />
-  );
-}
-
-function RadioCard({ value, current, onChange, label, sub, icon, disabled }) {
-  const active = current === value;
-  return (
-    <button type="button" onClick={() => !disabled && onChange(value)} style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 14px', borderRadius: 10, textAlign: 'left',
-      border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-      background: disabled ? '#fbfaf9' : active ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
-      cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', width: '100%',
-      transition: 'all 150ms', opacity: disabled ? 0.6 : 1,
+    <button type="button" onClick={() => !disabled && onClick()} disabled={disabled} style={{
+      display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', borderRadius: 10, fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
+      border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'white',
     }}>
-      <div style={{
-        width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-        border: `2px solid ${disabled ? '#e5e7eb' : active ? 'var(--color-primary-500)' : '#d1d5db'}`,
-        background: active ? 'var(--color-primary-500)' : 'white',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 150ms',
-      }}>
-        {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: disabled ? '#ef4444' : '#111827', margin: '0 0 1px' }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.72rem', color: disabled ? '#fca5a5' : '#9ca3af', margin: 0 }}>{sub}</p>}
-      </div>
-      {icon && <span style={{ color: active ? 'var(--color-primary-500)' : '#d1d5db', flexShrink: 0 }}>{icon}</span>}
+      <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{text}</span>
+      {sub && <span style={{ display: 'block', fontSize: '0.72rem', color: '#9ca3af', marginTop: 1 }}>{sub}</span>}
     </button>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+/** The cart line as the server wants it: ids and quantities only — prices are worked out by the books. */
+const toApiItem = (i) => (i.hamper_id
+  ? { hamper_id: i.hamper_id, quantity: i.quantity }
+  : { product_id: i.id, variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, quantity: i.quantity });
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { items, getTotal, clearCart }    = useCartStore();
-  const { user, customer, fetchCustomer } = useAuthStore();
-  const { createOrder }                   = useOrderStore();
-  const { appliedPromo, clearPromo }      = usePromoCodeStore();
-  const [loading, setLoading]             = useState(false);
-  const [errors,  setErrors]              = useState({});
-  
-  const submittedRef = useRef(false);
+  const { items, clearCart } = useCartStore();
+  const { user, fetchCustomer } = useAuthStore();
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
+  const [opts, setOpts] = useState(null);
+  const [form, setForm] = useState({ customer_email: user?.email || '', customer_phone: user?.phone || '', shipping_address: '', delivery_method: '', customer_notes: '', promo_code: '', gift_voucher_code: '', phone: user?.phone || '' });
+  const [mode, setMode] = useState('online');       // online | pay_later | account
+  const [methodId, setMethodId] = useState(null);
+  const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState(null);
+  const [quoting, setQuoting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(null);      // { attemptId, orderId }
+  const [policies, setPolicies] = useState([]);
+  const done = useRef(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  
-
-const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-
-  const card = {
-    background: 'white', borderRadius: 12,
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-    padding: isMobile ? 14 : 24,      // 
-    minWidth: 0,                       // 
-    boxSizing: 'border-box',           // 
-  };
-
-  const [shippingOptions, setShippingOptions] = useState([]);
-
-  const [storeCreditMaxPct, setStoreCreditMaxPct] = useState(50); // default 50 until loaded
+  useEffect(() => { if (user) fetchCustomer(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (user) {
-      fetchCustomer();
-      api.get('/customer/loyalty').then(r => {
-        setStoreCreditMaxPct(r.data.store_credit_max_pct ?? 50);
-      }).catch(() => {});
-    }
+    checkoutAPI.options().then((o) => {
+      setOpts(o);
+      const first = o.payment_methods[0];
+      if (first) setMethodId(first.id); else setMode('pay_later');
+      const ship = o.shipping?.[0];
+      if (ship) setForm((f) => ({ ...f, delivery_method: f.delivery_method || ship.slug }));
+    }).catch((e) => toast.error(errMsg(e, 'Could not load checkout options')));
   }, []);
 
+  const payload = useCallback(() => ({
+    items: items.map(toApiItem), currency: displayCurrency || undefined, delivery_method: form.delivery_method || undefined,
+    promo_code: form.promo_code.trim() || undefined, gift_voucher_code: form.gift_voucher_code.trim() || undefined,
+  }), [items, displayCurrency, form.delivery_method, form.promo_code, form.gift_voucher_code]);
+
+  // the books price the cart — refresh whenever anything that changes the price changes
   useEffect(() => {
-    if (user) fetchCustomer();// re-sync customer data when checkout opens
-  }, []);
+    if (!items.length) return undefined;
+    const t = setTimeout(async () => {
+      setQuoting(true);
+      try { setQuote(await checkoutAPI.quote(payload())); setQuoteError(null); }
+      catch (e) { setQuote(null); setQuoteError(errMsg(e, 'Could not price your cart')); }
+      finally { setQuoting(false); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [payload, items.length]);
 
+  // after an M-Pesa prompt, wait for the confirmation
   useEffect(() => {
-    shippingAPI.getActiveOptions().then(opts => {
-      setShippingOptions(opts);
-      // Default to first option if available
-      if (opts.length > 0 && !opts.find(o => o.slug === 'standard_delivery')) {
-        setForm(f => ({ ...f, delivery_method: opts[0].slug }));
-      }
-    }).catch(() => {});
-  }, []);
+    if (!pending) return undefined;
+    let n = 0;
+    const iv = setInterval(async () => {
+      n += 1;
+      try {
+        const a = await checkoutAPI.attempt(pending.attemptId, n % 3 === 0);
+        if (a.status === 'confirmed') {
+          clearInterval(iv); done.current = true; clearCart();
+          toast.success('Payment received — thank you!'); navigate(`/orders/${pending.orderId}`);
+        } else if (a.status === 'failed' || a.status === 'cancelled') {
+          clearInterval(iv); setPending(null); toast.error(a.failure_reason || 'The payment did not go through. Your order is saved — you can pay it from My orders.', { duration: 8000 });
+          done.current = true; clearCart(); navigate(`/orders/${pending.orderId}`);
+        }
+      } catch { /* keep polling */ }
+      if (n > 40) clearInterval(iv);
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [pending, clearCart, navigate]);
 
-  const [form, setForm] = useState({
-    customer_email:    user?.email || '',
-    customer_phone:    user?.phone || '',
-    shipping_address:  '',
-    delivery_method:   'standard_delivery',
-    payment_method:    'mpesa',
-    customer_notes:    '',
-    partialCredit:       false,
-    creditAccountAmount: '',
-  });
-
-  const availableCredit                         = parseFloat(customer?.store_credit ?? 0);
-  const [applyCredit,      setApplyCredit]      = useState(false);
-  const [creditInput,      setCreditInput]      = useState('');
-  const [creditCalculating,setCreditCalculating]= useState(false);
-
-  const [policyAccepted,    setPolicyAccepted]    = useState(false);
-  const [policyAcceptances, setPolicyAcceptances] = useState([]);
-
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-  const creditDebounce                          = useRef(null);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors(er => ({ ...er, [name]: '' }));
-  };
-
-  const validate = () => {
-    const e = {};
-    if (!form.customer_email)   e.customer_email   = 'Email is required';
-    if (!form.customer_phone)   e.customer_phone   = 'Phone is required';
-    if (!form.shipping_address) e.shipping_address = 'Address is required';
-    if (form.payment_method === 'credit') {
-      if (!customer?.has_credit_account) {
-        e.payment_method = 'You do not have an approved credit account. Contact Support for assistance.';
-      } else if (form.partialCredit) {
-        const amt = parseFloat(form.creditAccountAmount);
-        const available = Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0));
-        if (!amt || amt <= 0)      e.creditAccountAmount = 'Please enter a credit amount greater than 0';
-        else if (amt > available)  e.creditAccountAmount = `Amount exceeds your available credit (${fmt(available)})`;
-        else if (amt > preCredit)  e.creditAccountAmount = 'Amount cannot exceed the order total';
-        else if (amt > postStoreCreditTotal) e.creditAccountAmount = 'Amount cannot exceed the order total';
-      }
-    }
-
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-    if (!validate()) { toast.error('Please fill in all required fields'); return; }
-    if (items.length === 0) { toast.error('Your cart is empty'); return; }
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!items.length) { toast.error('Your cart is empty'); return; }
+    setBusy(true);
     try {
-      setLoading(true);
-      // Strip frontend-only fields from form before sending
-      const { partialCredit, creditAccountAmount, ...formFields } = form;
-
-      const creditAccountDeduction = form.payment_method === 'credit'
-        ? partialCredit
-          ? Math.min(
-              parseFloat(creditAccountAmount) || 0,
-              Math.max(0, (customer?.credit_limit ?? 0) - (customer?.credit_used ?? 0)),
-              preCredit,
-            )
-          : preCredit
-        : 0;
-      const orderData = {
-        ...formFields,
-        items: items.map(item => ({ product_id: item.id, item_type: 'product', quantity: item.quantity })),
-        ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
-        ...(applyCredit && creditDeduction > 0 ? {
-          apply_store_credit: true,
-          store_credit_amount: creditDeduction,
-        } : {}),
-        // credit account
-        ...(form.payment_method === 'credit' && form.partialCredit && creditAccountDeduction > 0 ? {
-          apply_credit_account:  true,
-          credit_account_amount: creditAccountDeduction,
-        } : {}),
-        // policy consent
-        ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}), 
-      };
-      const res = await createOrder(orderData);
-      toast.success('Order placed successfully!');
-      submittedRef.current = true;  // ← suppress the empty cart redirect
-      clearCart(); clearPromo();
-      navigate(`/orders/${res.order.id}`);
+      const res = await checkoutAPI.place({
+        ...payload(), customer_email: form.customer_email, customer_phone: form.customer_phone, shipping_address: form.shipping_address,
+        customer_notes: form.customer_notes || undefined, payment_mode: mode, payment_method_id: mode === 'online' ? methodId : undefined, phone: form.phone || form.customer_phone,
+        ...(policies.length ? { policy_acceptances: policies } : {}),
+      });
+      if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id }); return; }
+      toast.success(res.message);
+      done.current = true; clearCart(); navigate(`/orders/${res.order.id}`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to place order');
-    } finally {
-      setLoading(false);
-    }
+      toast.error(errMsg(err, 'Could not place your order'), { duration: 8000 });
+    } finally { setBusy(false); }
   };
 
-  // Backorder calc
-  const backorderItems = items.reduce((acc, item) => {
-    const stock = item.stock_quantity || 0;
-    if (item.quantity > stock) acc.push({ name: item.name, backorderQty: item.quantity - stock, inStock: stock });
-    return acc;
-  }, []);
-
-  // Totals
-  const subtotal        = getTotal();
-  const promoDiscount   = appliedPromo?.discount ?? 0;
-  const taxable         = subtotal - promoDiscount;
-  const tax             = taxable * 0.16;
-  const selectedShipping = shippingOptions.find(o => o.slug === form.delivery_method);
-  const shipping         = !selectedShipping ? 0
-                         : (selectedShipping.free_above && subtotal >= parseFloat(selectedShipping.free_above)) ? 0
-                         : parseFloat(selectedShipping.cost);
-  const preCredit       = subtotal - promoDiscount + tax + shipping;
-  const maxStoreCredit = Math.round(preCredit * (storeCreditMaxPct / 100));
-  const creditDeduction = applyCredit
-    ? Math.min(parseFloat(creditInput) || 0, availableCredit, maxStoreCredit)
-    : 0;
-
-  const postStoreCreditTotal = preCredit - creditDeduction;
-
-  const creditAccountDeductionDisplay = form.payment_method === 'credit'
-    ? form.partialCredit
-      ? Math.min(
-          parseFloat(form.creditAccountAmount) || 0,
-          Math.max(0, (customer?.credit_limit ?? 0) - (customer?.credit_used ?? 0)),
-          postStoreCreditTotal,
-        )
-      : postStoreCreditTotal
-    : 0;
-
-  const total = postStoreCreditTotal - creditAccountDeductionDisplay;
-
-  const fmt = (n) => Number(n).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-  
-  const paymentOptions = [
-    { value: 'mpesa',           label: 'M-Pesa',          sub: 'Pay via mobile money'              },
-    { value: 'bank_transfer',   label: 'Bank transfer',   sub: 'EFT or RTGS payment'               },
-    { value: 'pay_on_delivery', label: 'Pay on delivery', sub: 'Cash on receipt'                   },
-    { value: 'request_invoice', label: 'Request invoice', sub: 'For corporate & LPO orders'        },
-    ...(customer?.has_credit_account ? [{
-      value: 'credit',
-      label: 'Credit account',
-      sub: Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)) < 1
-        ? 'No credit balance available'
-        : `Use your approved credit facility · ${fmt(Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)))} available`,
-      disabled: Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0)) < 1,
-    }] : customer ? [{
-      value: 'credit_locked',
-      label: 'Credit account',
-      sub: 'You do not have an approved credit account. Contact Support for assistance.',
-      disabled: true,
-    }] : []),
-  ];
-
-  if (items.length === 0 && !submittedRef.current) { navigate('/cart'); return null; }
+  if (!items.length && !done.current && !pending) { navigate('/cart'); return null; }
+  const cur = quote?.currency;
+  const money = (n) => formatMoney(n, cur);
+  const method = opts?.payment_methods.find((m) => m.id === methodId);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
+      <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: '32px 16px', width: '100%', boxSizing: 'border-box' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 24px' }}>Checkout</h1>
 
-      <div style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: isMobile ? '20px 12px' : '32px 20px', width: '100%', boxSizing: 'border-box' }}>
-
-        {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#9ca3af', marginBottom: 24 }}>
-          <button onClick={() => navigate('/cart')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontFamily: 'inherit', fontSize: '0.75rem', transition: 'color 150ms' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-            onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
-          >Cart</button>
-          <ChevronRight size={12} />
-          <span style={{ color: 'var(--color-primary-500)', fontWeight: 600 }}>Checkout</span>
-        </div>
-
-        {/* Heading */}
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 24px' }}>
-          Checkout
-        </h1>
-
-        {/* Backorder notice */}
-        {backorderItems.length > 0 && (
-          <div style={{
-            marginBottom: 20, padding: '14px 16px', borderRadius: 10,
-            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-          }}>
-            <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+        {pending && (
+          <div role="status" style={{ ...card, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(16,185,129,0.06)' }}>
+            <Loader2 size={20} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
             <div>
-              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b45309', margin: '0 0 4px' }}>
-                Backorder notice
-              </p>
-              <p style={{ fontSize: '0.75rem', color: '#92400e', margin: '0 0 6px' }}>
-                Some items in your order are on backorder and will be fulfilled within 5–7 business days after stock arrives.
-              </p>
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                {backorderItems.map((item, i) => (
-                  <li key={i} style={{ fontSize: '0.72rem', color: '#92400e', marginBottom: 2 }}>
-                    <strong>{item.name}</strong>: {item.backorderQty} unit{item.backorderQty !== 1 ? 's' : ''} on backorder ({item.inStock} in stock)
-                  </li>
-                ))}
-              </ul>
+              <strong>Waiting for your M-Pesa payment…</strong>
+              <div style={{ fontSize: '0.8rem', color: '#4b5563' }}>Enter your PIN on the prompt sent to your phone. This page updates by itself.</div>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 340px',
-            gap: 24,
-            alignItems: 'start',
-          }}>
-
-            {/* ── Left: form ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, order: isMobile ? 2 : 1 }}>
-
-              {/* Contact */}
+        <form onSubmit={submit}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gap: 20 }}>
               <div style={card}>
-                <p style={sectionTitle}>
-                  <CreditCard size={14} style={{ color: 'var(--color-primary-500)' }} /> Contact information
-                </p>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: 16,
-                }}>
-                  <Field label="Email *" error={errors.customer_email}>
-                    <Input name="customer_email" type="email" value={form.customer_email} onChange={handleChange} error={errors.customer_email} required />
-                  </Field>
-                  <Field label="Phone *" error={errors.customer_phone}>
-                    <Input name="customer_phone" type="tel" value={form.customer_phone} onChange={handleChange} placeholder="+254…" error={errors.customer_phone} required />
-                  </Field>
+                <p style={title}><CreditCard size={14} /> Contact</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
+                  <div><label style={label}>Email *</label><input required type="email" value={form.customer_email} onChange={set('customer_email')} style={input} /></div>
+                  <div><label style={label}>Phone *</label><input required value={form.customer_phone} onChange={set('customer_phone')} placeholder="+254…" style={input} /></div>
                 </div>
               </div>
 
-              {/* Shipping address */}
               <div style={card}>
-                <p style={sectionTitle}>
-                  <Package size={14} style={{ color: 'var(--color-primary-500)' }} /> Shipping information
-                </p>
-                <Field label="Delivery address *" error={errors.shipping_address}>
-                  <textarea
-                    name="shipping_address" rows={3}
-                    value={form.shipping_address} onChange={handleChange}
-                    placeholder="Street address, estate, city, county, postal code…"
-                    style={{
-                      ...inputStyle, resize: 'none',
-                      borderColor: errors.shipping_address ? '#ef4444' : '#e5e7eb',
-                    }}
-                    onFocus={inputFocus} onBlur={inputBlur}
-                  />
-                  {errors.shipping_address && <p style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: 3 }}>{errors.shipping_address}</p>}
-                </Field>
-
-                <p style={{ ...labelStyle, marginTop: 16, marginBottom: 10 }}>Delivery method</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {shippingOptions.map(opt => (
-                    <RadioCard
-                      key={opt.slug}
-                      value={opt.slug}
-                      label={opt.name}
-                      sub={`${opt.description || ''}${opt.description ? ' · ' : ''}${parseFloat(opt.cost) === 0 ? 'Free' : `KES ${Number(opt.cost).toLocaleString()}`}${opt.free_above ? ` (free above KES ${Number(opt.free_above).toLocaleString()})` : ''}`}
-                      icon={opt.icon === 'Package' ? <Package size={16} /> : <Truck size={16} />}
-                      current={form.delivery_method}
-                      onChange={v => setForm(f => ({ ...f, delivery_method: v }))}
-                    />
+                <p style={title}><Package size={14} /> Delivery</p>
+                <label style={label}>Delivery address *</label>
+                <textarea required rows={3} value={form.shipping_address} onChange={set('shipping_address')} placeholder="Street, estate, city…" style={{ ...input, resize: 'none' }} />
+                <p style={{ ...label, margin: '14px 0 8px' }}>Delivery method</p>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {(opts?.shipping ?? []).map((o) => (
+                    <Choice key={o.slug} active={form.delivery_method === o.slug} onClick={() => setForm((f) => ({ ...f, delivery_method: o.slug }))}
+                      label={<><Truck size={13} style={{ verticalAlign: -2 }} /> {o.name}</>}
+                      sub={`${o.description ? `${o.description} · ` : ''}${Number(o.cost) === 0 ? 'Free' : o.display_cost?.formatted}${o.display_free_above ? ` · free above ${o.display_free_above.formatted}` : ''}`} />
                   ))}
                 </div>
               </div>
 
-              {/* Payment */}
               <div style={card}>
-                <p style={sectionTitle}>
-                  <CreditCard size={14} style={{ color: 'var(--color-primary-500)' }} /> Payment information
-                </p>
-                <p style={{ ...labelStyle, marginBottom: 10 }}>Payment method</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                  {paymentOptions.map(opt => (
-                    <RadioCard key={opt.value} {...opt} current={form.payment_method} onChange={v => setForm(f => ({ ...f, payment_method: v }))} />
+                <p style={title}><CreditCard size={14} /> Payment</p>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {(opts?.payment_methods ?? []).map((m) => (
+                    <Choice key={m.id} active={mode === 'online' && methodId === m.id} onClick={() => { setMode('online'); setMethodId(m.id); }} label={m.name} sub={m.instructions || 'Pay now'} />
                   ))}
-                  
-                  {errors.payment_method && (
-                    <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 6 }}>
-                      {errors.payment_method}
-                    </p>
+                  <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll confirm payment and delivery with you" />
+                  {opts?.account && (
+                    <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
+                      label="Charge to my account" sub={opts.account.available_base > 0 ? `Invoiced now · due in ${opts.account.terms_days} days · ${formatMoney(opts.account.available_base, opts.base_currency.code)} available` : 'No credit available'} />
                   )}
                 </div>
-
-                <Field label="Special instructions (optional)">
-                  <textarea
-                    name="customer_notes" rows={2}
-                    value={form.customer_notes} onChange={handleChange}
-                    placeholder="Any delivery instructions or order notes…"
-                    style={{ ...inputStyle, resize: 'none' }}
-                    onFocus={inputFocus} onBlur={inputBlur}
-                  />
-                </Field>
+                {mode === 'online' && method?.gateway === 'mpesa_stk' && (
+                  <div style={{ marginTop: 14 }}>
+                    <label style={label}>M-Pesa number</label>
+                    <input value={form.phone} onChange={set('phone')} placeholder="07XX XXX XXX" style={input} />
+                  </div>
+                )}
+                {opts?.gift_vouchers_enabled && (
+                  <div style={{ marginTop: 14 }}>
+                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Gift voucher code</label>
+                    <input value={form.gift_voucher_code} onChange={set('gift_voucher_code')} placeholder="Optional" style={input} />
+                    {quote?.gift && <p style={{ fontSize: '0.72rem', color: '#059669', margin: '4px 0 0' }}>Applying {money(quote.gift.applied)} from {quote.gift.code}</p>}
+                  </div>
+                )}
+                <div style={{ marginTop: 14 }}>
+                  <label style={label}><Tag size={12} style={{ verticalAlign: -2 }} /> Promo code</label>
+                  <input value={form.promo_code} onChange={set('promo_code')} placeholder="Optional" style={input} />
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <label style={label}>Notes (optional)</label>
+                  <textarea rows={2} value={form.customer_notes} onChange={set('customer_notes')} style={{ ...input, resize: 'none' }} />
+                </div>
               </div>
             </div>
 
-            {/* ── Right: order summary ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, order: isMobile ? 1 : 2 }}>
-              <div style={card}>
-                <p style={sectionTitle}><Package size={14} style={{ color: 'var(--color-primary-500)' }} /> Order summary</p>
-
-                {/* Items */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-                  {items.map(item => {
-                    const stock     = item.stock_quantity || 0;
-                    const backorder = item.quantity > stock ? item.quantity - stock : 0;
-                    return (
-                      <div key={item.line_key ?? item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                        {item.image_url && (
-                          <img src={item.image_url} alt={item.name}
-                            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', background: '#f3f4f6', flexShrink: 0 }}
-                          />
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.name}
-                          </p>
-                          <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
-                            Qty: {item.quantity}
-                            {backorder > 0 && (
-                              <span style={{ color: '#f59e0b', marginLeft: 4 }}>· {backorder} on backorder</span>
-                            )}
-                          </p>
+            <div style={card}>
+              <p style={title}><Package size={14} /> Order summary</p>
+              {quoteError && <p role="alert" style={{ color: '#991b1b', fontSize: '0.82rem' }}>{quoteError}</p>}
+              {!quote && !quoteError && <p style={{ color: '#9ca3af', fontSize: '0.82rem' }}>Pricing your cart…</p>}
+              {quote && (
+                <div style={{ opacity: quoting ? 0.6 : 1 }}>
+                  <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
+                    {quote.lines.filter((l) => l.item_type !== 'charge').map((l, i) => (
+                      <div key={i}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: '0.82rem' }}>
+                          <span style={{ fontWeight: l.is_header ? 700 : 600 }}>{l.description}{l.variant_label && l.variant_label !== 'Standard' ? ` — ${l.variant_label}` : ''} <span style={{ color: '#9ca3af', fontWeight: 400 }}>× {l.quantity}</span></span>
+                          <span>{money(l.amount)}</span>
                         </div>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', flexShrink: 0 }}>
-                          {fmt(item.price * item.quantity)}
-                        </span>
+                        {(l.children ?? []).map((c, j) => <div key={j} style={{ fontSize: '0.72rem', color: '#9ca3af', paddingLeft: 12 }}>└ {c.description} × {c.quantity}</div>)}
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Promo code */}
-                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, marginBottom: 14 }}>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Tag size={10} /> Promo code
-                  </p>
-                  <PromoCodeInput
-                    orderValue={subtotal}
-                    exchangeRateToKes={1} 
-                    onApplied={() => {}}
-                    onCleared={() => {}}
-                    disabled={loading}
-                    symbol="KES"
-                  />
-                </div>
-
-                {/* Store credit */}
-                {user && availableCredit > 0 && (
-                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, marginBottom: 14 }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Wallet size={10} /> Store credit
-                    </p>
-
-                    {/* Checkbox row */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = !applyCredit;
-                        setApplyCredit(next);
-                        if (next) {
-                          const max = Math.min(availableCredit, maxStoreCredit);
-                          setCreditInput(String(max.toFixed(0)));
-                          setCreditCalculating(true);
-                          clearTimeout(creditDebounce.current);
-                          creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
-                        } else {
-                          setCreditInput('');
-                          setCreditCalculating(false);
-                        }
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        width: '100%', padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
-                        border: `1.5px solid ${applyCredit ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-                        background: applyCredit ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
-                        fontFamily: 'inherit', transition: 'all 150ms',
-                        touchAction: 'manipulation',
-                        WebkitTapHighlightColor: 'transparent',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: 4, border: `2px solid ${applyCredit ? 'var(--color-primary-500)' : '#d1d5db'}`,
-                          background: applyCredit ? 'var(--color-primary-500)' : 'white', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms',
-                        }}>
-                          {applyCredit && <div style={{ width: 6, height: 6, background: 'white', borderRadius: 1 }} />}
-                        </div>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>
-                          Apply store credit
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
-                        {fmt(availableCredit)} available
-                      </span>
-                    </button>
-
-                    {/* Amount input — shown when checked */}
-                    {applyCredit && (
-                      <div style={{ marginTop: 10 }}>
-                        <label style={{ ...labelStyle, marginBottom: 5 }}>
-                          Amount to use (max {storeCreditMaxPct}% · {fmt(Math.min(availableCredit, maxStoreCredit))})
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                          <span style={{
-                            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-                            fontSize: '0.78rem', color: '#9ca3af', pointerEvents: 'none',
-                          }}>KES</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max={Math.min(availableCredit, maxStoreCredit)}
-                            value={creditInput}
-                            onChange={e => {
-                              setCreditInput(e.target.value);
-                              setCreditCalculating(true);
-                              clearTimeout(creditDebounce.current);
-                              creditDebounce.current = setTimeout(() => setCreditCalculating(false), 350);
-                            }}
-                            onBlur={e => {
-                              const max = Math.min(availableCredit, maxStoreCredit);
-                              const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
-                              setCreditInput(String(val.toFixed(0)));
-                            }}
-                            style={{ ...inputStyle, paddingLeft: 38, fontSize: '16px' }}
-                            onFocus={inputFocus}
-                          />
-                          {creditCalculating && (
-                            <Loader2 size={13} style={{
-                              position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                              color: 'var(--color-primary-500)', animation: 'spin 700ms linear infinite',
-                            }} />
-                          )}
-                        </div>
-                        <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                )}
-
-                {form.payment_method === 'credit' && customer?.has_credit_account && (() => {
-                  const available = Math.max(0, (customer.credit_limit ?? 0) - (customer.credit_used ?? 0));
-                  return (
-                    <div style={{ marginTop: 16, padding: '14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }}>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 10px' }}>
-                        Credit account — {fmt(available)} available
-                      </p>
-
-                      {/* Full vs partial toggle */}
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                        {[
-                          { val: false, label: 'Full order on credit' },
-                          { val: true,  label: 'Partial credit'       },
-                        ].map(({ val, label }) => (
-                          <button key={String(val)} type="button"
-                            onClick={() => setForm(f => ({ ...f, partialCredit: val, creditAccountAmount: '' }))}
-                            style={{
-                              flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
-                              fontFamily: 'inherit', cursor: 'pointer',
-                              border: `1.5px solid ${form.partialCredit === val ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-                              background: form.partialCredit === val ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-                              color: form.partialCredit === val ? 'var(--color-primary-600)' : '#9ca3af',
-                              transition: 'all 150ms',
-                            }}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Partial amount input */}
-                      {form.partialCredit && (
-                        <div>
-                          <label style={labelStyle}>
-                            Amount on credit (max {fmt(Math.min(available, postStoreCreditTotal))})
-                          </label>
-                          <div style={{ position: 'relative' }}>
-                            <span style={{
-                              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-                              fontSize: '0.78rem', color: '#9ca3af', pointerEvents: 'none',
-                            }}>KES</span>
-                            <input
-                              type="number" min="1" max={Math.min(available, postStoreCreditTotal)}
-                              value={form.creditAccountAmount ?? ''}
-                              onChange={e => {
-                                setForm(f => ({ ...f, creditAccountAmount: e.target.value }));
-                                if (errors.creditAccountAmount) setErrors(er => ({ ...er, creditAccountAmount: '' }));
-                              }}
-                              onBlur={e => {
-                                const max = Math.min(available, postStoreCreditTotal);
-                                const val = Math.min(Math.max(0, parseFloat(e.target.value) || 0), max);
-                                setForm(f => ({ ...f, creditAccountAmount: String(val.toFixed(0)) }));
-                              }}
-                              style={{
-                                ...inputStyle, paddingLeft: 38,
-                                borderColor: errors.creditAccountAmount ? '#ef4444' : '#e5e7eb',
-                              }}
-                              onFocus={inputFocus}
-                            />
-                          </div>
-                          {errors.creditAccountAmount && (
-                            <p style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: 3 }}>
-                              {errors.creditAccountAmount}
-                            </p>
-                          )}
-                        </div>
-)}
-
-                      {/* What remains to pay */}
-                      {form.partialCredit && form.creditAccountAmount > 0 && (
-                        <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 8, margin: '8px 0 0' }}>
-                          Remaining to pay by other means: <strong style={{ color: '#111827' }}>{fmt(Math.max(0, postStoreCreditTotal - parseFloat(form.creditAccountAmount || 0)))}</strong>
-                        </p>
-                      )}
+                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 12, display: 'grid', gap: 6, fontSize: '0.82rem' }}>
+                    <Row k="Subtotal" v={money(quote.subtotal)} />
+                    {quote.lines.filter((l) => l.item_type === 'charge').map((l, i) => <Row key={i} k={l.description} v={Number(l.amount) === 0 ? 'Free' : money(l.amount)} />)}
+                    {quote.discounts.map((d, i) => <Row key={i} k={`Discount — ${d.source.replace('_', ' ')}${d.ref ? ` (${d.ref})` : ''}`} v={`−${money(d.amount)}`} color="#059669" />)}
+                    {Number(quote.tax_total) > 0 && <Row k="Tax" v={money(quote.tax_total)} />}
+                    {quote.gift && <Row k="Gift voucher" v={`−${money(quote.gift.applied)}`} color="#059669" />}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.05rem', borderTop: '2px solid #e5e7eb', paddingTop: 10, marginTop: 4 }}>
+                      <span>{mode === 'online' || quote.gift ? 'To pay now' : 'Total'}</span><span>{money(mode === 'online' || quote.gift ? quote.due_now : quote.total)}</span>
                     </div>
-                  );
-                })()}
-
-                {/* Totals */}
-                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { label: 'Subtotal', value: fmt(subtotal) },
-                    ...(promoDiscount > 0   ? [{ label: 'Promo discount',  value: `−${fmt(promoDiscount)}`,  color: 'var(--color-primary-500)' }] : []),
-                    ...(creditDeduction > 0 ? [{ label: 'Store credit',    value: `−${fmt(creditDeduction)}`, color: '#059669' }] : []),
-                    ...(creditAccountDeductionDisplay > 0 ? [{ label: 'Credit account', value: `−${fmt(creditAccountDeductionDisplay)}`, color: 'var(--color-primary-600)' }] : []),
-                    { label: 'VAT (16%)', value: fmt(tax) },
-                    { label: 'Shipping',  value: shipping === 0 ? 'Free' : fmt(shipping) },
-                  ].map(({ label, value, color }) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#6b7280' }}>{label}</span>
-                      <span style={{ fontWeight: 600, color: color || '#374151' }}>{value}</span>
-                    </div>
-                  ))}
-
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                    paddingTop: 10, marginTop: 4, borderTop: '1px solid #e5e7eb',
-                  }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827' }}>Total</span>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>{fmt(total)}</span>
-                  </div>
-
-                  {/* Referral note */}
-                  <div style={{
-                    padding: '8px 10px', borderRadius: 8, marginTop: 4,
-                    background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-                    fontSize: '0.7rem', color: 'var(--color-primary-600)',
-                    display: 'flex', alignItems: 'flex-start', gap: 6,
-                    transform: 'translateZ(0)',
-                    WebkitTransform: 'translateZ(0)',
-                  }}>
-                    <Tag size={11} style={{ flexShrink: 0, marginTop: 1 }} />
-                    Referral discounts are automatically applied on the server when eligible.
                   </div>
                 </div>
-
-                {/* Policy consent — replaces the static text */}
-                <PolicyConsentCheckbox
-                  policyKeys={['standard_order_policy']}
-                  actionContext="standard_checkout"
-                  onChange={(isChecked, acceptances) => {
-                    setPolicyAccepted(isChecked);
-                    setPolicyAcceptances(acceptances);
-                  }}
-                  disabled={loading}
-                />
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading || !policyAccepted}
-                  style={{
-                    width: '100%', marginTop: 12, padding: '13px',
-                    borderRadius: 10, fontSize: '0.9rem', fontWeight: 700,
-                    border: 'none',
-                    cursor: (loading || !policyAccepted) ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    background: (loading || !policyAccepted)
-                      ? 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'
-                      : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
-                    color: 'white',
-                    boxShadow: (loading || !policyAccepted) ? 'none' : '0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'box-shadow 150ms', opacity: !policyAccepted ? 0.6 : 1,
-                  }}
-                  onMouseEnter={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 6px 24px color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; }}
-                  onMouseLeave={e => { if (!loading && policyAccepted) e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
-                >
-                  <Lock size={15} />
-                  {loading ? 'Placing order…' : 'Place order'}
-                </button>
+              )}
+              <div style={{ marginTop: 16 }}>
+                <PolicyConsentCheckbox policyKeys={['standard_order_policy']} actionContext="standard_checkout" onChange={(_ok, acc) => setPolicies(acc)} disabled={busy} />
               </div>
+              <button type="submit" disabled={busy || !quote || !!pending} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: 'white', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', fontFamily: 'inherit' }}>
+                <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : 'Place order'}
+              </button>
             </div>
           </div>
         </form>
       </div>
-
       <Footer />
     </div>
   );
+}
+
+function Row({ k, v, color }) {
+  return <div style={{ display: 'flex', justifyContent: 'space-between', color: color ?? '#4b5563' }}><span>{k}</span><span>{v}</span></div>;
 }

@@ -5,7 +5,7 @@ import { Package, ShoppingBag, Clock, Lock, ChevronLeft, AlertCircle, CheckCircl
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import hampersAPI from '../../../_shared/api/hampers';
-import { useAuthStore } from '../../../_shared/store/index';
+import { useAuthStore, useCartStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import { formatMoney } from '../../../_shared/lib/money';
@@ -18,6 +18,7 @@ export default function HamperDetail() {
   const { slug }              = useParams();
   const navigate              = useNavigate();
   const { isAuthenticated }   = useAuthStore();
+  const addItem               = useCartStore((s) => s.addItem);
   const [hamper, setHamper]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [blocked, setBlocked] = useState(null);
@@ -227,19 +228,23 @@ export default function HamperDetail() {
 
               {/* CTA */}
               {canPurchase ? (
-                // Hampers will be bought through the normal checkout once it is rebuilt.
                 <button
                   type="button"
-                  disabled
-                  title="Checkout for hampers is coming soon"
+                  onClick={() => {
+                    addItem({
+                      id: `hamper-${hamper.id}`, hamper_id: hamper.id, line_key: `h:${hamper.id}`, name: hamper.name,
+                      price: hamper.display_price ?? hamper.price, image_url: hamper.cover_image, is_hamper: true,
+                    }, 1);
+                    toast.success(`${hamper.name} added to cart`);
+                    navigate('/cart');
+                  }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 800,
-                    border: 'none', cursor: 'not-allowed', fontFamily: 'inherit',
-                    background: accent, color: 'white', opacity: 0.55,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: accent, color: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
-                  <Lock size={16} /> Checkout coming soon
+                  <ShoppingBag size={16} /> Add to cart
                 </button>
               ) : (
                 <div style={{ padding: '14px', borderRadius: 12, background: '#f3f4f6', textAlign: 'center' }}>

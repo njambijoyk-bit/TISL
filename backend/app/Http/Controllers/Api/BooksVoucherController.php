@@ -118,6 +118,22 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** Send the customer an M-Pesa prompt for an invoice's balance (or an order's total). */
+    public function requestPayment(Request $request, $id): JsonResponse
+    {
+        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'required|string', 'amount' => 'nullable|numeric|min:1']);
+
+        return $this->guard(function () use ($request, $id) {
+            $v = Voucher::with('type')->findOrFail($id);
+            $method = PaymentMethod::where('gateway', 'mpesa_stk')->findOrFail($request->payment_method_id);
+            $due = $v->type->base_type === VoucherType::SALES ? $this->vouchers->outstanding($v) : (float) $v->total_amount;
+            $amount = $request->filled('amount') ? min((float) $request->amount, $due) : $due;
+            $a = app(\App\Services\Books\GatewayPaymentService::class)->initiateMpesa($v, $method, $request->phone, [], $amount, $request->user());
+
+            return response()->json(['message' => 'Payment request sent to the customer\'s phone.', 'attempt' => ['id' => $a->id, 'status' => $a->status]], 201);
+        });
+    }
+
     public function export(Request $request, $id)
     {
         return $this->guard(fn () => $this->export->voucher(Voucher::findOrFail($id), $request->get('format', 'pdf')));

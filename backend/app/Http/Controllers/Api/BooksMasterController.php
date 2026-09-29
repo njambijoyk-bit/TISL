@@ -233,7 +233,7 @@ class BooksMasterController extends Controller
 
         return [
             'name' => "$s|string|max:80", 'code' => 'nullable|string|max:30', 'kind' => "$s|in:cash,bank,mobile,mobile_money,card,cheque,online,gift_voucher,other",
-            'ledger_id' => "$s|integer|exists:ledgers,id", 'is_online' => 'boolean', 'requires_reference' => 'boolean',
+            'ledger_id' => "$s|integer|exists:ledgers,id", 'is_online' => 'boolean', 'gateway' => 'nullable|in:mpesa_stk', 'requires_reference' => 'boolean',
             'instructions' => 'nullable|string', 'sort_order' => 'nullable|integer', 'is_active' => 'boolean',
         ];
     }

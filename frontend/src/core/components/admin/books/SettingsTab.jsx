@@ -152,14 +152,14 @@ const KINDS = ['cash', 'bank', 'mobile', 'mobile_money', 'card', 'cheque', 'onli
 
 function MethodForm({ method, ledgers, onClose, onSaved }) {
   const editing = Boolean(method);
-  const [f, setF] = useState({ name: method?.name ?? '', kind: method?.kind ?? 'cash', ledger_id: method?.ledger_id ?? '', requires_reference: method?.requires_reference ?? false, is_online: method?.is_online ?? false, instructions: method?.instructions ?? '', is_active: method?.is_active ?? true });
+  const [f, setF] = useState({ name: method?.name ?? '', kind: method?.kind ?? 'cash', ledger_id: method?.ledger_id ?? '', requires_reference: method?.requires_reference ?? false, is_online: method?.is_online ?? false, gateway: method?.gateway ?? '', instructions: method?.instructions ?? '', is_active: method?.is_active ?? true });
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErrs({}); setErr(null);
-    try { if (editing) await booksAPI.updateMethod(method.id, f); else await booksAPI.createMethod(f); toast.success('Payment method saved'); onSaved(); onClose(); }
+    try { const body = { ...f, gateway: f.gateway || null }; if (editing) await booksAPI.updateMethod(method.id, body); else await booksAPI.createMethod(body); toast.success('Payment method saved'); onSaved(); onClose(); }
     catch (x) { setErrs(fieldErrors(x)); if (!x.response?.data?.errors) setErr(errMsg(x, 'Could not save the payment method')); }
     finally { setBusy(false); }
   };
@@ -181,6 +181,11 @@ function MethodForm({ method, ledgers, onClose, onSaved }) {
           <Field label="Instructions for customers (optional)"><TextInput value={f.instructions} onChange={(e) => set('instructions')(e.target.value)} placeholder="Paybill 123456, account = order number" /></Field>
           <CheckboxRow checked={f.requires_reference} onChange={set('requires_reference')} label="Ask for a reference" description="e.g. the M-Pesa or cheque number." />
           <CheckboxRow checked={f.is_online} onChange={set('is_online')} label="Offer at checkout" />
+          {f.is_online && (
+            <Field label="How it is collected" hint="M-Pesa STK sends a prompt to the customer's phone and confirms itself. Leave blank to confirm by hand.">
+              <SelectInput value={f.gateway} onChange={(e) => set('gateway')(e.target.value)}><option value="">Confirm manually</option><option value="mpesa_stk">M-Pesa STK push</option></SelectInput>
+            </Field>
+          )}
           {editing && <CheckboxRow checked={f.is_active} onChange={set('is_active')} label="Active" />}
           <ModalActions onCancel={onClose} submitLabel="Save" busy={busy} />
         </FormStack>

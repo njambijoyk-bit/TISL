@@ -253,6 +253,11 @@ class PaymentController extends Controller
             return $accepted;
         }
 
+        // Books checkout attempts first: those settle a Sales Order into a Cash Sale
+        if (app(\App\Services\Books\GatewayPaymentService::class)->handleCallback($parsed, $rawBody)) {
+            return $accepted;
+        }
+
         $payment = Payment::where('checkout_request_id', $parsed['checkout_request_id'])->first();
 
         if (!$payment) {

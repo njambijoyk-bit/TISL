@@ -485,6 +485,61 @@ class PromoCodeService
     }
 
     // ═══════════════════════════════════════════════════
+    // CURRENCY-AWARE (checkout on the books)
+    // ═══════════════════════════════════════════════════
+
+    /** Money amounts on a code (fixed reward, minimum order) are in the code's own currency (base when unset). */
+    private function codeCurrency(ReferralCode $code): \App\Models\Currency
+    {
+        return app(\App\Services\CurrencyConversionService::class)->currencyFrom($code->currency_id);
+    }
+
+    /** What a code takes off an order worth $orderValue in $orderCurrency, in that same currency. */
+    public function discountFor(ReferralCode $code, float $orderValue, \App\Models\Currency $orderCurrency): float
+    {
+        $money = app(\App\Services\CurrencyConversionService::class);
+
+        return match ($code->reward_type) {
+            'percentage'   => round(((float) $code->reward_value / 100) * $orderValue, 2),
+            'fixed_amount' => min($orderValue, $money->convert((float) $code->reward_value, $this->codeCurrency($code), $orderCurrency)),
+            default        => 0.0,   // free shipping / gift voucher rewards are not a price cut
+        };
+    }
+
+    /**
+     * Validate a promo code for a checkout in any currency.
+     *
+     * @return array{ valid: bool, message: string, code?: ReferralCode, discount?: float }
+     */
+    public function validateForCheckout(string $code, Customer $customer, float $orderValue, \App\Models\Currency $orderCurrency, float $referralDiscount = 0.0): array
+    {
+        $promo = ReferralCode::where('code', strtoupper(trim($code)))->whereNotIn('type', ['customer_referral'])->first();
+        if (! $promo) {
+            return ['valid' => false, 'message' => 'Invalid promo code.'];
+        }
+        if (! $promo->is_valid) {
+            return ['valid' => false, 'message' => $promo->is_expired ? 'This code has expired.' : ($promo->is_depleted ? 'This code has been fully redeemed.' : 'This code is not active.')];
+        }
+        if ($promo->target_customer_id && (int) $promo->target_customer_id !== (int) $customer->id) {
+            return ['valid' => false, 'message' => 'This code is not valid for your account.'];
+        }
+        if (! $promo->stackable && $referralDiscount > 0) {
+            return ['valid' => false, 'message' => 'This code cannot be combined with your referral discount.'];
+        }
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $inCodeCurrency = $money->convert($orderValue, $orderCurrency, $this->codeCurrency($promo));
+        if (! $promo->canBeUsedBy($customer, $inCodeCurrency)) {
+            $min = $promo->min_order_value;
+
+            return ['valid' => false, 'message' => $min
+                ? 'Minimum order of ' . $this->codeCurrency($promo)->code . ' ' . number_format((float) $min, 2) . ' required for this code.'
+                : 'You are not eligible for this code.'];
+        }
+
+        return ['valid' => true, 'message' => 'Code applied!', 'code' => $promo, 'discount' => $this->discountFor($promo, $orderValue, $orderCurrency)];
+    }
+
+    // ═══════════════════════════════════════════════════
     // APPLY PROMO CODE TO ORDER (called after order created)
     // ═══════════════════════════════════════════════════
 

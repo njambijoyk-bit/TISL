@@ -10,7 +10,7 @@ class PaymentMethod extends Model
 {
     protected $table = 'payment_methods';
 
-    protected $fillable = ['name', 'code', 'kind', 'ledger_id', 'is_online', 'requires_reference', 'instructions', 'sort_order', 'is_active'];
+    protected $fillable = ['name', 'code', 'kind', 'ledger_id', 'is_online', 'gateway', 'requires_reference', 'instructions', 'sort_order', 'is_active'];
 
     protected $casts = [
         'is_online'          => 'boolean',

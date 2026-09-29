@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
 use App\Http\Controllers\Api\CompanyProfileController;
 use App\Http\Controllers\Api\QuotationController;
+use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -387,6 +388,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
+            Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);
             Route::post('/groups',                  [BooksMasterController::class, 'storeGroup']);
             Route::put('/groups/{id}',              [BooksMasterController::class, 'updateGroup']);
             Route::delete('/groups/{id}',           [BooksMasterController::class, 'destroyGroup']);
@@ -476,6 +478,20 @@ Route::middleware('auth:sanctum')->group(function () {
             //removecommentRoute::post('/{id}/set-default-billing', [CustomerAddressController::class, 'setDefaultBilling']);
         });
         
+        // Checkout on the books — cart in, Sales Order (and Cash Sale when paid) out
+        Route::prefix('checkout')->group(function () {
+            Route::get('/options', [CheckoutController::class, 'options']);
+            Route::post('/quote', [CheckoutController::class, 'quote']);
+            Route::post('/place', [CheckoutController::class, 'place']);
+            Route::get('/attempts/{id}', [CheckoutController::class, 'attempt']);
+            Route::post('/orders/{id}/pay', [CheckoutController::class, 'payOrder']);
+        });
+        Route::prefix('sales-orders')->group(function () {
+            Route::get('/', [CheckoutController::class, 'orders']);
+            Route::get('/{id}', [CheckoutController::class, 'order']);
+            Route::post('/{id}/cancel', [CheckoutController::class, 'cancelOrder']);
+        });
+
         // Orders
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'myOrders']);

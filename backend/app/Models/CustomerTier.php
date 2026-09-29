@@ -18,6 +18,7 @@ class CustomerTier extends Model
         'priority_support',
         'min_orders',
         'min_spent',
+        'currency_id',
         'sort_order',
         'is_active',
     ];
