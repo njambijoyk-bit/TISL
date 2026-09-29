@@ -1,3 +1,4 @@
+import CurrencySelect from '../../../components/admin/books/CurrencySelect';
 import { useState } from 'react';
 import { X, Tag, CheckCircle, AlertCircle } from 'lucide-react';
 import usePromoCodeStore from '../../../../_shared/store/promoCodeStore';
@@ -49,7 +50,7 @@ const EVENT_TYPES = [
 
 const REWARD_TYPES = [
   ['percentage',    'Percentage (%)'],
-  ['fixed_amount',  'Fixed Amount (KES)'],
+  ['fixed_amount',  'Fixed amount'],
 ];
 
 export default function CreatePromoModal({ onClose, onSuccess }) {
@@ -68,6 +69,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
     valid_from:             '',
     valid_until:            '',
     min_order_value:        '',
+    currency_id:            '',
     stackable:              false,
     is_public:              true,
     status:                 'active',
@@ -216,8 +218,13 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
                 {REWARD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </Field>
+            {form.reward_type !== 'percentage' && (
+              <Field label="Amount currency" hint="Fixed amounts and the minimum order are in this currency; they are converted at checkout.">
+                <CurrencySelect value={form.currency_id} onChange={(v) => set('currency_id', v)} style={{ ...iBase, appearance: 'auto' }} />
+              </Field>
+            )}
             <Field
-              label={form.reward_type === 'percentage' ? 'Discount %' : 'Discount Amount (KES)'}
+              label={form.reward_type === 'percentage' ? 'Discount %' : 'Discount amount'}
               required
               hint={form.reward_type === 'free_shipping' || form.reward_type === 'store_credit' ? 'Value not applicable for this type' : undefined}
             >

@@ -34,6 +34,11 @@ class CustomerTier extends Model
         'is_active'                 => 'boolean',
     ];
 
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->orderBy('sort_order');

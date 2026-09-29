@@ -11,6 +11,7 @@ import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import shippingAPI from '../../../../_shared/api/shipping';
+import taxAPI from '../../../../_shared/api/tax';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
@@ -70,6 +71,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
+  const [whRates, setWhRates] = useState([]);
+  const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -85,6 +88,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   useEffect(() => {
     api.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
     shippingAPI.getActiveOptions().then(setShipOptions).catch(() => {});
+    taxAPI.getRates({ active: true }).then((r) => setWhRates((r.tax_rates ?? []).filter((x) => x.tax_type?.application_mode === 'withheld'))).catch(() => {});
     api.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {});
     api.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
     locationsAPI.getAdmin().then((r) => {
@@ -144,6 +148,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     } else if (isMoney) {
       p.amount = Number(h.amount) || 0;
       p.ledger_id = h.ledger_id || undefined;
+      if (wh.tax_rate_id) p.withholding = { tax_rate_id: Number(wh.tax_rate_id), amount: wh.amount === '' ? undefined : Number(wh.amount), certificate_no: wh.certificate_no || undefined };
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
@@ -153,7 +158,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, hasItems, isMoney, isEntries, manual, editing]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -352,6 +357,22 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18, maxWidth: 360 }}>
                 <label style={label}>Amount</label>
                 <input type="number" step="0.01" min="0" value={h.amount} onChange={(e) => setH((x) => ({ ...x, amount: e.target.value }))} style={small} />
+                {whRates.length > 0 && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${colors.tint(0.08)}` }}>
+                    <label style={label}>{base === 'receipt' ? 'Tax the customer withheld' : 'Tax we withheld'}</label>
+                    <select value={wh.tax_rate_id} onChange={(e) => setWh((x) => ({ ...x, tax_rate_id: e.target.value }))} style={small}>
+                      <option value="">None</option>
+                      {whRates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.name} {Number(r.rate_value)}{r.rate_type === 'percentage' ? '%' : ''}{r.classification ? ` — ${r.classification}` : ''}</option>)}
+                    </select>
+                    {wh.tax_rate_id && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                        <input type="number" step="0.01" min="0" placeholder="Amount (blank = by rate)" value={wh.amount} onChange={(e) => setWh((x) => ({ ...x, amount: e.target.value }))} style={small} />
+                        <input placeholder="Certificate no." value={wh.certificate_no} onChange={(e) => setWh((x) => ({ ...x, certificate_no: e.target.value }))} style={small} />
+                      </div>
+                    )}
+                    <p style={{ fontSize: '0.7rem', color: colors.textMuted, margin: '6px 0 0' }}>The amount above is the gross. {base === 'receipt' ? 'Cash received is the gross less the tax withheld; the withheld tax becomes a credit we hold.' : 'Cash paid is the gross less the tax we withheld and will remit.'}</p>
+                  </div>
+                )}
                 <p style={{ fontSize: '0.72rem', color: colors.textMuted, marginBottom: 0 }}>Recorded on account (advance). To settle a specific invoice, open it and use “Receive payment”.</p>
               </div>
             )}

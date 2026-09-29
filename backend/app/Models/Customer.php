@@ -973,7 +973,11 @@ class Customer extends Model
 
         foreach ($tiers as $t) {
             $meetsOrders = $t->min_orders !== null && $this->total_orders >= $t->min_orders;
-            $meetsSpent  = $t->min_spent !== null && $this->total_spent >= (float) $t->min_spent;
+            // total_spent is kept in the base currency; the tier's threshold is in its own currency
+            $minSpentBase = $t->min_spent !== null
+                ? app(\App\Services\CurrencyConversionService::class)->convert((float) $t->min_spent, app(\App\Services\CurrencyConversionService::class)->currencyFrom($t->currency_id), app(\App\Services\CurrencyConversionService::class)->getBaseCurrency())
+                : null;
+            $meetsSpent  = $minSpentBase !== null && $this->total_spent >= $minSpentBase;
 
             if ($meetsOrders || $meetsSpent) {
                 $newTier = $t->slug;

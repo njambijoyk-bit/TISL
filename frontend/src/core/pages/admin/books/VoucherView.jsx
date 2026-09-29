@@ -6,6 +6,7 @@ import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
 import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
 import booksAPI from '../../../../_shared/api/books';
+import taxAPI from '../../../../_shared/api/tax';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
@@ -53,12 +54,15 @@ function ReceiveModal({ v, methods, onClose, onDone }) {
   const [amount, setAmount] = useState(v.outstanding);
   const [method, setMethod] = useState('');
   const [ref, setRef] = useState('');
+  const [wh, setWh] = useState('');
+  const [whRates, setWhRates] = useState([]);
+  useEffect(() => { taxAPI.getRates({ active: true }).then((r) => setWhRates((r.tax_rates ?? []).filter((x) => x.tax_type?.application_mode === 'withheld'))).catch(() => {}); }, []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const chosen = methods.find((m) => String(m.id) === String(method));
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await booksAPI.receive(v.id, { payment_method_id: method, amount: Number(amount), reference_no: ref || undefined, date: today() }); toast.success(res.message); onDone(); }
+    try { const res = await booksAPI.receive(v.id, { payment_method_id: method, amount: Number(amount), reference_no: ref || undefined, date: today(), ...(wh ? { withholding: { tax_rate_id: Number(wh) } } : {}) }); toast.success(res.message); onDone(); }
     catch (x) { setErr(errMsg(x, 'Could not record the payment')); }
     finally { setBusy(false); }
   };
@@ -70,6 +74,11 @@ function ReceiveModal({ v, methods, onClose, onDone }) {
           <Field label="Amount"><NumberInput required min="0.01" step="0.01" max={v.outstanding} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
           <Field label="Payment method"><SelectInput required value={method} onChange={(e) => setMethod(e.target.value)}><option value="">Choose…</option>{methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</SelectInput></Field>
           <Field label={chosen?.requires_reference ? 'Reference (required)' : 'Reference'}><TextInput required={chosen?.requires_reference} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="M-Pesa code, cheque no.…" /></Field>
+          {whRates.length > 0 && (
+            <Field label="Customer withheld tax?" hint="The amount above is the gross settling the invoice; the withheld part becomes a tax credit we hold.">
+              <SelectInput value={wh} onChange={(e) => setWh(e.target.value)}><option value="">No</option>{whRates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.name} {Number(r.rate_value)}{r.rate_type === 'percentage' ? '%' : ''}{r.classification ? ` — ${r.classification}` : ''}</option>)}</SelectInput>
+            </Field>
+          )}
           <ModalActions onCancel={onClose} submitLabel="Record receipt" busy={busy} />
         </FormStack>
       </form>

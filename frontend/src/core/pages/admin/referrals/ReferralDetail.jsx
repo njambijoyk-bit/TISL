@@ -496,7 +496,7 @@ export default function ReferralDetail() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                   <EditField label="Max uses"          value={formData.max_uses}              onChange={setF('max_uses')}              editMode={editMode} type="number" />
                   <EditField label="Per customer"      value={formData.max_uses_per_customer} onChange={setF('max_uses_per_customer')} editMode={editMode} type="number" />
-                  <EditField label="Min order (KES)"   value={formData.min_order_value}       onChange={setF('min_order_value')}       editMode={editMode} type="number" />
+                  <EditField label="Min order"   value={formData.min_order_value}       onChange={setF('min_order_value')}       editMode={editMode} type="number" />
                   <EditField label="Reward value"      value={formData.reward_value}          onChange={setF('reward_value')}          editMode={editMode} type="number" />
                   <EditField label="Referrer reward"   value={formData.referrer_reward_value} onChange={setF('referrer_reward_value')} editMode={editMode} type="number" />
                 </div>

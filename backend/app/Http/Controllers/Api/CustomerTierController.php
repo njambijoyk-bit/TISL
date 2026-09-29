@@ -26,7 +26,7 @@ class CustomerTierController extends Controller
     public function tierIndex(): JsonResponse
     {
         return response()->json(
-            CustomerTier::orderBy('sort_order')->get()
+            CustomerTier::with('currency:id,code,symbol')->orderBy('sort_order')->get()
         );
     }
 
@@ -43,6 +43,7 @@ class CustomerTierController extends Controller
             'priority_support'          => 'boolean',
             'min_orders'                => 'nullable|integer|min:0',
             'min_spent'                 => 'nullable|numeric|min:0',
+            'currency_id'               => 'nullable|integer|exists:currencies,id',
             'sort_order'                => 'integer|min:0',
             'is_active'                 => 'boolean',
         ]);
@@ -58,6 +59,7 @@ class CustomerTierController extends Controller
             'priority_support'          => $request->priority_support ?? false,
             'min_orders'                => $request->min_orders,
             'min_spent'                 => $request->min_spent,
+            'currency_id'               => $request->currency_id ?: null,
             'sort_order'                => $request->sort_order ?? 0,
             'is_active'                 => $request->is_active ?? true,
         ]);
@@ -84,6 +86,7 @@ class CustomerTierController extends Controller
             'priority_support'          => 'boolean',
             'min_orders'                => 'nullable|integer|min:0',
             'min_spent'                 => 'nullable|numeric|min:0',
+            'currency_id'               => 'nullable|integer|exists:currencies,id',
             'sort_order'                => 'sometimes|integer|min:0',
         ]);
 
@@ -91,7 +94,7 @@ class CustomerTierController extends Controller
         $fields  = [
             'slug', 'name', 'description', 'color', 'discount_percentage',
             'free_shipping_threshold', 'loyalty_points_multiplier', 'priority_support',
-            'min_orders', 'min_spent', 'sort_order',
+            'min_orders', 'min_spent', 'sort_order', 'currency_id',
         ];
 
         foreach ($fields as $field) {

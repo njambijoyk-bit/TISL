@@ -1,3 +1,4 @@
+import CurrencySelect from '../../../components/admin/books/CurrencySelect';
 import { useState } from 'react';
 import { X, Gift, AlertCircle } from 'lucide-react';
 import useReferralsStore from '../../../../_shared/store/referralsStore';
@@ -41,7 +42,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
     reward_type: 'percentage', reward_value: '',
     referrer_reward_type: 'none', referrer_reward_value: '',
     max_uses: '', max_uses_per_customer: 1,
-    min_order_value: '', min_items: '',
+    min_order_value: '', min_items: '', currency_id: '',
     valid_from: '', valid_until: '',
     stackable: false, is_public: true, auto_apply: false,
     status: 'draft',
@@ -157,7 +158,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
               </select>
             </Field>
             {showRewardValue && (
-              <Field label={`Reward Value ${form.reward_type === 'percentage' ? '(%)' : '(KES)'} *`} error={fieldErrors.reward_value?.[0]}>
+              <Field label={`Reward Value ${form.reward_type === 'percentage' ? '(%)' : ''} *`} error={fieldErrors.reward_value?.[0]}>
                 <input type="number" min="0" value={form.reward_value} onChange={e => set('reward_value', e.target.value)}
                   placeholder="0" className={cls(fieldErrors.reward_value)} />
               </Field>
@@ -189,7 +190,10 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
               <input type="number" min="1" value={form.max_uses_per_customer} onChange={e => set('max_uses_per_customer', e.target.value)}
                 className={cls(fieldErrors.max_uses_per_customer)} />
             </Field>
-            <Field label="Min Order (KES)" error={fieldErrors.min_order_value?.[0]}>
+            <Field label="Amounts in" error={fieldErrors.currency_id?.[0]}>
+              <CurrencySelect value={form.currency_id} onChange={(v) => set('currency_id', v)} className={cls(fieldErrors.currency_id)} />
+            </Field>
+            <Field label="Min Order" error={fieldErrors.min_order_value?.[0]}>
               <input type="number" min="0" value={form.min_order_value} onChange={e => set('min_order_value', e.target.value)}
                 placeholder="0" className={cls(fieldErrors.min_order_value)} />
             </Field>

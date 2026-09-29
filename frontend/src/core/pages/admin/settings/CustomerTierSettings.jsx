@@ -1,3 +1,4 @@
+import CurrencySelect from '../../components/admin/books/CurrencySelect';
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import customerTiersAPI from '../../../../_shared/api/customerTiers';
@@ -59,7 +60,7 @@ function AddTierModal({ onClose, onSave }) {
     slug: '', name: '', description: '', color: '#9ca3af',
     discount_percentage: '', free_shipping_threshold: '',
     loyalty_points_multiplier: '1', priority_support: false,
-    min_orders: '', min_spent: '', sort_order: '0',
+    min_orders: '', min_spent: '', sort_order: '0', currency_id: '',
   });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setBool = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.checked }));
@@ -72,6 +73,7 @@ function AddTierModal({ onClose, onSave }) {
       free_shipping_threshold: form.free_shipping_threshold === '' ? null : form.free_shipping_threshold,
       min_orders: form.min_orders === '' ? null : form.min_orders,
       min_spent: form.min_spent === '' ? null : form.min_spent,
+      currency_id: form.currency_id || null,
     });
   };
 
@@ -99,8 +101,9 @@ function AddTierModal({ onClose, onSave }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Min orders for auto-upgrade" hint="Leave empty = manual only"><input type="number" value={form.min_orders} onChange={set('min_orders')} placeholder="50" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
-            <Field label="Min spent (KES)" hint="Leave empty = manual only"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} placeholder="500000" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
+            <Field label="Min spent" hint="In the tier currency; leave empty = manual only"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} placeholder="500000" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
+          <Field label="Money amounts are in" hint="Free-shipping threshold and min spent"><CurrencySelect value={form.currency_id} onChange={(v) => setForm(f => ({ ...f, currency_id: v }))} style={inputStyle} /></Field>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
@@ -121,7 +124,7 @@ function EditTierModal({ tier, onClose, onSave }) {
     name: tier.name || '', description: tier.description || '', color: tier.color || '#9ca3af',
     discount_percentage: tier.discount_percentage ?? '', free_shipping_threshold: tier.free_shipping_threshold ?? '',
     loyalty_points_multiplier: tier.loyalty_points_multiplier ?? '1', priority_support: !!tier.priority_support,
-    min_orders: tier.min_orders ?? '', min_spent: tier.min_spent ?? '', sort_order: tier.sort_order ?? 0,
+    min_orders: tier.min_orders ?? '', min_spent: tier.min_spent ?? '', sort_order: tier.sort_order ?? 0, currency_id: tier.currency_id ?? '',
   });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setBool = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.checked }));
@@ -133,6 +136,7 @@ function EditTierModal({ tier, onClose, onSave }) {
       free_shipping_threshold: form.free_shipping_threshold === '' ? null : form.free_shipping_threshold,
       min_orders: form.min_orders === '' ? null : form.min_orders,
       min_spent: form.min_spent === '' ? null : form.min_spent,
+      currency_id: form.currency_id || null,
     });
   };
 
@@ -160,8 +164,9 @@ function EditTierModal({ tier, onClose, onSave }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Min orders"><input type="number" value={form.min_orders} onChange={set('min_orders')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
-            <Field label="Min spent (KES)"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
+            <Field label="Min spent"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
+          <Field label="Money amounts are in"><CurrencySelect value={form.currency_id} onChange={(v) => setForm(f => ({ ...f, currency_id: v }))} style={inputStyle} /></Field>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
@@ -566,7 +571,7 @@ export default function CustomerTierSettings() {
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '0.72rem', color: '#6b7280' }}>
                           {t.min_orders || t.min_spent
-                            ? `${t.min_orders ? t.min_orders + ' orders' : ''}${t.min_orders && t.min_spent ? ' or ' : ''}${t.min_spent ? fmtNum(t.min_spent) + ' KES' : ''}`
+                            ? `${t.min_orders ? t.min_orders + ' orders' : ''}${t.min_orders && t.min_spent ? ' or ' : ''}${t.min_spent ? fmtNum(t.min_spent) + ' ' + (t.currency?.code ?? '') : ''}`
                             : 'Manual only'}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>

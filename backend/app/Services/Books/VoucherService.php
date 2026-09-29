@@ -268,6 +268,7 @@ class VoucherService
             'exchange_rate'     => $opts['exchange_rate'] ?? null,   // blank = the rate in force today; the difference vs the invoice is booked as exchange gain/loss
             'payment_method_id' => $opts['payment_method_id'] ?? null,
             'tenders'           => $opts['tenders'] ?? null,
+            'withholding'       => $opts['withholding'] ?? null,
             'reference_no'      => $opts['reference_no'] ?? null,
             'narration'         => $opts['narration'] ?? "Payment of {$invoice->voucher_number}",
             'amount'            => $amount,
@@ -916,13 +917,26 @@ class VoucherService
             $otherLedgerId = $plan['party']?->id ?? ($data['counter_ledger_id'] ?? null) ?? throw new BooksException('Choose the party ledger.');
             $cashSide = $base === VoucherType::RECEIPT ? 'D' : 'C';
             $partySide = $base === VoucherType::RECEIPT ? 'C' : 'D';
-            if ($plan['tenders']) {
-                $plan['tenders'] = $this->finalizeTenders($plan['tenders'], $amount, $plan);
-                $cash = array_map(fn ($t) => $mk((int) $t['method']->ledger_id, $cashSide, $t['amount']), $plan['tenders']);
-            } else {
-                $cash = [$mk($cashLedgerId, $cashSide, $amount)];
+
+            // Withholding: the payer keeps back part of the gross. The party is cleared for the gross; the
+            // cash side is the net; the difference is the tax receivable (they withheld from us) or payable (we withheld).
+            $withheld = 0.0;
+            $withLedger = null;
+            if (! empty($data['withholding'])) {
+                [$withheld, $withLedger] = $this->withholding($data['withholding'], $amount, $base);
+                $plan['meta_extra'] = ['withholding' => ['amount' => $withheld, 'tax_rate_id' => $data['withholding']['tax_rate_id'] ?? null, 'certificate_no' => $data['withholding']['certificate_no'] ?? null]];
             }
-            $entries = array_merge($cash, [$mk($otherLedgerId, $partySide, $amount, ['is_party' => true])]);
+            $net = round($amount - $withheld, 2);
+            if ($plan['tenders']) {
+                $plan['tenders'] = $this->finalizeTenders($plan['tenders'], $net, $plan);
+                $cash = array_map(fn ($t) => $mk((int) $t['method']->ledger_id, $cashSide, $t['amount']), $plan['tenders']);
+            } elseif ($net > 0) {
+                $cash = [$mk($cashLedgerId, $cashSide, $net)];
+            } else {
+                $cash = [];
+            }
+            $taxEntry = $withheld > 0 ? [$mk((int) $withLedger, $cashSide, $withheld, ['is_tax' => true, 'narration' => 'Tax withheld'])] : [];
+            $entries = array_merge($cash, $taxEntry, [$mk($otherLedgerId, $partySide, $amount, ['is_party' => true])]);
 
             $bills = [];
             $allocated = 0.0;
@@ -991,6 +1005,26 @@ class VoucherService
         }
 
         return [$entries, [], round($debit, 2)];
+    }
+
+    /** @return array{0: float, 1: int} the amount withheld and the ledger it sits in */
+    private function withholding(array $w, float $gross, string $base): array
+    {
+        $rate = \App\Models\TaxRate::with('taxType')->find($w['tax_rate_id'] ?? null) ?? throw new BooksException('Choose the withholding tax rate.');
+        if ($rate->taxType?->application_mode !== \App\Models\TaxType::MODE_WITHHELD) {
+            throw new BooksException('That is not a withholding tax.');
+        }
+        if (! $rate->ledger_output_id || ! $rate->ledger_input_id) {
+            $rate = app(TaxLedgerService::class)->provisionRate($rate);
+        }
+        $amount = isset($w['amount']) && $w['amount'] !== '' ? round((float) $w['amount'], 2)
+            : ($rate->rate_type === \App\Models\TaxRate::TYPE_PERCENTAGE ? round($gross * (float) $rate->rate_value / 100, 2) : round((float) $rate->rate_value, 2));
+        if ($amount < 0 || $amount > $gross) {
+            throw new BooksException('The withheld tax can not be more than the payment.');
+        }
+
+        // receipts: a customer withholds from us (receivable); payments: we withhold from a supplier (payable)
+        return [$amount, (int) ($base === VoucherType::RECEIPT ? $rate->ledger_output_id : $rate->ledger_input_id)];
     }
 
     // ── tenders (paying one voucher several ways) ───────────────────────
@@ -1139,7 +1173,7 @@ class VoucherService
             'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total_amount' => $plan['total'],
             'base_total' => round($plan['total'] * $plan['rate'], 2), 'moves_stock' => $plan['moves_stock'],
             'source_voucher_id' => $data['source_voucher_id'] ?? null, 'channel' => $data['channel'] ?? 'admin',
-            'meta' => $data['meta'] ?? null,
+            'meta' => ($data['meta'] ?? null) || ! empty($plan['meta_extra']) ? array_merge($data['meta'] ?? [], $plan['meta_extra'] ?? []) : null,
         ];
 
         if ($existing) {
