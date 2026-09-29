@@ -600,3 +600,22 @@ Decisions taken: numbering prefix **WNKJ-** (WNKJ-SO-, -DEL-, -INV-, -CSH-, -CN-
 
 ### 12.13 Scale of the redo
 This touches most money-handling modules (see 12.10). Ship it as small vertical slices in the order of 12.11, each with its own SQL script and each leaving the platform working, rather than one big cut-over: the old order/payment/credit screens keep running until checkout is rewired (step 6), and only step 10 drops legacy tables.
+
+
+## 13. Build status after the money rebuild (what exists vs what is left)
+
+Built (SQL scripts 16–21 deliver the schema; code is on `tisl_v2`):
+- **Foundation:** company profile (no brand in code), dated exchange-rate history, ledger currency, realised exchange gain/loss on receipts/payments, base-currency helpers in the storefront/admin (`getBaseCode`, `CurrencySelect`).
+- **Duties & Taxes:** tax types become a subgroup + control ledger(s) with an opening balance; each rate makes its own Output/Input ledger (or the withholding payable/receivable); live tax position; withholding on receipts and payments (net cash, withheld tax to receivable/payable).
+- **Shipping:** options carry a currency and optional tax and own an income ledger; charged as a converted charge line; document footer lists each charge with its ledger.
+- **Engine:** discounts post gross + contra (per source/ledger), payment tenders (split payments, gift vouchers), quotation and purchase-order chains, receipt-note stock in, dated rates.
+- **Quotations:** request → priced quotation → sent (14 days) → accept / decline / ask for changes → sales order; admin and customer pages.
+- **Checkout:** server-priced quote, sales order / cash sale, M-Pesa STK as a gateway attempt that settles the order, gift voucher payment, on-account invoicing, customer order pages, hampers in the cart, auction winner → sales order.
+- **Gift vouchers, loyalty, credit:** gift voucher sub-ledger + Books tab; points accrue as a liability and redeem into gift vouchers; referral rewards; a customer's credit is their ledger (terms on the customer, credit tab + dashboard rebuilt); promo/referral/tier money fields carry a currency.
+- **Sales register:** Orders & payments pages read the books.
+
+Not built yet (be honest with yourself before dropping tables):
+- The legacy tables are **emptied, not dropped** (script 21). Delivery manifests (order-based), the old reports/analytics, the chat assistant, reconciliation, financial notes and the inventory purchase-order screens still read them and need re-pointing.
+- Payment plans (instalments) on invoices; period-end revaluation of foreign balances; withholding *certificates* are not yet created from receipts (the certificate number is kept on the voucher).
+- Data Exchange: renamed only — the theme restyle and import remain.
+- KES still appears in the legacy order/quote/delivery/report screens and in DB column names such as `*_kes`.
