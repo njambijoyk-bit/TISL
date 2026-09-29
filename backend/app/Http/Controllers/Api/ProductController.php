@@ -201,6 +201,9 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        if ($r = \App\Services\Books\TradingAccounts::check($request)) {
+            return $r;
+        }
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'sku' => 'required|string|unique:products,sku',
@@ -324,6 +327,7 @@ class ProductController extends Controller
                 'admin_notes' => $request->admin_notes,
                 'created_by' => Auth::id(),
             ]);
+            \App\Services\Books\TradingAccounts::save($product, $request);
 
             // Every product starts with a "Standard" variant: product SKU, price and
             // stock unit, so it can be sold (and stocked per branch) straight away.
@@ -588,6 +592,9 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
+        if ($r = \App\Services\Books\TradingAccounts::check($request, $product)) {
+            return $r;
+        }
 
         $validator = Validator::make($request->all(), [
             'name' => 'string|max:255',
@@ -897,6 +904,7 @@ class ProductController extends Controller
         $data['updated_by'] = auth()->id();
 
         $product->update($data);
+        \App\Services\Books\TradingAccounts::save($product, $request);
 
         return response()->json([
             'success' => true,

@@ -61,6 +61,9 @@ class AuctionController extends Controller
 
     public function store(Request $request)
     {
+        if ($r = \App\Services\Books\TradingAccounts::check($request)) {
+            return $r;
+        }
         $validator = Validator::make($request->all(), [
             'product_id'    => 'required|exists:products,id',
             'variant_id'    => 'nullable|exists:product_variants,id',
@@ -106,6 +109,7 @@ class AuctionController extends Controller
             ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
 
         $auction = Auction::create([
+            'sales_ledger_id' => $request->sales_ledger_id,
             'product_id'    => $request->product_id,
             'variant_id'    => $variantId,
             'location_id'   => $request->location_id,
@@ -126,6 +130,9 @@ class AuctionController extends Controller
 
     public function update(Request $request, Auction $auction)
     {
+        if ($r = \App\Services\Books\TradingAccounts::check($request, $auction)) {
+            return $r;
+        }
         $validator = Validator::make($request->all(), [
             'variant_id'    => 'nullable|exists:product_variants,id',
             'location_id'   => 'nullable|integer|exists:locations,id,is_active,1',
@@ -182,7 +189,7 @@ class AuctionController extends Controller
 
         $auction->update($request->only([
             'variant_id', 'location_id', 'currency_id', 'start_price', 'reserve_price', 'bid_increment',
-            'start_time', 'end_time', 'status', 'max_winners',
+            'start_time', 'end_time', 'status', 'max_winners', 'sales_ledger_id',
         ]));
 
         if ($auction->status === 'active' && now()->gt($auction->end_time)) {

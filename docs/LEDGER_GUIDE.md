@@ -272,3 +272,15 @@ The **Tax return** then shows the value of supplies split into standard-rated, z
 * VAT is not charged when a gift voucher is *sold* (it is charged when the voucher is spent).
 * The code of a sold gift voucher is shown to the buyer; it is not e-mailed to a recipient yet.
 * Still on the legacy tables: delivery manifests, older reports and analytics, the chat assistant, financial notes and inventory purchase orders.
+
+## Items and sales accounts
+
+Tax lives on the **account**, not the item. A sales or purchase account (and any
+sub-group ledger under it) cannot be created without a tax treatment: a rate from
+the system (a 0 % rate is zero-rated), Exempt, or Out of scope.
+
+Every product, service, hamper and auction must name the sales account it is sold
+under, and will not save without one (products may also name a purchase account).
+When a voucher is raised each line is taxed by its own account, so one invoice can
+carry VAT-able, zero-rated and exempt lines side by side. Hampers derive their
+tax from the account they are booked to.

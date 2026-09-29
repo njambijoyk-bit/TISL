@@ -679,7 +679,7 @@ class VoucherService
                 'description' => $product->name, 'variant_label' => $variant?->name, 'sku' => $variant?->sku ?: $product->sku,
                 'unit_code' => 'pc', 'quantity' => $cq, 'base_quantity' => $cq,
                 'rate' => round($this->convertPrice((float) $it->sale_price, $hamper->currency_id, $ctx), 4),
-                'ledger_id' => $l['ledger_id'] ?? null, 'location_id' => $hamper->location_id,
+                'ledger_id' => $l['ledger_id'] ?? $hamper->sales_ledger_id, 'location_id' => $hamper->location_id,
             ]);
             $c['stock_qty'] = $variant ? $cq : 0.0;
             $this->finishAmounts($c, $product, 'product', null, $ctx);

@@ -6,7 +6,7 @@ import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import hampersAPI from '../../../../_shared/api/hampers';
 import api from '../../../../_shared/api/axios';
 import toast from 'react-hot-toast';
-import TaxRateSelect from '../../../../core/components/admin/tax/TaxRateSelect';
+import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
 import useCurrencyStore from '../../../../_shared/store/currencyStore';
 
@@ -236,7 +236,7 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
 const defaultForm = {
   name: '', description: '', accent_color: 'var(--color-primary-500)',
   price: '', currency_id: '', location_id: '', status: 'draft',
-  tax_rate_id: '', allow_promo_codes: false,
+  sales_ledger_id: '', allow_promo_codes: false,
   allow_store_credit: true, earn_loyalty_points: true, is_visible: true,
   max_purchases_per_customer: '', total_stock: '',
   eligibility_type: 'all',
@@ -287,6 +287,7 @@ export default function AdminHamperCreate() {
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Name is required';
+    if (!form.sales_ledger_id) e.sales_ledger_id = 'Choose a sales account';
     if (!form.price || isNaN(form.price) || Number(form.price) <= 0) e.price = 'Enter a valid price';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -306,7 +307,7 @@ export default function AdminHamperCreate() {
         currency_id:                form.currency_id || null,   // null → server uses the base
         location_id:                form.location_id || undefined,
         status:                     form.status,
-        tax_rate_id:                form.tax_rate_id || null,   // null → no tax
+        sales_ledger_id:            form.sales_ledger_id || null,
         allow_promo_codes:          form.allow_promo_codes,
         allow_store_credit:         form.allow_store_credit,
         earn_loyalty_points:        form.earn_loyalty_points,
@@ -407,11 +408,8 @@ export default function AdminHamperCreate() {
                     <Field label={`Price (${priceCode}) *`} error={errors.price}>
                       <Input name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" error={errors.price} />
                     </Field>
-                    <Field label="Tax" hint="Added on top of the price at checkout">
-                      <TaxRateSelect
-                        value={form.tax_rate_id}
-                        onChange={v => setForm(f => ({ ...f, tax_rate_id: v }))}
-                      />
+                    <Field label="Sales account *" error={errors.sales_ledger_id} hint="Its tax treatment is what gets charged">
+                      <SalesAccountSelect kind="sales" required value={form.sales_ledger_id} onChange={v => setForm(f => ({ ...f, sales_ledger_id: v }))} />
                     </Field>
                     <Field label="Status">
                       <select name="status" value={form.status} onChange={handleChange}

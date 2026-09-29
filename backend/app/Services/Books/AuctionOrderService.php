@@ -30,7 +30,7 @@ class AuctionOrderService
         return DB::transaction(fn () => $this->vouchers->placeOrder([
             'date' => today()->toDateString(), 'customer_id' => $customer->id, 'currency_id' => $a->currency_id, 'location_id' => $a->location_id,
             'narration' => "Auction #{$a->id} — winning bid", 'meta' => ['auction_id' => $a->id],
-            'lines' => [['type' => 'product', 'product_id' => $a->product_id, 'variant_id' => $a->variant_id, 'quantity' => 1, 'rate' => (float) $a->current_price, 'location_id' => $a->location_id]],
+            'lines' => [['type' => 'product', 'product_id' => $a->product_id, 'variant_id' => $a->variant_id, 'quantity' => 1, 'rate' => (float) $a->current_price, 'location_id' => $a->location_id, 'ledger_id' => TradingAccounts::forAuction($a)]],
         ], $by));
     }
 }

@@ -82,7 +82,7 @@ class BooksMasterController extends Controller
 
     public function ledgers(Request $request): JsonResponse
     {
-        $q = Ledger::with('group:id,name,nature')
+        $q = Ledger::with(['group:id,name,nature', 'taxRateLedger:id,name,rate_value'])
             ->when($request->filled('group_id'), function ($q) use ($request) {
                 $g = LedgerGroup::find($request->group_id);
                 $q->whereIn('group_id', $g ? $g->selfAndDescendantIds() : [0]);
@@ -128,7 +128,7 @@ class BooksMasterController extends Controller
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
         ]);
-        $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id);
+        $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
         }
@@ -138,7 +138,7 @@ class BooksMasterController extends Controller
     }
 
     /** Rate fields only make sense in a group that behaves as tax or delivery, and a percentage cannot be a foreign-currency amount. */
-    private function assertBehaviourFields(array $d, int $groupId): void
+    private function assertBehaviourFields(array $d, int $groupId, ?Ledger $existing = null): void
     {
         $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
         $rated = ! empty($d['rate_type']) || ! empty($d['rate_value']);
@@ -147,6 +147,11 @@ class BooksMasterController extends Controller
         }
         if (in_array($behaviour, ['tax', 'delivery'], true) && ! empty($d['rate_type']) && $d['rate_type'] !== 'percent' && empty($d['currency_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-unit rate needs a currency.']);
+        }
+        // a sales / purchase account cannot exist without its tax treatment: a rate from the system, exempt or out of scope
+        $nature = array_key_exists('tax_nature', $d) ? $d['tax_nature'] : $existing?->tax_nature;
+        if (in_array($behaviour, ['sales', 'purchase'], true) && empty($nature)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'Choose the tax for this account — a tax rate from the system, exempt, or out of scope.']);
         }
         if (! empty($d['tax_nature'])) {
             if (! in_array($behaviour, ['sales', 'purchase'], true)) {

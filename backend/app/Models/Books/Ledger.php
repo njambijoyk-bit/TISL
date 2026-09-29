@@ -45,6 +45,12 @@ class Ledger extends Model
         return $this->belongsTo(LedgerGroup::class, 'group_id');
     }
 
+    /** The tax rate a sales / purchase account uses (itself a ledger). */
+    public function taxRateLedger(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'tax_rate_ledger_id');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

@@ -47,6 +47,9 @@ class HamperController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($r = \App\Services\Books\TradingAccounts::check($request)) {
+            return $r;
+        }
         $data = $request->validate([
             'name'                       => 'required|string|max:255',
             'description'                => 'nullable|string',
@@ -94,6 +97,7 @@ class HamperController extends Controller
         $data['currency_id']     = ($data['currency_id'] ?? null) ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;
 
         $hamper = Hamper::create($data);
+        \App\Services\Books\TradingAccounts::save($hamper, $request);
 
         $this->logHamperActivity(
             $hamper->id, 'hamper_created',
@@ -114,6 +118,9 @@ class HamperController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $hamper = Hamper::findOrFail($id);
+        if ($r = \App\Services\Books\TradingAccounts::check($request, $hamper)) {
+            return $r;
+        }
 
         $data = $request->validate([
             'name'                       => 'sometimes|string|max:255',
@@ -231,6 +238,7 @@ class HamperController extends Controller
         }
 
         $hamper->update($data);
+        \App\Services\Books\TradingAccounts::save($hamper, $request);
 
         // Only log if something actually changed
         if (!empty($changes)) {

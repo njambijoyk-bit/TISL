@@ -277,6 +277,9 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
+        if ($r = \App\Services\Books\TradingAccounts::check($request)) {
+            return $r;
+        }
         // Decode JSON strings from FormData
         $input = $request->all();
         
@@ -475,6 +478,7 @@ class ServiceController extends Controller
             }
 
             $service = Service::create($data);
+            \App\Services\Books\TradingAccounts::save($service, $request);
 
             // Every service starts with a "Standard" package at its starting price.
             app(\App\Services\ServiceCatalogService::class)->ensureStandardVariant($service);
@@ -500,6 +504,9 @@ class ServiceController extends Controller
     public function update(Request $request, $id)
     {
         $service = Service::findOrFail($id);
+        if ($r = \App\Services\Books\TradingAccounts::check($request, $service)) {
+            return $r;
+        }
 
         // Decode JSON strings from FormData
         $input = $request->all();
@@ -669,6 +676,7 @@ class ServiceController extends Controller
             }
 
             $service->update($data);
+            \App\Services\Books\TradingAccounts::save($service, $request);
 
             // Keep an untouched Standard package in step with the starting price.
             if (array_key_exists('base_price', $data)) {

@@ -7,6 +7,7 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { Helmet } from 'react-helmet-async';
 import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-react';
+import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
 import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
@@ -35,7 +36,7 @@ export default function AdminAuctionCreator() {
 
   const [form, setForm] = useState({
     product_id: '', variant_id: '', location_id: '', currency_id: '', start_price: '', reserve_price: '',
-    bid_increment: '50', start_time: '', end_time: ''
+    bid_increment: '50', start_time: '', end_time: '', sales_ledger_id: ''
   });
 
   // Bids, reserve and increment are all in this currency
@@ -50,7 +51,7 @@ export default function AdminAuctionCreator() {
       const prod = products[0];
       setSelectedProduct({ ...prod, product_id: prod.id });
       // Start from the product's own currency — the admin can change it
-      setForm(prev => ({ ...prev, product_id: String(prod.id), variant_id: '', currency_id: prod.currency_id ?? prod.currency?.id ?? prev.currency_id }));
+      setForm(prev => ({ ...prev, product_id: String(prod.id), variant_id: '', currency_id: prod.currency_id ?? prod.currency?.id ?? prev.currency_id, sales_ledger_id: prev.sales_ledger_id || (prod.sales_ledger_id ? String(prod.sales_ledger_id) : '') }));
     }
     setShowProductModal(false);
   };
@@ -66,6 +67,7 @@ export default function AdminAuctionCreator() {
       return toast.error('Please fill all required fields');
     }
     if (!form.location_id) return toast.error('Pick the branch this auction belongs to');
+    if (!form.sales_ledger_id) return toast.error('Choose the sales account this auction is booked under');
     setLoading(true);
     try {
       await auctionsAPI.createAuction({ ...form, variant_id: form.variant_id || undefined });
@@ -143,6 +145,13 @@ export default function AdminAuctionCreator() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div style={sectionStyle}>
+            <p style={{ ...labelStyle, marginBottom: 14 }}>Sales account *</p>
+            <SalesAccountSelect kind="sales" required value={form.sales_ledger_id}
+              onChange={(v) => setForm(f => ({ ...f, sales_ledger_id: v }))}
+              hint="The winning bid is booked here and taxed by this account's treatment." />
           </div>
 
           {/* ── Branch & item ── */}

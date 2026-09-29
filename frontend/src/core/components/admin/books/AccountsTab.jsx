@@ -59,6 +59,8 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     if (!trading) return;
     taxAPI.getRates({ active: true }).then((r) => setRateChoices((r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld'))).catch(() => {});
   }, [trading]);
+  const taxChoice = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && f.tax_rate_ledger_id ? `rate:${f.tax_rate_ledger_id}` : (f.tax_nature || '');
+  const rateGroups = rateChoices.reduce((m, r) => { const k = r.tax_type?.name || r.tax_type?.code || 'Tax rates'; (m[k] = m[k] || []).push(r); return m; }, {});
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
@@ -99,25 +101,30 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
           </Field>
           {trading && (
             <>
-              <Field label="Tax on this account" error={errs.tax_nature} hint={behaviour === 'sales'
-                ? 'Every sale line posted here is taxed this way — put exempt goods on an exempt account and VAT-able goods on a VAT-able one.'
-                : 'Every purchase line posted here is treated this way.'}>
-                <SelectInput value={f.tax_nature} onChange={(e) => set('tax_nature')(e.target.value)}>
-                  <option value="">Not set (use the tax rules)</option>
-                  <option value="taxable">VAT-able / taxable</option>
-                  <option value="zero_rated">Zero-rated</option>
-                  <option value="exempt">Exempt</option>
-                  <option value="out_of_scope">Out of scope</option>
+              <Field label="Tax on this account *" error={errs.tax_nature || errs.tax_rate_ledger_id} hint={behaviour === 'sales'
+                ? 'Required. Every sale line posted here is taxed this way — keep VAT-able goods and exempt goods on separate accounts.'
+                : 'Required. Every purchase line posted here is treated this way.'}>
+                <SelectInput required value={taxChoice}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.startsWith('rate:')) {
+                      const r = rateChoices.find((x) => String(x.id) === v.slice(5));
+                      setF((p) => ({ ...p, tax_rate_ledger_id: Number(v.slice(5)), tax_nature: r && Number(r.rate_value) === 0 ? 'zero_rated' : 'taxable' }));
+                    } else setF((p) => ({ ...p, tax_rate_ledger_id: '', tax_nature: v }));
+                  }}>
+                  <option value="">Choose the tax…</option>
+                  {Object.entries(rateGroups).map(([tt, rs]) => (
+                    <optgroup key={tt} label={tt}>
+                      {rs.map((r) => <option key={r.id} value={`rate:${r.id}`}>{r.name} ({Number(r.rate_value)}%)</option>)}
+                    </optgroup>
+                  ))}
+                  <optgroup label="No tax charged">
+                    <option value="exempt">Exempt</option>
+                    <option value="out_of_scope">Out of scope</option>
+                  </optgroup>
                 </SelectInput>
+                {rateChoices.length === 0 && <span style={{ fontSize: 12, color: '#b45309' }}>No tax rates in the system yet — add them under Duties &amp; Taxes; until then only Exempt / Out of scope are available.</span>}
               </Field>
-              {(f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && (
-                <Field label="Tax rate" error={errs.tax_rate_ledger_id} hint={f.tax_nature === 'zero_rated' ? 'A 0 % rate, so the return shows the value.' : 'The rate charged on these lines.'}>
-                  <SelectInput required value={f.tax_rate_ledger_id} onChange={(e) => set('tax_rate_ledger_id')(e.target.value ? Number(e.target.value) : '')}>
-                    <option value="">Choose…</option>
-                    {rateChoices.filter((r) => (f.tax_nature === 'zero_rated' ? Number(r.rate_value) === 0 : true)).map((r) => <option key={r.id} value={r.id}>{r.name} — {r.tax_type?.code}</option>)}
-                  </SelectInput>
-                </Field>
-              )}
             </>
           )}
           {bankish && (

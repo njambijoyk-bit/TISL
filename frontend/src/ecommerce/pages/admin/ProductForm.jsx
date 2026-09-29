@@ -9,7 +9,7 @@ import CurrencySelect from '../../../_shared/components/common/currency/Currency
 import UnitSelect from '../../../_shared/components/common/UnitSelect';
 import useUomStore from '../../../_shared/store/uomStore';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
-import ItemAccountsPanel from '../../../core/components/admin/tax/ItemAccountsPanel';
+import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import BranchStockPanel from '../../components/admin/BranchStockPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import useProductVariantStore from '../../../_shared/store/productVariantStore';
@@ -334,6 +334,7 @@ export default function ProductForm() {
     status: 'active', is_visible: true,
     meta_title: '', meta_description: '',
     admin_notes: '', main_image_url: '', additional_image_urls: '',
+    sales_ledger_id: '', purchase_ledger_id: '',
   });
 
   // Product stock is derived from variants/branches — refresh it whenever their
@@ -446,6 +447,7 @@ export default function ProductForm() {
         is_visible: product.is_visible !== undefined ? Boolean(product.is_visible) : true,
         meta_title: product.meta_title || '', meta_description: product.meta_description || '',
         admin_notes: product.admin_notes || '', main_image_url: '', additional_image_urls: '',
+        sales_ledger_id: product.sales_ledger_id ?? '', purchase_ledger_id: product.purchase_ledger_id ?? '',
       });
 
       const mainPreview = normalizeImageUrl(
@@ -568,6 +570,7 @@ export default function ProductForm() {
     if (!formData.name || !formData.sku || !formData.price || !formData.category_id) {
       fail('Please fill in all required fields', ['Name, SKU, price and category are required (Basic info and Pricing & stock).']); return;
     }
+    if (!formData.sales_ledger_id) { fail('Choose a sales account', ['Tax → Sales account. It decides the tax charged when this product is sold.']); setActiveTab('tax'); return; }
     if (!formData.default_unit_id) { fail('Pick the product\'s stock unit', ['Pricing & stock → Stock unit. All variant stock is counted in it.']); setActiveTab('pricing'); return; }
     setSaveError(null);
     try {
@@ -592,6 +595,7 @@ export default function ProductForm() {
       bool('on_sale', formData.on_sale); str('badge', formData.badge);
       str('meta_title', formData.meta_title); str('meta_description', formData.meta_description);
       str('admin_notes', formData.admin_notes);
+      str('sales_ledger_id', formData.sales_ledger_id); str('purchase_ledger_id', formData.purchase_ledger_id);
 
       if (mainImage) {
         fd.append('main_image', mainImage);
@@ -684,8 +688,7 @@ export default function ProductForm() {
     { id: 'variants', name: 'Variants'         },
     { id: 'marketing',name: 'Marketing'        },
     { id: 'seo',      name: 'SEO & advanced'   },
-    // Overrides attach to a saved product, so only once it has an id
-    ...(id ? [{ id: 'tax', name: 'Tax' }] : []),
+    { id: 'tax', name: 'Tax' },
   ];
 
   return (
@@ -1101,10 +1104,19 @@ export default function ProductForm() {
           )}
 
           {/* ── TAX ── */}
-          {activeTab === 'tax' && id && (
+          {activeTab === 'tax' && (
             <>
-              <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
-              <ItemAccountsPanel type="product" id={id} readOnly={isView} />
+              <p style={sectionHeader}>Tax</p>
+              <div style={{ display: 'grid', gap: 14, gridTemplateColumns: '1fr 1fr' }}>
+                <SalesAccountSelect kind="sales" required={!isView} disabled={isView} value={formData.sales_ledger_id}
+                  onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
+                  hint="The account decides the tax: an exempt product goes on an exempt account, a VAT-able one on a VAT-able account. One invoice can mix both." />
+                <SalesAccountSelect kind="purchase" disabled={isView} value={formData.purchase_ledger_id}
+                  onChange={(v) => setFormData((f) => ({ ...f, purchase_ledger_id: v }))} hint="Optional — used when this product is bought." />
+              </div>
+              {id
+                ? <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
+                : <p style={{ marginTop: 16, fontSize: '0.75rem', color: '#9ca3af' }}>Exemptions for a single customer or district can be added here once the product is saved.</p>}
             </>
           )}
 

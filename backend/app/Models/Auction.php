@@ -15,7 +15,7 @@ class Auction extends Model
     protected $fillable = [
         'product_id', 'variant_id', 'location_id', 'seller_id', 'currency_id', 'start_price', 'current_price',
         'reserve_price', 'bid_increment', 'start_time', 'end_time',
-        'status', 'winner_id', 'max_winners'
+        'status', 'winner_id', 'max_winners', 'sales_ledger_id',
     ];
 
     protected $casts = [

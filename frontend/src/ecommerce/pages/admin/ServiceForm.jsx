@@ -11,7 +11,7 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import ServiceCatalogEditor from '../../components/admin/services/ServiceCatalogEditor';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
-import ItemAccountsPanel from '../../../core/components/admin/tax/ItemAccountsPanel';
+import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import { getAvailableServices, getAvailableProducts } from '../../../_shared/api/services';
 
@@ -361,6 +361,7 @@ const ServiceForm = () => {
     max_concurrent_bookings: '', is_available: true, is_visible: true,
     is_featured: false, status: 'draft',
     brochure_url: '', video_url: '', badge: '', admin_notes: '',
+    sales_ledger_id: '',
   });
 
   const [features,     setFeatures]     = useState(['']);
@@ -410,6 +411,7 @@ const ServiceForm = () => {
       is_featured: cs.is_featured || false, status: cs.status || 'draft',
       brochure_url: cs.brochure_url || '', video_url: cs.video_url || '',
       badge: cs.badge || '', admin_notes: cs.admin_notes || '',
+      sales_ledger_id: cs.sales_ledger_id ?? '',
     });
     setFeatures(cs.features?.length > 0 ? cs.features : ['']);
     setDeliverables(cs.deliverables?.length > 0 ? cs.deliverables : ['']);
@@ -467,6 +469,7 @@ const ServiceForm = () => {
     if (formData.pricing_model === 'fixed' && !formData.base_price) return 'Base price is required for fixed pricing';
     if (formData.pricing_model === 'hourly' && !formData.hourly_rate) return 'Hourly rate is required';
     if (formData.pricing_model === 'daily'  && !formData.daily_rate)  return 'Daily rate is required';
+    if (!formData.sales_ledger_id) return 'Sales account is required (Tax section)';
     return null;
   };
 
@@ -677,13 +680,15 @@ const ServiceForm = () => {
                 </SectionCard>
               )}
 
-              {/* Tax overrides — only once the service exists */}
-              {isEditMode && id && (
-                <>
-                  <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
-                  <ItemAccountsPanel type="service" id={id} />
-                </>
-              )}
+              {/* Tax: the sales account decides it (required); overrides need a saved service */}
+              <SectionCard title="Tax">
+                <SalesAccountSelect kind="sales" required value={formData.sales_ledger_id}
+                  onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
+                  hint="The account decides the tax: an exempt service goes on an exempt account, a VAT-able one on a VAT-able account." />
+              </SectionCard>
+              {isEditMode && id
+                ? <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
+                : <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0 0 16px' }}>Exemptions for a single customer or district can be added once the service is saved.</p>}
 
               {/* Service details */}
               <SectionCard title="Service details">
