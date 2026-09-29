@@ -10,7 +10,6 @@ use App\Models\WithholdingCredit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use InvalidArgumentException;
 
 class WithholdingController extends Controller
 {
@@ -135,7 +134,7 @@ class WithholdingController extends Controller
 
     public function adminIndexCertificates(Request $request)
     {
-        $query = WithholdingCertificate::with(['customer', 'taxApplication', 'credit']);
+        $query = WithholdingCertificate::with(['customer', 'taxApplication', 'voucher:id,voucher_number,date', 'partyLedger:id,name']);
 
         if ($request->filled('customer_id')) {
             $query->forCustomer($request->customer_id);
@@ -147,12 +146,26 @@ class WithholdingController extends Controller
 
         $perPage = $request->get('per_page', 20);
 
-        return response()->json($query->orderByDesc('created_at')->paginate($perPage), 200);
+        return response()->json($this->withPartyName($query->orderByDesc('created_at')->paginate($perPage)), 200);
+    }
+
+    /** A certificate on a supplier payment has no customer — the party ledger stands in for it. */
+    private function withPartyName($page)
+    {
+        $page->getCollection()->transform(function ($row) {
+            if (! $row->customer && $row->partyLedger) {
+                $row->setRelation('customer', new Customer(['company_name' => $row->partyLedger->name]));
+            }
+
+            return $row;
+        });
+
+        return $page;
     }
 
     public function adminShowCertificate($id)
     {
-        $certificate = WithholdingCertificate::with(['customer', 'taxApplication', 'authorizingCertificate', 'credit.clearances'])
+        $certificate = WithholdingCertificate::with(['customer', 'taxApplication', 'authorizingCertificate', 'voucher:id,voucher_number,date', 'partyLedger:id,name', 'clearances'])
             ->findOrFail($id);
 
         return response()->json(['certificate' => $certificate], 200);
@@ -166,8 +179,9 @@ class WithholdingController extends Controller
     public function adminStoreCertificate(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'tax_application_id'         => 'required|exists:tax_applications,id|unique:withholding_certificates,tax_application_id',
-            'customer_id'                => 'required|exists:customers,id',
+            'tax_application_id'         => 'nullable|exists:tax_applications,id|unique:withholding_certificates,tax_application_id',
+            'customer_id'                => 'nullable|exists:customers,id',
+            'voucher_id'                 => 'nullable|exists:vouchers,id|unique:withholding_certificates,voucher_id',
             'authorizing_certificate_id' => 'nullable|exists:tax_legitimacy_certificates,id',
             'certificate_number'         => 'required|string|max:100|unique:withholding_certificates,certificate_number',
             'gross_amount'               => 'required|numeric|min:0',
@@ -180,7 +194,7 @@ class WithholdingController extends Controller
         }
 
         $certificate = WithholdingCertificate::create($request->only([
-            'tax_application_id', 'customer_id', 'authorizing_certificate_id',
+            'tax_application_id', 'customer_id', 'voucher_id', 'authorizing_certificate_id',
             'certificate_number', 'gross_amount', 'withheld_amount', 'net_amount',
         ]));
 
@@ -224,53 +238,48 @@ class WithholdingController extends Controller
     }
 
     // ========================================
-    // CREDITS
+    // CREDITS  (the claimable side of a receipt's withholding — see WithholdingRegisterService)
     // ========================================
 
     public function adminIndexCredits(Request $request)
     {
-        $query = WithholdingCredit::with(['certificate', 'customer']);
+        $query = WithholdingCredit::with(['customer', 'partyLedger:id,name']);
 
         if ($request->filled('customer_id')) {
             $query->forCustomer($request->customer_id);
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('withholding_certificates.credit_status', $request->status);
         }
 
         if ($request->boolean('outstanding_only')) {
             $query->outstanding();
         }
 
-        $perPage = $request->get('per_page', 20);
+        $page = $query->orderByDesc('withholding_certificates.created_at')->paginate($request->get('per_page', 20));
+        $page->getCollection()->transform(function ($row) {
+            if (! $row->customer && $row->partyLedger) {
+                $row->setRelation('customer', new Customer(['company_name' => $row->partyLedger->name]));
+            }
 
-        return response()->json($query->orderByDesc('created_at')->paginate($perPage), 200);
+            return $row;
+        });
+
+        return response()->json($page, 200);
     }
 
     public function adminShowCredit($id)
     {
-        $credit = WithholdingCredit::with(['certificate', 'customer', 'clearances.clearedBy'])->findOrFail($id);
+        $credit = WithholdingCredit::with(['customer', 'voucher:id,voucher_number,date', 'clearances' => fn ($q) => $q->with(['clearedBy', 'voucher:id,voucher_number'])->orderByDesc('id')])->findOrFail($id);
 
         return response()->json(['credit' => $credit], 200);
     }
 
-    /** One credit per certificate — normally created alongside it. This exists for backfill. */
+    /** A credit is created by the receipt that carries the withholding — there is nothing to create by hand. */
     public function adminStoreCredit(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'withholding_certificate_id' => 'required|exists:withholding_certificates,id|unique:withholding_credits,withholding_certificate_id',
-            'customer_id'                => 'required|exists:customers,id',
-            'amount'                     => 'required|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $credit = WithholdingCredit::create($request->only(['withholding_certificate_id', 'customer_id', 'amount']));
-
-        return response()->json(['credit' => $credit], 201);
+        return response()->json(['message' => 'Credits come from receipts. Record the receipt with the withholding tax on it.'], 422);
     }
 
     public function adminApplyClearance(Request $request, $id)
@@ -278,10 +287,11 @@ class WithholdingController extends Controller
         $credit = WithholdingCredit::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'amount'     => 'required|numeric|min:0.01',
-            'cleared_on' => 'nullable|date',
-            'reference'  => 'nullable|string|max:100',
-            'notes'      => 'nullable|string|max:255',
+            'amount'            => 'required|numeric|min:0.01',
+            'against_ledger_id' => 'required|integer|exists:ledgers,id',
+            'cleared_on'        => 'nullable|date',
+            'reference'         => 'nullable|string|max:100',
+            'notes'             => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -289,19 +299,13 @@ class WithholdingController extends Controller
         }
 
         try {
-            $clearance = $credit->applyClearance(
-                amount: (float) $request->amount,
-                clearedOn: $request->cleared_on,
-                reference: $request->reference,
-                notes: $request->notes,
-                clearedBy: Auth::id(),
+            $clearance = app(\App\Services\Books\WithholdingRegisterService::class)->clear(
+                $credit, (float) $request->amount, (int) $request->against_ledger_id,
+                $request->cleared_on, $request->reference, $request->notes, Auth::user(),
             );
 
-            return response()->json([
-                'clearance' => $clearance,
-                'credit'    => $credit->fresh(),
-            ], 201);
-        } catch (InvalidArgumentException $e) {
+            return response()->json(['clearance' => $clearance->load('voucher:id,voucher_number'), 'credit' => WithholdingCredit::find($credit->id)], 201);
+        } catch (\App\Services\Books\BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -310,23 +314,25 @@ class WithholdingController extends Controller
     {
         $credit = WithholdingCredit::findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
-            'reason' => 'nullable|string|max:255',
-        ]);
+        $validator = Validator::make($request->all(), ['reason' => 'nullable|string|max:255']);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $credit->writeOff($request->reason);
+        try {
+            app(\App\Services\Books\WithholdingRegisterService::class)->writeOff($credit, $request->reason, Auth::user());
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
-        return response()->json(['credit' => $credit->fresh()], 200);
+        return response()->json(['credit' => WithholdingCredit::find($credit->id)], 200);
     }
 
     public function adminIndexClearances($creditId)
     {
         $credit     = WithholdingCredit::findOrFail($creditId);
-        $clearances = $credit->clearances()->with('clearedBy')->orderByDesc('created_at')->get();
+        $clearances = $credit->clearances()->with(['clearedBy', 'voucher:id,voucher_number'])->orderByDesc('id')->get();
 
         return response()->json(['clearances' => $clearances], 200);
     }

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves and applies additive (VAT-style) taxes for a taxable entity.
- * Withheld-mode tax is handled by WithholdingService instead — the two are
+ * Withheld-mode tax is handled by the books (Receipt / Payment vouchers) instead — the two are
  * deliberately separate: they write to different tables and have very
  * different legitimacy/certificate requirements.
  *

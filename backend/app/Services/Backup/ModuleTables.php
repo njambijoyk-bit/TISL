@@ -27,7 +27,7 @@ final class ModuleTables
             'tax_rules', 'tax_districts', 'tax_rule_districts',
             'tax_applicability', 'tax_applications', 'tax_legitimacy_certificates', 'tax_activity_logs',
             'withholding_certificates', 'withholding_classifications',
-            'withholding_credits', 'withholding_credit_clearances', 'withholding_activity_logs',
+            'withholding_clearances', 'withholding_activity_logs',
             'orders', 'order_items',
             // Books: chart of accounts, numbering, vouchers and everything they post.
             'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',

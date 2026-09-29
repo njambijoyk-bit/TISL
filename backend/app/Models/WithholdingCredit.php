@@ -2,53 +2,46 @@
 
 namespace App\Models;
 
-use App\Traits\LogsWithholdingActivity;
+use App\Models\Books\Voucher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use InvalidArgumentException;
 
 /**
- * The claimable side of a WithholdingCertificate: how much of the withheld
- * amount has been cleared/credited against TISL's own tax liability.
- * amount is fixed at creation; cleared_amount accumulates via
- * WithholdingCreditClearance rows (see applyClearance()).
+ * The claimable side of a withholding certificate — a customer held tax back from us, so we hold a
+ * receivable (the type's "Receivable" ledger) until it is set against our own tax or refunded.
+ * It is not a table of its own: it is the credit_* part of the certificate a receipt generated, and
+ * every clearance / write-off is a Journal voucher (see WithholdingRegisterService).
  */
 class WithholdingCredit extends Model
 {
-    use LogsWithholdingActivity;
-
     public const STATUS_HELD              = 'held';
     public const STATUS_PARTIALLY_CLEARED = 'partially_cleared';
     public const STATUS_CLEARED           = 'cleared';
     public const STATUS_WRITTEN_OFF       = 'written_off';
 
-    protected $table = 'withholding_credits';
+    protected $table = 'withholding_certificates';
 
-    protected $fillable = [
-        'withholding_certificate_id',
-        'customer_id',
-        'amount',
-        'cleared_amount',
-        'status',
-        'remitted_on',
-        'remittance_reference',
-    ];
+    protected $appends = ['amount', 'status', 'certificate'];
 
-    protected $casts = [
-        'amount'         => 'decimal:2',
-        'cleared_amount' => 'decimal:2',
-        'remitted_on'    => 'date',
-    ];
+    protected $hidden = ['withheld_amount', 'credit_status'];
 
-    // ========================================
-    // RELATIONSHIPS
-    // ========================================
+    protected $casts = ['cleared_amount' => 'decimal:2', 'withheld_amount' => 'decimal:2', 'gross_amount' => 'decimal:2', 'net_amount' => 'decimal:2'];
 
-    public function certificate(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(WithholdingCertificate::class, 'withholding_certificate_id');
+        static::addGlobalScope('credits', fn (Builder $q) => $q->where('withholding_certificates.direction', 'receivable')->whereNotNull('withholding_certificates.credit_status'));
+    }
+
+    public function getAmountAttribute(): string { return (string) $this->attributes['withheld_amount']; }
+    public function getStatusAttribute(): ?string { return $this->attributes['credit_status'] ?? null; }
+
+    /** The certificate this credit belongs to (the same record, in the shape the credit screens expect). */
+    public function getCertificateAttribute(): array
+    {
+        return ['id' => $this->id, 'certificate_number' => $this->attributes['certificate_number'] ?? null, 'status' => $this->attributes['status'] ?? null,
+            'withheld_amount' => $this->attributes['withheld_amount'] ?? null, 'gross_amount' => $this->attributes['gross_amount'] ?? null, 'voucher_id' => $this->attributes['voucher_id'] ?? null];
     }
 
     public function customer(): BelongsTo
@@ -56,110 +49,33 @@ class WithholdingCredit extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class, 'voucher_id');
+    }
+
+    public function partyLedger(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Books\Ledger::class, 'party_ledger_id');
+    }
+
     public function clearances(): HasMany
     {
-        return $this->hasMany(WithholdingCreditClearance::class);
-    }
-
-    // ========================================
-    // SCOPES
-    // ========================================
-
-    public function scopeHeld(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_HELD);
-    }
-
-    public function scopePartiallyCleared(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_PARTIALLY_CLEARED);
-    }
-
-    public function scopeCleared(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_CLEARED);
-    }
-
-    public function scopeWrittenOff(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_WRITTEN_OFF);
+        return $this->hasMany(WithholdingCreditClearance::class, 'certificate_id');
     }
 
     public function scopeOutstanding(Builder $query): Builder
     {
-        return $query->whereIn('status', [self::STATUS_HELD, self::STATUS_PARTIALLY_CLEARED]);
+        return $query->whereIn('withholding_certificates.credit_status', [self::STATUS_HELD, self::STATUS_PARTIALLY_CLEARED]);
     }
 
     public function scopeForCustomer(Builder $query, int $customerId): Builder
     {
-        return $query->where('customer_id', $customerId);
+        return $query->where('withholding_certificates.customer_id', $customerId);
     }
-
-    // ========================================
-    // HELPERS
-    // ========================================
 
     public function remainingAmount(): float
     {
-        return round((float) $this->amount - (float) $this->cleared_amount, 2);
-    }
-
-    public function isFullyCleared(): bool
-    {
-        return $this->remainingAmount() <= 0.0;
-    }
-
-    /**
-     * Record a clearance against this credit: writes the ledger row,
-     * bumps cleared_amount, and re-derives status. Mirrors the DB-level
-     * CHECK (cleared_amount >= 0 AND cleared_amount <= amount).
-     */
-    public function applyClearance(
-        float $amount,
-        ?string $clearedOn = null,
-        ?string $reference = null,
-        ?string $notes = null,
-        ?int $clearedBy = null
-    ): WithholdingCreditClearance {
-        if ($amount <= 0) {
-            throw new InvalidArgumentException('Clearance amount must be positive.');
-        }
-
-        if ($amount > $this->remainingAmount() + 0.0001) {
-            throw new InvalidArgumentException('Clearance amount exceeds the remaining balance on this credit.');
-        }
-
-        $clearance = $this->clearances()->create([
-            'amount'     => $amount,
-            'cleared_on' => $clearedOn ?? now()->toDateString(),
-            'reference'  => $reference,
-            'notes'      => $notes,
-            'cleared_by' => $clearedBy,
-        ]);
-
-        $old = $this->only(['cleared_amount', 'status']);
-
-        $this->cleared_amount = round((float) $this->cleared_amount + $amount, 2);
-        $this->status = $this->isFullyCleared() ? self::STATUS_CLEARED : self::STATUS_PARTIALLY_CLEARED;
-        $this->save();
-
-        $this->recordActivity(
-            'clearance_applied',
-            $old,
-            $this->only(['cleared_amount', 'status']),
-            ['clearance_id' => $clearance->id, 'amount' => $amount]
-        );
-
-        return $clearance;
-    }
-
-    public function writeOff(?string $reason = null): void
-    {
-        $old = $this->only(['status']);
-
-        $this->status = self::STATUS_WRITTEN_OFF;
-        $this->save();
-
-        $this->recordActivity('written_off', $old, $this->only(['status']), $reason ? ['reason' => $reason] : []);
+        return round((float) $this->attributes['withheld_amount'] - (float) $this->cleared_amount, 2);
     }
 }

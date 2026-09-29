@@ -72,6 +72,7 @@ class VoucherService
             $voucher = $this->persist($plan, $data, $user, null);
             $this->audit($voucher, 'created', $user);
             $this->rewardHook($voucher);
+            app(WithholdingRegisterService::class)->sync($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -101,6 +102,7 @@ class VoucherService
             $before = $voucher->only(['date', 'total_amount', 'party_ledger_id', 'narration']);
             $voucher = $this->persist($plan, $data, $user, $voucher);
             $this->audit($voucher, 'altered', $user, ['before' => $before]);
+            app(WithholdingRegisterService::class)->sync($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -116,6 +118,7 @@ class VoucherService
             $this->guard->assertVoucher('cancel', $voucher, $user);
             $this->assertNoLiveChildren($voucher, 'cancel');
 
+            app(WithholdingRegisterService::class)->void($voucher);   // refuses when part of its credit was already cleared
             $this->reverseEffects($voucher);
             $voucher->update([
                 'status' => Voucher::CANCELLED, 'cancelled_at' => now(), 'cancelled_by' => $user?->id,

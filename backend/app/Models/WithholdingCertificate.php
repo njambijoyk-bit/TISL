@@ -6,7 +6,6 @@ use App\Traits\LogsWithholdingActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Proves that tax was actually withheld on a specific payment (as opposed
@@ -20,6 +19,7 @@ class WithholdingCertificate extends Model
     public const STATUS_PENDING  = 'pending';
     public const STATUS_ISSUED   = 'issued';
     public const STATUS_RECEIVED = 'received';
+    public const STATUS_VOID     = 'void';   // its voucher was cancelled
 
     protected $table = 'withholding_certificates';
 
@@ -34,6 +34,14 @@ class WithholdingCertificate extends Model
         'status',
         'issued_at',
         'document_path',
+        'voucher_id',
+        'direction',
+        'party_ledger_id',
+        'tax_rate_id',
+        'currency_id',
+        'exchange_rate',
+        'cleared_amount',
+        'credit_status',
     ];
 
     protected $casts = [
@@ -41,6 +49,7 @@ class WithholdingCertificate extends Model
         'withheld_amount' => 'decimal:2',
         'net_amount'      => 'decimal:2',
         'issued_at'       => 'date',
+        'cleared_amount'  => 'decimal:2',
     ];
 
     // ========================================
@@ -63,9 +72,20 @@ class WithholdingCertificate extends Model
         return $this->belongsTo(TaxLegitimacyCertificate::class, 'authorizing_certificate_id');
     }
 
-    public function credit(): HasOne
+    /** The Receipt / Payment voucher this certificate was generated from. */
+    public function voucher(): BelongsTo
     {
-        return $this->hasOne(WithholdingCredit::class);
+        return $this->belongsTo(\App\Models\Books\Voucher::class, 'voucher_id');
+    }
+
+    public function partyLedger(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Books\Ledger::class, 'party_ledger_id');
+    }
+
+    public function clearances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WithholdingCreditClearance::class, 'certificate_id');
     }
 
     // ========================================

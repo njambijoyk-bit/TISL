@@ -117,6 +117,11 @@ export default function CreditsSection({ canWrite }) {
                       <strong style={{ color: colors.text }}>{money(cl.amount)}</strong>
                       <span style={{ color: colors.textFaint }}>{cl.cleared_on?.slice(0, 10)}</span>
                     </div>
+                    {(cl.kind === 'writeoff' || cl.voucher?.voucher_number || cl.voided_at) && (
+                      <p style={{ margin: '3px 0 0', color: colors.textMuted }}>
+                        {cl.kind === 'writeoff' ? 'Written off' : 'Cleared'}{cl.voucher?.voucher_number && <> · {cl.voucher.voucher_number}</>}{cl.voided_at && ' · voided'}
+                      </p>
+                    )}
                     {(cl.reference || cl.cleared_by?.name) && (
                       <p style={{ margin: '3px 0 0', color: colors.textMuted }}>
                         {cl.reference && <>Ref {cl.reference}</>}{cl.reference && cl.cleared_by?.name && ' · '}{cl.cleared_by?.name}
