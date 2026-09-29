@@ -67,6 +67,12 @@ const auctionsAPI = {
     return response.data;
   },
 
+  // Admin: make a Sales Order for the winner (books)
+  createOrder: async (auctionId) => {
+    const response = await api.post(`/admin/auctions/${auctionId}/create-order`);
+    return response.data;
+  },
+
   // Admin: Auction activity log
   getAuctionActivity: async (auctionId, params = {}) => {
     const response = await api.get(`/admin/auctions/${auctionId}/activity`, { params });

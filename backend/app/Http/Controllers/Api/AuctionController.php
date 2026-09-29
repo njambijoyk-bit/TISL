@@ -430,4 +430,17 @@ class AuctionController extends Controller
             $query->paginate($request->per_page ?? 30)
         );
     }
+
+    /** Turn a won auction into a Sales Order for the winner (books). */
+    public function createOrder(Request $request, $id)
+    {
+        try {
+            $a = Auction::with('winner.customer')->findOrFail($id);
+            $v = app(\App\Services\Books\AuctionOrderService::class)->fromAuction($a, $request->user());
+
+            return response()->json(['message' => "Order {$v->voucher_number} created for the winner", 'voucher_id' => $v->id], 201);
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 }

@@ -216,6 +216,17 @@ export default function AdminAuctionDetail() {
     }
   };
 
+  const handleCreateOrder = async () => {
+    if (!window.confirm('Create a sales order for the winner at the winning bid?')) return;
+    try {
+      const res = await auctionsAPI.createOrder(id);
+      toast.success(res.message);
+      navigate(`/admin/books/vouchers/${res.voucher_id}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not create the order', { duration: 7000 });
+    }
+  };
+
   const maxWinners = auction?.max_winners || 1;
   const auctionCode = auction?.currency?.code ?? 'KES';
   const auctionSymbol = auction?.currency?.symbol || auctionCode;
@@ -288,7 +299,10 @@ export default function AdminAuctionDetail() {
                     Cancel Auction
                   </button>
                 )}
-                <button onClick={handleDelete}
+                {auction.winner_id && (
+            <button onClick={handleCreateOrder} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#059669', color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Create order for winner</button>
+          )}
+          <button onClick={handleDelete}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid rgba(220,38,38,0.4)', borderRadius: 10, background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontWeight: 700, fontSize: '0.825rem', cursor: 'pointer' }}>
                   <Trash2 size={14} /> Delete
                 </button>

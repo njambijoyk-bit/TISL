@@ -18,7 +18,7 @@ const th = { padding: '8px 10px', fontSize: '0.65rem', fontWeight: 700, color: c
 const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
 const r = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
-const TARGETS = { sales_order: [['delivery_note', 'Delivery note'], ['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']], delivery_note: [['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']] };
+const TARGETS = { quotation: [['sales_order', 'Sales order'], ['sales', 'Sales invoice']], purchase_order: [['receipt_note', 'Receipt note (goods in)'], ['purchase', 'Purchase invoice']], receipt_note: [['purchase', 'Purchase invoice']], sales_order: [['delivery_note', 'Delivery note'], ['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']], delivery_note: [['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']] };
 
 function ConvertModal({ v, methods, onClose, onDone }) {
   const options = TARGETS[v.type.base_type] ?? [];
@@ -114,7 +114,7 @@ export default function VoucherView() {
 
   const base = v.type.base_type;
   const live = v.status === 'posted';
-  const convertible = live && ['sales_order', 'delivery_note'].includes(base) && v.fulfilment_status !== 'closed';
+  const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
   const receivable = live && ['sales', 'debit_note'].includes(base) && Number(v.outstanding) > 0.005;
   const children = (id2) => (v.items ?? []).filter((i) => i.parent_item_id === id2);
   const top = (v.items ?? []).filter((i) => !i.parent_item_id);
@@ -156,13 +156,13 @@ export default function VoucherView() {
           <div style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr style={{ background: colors.tint(0.02) }}><th style={th}>Item</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Rate</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Tax</th>{['sales_order', 'delivery_note'].includes(base) && <th style={{ ...th, textAlign: 'right' }}>Done</th>}</tr></thead>
+                <thead><tr style={{ background: colors.tint(0.02) }}><th style={th}>Item</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Rate</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Tax</th>{['sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && <th style={{ ...th, textAlign: 'right' }}>Done</th>}</tr></thead>
                 <tbody>
                   {top.map((i) => (
-                    <FragmentRows key={i.id} item={i} kids={children(i.id)} showDone={['sales_order', 'delivery_note'].includes(base)} />
+                    <FragmentRows key={i.id} item={i} kids={children(i.id)} showDone={['sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base)} />
                   ))}
-                  <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}><td style={td} colSpan={4}>Subtotal / tax / total</td><td style={{ ...td, ...r }}>{money(v.subtotal)}</td><td style={{ ...td, ...r }}>{money(v.tax_total)}</td>{['sales_order', 'delivery_note'].includes(base) && <td style={td} />}</tr>
-                  <tr style={{ fontWeight: 800 }}><td style={td} colSpan={4}>Total {v.currency?.code}</td><td style={{ ...td, ...r }} colSpan={2}>{money(v.total_amount)}</td>{['sales_order', 'delivery_note'].includes(base) && <td style={td} />}</tr>
+                  <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}><td style={td} colSpan={4}>Subtotal / tax / total</td><td style={{ ...td, ...r }}>{money(v.subtotal)}</td><td style={{ ...td, ...r }}>{money(v.tax_total)}</td>{['sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && <td style={td} />}</tr>
+                  <tr style={{ fontWeight: 800 }}><td style={td} colSpan={4}>Total {v.currency?.code}</td><td style={{ ...td, ...r }} colSpan={2}>{money(v.total_amount)}</td>{['sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && <td style={td} />}</tr>
                 </tbody>
               </table>
             </div>

@@ -798,6 +798,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/trashed', [AuctionController::class, 'trashed']);
             Route::get('/{auction}', [AuctionController::class, 'adminShow']);
             Route::put('/{auction}', [AuctionController::class, 'update']);
+            Route::post('/{auction}/create-order', [AuctionController::class, 'createOrder']);
             Route::delete('/{auction}', [AuctionController::class, 'destroy']);
             Route::post('/{id}/restore', [AuctionController::class, 'restore']);  // ← new
             Route::delete('/{id}/force', [AuctionController::class, 'forceDestroy']); 
