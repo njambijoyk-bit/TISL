@@ -7,6 +7,8 @@ import checkoutAPI from '../../../_shared/api/checkout';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { ORDER_STATUS } from './orderStatus';
+import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
+import SummaryLedger from '../../../_shared/components/common/SummaryLedger';
 import { creditSentence } from '../../components/admin/books/creditText';
 
 export default function CustomerOrderPage() {
@@ -28,6 +30,8 @@ export default function CustomerOrderPage() {
   const cur = o.currency;
   const m = (n) => formatMoney(n, cur);
   const [label, color] = ORDER_STATUS[o.status] ?? [o.status, '#6b7280'];
+  // the order in the same shape the checkout priced it, so it reads the same as the confirmation page and the admin's voucher
+  const q = { currency: o.currency, lines: o.lines, subtotal: o.subtotal, tax_total: o.tax_total, total: o.total, due_now: o.total, discounts: o.discounts ?? [], tax_breakdown: o.tax_breakdown ?? [], gift: null, customer: null };
   const canPay = o.payment === 'unpaid' && o.status !== 'cancelled' && (opts?.payment_methods?.length ?? 0) > 0;
   const canCancel = o.payment === 'unpaid' && o.status !== 'cancelled' && !(o.documents?.length);
 
@@ -84,27 +88,34 @@ export default function CustomerOrderPage() {
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
         <Link to="/orders" style={{ fontSize: '0.8rem', color: '#6b7280' }}>← My orders</Link>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Order <span style={{ fontFamily: 'monospace' }}>{o.number}</span></h1>
-        <p style={{ color: '#6b7280', fontSize: '0.85rem' }}><span style={{ color, fontWeight: 700 }}>{label}</span> · {o.date}{o.branch && ` · ${o.branch}`}</p>
+        <p style={{ color: '#6b7280', fontSize: '0.85rem' }}><span style={{ color, fontWeight: 700 }}>{label}</span></p>
         {o.stock_pending && <p style={{ padding: 10, borderRadius: 8, background: 'rgba(245,158,11,0.1)', fontSize: '0.82rem' }}>Paid — some items are being restocked; we'll deliver as soon as they arrive.</p>}
-        {o.contact?.shipping_address && <p style={{ fontSize: '0.82rem' }}><strong>Delivering to:</strong> {o.contact.shipping_address}</p>}
+        {/* where the order is: placed, then paid, then delivered */}
+        {o.status !== 'cancelled' ? (
+          <div aria-label="Order progress" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '14px 0', flexWrap: 'wrap', fontSize: '0.78rem' }}>
+            {[['Placed', true], [o.payment === 'invoiced' ? 'Invoiced' : 'Paid', o.payment === 'paid' || o.payment === 'invoiced' || o.status === 'paid' || o.status === 'delivered'], ['Delivered', o.status === 'delivered']].map(([step, done], i) => (
+              <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {i > 0 && <span aria-hidden style={{ width: 28, height: 2, background: done ? '#10b981' : '#e5e7eb' }} />}
+                <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'white', background: done ? '#10b981' : '#d1d5db' }}>{done ? '✓' : i + 1}</span>
+                <span style={{ fontWeight: done ? 700 : 500, color: done ? '#065f46' : '#9ca3af' }}>{step}</span>
+              </span>
+            ))}
+          </div>
+        ) : <p role="status" style={{ padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.08)', color: '#991b1b', fontSize: '0.82rem' }}>This order was cancelled.</p>}
 
-        <div style={{ overflowX: 'auto', margin: '16px 0' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-            <thead><tr style={{ textAlign: 'left', color: '#9ca3af', fontSize: '0.7rem' }}><th style={{ padding: 8 }}>Item</th><th style={{ textAlign: 'right' }}>Qty</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
-            <tbody>
-              {o.lines.map((l) => (
-                <tr key={l.id} style={{ borderTop: '1px solid #f3f4f6', color: l.is_component ? '#6b7280' : 'inherit' }}>
-                  <td style={{ padding: 8, paddingLeft: l.is_component ? 24 : 8 }}>{l.is_component && '└ '}{l.description}{l.variant_label && l.variant_label !== 'Standard' ? ` — ${l.variant_label}` : ''}</td>
-                  <td style={{ textAlign: 'right' }}>{edit && !l.is_component ? <input type="number" min="0" step="any" aria-label={`Quantity of ${l.description}`} value={edit.qty[l.id] ?? ''} onChange={(e) => setEdit((x) => ({ ...x, qty: { ...x.qty, [l.id]: e.target.value } }))} style={{ width: 70, padding: 4, borderRadius: 6, border: '1.5px solid #e5e7eb', textAlign: 'right' }} /> : `${l.quantity} ${l.unit_code ?? ''}`}</td>
-                  <td style={{ textAlign: 'right' }}>{l.is_component ? '' : m(l.amount)}</td>
-                </tr>
-              ))}
-              {o.charges.map((c, i) => <tr key={`c${i}`} style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={2}>{c.description}</td><td style={{ textAlign: 'right' }}>{Number(c.amount) === 0 ? 'Free' : m(c.amount)}</td></tr>)}
-              {o.discount_total > 0 && <tr style={{ borderTop: '1px solid #f3f4f6', color: '#059669' }}><td style={{ padding: 8 }} colSpan={2}>Discounts</td><td style={{ textAlign: 'right' }}>−{m(o.discount_total)}</td></tr>}
-              {o.tax_total > 0 && <tr style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={2}>Tax</td><td style={{ textAlign: 'right' }}>{m(o.tax_total)}</td></tr>}
-              <tr style={{ borderTop: '2px solid #e5e7eb', fontWeight: 800 }}><td style={{ padding: 8 }} colSpan={2}>Total</td><td style={{ textAlign: 'right' }}>{m(o.total)}</td></tr>
-            </tbody>
-          </table>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, padding: 14, borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)', fontSize: '0.82rem', margin: '0 0 6px' }}>
+          <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>PLACED</span>{o.date}{o.branch && <span style={{ color: '#6b7280' }}> · {o.branch}</span>}</div>
+          {o.contact?.shipping_address && <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>DELIVERING TO</span>{o.contact.shipping_address}</div>}
+          {(o.contact?.phone || o.contact?.email) && <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>CONTACT</span>{[o.contact.phone, o.contact.email].filter(Boolean).join(' · ')}</div>}
+          <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>PAYMENT</span>{o.payment === 'paid' ? 'Paid' : o.payment === 'invoiced' ? 'Invoiced — payment due' : 'Not paid yet'}</div>
+          {o.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>YOUR NOTES</span>{o.narration}</div>}
+        </div>
+
+        <div style={{ margin: '16px 0', display: 'grid', gap: 14 }}>
+          <OrderBreakdown quote={q} linesOnly qtyCell={edit ? (l) => (l.id && !l.is_component && l.item_type !== 'charge' && (l.product_id || l.hamper_id)
+            ? <input type="number" min="0" step="any" aria-label={`Quantity of ${l.description}`} value={edit.qty[l.id] ?? ''} onChange={(e) => setEdit((x) => ({ ...x, qty: { ...x.qty, [l.id]: e.target.value } }))} style={{ width: 80, padding: 4, borderRadius: 6, border: '1.5px solid #e5e7eb', textAlign: 'right' }} />
+            : null) : null} />
+          <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%' }}><SummaryLedger quote={q} showCustomer={false} /></div>
         </div>
 
         {o.payment_intent && !['later'].includes(o.payment_intent.kind) && (

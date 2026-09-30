@@ -171,11 +171,14 @@ class CheckoutController extends Controller
             'id' => $i->id, 'description' => $i->description, 'variant_label' => $i->variant_label, 'unit_code' => $i->unit_code, 'quantity' => (float) $i->quantity, 'rate' => (float) $i->rate,
             'amount' => (float) $i->amount, 'discount' => (float) $i->discount_amount, 'tax_amount' => (float) $i->tax_amount, 'is_component' => $i->parent_item_id !== null, 'product_id' => $i->product_id, 'variant_id' => $i->variant_id, 'variant_unit_id' => $i->variant_unit_id, 'hamper_id' => $i->is_header ? $i->hamper_id : null,
             'item_type' => $i->item_type, 'delivered' => (float) $i->delivered_quantity,
+            'discount_amount' => (float) $i->discount_amount, 'tax_rate_percent' => $i->tax_rate_percent !== null ? (float) $i->tax_rate_percent : null,
+            'is_header' => (bool) $i->is_header,
         ])->values();
 
         return response()->json($this->orderRow($v) + [
             'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'tax_total' => (float) $v->tax_total, 'discount_total' => $footer['discount_total'],
             'charges' => array_map(fn ($c) => ['description' => $c['description'], 'amount' => $c['amount'], 'note' => $c['note']], $footer['charges']),
+            'discounts' => array_values($v->meta['discounts'] ?? []), 'tax_breakdown' => array_map(fn ($t) => ['label' => $t['label'], 'percent' => null, 'amount' => round($t['amount'], 2)], $footer['taxes']),
             'contact' => $v->meta['contact'] ?? null, 'branch' => $v->location?->name, 'narration' => $v->narration,
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),

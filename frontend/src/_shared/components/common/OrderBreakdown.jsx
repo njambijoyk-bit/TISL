@@ -7,7 +7,7 @@ import { formatMoney } from '../../lib/money';
  */
 const n2 = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function OrderBreakdown({ quote, children, linesOnly = false }) {
+export default function OrderBreakdown({ quote, children, linesOnly = false, qtyCell = null }) {
   if (!quote) return null;
   const sym = quote.currency?.symbol || quote.currency?.code || '';
   const lines = (quote.lines ?? []).filter((l) => !l.is_header || l.amount != null);
@@ -25,14 +25,14 @@ export default function OrderBreakdown({ quote, children, linesOnly = false }) {
         </thead>
         <tbody>
           {lines.map((l, i) => (
-            <tr key={i}>
-              <td style={td}>{l.description}</td>
+            <tr key={i} style={l.is_component ? { color: '#6b7280' } : undefined}>
+              <td style={{ ...td, paddingLeft: l.is_component ? 30 : 14, color: l.is_component ? '#6b7280' : td.color }}>{l.is_component ? '└ ' : ''}{l.description}</td>
               <td style={td}>{l.variant_label && l.variant_label !== 'Standard' ? l.variant_label : ''}</td>
-              <td style={{ ...td, ...r }}>{l.item_type === 'charge' ? '' : `${Number(l.quantity)}${l.unit_code ? ` ${l.unit_code}` : ''}`}</td>
-              <td style={{ ...td, ...r }}>{l.item_type === 'charge' ? '' : n2(l.rate)}</td>
-              {hasDisc && <td style={{ ...td, ...r, color: '#059669' }}>{Number(l.discount_amount) > 0 ? `−${n2(l.discount_amount)}` : ''}</td>}
-              <td style={{ ...td, ...r }}>{Number(l.amount) === 0 && l.item_type === 'charge' ? 'Free' : n2(l.amount)}</td>
-              <td style={{ ...td, ...r }}>{taxCell(l)}</td>
+              <td style={{ ...td, ...r }}>{(qtyCell && qtyCell(l)) || (l.item_type === 'charge' ? '' : `${Number(l.quantity)}${l.unit_code ? ` ${l.unit_code}` : ''}`)}</td>
+              <td style={{ ...td, ...r }}>{l.item_type === 'charge' || l.is_component ? '' : n2(l.rate)}</td>
+              {hasDisc && <td style={{ ...td, ...r, color: '#059669' }}>{!l.is_component && Number(l.discount_amount) > 0 ? `−${n2(l.discount_amount)}` : ''}</td>}
+              <td style={{ ...td, ...r }}>{l.is_component ? '' : Number(l.amount) === 0 && l.item_type === 'charge' ? 'Free' : n2(l.amount)}</td>
+              <td style={{ ...td, ...r }}>{l.is_component ? '' : taxCell(l)}</td>
             </tr>
           ))}
           {!linesOnly && (quote.discounts ?? []).map((d, i) => (
