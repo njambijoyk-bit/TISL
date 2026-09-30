@@ -158,7 +158,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
-  const [promo, setPromo] = useState('');            // a promo code the customer holds, applied as a discount line by the server
+  const [discountPick, setDiscountPick] = useState(null);   // discount keys ticked (null = not chosen yet: the automatic ones are ticked once they load)
   const [ent, setEnt] = useState(null);               // { gift_vouchers, promo_codes } for the chosen customer
   const [giftPick, setGiftPick] = useState(null);     // gift voucher codes ticked (null = not chosen yet: all usable ones are ticked)
   const [whRates, setWhRates] = useState([]);
@@ -194,6 +194,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (!editing) return;
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
+      setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
@@ -239,9 +240,16 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     return out;
   }, [ent, giftPick, preview?.total]);
 
+  // The customer's automatic discounts (personal / tier / type, referral) are ticked for the admin once they load; promo codes are not.
+  const discountOptions = preview?.discount_options ?? [];
+  useEffect(() => {
+    if (!editing && h.customer && discountPick === null && discountOptions.length) setDiscountPick(discountOptions.filter((o) => o.auto).map((o) => o.key));
+  }, [discountOptions, discountPick, editing, h.customer]);
+
   // What the chosen customer can use on this sale: their gift vouchers and promo codes, with the amounts they would cover.
   const custId = h.customer?.customer_id;
-  useEffect(() => { setPromo(''); setGiftPick(null); }, [custId]);   // a different customer has different vouchers and codes
+  // a different customer has different vouchers and discounts
+  useEffect(() => { if (!editing) setDiscountPick(null); setGiftPick(null); }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
   const saleTotal = Number(preview?.total) || 0;
   const saleNet = Number(preview?.subtotal) || 0;
   useEffect(() => {
@@ -281,7 +289,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
-    if (promo && h.customer) p.promo_code = promo;
+    if (h.customer && discountPick !== null) p.discount_choices = discountPick;   // which of the customer's discounts to apply
     if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
       const giftMethod = methods.find((m) => m.kind === 'gift_voucher');
       const rest = Math.max(0, (Number(preview?.total) || 0) - giftPlan.reduce((t, g) => t + g.applied, 0));
@@ -295,7 +303,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, promo, giftPlan, base, methods, preview?.total]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, base, methods, preview?.total]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -562,38 +570,45 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               </div>
             )}
 
-            {ent && (ent.gift_vouchers?.length > 0 || ent.promo_codes?.length > 0) && (
+            {h.customer && hasItems && discountOptions.length > 0 && (
               <div style={{ ...card, padding: 14 }}>
-                <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>Available for {h.customer?.name}</p>
-                {ent.gift_vouchers?.length > 0 && (
-                  <div style={{ display: 'grid', gap: 6, marginBottom: ent.promo_codes?.length ? 12 : 0 }}>
-                    <span style={label}>Gift vouchers{base === 'cash_sale' ? '' : ' (paid on a Cash Sale)'}</span>
-                    {ent.gift_vouchers.map((g) => {
-                      const on = (giftPick ?? []).includes(g.code);
-                      const used = giftPlan.find((x) => x.code === g.code)?.applied;
-                      return (
-                        <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: base === 'cash_sale' ? 'pointer' : 'default' }}>
-                          <input type="checkbox" disabled={base !== 'cash_sale'} checked={on && base === 'cash_sale'} onChange={() => setGiftPick((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
-                          <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: colors.textMuted }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
-                          <span style={{ fontWeight: 700 }}>{on && base === 'cash_sale' ? `applies ${money(used ?? 0)}` : `could cover ${money(g.applicable)}`}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-                {ent.promo_codes?.length > 0 && (
-                  <div style={{ display: 'grid', gap: 6 }}>
-                    <span style={label}>Promo codes</span>
-                    {ent.promo_codes.map((c) => (
-                      <label key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: 'pointer' }}>
-                        <input type="radio" name="promo" checked={promo === c.code} onChange={() => setPromo(c.code)} />
-                        <span style={{ flex: 1 }}><strong>{c.code}</strong></span>
-                        <span style={{ fontWeight: 700, color: '#059669' }}>saves {money(c.discount)}</span>
+                <p style={{ margin: '0 0 4px', fontWeight: 700, color: colors.text }}>Discounts for {h.customer.name}</p>
+                <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: colors.textMuted }}>Each one ticked is taken off the items before VAT, so the VAT is worked out on what is left.</p>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {discountOptions.map((o) => {
+                    const on = (discountPick ?? []).includes(o.key);
+                    return (
+                      <label key={o.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={on} onChange={() => setDiscountPick((cur) => {
+                          const c = cur ?? [];
+                          if (c.includes(o.key)) return c.filter((k) => k !== o.key);
+                          return o.kind === 'promo' ? [...c.filter((k) => !k.startsWith('promo:')), o.key] : [...c, o.key];   // one promo code per sale
+                        })} />
+                        <span style={{ flex: 1 }}>{o.label}{o.error && <span style={{ color: '#b91c1c', marginLeft: 8 }}>{o.error}</span>}</span>
+                        <span style={{ fontWeight: 700, color: on ? '#059669' : colors.textMuted }}>{on ? `−${money(o.amount)}` : `would take off ${money(o.amount)}`}</span>
                       </label>
-                    ))}
-                    {promo && <button type="button" onClick={() => setPromo('')} style={{ justifySelf: 'start', background: 'none', border: 'none', color: colors.textMuted, fontSize: '0.74rem', cursor: 'pointer', padding: 0 }}>Remove promo code</button>}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {ent && ent.gift_vouchers?.length > 0 && (
+              <div style={{ ...card, padding: 14 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>Gift vouchers for {h.customer?.name}</p>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={label}>{base === 'cash_sale' ? 'Tick to pay with them' : 'Paid on a Cash Sale'}</span>
+                  {ent.gift_vouchers.map((g) => {
+                    const on = (giftPick ?? []).includes(g.code);
+                    const used = giftPlan.find((x) => x.code === g.code)?.applied;
+                    return (
+                      <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: base === 'cash_sale' ? 'pointer' : 'default' }}>
+                        <input type="checkbox" disabled={base !== 'cash_sale'} checked={on && base === 'cash_sale'} onChange={() => setGiftPick((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
+                        <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: colors.textMuted }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
+                        <span style={{ fontWeight: 700 }}>{on && base === 'cash_sale' ? `applies ${money(used ?? 0)}` : `could cover ${money(g.applicable)}`}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {hasItems && SALES_SIDE.includes(base) && !['quotation', 'credit_note'].includes(base) && lines.some((l) => l.track_expiry) && (

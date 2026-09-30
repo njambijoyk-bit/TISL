@@ -31,6 +31,7 @@ class CheckoutService
         private PromoCodeService $promos,
         private GiftVoucherService $gifts,
         private GatewayPaymentService $gateway,
+        private DiscountService $discountEngine,
     ) {}
 
     // ── Assembling ───────────────────────────────────────────────────────
@@ -83,67 +84,48 @@ class CheckoutService
         }
         $sub = array_sum($gross);
 
-        // customer discount (personal + tier + type), then referral, then promo — each a share of each line
+        // the customer's discounts (personal / tier / type, referral, a promo code) come from one engine, are taken off
+        // BEFORE tax, and are spread over the lines so every line's VAT follows
         $discounts = [];
         $perLine = array_fill(0, count($lines), []);
-        $notes = [];
-        $share = function (float $amount, string $source, ?string $ref) use (&$perLine, $gross, &$discounts) {
-            $amount = round($amount, 2);
-            if ($amount <= 0) {
-                return;
-            }
-            $sumG = array_sum($gross) ?: 1.0;
-            $given = 0.0;
-            $keys = array_keys(array_filter($gross, fn ($g) => $g > 0));
-            foreach ($keys as $n => $k) {
-                $part = $n === count($keys) - 1 ? round($amount - $given, 2) : round($amount * $gross[$k] / $sumG, 2);
-                $given += $part;
-                $perLine[$k][] = ['amount' => $part, 'source' => $source, 'ref' => $ref];
-            }
-            $discounts[] = ['source' => $source, 'ref' => $ref, 'amount' => $amount];
-        };
-
         $referralCodeId = null;
         $promoCodeId = null;
         $promoNet = 0.0;
         $promoReferral = 0.0;
         if ($customer && $sub > 0) {
-            $pct = (float) $customer->calculateTotalDiscount();
-            if ($pct > 0) {
-                $tierPct = (float) ($customer->tier_benefits['discount'] ?? 0);
-                $share($sub * $pct / 100, $tierPct > 0 ? 'tier' : 'customer_type', $customer->tier);
-            }
-            $net = $sub - array_sum(array_column($discounts, 'amount'));
-
-            $referralDiscount = 0.0;
-            if ($customer->hasReferralDiscount() && ($rc = $customer->referralCode) && $rc->is_valid) {
-                $referralDiscount = $rc->type === 'customer_referral'
-                    ? $this->promos->referralDiscount($net, $currency)
-                    : min($net, $this->promos->discountFor($rc, $net, $currency));
-                $share($referralDiscount, 'referral', $rc->code);
-                $referralCodeId = $rc->id;
-                $net -= $referralDiscount;
-            }
-            $promoNet = $net;
-            $promoReferral = $referralDiscount;
-            if (! empty($in['promo_code'])) {
-                $res = $this->promos->validateForCheckout($in['promo_code'], $customer, $net, $currency, $referralDiscount);
-                if (! $res['valid']) {
-                    throw new BooksException($res['message']);
+            $rows = $this->discountEngine->evaluate($customer, $sub, $currency, null, ! empty($in['promo_code']) ? (string) $in['promo_code'] : null);
+            foreach ($rows as $r) {
+                if ($r['error']) {
+                    throw new BooksException($r['error']);
                 }
-                $share(min($net, $res['discount']), 'promo', $res['code']->code);
-                $promoCodeId = $res['code']->id;
             }
+            $sp = $this->discountEngine->spread($gross, $rows);
+            $perLine = $sp['perLine'] + $perLine;
+            $discounts = $sp['discounts'];
+            foreach ($rows as $r) {
+                if (! $r['chosen']) {
+                    continue;
+                }
+                $referralCodeId = $r['kind'] === 'referral' ? $r['referral_id'] : $referralCodeId;
+                $promoCodeId = $r['kind'] === 'promo' ? $r['promo_id'] : $promoCodeId;
+                if ($r['kind'] === 'referral') {
+                    $promoReferral = $r['amount'];
+                }
+                if ($r['kind'] !== 'promo') {
+                    $promoNet -= $r['amount'];
+                }
+            }
+            $promoNet = round($sub + $promoNet, 2);
         } elseif (! empty($in['promo_code'])) {
             throw new BooksException('Sign in to use a promo code.');
         }
 
         $final = [];
         foreach ($lines as $i => $l) {
-            $parts = $perLine[$i];
+            $parts = $perLine[$i] ?? [];
             if ($parts) {
                 usort($parts, fn ($a, $b) => $b['amount'] <=> $a['amount']);
-                $l['discount'] = round(array_sum(array_column($parts, 'amount')), 2);
+                $l['share_discount'] = round(array_sum(array_column($parts, 'amount')), 2);   // on top of any clearance price
                 $l['discount_source'] = $parts[0]['source'];
                 $l['discount_ref'] = $parts[0]['ref'];
             }

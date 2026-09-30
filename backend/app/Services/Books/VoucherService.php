@@ -403,22 +403,49 @@ class VoucherService
             'opening_ledger_id' => ! empty($data['opening_ledger_id']) ? (int) $data['opening_ledger_id'] : null,
             'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
             'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
-            'method' => $method, 'tenders' => $tenders, 'paid_ledger_id' => $paidLedgerId, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
+            'method' => $method, 'tenders' => $tenders, 'paid_ledger_id' => $paidLedgerId, 'discount_options' => [], 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
             'subtotal' => 0.0, 'tax_total' => 0.0, 'total' => 0.0,
         ];
 
-        // A promo code entered on a sale: worked out on what the customer is buying, exactly as checkout does, and added as
-        // a discount line (the code's use is recorded through the voucher's meta).
-        if ($type->has_items && $type->isSalesSide() && $customer && filled($data['promo_code'] ?? null) && ! in_array($type->base_type, [VoucherType::CREDIT_NOTE, VoucherType::DELIVERY_NOTE], true)) {
-            [$preSub] = $this->totals($data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx));
-            $res = app(PromoCodeService::class)->validateForCheckout((string) $data['promo_code'], $customer, $preSub, $currency, 0.0);
-            if (! $res['valid']) {
-                throw new BooksException($res['message']);
+        // The customer's discounts on a sale (personal / tier / customer type, referral, a promo code): the admin ticks which
+        // to apply (discount_choices). Each is taken off BEFORE tax, spread over the lines in proportion, so VAT follows.
+        $discountOptions = [];
+        if ($type->has_items && $type->isSalesSide() && $customer && ! in_array($type->base_type, [VoucherType::CREDIT_NOTE, VoucherType::DELIVERY_NOTE], true)) {
+            $resolved = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
+            $eligible = [];   // typed line index => what a discount can be taken from
+            foreach ($resolved as $rl) {
+                if (isset($rl['_src'])) {
+                    $eligible[$rl['_src']] = (in_array($rl['item_type'], ['product', 'service', 'custom'], true) && empty($rl['gift_meta'])) ? max(0.0, (float) $rl['amount']) : 0.0;
+                }
             }
-            $data['lines'] = array_merge($data['lines'] ?? [], [['type' => 'charge', 'kind' => 'discount', 'amount' => round(min($preSub, (float) $res['discount']), 2), 'description' => 'Promo ' . $res['code']->code]]);
-            $data['meta'] = array_merge($data['meta'] ?? [], ['promo_code_id' => $res['code']->id]);
-            unset($data['lines_resolved']);
+            $engine = app(DiscountService::class);
+            $choices = array_key_exists('discount_choices', $data) ? array_values((array) $data['discount_choices']) : null;
+            $discountOptions = $engine->evaluate($customer, array_sum($eligible), $currency, $choices === null ? [] : $choices);   // nothing is taken unless the admin chose it
+            foreach ($discountOptions as $o) {
+                if ($o['error']) {
+                    throw new BooksException($o['error']);
+                }
+            }
+            if ($choices !== null && array_filter($discountOptions, fn ($o) => $o['chosen'])) {
+                $sp = $engine->spread($eligible, $discountOptions);
+                $lineData = array_values($data['lines'] ?? []);
+                foreach ($sp['perLine'] as $i => $parts) {
+                    usort($parts, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+                    $lineData[$i]['share_discount'] = round(array_sum(array_column($parts, 'amount')), 2);
+                    $lineData[$i]['discount_source'] = $parts[0]['source'];
+                    $lineData[$i]['discount_ref'] = $parts[0]['ref'];
+                }
+                $data['lines'] = $lineData;
+                $data['meta'] = array_merge($data['meta'] ?? [], array_filter([
+                    'discounts' => $sp['discounts'],
+                    'promo_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'promo')['promo_id'] ?? null,
+                    'referral_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'referral')['referral_id'] ?? null,
+                ], fn ($v) => $v !== null));
+                unset($data['lines_resolved']);
+            }
         }
+
+        $plan['discount_options'] = $discountOptions;
 
         if ($type->has_items) {
             $lines = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
@@ -460,7 +487,7 @@ class VoucherService
         $out = [];
         foreach ($raw as $i => $l) {
             $kind = $l['type'] ?? 'product';
-            $out[] = match ($kind) {
+            $row = match ($kind) {
                 'product' => $this->productLine($l, $ctx),
                 'service' => $this->serviceLine($l, $ctx),
                 'hamper'  => $this->hamperLines($l, $ctx),
@@ -468,6 +495,8 @@ class VoucherService
                 'custom'  => $this->customLine($l, $ctx),
                 default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
             };
+            $row['_src'] = $i;   // which line the admin typed this came from (a service's parts have none)
+            $out[] = $row;
             if ($kind === 'service') {
                 foreach ($this->materialLines($l['materials'] ?? [], $ctx) as $m) {
                     $out[] = $m;   // the parts used for the service sit right under it
@@ -661,7 +690,7 @@ class VoucherService
             'description' => $product->name, 'variant_label' => $variant->name ?: ($variant->combination_key !== 'default' ? $variant->combination_key : null),
             'sku' => $variant->sku ?: $product->sku, 'unit_code' => $unitRow->unit?->code, 'unit_factor' => $factor,
             'quantity' => $qty, 'base_quantity' => round($qty * $factor, 4), 'rate' => round($rate, 4),
-            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null,
+            'discount_amount' => round((float) ($l['discount'] ?? 0) + (float) ($l['share_discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null,
             'location_id' => $l['location_id'] ?? null, 'notes' => $l['notes'] ?? null,
             'batch_no' => filled($l['batch_no'] ?? null) ? trim((string) $l['batch_no']) : null,
             'mfg_date' => filled($l['mfg_date'] ?? null) ? $l['mfg_date'] : null,
@@ -701,7 +730,7 @@ class VoucherService
             'service_id' => $service->id, 'service_variant_id' => $pkg->id, 'description' => $service->name,
             'variant_label' => $pkg->name, 'sku' => $service->sku, 'unit_code' => $pkg->priceUnit?->code,
             'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round($rate, 4),
-            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
+            'discount_amount' => round((float) ($l['discount'] ?? 0) + (float) ($l['share_discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
         ] + $this->discountMeta($l));
         $line['pending_price'] = $pending;
         $this->finishAmounts($line, $service, 'service', $pkg->price_unit_id, $ctx);
@@ -815,7 +844,7 @@ class VoucherService
         $qty = $this->qty($l, $l['description']);
         $line = array_merge($this->blank('custom'), [
             'description' => $l['description'], 'quantity' => $qty, 'base_quantity' => $qty, 'rate' => round((float) ($l['rate'] ?? 0), 4),
-            'discount_amount' => round((float) ($l['discount'] ?? 0), 2), 'ledger_id' => (int) $l['ledger_id'], 'notes' => $l['notes'] ?? null,
+            'discount_amount' => round((float) ($l['discount'] ?? 0) + (float) ($l['share_discount'] ?? 0), 2), 'ledger_id' => (int) $l['ledger_id'], 'notes' => $l['notes'] ?? null,
             'pending_price' => ! empty($l['pending_price']) && $ctx['type']->base_type === VoucherType::QUOTATION,
         ] + $this->discountMeta($l));
         $line['amount'] = round($qty * $line['rate'] - $line['discount_amount'], 2);
@@ -1391,7 +1420,7 @@ class VoucherService
         }
         $pct = $taken > 0 ? $weighted / $taken : 0.0;
         if ($pct > 0) {
-            $line['discount_amount'] = round(round((float) $line['quantity'] * (float) $line['rate'], 2) * $pct / 100, 2);
+            $line['discount_amount'] = round(round(round((float) $line['quantity'] * (float) $line['rate'], 2) * $pct / 100, 2) + (float) ($l['share_discount'] ?? 0), 2);   // clearance, plus the customer's own discounts
             $line['discount_source'] = 'clearance';
         }
     }
@@ -2143,6 +2172,7 @@ class VoucherService
             'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'tax_breakdown' => $this->taxBreakdown($plan['lines']), 'total' => $plan['total'],
             'stock' => array_map(fn ($m) => ['variant_id' => $m['variant_id'], 'location_id' => $m['location_id'], 'qty' => $m['qty']], $plan['stock']),
             'warnings' => $plan['warnings'] ?? [],
+            'discount_options' => $plan['discount_options'] ?? [],
         ];
     }
 
