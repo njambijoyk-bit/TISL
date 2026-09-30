@@ -59,7 +59,6 @@ use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\PromoCodeController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\WorkController;
-use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
@@ -1309,21 +1308,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/driver/{userId}/manifests',       [WorkController::class, 'driverManifests']);
         });
 
-        Route::prefix('reports')->group(function () {
-            Route::get('revenue',      [ReportsController::class, 'revenue']);
-            Route::get('orders',       [ReportsController::class, 'orders']);
-            Route::get('products',     [ReportsController::class, 'products']);
-            Route::get('brands',       [ReportsController::class, 'brands']);
-            Route::get('services',     [ReportsController::class, 'services']);
-            Route::get('quote-funnel', [ReportsController::class, 'quoteFunnel']);
-            Route::get('projects',     [ReportsController::class, 'projects']);
-            Route::get('customers',    [ReportsController::class, 'customers']);
-            Route::get('tickets',      [ReportsController::class, 'tickets']);
-            Route::get('promos',       [ReportsController::class, 'promos']);
-            Route::get('summary',      [ReportsController::class, 'summary']);
-            Route::get('system',       [ReportsController::class, 'system']);
-            Route::get('extras',       [ReportsController::class, 'extras']);
-        });
 
         Route::prefix('tickets')->group(function () {
             Route::get('/',                  [TicketController::class, 'adminIndex']);
@@ -1679,14 +1663,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/redemptions',    [PromoCodeController::class, 'redemptions']);
         });
 
-        // Reports — financial subset
-        Route::prefix('reports')->group(function () {
-            Route::get('revenue',       [ReportsController::class, 'revenue']);
-            Route::get('orders',        [ReportsController::class, 'orders']);
-            Route::get('quote-funnel',  [ReportsController::class, 'quoteFunnel']);
-            Route::get('promos',        [ReportsController::class, 'promos']);
-            Route::get('summary',       [ReportsController::class, 'summary']);
-        });
 
         // Work dashboard
         Route::prefix('work')->group(function () {
