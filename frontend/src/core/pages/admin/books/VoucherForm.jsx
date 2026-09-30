@@ -156,7 +156,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [manual, setManual] = useState(false);
@@ -190,6 +190,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const hasItems = Boolean(type?.has_items);
   const isMoney = base === 'receipt' || base === 'payment';
   const isEntries = base === 'journal' || base === 'contra';
+  const [cashPurchase, setCashPurchase] = useState(false);   // a purchase paid at once: cash or bank instead of the supplier
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
 
   // purchases, goods received notes and opening stock are entered on the Purchases page (batches, expiry, create-a-product)
@@ -227,6 +228,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
       setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+      if (v.type?.base_type === 'purchase') {
+        const paidEntry = (v.entries ?? []).find((e) => e.is_party);
+        if (paidEntry && Number(paidEntry.ledger_id) !== Number(v.party_ledger_id ?? 0)) { setCashPurchase(true); setH((x) => ({ ...x, paid_ledger_id: paidEntry.ledger_id })); }
+      }
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i) => {
@@ -350,6 +355,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
       party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
+      paid_ledger_id: base === 'purchase' && cashPurchase ? (h.paid_ledger_id || null) : undefined,
       valid_until: h.valid_until || undefined,
     };
     if (hasItems) {
@@ -396,7 +402,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
+  }, [typeId, h, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -465,14 +471,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   )}
                 </div>
               )}
-              {type?.party_kind === 'customer' && hasItems && (
-                <div style={!h.customer && !h.party_name ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.customer && !h.party_name ? 'customer' : undefined}>
-                  <label style={{ ...label, ...(!h.customer && !h.party_name ? { color: '#b91c1c' } : {}) }}>Customer {!h.customer && !h.party_name && <span style={{ fontWeight: 600 }}>— choose one</span>} {h.customer && <button type="button" onClick={clearCustomer} style={CLEAR_BTN}>Clear</button>}</label>
+              {(type?.party_kind === 'customer' || base === 'cash_sale') && hasItems && (
+                <div style={base !== 'cash_sale' && !h.customer && !h.party_name ? { ...NEEDS, padding: 8 } : undefined} data-needs={base !== 'cash_sale' && !h.customer && !h.party_name ? 'customer' : undefined}>
+                  <label style={{ ...label, ...(base !== 'cash_sale' && !h.customer && !h.party_name ? { color: '#b91c1c' } : {}) }}>Customer {base === 'cash_sale' && !h.customer && <span style={{ fontWeight: 600 }}>— optional</span>} {base !== 'cash_sale' && !h.customer && !h.party_name && <span style={{ fontWeight: 600 }}>— choose one</span>} {h.customer && <button type="button" onClick={clearCustomer} style={CLEAR_BTN}>Clear</button>}</label>
                   {h.customer ? <><div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div><button type="button" onClick={clearCustomer} style={CHANGE_LINK}>Select another customer</button></>
                     : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c, party_ledger_id: '' }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
               )}
-              {type?.party_kind === 'customer' && hasItems && !h.customer && (
+              {(type?.party_kind === 'customer' || base === 'cash_sale') && hasItems && !h.customer && (
                 <>
                   <div><label style={label}>Sold to (name)</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} placeholder="Walk-in buyer's name" /></div>
                   <div><label style={label}>Their phone</label><input value={h.party_phone} onChange={(e) => setH((x) => ({ ...x, party_phone: e.target.value }))} style={small} /></div>
@@ -480,9 +486,24 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
                 </>
               )}
+              {base === 'purchase' && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={cashPurchase} onChange={(e) => setCashPurchase(e.target.checked)} /> Cash purchase — paid at once (cash, bank or M-Pesa), no supplier debt
+                  </label>
+                </div>
+              )}
+              {base === 'purchase' && cashPurchase && (
+                <div style={!h.paid_ledger_id ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.paid_ledger_id ? 'paid' : undefined}>
+                  <label style={{ ...label, ...(!h.paid_ledger_id ? { color: '#b91c1c' } : {}) }}>Paid from{!h.paid_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}</label>
+                  <select value={h.paid_ledger_id} onChange={(e) => setH((x) => ({ ...x, paid_ledger_id: e.target.value }))} style={small} aria-label="Paid from">
+                    <option value="">Choose a cash or bank account…</option>{moneyLedgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+              )}
               {(type?.party_kind === 'supplier' || isMoney) && (
-                <div style={!h.party_ledger_id ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.party_ledger_id ? 'party' : undefined}>
-                  <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
+                <div style={!h.party_ledger_id && !(base === 'purchase' && cashPurchase) ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.party_ledger_id && !(base === 'purchase' && cashPurchase) ? 'party' : undefined}>
+                  <label style={{ ...label, ...(!h.party_ledger_id && !(base === 'purchase' && cashPurchase) ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && (base === 'purchase' && cashPurchase ? <span style={{ fontWeight: 600 }}> — optional</span> : <span style={{ fontWeight: 600 }}> — choose one</span>)}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => { setAlloc({}); setAllocTouched(false); setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null })); }} style={small}>
                     <option value="">Choose a ledger…</option>
                     {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : (isMoney && !allParties ? partyLedgers : ledgers)).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -490,6 +511,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {h.party_ledger_id && <button type="button" onClick={clearParty} style={CHANGE_LINK}>{isMoney ? 'Select another party' : 'Select another supplier'}</button>}
                   {isMoney && <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '0.72rem', color: colors.textMuted, cursor: 'pointer' }}><input type="checkbox" checked={allParties} onChange={(e) => setAllParties(e.target.checked)} /> Show every ledger (expenses, other accounts)</label>}
                 </div>
+              )}
+              {base === 'purchase' && cashPurchase && !h.party_ledger_id && (
+                <>
+                  <div><label style={label}>Bought from (name)</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} placeholder="Seller's name" /></div>
+                  <div><label style={label}>Their phone</label><input value={h.party_phone} onChange={(e) => setH((x) => ({ ...x, party_phone: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their address</label><input value={h.party_address} onChange={(e) => setH((x) => ({ ...x, party_address: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
+                </>
               )}
               {needsMethod && !isMoney && (
                 <div>
