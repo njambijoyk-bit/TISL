@@ -97,6 +97,9 @@ class BooksMasterController extends Controller
         $rows = $out instanceof \Illuminate\Pagination\AbstractPaginator ? $out->getCollection() : $out;
         $modes = app(\App\Services\Books\PaymentModeService::class)->modesFor($rows->pluck('id')->all());
         $rows->each(fn ($l) => $l->setAttribute('checkout_mode', $modes[$l->id] ?? 'details'));
+        // a bank ledger is one under the Bank Accounts group (any depth) — the same test the server uses when it records a cheque or transfer
+        $bankGroupIds = LedgerGroup::where('name', 'Bank Accounts')->first()?->selfAndDescendantIds() ?? [];
+        $rows->each(fn ($l) => $l->setAttribute('is_bank', in_array($l->group_id, $bankGroupIds, true)));
 
         return response()->json($out);
     }

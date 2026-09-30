@@ -341,7 +341,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   }, [custId, base, saleTotal, saleNet]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Is the money going through a bank? Then we ask how (transfer or cheque) — or, on a contra between cash and bank, for the slip.
-  const isBankLedger = (l) => l?.group?.name === 'Bank Accounts' || l?.group?.behaviour === 'bank';
+  const isBankLedger = (l) => (l?.is_bank !== undefined ? Boolean(l.is_bank) : l?.group?.name === 'Bank Accounts');   // the server says which ledgers are banks (Bank Accounts and everything under it)
   const moneyMethod = methods.find((m) => String(m.id) === String(h.payment_method_id));
   const moneyLedger = ledgers.find((l) => String(l.id) === String(base === 'purchase' ? h.paid_ledger_id : h.ledger_id));
   const moneyBank = (isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(moneyLedger))) || (base === 'purchase' && cashPurchase && isBankLedger(moneyLedger));
