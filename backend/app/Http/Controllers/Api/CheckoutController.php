@@ -66,7 +66,7 @@ class CheckoutController extends Controller
         }
 
         return response()->json([
-            'payment_methods' => PaymentMethod::where('is_active', true)->where('is_online', true)->orderBy('sort_order')->get(['id', 'name', 'kind', 'gateway', 'instructions', 'requires_reference']),
+            'payment_methods' => PaymentMethod::offeredAtCheckout()->orderBy('sort_order')->get(['id', 'name', 'kind', 'gateway', 'instructions', 'requires_reference']),
             'shipping' => app(ShippingOptionController::class)->publicIndex()->getData(true),
             'branches' => Location::where('is_active', true)->get(['id', 'name', 'code', 'is_default']),
             'account' => $account,
@@ -143,7 +143,7 @@ class CheckoutController extends Controller
                 $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $use, 'gift_voucher_code' => $gv->code];
                 $due = round($due - $use, 2);
             }
-            $method = PaymentMethod::where('is_active', true)->where('is_online', true)->findOrFail($request->payment_method_id);
+            $method = PaymentMethod::offeredAtCheckout()->findOrFail($request->payment_method_id);
             $attempt = $this->gateway->initiateMpesa($order, $method, $request->phone, $tenders, $due, $request->user());
 
             return response()->json(['attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'message' => 'Check your phone and enter your M-Pesa PIN.']);

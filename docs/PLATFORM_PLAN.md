@@ -1196,3 +1196,8 @@ Both are a credit balance on the customer ledger and a row in the open-bills que
 - **Driver cash:** a cash sale converted from a *cash on delivery* order starts on the Driver cash ledger (step 4). The page lists the **cash-on-delivery orders still to collect** and **Hand in** moves the cash from the driver ledger to a till as a **Contra** ("handed in by …"), refused beyond what the ledger holds and between anything but cash ledgers.
 - Not built: counting by denomination, bank reconciliation against statements.
 - Tests: `cashtest` (21 checks).
+
+### 28.8 Fixes after trying steps 4 and 5 (30 Sep 2026)
+- **Checkout offered M-Pesa regardless of its ledger.** The automatic online methods (those with a gateway: M-Pesa prompt, card) are now offered only if the money ledger behind them is ticked *Offer at checkout*; a method with no ledger is offered as before; a method with no gateway is not an online method at all (bank, till and cash on delivery come from the ledger choices). The server enforces the same when an order is placed or paid. **To keep M-Pesa at checkout, tick *Offer at checkout* on its ledger.**
+- **"How did the money arrive" listed types the bank does not take.** Receipts and payments now have **one** account selector (*Received into* / *Paid from*, cash and bank ledgers), so the types offered come straight from that ledger's *This account takes* ticks.
+- **Two "payment method" boxes on receipts and payments** (a method and "…or cash / bank ledger") were the same choice twice, since a method is just a ledger. The method box is gone from receipts and payments (Cash Sales keep theirs; *Split payment* still uses methods). Editing an old receipt shows the account it was posted to.

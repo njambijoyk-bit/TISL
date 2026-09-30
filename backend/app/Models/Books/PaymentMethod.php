@@ -20,6 +20,17 @@ class PaymentMethod extends Model
 
     public const KINDS = ['cash', 'mobile_money', 'bank', 'card', 'other'];
 
+    /**
+     * What the storefront charges automatically: an active online method with a gateway (M-Pesa prompt, card) — and, when it is backed by a money ledger, only if that ledger
+     * is ticked "offer at checkout". A method with no ledger behind it is offered as before. Bank, till and cash-on-delivery choices come from the ledgers instead.
+     */
+    public function scopeOfferedAtCheckout($q)
+    {
+        return $q->where('is_active', true)->where('is_online', true)->whereNotNull('gateway')->where(function ($w) {
+            $w->whereNull('ledger_id')->orWhereIn('ledger_id', fn ($s) => $s->select('id')->from('ledgers')->where('offer_at_checkout', true)->whereNull('deleted_at'));
+        });
+    }
+
     public function ledger(): BelongsTo
     {
         return $this->belongsTo(Ledger::class);

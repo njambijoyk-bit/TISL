@@ -225,8 +225,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
-      setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
-        payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+      setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
+        payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i) => {
@@ -334,8 +334,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   // Is the money going through a bank? Then we ask how (transfer or cheque) — or, on a contra between cash and bank, for the slip.
   const isBankLedger = (l) => l?.group?.name === 'Bank Accounts' || l?.group?.behaviour === 'bank';
   const moneyMethod = methods.find((m) => String(m.id) === String(h.payment_method_id));
-  const moneyBank = isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(ledgers.find((l) => String(l.id) === String(h.ledger_id))));
-  const bankAccepts = ((moneyMethod ? moneyMethod.accepts : ledgers.find((l) => String(l.id) === String(h.ledger_id))?.accepts) ?? '').split(',').filter(Boolean);
+  const moneyLedger = ledgers.find((l) => String(l.id) === String(h.ledger_id));
+  const moneyBank = isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(moneyLedger));
+  const bankAccepts = ((moneyMethod ? (moneyMethod.accepts ?? ledgers.find((l) => l.id === moneyMethod.ledger_id)?.accepts) : moneyLedger?.accepts) ?? '').split(',').filter(Boolean);
   const insTypes = [['eft', 'Electronic fund transfer'], ['transfer', 'Other transfer'], ['cheque', 'Cheque'], ['mobile', 'Mobile money'], ['card', 'Card']].filter(([k]) => !bankAccepts.length || bankAccepts.includes(k));
   const contraDr = entries.find((e) => e.side === 'D' && e.ledger_id);
   const contraCr = entries.find((e) => e.side === 'C' && e.ledger_id);
@@ -489,7 +490,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {isMoney && <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '0.72rem', color: colors.textMuted, cursor: 'pointer' }}><input type="checkbox" checked={allParties} onChange={(e) => setAllParties(e.target.checked)} /> Show every ledger (expenses, other accounts)</label>}
                 </div>
               )}
-              {needsMethod && (
+              {needsMethod && !isMoney && (
                 <div>
                   <label style={label}>Payment method</label>
                   <select value={h.payment_method_id} onChange={(e) => setH((x) => ({ ...x, payment_method_id: e.target.value }))} style={small}>
@@ -498,11 +499,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   </select>
                 </div>
               )}
-              {isMoney && !h.payment_method_id && (
+              {isMoney && tenders.length === 0 && (
                 <div>
-                  <label style={label}>…or cash / bank ledger</label>
-                  <select value={h.ledger_id} onChange={(e) => setH((x) => ({ ...x, ledger_id: e.target.value }))} style={small}>
-                    <option value="">Choose…</option>{moneyLedgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  <label style={label}>{base === 'receipt' ? 'Received into' : 'Paid from'}</label>
+                  <select value={h.ledger_id} onChange={(e) => setH((x) => ({ ...x, ledger_id: e.target.value, payment_method_id: '' }))} style={small} aria-label={base === 'receipt' ? 'Received into' : 'Paid from'}>
+                    <option value="">Choose a cash or bank account…</option>{moneyLedgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
               )}

@@ -297,7 +297,7 @@ class CheckoutService
         $mode = $in['payment_mode'] ?? 'pay_later';   // online | pay_later | account
         $method = ! empty($in['payment_method_id']) ? PaymentMethod::find($in['payment_method_id']) : null;
 
-        if ($mode === 'online' && (! $method || ! $method->is_online || ! $method->is_active)) {
+        if ($mode === 'online' && (! $method || ! PaymentMethod::offeredAtCheckout()->whereKey($method->id)->exists())) {
             throw new BooksException('Choose a payment method.');
         }
         if ($mode === 'account' && ! $customer) {
