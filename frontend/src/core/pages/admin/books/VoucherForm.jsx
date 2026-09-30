@@ -181,6 +181,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [allParties, setAllParties] = useState(false);   // receipt / payment: customers and suppliers only, unless asked for every ledger
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
+  // The last price the server worked out. Kept so a failed preview does not make gift vouchers un-tick themselves and trigger another preview (a loop).
+  const lastTotal = useRef(0);
+  if (preview?.total != null) lastTotal.current = Number(preview.total) || 0;
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
   const [expiredOverride, setExpiredOverride] = useState({ on: false, reason: '' });
@@ -272,14 +275,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   // Gift vouchers ticked for this sale, and what each would cover of the total (in the order they were issued).
   const giftPlan = useMemo(() => {
     if (!ent?.gift_vouchers?.length) return [];
-    let left = Number(preview?.total) || 0;
+    let left = lastTotal.current;
     const out = [];
     ent.gift_vouchers.filter((g) => (giftPick ?? []).includes(g.code)).forEach((g) => {
       const applied = Math.round(Math.min(g.balance, Math.max(left, 0)) * 100) / 100;
       if (applied > 0) { out.push({ code: g.code, applied }); left -= applied; }
     });
     return out;
-  }, [ent, giftPick, preview?.total]);
+  }, [ent, giftPick, preview?.total]);   // lastTotal is a ref: it follows preview.total
 
   // The customer's automatic discounts (personal / tier / type, referral) are ticked for the admin once they load; promo codes are not.
   const discountOptions = preview?.discount_options ?? [];
@@ -391,8 +394,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (h.customer && discountPick !== null) p.discount_choices = discountPick;   // which of the customer's discounts to apply
     if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
       const giftMethod = methods.find((m) => m.kind === 'gift_voucher');
-      const rest = Math.max(0, (Number(preview?.total) || 0) - giftPlan.reduce((t, g) => t + g.applied, 0));
-      if (giftMethod) {
+      const rest = Math.max(0, lastTotal.current - giftPlan.reduce((t, g) => t + g.applied, 0));
+      if (giftMethod && (rest <= 0.004 || h.payment_method_id)) {   // the rest needs a payment method, or the server cannot price it
         p.tenders = [...giftPlan.map((g) => ({ payment_method_id: giftMethod.id, amount: g.applied, gift_voucher_code: g.code })), ...(rest > 0.004 && h.payment_method_id ? [{ payment_method_id: Number(h.payment_method_id) }] : [])];
       }
     }
@@ -812,7 +815,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   })}
                   {base === 'cash_sale' && giftPlan.length > 0 && (() => {
                     const byGift = giftPlan.reduce((t, g) => t + g.applied, 0);
-                    const rest = Math.max(0, (Number(preview?.total) || 0) - byGift);
+                    const rest = Math.max(0, lastTotal.current - byGift);
                     const mName = methods.find((m) => String(m.id) === String(h.payment_method_id))?.name;
                     return <p role="status" style={{ margin: '4px 0 0', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.8rem' }}>
                       Gift vouchers pay <strong>{money(byGift)}</strong> · {rest > 0.004 ? <>{mName ?? 'the payment method'} pays the rest: <strong>{money(rest)}</strong>{!mName && <span style={{ color: '#b91c1c' }}> — choose a payment method above</span>}</> : 'nothing is left to pay'}
