@@ -25,10 +25,16 @@ export default function CartSummary() {
     return () => clearTimeout(t);
   }, [items]);
 
+  // free-delivery threshold from the delivery options actually on offer (only when quoted in the same currency)
+  const [ship, setShip] = useState([]);
+  useEffect(() => { checkoutAPI.options().then((o) => setShip(o.shipping ?? [])).catch(() => {}); }, []);
+
   const fmt = (n) => fmtIn(n, quote?.currency?.code);
   const subtotal     = quote ? Number(quote.subtotal) : getTotal();
-  const freeShipping = subtotal >= 50000;
-  const toFree       = 50000 - subtotal;
+  const thresholds   = ship.filter((o) => o.free_above != null && o.currency?.code === quote?.currency?.code).map((o) => Number(o.free_above));
+  const limit        = thresholds.length ? Math.min(...thresholds) : null;
+  const freeShipping = limit !== null && subtotal >= limit;
+  const toFree       = limit !== null ? limit - subtotal : 0;
 
   const handleCheckout = () => {
     navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout');
@@ -57,7 +63,7 @@ export default function CartSummary() {
       </div>
 
       {/* Free shipping progress */}
-      {!freeShipping && toFree > 0 && (
+      {limit !== null && !freeShipping && toFree > 0 && (
         <div style={{
           padding: '9px 12px', borderRadius: 8, marginBottom: 14,
           background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',

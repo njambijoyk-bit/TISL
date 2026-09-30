@@ -178,6 +178,7 @@ class CheckoutController extends Controller
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
             'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount, 'review_requested' => ! empty($c->meta['review_requests'])])->values(),
+            'gift_codes_meant' => array_values((array) ($v->meta['gift_codes'] ?? [])),
             'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),
         ]);
     }

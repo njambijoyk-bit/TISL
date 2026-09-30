@@ -188,7 +188,7 @@ export default function Checkout() {
                 )}
                 {(quote?.available?.gift_vouchers?.length > 0) && (
                   <div style={{ marginTop: 14 }}>
-                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers</label>
+                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers{mode === 'pay_later' && <span style={{ fontWeight: 400, color: '#6b7280' }}> — nothing is spent now; applied when your order is paid</span>}</label>
                     <div style={{ display: 'grid', gap: 6 }}>
                       {quote.available.gift_vouchers.map((g) => {
                         const on = (giftPicked ?? []).includes(g.code);
@@ -197,7 +197,7 @@ export default function Checkout() {
                           <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: on ? 'rgba(16,185,129,0.06)' : 'white', cursor: 'pointer', fontSize: '0.82rem' }}>
                             <input type="checkbox" checked={on} onChange={() => setGiftPicked((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
                             <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: '#6b7280' }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
-                            <span style={{ fontWeight: 700, color: on ? '#059669' : '#9ca3af' }}>{on ? `applies ${money(used ?? g.applicable)}` : `could cover ${money(g.applicable)}`}</span>
+                            <span style={{ fontWeight: 700, color: on ? '#059669' : '#9ca3af' }}>{on ? `${mode === 'pay_later' ? 'will apply' : 'applies'} ${money(used ?? g.applicable)}` : `could cover ${money(g.applicable)}`}</span>
                           </label>
                         );
                       })}

@@ -105,6 +105,8 @@ export default function CustomerOrderPage() {
           </table>
         </div>
 
+        {o.gift_codes_meant?.length > 0 && !o.documents?.length && <p style={{ fontSize: '0.82rem', color: '#4b5563' }}>Gift voucher{o.gift_codes_meant.length > 1 ? 's' : ''} <strong>{o.gift_codes_meant.join(', ')}</strong> will be applied when this order is paid.</p>}
+
         {o.gift_vouchers?.length > 0 && (
           <div style={{ margin: '14px 0', padding: 14, borderRadius: 12, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}>
             <p style={{ margin: '0 0 8px', fontWeight: 800, fontSize: '0.9rem' }}>Your gift voucher{o.gift_vouchers.length > 1 ? 's' : ''}</p>

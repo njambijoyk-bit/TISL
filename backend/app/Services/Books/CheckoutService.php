@@ -296,6 +296,10 @@ class CheckoutService
         }
 
         return DB::transaction(function () use ($a, $in, $user, $customer, $mode, $method) {
+            // Pay later: nothing is spent now; the order only remembers which gift vouchers the customer meant to use
+            if ($mode === 'pay_later' && ($codes = $this->giftCodes($in)) && $customer) {
+                $a['data']['gift_codes'] = $codes;
+            }
             $order = $this->vouchers->placeOrder($a['data'], null);
             $total = (float) $order->total_amount;
 
@@ -330,8 +334,8 @@ class CheckoutService
                 // any other online method with no gateway: the customer pays offline and we confirm it
                 throw new BooksException("{$method->name} can't be charged automatically yet — choose another way to pay.");
             }
-            if ($giftApplied > 0) {
-                throw new BooksException('A gift voucher must cover the whole order, or be paired with an online payment.');
+            if ($giftApplied > 0 && $mode !== 'pay_later') {
+                throw new BooksException('A gift voucher can\'t be used on account — pay now, or choose pay later and we\'ll apply it when the order is paid.');
             }
             // 3. on account
             if ($mode === 'account') {
@@ -340,7 +344,7 @@ class CheckoutService
                 return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'status' => 'invoiced', 'message' => 'Invoiced to your account.'];
             }
 
-            return ['order' => $this->orderSummary($order), 'status' => 'placed', 'message' => 'Order placed. We will confirm payment and delivery with you.'];
+            return ['order' => $this->orderSummary($order), 'status' => 'placed', 'message' => ($giftApplied > 0 ? 'Order placed. Your gift voucher will be applied when the order is paid.' : 'Order placed. We will confirm payment and delivery with you.')];
         });
     }
 
