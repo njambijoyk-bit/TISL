@@ -209,7 +209,7 @@ class UserController extends Controller
                 ]);
 
             } elseif ($user->role === 'vendor') {                      // ← NEW branch
-                Vendor::create([
+                $vendor = Vendor::create([
                     'user_id'            => $user->id,
                     'vendor_number'      => Vendor::generateVendorNumber(),
                     'company_name'       => $request->company_name ?? $user->name,
@@ -222,6 +222,7 @@ class UserController extends Controller
                     'status'             => 'pending_approval',
                     'created_by'         => $actor->id,
                 ]);
+                app(\App\Services\Books\LedgerService::class)->vendorLedger($vendor);   // every vendor is a Sundry Creditors ledger
 
             } elseif ($user->role === 'driver') {
             // Driver is portal-only — no profile record until delivery system is built

@@ -24,6 +24,21 @@ class LedgerService
         return Ledger::create(['group_id' => $group->id, 'name' => $name, 'customer_id' => $customer->id, 'is_active' => true]);
     }
 
+    /** A vendor's own ledger under Sundry Creditors (ledgers.supplier_id = the vendor), created with the vendor. */
+    public function vendorLedger(\App\Models\Vendor $vendor): Ledger
+    {
+        $existing = Ledger::where('supplier_id', $vendor->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $group = LedgerGroup::where('name', 'Sundry Creditors')->firstOrFail();
+        $base = trim((string) ($vendor->company_name ?: $vendor->contact_name)) ?: "Vendor {$vendor->id}";
+        $name = Ledger::where('name', $base)->exists() ? "{$base} ({$vendor->vendor_number})" : $base;
+
+        return Ledger::create(['group_id' => $group->id, 'name' => $name, 'supplier_id' => $vendor->id, 'is_active' => true]);
+    }
+
     /** The ledger for guests / walk-in buyers. */
     public function walkinLedger(): Ledger
     {

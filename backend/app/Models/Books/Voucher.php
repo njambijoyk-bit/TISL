@@ -17,7 +17,7 @@ class Voucher extends Model
     protected $fillable = [
         'voucher_type_id', 'series_id', 'voucher_number', 'sequence_number', 'date', 'effective_date', 'due_date',
         'status', 'fulfilment_status', 'location_id', 'party_ledger_id', 'customer_id', 'payment_method_id',
-        'currency_id', 'exchange_rate', 'reference_no', 'narration', 'subtotal', 'tax_total', 'total_amount',
+        'currency_id', 'exchange_rate', 'reference_no', 'supplier_invoice_no', 'narration', 'subtotal', 'tax_total', 'total_amount',
         'base_total', 'source_voucher_id', 'moves_stock', 'channel', 'meta', 'created_by', 'posted_at',
         'cancelled_at', 'cancelled_by', 'cancel_reason', 'doc_status', 'valid_until', 'sent_at', 'quote_request_id', 'responded_at', 'response_note',
     ];

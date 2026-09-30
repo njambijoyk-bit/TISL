@@ -431,6 +431,18 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // VENDORS (E-commerce) — a vendor is a Sundry Creditors ledger, optionally with a login. See: finance, managers; manage: finance, admins
+    Route::middleware(['module:ecommerce', 'role:admin,super_admin,finance,manager'])->prefix('admin/vendors')->group(function () {
+        $c = \App\Http\Controllers\Admin\VendorController::class;
+        Route::get('/', [$c, 'index']);
+        Route::get('/{id}', [$c, 'show'])->whereNumber('id');
+        Route::middleware('role:admin,super_admin,finance')->group(function () use ($c) {
+            Route::post('/', [$c, 'store']);
+            Route::put('/{id}', [$c, 'update'])->whereNumber('id');
+            Route::post('/{id}/login', [$c, 'createLogin'])->whereNumber('id');
+        });
+    });
+
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
     Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
         Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);
@@ -464,6 +476,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);
         Route::get('/stock-batches',            [BooksVoucherController::class, 'stockBatches']);
         Route::get('/vouchers/next-number',     [BooksVoucherController::class, 'nextNumber']);
+        Route::get('/vouchers/check-supplier-invoice', [BooksVoucherController::class, 'checkSupplierInvoice']);
         Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
         Route::get('/vouchers/{id}/export',     [BooksVoucherController::class, 'export']);

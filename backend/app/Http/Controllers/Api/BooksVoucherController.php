@@ -39,7 +39,7 @@ class BooksVoucherController extends Controller
             ->when($request->filled('to'), fn ($q) => $q->where('date', '<=', $request->to))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%' . $request->search . '%';
-                $q->where(fn ($w) => $w->where('voucher_number', 'like', $s)->orWhere('reference_no', 'like', $s)->orWhere('narration', 'like', $s)
+                $q->where(fn ($w) => $w->where('voucher_number', 'like', $s)->orWhere('reference_no', 'like', $s)->orWhere('supplier_invoice_no', 'like', $s)->orWhere('narration', 'like', $s)
                     ->orWhereHas('partyLedger', fn ($l) => $l->where('name', 'like', $s)));
             })
             ->orderByDesc('date')->orderByDesc('id');
@@ -154,6 +154,17 @@ class BooksVoucherController extends Controller
     }
 
     /** Ready-made numbers for a form: next number per type, payment methods, etc. */
+    /** Has this supplier already been billed under this invoice number? A warning only — never blocks. */
+    public function checkSupplierInvoice(Request $request): JsonResponse
+    {
+        $d = $request->validate(['party_ledger_id' => 'required|integer', 'no' => 'required|string|max:100', 'exclude_id' => 'nullable|integer']);
+        $rows = Voucher::where('party_ledger_id', $d['party_ledger_id'])->where('supplier_invoice_no', trim($d['no']))->where('status', '!=', 'cancelled')
+            ->when(! empty($d['exclude_id']), fn ($q) => $q->where('id', '!=', $d['exclude_id']))
+            ->get(['id', 'voucher_number', 'date', 'total_amount'])->map(fn ($v) => ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'total' => (float) $v->total_amount]);
+
+        return response()->json(['duplicates' => $rows]);
+    }
+
     public function nextNumber(Request $request): JsonResponse
     {
         $request->validate(['voucher_type_id' => 'required|integer|exists:voucher_types,id']);

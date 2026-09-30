@@ -33,7 +33,7 @@ const readDraft = (key) => { try { return JSON.parse(sessionStorage.getItem(key)
 const writeDraft = (key, v) => { try { sessionStorage.setItem(key, JSON.stringify(v)); } catch { /* private mode etc. — the draft is a convenience */ } };
 const clearDraft = (key) => { try { sessionStorage.removeItem(key); } catch { /* ignore */ } };
 
-const blankHeader = () => ({ date: today(), location_id: '', party_ledger_id: '', currency_id: '', exchange_rate: '', reference_no: '', due_date: '', narration: '', opening_ledger_id: '' });
+const blankHeader = () => ({ date: today(), location_id: '', party_ledger_id: '', currency_id: '', exchange_rate: '', reference_no: '', supplier_invoice_no: '', due_date: '', narration: '', opening_ledger_id: '' });
 const blankOther = () => ({ key: newKey(), other: true, description: '', quantity: 1, rate: '', ledger_id: '' });
 
 /** A purchase line from a picked variant row (units limited to the ones you can buy in). */
@@ -148,7 +148,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       setMode(base === 'opening_stock' ? 'opening' : base === 'receipt_note' ? 'receipt' : 'purchase');
       const d = readDraft(key);
       if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setRestored(true); return; }
-      setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
+      setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', supplier_invoice_no: v.supplier_invoice_no ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
       const products = [...new Set((v.items ?? []).filter((i) => i.item_type === 'product').map((i) => i.product_id))];
       const info = {};
       await Promise.all(products.map((pid) => booksAPI.productVariants(pid).then((rows) => rows.forEach((r) => { info[r.variant_id] = r; })).catch(() => {})));
@@ -184,6 +184,14 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       .finally(() => setParams((p) => { p.delete('product'); return p; }, { replace: true }));
   }, [params, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [dupes, setDupes] = useState([]);
+  useEffect(() => {
+    const no = (h.supplier_invoice_no || '').trim();
+    if (receipt || !no || !h.party_ledger_id) { setDupes([]); return undefined; }
+    const t = setTimeout(() => booksAPI.checkSupplierInvoice({ party_ledger_id: h.party_ledger_id, no, exclude_id: id || undefined }).then((r) => setDupes(r.duplicates ?? [])).catch(() => setDupes([])), 400);
+    return () => clearTimeout(t);
+  }, [h.supplier_invoice_no, h.party_ledger_id, receipt, id]);
+
   const goProduct = (path, extra = '') => {
     writeDraft(key, { h, lines });
     nav(`${path}?returnTo=${encodeURIComponent(selfPath)}${extra}`);
@@ -193,7 +201,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
   const payload = useMemo(() => {
     const p = {
-      voucher_type_id: type?.id, date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
+      voucher_type_id: type?.id, date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, supplier_invoice_no: receipt ? null : (h.supplier_invoice_no || null), narration: h.narration || null,
       currency_id: h.currency_id || null, exchange_rate: h.exchange_rate === '' ? undefined : Number(h.exchange_rate),
       lines: lines.map((l) => (l.other
         ? { type: 'custom', description: l.description, quantity: Number(l.quantity) || 1, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined }
@@ -204,7 +212,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     if (opening) p.opening_ledger_id = h.opening_ledger_id || undefined;
     else { p.party_ledger_id = h.party_ledger_id || null; p.due_date = receipt ? null : h.due_date || null; }
     return p;
-  }, [type, h, lines, opening]);
+  }, [type, h, lines, opening, receipt]);
 
   const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id));
 
@@ -293,7 +301,14 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                 </div>
               ) : (
                 <>
-                  <div><label style={label}>{receipt ? 'Delivery note no.' : 'Supplier invoice no.'}</label><input value={h.reference_no} onChange={(e) => setH((x) => ({ ...x, reference_no: e.target.value }))} style={small} /></div>
+                  {!receipt && (
+                    <div>
+                      <label style={label}>Supplier invoice no.</label>
+                      <input value={h.supplier_invoice_no} onChange={(e) => setH((x) => ({ ...x, supplier_invoice_no: e.target.value }))} style={small} />
+                      {dupes.length > 0 && <div role="alert" style={{ marginTop: 4, fontSize: '0.7rem', color: '#b45309' }}>This supplier was already billed under this number: {dupes.map((d) => d.voucher_number).join(', ')}.</div>}
+                    </div>
+                  )}
+                  <div><label style={label}>{receipt ? 'Delivery note no.' : 'Ref (LPO, delivery note…)'}</label><input value={h.reference_no} onChange={(e) => setH((x) => ({ ...x, reference_no: e.target.value }))} style={small} /></div>
                   {!receipt && <div><label style={label}>Due date</label><input type="date" value={h.due_date} onChange={(e) => setH((x) => ({ ...x, due_date: e.target.value }))} style={small} /></div>}
                   <div>
                     <label style={label}>Currency</label>

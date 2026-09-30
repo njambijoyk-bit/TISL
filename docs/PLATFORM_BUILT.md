@@ -47,6 +47,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 29 | `29_stock_transfers.sql` | `stock_transfers`, `stock_transfer_lines` (stock between branches) |
 | 30 | `30_stock_counts_recipes_production.sql` | `stock_counts` / `stock_count_lines` (Core); `recipes` / `recipe_items`, `productions` / `production_lines` (Menus module) |
 | 31 | `31_work_in_progress_jobs.sql` | *Work in Progress* ledger + `accounting_settings.wip_ledger_id`; `stock_jobs`, `stock_job_lines` |
+| 32 | `32_supplier_invoice_no.sql` | `vouchers.supplier_invoice_no` (+ index); existing purchase / debit note Refs copied into it |
 
 ---
 
