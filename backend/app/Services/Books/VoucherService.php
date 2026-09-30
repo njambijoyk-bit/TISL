@@ -88,6 +88,7 @@ class VoucherService
             $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
+            app(InstrumentService::class)->sync($voucher, $data);   // the cheque / transfer reference or the slip
             if (! empty($data['apply_credit'])) {   // the customer's / supplier's overpayment or advance, ticked on the form or remembered on the order
                 app(CreditService::class)->applyIfAny($voucher, is_array($data['apply_credit']) ? array_map('intval', $data['apply_credit']) : null, $user);
             }
@@ -104,6 +105,7 @@ class VoucherService
                 throw new BooksException('A cancelled voucher can not be edited.');
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
+            app(InstrumentService::class)->assertEditable($voucher, 'edit');
             if (! empty($voucher->meta['writeoff'])) {
                 throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
             }
@@ -134,6 +136,7 @@ class VoucherService
             $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
+            app(InstrumentService::class)->sync($voucher, $data);
 
             return $voucher->load($this->relations());
         });
@@ -147,6 +150,7 @@ class VoucherService
                 throw new BooksException('That voucher is already cancelled.');
             }
             $this->guard->assertVoucher('cancel', $voucher, $user);
+            app(InstrumentService::class)->assertEditable($voucher, 'cancel');
             app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account
             $this->assertNoLiveChildren($voucher, 'cancel');
             if ((float) ($voucher->meta['gift_refunded'] ?? 0) > 0.005) {
@@ -161,6 +165,7 @@ class VoucherService
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
+            app(InstrumentService::class)->void($voucher);
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
 

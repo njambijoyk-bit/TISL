@@ -171,6 +171,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
   const [alloc, setAlloc] = useState({});            // receipt / payment: bill id -> amount settled
   const [allocTouched, setAllocTouched] = useState(false);
+  const [ins, setIns] = useState({ type: '', number: '', date: '', bank_name: '' });   // receipt / payment through a bank: transfer or cheque
+  const [slip, setSlip] = useState({ number: '', date: '', by: '' });                  // contra between cash and bank: deposit / withdrawal slip
   const [isAdvance, setIsAdvance] = useState(false);   // receipt: paid on purpose for something not yet supplied
   const [advanceFor, setAdvanceFor] = useState('');
   const [refund, setRefund] = useState(null);           // payment: { id, number, amount } when giving an overpayment back
@@ -218,6 +220,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       setTypeId(String(v.voucher_type_id));
       if (v.meta?.refund_of && (v.allocations ?? []).length) { setRefund({ id: v.allocations[0].against_voucher_id, number: v.meta.refund_of, amount: Number(v.total_amount) }); setAlloc({}); setAllocTouched(true); }
       else if ((v.allocations ?? []).length) { setAlloc(Object.fromEntries(v.allocations.map((a) => [a.against_voucher_id, a.amount]))); setAllocTouched(true); }
+      if (v.instrument) { if (['deposit_slip', 'withdrawal'].includes(v.instrument.type)) setSlip({ number: v.instrument.number ?? '', date: v.instrument.date ?? '', by: v.instrument.deposited_by ?? '' }); else setIns({ type: v.instrument.type, number: v.instrument.number ?? '', date: v.instrument.date ?? '', bank_name: v.instrument.bank_name ?? '' }); }
       if (v.meta?.advance) { setIsAdvance(true); setAdvanceFor(v.meta.advance.for ?? ''); }
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
@@ -328,6 +331,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     return () => clearTimeout(t);
   }, [custId, base, saleTotal, saleNet]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Is the money going through a bank? Then we ask how (transfer or cheque) — or, on a contra between cash and bank, for the slip.
+  const isBankLedger = (l) => l?.group?.name === 'Bank Accounts' || l?.group?.behaviour === 'bank';
+  const moneyMethod = methods.find((m) => String(m.id) === String(h.payment_method_id));
+  const moneyBank = isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(ledgers.find((l) => String(l.id) === String(h.ledger_id))));
+  const bankAccepts = ((moneyMethod ? moneyMethod.accepts : ledgers.find((l) => String(l.id) === String(h.ledger_id))?.accepts) ?? '').split(',').filter(Boolean);
+  const insTypes = [['eft', 'Electronic fund transfer'], ['transfer', 'Other transfer'], ['cheque', 'Cheque'], ['mobile', 'Mobile money'], ['card', 'Card']].filter(([k]) => !bankAccepts.length || bankAccepts.includes(k));
+  const contraDr = entries.find((e) => e.side === 'D' && e.ledger_id);
+  const contraCr = entries.find((e) => e.side === 'C' && e.ledger_id);
+  const contraBankIn = base === 'contra' && contraDr && contraCr && isBankLedger(ledgers.find((l) => String(l.id) === String(contraDr.ledger_id))) && !isBankLedger(ledgers.find((l) => String(l.id) === String(contraCr.ledger_id)));
+  const contraBankOut = base === 'contra' && contraDr && contraCr && !isBankLedger(ledgers.find((l) => String(l.id) === String(contraDr.ledger_id))) && isBankLedger(ledgers.find((l) => String(l.id) === String(contraCr.ledger_id)));
+  const insMissing = (moneyBank && (!ins.type || (ins.type === 'cheque' && !ins.number.trim()))) || (contraBankIn && !slip.number.trim());
+
   const payload = useMemo(() => {
     const p = {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
@@ -352,9 +367,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       if (refund) p.refund_of = refund.id;
       else p.allocations = Object.entries(alloc).filter(([, v]) => Number(v) > 0).map(([against_voucher_id, v]) => ({ against_voucher_id: Number(against_voucher_id), amount: Number(v) }));
       if (base === 'receipt' && isAdvance) { p.is_advance = true; p.advance_for = advanceFor.trim() || undefined; }
+      if (moneyBank && ins.type) p.instrument = { type: ins.type, number: ins.number.trim() || undefined, date: ins.date || undefined, bank_name: ins.bank_name.trim() || undefined };
       if (wh.tax_rate_id) p.withholding = { tax_rate_id: Number(wh.tax_rate_id), amount: wh.amount === '' ? undefined : Number(wh.amount), certificate_no: wh.certificate_no || undefined };
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
+      if (contraBankIn || contraBankOut) p.slip = { number: slip.number.trim() || undefined, date: slip.date || undefined, by: slip.by.trim() || undefined };
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
     if (base === 'sales' || base === 'cash_sale') p.rounding = rounding;
@@ -377,7 +394,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, alloc, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
+  }, [typeId, h, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -641,6 +658,30 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               </div>
             )}
 
+            {type && moneyBank && (
+              <div style={{ ...card, padding: 18, maxWidth: 640 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>{base === 'receipt' ? 'How did the money arrive?' : 'How was it paid?'} <span style={{ fontWeight: 600, color: '#b91c1c', fontSize: '0.72rem' }}>{!ins.type && ' — choose one'}</span></p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
+                  <div>
+                    <label style={label}>By</label>
+                    <select value={ins.type} onChange={(e) => setIns((x) => ({ ...x, type: e.target.value }))} style={small} aria-label="How it moved through the bank">
+                      <option value="">Choose…</option>
+                      {insTypes.map(([k, t2]) => <option key={k} value={k}>{t2}</option>)}
+                    </select>
+                  </div>
+                  {ins.type && (
+                    <>
+                      <div><label style={label}>{ins.type === 'cheque' ? 'Cheque number *' : ins.type === 'mobile' ? 'Transaction code' : 'Reference'}</label><input value={ins.number} onChange={(e) => setIns((x) => ({ ...x, number: e.target.value }))} style={small} /></div>
+                      {ins.type === 'cheque' && <div><label style={label}>Cheque date</label><input type="date" value={ins.date} onChange={(e) => setIns((x) => ({ ...x, date: e.target.value }))} style={small} /></div>}
+                      {ins.type === 'cheque' && <div><label style={label}>{base === 'receipt' ? "Drawn on (customer's bank)" : 'Paid to bank'}</label><input value={ins.bank_name} onChange={(e) => setIns((x) => ({ ...x, bank_name: e.target.value }))} style={small} /></div>}
+                    </>
+                  )}
+                </div>
+                {ins.type === 'cheque' && ins.date && ins.date > h.date && <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: colors.warningText }}>Post-dated: the cheque is dated after this voucher. It is recorded as received and stays uncleared until it is banked.</p>}
+                {ins.type === 'cheque' && base === 'receipt' && <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>A cheque is posted to the bank account now and marked uncleared until the cheque register clears it.</p>}
+              </div>
+            )}
+
             {type && isMoney && h.party_ledger_id && !refund && (
               <OpenBillsPanel ledgerId={Number(h.party_ledger_id)} base={base} amount={h.amount} exceptId={editing ? Number(id) : null}
                 alloc={alloc} setAlloc={setAlloc} touched={allocTouched} setTouched={setAllocTouched} advance={base === 'receipt' && isAdvance} />
@@ -662,6 +703,17 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 ))}
                 <button type="button" onClick={() => setEntries((es) => [...es, { ledger_id: '', side: 'D', amount: '' }])} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> Entry</button>
                 <p style={{ fontSize: '0.8rem', marginBottom: 0, color: Math.abs(dr - cr) < 0.005 ? colors.successText : colors.dangerText }}>Debit {money(dr)} · Credit {money(cr)}{Math.abs(dr - cr) >= 0.005 && ` · difference ${money(Math.abs(dr - cr))}`}</p>
+              </div>
+            )}
+
+            {type && (contraBankIn || contraBankOut) && (
+              <div style={{ ...card, padding: 18, maxWidth: 640 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>{contraBankIn ? 'Deposit slip' : 'Withdrawal slip (optional)'}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
+                  <div><label style={label}>{contraBankIn ? 'Slip number *' : 'Cheque / slip number'}</label><input value={slip.number} onChange={(e) => setSlip((x) => ({ ...x, number: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Slip date</label><input type="date" value={slip.date} onChange={(e) => setSlip((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
+                  {contraBankIn && <div><label style={label}>Deposited by</label><input value={slip.by} onChange={(e) => setSlip((x) => ({ ...x, by: e.target.value }))} style={small} /></div>}
+                </div>
               </div>
             )}
 
@@ -791,7 +843,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             {saveErr && <p role="alert" style={{ margin: 0, padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.85rem' }}>{saveErr}</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" style={btnGhost} onClick={() => nav(-1)}>Cancel</button>
-              <button type="button" style={{ ...btnPrimary, opacity: saving || !type ? 0.6 : 1 }} disabled={saving || !type} onClick={save}>{saving ? 'Saving…' : mode === 'quotation' ? 'Save prices' : editing ? 'Save changes' : 'Post voucher'}</button>
+              <button type="button" style={{ ...btnPrimary, opacity: saving || !type || insMissing ? 0.6 : 1 }} disabled={saving || !type || insMissing} onClick={save}>{saving ? 'Saving…' : mode === 'quotation' ? 'Save prices' : editing ? 'Save changes' : 'Post voucher'}</button>
             </div>
           </div>
         )}

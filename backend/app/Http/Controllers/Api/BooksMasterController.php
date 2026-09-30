@@ -323,7 +323,12 @@ class BooksMasterController extends Controller
 
     public function paymentMethods(): JsonResponse
     {
-        return response()->json(PaymentMethod::with('ledger:id,name')->orderBy('sort_order')->orderBy('name')->get());
+        $ledgers = app(\App\Services\Books\LedgerService::class);
+
+        // each method also says whether its ledger is a bank and what that bank takes, so the voucher form can ask for the cheque or transfer reference
+        return response()->json(PaymentMethod::with('ledger:id,name,group_id,accepts')->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m) => $m->toArray() + [
+            'is_bank' => (bool) ($m->ledger && $ledgers->isUnderGroup($m->ledger, 'Bank Accounts')), 'accepts' => $m->ledger?->accepts,
+        ]));
     }
 
     private function methodRules(bool $new): array

@@ -60,6 +60,7 @@ class BooksVoucherController extends Controller
         $out['allocations'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs')->where('voucher_id', $v->id)->where('ref_type', 'against')
             ->get(['against_voucher_id', 'amount'])->map(fn ($r) => ['against_voucher_id' => (int) $r->against_voucher_id, 'amount' => (float) $r->amount])->all();
         // write-offs that settle this invoice (journals), with their reason
+        $out['instrument'] = app(\App\Services\Books\InstrumentService::class)->forVoucher($v->id);
         $out['written_off'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs as b')->join('vouchers as j', 'j.id', '=', 'b.voucher_id')->join('voucher_types as t', 't.id', '=', 'j.voucher_type_id')
             ->where('b.against_voucher_id', $v->id)->where('b.ref_type', 'against')->where('j.status', 'posted')->where('t.base_type', 'journal')
             ->get(['j.id', 'j.voucher_number', 'b.amount', 'j.meta'])->map(fn ($r) => ['voucher_id' => (int) $r->id, 'voucher_number' => $r->voucher_number, 'amount' => (float) $r->amount, 'reason' => (json_decode($r->meta ?? '[]', true)['writeoff']['reason'] ?? null)])->all();
