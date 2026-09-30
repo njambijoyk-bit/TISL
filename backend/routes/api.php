@@ -615,18 +615,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/cancel', [CheckoutController::class, 'cancelOrder']);
         });
 
-        // Orders
-        Route::prefix('orders')->group(function () {
-            Route::get('/', [OrderController::class, 'myOrders']);
-            Route::delete('/{id}', [OrderController::class, 'customerTrash']);
-            Route::get('/{id}', [OrderController::class, 'show']);
-            Route::post('/', [OrderController::class, 'store']);
-            Route::put('/{id}', [OrderController::class, 'customerUpdate']);
-            Route::post('/{id}/cancel', [OrderController::class, 'customerCancel']);
-            Route::post('/{id}/restore', [OrderController::class, 'customerRestore']);
-            Route::post('/{id}/rate', [OrderController::class, 'rateOrder']); 
-        });
-
         Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);
 
         // ── Customer hamper routes (auth required) ────────────────────────────────────
@@ -1118,35 +1106,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/attachments/{index}', [QuoteRequestController::class, 'downloadAttachment']);
         });
         
-        // Orders Management
+        // Orders (retired): read-only views for the screens that still show them. Orders are vouchers now.
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
-            Route::get('/trash', [OrderController::class, 'trashIndex']);  
-            Route::post('/restore-multiple', [OrderController::class, 'restoreMultiple']);
             Route::get('/activity', [OrderController::class, 'getAllOrderActivity']);
             Route::get('/statistics', [OrderController::class, 'statistics']);
             Route::get('/{customerId}/order-statistics', [OrderController::class, 'customerOrderStatistics']);
-            Route::get('/{id}/activity', [OrderController::class, 'getOrderActivity']);
             Route::get('/{id}', [OrderController::class, 'adminShow']);
-            Route::post('/', [OrderController::class, 'adminCreateOrder']);
-            Route::put('/{id}', [OrderController::class, 'update']);
-            Route::put('/{id}/edit', [OrderController::class, 'adminUpdateOrder']);
-            Route::put('/{id}/status', [OrderController::class, 'updateStatus']);
-            Route::post('/{id}/confirm', [OrderController::class, 'confirm']);
-            Route::post('/{id}/ship', [OrderController::class, 'ship']);
-            Route::post('/{id}/deliver', [OrderController::class, 'deliver']);
-            Route::post('/{id}/cancel', [OrderController::class, 'adminCancel']);
-            Route::post('/bulk-cancel', [OrderController::class, 'bulkCancel']);
-            Route::get('/{id}/refund-preview', [OrderController::class, 'refundPreview']);
-            Route::post('/{id}/restore', [OrderController::class, 'restoreOrder']);
-            Route::post('/bulk-restore', [OrderController::class, 'bulkRestore']);
-            Route::get('/{id}/net-total', [OrderController::class, 'getNetTotal']);
-            Route::post('/{id}/generate-invoice', [OrderController::class, 'generateInvoice']);
-            Route::put('/{id}/payment-status', [OrderController::class, 'updatePaymentStatus']);
-            
             Route::get('/{id}/payments', [PaymentController::class, 'adminOrderPaymentHistory']);
-            Route::delete('/{id}', [OrderController::class, 'destroy']);               // ✅ SOFT DELETE
-            Route::post('/{id}/restore-trash', [OrderController::class, 'restore']);
         });
 
         // Content Pages
@@ -2172,13 +2139,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // System Settings
         // Route::get('/settings', [SettingsController::class, 'index']);
         // Route::put('/settings', [SettingsController::class, 'update']);
-
-        // ✅ SUPER ADMIN DELETE ORDER
-        Route::prefix('orders')->group(function () {
-            Route::delete('/{id}/force', [OrderController::class, 'forceDelete']);             // ✅ permanent delete single
-            Route::post('/force-delete-multiple', [OrderController::class, 'forceDeleteMultiple']); 
-        });
-
 
         Route::prefix('quotes')->group(function () {
             Route::delete('/{id}/force', [QuoteController::class, 'forceDelete']);

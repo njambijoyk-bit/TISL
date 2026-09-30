@@ -8,7 +8,6 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\URL;
 
-use App\Services\Mail\OrderMailService;
 use App\Services\Mail\QuoteMailService;
 use App\Services\Mail\QuoteRequestMailService;
 use App\Services\PromoCodeService;
@@ -47,7 +46,6 @@ class AppServiceProvider extends ServiceProvider
         // Scoped: holds the per-request branch in context (multi-location).
         $this->app->scoped(\App\Services\Location\LocationContext::class);
 
-        $this->app->singleton(OrderMailService::class);
         $this->app->singleton(QuoteMailService::class);
         $this->app->singleton(QuoteRequestMailService::class);
 

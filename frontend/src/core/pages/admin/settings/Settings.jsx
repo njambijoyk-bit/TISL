@@ -1113,9 +1113,6 @@ function RouteMapAppendix() {
         { path: '/bookings',                    comp: 'BookingController@customerIndex' },
         { path: '/bookings/:id',                comp: 'BookingController@customerShow' },
         { path: '/services/:id/book',           comp: 'Book Service' },
-        { path: '/checkout',                    comp: 'OrderController@store' },
-        { path: '/orders',                      comp: 'OrderController@myOrders' },
-        { path: '/orders/:id',                  comp: 'OrderController@show' },
         { path: '/request-quote',               comp: 'QuoteRequestController@store' },
         { path: '/my-quote-requests',           comp: 'QuoteRequestController@myQuoteRequests' },
         { path: '/my-quote-requests/:id',       comp: 'QuoteRequestController@show' },
@@ -1141,7 +1138,6 @@ function RouteMapAppendix() {
       <RouteGroup title="5. Admin — Orders & Payments" routes={[
         { path: '/admin/orders',                    comp: 'OrderController@index' },
         { path: '/admin/orders/:id',                comp: 'OrderController@adminShow' },
-        { path: '/admin/orders/:id/ship',           comp: 'OrderController@ship' },
         { path: '/admin/orders/:id/payments',       comp: 'PaymentController@orderPayments' },
         { path: '/admin/finance/payments',          comp: 'PaymentController@index' },
         { path: '/admin/finance/payments/:id',      comp: 'PaymentController@show' },
@@ -1255,7 +1251,7 @@ function RouteMapAppendix() {
       <RoleGroup role="SUPER_ADMIN" description="Unrestricted access to all routes including destructive actions."
         pages={[
           { path: '/admin',                          label: 'Dashboard — Global KPIs' },
-          { path: '/admin/orders',                   label: 'Orders — Full lifecycle + force delete', exclusive: true },
+          { path: '/admin/orders',                   label: 'Orders — the sales register (vouchers)', exclusive: true },
           { path: '/admin/finance/payments',         label: 'Finance Hub — M-Pesa audit & disputes' },
           { path: '/admin/products',                 label: 'Catalog — Full inventory control' },
           { path: '/admin/customers',                label: 'CRM — Customer database & tiers' },
@@ -1272,7 +1268,7 @@ function RouteMapAppendix() {
       <RoleGroup role="ADMIN" description="Full CRUD on catalog, users, orders, and configuration."
         pages={[
           { path: '/admin',                          label: 'Dashboard' },
-          { path: '/admin/orders',                   label: 'Orders — Confirm, Ship, Deliver, Cancel, Restore' },
+          { path: '/admin/orders',                   label: 'Orders — the sales register (vouchers)' },
           { path: '/admin/products',                 label: 'Products — Full CRUD' },
           { path: '/admin/products/create',          label: 'Create Product' },
           { path: '/admin/products/:id/edit',        label: 'Edit Product' },
@@ -1301,7 +1297,6 @@ function RouteMapAppendix() {
       <RoleGroup role="LOGISTICS" description="Shipping pipeline and delivery tracking."
         pages={[
           { path: '/admin/orders',                   label: 'Orders — shipping queue view' },
-          { path: '/admin/orders/:id/ship',          label: 'Ship Order — tracking & courier entry' },
           { path: '/admin/bookings',                 label: 'Bookings — logistics scheduling' },
           { path: '/admin/customers',                label: 'Customer financial data', gated: true },
           { path: '/admin/orders/:id',               label: 'Order totals / financial fields', gated: true },
@@ -1360,7 +1355,6 @@ function RouteMapAppendix() {
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.78rem', color: '#9ca3af', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <li><strong>Profile Routing:</strong> The <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/profile</code> path auto-switches between Admin and Customer views via <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>RoleBasedProfile</code>.</li>
           <li><strong>Admin Access:</strong> All <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/*</code> routes are role-gated to staff (Admin, Manager, Finance, Logistics, Sales Rep).</li>
-          <li><strong>Ship View:</strong> <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>/admin/orders/:id/ship</code> uses <code style={{color:'color-mix(in srgb, var(--color-primary-500) 12%, var(--bg-primary))'}}>OrderDetail</code> with a specialised context mode.</li>
           <li><strong>Hamper Checkout:</strong> Gift voucher is capped at KES 500 and financials are locked post-conversion.</li>
           <li><strong>Careers Portal:</strong> Applicant auth is separate from the main customer auth system.</li>
         </ul>

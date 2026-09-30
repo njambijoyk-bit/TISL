@@ -135,8 +135,6 @@ const Categories         = lazy(() => import('./ecommerce/pages/admin/Categories
 const CategoryForm       = lazy(() => import('./ecommerce/pages/admin/CategoryForm'));
 const Brands             = lazy(() => import('./ecommerce/pages/admin/Brands'));
 const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'));
-const AdminOrders        = lazy(() => import('./core/pages/admin/Orders'));
-const OrderDetail        = lazy(() => import('./core/pages/admin/OrderDetail'));
 const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
@@ -1100,14 +1098,6 @@ function App() {
               />
               <Route path="/admin/orders" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister /></ProtectedRoute>} />
               <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
-              <Route
-                path="/admin/orders/:id/ship"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <OrderDetail />
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Admin Quote Request Routes */}
               <Route

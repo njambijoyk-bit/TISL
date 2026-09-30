@@ -4,7 +4,6 @@ export { default as useCartStore } from './cartStore';
 export { default as useNoteStore } from './noteStore';
 export { default as useThemeStore } from './themeStore';
 export { default as useProductStore } from './productStore';
-export { default as useOrderStore } from './orderStore';
 export { default as useServiceStore } from './serviceStore';
 export { default as useCurrencyStore } from './currencyStore';
 export { default as useTaxStore } from './taxStore';
