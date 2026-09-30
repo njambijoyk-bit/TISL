@@ -48,7 +48,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
     account_name: ledger?.account_name ?? '', swift_code: ledger?.swift_code ?? '', branch_code: ledger?.branch_code ?? '', accepts: ledger?.accepts ?? '',
     mobile_kind: ledger?.mobile_kind ?? '', mobile_number: ledger?.mobile_number ?? '', cash_kind: ledger?.cash_kind ?? '',
-    offer_at_checkout: ledger?.offer_at_checkout ?? false, checkout_label: ledger?.checkout_label ?? '', checkout_instructions: ledger?.checkout_instructions ?? '', checkout_sort: ledger?.checkout_sort ?? 0,
+    offer_at_checkout: ledger?.offer_at_checkout ?? false, checkout_mode: ledger?.checkout_mode ?? 'details', checkout_label: ledger?.checkout_label ?? '', checkout_instructions: ledger?.checkout_instructions ?? '', checkout_sort: ledger?.checkout_sort ?? 0,
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
     charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
     default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0, tax_follows: ledger?.settings?.tax_follows ?? 'own',
@@ -95,7 +95,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       }
       if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; body.account_name = null; body.swift_code = null; body.branch_code = null; }
       if (!money) { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = null; }); body.offer_at_checkout = false; body.checkout_sort = 0; }
-      else { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = blank(f[k]); }); body.checkout_sort = Number(f.checkout_sort) || 0; }
+      else { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = blank(f[k]); }); body.checkout_sort = Number(f.checkout_sort) || 0; body.checkout_mode = f.offer_at_checkout ? f.checkout_mode : undefined; }
       if (editing) await booksAPI.updateLedger(ledger.id, body); else await booksAPI.createLedger(body);
       toast.success(editing ? 'Ledger saved' : 'Ledger created');
       onSaved(); onClose();
@@ -226,11 +226,18 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
                 <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Customers can choose it as how they will pay. It is only a note on their order — the money is recorded when you convert the order.</p>
                 {f.offer_at_checkout && (
                   <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                    <Field label="How do customers pay with it?">
+                      <SelectInput value={f.checkout_mode} onChange={(e) => set('checkout_mode')(e.target.value)}>
+                        <option value="details">Show my details — they pay us, we record it (bank transfer, till number, cash on delivery)</option>
+                        <option value="mpesa_stk">Automatic M-Pesa prompt — they get a prompt on their phone and pay on the spot</option>
+                      </SelectInput>
+                    </Field>
+                    {f.checkout_mode === 'mpesa_stk' && <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textMuted }}>The automatic prompt also needs the M-Pesa keys on the server (the Daraja settings in the .env file).</p>}
                     <FormGrid>
                       <Field label="Shown to the customer as" error={errs.checkout_label}><TextInput value={f.checkout_label} onChange={(e) => set('checkout_label')(e.target.value)} placeholder={f.cash_kind === 'driver' ? 'Cash on delivery' : f.name} /></Field>
                       <Field label="Order in the list"><NumberInput min="0" value={f.checkout_sort} onChange={(e) => set('checkout_sort')(e.target.value)} /></Field>
                     </FormGrid>
-                    <Field label="What the customer is told" error={errs.offer_at_checkout} hint="Blank = worked out from the details above (bank account, till number, cash on delivery)."><TextArea rows={2} value={f.checkout_instructions} onChange={(e) => set('checkout_instructions')(e.target.value)} /></Field>
+                    {f.checkout_mode !== 'mpesa_stk' && <Field label="What the customer is told" error={errs.offer_at_checkout} hint="Blank = worked out from the details above (bank account, till number, cash on delivery)."><TextArea rows={2} value={f.checkout_instructions} onChange={(e) => set('checkout_instructions')(e.target.value)} /></Field>}
                   </div>
                 )}
               </div>

@@ -34,6 +34,30 @@ class PaymentModeService
         return $out;
     }
 
+    /**
+     * How customers pay with a ledger: `details` (we show our bank account / till number / cash on delivery and record the
+     * payment ourselves) or `mpesa_stk` (the customer gets a prompt on their phone and pays on the spot). The automatic
+     * kind is carried by the ledger's payment-method row, so nothing else has to be set up by hand.
+     */
+    public function setMode(int $ledgerId, string $mode): void
+    {
+        if ($mode === 'mpesa_stk') {
+            $m = $this->methodFor($ledgerId);
+            $m->update(['gateway' => 'mpesa_stk', 'is_online' => true, 'is_active' => true, 'kind' => 'mobile_money']);
+
+            return;
+        }
+        PaymentMethod::where('ledger_id', $ledgerId)->whereNotNull('gateway')->update(['gateway' => null, 'is_online' => false]);   // kept for history, no longer charged automatically
+    }
+
+    /** ledger id => 'mpesa_stk' | 'details', for showing the choice on the ledger form. */
+    public function modesFor(array $ledgerIds): array
+    {
+        $auto = PaymentMethod::whereIn('ledger_id', $ledgerIds)->where('is_active', true)->where('is_online', true)->whereNotNull('gateway')->pluck('gateway', 'ledger_id')->all();
+
+        return array_map(fn ($id) => isset($auto[$id]) ? 'mpesa_stk' : 'details', array_combine($ledgerIds, $ledgerIds));
+    }
+
     /** One offered ledger as a mode, or an error when it is not on offer (so a customer cannot name any ledger). */
     public function intentFor(int $ledgerId): array
     {

@@ -209,7 +209,7 @@ function MethodsSection() {
     try { await booksAPI.deleteMethod(m.id); toast.success('Deleted'); load(); } catch (e) { toast.error(errMsg(e, 'Could not delete')); }
   };
   return (
-    <Section title="Payment methods" hint="Create as many as you need and map each to the ledger it should post to."
+    <Section title="Payment methods" hint="Advanced. These are made for you from your cash and bank ledgers. To change how customers pay at checkout, open the ledger in Accounts and use “Offer this at checkout”."
       action={<button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New method</button>}>
       {methods.map((m) => (
         <div key={m.id} onClick={() => setForm(m)} role="button" tabIndex={0}
