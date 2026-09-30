@@ -241,6 +241,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             return { ...b, type: 'service', service_id: i.service_id, service_variant_id: i.service_variant_id, rate: Number(i.rate), label: i.description, materials };
           }
           if (i.item_type === 'hamper') return { ...b, type: 'hamper', hamper_id: i.hamper_id, rate: '', label: i.description };
+          if (i.item_type === 'charge' && i.shipping_option_id) return { ...b, type: 'charge', kind: 'shipping', shipping_option_id: i.shipping_option_id, waive: Number(i.amount) === 0 };   // re-priced and re-taxed from the shipping option
           if (i.item_type === 'charge') return { ...b, type: 'charge', kind: Number(i.amount) < 0 ? 'discount' : 'other', amount: Math.abs(Number(i.amount)), ledger_id: i.ledger_id ?? '' };
           return { ...b, type: 'custom', rate: Number(i.rate), ledger_id: i.ledger_id ?? '' };
         }));
@@ -358,7 +359,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate), materials: (l.materials ?? []).map(materialPayload) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
         if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
-          ? { type: 'charge', kind: 'shipping', shipping_option_id: l.shipping_option_id }
+          ? { type: 'charge', kind: 'shipping', shipping_option_id: l.shipping_option_id, waive: l.waive || undefined }
           : { type: 'charge', kind: l.kind, amount: Number(l.amount) || 0, description: l.description || undefined, ledger_id: l.ledger_id || undefined };
         return { ...b, type: 'custom', description: l.description, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined };
       });
