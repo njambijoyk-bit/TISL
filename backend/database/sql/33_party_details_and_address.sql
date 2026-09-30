@@ -21,10 +21,10 @@ WHERE table_schema = DATABASE()
   AND ((table_name = 'ledgers' AND column_name = 'address')
     OR (table_name = 'vouchers' AND column_name IN ('party_name', 'party_phone', 'party_address', 'party_tax_id')));
 
--- A2. Vendor addresses that will be copied to their ledgers (expect 0 if you have no vendors yet)
+-- A2. Vendors with an address that will be copied to their ledgers (expect 0 if you have no vendors yet)
 SELECT COUNT(*) AS vendor_addresses_to_copy
 FROM vendors v JOIN ledgers l ON l.supplier_id = v.id
-WHERE v.address IS NOT NULL AND v.address <> '' AND (l.address IS NULL OR l.address = '');
+WHERE v.address IS NOT NULL AND v.address <> '';
 
 -- A3. Can a vendor exist without a login user? (vendors.user_id must be YES; if it says NO, part B changes it)
 SELECT column_name, is_nullable, column_type FROM information_schema.columns
