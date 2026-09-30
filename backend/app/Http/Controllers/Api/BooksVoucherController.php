@@ -158,6 +158,17 @@ class BooksVoucherController extends Controller
     }
 
     /** Ready-made numbers for a form: next number per type, payment methods, etc. */
+    /** What a customer could use on a sale being entered: their gift vouchers (with what each covers) and promo codes (with the discount each gives). */
+    public function entitlements(Request $request): JsonResponse
+    {
+        $d = $request->validate(['customer_id' => 'required|integer|exists:customers,id', 'total' => 'required|numeric|min:0', 'net' => 'nullable|numeric|min:0']);
+        $money = app(\App\Services\CurrencyConversionService::class);
+
+        return response()->json(app(\App\Services\Books\CheckoutService::class)->entitlements(
+            \App\Models\Customer::findOrFail($d['customer_id']), (float) $d['total'], (float) ($d['net'] ?? $d['total']), 0.0, $money->getBaseCurrency()
+        ));
+    }
+
     /** Has this supplier already been billed under this invoice number? A warning only — never blocks. */
     public function checkSupplierInvoice(Request $request): JsonResponse
     {

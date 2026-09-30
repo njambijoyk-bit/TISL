@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -325,6 +326,7 @@ export default function ProductCard({ product }) {
           <span className="text-lg font-bold text-primary">
             {priceText}
           </span>
+          <ChargedInBadge />
           {originalText && (
             <span className="text-sm text-secondary line-through">{originalText}</span>
           )}

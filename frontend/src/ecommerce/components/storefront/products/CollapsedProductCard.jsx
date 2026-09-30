@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
 import useCartStore from '../../../../_shared/store/cartStore';
@@ -88,7 +89,7 @@ export default function CollapsedProductCard({ product }) {
           <span className="collapsed-original-price">{money.originalPrice({ ...product, original_price: originalPrice })}</span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span className="collapsed-price">{money.price(product)}</span>
+          <span className="collapsed-price">{money.price(product)}</span><ChargedInBadge style={{ marginLeft: 6 }} />
           {isPriceNegotiable && (
             <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
               style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>

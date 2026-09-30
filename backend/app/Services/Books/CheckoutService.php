@@ -39,9 +39,8 @@ class CheckoutService
     private function assemble(array $in, ?User $user): array
     {
         $customer = $user?->customer;
-        $currency = ! empty($in['currency'])
-            ? ($this->money->findByCode($in['currency']) ?? $this->money->getBaseCurrency())
-            : $this->money->currencyFrom($customer?->currency_id);
+        // Orders are always charged in the base (operating) currency; the shopper's chosen currency is only how prices are shown.
+        $currency = $this->money->getBaseCurrency();
         $locationId = $in['location_id'] ?? Location::default()?->id;
         $type = VoucherType::byBase(VoucherType::SALES_ORDER) ?? throw new BooksException('Ordering is switched off (the Sales Order voucher type is off).');
 
@@ -106,6 +105,8 @@ class CheckoutService
 
         $referralCodeId = null;
         $promoCodeId = null;
+        $promoNet = 0.0;
+        $promoReferral = 0.0;
         if ($customer && $sub > 0) {
             $pct = (float) $customer->calculateTotalDiscount();
             if ($pct > 0) {
@@ -123,6 +124,8 @@ class CheckoutService
                 $referralCodeId = $rc->id;
                 $net -= $referralDiscount;
             }
+            $promoNet = $net;
+            $promoReferral = $referralDiscount;
             if (! empty($in['promo_code'])) {
                 $res = $this->promos->validateForCheckout($in['promo_code'], $customer, $net, $currency, $referralDiscount);
                 if (! $res['valid']) {
@@ -168,7 +171,7 @@ class CheckoutService
             ], fn ($v) => $v !== null),
         ];
 
-        return compact('data', 'customer', 'currency', 'discounts', 'hasGift') + ['option' => $option];
+        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral') + ['option' => $option];
     }
 
     private function tierWaivesShipping(?Customer $customer, float $netSubtotal, Currency $currency): bool
@@ -193,16 +196,76 @@ class CheckoutService
         $a = $this->assemble($in, $user);
         $p = $this->vouchers->preview($a['data'], null);
 
-        $gift = null;
-        if (! empty($in['gift_voucher_code'])) {
-            $gift = $this->giftApplication($in['gift_voucher_code'], (float) $p['total'], $a['currency'], $a['customer'], now());
-        }
+        $gifts = $this->giftApplications($this->giftCodes($in), (float) $p['total'], $a['currency'], $a['customer']);
+        $applied = round(array_sum(array_column($gifts, 'applied')), 2);
+        $gift = $gifts ? ['code' => implode(', ', array_column($gifts, 'code')), 'applied' => $applied, 'vouchers' => $gifts] : null;
 
         return [
             'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
             'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift,
-            'due_now' => round($p['total'] - ($gift['applied'] ?? 0), 2),
+            'due_now' => round($p['total'] - $applied, 2),
+            'available' => $this->entitlements($a['customer'], (float) $p['total'], $a['promoNet'], $a['promoReferral'], $a['currency'], ! empty($in['promo_code']) ? (string) $in['promo_code'] : null),
         ];
+    }
+
+    /** Codes chosen for this order: gift_voucher_codes[] (and the older single gift_voucher_code). */
+    private function giftCodes(array $in): array
+    {
+        $codes = array_map('trim', array_filter(array_merge((array) ($in['gift_voucher_codes'] ?? []), [$in['gift_voucher_code'] ?? null]), fn ($c) => filled($c)));
+
+        return array_values(array_unique($codes));
+    }
+
+    /**
+     * Apply the chosen gift vouchers one after another until the total is covered.
+     *
+     * @return array<int, array{code: string, balance: float, applied: float}>
+     */
+    private function giftApplications(array $codes, float $total, Currency $currency, ?Customer $customer): array
+    {
+        $out = [];
+        $left = $total;
+        foreach ($codes as $code) {
+            $g = $this->giftApplication($code, $left, $currency, $customer, now());
+            $out[] = $g;
+            $left = round($left - $g['applied'], 2);
+        }
+
+        return $out;
+    }
+
+    /**
+     * What a customer could use on this order: their spendable gift vouchers (with what each would cover, in the order's
+     * currency) and the promo codes they hold (with the discount each would give). Nothing for a guest.
+     *
+     * @return array{gift_vouchers: array, promo_codes: array}
+     */
+    public function entitlements(?Customer $customer, float $total, float $promoNet, float $referralDiscount, Currency $currency, ?string $chosenPromo = null): array
+    {
+        $out = ['gift_vouchers' => [], 'promo_codes' => []];
+        if (! $customer) {
+            return $out;
+        }
+        $left = $total;
+        foreach (GiftVoucher::with('currency')->where('customer_id', $customer->id)->orderBy('expires_at')->orderBy('id')->get() as $gv) {
+            if (! $gv->isSpendable()) {
+                continue;
+            }
+            $balance = $this->money->convert((float) $gv->balance, $gv->currency, $currency);
+            $applicable = round(min($balance, max($left, 0)), 2);
+            $left = round($left - $applicable, 2);
+            $out['gift_vouchers'][] = ['code' => $gv->code, 'balance' => round($balance, 2), 'applicable' => $applicable, 'expires_at' => $gv->expires_at?->toDateString()];
+        }
+        if ($promoNet > 0) {
+            foreach ($this->promos->getCustomerPromoCodes($customer)['active_codes'] as $rc) {
+                $res = $this->promos->validateForCheckout($rc->code, $customer, $promoNet, $currency, $referralDiscount);
+                if ($res['valid'] && (float) $res['discount'] > 0) {
+                    $out['promo_codes'][] = ['code' => $rc->code, 'discount' => round(min($promoNet, (float) $res['discount']), 2), 'chosen' => strcasecmp((string) $chosenPromo, $rc->code) === 0];
+                }
+            }
+        }
+
+        return $out;
     }
 
     /** How much of a gift voucher can go on this order, in the order's currency. */
@@ -242,7 +305,7 @@ class CheckoutService
             if ($mode === 'account') {
                 throw new BooksException('A gift voucher can\'t be put on account — pay for it online; the code is issued when the payment arrives.');
             }
-            if (! empty($in['gift_voucher_code'])) {
+            if ($this->giftCodes($in)) {
                 throw new BooksException('A gift voucher can\'t be paid for with another gift voucher.');
             }
         }
@@ -256,11 +319,15 @@ class CheckoutService
 
             $giftApplied = 0.0;
             $tenders = [];
-            if (! empty($in['gift_voucher_code'])) {
-                $g = $this->giftApplication($in['gift_voucher_code'], $total, $a['currency'], $customer, now());
-                $giftApplied = $g['applied'];
+            if ($codes = $this->giftCodes($in)) {
                 $giftMethod = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first() ?? throw new BooksException('Gift vouchers are not set up yet (payment method missing).');
-                $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $giftApplied, 'gift_voucher_code' => $g['code']];
+                foreach ($this->giftApplications($codes, $total, $a['currency'], $customer) as $g) {
+                    if ($g['applied'] <= 0) {
+                        continue;
+                    }
+                    $giftApplied = round($giftApplied + $g['applied'], 2);
+                    $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $g['applied'], 'gift_voucher_code' => $g['code']];
+                }
             }
             $due = round($total - $giftApplied, 2);
 

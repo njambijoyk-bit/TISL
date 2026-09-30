@@ -2,6 +2,7 @@
 
 namespace App\Services\Books;
 
+use App\Services\PromoCodeService;
 use App\Models\Books\AccountingSetting;
 use App\Models\Books\Ledger;
 use App\Models\Books\PaymentMethod;
@@ -405,6 +406,19 @@ class VoucherService
             'method' => $method, 'tenders' => $tenders, 'paid_ledger_id' => $paidLedgerId, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
             'subtotal' => 0.0, 'tax_total' => 0.0, 'total' => 0.0,
         ];
+
+        // A promo code entered on a sale: worked out on what the customer is buying, exactly as checkout does, and added as
+        // a discount line (the code's use is recorded through the voucher's meta).
+        if ($type->has_items && $type->isSalesSide() && $customer && filled($data['promo_code'] ?? null) && ! in_array($type->base_type, [VoucherType::CREDIT_NOTE, VoucherType::DELIVERY_NOTE], true)) {
+            [$preSub] = $this->totals($data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx));
+            $res = app(PromoCodeService::class)->validateForCheckout((string) $data['promo_code'], $customer, $preSub, $currency, 0.0);
+            if (! $res['valid']) {
+                throw new BooksException($res['message']);
+            }
+            $data['lines'] = array_merge($data['lines'] ?? [], [['type' => 'charge', 'kind' => 'discount', 'amount' => round(min($preSub, (float) $res['discount']), 2), 'description' => 'Promo ' . $res['code']->code]]);
+            $data['meta'] = array_merge($data['meta'] ?? [], ['promo_code_id' => $res['code']->id]);
+            unset($data['lines_resolved']);
+        }
 
         if ($type->has_items) {
             $lines = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);

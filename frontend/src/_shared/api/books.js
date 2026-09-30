@@ -35,6 +35,7 @@ const booksAPI = {
   convertVoucher: (id, data) => send('post', `/admin/books/vouchers/${id}/convert`, data),
   receive: (id, data) => send('post', `/admin/books/vouchers/${id}/receive`, data),
   nextNumbers: (params) => get('/admin/books/vouchers/next-number', params),
+  entitlements: (params) => get('/admin/books/vouchers/entitlements', params),
   checkSupplierInvoice: (params) => get('/admin/books/vouchers/check-supplier-invoice', params),
   lookup: (kind, q, purpose) => get('/admin/books/lookup', { kind, q, purpose }),
   productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),

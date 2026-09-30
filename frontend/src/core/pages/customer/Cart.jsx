@@ -56,7 +56,7 @@ export default function Cart() {
               </div>
 
               {/* Cart Summary */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-3">
                 <CartSummary />
               </div>
             </div>

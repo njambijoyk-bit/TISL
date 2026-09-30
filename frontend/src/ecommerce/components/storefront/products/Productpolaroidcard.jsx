@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Package, Zap, Award, Sparkles, ShoppingCart, FileText, Heart, Gavel, Star } from 'lucide-react';
 import useCartStore from '../../../../_shared/store/cartStore';
@@ -384,6 +385,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
             <span className="ppc-price" style={{ color: cfg.accent }}>
               {priceText}
             </span>
+            <ChargedInBadge />
             {originalText && (
               <span className="ppc-price-orig">{originalText}</span>
             )}

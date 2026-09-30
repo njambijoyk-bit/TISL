@@ -913,9 +913,11 @@ The old order code is gone (admin Orders / Order detail / Create order, customer
 
 Until each is re-pointed, its screen shows an empty list or errors after script 34. Run script 34 only when the parts you use are done (or accept those screens being empty).
 
-## 20. Customer-side currency, cart and checkout (proposal, for discussion)
+## 20. Customer-side currency, cart and checkout (built 1 Oct 2026)
 
 - **One operating currency.** Every voucher (cart quote, sales order, cash sale, invoice) is priced in the **base / operating currency**: each item's price is converted from its own currency to base at the rate on the day. The currency a customer picks in the storefront changes **how prices are shown** (cards, product page, cart lines as an indicative view), never what is charged.
 - **Cart order summary** uses the voucher engine in base currency and reads like the voucher: Item | Variant | Qty | Rate | Amount | Tax (with the ledger's tax name and rate), then Subtotal / tax / Total, all with the operating currency's symbol.
 - **Checkout** lists the customer's **available gift vouchers** with the amount each can cover on this order, and the **promo codes** they hold with the discount each would give; the engine computes the applicable amounts. Typing a code still works.
 - **Admin voucher entry** shows the same for the chosen customer: their gift vouchers (balance and amount applicable) and promo codes (discount applicable), selectable.
+
+**Decisions and status.** Built as proposed, plus: the "Charged in {base}" note shows on storefront prices only when the shopper's chosen currency differs from the base currency; usable gift vouchers are **ticked automatically** at checkout (the customer can untick) and a gift voucher in another currency is **converted at the day's rate**; promo codes keep the **current rules** (one code, after tier and referral discounts); an admin sale with **no customer** offers no lists. Several gift vouchers can be used on one order (each covers what is left). A promo code entered on an admin sale is applied by the server as a discount line and its use is recorded through the voucher's meta. No SQL script.

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ChargedInBadge from '../../../_shared/components/common/ChargedInBadge';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -702,6 +703,7 @@ export default function ProductDetail() {
                     <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                       {currentPriceText}
                     </span>
+                    <ChargedInBadge />
                     {priceDiff && (
                       <>
                         <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>

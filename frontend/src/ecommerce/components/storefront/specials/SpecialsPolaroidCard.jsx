@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { Pin, Package, Zap, Award, Sparkles } from 'lucide-react';
 import useMoney from '../../../../_shared/hooks/useMoney';
 
@@ -234,6 +235,7 @@ export default function SpecialsPolaroidCard({ product, type = 'featured', index
           <span className="spc-price-main" style={{ color: cfg.accent }}>
             {money.price(product)}
           </span>
+          <ChargedInBadge />
 
           {originalText && (
             <span className="spc-price-original">

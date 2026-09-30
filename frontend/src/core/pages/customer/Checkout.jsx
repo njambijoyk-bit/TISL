@@ -6,9 +6,9 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { useCartStore, useAuthStore } from '../../../_shared/store/index';
-import useCurrencyStore from '../../../_shared/store/currencyStore';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { toApiItem } from '../../../_shared/lib/cartItems';
+import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 
@@ -35,12 +35,12 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { items, clearCart } = useCartStore();
   const { user, fetchCustomer } = useAuthStore();
-  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
   const [opts, setOpts] = useState(null);
   const [form, setForm] = useState({ customer_email: user?.email || '', customer_phone: user?.phone || '', shipping_address: '', delivery_method: '', customer_notes: '', promo_code: '', gift_voucher_code: '', phone: user?.phone || '' });
   const [mode, setMode] = useState('online');       // online | pay_later | account
   const [methodId, setMethodId] = useState(null);
   const [quote, setQuote] = useState(null);
+  const [giftPicked, setGiftPicked] = useState(null);   // null = not chosen yet -> every usable voucher is ticked automatically
   const [quoteError, setQuoteError] = useState(null);
   const [quoting, setQuoting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,21 +62,26 @@ export default function Checkout() {
   }, []);
 
   const payload = useCallback(() => ({
-    items: items.map(toApiItem), currency: displayCurrency || undefined, delivery_method: form.delivery_method || undefined,
+    items: items.map(toApiItem), delivery_method: form.delivery_method || undefined,
     promo_code: form.promo_code.trim() || undefined, gift_voucher_code: form.gift_voucher_code.trim() || undefined,
-  }), [items, displayCurrency, form.delivery_method, form.promo_code, form.gift_voucher_code]);
+    gift_voucher_codes: giftPicked ?? undefined,
+  }), [items, form.delivery_method, form.promo_code, form.gift_voucher_code, giftPicked]);
 
   // the books price the cart — refresh whenever anything that changes the price changes
   useEffect(() => {
     if (!items.length) return undefined;
     const t = setTimeout(async () => {
       setQuoting(true);
-      try { setQuote(await checkoutAPI.quote(payload())); setQuoteError(null); }
+      try {
+        const q = await checkoutAPI.quote(payload());
+        setQuote(q); setQuoteError(null);
+        if (giftPicked === null && q.available?.gift_vouchers?.length) setGiftPicked(q.available.gift_vouchers.map((g) => g.code));   // ticked for them; they can untick
+      }
       catch (e) { setQuote(null); setQuoteError(errMsg(e, 'Could not price your cart')); }
       finally { setQuoting(false); }
     }, 400);
     return () => clearTimeout(t);
-  }, [payload, items.length]);
+  }, [payload, items.length, giftPicked]);
 
   // after an M-Pesa prompt, wait for the confirmation
   useEffect(() => {
@@ -181,16 +186,45 @@ export default function Checkout() {
                     <input value={form.phone} onChange={set('phone')} placeholder="07XX XXX XXX" style={input} />
                   </div>
                 )}
+                {(quote?.available?.gift_vouchers?.length > 0) && (
+                  <div style={{ marginTop: 14 }}>
+                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers</label>
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      {quote.available.gift_vouchers.map((g) => {
+                        const on = (giftPicked ?? []).includes(g.code);
+                        const used = quote.gift?.vouchers?.find((v) => v.code === g.code)?.applied;
+                        return (
+                          <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: on ? 'rgba(16,185,129,0.06)' : 'white', cursor: 'pointer', fontSize: '0.82rem' }}>
+                            <input type="checkbox" checked={on} onChange={() => setGiftPicked((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
+                            <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: '#6b7280' }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
+                            <span style={{ fontWeight: 700, color: on ? '#059669' : '#9ca3af' }}>{on ? `applies ${money(used ?? g.applicable)}` : `could cover ${money(g.applicable)}`}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 {opts?.gift_vouchers_enabled && (
                   <div style={{ marginTop: 14 }}>
-                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Gift voucher code</label>
+                    <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> {quote?.available?.gift_vouchers?.length ? 'Another gift voucher code' : 'Gift voucher code'}</label>
                     <input value={form.gift_voucher_code} onChange={set('gift_voucher_code')} placeholder="Optional" style={input} />
-                    {quote?.gift && <p style={{ fontSize: '0.72rem', color: '#059669', margin: '4px 0 0' }}>Applying {money(quote.gift.applied)} from {quote.gift.code}</p>}
                   </div>
                 )}
                 <div style={{ marginTop: 14 }}>
                   <label style={label}><Tag size={12} style={{ verticalAlign: -2 }} /> Promo code</label>
-                  <input value={form.promo_code} onChange={set('promo_code')} placeholder="Optional" style={input} />
+                  {(quote?.available?.promo_codes?.length > 0) && (
+                    <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
+                      {quote.available.promo_codes.map((p) => (
+                        <label key={p.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: form.promo_code.trim().toLowerCase() === p.code.toLowerCase() ? 'rgba(16,185,129,0.06)' : 'white', cursor: 'pointer', fontSize: '0.82rem' }}>
+                          <input type="radio" name="promo" checked={form.promo_code.trim().toLowerCase() === p.code.toLowerCase()} onChange={() => setForm((f) => ({ ...f, promo_code: p.code }))} />
+                          <span style={{ flex: 1 }}><strong>{p.code}</strong></span>
+                          <span style={{ fontWeight: 700, color: '#059669' }}>saves {money(p.discount)}</span>
+                        </label>
+                      ))}
+                      {form.promo_code && <button type="button" onClick={() => setForm((f) => ({ ...f, promo_code: '' }))} style={{ justifySelf: 'start', background: 'none', border: 'none', color: '#6b7280', fontSize: '0.74rem', cursor: 'pointer', padding: 0 }}>Remove promo code</button>}
+                    </div>
+                  )}
+                  <input value={form.promo_code} onChange={set('promo_code')} placeholder="Or type a code" style={input} />
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <label style={label}>Notes (optional)</label>
@@ -205,29 +239,7 @@ export default function Checkout() {
               {!quote && !quoteError && <p style={{ color: '#9ca3af', fontSize: '0.82rem' }}>Pricing your cart…</p>}
               {quote && (
                 <div style={{ opacity: quoting ? 0.6 : 1 }}>
-                  <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
-                    {quote.lines.filter((l) => l.item_type !== 'charge').map((l, i) => (
-                      <div key={i}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: '0.82rem' }}>
-                          <span style={{ fontWeight: l.is_header ? 700 : 600 }}>{l.description}{l.variant_label && l.variant_label !== 'Standard' ? ` — ${l.variant_label}` : ''} <span style={{ color: '#9ca3af', fontWeight: 400 }}>× {l.quantity}</span></span>
-                          <span>{money(l.amount)}</span>
-                        </div>
-                        {(l.children ?? []).map((c, j) => <div key={j} style={{ fontSize: '0.72rem', color: '#9ca3af', paddingLeft: 12 }}>└ {c.description} × {c.quantity}</div>)}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 12, display: 'grid', gap: 6, fontSize: '0.82rem' }}>
-                    <Row k="Subtotal" v={money(quote.subtotal)} />
-                    {quote.lines.filter((l) => l.item_type === 'charge').map((l, i) => <Row key={i} k={l.description} v={Number(l.amount) === 0 ? 'Free' : money(l.amount)} />)}
-                    {quote.discounts.map((d, i) => <Row key={i} k={`Discount — ${d.source.replace('_', ' ')}${d.ref ? ` (${d.ref})` : ''}`} v={`−${money(d.amount)}`} color="#059669" />)}
-                    {(quote.tax_breakdown ?? []).length > 0
-                      ? quote.tax_breakdown.map((t, i) => <Row key={i} k={t.label} v={money(t.amount)} />)
-                      : Number(quote.tax_total) > 0 && <Row k="Tax" v={money(quote.tax_total)} />}
-                    {quote.gift && <Row k="Gift voucher" v={`−${money(quote.gift.applied)}`} color="#059669" />}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.05rem', borderTop: '2px solid #e5e7eb', paddingTop: 10, marginTop: 4 }}>
-                      <span>{mode === 'online' || quote.gift ? 'To pay now' : 'Total'}</span><span>{money(mode === 'online' || quote.gift ? quote.due_now : quote.total)}</span>
-                    </div>
-                  </div>
+                  <OrderBreakdown quote={quote} />
                 </div>
               )}
               <div style={{ marginTop: 16 }}>
@@ -243,8 +255,4 @@ export default function Checkout() {
       <Footer />
     </div>
   );
-}
-
-function Row({ k, v, color }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', color: color ?? '#4b5563' }}><span>{k}</span><span>{v}</span></div>;
 }

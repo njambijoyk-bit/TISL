@@ -156,6 +156,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
+  const [promo, setPromo] = useState('');            // a promo code the customer holds, applied as a discount line by the server
+  const [ent, setEnt] = useState(null);               // { gift_vouchers, promo_codes } for the chosen customer
+  const [giftPick, setGiftPick] = useState(null);     // gift voucher codes ticked (null = not chosen yet: all usable ones are ticked)
   const [whRates, setWhRates] = useState([]);
   const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
   const [preview, setPreview] = useState(null);
@@ -222,6 +225,34 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       .catch(() => setSeries([]));
   }, [typeId, h.date, h.location_id, editing]);
 
+  // Gift vouchers ticked for this sale, and what each would cover of the total (in the order they were issued).
+  const giftPlan = useMemo(() => {
+    if (!ent?.gift_vouchers?.length) return [];
+    let left = Number(preview?.total) || 0;
+    const out = [];
+    ent.gift_vouchers.filter((g) => (giftPick ?? []).includes(g.code)).forEach((g) => {
+      const applied = Math.round(Math.min(g.balance, Math.max(left, 0)) * 100) / 100;
+      if (applied > 0) { out.push({ code: g.code, applied }); left -= applied; }
+    });
+    return out;
+  }, [ent, giftPick, preview?.total]);
+
+  // What the chosen customer can use on this sale: their gift vouchers and promo codes, with the amounts they would cover.
+  const custId = h.customer?.customer_id;
+  useEffect(() => { setPromo(''); setGiftPick(null); }, [custId]);   // a different customer has different vouchers and codes
+  const saleTotal = Number(preview?.total) || 0;
+  const saleNet = Number(preview?.subtotal) || 0;
+  useEffect(() => {
+    if (!custId || !SALES_SIDE.includes(base) || ['quotation', 'credit_note', 'delivery_note'].includes(base) || saleTotal <= 0) { setEnt(null); return undefined; }
+    const t = setTimeout(() => {
+      api.entitlements({ customer_id: custId, total: saleTotal, net: saleNet }).then((e) => {
+        setEnt(e);
+        setGiftPick((cur) => (cur === null && e.gift_vouchers?.length ? e.gift_vouchers.map((g) => g.code) : cur));   // ticked for them; they can untick
+      }).catch(() => setEnt(null));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [custId, base, saleTotal, saleNet]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const payload = useMemo(() => {
     const p = {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
@@ -248,13 +279,21 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
+    if (promo && h.customer) p.promo_code = promo;
+    if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
+      const giftMethod = methods.find((m) => m.kind === 'gift_voucher');
+      const rest = Math.max(0, (Number(preview?.total) || 0) - giftPlan.reduce((t, g) => t + g.applied, 0));
+      if (giftMethod) {
+        p.tenders = [...giftPlan.map((g) => ({ payment_method_id: giftMethod.id, amount: g.applied, gift_voucher_code: g.code })), ...(rest > 0.004 && h.payment_method_id ? [{ payment_method_id: Number(h.payment_method_id) }] : [])];
+      }
+    }
     if (tenders.length) p.tenders = tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount === '' ? undefined : Number(t.amount), gift_voucher_code: t.code || undefined, reference: t.reference || undefined }));
     if (!editing) {
       if (manual && h.voucher_number) p.voucher_number = h.voucher_number;
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, promo, giftPlan, base, methods, preview?.total]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -521,6 +560,40 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               </div>
             )}
 
+            {ent && (ent.gift_vouchers?.length > 0 || ent.promo_codes?.length > 0) && (
+              <div style={{ ...card, padding: 14 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>Available for {h.customer?.name}</p>
+                {ent.gift_vouchers?.length > 0 && (
+                  <div style={{ display: 'grid', gap: 6, marginBottom: ent.promo_codes?.length ? 12 : 0 }}>
+                    <span style={label}>Gift vouchers{base === 'cash_sale' ? '' : ' (paid on a Cash Sale)'}</span>
+                    {ent.gift_vouchers.map((g) => {
+                      const on = (giftPick ?? []).includes(g.code);
+                      const used = giftPlan.find((x) => x.code === g.code)?.applied;
+                      return (
+                        <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: base === 'cash_sale' ? 'pointer' : 'default' }}>
+                          <input type="checkbox" disabled={base !== 'cash_sale'} checked={on && base === 'cash_sale'} onChange={() => setGiftPick((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
+                          <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: colors.textMuted }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
+                          <span style={{ fontWeight: 700 }}>{on && base === 'cash_sale' ? `applies ${money(used ?? 0)}` : `could cover ${money(g.applicable)}`}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {ent.promo_codes?.length > 0 && (
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <span style={label}>Promo codes</span>
+                    {ent.promo_codes.map((c) => (
+                      <label key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: 'pointer' }}>
+                        <input type="radio" name="promo" checked={promo === c.code} onChange={() => setPromo(c.code)} />
+                        <span style={{ flex: 1 }}><strong>{c.code}</strong></span>
+                        <span style={{ fontWeight: 700, color: '#059669' }}>saves {money(c.discount)}</span>
+                      </label>
+                    ))}
+                    {promo && <button type="button" onClick={() => setPromo('')} style={{ justifySelf: 'start', background: 'none', border: 'none', color: colors.textMuted, fontSize: '0.74rem', cursor: 'pointer', padding: 0 }}>Remove promo code</button>}
+                  </div>
+                )}
+              </div>
+            )}
             {hasItems && SALES_SIDE.includes(base) && !['quotation', 'credit_note'].includes(base) && lines.some((l) => l.track_expiry) && (
               <div style={{ ...card, padding: 14 }}>
                 <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>

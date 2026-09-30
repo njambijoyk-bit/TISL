@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, ShoppingBag, Truck } from 'lucide-react';
 import useCartStore from '../../../_shared/store/cartStore';
 import useAuthStore from '../../../_shared/store/authStore';
-import useCurrencyStore from '../../../_shared/store/currencyStore';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { toApiItem } from '../../../_shared/lib/cartItems';
+import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
 
 const fmtIn = (n, code) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: code || 'KES', minimumFractionDigits: 0 });
 
@@ -14,17 +14,16 @@ export default function CartSummary() {
   const { items, getTotal } = useCartStore();
   const { isAuthenticated } = useAuthStore();
 
-  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
 
   // The books price the cart: prices are tax-exclusive and the tax is whatever the item's sales ledger says ("VAT 16%").
   const [quote, setQuote] = useState(null);
   useEffect(() => {
     if (!items.length) { setQuote(null); return undefined; }
     const t = setTimeout(() => {
-      checkoutAPI.quote({ items: items.map(toApiItem), currency: displayCurrency || undefined }).then(setQuote).catch(() => setQuote(null));
+      checkoutAPI.quote({ items: items.map(toApiItem) }).then(setQuote).catch(() => setQuote(null));
     }, 300);
     return () => clearTimeout(t);
-  }, [items, displayCurrency]);
+  }, [items]);
 
   const fmt = (n) => fmtIn(n, quote?.currency?.code);
   const subtotal     = quote ? Number(quote.subtotal) : getTotal();
@@ -40,25 +39,16 @@ export default function CartSummary() {
       background: 'white', borderRadius: 12,
       border: '1px solid #e5e7eb',
       boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-      padding: 24, position: 'sticky', top: 96,
+      padding: 24, 
     }}>
       <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827', margin: '0 0 16px', paddingBottom: 12, borderBottom: '1px solid #f3f4f6' }}>
         Order summary
       </p>
 
-      {/* Line items */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-        {[
-          { label: `Subtotal (${items.length} item${items.length !== 1 ? 's' : ''})`, value: fmt(subtotal) },
-          ...(quote ? (quote.tax_breakdown ?? []).map((t) => ({ label: t.label, value: fmt(t.amount) })) : [{ label: 'Tax', value: '…' }]),
-        ].map(({ label, value }) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-            <span style={{ color: '#6b7280' }}>{label}</span>
-            <span style={{ fontWeight: 600, color: '#374151' }}>{value}</span>
-          </div>
-        ))}
-        {/* Shipping row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+      {/* The order as the voucher shows it — always in the operating currency */}
+      <div style={{ marginBottom: 14 }}>
+        {quote ? <OrderBreakdown quote={quote} /> : <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Pricing your cart…</p>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: 10 }}>
           <span style={{ color: '#6b7280' }}>Shipping</span>
           <span style={{ fontWeight: 600, color: freeShipping ? '#22c55e' : '#9ca3af', fontStyle: freeShipping ? 'normal' : 'italic' }}>
             {freeShipping ? 'FREE' : 'Calculated at checkout'}
@@ -79,15 +69,6 @@ export default function CartSummary() {
           </p>
         </div>
       )}
-
-      {/* Total */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-        paddingTop: 12, marginBottom: 18, borderTop: '1px solid #e5e7eb',
-      }}>
-        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827' }}>Total</span>
-        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>{quote ? fmt(quote.total) : '…'}</span>
-      </div>
 
       {/* Checkout */}
       <button onClick={handleCheckout} style={{
