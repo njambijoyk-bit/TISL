@@ -158,6 +158,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
+  const [rounding, setRounding] = useState('none');   // none | whole | half — Sales and Cash Sales
+  const [roundingDefaults, setRoundingDefaults] = useState({});
   const [discountPick, setDiscountPick] = useState(null);   // discount keys ticked (null = not chosen yet: the automatic ones are ticked once they load)
   const [ent, setEnt] = useState(null);               // { gift_vouchers, promo_codes } for the chosen customer
   const [giftPick, setGiftPick] = useState(null);     // gift voucher codes ticked (null = not chosen yet: all usable ones are ticked)
@@ -181,6 +183,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     shippingAPI.getActiveOptions().then(setShipOptions).catch(() => {});
     taxAPI.getRates({ active: true }).then((r) => setWhRates((r.tax_rates ?? []).filter((x) => x.tax_type?.application_mode === 'withheld'))).catch(() => {});
     api.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {});
+    api.settings().then((d) => setRoundingDefaults({ sales: d.settings?.sales_rounding ?? 'none', cash_sale: d.settings?.cash_sale_rounding ?? 'none' })).catch(() => {});
     api.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
     locationsAPI.getAdmin().then((r) => {
       const act = (r.locations ?? []).filter((l) => l.is_active !== false);
@@ -194,12 +197,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (!editing) return;
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
+      setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       if (v.type?.has_items) {
-        setLines((v.items ?? []).filter((i) => !i.parent_item_id).map((i) => {
+        setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i) => {
           const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
           if (i.item_type === 'product') return { ...b, type: 'product', variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, rate: Number(i.rate), label: `${i.description}${i.variant_label ? ` — ${i.variant_label}` : ''}`, units: [] };
           if (i.item_type === 'service') {
@@ -227,6 +231,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       .then((s) => { setSeries(s); setH((x) => ({ ...x, series_id: s.find((y) => y.location_id && String(y.location_id) === String(x.location_id))?.id ?? s.find((y) => y.is_default)?.id ?? s[0]?.id ?? '' })); })
       .catch(() => setSeries([]));
   }, [typeId, h.date, h.location_id, editing]);
+
+  // a new Sales / Cash Sale starts with the rounding chosen in Settings (off unless you switched it on)
+  useEffect(() => {
+    if (!editing && (base === 'sales' || base === 'cash_sale')) setRounding(roundingDefaults[base] ?? 'none');
+  }, [base, editing, roundingDefaults]);
 
   // Gift vouchers ticked for this sale, and what each would cover of the total (in the order they were issued).
   const giftPlan = useMemo(() => {
@@ -289,6 +298,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
+    if (base === 'sales' || base === 'cash_sale') p.rounding = rounding;
     if (h.customer && discountPick !== null) p.discount_choices = discountPick;   // which of the customer's discounts to apply
     if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
       const giftMethod = methods.find((m) => m.kind === 'gift_voucher');
@@ -303,7 +313,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, base, methods, preview?.total]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, base, methods, preview?.total, rounding]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -432,6 +442,16 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 </div>
               )}
               <div><label style={label}>Reference</label><input value={h.reference_no} onChange={(e) => setH((x) => ({ ...x, reference_no: e.target.value }))} style={small} placeholder="PO no., M-Pesa code…" /></div>
+              {(base === 'sales' || base === 'cash_sale') && (
+                <div>
+                  <label style={label}>Round the total</label>
+                  <select value={rounding} onChange={(e) => setRounding(e.target.value)} style={small} aria-label="Round the total">
+                    <option value="none">Do not round</option>
+                    <option value="whole">Nearest whole number</option>
+                    <option value="half">Nearest 0.50</option>
+                  </select>
+                </div>
+              )}
               {base === 'quotation' && <div><label style={label}>Valid until</label><input type="date" value={h.valid_until} onChange={(e) => setH((x) => ({ ...x, valid_until: e.target.value }))} style={small} /></div>}
               {['sales', 'purchase'].includes(base) && <div><label style={label}>Due date</label><input type="date" value={h.due_date} onChange={(e) => setH((x) => ({ ...x, due_date: e.target.value }))} style={small} /></div>}
             </div>

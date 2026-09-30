@@ -24,63 +24,85 @@ class RewardService
     public function __construct(private CurrencyConversionService $money, private GiftVoucherService $gifts, private VoucherService $vouchers, private LedgerService $ledgers) {}
 
     /** A sale becomes "real" when cash is taken (cash sale) or the invoice is fully paid. */
-    public function onSale(Voucher $sale): void
+    /**
+     * Money arrived from a customer: a Cash Sale (when it is made) or a Receipt (when it is posted). Points are earned on
+     * what was actually paid — tax included — times the tier's multiplier. Paying with a gift voucher is not new money, and
+     * neither is buying one, so those parts earn nothing. A Cash Sale also counts as an order; a Receipt only adds spend.
+     */
+    public function onMoneyReceived(Voucher $v): void
     {
-        $sale->loadMissing('type', 'customer');
-        $base = $sale->type->base_type;
-        if (! $sale->customer || ! in_array($base, [VoucherType::CASH_SALE, VoucherType::SALES], true) || $sale->status !== Voucher::POSTED) {
+        $v->loadMissing('type', 'customer');
+        $base = $v->type->base_type;
+        if (! $v->customer || ! in_array($base, [VoucherType::CASH_SALE, VoucherType::RECEIPT], true) || $v->status !== Voucher::POSTED) {
             return;
         }
-        if ($base === VoucherType::SALES && $this->vouchers->outstanding($sale) > 0.005) {
-            return;   // rewarded when the last receipt lands
-        }
-        if (! empty($sale->meta['rewarded_at'])) {
+        if (! empty($v->meta['rewarded_at'])) {
             return;
         }
-        DB::transaction(function () use ($sale) {
-            $sale = Voucher::whereKey($sale->id)->lockForUpdate()->first();
-            if (! empty($sale->meta['rewarded_at'])) {
+        DB::transaction(function () use ($v, $base) {
+            $v = Voucher::whereKey($v->id)->lockForUpdate()->first();
+            if (! empty($v->meta['rewarded_at'])) {
                 return;
             }
-            $customer = Customer::lockForUpdate()->find($sale->customer_id);
-            // gift vouchers bought on this sale are money held for later, not a purchase that earns points or counts as spend
-            $giftBase = round((float) $sale->items()->whereNotNull('gift_meta')->sum('amount') * (float) $sale->exchange_rate, 2);
-            $baseTotal = max(0.0, (float) $sale->base_total - $giftBase);
+            $customer = Customer::lockForUpdate()->find($v->customer_id);
+            $rate = (float) ($v->exchange_rate ?: 1);
+            // not new money: gift vouchers sold on this sale, and the part paid with a gift voucher
+            $giftSold = round((float) $v->items()->whereNotNull('gift_meta')->sum('amount') * $rate, 2);
+            $giftPaid = round((float) DB::table('voucher_tenders')->where('voucher_id', $v->id)->whereNotNull('gift_voucher_id')->sum('amount') * $rate, 2);
+            $paid = max(0.0, (float) $v->base_total - $giftSold - $giftPaid);
+            $countOrder = $base === VoucherType::CASH_SALE;
 
-            $points = $this->earnPoints($sale, $customer, $baseTotal);
-            $this->recordStats($customer, $baseTotal);
-            $this->completeReferral($sale, $customer);
-            $this->recordPromo($sale);
+            $points = $this->earnPoints($v, $customer, $paid);
+            $this->recordStats($customer, $paid, $countOrder);
+            $this->completeReferral($v, $customer);
 
-            $sale->update(['meta' => array_merge($sale->meta ?? [], ['rewarded_at' => now()->toIso8601String(), 'points_earned' => $points])]);
+            $v->update(['meta' => array_merge($v->meta ?? [], ['rewarded_at' => now()->toIso8601String(), 'points_earned' => $points, 'spend_counted' => $paid, 'order_counted' => $countOrder])]);
         });
     }
 
-    /** The sale was cancelled: take back what it earned. */
-    public function onCancel(Voucher $sale): void
+    /** An Invoice counts as an order when it is posted (it earns nothing itself: its receipts do). */
+    public function onInvoiced(Voucher $v): void
     {
-        $sale->loadMissing('type');
-        if (empty($sale->meta['rewarded_at']) || ! $sale->customer_id) {
+        $v->loadMissing('type');
+        if ($v->type->base_type !== VoucherType::SALES || ! $v->customer_id || $v->status !== Voucher::POSTED || ! empty($v->meta['order_counted'])) {
             return;
         }
-        DB::transaction(function () use ($sale) {
-            $customer = Customer::lockForUpdate()->find($sale->customer_id);
+        $customer = Customer::find($v->customer_id);
+        if (! $customer) {
+            return;
+        }
+        $customer->increment('total_orders');
+        $customer->refresh();
+        $customer->update(['last_order_date' => now(), 'first_order_date' => $customer->first_order_date ?: now(),
+            'average_order_value' => $customer->total_orders > 0 ? round($customer->total_spent / $customer->total_orders, 2) : 0]);
+        $v->update(['meta' => array_merge($v->meta ?? [], ['order_counted' => true])]);
+    }
+
+    /** The voucher was cancelled (or is being edited): take back the points, the spend and the order it counted. */
+    public function onCancel(Voucher $v): void
+    {
+        $v->loadMissing('type');
+        if (! $v->customer_id || (empty($v->meta['rewarded_at']) && empty($v->meta['order_counted']))) {
+            return;
+        }
+        DB::transaction(function () use ($v) {
+            $customer = Customer::lockForUpdate()->find($v->customer_id);
             if (! $customer) {
                 return;
             }
-            $points = (int) ($sale->meta['points_earned'] ?? 0);
+            $points = (int) ($v->meta['points_earned'] ?? 0);
             if ($points > 0) {
                 $take = min($points, (int) $customer->loyalty_points);
                 if ($take > 0) {
-                    $value = $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$sale->voucher_number} cancelled", $sale);
-                    $this->accrue($sale, -$take, $value);
+                    $value = $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$v->voucher_number} cancelled", $v);
+                    $this->accrue($v, -$take, $value);
                 }
             }
             $customer->update([
-                'total_orders' => max(0, (int) $customer->total_orders - 1),
-                'total_spent' => max(0, (float) $customer->total_spent - (float) $sale->base_total),
+                'total_orders' => max(0, (int) $customer->total_orders - (! empty($v->meta['order_counted']) ? 1 : 0)),
+                'total_spent' => max(0, (float) $customer->total_spent - (float) ($v->meta['spend_counted'] ?? 0)),
             ]);
-            $sale->update(['meta' => array_merge($sale->meta ?? [], ['rewarded_at' => null, 'points_earned' => 0])]);
+            $v->update(['meta' => array_merge($v->meta ?? [], ['rewarded_at' => null, 'points_earned' => 0, 'spend_counted' => 0, 'order_counted' => false])]);
         });
     }
 
@@ -225,9 +247,11 @@ class RewardService
 
     // ── statistics, tier ─────────────────────────────────────────────────
 
-    private function recordStats(Customer $customer, float $baseTotal): void
+    private function recordStats(Customer $customer, float $baseTotal, bool $countOrder = true): void
     {
-        $customer->increment('total_orders');
+        if ($countOrder) {
+            $customer->increment('total_orders');
+        }
         $customer->increment('total_spent', $baseTotal);
         $customer->refresh();
         if (! $customer->first_order_date) {
@@ -303,15 +327,6 @@ class RewardService
         $months = LoyaltySetting::get('gift_voucher_expiry_months', null);
 
         return $months ? now()->addMonths((int) $months)->toDateString() : null;
-    }
-
-    private function recordPromo(Voucher $sale): void
-    {
-        $id = $sale->meta['promo_code_id'] ?? null;
-        if ($id && ($code = ReferralCode::find($id))) {
-            $discount = collect($sale->meta['discounts'] ?? [])->where('source', 'promo')->sum('amount');
-            $code->recordSuccess((float) $discount, (float) $sale->subtotal, (float) $sale->exchange_rate);
-        }
     }
 
     // ── redemption: points → gift voucher ────────────────────────────────

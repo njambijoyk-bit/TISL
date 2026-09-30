@@ -50,6 +50,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 32 | `32_supplier_invoice_no.sql` | `vouchers.supplier_invoice_no` (+ index); existing purchase / debit note Refs copied into it |
 | 33 | `33_party_details_and_address.sql` | `ledgers.address`; `vouchers.party_name` / `party_phone` / `party_address` / `party_tax_id`; vendor addresses copied to their ledgers; `vendors.user_id` made optional (no vendor login) |
 | 34 | `34_drop_legacy_order_tables.sql` | Drops `orders`, `order_items`, `order_activity_logs`, `order_shipments` (removes the foreign keys into them first). Delivery, review eligibility, reports, chat and reconciliation still read them and need re-pointing at vouchers |
+| 35 | `35_promo_usage_and_rounding.sql` | `referral_code_usage.voucher_id` (promo use follows the voucher; `order_id` optional); a *Rounding* ledger + `accounting_settings.rounding_ledger_id`, `sales_rounding`, `cash_sale_rounding` (default `none`) |
 
 ---
 

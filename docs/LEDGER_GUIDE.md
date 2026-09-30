@@ -286,6 +286,7 @@ Stock is valued. Every arrival of stock is a **batch** with its own cost; a batc
 | **Service, material included** (nail polish in a manicure) | no charge; **Cost of Services**, at the batch cost | Stock |
 | **Service, part bought elsewhere** (a side mirror) | the customer for what is charged (Cr its income ledger); and **Job Materials Cost** for what it cost | the supplier owed, or cash / bank it was paid from — as a bill to the supplier when owed |
 | **Service, customer's own part** | nothing — noted on the job | |
+| **Total rounded** (Sales / Cash Sale, when chosen) | the customer for the rounded total; the difference is its own line on **Rounding** (Cr when rounded up, Dr when down) — tax is never changed by rounding | |
 | **Stock transfer** between branches | nothing — same stock, same company (in transit until received) | |
 | **Transfer received short** | Stock Loss, at the batch's cost, for what did not arrive | Stock |
 | **Stock count**, shortage | Stock Loss (net of gains on the same count) | Stock |

@@ -40,6 +40,9 @@ use Illuminate\Support\Facades\DB;
  */
 class VoucherService
 {
+    /** Marks the automatic rounding line so an edit form can leave it out and work it out again. */
+    public const ROUNDING_NOTE = '__rounding';
+
     public function __construct(
         private NumberingService $numbering,
         private PeriodGuard $guard,
@@ -81,6 +84,7 @@ class VoucherService
             $voucher = $this->persist($plan, $data, $user, null);
             $this->audit($voucher, 'created', $user);
             $this->rewardHook($voucher);
+            $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
 
@@ -107,6 +111,7 @@ class VoucherService
             $plan = $this->plan($data, $type, $voucher, $user);
             $this->guard->assert('edit', $plan['date'], $user, $type->id);
 
+            $this->undoRewards($voucher);   // its points, spend, order count and promo use are worked out again from the new figures
             $this->reverseEffects($voucher);
             $voucher->items()->delete();
             $voucher->entries()->delete();
@@ -115,6 +120,8 @@ class VoucherService
             $before = $voucher->only(['date', 'total_amount', 'party_ledger_id', 'narration']);
             $voucher = $this->persist($plan, $data, $user, $voucher);
             $this->audit($voucher, 'altered', $user, ['before' => $before]);
+            $this->rewardHook($voucher);
+            $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
 
@@ -142,16 +149,7 @@ class VoucherService
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
-            try {
-                app(RewardService::class)->onCancel($voucher);
-                foreach ($voucher->billRefs()->where('ref_type', 'against')->whereNotNull('against_voucher_id')->pluck('against_voucher_id')->unique() as $invId) {
-                    if (($inv = Voucher::find($invId)) && ! empty($inv->meta['rewarded_at']) && $this->outstanding($inv) > 0.005) {
-                        app(RewardService::class)->onCancel($inv);   // a paid invoice that is no longer paid loses its rewards
-                    }
-                }
-            } catch (\Throwable $e) {
-                report($e);
-            }
+            $this->undoRewards($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -446,6 +444,28 @@ class VoucherService
         }
 
         $plan['discount_options'] = $discountOptions;
+
+        // Rounding (Sales and Cash Sales only, and only when the admin chose it): the total the customer pays is rounded to
+        // the nearest whole number or the nearest 0.50; the difference is its own line on the Rounding ledger and never
+        // changes the tax. Nothing is rounded unless asked for.
+        $roundMode = in_array($data['rounding'] ?? 'none', ['whole', 'half'], true) ? $data['rounding'] : 'none';
+        $plan['rounding_mode'] = $type->has_items && in_array($type->base_type, [VoucherType::SALES, VoucherType::CASH_SALE], true) ? $roundMode : 'none';
+        if ($plan['rounding_mode'] !== 'none') {
+            $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['rounding' => $plan['rounding_mode']]);   // remembered so an edit starts from the same choice
+            $pre = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
+            [$preSub, $preTax] = $this->totals($pre);
+            $preTotal = round($preSub + $preTax, 2);
+            $rounded = $plan['rounding_mode'] === 'half' ? round($preTotal * 2) / 2 : round($preTotal);
+            $diff = round($rounded - $preTotal, 2);
+            if (abs($diff) >= 0.005) {
+                $roundLine = ['type' => 'charge', 'kind' => 'rounding', 'amount' => $diff, 'description' => 'Rounding', 'notes' => self::ROUNDING_NOTE];
+                if (isset($data['lines_resolved'])) {
+                    $data['lines_resolved'][] = array_merge($this->chargeLine($roundLine, $ctx), ['notes' => self::ROUNDING_NOTE]);
+                } else {
+                    $data['lines'] = array_merge($data['lines'] ?? [], [$roundLine]);
+                }
+            }
+        }
 
         if ($type->has_items) {
             $lines = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
@@ -830,7 +850,7 @@ class VoucherService
         }
         $line = array_merge($this->blank('charge'), [
             'description' => $l['description'] ?? ucfirst($kind), 'quantity' => 1.0, 'base_quantity' => 1.0,
-            'rate' => $amount, 'amount' => $amount, 'ledger_id' => (int) $ledgerId,
+            'rate' => $amount, 'amount' => $amount, 'ledger_id' => (int) $ledgerId, 'notes' => $l['notes'] ?? null,
         ]);
 
         return $line;
@@ -2176,22 +2196,38 @@ class VoucherService
         ];
     }
 
-    /** Cash sales earn at once; an invoice earns when its last receipt lands. A reward problem never undoes a sale. */
+    /** Points are earned when money arrives (a Cash Sale, a Receipt); an Invoice counts as an order. A reward problem never undoes a sale. */
     private function rewardHook(Voucher $voucher): void
     {
         try {
             $voucher->loadMissing('type');
             $rewards = app(RewardService::class);
-            $base = $voucher->type->base_type;
-            if ($base === VoucherType::CASH_SALE) {
-                $rewards->onSale($voucher);
-            } elseif ($base === VoucherType::RECEIPT) {
-                foreach ($voucher->billRefs()->where('ref_type', 'against')->pluck('against_voucher_id')->filter()->unique() as $invoiceId) {
-                    if ($invoice = Voucher::find($invoiceId)) {
-                        $rewards->onSale($invoice);
-                    }
-                }
-            }
+            match ($voucher->type->base_type) {
+                VoucherType::CASH_SALE, VoucherType::RECEIPT => $rewards->onMoneyReceived($voucher),
+                VoucherType::SALES => $rewards->onInvoiced($voucher),
+                default => null,
+            };
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** A promo code is used when the voucher carrying it is posted. */
+    private function promoHook(Voucher $voucher): void
+    {
+        try {
+            app(PromoUsageService::class)->record($voucher);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** Take back what a voucher earned and used: loyalty points and counters, and the promo code's use. */
+    private function undoRewards(Voucher $voucher): void
+    {
+        try {
+            app(RewardService::class)->onCancel($voucher);
+            app(PromoUsageService::class)->reverse($voucher);
         } catch (\Throwable $e) {
             report($e);
         }

@@ -503,6 +503,26 @@ class ReferralCode extends Model
     }
 
     /**
+     * Take back one use recorded by recordSuccess() — the sale that used the code was cancelled or changed.
+     * A code that had run out because of that use becomes usable again.
+     */
+    public function reverseSuccess(float $discountAmount, float $orderValue, float $exchangeRateToKes = 1.0): void
+    {
+        $down = fn (string $col, float $by) => $this->update([$col => max(0, (float) $this->{$col} - $by)]);
+        foreach (['times_used', 'successful_uses', 'total_orders'] as $col) {
+            $down($col, 1);
+        }
+        $down('total_discount_given', $discountAmount * $exchangeRateToKes);
+        $down('total_revenue', $orderValue * $exchangeRateToKes);
+        $this->refresh();
+        $this->update(['average_order_value' => $this->total_orders > 0 ? round($this->total_revenue / $this->total_orders, 2) : 0]);
+        $this->updateConversionRate();
+        if ($this->status === 'depleted' && ! $this->is_depleted) {
+            $this->update(['status' => 'active']);
+        }
+    }
+
+    /**
      * Update conversion rate.
      */
     protected function updateConversionRate(): void

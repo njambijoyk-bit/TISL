@@ -362,7 +362,11 @@ function DefaultsSection({ isSuper }) {
   if (!s) return <p style={{ color: colors.textMuted }}>Loading…</p>;
   const save = async () => {
     setBusy(true);
-    try { await booksAPI.saveSettings(Object.fromEntries(DEFAULTS.map(([k]) => [k, s[k] || null]))); toast.success('Saved'); }
+    try {
+      const body = Object.fromEntries(DEFAULTS.map(([k]) => [k, s[k] || null]));
+      ['sales_rounding', 'cash_sale_rounding'].forEach((k) => { if (k in s) body[k] = s[k] || 'none'; });   // present once script 35 has been run
+      await booksAPI.saveSettings(body); toast.success('Saved');
+    }
     catch (e) { toast.error(errMsg(e, 'Could not save')); } finally { setBusy(false); }
   };
   return (
@@ -377,6 +381,21 @@ function DefaultsSection({ isSuper }) {
           </Field>
         ))}
       </FormGrid>
+      {'sales_rounding' in s && (
+        <>
+          <h4 style={{ margin: '18px 0 6px', fontSize: '0.85rem' }}>Rounding the total a customer pays</h4>
+          <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: colors.textMuted }}>What a new voucher starts with. You can change it on each voucher. The difference goes to the Rounding ledger above and never changes the VAT.</p>
+          <FormGrid min={260}>
+            {[['sales_rounding', 'Sales invoices'], ['cash_sale_rounding', 'Cash sales']].map(([k, label]) => (
+              <Field key={k} label={label}>
+                <SelectInput disabled={!isSuper} value={s[k] ?? 'none'} onChange={(e) => setS((x) => ({ ...x, [k]: e.target.value }))}>
+                  <option value="none">Do not round</option><option value="whole">Nearest whole number</option><option value="half">Nearest 0.50</option>
+                </SelectInput>
+              </Field>
+            ))}
+          </FormGrid>
+        </>
+      )}
       {isSuper ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
         : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>Only a super admin can change these.</p>}
     </Section>

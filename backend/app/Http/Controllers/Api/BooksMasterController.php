@@ -399,6 +399,7 @@ class BooksMasterController extends Controller
             'walkin_ledger_id' => $ledger, 'fx_gain_ledger_id' => $ledger, 'fx_loss_ledger_id' => $ledger, 'gift_voucher_ledger_id' => $ledger, 'loyalty_liability_ledger_id' => $ledger, 'breakage_income_ledger_id' => $ledger, 'rewards_expense_ledger_id' => $ledger, 'interest_income_ledger_id' => $ledger, 'stock_ledger_id' => $ledger, 'cogs_ledger_id' => $ledger, 'cost_of_services_ledger_id' => $ledger, 'job_materials_ledger_id' => $ledger, 'stock_loss_ledger_id' => $ledger, 'wip_ledger_id' => $ledger, 'opening_balance_ledger_id' => $ledger, 'default_sales_ledger_id' => $ledger, 'default_purchase_ledger_id' => $ledger, 'sales_returns_ledger_id' => $ledger,
             'purchase_returns_ledger_id' => $ledger, 'shipping_income_ledger_id' => $ledger, 'discount_ledger_id' => $ledger, 'rounding_ledger_id' => $ledger,
             'default_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
+            'sales_rounding' => 'nullable|in:none,whole,half', 'cash_sale_rounding' => 'nullable|in:none,whole,half',
             'edit_window_days' => 'nullable|integer|min:0|max:3650', 'locked_before' => 'nullable|date',
         ]);
         $s = AccountingSetting::current();
