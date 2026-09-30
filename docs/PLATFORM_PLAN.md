@@ -1099,3 +1099,26 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 6. Cash count and driver cash (script 41).
 
 **Decision needed.** Write-off approval: any finance user up to a set limit and a manager above it (recommended), or any finance user without a limit?
+
+## 28. One build order: bills, credit, write-off, payment modes, instruments, cash (unified plan, 30 Sep 2026)
+
+**Decision.** Write-off is allowed to **finance and super-admin users, no amount limit** (every write-off needs a reason and is in the edit log). This replaces the limit proposed in 27.5.
+
+**Why one order.** Sections 26 and 27 overlap: a bounce needs bills (27.4), a bill settlement needs the bank/instrument on the receipt (26.3), and the bad-debt, bank-charge and bounce-fee ledgers are needed by both. So the work is arranged by what each step depends on, and **all system ledgers and settings are seeded once, in script 37**.
+
+| # | Step | Depends on | Delivers | Script |
+|---|---|---|---|---|
+| **1** | **Open bills and allocation** | nothing | One open-bills query per party (new bills + advances − settlements); `outstanding()` for Purchase, Debit/Credit Notes and opening balances; the **Receipt / Payment form shows the balance strip (they owe us / we owe them), credit on account and the open bills with a Settle box each, oldest due first, remainder on account**; customer account page and ageing read the same query | read-only checks only (maybe none) |
+| **2** | **System ledgers and on-account credit** | 1 | Script 37 seeds **Bad Debts Written Off**, **Discount Allowed / Small Balances**, **Bank Charges**, **Bounced Cheque Charges (recoverable)**, **Cash over/short**, **Driver cash** (all editable, none hardcoded by name). **Apply credit** on a new invoice/bill and on any open bill (bill-reference rows on the invoice, no ledger entry, reversed if the invoice is cancelled/edited); **refund of credit** (Payment voucher) | 37 |
+| **3** | **Write-off** | 1, 2 | Write off a bill or balance: Journal *Dr Bad Debts / Cr Customer*, reason required, **finance and super-admin only**, cancellable, in the edit log; ageing/customer statement show it; "VAT not adjusted" flag | none (uses 37) |
+| **4** | **Ledger characteristics, checkout list, payment record on the order** | 2 | Bank (name, account name/number, SWIFT, branch name/code, currency, accepts), mobile-money (till/paybill, gateway), cash kind (Till, Petty, Driver cash, Undeposited), *offer at checkout* + label + instructions; `payment_methods` kept as a thin layer generated from the ledgers; checkout lists the offered ledgers, **Cash on delivery** (driver-cash ledger) and **On credit** (credit customers); saved as `meta.payment_intent`, shown to the admin on the order and **pre-filled when converting** | 38 |
+| **5** | **Instruments and deposit slips** | 1, 4 | Receipt/Payment/Contra on a bank ledger asks **EFT / other transfer / cheque** and stores instrument number, date (post-dated cheques), the other party's bank, reference; cheques start *received* / *issued*; **Contra cash to bank asks deposit slip number, date, deposited by**; cheque received posts to the bank ledger on the receipt date flagged *uncleared* | 39 (`voucher_instruments`) |
+| **6** | **Cheque register and bounce** | 1, 2, 5 | Register: cheques in hand (incl. post-dated and due this week), issued not cleared, bounced; mark deposited / cleared; **Bounce** posts the linked journal (Dr Customer / Cr Bank), reopens the original bills as a *returned cheque* bill, records the bank fee (Dr Bank Charges / Cr Bank) and **bills it on to the customer** (Dr Customer / Cr Bank Charges, a separate *bounced cheque fee* bill; skipped if waived); loyalty points from that receipt come off | none (uses 37, 39) |
+| **7** | **Cash count and driver cash** | 2, 4, 5 | Day-end count per cash ledger against the book balance, difference to *Cash over/short*; driver cash handed in by Contra; COD collection flow on the converted Cash Sale | 40 |
+| **8** | **Customer-side follow-ups** | 2, 4 | *My account* shows credit on account and open bills; **Pay with account credit** at checkout; payment instructions of the chosen ledger on the order page | none |
+
+**How each step is done.** Backend first with isolated tests (as before), then the form, then a browser check on mocked data; each step ends with a docs line, a commit and a push to both branches. SQL is given as Workbench scripts (read-only checks first, transaction, result check, re-runnable) and sent as a file. Step 1 needs no SQL unless the read-only check shows the bill-reference `ref_type` column cannot hold a new value.
+
+**Rules carried through all steps.** Every posting is a voucher (edit log, cancel reverses everything it did: bills, credit applied, instruments, cheque status). A cancelled receipt gives its settlements back. Nothing in the order or checkout posts money; payment mode on an order is a record only. Finance users and super-admin only for write-off, bounce and refund.
+
+**Start with step 1.**
