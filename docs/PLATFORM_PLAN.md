@@ -895,3 +895,27 @@ A purchase voucher screen in the style of the existing voucher form, with a guid
 - **Automatic variant:** a product saved with no variants gets a "Standard" variant (`ensureDefaultVariant`); the page does the same after "Create new product". Today that only runs when the product has a default unit — the purchase path falls back to the platform default unit so the line is never left without a variant.
 - **Saving:** posts the purchase — creates batches, adds branch stock, Dr Stock / Cr Supplier.
 - **Draft:** kept in the browser while the admin is on the product form, so nothing typed is lost.
+
+---
+
+## 19. Retiring the legacy order tables — what is affected, and the work that follows (1 Oct 2026)
+
+The old order code is gone (admin Orders / Order detail / Create order, customer My Orders / Order detail, the order write API, the order emails). Script 34 drops `orders`, `order_items`, `order_activity_logs`, `order_shipments` (foreign keys into them are removed; the `order_id` columns in other tables stay, unlinked). Everything below still reads those tables and **has nothing to read once script 34 is run**. This list is the next body of work, in the order I suggest:
+
+1. **Delivery** — manifests and their items (`delivery_items.order_id`), the eligibility check for adding an order to a manifest, route planning, shipment tracking for customers (`/orders/:id/shipment`, pings, tracking), driver and delivery ratings, delivery incidents, delivery stats and insights. *Re-point to:* a Delivery Note (or the Sales Order) voucher instead of an order; tracking keyed by voucher id.
+2. **Reports and analytics** — the reports screens (orders, revenue, dashboards), the order counts on the dashboard / reports, AI analytics, the search / algorithm services that read orders. *Re-point to:* the sales register (Sales Order / Cash Sale / Invoice vouchers) and ledger balances.
+3. **Product review eligibility** ("bought this") — `product_reviews.order_id`, `ReviewEligibilityController`. *Re-point to:* a posted Cash Sale / Invoice containing the variant.
+4. **Referral and promo usage** — `referral_code_usage.order_id`, promo revenue / discount tracking. *Re-point to:* the voucher the code was used on.
+5. **Chat assistant (Mimi) and reconciliation** — order lookups in the assistant; the reconciliation populate service. *Re-point to:* vouchers.
+6. **Customer history and activity** — the customer detail "orders" tab, the activity feed, project order links (Projects → link an order). These already return empty lists when the tables are gone; *re-point to:* the customer's vouchers and the voucher audit log.
+7. **Old quotes** — "convert to order" on the legacy quote screens still creates a legacy order; the voucher Quotation flow replaces it (retire the legacy quote screens).
+8. **Payments** — the per-order payment screens (`/admin/orders/:id/payments`, `PaymentController` order routes) and the legacy `payments` / credit tables; receipts against vouchers replace them.
+
+Until each is re-pointed, its screen shows an empty list or errors after script 34. Run script 34 only when the parts you use are done (or accept those screens being empty).
+
+## 20. Customer-side currency, cart and checkout (proposal, for discussion)
+
+- **One operating currency.** Every voucher (cart quote, sales order, cash sale, invoice) is priced in the **base / operating currency**: each item's price is converted from its own currency to base at the rate on the day. The currency a customer picks in the storefront changes **how prices are shown** (cards, product page, cart lines as an indicative view), never what is charged.
+- **Cart order summary** uses the voucher engine in base currency and reads like the voucher: Item | Variant | Qty | Rate | Amount | Tax (with the ledger's tax name and rate), then Subtotal / tax / Total, all with the operating currency's symbol.
+- **Checkout** lists the customer's **available gift vouchers** with the amount each can cover on this order, and the **promo codes** they hold with the discount each would give; the engine computes the applicable amounts. Typing a code still works.
+- **Admin voucher entry** shows the same for the chosen customer: their gift vouchers (balance and amount applicable) and promo codes (discount applicable), selectable.
