@@ -392,17 +392,13 @@ export default function ProductForm() {
     draftStore.write({ stamp: serverStamp.current, formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab });
   }, [formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A new product gets a unique SKU from the server (like SMMK9T1206) as soon as the form opens; still editable.
   useEffect(() => {
-    if (isCreate && formData.name && !formData.sku) {
-      setFormData(p => ({ ...p, sku: generateSKU(p.name) }));
-    }
-  }, [formData.name, isCreate]);
-
-  const generateSKU = (name) => {
-    const words = name.toUpperCase().split(' ').slice(0, 2);
-    const prefix = words.map(w => w.substring(0, 4)).join('-');
-    return `${prefix}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-  };
+    if (!isCreate || formData.sku) return undefined;
+    let live = true;
+    productsAPI.nextSku().then((sku) => { if (live) setFormData((p) => (p.sku ? p : { ...p, sku })); }).catch(() => {});
+    return () => { live = false; };
+  }, [isCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const normalizeImageUrl = (p) => {
     if (!p) return null;
@@ -822,7 +818,7 @@ export default function ProductForm() {
                   </Field>
                 </div>
                 <Field label="SKU *" hint={!isView ? 'Auto-generated, editable' : undefined}>
-                  <StyledInput name="sku" value={formData.sku} onChange={handleChange} disabled={isView} placeholder="PROD-001" required={!isView} style={{ fontFamily: 'monospace' }} />
+                  <StyledInput name="sku" value={formData.sku} onChange={handleChange} disabled={isView} placeholder="Generated for you" required={!isView} style={{ fontFamily: 'monospace' }} />
                 </Field>
                 <Field label="Product type">
                   <StyledInput name="type" value={formData.type} onChange={handleChange} disabled={isView} placeholder="e.g. Equipment, Tool, Consumable" />

@@ -210,6 +210,12 @@ class ProductController extends Controller
     /**
      * Store a newly created product (ADMIN ONLY)
      */
+    /** A fresh SKU (like SMMK9T1206) that no product or variant has. */
+    public function nextSku(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['sku' => app(\App\Services\SkuGenerator::class)->generate()]);
+    }
+
     public function store(Request $request)
     {
         if ($r = \App\Services\Books\TradingAccounts::check($request)) {
@@ -217,7 +223,7 @@ class ProductController extends Controller
         }
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:products,sku',
+            'sku' => 'nullable|string|unique:products,sku',
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
@@ -313,7 +319,7 @@ class ProductController extends Controller
             $product = Product::create([
                 'name' => $request->name,
                 'slug' => Str::slug($request->name),
-                'sku' => $request->sku,
+                'sku' => filled($request->sku) ? $request->sku : app(\App\Services\SkuGenerator::class)->generate(),
                 'type' => $request->type,
                 'category_id' => $request->category_id,
                 'brand_id' => $request->brand_id,

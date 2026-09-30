@@ -821,6 +821,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Products Management
         Route::prefix('products')->middleware('module:ecommerce')->group(function () {
             Route::post('/', [ProductController::class, 'store']);
+            Route::get('/next-sku', [ProductController::class, 'nextSku']);
             Route::get('/', [ProductController::class, 'adminIndex']);
             Route::get('/trash', [ProductController::class, 'trashIndex']); // trashed products list
             Route::post('/restore-multiple', [ProductController::class, 'restoreMultiple']); // bulk restore

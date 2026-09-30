@@ -1,6 +1,9 @@
 import api from './axios';
 
 const productsAPI = {
+  // ADMIN: a fresh unique SKU (like SMMK9T1206)
+  nextSku: async () => (await api.get('/admin/products/next-sku')).data.sku,
+
   // ADMIN: Get all products (including inactive)
   getAdminProducts: async (params = {}) => {
     const response = await api.get('/admin/products', { params });
