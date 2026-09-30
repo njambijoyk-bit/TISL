@@ -395,6 +395,13 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
             )}
           </div>
 
+          {/* Expiry badge — only for products that track expiry, with a dated batch (set in Settings → Stock & expiry) */}
+          {product?.expiry_badge && (
+            <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 5, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: 'rgba(120,53,15,0.85)', color: '#fde68a' }}>
+              Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+
           {/* Discount badge */}
           {pct > 0 && (
             <span

@@ -96,6 +96,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [previewErr, setPreviewErr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
+  const [expiredOverride, setExpiredOverride] = useState({ on: false, reason: '' });
 
   const type = types.find((t) => String(t.id) === String(typeId));
   const base = type?.base_type;
@@ -171,13 +172,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
+    if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
     if (tenders.length) p.tenders = tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount === '' ? undefined : Number(t.amount), gift_voucher_code: t.code || undefined, reference: t.reference || undefined }));
     if (!editing) {
       if (manual && h.voucher_number) p.voucher_number = h.voucher_number;
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -427,10 +429,28 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               </div>
             )}
 
+            {hasItems && SALES_SIDE.includes(base) && !['quotation', 'credit_note'].includes(base) && lines.some((l) => l.track_expiry) && (
+              <div style={{ ...card, padding: 14 }}>
+                <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={expiredOverride.on} onChange={(e) => setExpiredOverride((x) => ({ ...x, on: e.target.checked }))} /> Sell expired stock (override)
+                </label>
+                {expiredOverride.on && (
+                  <div style={{ marginTop: 8 }}>
+                    <input value={expiredOverride.reason} onChange={(e) => setExpiredOverride((x) => ({ ...x, reason: e.target.value }))} placeholder="Why? (required — it is logged on the voucher)" style={small} />
+                    <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: colors.textFaint }}>Only works where Settings → Stock &amp; expiry allows overrides for the product, and for the roles named there.</p>
+                  </div>
+                )}
+              </div>
+            )}
             {(preview || previewErr) && (
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>What this will post</p>
                 {previewErr && <p role="alert" style={{ margin: 0, color: colors.dangerText, fontSize: '0.82rem' }}>{previewErr}</p>}
+                {preview?.warnings?.length > 0 && (
+                  <div role="status" style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.8rem' }}>
+                    {preview.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
+                  </div>
+                )}
                 {preview && (
                   <>
                     {preview.lines?.length > 0 && (

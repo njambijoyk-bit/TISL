@@ -115,7 +115,7 @@ class ProductController extends Controller
     {
         $query = Product::with(['brand', 'category', 'currency:id,code,symbol', 'activeAuction'])
             ->where('is_visible', true)
-            ->where('is_for_sale', true)
+            ->onShelf()
             ->where('status', 'active');
 
         // --- all existing filters unchanged ---
@@ -188,6 +188,7 @@ class ProductController extends Controller
             $product->boost_badge_type = $boost?->badge_type ?? null;
             return $product;
         });
+        app(\App\Services\Stock\ExpiryBadges::class)->attach($products->getCollection());
 
         // ── Fuzzy suggestions when exact search returns nothing ───────────────
         $fuzzyResults = [];
@@ -195,7 +196,7 @@ class ProductController extends Controller
             $fuzzyResults = app(FuzzySuggestService::class)->suggest(
                 Product::with(['brand:id,name', 'currency:id,code,symbol'])
                     ->where('is_visible', true)
-                    ->where('is_for_sale', true)
+                    ->onShelf()
                     ->where('status', 'active')
                     ->select('id', 'name', 'sku', 'main_image', 'price', 'sales_ledger_id', 'currency_id', 'slug', 'brand_id'),
                 (string) $request->search,
@@ -387,7 +388,7 @@ class ProductController extends Controller
                 }
             ])
             ->where('is_visible', true)
-            ->where('is_for_sale', true)
+            ->onShelf()
             ->findOrFail($id);
 
             // Increment view count
@@ -417,7 +418,7 @@ class ProductController extends Controller
             // Get related products (same category, excluding current)
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
-                ->where('is_for_sale', true)
+                ->onShelf()
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
                 ->limit(8)
@@ -434,6 +435,7 @@ class ProductController extends Controller
             $offeredHere = $product->offeredAt($branchId);
             $branchesInStock = Location::whereIn('id', $product->branchIdsInStock())
                 ->orderBy('name')->pluck('name', 'id');
+            app(\App\Services\Stock\ExpiryBadges::class)->attach(collect([$product]));
 
             return response()->json([
                 'product' => [
@@ -442,6 +444,7 @@ class ProductController extends Controller
                     'name' => $product->name,
                     'slug' => $product->slug,
                     'sku' => $product->sku,
+                    'expiry_badge' => $product->expiry_badge ?? null,   // "Expires dd/mm": only for expiry products with a dated batch, when the settings show it
                     
                     // Descriptions
                     'description' => $product->description,
@@ -1041,10 +1044,11 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_featured', true)
             ->where('is_visible', true)
-            ->where('is_for_sale', true)
+            ->onShelf()
             ->where('status', 'active')
             ->limit(12)
             ->get();
+        app(\App\Services\Stock\ExpiryBadges::class)->attach($products);
 
         return response()->json($products, 200);
     }
@@ -1058,9 +1062,10 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('is_new', true)
             ->where('is_visible', true)
-            ->where('is_for_sale', true)
+            ->onShelf()
             ->limit(12)
             ->get();
+        app(\App\Services\Stock\ExpiryBadges::class)->attach($products);
 
         return response()->json($products, 200);
     }
@@ -1074,10 +1079,11 @@ class ProductController extends Controller
         $products = Product::with(['brand', 'category', 'currency:id,code,symbol'])
             ->where('on_sale', true)
             ->where('is_visible', true)
-            ->where('is_for_sale', true)
+            ->onShelf()
             ->where('status', 'active')
             ->limit(12)
             ->get();
+        app(\App\Services\Stock\ExpiryBadges::class)->attach($products);
 
         return response()->json($products, 200);
     }
@@ -1098,7 +1104,7 @@ public function related($id)
         if (empty($relatedProductIds)) {
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
-                ->where('is_for_sale', true)
+                ->onShelf()
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
                 ->limit(8)
@@ -1107,7 +1113,7 @@ public function related($id)
             // Fetch the specific related products by their IDs
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
                 ->where('is_visible', true)
-                ->where('is_for_sale', true)
+                ->onShelf()
                 ->whereIn('id', $relatedProductIds)
                 ->get();
         }

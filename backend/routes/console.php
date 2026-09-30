@@ -18,6 +18,7 @@ Schedule::command('algorithm:compute-scores')->dailyAt('03:00');
 
 Schedule::command('loyalty:expire-points')->dailyAt('02:00');
 Schedule::command('giftvouchers:expire')->dailyAt('01:00');
+Schedule::command('stock:expire')->dailyAt('00:10')->withoutOverlapping();   // expired batches, auto write-offs, expiry warnings
 
 // ── Data backups ────────────────────────────────────────────────────────────
 // Runs hourly; the command decides whether the configured frequency/time is due.

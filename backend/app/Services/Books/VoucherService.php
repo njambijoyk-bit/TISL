@@ -56,10 +56,14 @@ class VoucherService
     public function preview(array $data, ?User $user = null): array
     {
         $type = $this->typeFrom($data);
-        $plan = $this->plan($data, $type, null);
+        $plan = $this->plan($data, $type, null, $user);
         $this->guard->assert('create', $plan['date'], $user, $type->id);
         if ($plan['moves_stock']) {
-            $plan['entries'] = array_merge($plan['entries'], $this->cogsEntries($plan, $this->estimateAllocations($plan['stock'])));   // what the batches would cost
+            $est = $this->estimateAllocations($plan['stock']);
+            $plan['entries'] = array_merge($plan['entries'], $this->cogsEntries($plan, $est));   // what the batches would cost
+            if ($type->isSalesSide()) {
+                $plan['warnings'] = $this->expiredWarnings($est);
+            }
         }
 
         return $this->describe($plan);
@@ -70,7 +74,7 @@ class VoucherService
         $type = $this->typeFrom($data);
 
         return DB::transaction(function () use ($data, $type, $user) {
-            $plan = $this->plan($data, $type, null);
+            $plan = $this->plan($data, $type, null, $user);
             $this->guard->assert('create', $plan['date'], $user, $type->id);
 
             $voucher = $this->persist($plan, $data, $user, null);
@@ -92,11 +96,14 @@ class VoucherService
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
             $this->assertNoLiveChildren($voucher, 'edit');
+            if (! $voucher->type->has_items && StockMovement::where('voucher_id', $voucher->id)->exists()) {
+                throw new BooksException('This voucher wrote stock off, so it can not be edited. Cancel it (the stock comes back) and write the stock off again.');
+            }
 
             $type = $voucher->type;
             $data['voucher_type_id'] = $type->id;
             $data['source_voucher_id'] = $data['source_voucher_id'] ?? $voucher->source_voucher_id;
-            $plan = $this->plan($data, $type, $voucher);
+            $plan = $this->plan($data, $type, $voucher, $user);
             $this->guard->assert('edit', $plan['date'], $user, $type->id);
 
             $this->reverseEffects($voucher);
@@ -335,7 +342,7 @@ class VoucherService
         return $type;
     }
 
-    private function plan(array $data, VoucherType $type, ?Voucher $existing): array
+    private function plan(array $data, VoucherType $type, ?Voucher $existing, ?User $user = null): array
     {
         $base = $type->base_type;
         $baseCurrency = $this->money->getBaseCurrency();
@@ -397,7 +404,8 @@ class VoucherService
             $moves = array_key_exists('moves_stock', $data) ? (bool) $data['moves_stock'] : $type->stock_effect !== 'none';
             $plan['moves_stock'] = $moves && $type->stock_effect !== 'none';
             if ($plan['moves_stock']) {
-                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date, $plan['source_id'], $existing?->id);
+                $plan['expired_override'] = $this->expiredOverride($data, $type, $user);
+                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date, $plan['source_id'], $existing?->id, $plan['expired_override'], (string) ($data['channel'] ?? 'admin'));
             }
         } else {
             [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);   // also settles $plan['tenders']
@@ -1218,7 +1226,7 @@ class VoucherService
 
     // ── stock ──────────────────────────────────────────────────────────
 
-    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0, ?Carbon $date = null, ?int $sourceId = null, ?int $excludeVoucherId = null): array
+    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0, ?Carbon $date = null, ?int $sourceId = null, ?int $excludeVoucherId = null, ?array $override = null, string $channel = 'admin'): array
     {
         $sign = $type->stock_effect === 'out' ? -1 : 1;
         $moves = [];
@@ -1239,8 +1247,15 @@ class VoucherService
                 // what this stock cost: the line's net amount (after discount, before tax) in base currency, per base unit
                 $move['unit_cost'] = round((float) ($l['amount'] ?? 0) * $rate / (float) $l['stock_qty'], 4);
                 $move['batch'] = $this->batchInfo($l, $date);
-            } elseif (! empty($l['pick_batch_id'])) {
-                $move['batch_id'] = (int) $l['pick_batch_id'];   // the seller chose the batch
+            } elseif ($sign < 0) {
+                if (! empty($l['pick_batch_id'])) {
+                    $move['batch_id'] = (int) $l['pick_batch_id'];   // the seller chose the batch
+                }
+                if ($type->isSalesSide()) {
+                    $move['window'] = $this->sellWindow((int) ($l['product_id'] ?? 0) ?: null, $channel, $override);
+                } else {
+                    $move['allow_inactive'] = true;   // returning stock to a supplier may take an expired or held batch
+                }
             }
             $moves[] = $move;
         }
@@ -1275,6 +1290,61 @@ class VoucherService
         return (filled($no) || filled($mfg) || filled($exp))
             ? ['batch_no' => filled($no) ? $no : null, 'mfg_date' => filled($mfg) ? $mfg : null, 'expiry_date' => filled($exp) ? $exp : null]
             : null;
+    }
+
+    // ── selling near-expiry and expired stock ─────────────────────────────
+
+    /**
+     * The rules for selling a product's stock, from Settings → Stock & expiry (with the category / product
+     * exceptions): how many days of shelf life a batch needs for this channel, and whether an expired batch
+     * may be sold (allowed outright, or only with an authorised override on this sale).
+     *
+     * @return array{sell_after: ?string, allow_expired: bool}
+     */
+    private function sellWindow(?int $productId, string $channel, ?array $override): array
+    {
+        $rules = app(\App\Services\Stock\StockPolicy::class)->forProduct($productId);
+        $days = (int) ($channel === 'storefront' ? $rules['min_days_online'] : $rules['min_days_till']);
+
+        return [
+            'sell_after'    => $days > 0 ? today()->addDays($days)->toDateString() : null,
+            'allow_expired' => $rules['sell_expired'] === 'allowed' || ($rules['sell_expired'] === 'override' && $override !== null),
+        ];
+    }
+
+    /** An override asked for on this sale: needs a reason and a role the settings allow. Null when none was asked for. */
+    private function expiredOverride(array $data, VoucherType $type, ?User $user): ?array
+    {
+        if (empty($data['expired_override']) || ! $type->isSalesSide()) {
+            return null;
+        }
+        $reason = trim((string) ($data['expired_override']['reason'] ?? ''));
+        if ($reason === '') {
+            throw new BooksException('Give a reason for selling expired stock.');
+        }
+        $roles = app(\App\Services\Stock\StockPolicy::class)->global()['override_roles'];
+        if (! $user || ! in_array($user->role, $roles, true)) {
+            throw new BooksException('Your role can not override the expiry rules.');
+        }
+
+        return ['reason' => $reason, 'by' => $user->id];
+    }
+
+    /** A message for stock a sale will take although it is expired — shown on the preview, and the override reason logged on posting. */
+    private function expiredWarnings(array $allocs): array
+    {
+        $ids = array_values(array_filter(array_unique(array_column($allocs, 'batch_id'))));
+        if (! $ids) {
+            return [];
+        }
+        $out = [];
+        foreach (StockBatch::with('variant.product:id,name')->whereIn('id', $ids)->get() as $b) {
+            if ($b->status === StockBatch::EXPIRED || ($b->expiry_date && $b->expiry_date->lt(today()))) {
+                $out[] = ($b->variant?->product?->name ?? 'A product') . ', batch ' . ($b->batch_no ?: '#' . $b->id) . ' expired on ' . ($b->expiry_date?->format('d M Y') ?? '—') . ' — this sale uses it.';
+            }
+        }
+
+        return $out;
     }
 
     // ── cost of goods sold ──────────────────────────────────────────────
@@ -1338,6 +1408,7 @@ class VoucherService
     {
         $batches = app(\App\Services\Stock\BatchService::class);
         $needs = [];
+        $wins = [];
         $out = [];
         foreach ($moves as $m) {
             if ($m['qty'] < 0 && ! empty($m['batch_id'])) {
@@ -1345,6 +1416,9 @@ class VoucherService
             } elseif ($m['qty'] < 0) {
                 $key = $m['variant_id'] . ':' . $m['location_id'];
                 $needs[$key] = ($needs[$key] ?? 0) + abs($m['qty']);
+                if (isset($m['window'])) {
+                    $wins[$key] = $m['window'];
+                }
             } elseif (array_key_exists('return_to', $m)) {
                 $left = (float) $m['qty'];
                 foreach ($m['return_to'] as [$batchId, $q]) {
@@ -1361,7 +1435,7 @@ class VoucherService
         }
         foreach ($needs as $key => $qty) {
             [$variantId, $locId] = array_map('intval', explode(':', $key));
-            $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $variantId], $batches->peek($variantId, $locId, $qty)));
+            $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $variantId], $batches->peek($variantId, $locId, $qty, $wins[$key] ?? [])));
         }
 
         return $out;
@@ -1503,6 +1577,9 @@ class VoucherService
             }
         }
         if ($type->isSalesSide() && $applied) {
+            if (! empty($plan['expired_override']) && ($used = $this->expiredWarnings($applied))) {
+                $this->audit($voucher, 'expired_stock_override', $user, ['reason' => $plan['expired_override']['reason'], 'batches' => $used]);
+            }
             $this->stampBatches($made, $applied, $plan['location_id']);   // print which batch each line came from (expiry products only)
         }
 
@@ -1580,6 +1657,8 @@ class VoucherService
         $arrivals = [];   // stock arriving with its own batch number / dates: each becomes its own batch
         $picked = [];     // stock going out of a batch the seller named
         $returns = [];    // a customer's return: goes back into the batch(es) it was sold from
+        $windows = [];    // sales: shelf life a batch needs, and whether an expired one may go
+        $batches = app(\App\Services\Stock\BatchService::class);
         foreach ($moves as $m) {
             if ($m['qty'] > 0 && ! empty($m['batch'])) {
                 $arrivals[] = $m;
@@ -1595,6 +1674,9 @@ class VoucherService
             }
             $key = $m['variant_id'] . ':' . $m['location_id'];
             $needs[$key] = ($needs[$key] ?? 0) + $m['qty'];
+            if (isset($m['window'])) {
+                $windows[$key] = $m['window'];
+            }
             if (isset($m['unit_cost']) && $m['qty'] > 0) {
                 $costs[$key]['amount'] = ($costs[$key]['amount'] ?? 0) + $m['unit_cost'] * $m['qty'];
                 $costs[$key]['qty'] = ($costs[$key]['qty'] ?? 0) + $m['qty'];
@@ -1606,18 +1688,45 @@ class VoucherService
             }
             [$variantId, $locId] = array_map('intval', explode(':', $key));
             $a = $this->stock->availability($variantId, $locId, abs($qty));
-            if (! $a['ok']) {
-                $name = collect($moves)->firstWhere('variant_id', $variantId)['product'] ?? "variant #{$variantId}";
-                $where = $a['location'] ?? 'that branch';
-                $elsewhere = $a['elsewhere'] ? ' Available at: ' . collect($a['elsewhere'])->map(fn ($e) => "{$e['name']} ({$e['quantity']})")->implode(', ') . '.' : '';
+            $name = collect($moves)->firstWhere('variant_id', $variantId)['product'] ?? "variant #{$variantId}";
+            $where = $a['location'] ?? 'that branch';
+            $elsewhere = $a['elsewhere'] ? ' Available at: ' . collect($a['elsewhere'])->map(fn ($e) => "{$e['name']} ({$e['quantity']})")->implode(', ') . '.' : '';
+            if (isset($windows[$key])) {
+                // a sale: only stock that may be sold counts — not expired, and with the shelf life the settings ask for
+                $have = $batches->sellable($variantId, $locId, $windows[$key]);
+                if ($have + 0.00005 < abs($qty)) {
+                    $inDate = $batches->sellable($variantId, $locId);
+                    $expired = $batches->expiredOnHand($variantId, $locId);
+                    $held = array_filter([
+                        $expired > 0.00005 ? round($expired, 4) . ' expired' : null,
+                        $inDate - $have > 0.00005 ? round($inDate - $have, 4) . ' too close to expiry to sell' : null,
+                    ]);
+                    throw new BooksException("Not enough {$name} that can be sold at {$where}: need " . abs($qty) . ', ' . round($have, 4) . ' available' . ($held ? ' (' . implode(', ', $held) . ' held back)' : '') . ".{$elsewhere}");
+                }
+            } elseif (! $a['ok']) {
                 throw new BooksException("Not enough stock of {$name} at {$where}: need " . abs($qty) . ", have {$a['quantity']}.{$elsewhere}");
             }
         }
         foreach ($picked as $m) {
             $b = StockBatch::find($m['batch_id']);
             $have = (float) DB::table('stock_batch_balances')->where('batch_id', $m['batch_id'])->where('location_id', $m['location_id'])->value('quantity');
-            if (! $b || (int) $b->variant_id !== (int) $m['variant_id'] || $b->status !== StockBatch::ACTIVE) {
-                throw new BooksException("{$m['product']}: that batch can not be sold from.");
+            if (! $b || (int) $b->variant_id !== (int) $m['variant_id']) {
+                throw new BooksException("{$m['product']}: that batch can not be used.");
+            }
+            if (empty($m['allow_inactive'])) {
+                // a sale: the named batch must be one the rules let this sale use
+                $win = $m['window'] ?? ['sell_after' => null, 'allow_expired' => false];
+                $expired = $b->status === StockBatch::EXPIRED || ($b->expiry_date && $b->expiry_date->lt(today()));
+                $name = $b->batch_no ?: '#' . $b->id;
+                if (! in_array($b->status, [StockBatch::ACTIVE, StockBatch::EXPIRED], true)) {
+                    throw new BooksException("{$m['product']}: batch {$name} is {$b->status} and can not be sold.");
+                }
+                if ($expired && ! $win['allow_expired']) {
+                    throw new BooksException("{$m['product']}: batch {$name} expired on " . ($b->expiry_date?->format('d M Y') ?? '—') . ' and can not be sold.');
+                }
+                if (! $expired && $win['sell_after'] && $b->expiry_date && $b->expiry_date->toDateString() < $win['sell_after']) {
+                    throw new BooksException("{$m['product']}: batch {$name} expires on " . $b->expiry_date->format('d M Y') . ', sooner than the shelf life this sale needs.');
+                }
             }
             if ($have + 0.00005 < abs($m['qty'])) {
                 throw new BooksException("{$m['product']}: batch " . ($b->batch_no ?: '#' . $b->id) . ' has only ' . round($have, 4) . ' here, need ' . abs($m['qty']) . '.');
@@ -1635,6 +1744,9 @@ class VoucherService
             $opts = ['received_at' => $date];
             if (! empty($costs[$key]['qty'])) {
                 $opts['unit_cost'] = round($costs[$key]['amount'] / $costs[$key]['qty'], 4);   // lines of one arrival share a batch at their average cost
+            }
+            if (isset($windows[$key])) {
+                $opts += $windows[$key];
             }
             $record($variantId, $locId, $this->stock->applyDelta($variantId, $locId, $qty, $opts));
         }
@@ -1784,6 +1896,7 @@ class VoucherService
             'entries' => array_map(fn ($e) => $e + ['ledger' => $ledgerNames[$e['ledger_id']] ?? null], $plan['entries']),
             'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total' => $plan['total'],
             'stock' => array_map(fn ($m) => ['variant_id' => $m['variant_id'], 'location_id' => $m['location_id'], 'qty' => $m['qty']], $plan['stock']),
+            'warnings' => $plan['warnings'] ?? [],
         ];
     }
 

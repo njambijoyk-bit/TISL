@@ -80,7 +80,7 @@ class BatchService
         if (! empty($o['batch_id'])) {
             $q->where('s.id', $o['batch_id']);
         } else {
-            $this->pickOrder($q->where('s.status', StockBatch::ACTIVE));
+            $this->pickOrder($this->sellableFilter($q, $o));
         }
 
         $out = [];
@@ -115,7 +115,7 @@ class BatchService
         if (! empty($o['batch_id'])) {
             $q->where('s.id', $o['batch_id']);
         } else {
-            $this->pickOrder($q->where('s.status', StockBatch::ACTIVE));
+            $this->pickOrder($this->sellableFilter($q, $o));
         }
         $out = [];
         foreach ($q->get(['b.batch_id', 'b.quantity', 's.unit_cost']) as $row) {
@@ -133,9 +133,30 @@ class BatchService
     /** Everything a variant has at a branch, across all its batches. */
     public function total(int $variantId, int $locationId): float
     {
+        return $this->sellable($variantId, $locationId);
+    }
+
+    /**
+     * What can be sold: batches that are active and not past their expiry date (today counts as in date).
+     * `$o` narrows it the way a sale does — `sell_after` (a date: the batch must last at least until then)
+     * or `allow_expired` (an expired batch may be sold too).
+     */
+    public function sellable(int $variantId, int $locationId, array $o = []): float
+    {
+        $q = DB::table('stock_batch_balances as b')
+            ->join('stock_batches as s', 's.id', '=', 'b.batch_id')
+            ->where('s.variant_id', $variantId)->where('b.location_id', $locationId);
+
+        return (float) $this->sellableFilter($q, $o)->sum('b.quantity');
+    }
+
+    /** Stock that has passed its expiry date (or was marked expired) and is still on the shelf at a branch. */
+    public function expiredOnHand(int $variantId, int $locationId): float
+    {
         return (float) DB::table('stock_batch_balances as b')
             ->join('stock_batches as s', 's.id', '=', 'b.batch_id')
             ->where('s.variant_id', $variantId)->where('b.location_id', $locationId)
+            ->where(fn ($w) => $w->where('s.status', StockBatch::EXPIRED)->orWhere(fn ($x) => $x->where('s.status', StockBatch::ACTIVE)->where('s.expiry_date', '<', today()->toDateString())))
             ->sum('b.quantity');
     }
 
@@ -170,6 +191,18 @@ class BatchService
      * expiry after those with one, oldest first among equals — plain oldest-first for products without
      * expiry), or oldest first regardless of expiry.
      */
+    private function sellableFilter($q, array $o = [])
+    {
+        if (! empty($o['allow_expired'])) {
+            return $q->whereIn('s.status', [StockBatch::ACTIVE, StockBatch::EXPIRED]);   // the rules let an expired batch be sold
+        }
+        $today = today()->toDateString();
+        $from = ! empty($o['sell_after']) && $o['sell_after'] > $today ? $o['sell_after'] : $today;
+
+        return $q->where('s.status', StockBatch::ACTIVE)
+            ->where(fn ($w) => $w->whereNull('s.expiry_date')->orWhere('s.expiry_date', '>=', $from));
+    }
+
     private function pickOrder($q)
     {
         if (app(StockPolicy::class)->pickOrder() === 'fifo') {

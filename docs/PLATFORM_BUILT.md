@@ -41,6 +41,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 23 | `23_stock_batches.sql` | `stock_batches`, `stock_batch_balances`, `stock_movements.batch_id` / `unit_cost`; existing stock moved into opening batches (at cost 0 — set real cost in the script's PART E) |
 | 24 | `24_purchase_batches_and_opening_stock.sql` | `voucher_items.batch_no` / `mfg_date` / `expiry_date`; the *Opening Stock* voucher type (Dr Stock, Cr *Opening Stock Balance*) with its `WNKJ-OS-` series; `accounting_settings.opening_balance_ledger_id` |
 | 25 | `25_stock_settings.sql` | `stock_settings` (one row) and `stock_setting_overrides` — Settings → Stock & expiry, with per-category / per-product exceptions |
+| 26 | `26_expiry_engine.sql` | `stock_batches.last_warned_days` (each warning band warns once); `stock_movements.voucher_id` may be empty (writing off a batch that cost nothing) |
 
 ---
 

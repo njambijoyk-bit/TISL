@@ -354,6 +354,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // BACKUPS (Core) — config + run: admin/super_admin; restore: super_admin
     // ============================================
+    // EXPIRING STOCK (Core) — the expiry list: see it (finance, managers), act on it (finance, admins)
+    Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/stock/expiry')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\ExpiredStockController::class, 'index']);
+        Route::middleware('role:admin,super_admin,finance')->group(function () {
+            Route::post('/write-off', [\App\Http\Controllers\Admin\ExpiredStockController::class, 'writeOff']);
+            Route::post('/return-to-supplier', [\App\Http\Controllers\Admin\ExpiredStockController::class, 'returnToSupplier']);
+        });
+    });
+
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
     Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
         Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);

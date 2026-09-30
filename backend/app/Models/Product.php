@@ -417,6 +417,25 @@ class Product extends Model
     }
 
     /**
+     * What a customer may see and buy right now: for sale, and — when Settings → Stock & expiry says to hide
+     * them — not a product whose stock has all expired (it tracks expiry, has expired stock left, and nothing
+     * in date). With the setting on "show as out of stock" they stay listed and read as out of stock, because
+     * expired stock is never counted in the shop's stock numbers.
+     */
+    public function scopeOnShelf($query)
+    {
+        $query->where('products.is_for_sale', true);
+        if (app(\App\Services\Stock\StockPolicy::class)->global()['expired_on_storefront'] === 'hide') {
+            $held = "SELECT 1 FROM stock_batches sb JOIN product_variants pv ON pv.id = sb.variant_id JOIN stock_batch_balances bb ON bb.batch_id = sb.id WHERE pv.product_id = products.id AND bb.quantity > 0";
+            $query->whereRaw("NOT (products.track_expiry = 1"
+                . " AND EXISTS ({$held} AND (sb.status = 'expired' OR (sb.status = 'active' AND sb.expiry_date < CURDATE())))"
+                . " AND NOT EXISTS ({$held} AND sb.status = 'active' AND (sb.expiry_date IS NULL OR sb.expiry_date >= CURDATE())))");
+        }
+
+        return $query;
+    }
+
+    /**
      * Sold to customers. A "not for sale" product is a material / ingredient /
      * consumable: counted and valued, but never on the storefront or at the till.
      */

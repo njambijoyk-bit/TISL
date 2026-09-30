@@ -734,6 +734,11 @@ export default function ProductDetail() {
                     {inStock ? 'In Stock — Ready to Ship' : 'Out of Stock'}
                   </span>
                 </div>
+                {product.expiry_badge && inStock && (
+                  <div style={{ padding: '0 20px 12px', fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>
+                    Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                )}
               </div>
 
               {/* ── Variant & unit choice (renders nothing without structured variants) ── */}

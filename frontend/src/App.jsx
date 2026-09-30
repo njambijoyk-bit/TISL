@@ -120,6 +120,7 @@ const AdminProducts      = lazy(() => import('./ecommerce/pages/admin/Products')
 const ProductForm        = lazy(() => import('./ecommerce/pages/admin/ProductForm'));
 const AdminPurchases     = lazy(() => import('./ecommerce/pages/admin/Purchases'));
 const PurchaseForm       = lazy(() => import('./ecommerce/pages/admin/PurchaseForm'));
+const ExpiringStock      = lazy(() => import('./ecommerce/pages/admin/ExpiringStock'));
 const AdminAuctions      = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionDetail'));
 const AdminAuctionCreator = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionCreator'));
@@ -721,6 +722,7 @@ function App() {
               <Route path="/admin/purchases/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="purchase" /></ProtectedRoute>} />
               <Route path="/admin/purchases/receipt/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="receipt" /></ProtectedRoute>} />
               <Route path="/admin/purchases/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="purchase" /></ProtectedRoute>} />
+              <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ExpiringStock /></ProtectedRoute>} />
               <Route path="/admin/stock/opening" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><AdminPurchases initial="opening_stock" /></ProtectedRoute>} />
               <Route path="/admin/stock/opening/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="opening" /></ProtectedRoute>} />
               <Route

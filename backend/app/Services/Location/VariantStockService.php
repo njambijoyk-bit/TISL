@@ -130,6 +130,18 @@ class VariantStockService
         $this->writeRow($variantId, $locationId, $this->batches->total($variantId, $locationId), $reorder);
     }
 
+    /**
+     * Bring a variant's shop numbers back in line with its batches — after a batch expired, when the in-date
+     * total changes without any stock moving. Every branch row is rewritten, then the caches.
+     */
+    public function refreshVariant(int $variantId): void
+    {
+        foreach (VariantLocationStock::where('product_variant_id', $variantId)->get(['location_id']) as $row) {
+            $this->writeRow($variantId, (int) $row->location_id, $this->batches->total($variantId, (int) $row->location_id));
+        }
+        $this->refreshCaches($variantId);
+    }
+
     /** Write the shop-facing row. Callers pass the batch total; nothing else should. */
     private function writeRow(int $variantId, int $locationId, float $quantity, ?float $reorder = null): void
     {

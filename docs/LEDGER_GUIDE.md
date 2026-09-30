@@ -276,6 +276,8 @@ Stock is valued. Every arrival of stock is a **batch** with its own cost; a batc
 | **Sale / Cash Sale** of stocked goods | (the sale as usual) **and** Cost of Goods Sold, at the cost of the batches the goods came from | Stock |
 | **Sale invoiced from a delivery** | the same cost, taken from what the delivery took out | Stock |
 | **Customer return** (Credit Note that puts goods back) | Stock, back into the batch it was sold from, at that batch's cost | Cost of Goods Sold |
+| **Expired stock written off** | Stock Loss, at the batch's cost | Stock |
+| **Expired stock returned to the supplier** (Debit Note) | Supplier (against the purchase it came in on) | Stock, at the batch's cost |
 | Goods received before the invoice (Receipt Note) | nothing yet — stock and its batches arrive; the money is booked on the purchase | |
 | Service materials, write-offs, bought-outside parts | see PLATFORM_PLAN §17 (later steps) | |
 
