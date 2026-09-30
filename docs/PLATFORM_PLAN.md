@@ -1016,3 +1016,45 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 - **Cart:** the items stay as they were. Below them the **summary ledger** (Particulars | Amount: goods at list price, each discount, goods after discounts, delivery, each tax, total) with the customer's tier strip, then **Delivery methods** to pick from and the **promo codes** on offer (or type one). Choices are kept in `checkout-prefs`.
 - **Checkout is a confirmation page:** the order in voucher columns (Item, Variant, Qty, Rate, Discount, Amount, Tax), the same summary ledger, contact and address, **how you will pay** (M-Pesa, pay later, on account) and gift vouchers, then Place order. The order appears under My orders at once. Quotations and quote requests stay out of checkout.
 - Guests still sign in before the checkout page (the quote itself works for them).
+
+## 26. Modes of payment, bank and cash ledgers, instruments (plan, 30 Sep 2026)
+
+**What exists.** `payment_methods` (name, kind, `ledger_id`, gateway, online flag, instructions) each pointing at a Cash-in-hand / Bank Accounts ledger; `voucher_tenders` (method, amount, reference); ledgers already carry `bank_name`, `account_number`, `branch`; a Contra moves money between cash and bank ledgers only; receipts/payments pick a method or a cash/bank ledger. Missing: swift/branch code, account name, what a bank accepts, instrument number/date, cheque status, bounce handling, bank-charge ledgers, deposit slips, any cash control.
+
+**Principle.** The method *is* the ledger (section 19). Checkout lists the money ledgers the business chose to offer; nothing about M-Pesa, Bank or COD is hardcoded.
+
+### 26.1 Ledger characteristics (Cash-in-hand / Bank Accounts ledgers)
+- **Bank ledger:** bank name, account name, account number, SWIFT code, branch name, branch code, currency; *accepts*: EFT/RTGS, other transfer, cheque, card, mobile.
+- **Mobile-money / gateway ledger:** till or paybill number, gateway (`mpesa_stk`), instructions.
+- **Cash ledger:** a *cash kind*: Till, Petty cash, Driver cash (cash on delivery), Undeposited.
+- **Offer at checkout** (flag) with a label and instructions the customer sees ("Pay to Paybill 123456, account = order no."), and a sort order.
+- Stored as columns on `ledgers` (script 37); `payment_methods` rows keep working and are created/kept in step from the ledger until the table can be dropped.
+
+### 26.2 Mode of payment on the order (a record, not a posting)
+- Checkout lists: each *offered* ledger (M-Pesa, Bank transfer, Card, …), **Cash on delivery** (an offered cash ledger of kind Driver cash), and **On credit** (only customers with a credit account and limit).
+- The choice is saved on the Sales Order as `meta.payment_intent` = ledger, label, kind. **Nothing is posted.** The admin sees it on the order ("Customer will pay: M-Pesa Till 123456") and when converting: *Cash Sale* pre-fills that ledger; *Sales Invoice* (credit) bills the account; *COD* becomes a Cash Sale/Invoice that is settled when the driver's cash is received. Online payments that succeed at checkout still convert at once as today.
+
+### 26.3 Instruments on receipts, payments and contras
+- Choosing a **bank** ledger asks *how*: Electronic fund transfer / Other transfer / **Cheque** (mobile money and card ask for a reference only).
+- Each instrument records: type, **instrument number**, **instrument date** (a post-dated cheque has a later date), the other party's bank, reference. New table `voucher_instruments` (script 38) with a **status**: received → deposited → cleared | bounced (cheques); transfers are cleared at once.
+- Cheques written by us (payment voucher) need the cheque number and date; issued → cleared | cancelled | stale (after N days, setting).
+- **Cheque register** screen: cheques in hand (incl. post-dated, due this week), issued but uncleared, bounced.
+
+### 26.4 Bounced cheques and bank charges
+- Seeded ledgers: **Bank Charges** (indirect expense), **Bounced Cheque Charges** (recoverable from the customer, income/receivable), both editable.
+- **Bounce** on a received cheque: one action that posts a linked Journal: Dr customer / Cr bank for the cheque amount (the invoice becomes outstanding again), Dr Bank Charges / Cr bank for the bank's fee, and optionally Dr customer / Cr Bounced Cheque Charges for what we bill them. The instrument turns *bounced*; the edit log keeps it.
+- Loyalty points earned on that receipt come off (existing reversal).
+
+### 26.5 Cash (strengthening it)
+- **Deposit slip:** a Contra from cash to bank asks for deposit slip number, date, deposited by; a bank to cash Contra asks for the cheque/withdrawal slip number.
+- **Driver cash / COD:** cash collected by a driver lands in a *Driver cash* ledger; handing it in is a Contra to Cash-in-hand, then the deposit.
+- **Cash count:** a day-end count per cash ledger against the book balance; the difference posts to a **Cash over/short** ledger (optional, needs a reason).
+- Later: bank reconciliation against statements using the cleared flag; denominations on the count.
+
+### 26.6 Build order
+1. Ledger characteristics + offered-at-checkout list + payment intent on the order, shown to the admin and pre-filled on conversion (script 37).
+2. Instruments on receipt/payment/contra and deposit slips (script 38).
+3. Cheque register, bounce and bank-charge ledgers (script 39).
+4. Cash count and driver-cash handling (script 40).
+
+**Decisions needed.** (a) Keep `payment_methods` as a thin layer generated from the ledgers (recommended, safe) or drop it now. (b) When a received cheque is posted: at receipt date to the bank ledger flagged uncleared (recommended, like Tally) or only when deposited. (c) Cash on delivery: a flagged cash ledger (recommended) or a separate mode. (d) Who bears the bounce fee by default: us, or billed to the customer.
