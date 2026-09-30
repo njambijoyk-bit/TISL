@@ -340,8 +340,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   // Is the money going through a bank? Then we ask how (transfer or cheque) — or, on a contra between cash and bank, for the slip.
   const isBankLedger = (l) => l?.group?.name === 'Bank Accounts' || l?.group?.behaviour === 'bank';
   const moneyMethod = methods.find((m) => String(m.id) === String(h.payment_method_id));
-  const moneyLedger = ledgers.find((l) => String(l.id) === String(h.ledger_id));
-  const moneyBank = isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(moneyLedger));
+  const moneyLedger = ledgers.find((l) => String(l.id) === String(base === 'purchase' ? h.paid_ledger_id : h.ledger_id));
+  const moneyBank = (isMoney && tenders.length === 0 && (moneyMethod ? Boolean(moneyMethod.is_bank) : isBankLedger(moneyLedger))) || (base === 'purchase' && cashPurchase && isBankLedger(moneyLedger));
   const bankAccepts = ((moneyMethod ? (moneyMethod.accepts ?? ledgers.find((l) => l.id === moneyMethod.ledger_id)?.accepts) : moneyLedger?.accepts) ?? '').split(',').filter(Boolean);
   const insTypes = [['eft', 'Electronic fund transfer'], ['transfer', 'Other transfer'], ['cheque', 'Cheque'], ['mobile', 'Mobile money'], ['card', 'Card']].filter(([k]) => !bankAccepts.length || bankAccepts.includes(k));
   const contraDr = entries.find((e) => e.side === 'D' && e.ledger_id);

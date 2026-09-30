@@ -30,12 +30,15 @@ class InstrumentService
         $base = $v->type->base_type;
         VoucherInstrument::where('voucher_id', $v->id)->delete();
 
-        if (in_array($base, [VoucherType::RECEIPT, VoucherType::PAYMENT], true)) {
+        if (in_array($base, [VoucherType::RECEIPT, VoucherType::PAYMENT, VoucherType::PURCHASE], true)) {
             $in = $data['instrument'] ?? null;
             if (! $in || empty($in['type'])) {
                 return;
             }
             $bank = $this->moneyLedger($v, 'bank');
+            if (! $bank && $base === VoucherType::PURCHASE) {
+                throw new BooksException('A cheque or transfer reference goes with a bank account — this purchase was not paid from one.');
+            }
             if (! $bank) {
                 throw new BooksException('A cheque or transfer reference goes with a bank account — this voucher does not use one.');
             }
@@ -130,8 +133,9 @@ class InstrumentService
     /** The bank ledger a voucher's money went through. */
     private function moneyLedger(Voucher $v, string $only = 'bank'): ?Ledger
     {
+        $purchase = $v->type->base_type === VoucherType::PURCHASE;   // a purchase paid at once: the bank is the 'party' side
         foreach ($v->entries as $e) {
-            if ($e->is_party || $e->is_tax) {
+            if ($e->is_tax || ($e->is_party && ! $purchase)) {
                 continue;
             }
             $l = Ledger::find($e->ledger_id);
