@@ -158,7 +158,6 @@ const ChequeRegister     = lazy(() => import('./core/pages/admin/books/ChequeReg
 const EditLog            = lazy(() => import('./core/pages/admin/books/EditLog'));
 const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherView'));
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
-const Reports            = lazy(() => import('./core/pages/admin/Reports'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
 const ProjectCreate      = lazy(() => import('./projects/pages/admin/ProjectCreate'));
@@ -1415,15 +1414,8 @@ function App() {
                 }
               />
 
-              {/* Admin Reports */}
-              <Route
-                path="/admin/reports"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Reports />
-                  </ProtectedRoute>
-                }
-              />
+              {/* The old orders-based Reports page is gone; its address goes to the books' reports */}
+              <Route path="/admin/reports" element={<Navigate to="/admin/books?tab=reports" replace />} />
               <Route
                 path="/admin/logs"
                 element={

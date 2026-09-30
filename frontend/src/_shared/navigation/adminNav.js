@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  Database, GitBranch, BookOpen, Banknote,
+  Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ } from '../lib/roles';
@@ -152,13 +152,12 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Overview', path: '/admin/books', exact: true },
           { title: 'Vouchers', path: '/admin/books?tab=vouchers', also: ['/admin/books/vouchers'] },
-          { title: 'Chart of accounts', path: '/admin/books?tab=accounts' },
           { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
-          { title: 'Reports', path: '/admin/books?tab=reports' },
           { title: 'Edit log', path: '/admin/books/edit-log' },
           { title: 'Settings', path: '/admin/books?tab=settings' },
         ],
       },
+      { id: 'accounts', title: 'Chart of accounts', icon: ListTree, color: '#7c3aed', path: '/admin/books?tab=accounts', roles: FINANCE_READ, keywords: 'ledgers groups accounts chart' },
       {
         id: 'cash-bank', title: 'Cash & bank', icon: Banknote, color: '#0d9488', path: '/admin/books/cash', roles: FINANCE_READ, keywords: 'till cash count cheque deposit bounce bank driver cash on delivery',
         tabs: [
@@ -168,13 +167,8 @@ export const ADMIN_NAV = [
       },
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
-      {
-        id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/reports', also: ['/admin/settings/analytics'],
-        tabs: [
-          { title: 'Reports', path: '/admin/reports' },
-          { title: 'Site analytics', path: '/admin/settings/analytics' },
-        ],
-      },
+      { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', roles: FINANCE_READ, keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },
+      { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', keywords: 'visitors traffic' },
     ],
   },
 

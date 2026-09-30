@@ -83,7 +83,7 @@ const ADMIN_ROUTES = [
   { key: 'customers',  label: 'Customers',  icon: Users,           path: '/admin/customers',      color: '#3b82f6' },
   { key: 'quotes',     label: 'Quotes',     icon: FileText,        path: '/admin/quotes',         color: 'var(--color-primary-400)' },
   { key: 'bookings',   label: 'Bookings',   icon: ClipboardList,   path: '/admin/bookings',       color: '#10b981' },
-  { key: 'reports',    label: 'Reports',    icon: BarChart2,       path: '/admin/reports',        color: '#22c55e' },
+  { key: 'reports',    label: 'Reports',    icon: BarChart2,       path: '/admin/books?tab=reports',        color: '#22c55e' },
   { key: 'tickets',    label: 'Tickets',    icon: LifeBuoy,        path: '/admin/tickets',        color: '#ef4444' },
   { key: 'work',       label: 'My Work',    icon: Briefcase,       path: '/admin/work',           color: '#ec4899' },
   { key: 'projects',   label: 'Projects',   icon: FolderOpen,      path: '/admin/projects',       color: '#14b8a6' },
@@ -967,7 +967,7 @@ function AdminOverviewTab({ user, navigate }) {
   const links = [
     { label: 'Dashboard', desc: 'Revenue & order KPIs',    path: '/admin',           icon: LayoutDashboard, color: '#6366f1' },
     { label: 'Orders',    desc: 'Manage fulfillment queue', path: '/admin/orders',    icon: ShoppingBag,     color: '#f97316' },
-    { label: 'Reports',   desc: 'Revenue & sales analytics', path: '/admin/reports',  icon: BarChart2,       color: '#22c55e' },
+    { label: 'Reports',   desc: 'Day book, trial balance, profit & loss, ageing', path: '/admin/books?tab=reports',  icon: BarChart2,       color: '#22c55e' },
     { label: 'Settings',  desc: 'System configuration',    path: '/admin/settings',   icon: Settings,        color: '#64748b' },
   ];
   return (
