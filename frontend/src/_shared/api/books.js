@@ -62,6 +62,7 @@ const booksAPI = {
   itemAccounts: (type, id) => get('/admin/books/item-accounts', { type, id }),
   saveItemAccounts: (d) => send('put', '/admin/books/item-accounts', d),
   loyaltyTrueUp: () => send('post', '/admin/books/reconciliation/loyalty-true-up'),
+  refreshStockUnits: () => send('post', '/admin/books/reconciliation/stock-refresh'),
   exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),
 
   // masters

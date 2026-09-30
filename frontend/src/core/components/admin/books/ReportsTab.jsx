@@ -144,11 +144,18 @@ function View({ id, data, nav, onRefresh }) {
       <Table head={[['Check'], ['Books', true], ['Register', true], ['Difference', true], ['Explained', true], ['Agrees']]}>
         {data.checks.map((c) => (
           <tr key={c.key}>
-            <td style={td}>{c.title}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{c.note}</div></td>
+            <td style={td}>{c.title}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{c.note}</div>{c.details?.map((d, i) => <div key={i} style={{ fontSize: '0.68rem', color: colors.dangerText }}>{d}</div>)}</td>
             <td style={{ ...td, ...num }}>{money(c.book)}</td><td style={{ ...td, ...num }}>{money(c.register)}</td>
             <td style={{ ...td, ...num, color: c.ok ? undefined : colors.danger }}>{money(c.difference)}</td><td style={{ ...td, ...num }}>{c.explained ? money(c.explained) : ''}</td>
             <td style={{ ...td, fontWeight: 700, color: c.ok ? colors.successText : colors.dangerText }}>
               {c.ok ? 'Yes' : 'No'}
+              {!c.ok && c.key === 'stock-units' && (
+                <button type="button" style={{ ...filterStyle, cursor: 'pointer', marginLeft: 8, fontWeight: 600 }}
+                  onClick={async () => {
+                    try { const r = await booksAPI.refreshStockUnits(); toast.success(r.message); onRefresh(); }
+                    catch (e) { toast.error(errMsg(e, 'Could not refresh the stock numbers')); }
+                  }}>Refresh</button>
+              )}
               {!c.ok && c.key === 'loyalty-points' && (
                 <button type="button" style={{ ...filterStyle, cursor: 'pointer', marginLeft: 8, fontWeight: 600 }}
                   onClick={async () => {

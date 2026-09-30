@@ -220,6 +220,8 @@ Books → Reports → **Reconciliation**:
 | **Loyalty points** | Loyalty Points Liability | Σ lot remaining × value at earn (a **Post correction** button fixes drift from points moved before everything was booked) |
 | **Withholding credits** | Withholding Tax Receivable | Σ open credits (an opening balance is shown as *explained*) |
 | **Receivables / payables** | Sundry Debtors / Creditors | open bills (differences = advances and non-bill-wise balances) |
+| **Stock value** | Stock ledger | Σ of every batch still holding stock × its cost, today (expired stock not yet written off is included). *Explained*: goods **delivered** on notes not yet invoiced (out of the batches, costed when invoiced) less goods **received** on notes not yet billed (in the batches, booked on the purchase). Anything else is a real difference: a price changed after receipt, a debit note posted at another amount, opening stock entered before batches at cost 0, an entry made straight on the Stock ledger |
+| **Stock units** | what the shop shows per product and branch | in-date batches. A **Refresh** button sets the shop's numbers from the batches |
 
 Also: **Tax return**, **Withholding certificates**, Trial balance, Profit & loss, Balance sheet, Ledger statement, Receivables / Payables ageing.
 

@@ -199,6 +199,19 @@ class ComplianceReportService
                 ->sum(DB::raw('(withheld_amount - cleared_amount) * COALESCE(exchange_rate, 1)'));
             $add('withholding-credits', 'Withholding tax receivable', $book, $reg, 'The register holds credits raised by receipts; an opening balance carried in is not in it.', $opening);
         }
+        // stock: what is on the shelves, at cost, against the Stock ledger — and the shop's numbers against the batches
+        if ($s->stock_ledger_id && $asOf >= today()->toDateString()) {   // batches show today's stock, so only today can be proved
+            $rec = app(\App\Services\Stock\StockReconciliationService::class);
+            $sv = $rec->valueCheck($this->ledgers->balance((int) $s->stock_ledger_id, $asOf));
+            $add('stock', 'Stock (Stock ledger vs batches at cost)', $sv['book'], $sv['register'], $sv['note'], $sv['explained']);
+
+            $bad = $rec->unitMismatches();
+            $shop = round((float) DB::table('variant_location_stock')->sum('quantity'), 4);
+            $add('stock-units', 'Stock units (what the shop shows vs the batches)', $shop, round($shop - array_sum(array_map(fn ($m) => $m['shop'] - $m['batches'], $bad)), 4),
+                $bad ? count($bad) . ' product / branch numbers differ from their batches — “Refresh” sets them from the batches.' : 'Every product and branch shows what its in-date batches hold.');
+            $checks[count($checks) - 1]['ok'] = ! $bad;
+            $checks[count($checks) - 1]['details'] = array_map(fn ($m) => "{$m['product']}" . ($m['variant'] && $m['variant'] !== 'Standard' ? " — {$m['variant']}" : '') . " at {$m['location']}: shows {$m['shop']}, batches hold {$m['batches']}", array_slice($bad, 0, 10));
+        }
         // receivables / payables
         $debtors = $this->groupBalance('Sundry Debtors', $asOf);
         $ageR = app(BooksReportService::class)->ageing('receivables', $asOf)['totals']['total'];

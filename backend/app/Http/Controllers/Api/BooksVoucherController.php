@@ -311,6 +311,14 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** Set the shop's stock numbers from the batches, where the two disagree. */
+    public function stockRefresh()
+    {
+        $n = app(\App\Services\Stock\StockReconciliationService::class)->refreshUnits();
+
+        return response()->json(['message' => $n ? "Refreshed {$n} product(s) from their batches." : 'Every number already agrees with the batches.']);
+    }
+
     public function report(Request $request, string $name)
     {
         return $this->guard(function () use ($request, $name) {

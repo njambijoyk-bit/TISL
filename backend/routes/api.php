@@ -421,6 +421,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/gift-vouchers/{id}/cancel',  [GiftVoucherController::class, 'cancel']);
             Route::post('/gift-vouchers/expire-due',   [GiftVoucherController::class, 'expireDue']);
             Route::post('/reconciliation/loyalty-true-up', [BooksVoucherController::class, 'loyaltyTrueUp']);
+            Route::post('/reconciliation/stock-refresh', [BooksVoucherController::class, 'stockRefresh']);
             Route::post('/vouchers',                [BooksVoucherController::class, 'store']);
             Route::put('/vouchers/{id}',            [BooksVoucherController::class, 'update']);
             Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);

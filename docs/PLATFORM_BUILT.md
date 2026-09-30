@@ -64,6 +64,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | **Module Center** | Super-admin page to activate/switch modules and paste keys (§ Module Center). |
 | **Backup & restore engine** | Encrypted `.wnkjba` exports of active modules' data (§ Backup engine). Standalone Streamlit viewer lives in repo `njambijoyk-bit/streamlit_viewer`. |
 | **Storefront navigation manager** | Admin controls which links customers see; licensed-only, module-lock, backed up under Core (§ Nav manager). |
+| **Stock, batches & expiry** | Every arrival of stock is a batch with its cost; valued stock (Stock, Cost of Goods Sold, Cost of Services, Job Materials Cost, Stock Loss ledgers). Purchases page (E-commerce) with new-product-on-the-spot, goods received and opening stock; first-expiring-first picking; Settings → Stock & expiry with per-category / per-product exceptions; daily expiry check, selling rules, storefront hiding and badge, Expiring stock page (write off / return to supplier); materials under service lines; stock reconciliation. See `PLATFORM_PLAN.md` §17–18 and `LEDGER_GUIDE.md` §12c. |
 
 ---
 
