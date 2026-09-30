@@ -116,7 +116,6 @@ export default function EditLog() {
         {!canReadFinance(user) ? <NoAccess what="the edit log" /> : (
           <>
             <HubHeader title="Edit log" description="Every voucher that has been changed or deleted, and every version it went through. Click one to compare versions." />
-            <Link to="/admin/books" style={{ fontSize: '0.78rem', color: colors.textMuted }}>← Books</Link>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '12px 0' }}>
               <Field label="From" htmlFor="el-from"><TextInput id="el-from" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></Field>
               <Field label="To" htmlFor="el-to"><TextInput id="el-to" type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></Field>

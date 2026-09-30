@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  Database, GitBranch, BookOpen,
+  Database, GitBranch, BookOpen, Banknote,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ } from '../lib/roles';
@@ -146,7 +146,26 @@ export const ADMIN_NAV = [
     id: 'finance',
     label: 'Tax & Finance',
     items: [
-      { id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], roles: FINANCE_READ, keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss' },
+      {
+        id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], roles: FINANCE_READ,
+        keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss',
+        tabs: [
+          { title: 'Overview', path: '/admin/books', exact: true },
+          { title: 'Vouchers', path: '/admin/books?tab=vouchers', also: ['/admin/books/vouchers'] },
+          { title: 'Chart of accounts', path: '/admin/books?tab=accounts' },
+          { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
+          { title: 'Reports', path: '/admin/books?tab=reports' },
+          { title: 'Edit log', path: '/admin/books/edit-log' },
+          { title: 'Settings', path: '/admin/books?tab=settings' },
+        ],
+      },
+      {
+        id: 'cash-bank', title: 'Cash & bank', icon: Banknote, color: '#0d9488', path: '/admin/books/cash', roles: FINANCE_READ, keywords: 'till cash count cheque deposit bounce bank driver cash on delivery',
+        tabs: [
+          { title: 'Cash', path: '/admin/books/cash' },
+          { title: 'Cheques', path: '/admin/books/cheques' },
+        ],
+      },
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       {
@@ -367,13 +386,21 @@ export function pathMatches(pathname, path, exact = false) {
  * wins, so /admin/settings/general/bulk/products belongs to Products, not
  * Settings. Returns { item, tab } or { item: null, tab: null }.
  */
-export function findActive(nav, pathname) {
+export function findActive(nav, pathname, search = '') {
+  const here = new URLSearchParams(search);
   let best = { item: null, tab: null, len: -1 };
   const consider = (item, tab, path, exact) => {
-    if (!pathMatches(pathname, path, exact)) return;
+    // a tab can name a query too (/admin/books?tab=accounts): every key it names must be in the address
+    const cut = path.indexOf('?');
+    const base = cut < 0 ? path : path.slice(0, cut);
+    if (!pathMatches(pathname, base, exact)) return;
+    if (cut >= 0) {
+      for (const [k, v] of new URLSearchParams(path.slice(cut + 1))) if (here.get(k) !== v) return;
+    }
     // Longer wins; on a tie within the same item, prefer the tab (so the tab lights up)
-    const tieToTab = path.length === best.len && tab && best.item === item && !best.tab;
-    if (path.length > best.len || tieToTab) best = { item, tab, len: path.length };
+    const len = path.length;
+    const tieToTab = len === best.len && tab && best.item === item && !best.tab;
+    if (len > best.len || tieToTab) best = { item, tab, len };
   };
 
   for (const g of nav) {

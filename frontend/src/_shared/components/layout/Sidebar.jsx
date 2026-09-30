@@ -183,7 +183,7 @@ function SidebarInner({ onOpenSearch }) {
 
   const collapsed = !isMobile && collapsedPref;
   const nav = useMemo(() => visibleNav(user), [user]);
-  const active = useMemo(() => findActive(nav, location.pathname), [nav, location.pathname]);
+  const active = useMemo(() => findActive(nav, location.pathname, location.search), [nav, location.pathname, location.search]);
 
   // Close the mobile drawer after navigating
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);

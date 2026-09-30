@@ -12,12 +12,12 @@ import { visibleNav, findActive } from '../../navigation/adminNav';
  * one sidebar, the section tabs for the current page, and Ctrl+K quick jump.
  */
 export default function AdminShell() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const user = useAuthStore((s) => s.user);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const nav = useMemo(() => visibleNav(user), [user]);
-  const active = useMemo(() => findActive(nav, pathname), [nav, pathname]);
+  const active = useMemo(() => findActive(nav, pathname, search), [nav, pathname, search]);
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);

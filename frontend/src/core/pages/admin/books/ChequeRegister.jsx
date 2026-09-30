@@ -82,7 +82,6 @@ export default function ChequeRegister() {
         {!canReadFinance(user) ? <NoAccess what="the cheque register" /> : (
           <>
             <HubHeader title="Cheque register" description="Cheques received and written: in hand, post-dated, deposited, cleared or bounced." />
-            <Link to="/admin/books" style={{ fontSize: '0.78rem', color: colors.textMuted }}>← Books</Link>
             {s && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, margin: '12px 0' }}>
                 {[['in_hand', 'Holding'], ['post_dated', 'Post-dated'], ['deposited', 'Awaiting the bank'], ['issued', 'Issued, not cleared'], ['bounced', 'Bounced']].map(([k, label]) => (

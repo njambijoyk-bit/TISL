@@ -107,7 +107,6 @@ export default function CashPage() {
         {!canReadFinance(user) ? <NoAccess what="the cash ledgers" /> : (
           <>
             <HubHeader title="Cash" description="Count each till against the books, and hand in the cash drivers collected on delivery." />
-            <Link to="/admin/books" style={{ fontSize: '0.78rem', color: colors.textMuted }}>← Books</Link>
             {err && <p role="alert" style={{ color: colors.dangerText }}>{err}</p>}
             {data && data.ledgers.length === 0 && <p style={{ color: colors.textMuted }}>No cash ledgers yet. Add one under Cash-in-hand in the chart of accounts.</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, margin: '14px 0' }}>

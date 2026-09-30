@@ -154,7 +154,7 @@ export default function VoucherView() {
   return (
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1000, margin: '0 auto' }}>
-        <Link to="/admin/books" style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> Books</Link>
+        <Link to="/admin/books?tab=vouchers" style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> Vouchers</Link>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: colors.primary }}>{v.type.name} <span style={{ fontFamily: 'monospace' }}>{v.voucher_number}</span></h1>

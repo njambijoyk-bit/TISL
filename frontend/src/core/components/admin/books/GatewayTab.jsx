@@ -92,6 +92,9 @@ export default function GatewayTab({ canWrite }) {
           <Item onClick={() => nav('/admin/books?tab=vouchers')}>All vouchers</Item>
           <Item onClick={() => nav('/admin/orders')}>Orders register</Item>
           <Item onClick={() => nav('/admin/books?tab=gifts')}>Gift vouchers</Item>
+          <Item onClick={() => nav('/admin/books/cheques')}>Cheque register</Item>
+          <Item onClick={() => nav('/admin/books/cash')}>Cash count &amp; driver cash</Item>
+          <Item onClick={() => nav('/admin/books/edit-log')}>Edit log</Item>
         </Column>
 
         <Column title="Reports">
