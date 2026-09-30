@@ -42,7 +42,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const editing = Boolean(ledger);
   const [f, setF] = useState({
     name: ledger?.name ?? '', group_id: ledger?.group_id ?? defaultGroupId ?? '', code: ledger?.code ?? '',
-    opening_balance: ledger?.opening_balance ?? 0, opening_side: ledger?.opening_side ?? 'D', notes: ledger?.notes ?? '', is_active: ledger?.is_active ?? true,
+    opening_balance: ledger?.opening_balance ?? 0, opening_side: ledger?.opening_side ?? 'D', notes: ledger?.notes ?? '', address: ledger?.address ?? '', is_active: ledger?.is_active ?? true,
     currency_id: ledger?.currency_id ?? '', rate_type: ledger?.rate_type ?? '', rate_value: ledger?.rate_value ?? '', valid_from: ledger?.valid_from ?? '', valid_until: ledger?.valid_until ?? '',
     tax_nature: ledger?.tax_nature ?? '', tax_rate_ledger_id: ledger?.tax_rate_ledger_id ?? '', affects_stock: ledger?.affects_stock ?? false,
     bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
@@ -58,6 +58,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const charging = behaviour === 'charge';
   const taxed = trading || charging;
   const bankish = behaviour === 'bank';
+  const isParty = (() => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (['Sundry Debtors', 'Sundry Creditors'].includes(g.name)) return true; g = all.find((x) => x.id === g.parent_id); } return false; })();
   const [rateChoices, setRateChoices] = useState([]);
   useEffect(() => {
     if (!taxed) return;
@@ -225,6 +226,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               <SelectInput value={f.opening_side} onChange={(e) => set('opening_side')(e.target.value)}><option value="D">Debit (Dr)</option><option value="C">Credit (Cr)</option></SelectInput>
             </Field>
           </FormGrid>
+          {isParty && <Field label="Address" error={errs.address}><TextInput value={f.address} onChange={(e) => set('address')(e.target.value)} placeholder="Street, town" /></Field>}
           <Field label="Code (optional)" error={errs.code}><TextInput value={f.code} onChange={(e) => set('code')(e.target.value)} /></Field>
           {editing && <CheckboxRow checked={f.is_active} onChange={set('is_active')} label="Active" description="Switch off to stop new postings without losing history." />}
           <ModalActions onCancel={onClose} submitLabel={editing ? 'Save' : 'Create ledger'} busy={busy} />

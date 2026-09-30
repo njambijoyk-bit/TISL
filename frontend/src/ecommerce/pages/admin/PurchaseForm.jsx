@@ -33,7 +33,7 @@ const readDraft = (key) => { try { return JSON.parse(sessionStorage.getItem(key)
 const writeDraft = (key, v) => { try { sessionStorage.setItem(key, JSON.stringify(v)); } catch { /* private mode etc. — the draft is a convenience */ } };
 const clearDraft = (key) => { try { sessionStorage.removeItem(key); } catch { /* ignore */ } };
 
-const blankHeader = () => ({ date: today(), location_id: '', party_ledger_id: '', currency_id: '', exchange_rate: '', reference_no: '', supplier_invoice_no: '', due_date: '', narration: '', opening_ledger_id: '' });
+const blankHeader = () => ({ date: today(), location_id: '', party_ledger_id: '', currency_id: '', exchange_rate: '', reference_no: '', supplier_invoice_no: '', payment_method_id: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', due_date: '', narration: '', opening_ledger_id: '' });
 const blankOther = () => ({ key: newKey(), other: true, description: '', quantity: 1, rate: '', ledger_id: '' });
 
 /** A purchase line from a picked variant row (units limited to the ones you can buy in). */
@@ -113,6 +113,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const draft0 = useMemo(() => (editing ? null : readDraft(key)), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [types, setTypes] = useState([]);
   const [ledgers, setLedgers] = useState([]);
+  const [methods, setMethods] = useState([]);
   const [branches, setBranches] = useState([]);
   const [h, setH] = useState(() => ({ ...blankHeader(), ...(draft0?.h ?? {}) }));
   const [lines, setLines] = useState(() => draft0?.lines ?? []);
@@ -130,6 +131,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
   useEffect(() => {
     booksAPI.types().then(setTypes).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
+    booksAPI.paymentMethods().then((m) => setMethods((Array.isArray(m) ? m : m.data ?? []).filter((x) => x.is_active && x.kind !== 'gift_voucher' && x.ledger_id))).catch(() => {});
     booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {});
     locationsAPI.getAdmin().then((r) => {
       const act = (r.locations ?? []).filter((l) => l.is_active !== false);
@@ -148,7 +150,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       setMode(base === 'opening_stock' ? 'opening' : base === 'receipt_note' ? 'receipt' : 'purchase');
       const d = readDraft(key);
       if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setRestored(true); return; }
-      setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', supplier_invoice_no: v.supplier_invoice_no ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
+      setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', supplier_invoice_no: v.supplier_invoice_no ?? '', payment_method_id: '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
       const products = [...new Set((v.items ?? []).filter((i) => i.item_type === 'product').map((i) => i.product_id))];
       const info = {};
       await Promise.all(products.map((pid) => booksAPI.productVariants(pid).then((rows) => rows.forEach((r) => { info[r.variant_id] = r; })).catch(() => {})));
@@ -210,11 +212,17 @@ export default function PurchaseForm({ kind = 'purchase' }) {
           batch_no: l.track_expiry || l.batch_no ? l.batch_no || undefined : undefined, mfg_date: l.mfg_date || undefined, expiry_date: l.expiry_date || undefined })),
     };
     if (opening) p.opening_ledger_id = h.opening_ledger_id || undefined;
-    else { p.party_ledger_id = h.party_ledger_id || null; p.due_date = receipt ? null : h.due_date || null; }
+    else {
+      p.party_ledger_id = h.party_ledger_id || null; p.due_date = receipt ? null : h.due_date || null;
+      if (!receipt) {
+        p.payment_method_id = h.payment_method_id || undefined;
+        Object.assign(p, { party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null });
+      }
+    }
     return p;
   }, [type, h, lines, opening, receipt]);
 
-  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id));
+  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
 
   useEffect(() => {
     if (!ready) { setPreview(null); setPreviewErr(null); return undefined; }
@@ -277,12 +285,29 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               {!opening && (
                 <div>
-                  <label style={label}>Supplier</label>
+                  <label style={label}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value }))} style={small}>
-                    <option value="">Choose…</option>
+                    <option value="">{h.payment_method_id ? 'Not a vendor…' : 'Choose…'}</option>
                     {suppliers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
+              )}
+              {!opening && !receipt && (
+                <div>
+                  <label style={label}>Payment</label>
+                  <select value={h.payment_method_id} onChange={(e) => setH((x) => ({ ...x, payment_method_id: e.target.value }))} style={small} aria-label="Payment">
+                    <option value="">On credit — we owe the supplier</option>
+                    {methods.map((m) => <option key={m.id} value={m.id}>Paid at once — {m.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {!opening && !receipt && !h.party_ledger_id && (
+                <>
+                  <div><label style={label}>Bought from (name)</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their phone</label><input value={h.party_phone} onChange={(e) => setH((x) => ({ ...x, party_phone: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their address</label><input value={h.party_address} onChange={(e) => setH((x) => ({ ...x, party_address: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
+                </>
               )}
               <div><label style={label}>Date</label><input type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
               <div>
@@ -398,7 +423,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               )}
 
               <div style={{ marginTop: 12 }}>
-                <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> Other charge</button>
+                <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> Service or other charge</button>
               </div>
             </div>
 

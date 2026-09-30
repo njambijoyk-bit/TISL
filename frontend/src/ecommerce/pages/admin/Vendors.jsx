@@ -15,7 +15,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 
 /**
  * Vendors: everyone we buy from. Each is a Sundry Creditors ledger, so purchases, payments and what we owe them
- * all follow. A vendor may also have a login. Vendors are not notified: we enter what they invoice us as a Purchase.
+ * all follow. Vendors have no login or portal: we enter what they invoice us as a Purchase.
  */
 
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
@@ -24,8 +24,6 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRig
 
 function VendorModal({ vendor, onClose, onDone }) {
   const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '' });
-  const [login, setLogin] = useState(false);
-  const [lf, setLf] = useState({ email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
@@ -33,7 +31,7 @@ function VendorModal({ vendor, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     const body = { ...f, payment_terms_days: Number(f.payment_terms_days) || 0 };
     try {
-      const res = vendor ? await vendorsAPI.update(vendor.id, body) : await vendorsAPI.create({ ...body, login: login ? lf : undefined });
+      const res = vendor ? await vendorsAPI.update(vendor.id, body) : await vendorsAPI.create(body);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the vendor')); } finally { setBusy(false); }
   };
@@ -49,45 +47,11 @@ function VendorModal({ vendor, onClose, onDone }) {
             <Field label="Email"><TextInput type="email" value={f.email} onChange={set('email')} /></Field>
             <Field label="Tax ID / PIN"><TextInput value={f.tax_id} onChange={set('tax_id')} /></Field>
             <Field label="Payment terms (days)"><NumberInput min="0" value={f.payment_terms_days} onChange={set('payment_terms_days')} /></Field>
-            <Field label="Address"><TextInput value={f.address} onChange={set('address')} /></Field>
+            <Field label="Address"><TextInput value={f.address} onChange={set('address')} placeholder="Street, town" /></Field>
           </div>
           <Field label="Notes"><TextInput value={f.notes} onChange={set('notes')} /></Field>
-          {!vendor && (
-            <>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.82rem' }}><input type="checkbox" checked={login} onChange={(e) => setLogin(e.target.checked)} /> Give this vendor a login</label>
-              {login && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <Field label="Login email"><TextInput required type="email" value={lf.email} onChange={(e) => setLf((x) => ({ ...x, email: e.target.value }))} /></Field>
-                  <Field label="Temporary password (8+ characters)"><TextInput required minLength={8} value={lf.password} onChange={(e) => setLf((x) => ({ ...x, password: e.target.value }))} /></Field>
-                </div>
-              )}
-            </>
-          )}
           <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>A Sundry Creditors ledger is created for the vendor, so purchases and payments post to it.</p>
           <ModalActions onCancel={onClose} submitLabel={vendor ? 'Save' : 'Add vendor'} busy={busy} />
-        </FormStack>
-      </form>
-    </Modal>
-  );
-}
-
-function LoginModal({ vendor, onClose, onDone }) {
-  const [f, setF] = useState({ email: vendor.email ?? '', password: '' });
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await vendorsAPI.createLogin(vendor.id, f); toast.success(res.message); onDone(); }
-    catch (x) { setErr(errMsg(x, 'Could not create the login')); } finally { setBusy(false); }
-  };
-  return (
-    <Modal title="Create a login" subtitle={vendor.company_name} onClose={onClose}>
-      <form onSubmit={go}>
-        <FormStack>
-          <FormError message={err} />
-          <Field label="Login email"><TextInput required type="email" value={f.email} onChange={(e) => setF((x) => ({ ...x, email: e.target.value }))} /></Field>
-          <Field label="Temporary password (8+ characters)"><TextInput required minLength={8} value={f.password} onChange={(e) => setF((x) => ({ ...x, password: e.target.value }))} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Create login" busy={busy} />
         </FormStack>
       </form>
     </Modal>
@@ -102,6 +66,7 @@ function DetailModal({ id, onClose }) {
       {!v ? <p>Loading…</p> : (
         <div style={{ display: 'grid', gap: 10, fontSize: '0.82rem' }}>
           <div>{[v.contact_name, v.phone, v.email].filter(Boolean).join(' · ') || 'No contact details'}{v.payment_terms_days != null ? ` · ${v.payment_terms_days} day terms` : ''}</div>
+          {v.address && <div style={{ color: colors.textMuted }}>{v.address}</div>}
           <h3 style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>Recent purchases</h3>
           {v.purchases.length === 0 ? <p style={{ margin: 0, color: colors.textMuted }}>Nothing bought from this vendor yet.</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -152,18 +117,16 @@ export default function Vendors() {
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>{search ? 'No vendors match.' : 'No vendors yet.'}</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Login</th><th style={th}>Status</th><th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
+              <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Status</th><th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div></td>
                   <td style={td}>{r.contact_name}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
-                  <td style={td}>{r.has_login ? r.login_email : <span style={{ color: colors.textFaint }}>None</span>}</td>
                   <td style={td}>{r.status.replace('_', ' ')}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{money(r.owed)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <button type="button" style={small} onClick={() => setModal({ kind: 'detail', id: r.id })}>View</button>
                     {canWrite && <button type="button" style={small} onClick={() => edit(r)}>Edit</button>}
-                    {canWrite && !r.has_login && <button type="button" style={small} onClick={() => setModal({ kind: 'login', vendor: r })}>Create login</button>}
                     {canWrite && <button type="button" style={small} onClick={() => toggle(r)}>{r.status === 'active' ? 'Suspend' : 'Activate'}</button>}
                   </td>
                 </tr>
@@ -174,7 +137,6 @@ export default function Vendors() {
       </div>
       {modal?.kind === 'add' && <VendorModal onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'edit' && <VendorModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
-      {modal?.kind === 'login' && <LoginModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'detail' && <DetailModal id={modal.id} onClose={() => setModal(null)} />}
     </AdminLayout>
   );

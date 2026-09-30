@@ -376,11 +376,22 @@ class VoucherService
         if (! $party && $type->party_kind === 'customer' && $base !== VoucherType::CASH_SALE) {
             $party = $this->ledgers->walkinLedger();
         }
-        if (! $party && $type->party_kind === 'supplier') {
+        $method = ! empty($data['payment_method_id']) ? PaymentMethod::with('ledger')->findOrFail($data['payment_method_id']) : null;
+
+        // A purchase paid at once (cash, bank, M-Pesa) is credited to that ledger, not to the supplier: no debt is created.
+        // The supplier may still be named (or the seller's details typed in) for the record.
+        $paidLedgerId = null;
+        if ($base === VoucherType::PURCHASE && ($method?->ledger_id || ! empty($data['paid_ledger_id']))) {
+            $paidLedgerId = (int) ($method?->ledger_id ?: $data['paid_ledger_id']);
+            $paid = Ledger::find($paidLedgerId);
+            if (! $paid || ! ($this->ledgers->isUnderGroup($paid, 'Cash-in-hand') || $this->ledgers->isUnderGroup($paid, 'Bank Accounts'))) {
+                throw new BooksException('A purchase paid at once must be paid from a cash or bank ledger.');
+            }
+        }
+        if (! $party && ! $paidLedgerId && $type->party_kind === 'supplier') {
             throw new BooksException("Choose the supplier's ledger for a {$type->name}.");
         }
 
-        $method = ! empty($data['payment_method_id']) ? PaymentMethod::with('ledger')->findOrFail($data['payment_method_id']) : null;
         $tenders = $this->rawTenders($data);
         $method ??= $tenders[0]['method'] ?? null;
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
@@ -391,7 +402,7 @@ class VoucherService
             'opening_ledger_id' => ! empty($data['opening_ledger_id']) ? (int) $data['opening_ledger_id'] : null,
             'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
             'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
-            'method' => $method, 'tenders' => $tenders, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
+            'method' => $method, 'tenders' => $tenders, 'paid_ledger_id' => $paidLedgerId, 'lines' => [], 'entries' => [], 'bills' => [], 'stock' => [],
             'subtotal' => 0.0, 'tax_total' => 0.0, 'total' => 0.0,
         ];
 
@@ -987,6 +998,8 @@ class VoucherService
             }
 
             return $entries;
+        } elseif (! empty($plan['paid_ledger_id'])) {
+            $partyLedgerId = (int) $plan['paid_ledger_id'];   // paid at once: the cash / bank ledger, no supplier debt
         } else {
             $partyLedgerId = $plan['party']?->id ?? throw new BooksException('Choose the party.');
         }
@@ -998,7 +1011,7 @@ class VoucherService
     private function itemBills(array $plan, VoucherType $type, array $data): array
     {
         $base = $type->base_type;
-        if (! $plan['party'] || $base === VoucherType::CASH_SALE) {
+        if (! $plan['party'] || $base === VoucherType::CASH_SALE || ! empty($plan['paid_ledger_id'])) {
             return [];
         }
         if (in_array($base, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
@@ -1722,7 +1735,9 @@ class VoucherService
             'due_date' => $plan['due']?->toDateString(), 'location_id' => $plan['location_id'],
             'party_ledger_id' => $plan['party']?->id, 'customer_id' => $plan['customer']?->id,
             'payment_method_id' => $plan['method']?->id, 'currency_id' => $currency->id, 'exchange_rate' => $plan['rate'],
-            'reference_no' => $data['reference_no'] ?? null, 'supplier_invoice_no' => $data['supplier_invoice_no'] ?? null, 'narration' => $data['narration'] ?? null,
+            'reference_no' => $data['reference_no'] ?? null, 'supplier_invoice_no' => $data['supplier_invoice_no'] ?? null,
+            'party_name' => $data['party_name'] ?? null, 'party_phone' => $data['party_phone'] ?? null, 'party_address' => $data['party_address'] ?? null, 'party_tax_id' => $data['party_tax_id'] ?? null,
+            'narration' => $data['narration'] ?? null,
             'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total_amount' => $plan['total'],
             'base_total' => round($plan['total'] * $plan['rate'], 2), 'moves_stock' => $plan['moves_stock'],
             'source_voucher_id' => $data['source_voucher_id'] ?? null, 'channel' => $data['channel'] ?? 'admin',

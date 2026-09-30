@@ -13,7 +13,7 @@ class Ledger extends Model
 
     protected $fillable = [
         'group_id', 'name', 'code', 'opening_balance', 'opening_side',
-        'customer_id', 'supplier_id', 'currency_id', 'is_system', 'is_active', 'notes',
+        'customer_id', 'supplier_id', 'address', 'currency_id', 'is_system', 'is_active', 'notes',
         'rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days', 'side', 'settings',
         'classification', 'unit_of_measure_id', 'calculation_base', 'calculation_sequence', 'requires_certificate',
         'tax_nature', 'tax_rate_ledger_id', 'affects_stock', 'bank_name', 'account_number', 'branch',

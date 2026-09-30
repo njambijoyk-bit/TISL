@@ -99,7 +99,7 @@ class BooksMasterController extends Controller
     {
         $d = $request->validate([
             'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
-            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'currency_id' => 'nullable|integer|exists:currencies,id',
+            'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'address' => 'nullable|string|max:500', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
@@ -123,7 +123,7 @@ class BooksMasterController extends Controller
         $d = $request->validate([
             'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
-            'notes' => 'nullable|string', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
+            'notes' => 'nullable|string', 'address' => 'nullable|string|max:500', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],

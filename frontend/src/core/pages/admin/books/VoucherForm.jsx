@@ -146,7 +146,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', narration: '', due_date: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [manual, setManual] = useState(false);
@@ -186,7 +186,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
-        payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+        payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id).map((i) => {
           const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
@@ -220,6 +220,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const payload = useMemo(() => {
     const p = {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
+      party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
       valid_until: h.valid_until || undefined,
     };
@@ -321,6 +322,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {h.customer ? <div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div>
                     : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
+              )}
+              {type?.party_kind === 'customer' && hasItems && !h.customer && (
+                <>
+                  <div><label style={label}>Sold to (name)</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} placeholder="Walk-in buyer's name" /></div>
+                  <div><label style={label}>Their phone</label><input value={h.party_phone} onChange={(e) => setH((x) => ({ ...x, party_phone: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their address</label><input value={h.party_address} onChange={(e) => setH((x) => ({ ...x, party_address: e.target.value }))} style={small} /></div>
+                  <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
+                </>
               )}
               {(type?.party_kind === 'supplier' || isMoney) && (
                 <div>

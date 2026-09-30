@@ -96,7 +96,8 @@ class ExportService
         return [
             ...$this->footer($v),
             'voucher_number' => $v->voucher_number, 'type' => $v->type?->name, 'date' => $v->date?->toDateString(), 'status' => $v->status,
-            'party' => $v->partyLedger?->name, 'branch' => $v->location?->name, 'currency' => $cur, 'payment_method' => $v->paymentMethod?->name,
+            'party' => $v->partyLedger?->name ?? $v->party_name, 'party_phone' => $v->party_phone, 'party_tax_id' => $v->party_tax_id,
+            'party_address' => $v->party_address ?: $v->partyLedger?->address, 'branch' => $v->location?->name, 'currency' => $cur, 'payment_method' => $v->paymentMethod?->name,
             'reference' => $v->reference_no, 'supplier_invoice_no' => $v->supplier_invoice_no, 'narration' => $v->narration,
             'lines' => $lines,
             'entries' => $v->entries->map(fn ($e) => ['ledger' => $e->ledger?->name, 'debit' => $e->side === 'D' ? (float) $e->amount : 0, 'credit' => $e->side === 'C' ? (float) $e->amount : 0])->values()->all(),

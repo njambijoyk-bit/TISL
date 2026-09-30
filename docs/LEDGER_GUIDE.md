@@ -274,6 +274,7 @@ Stock is valued. Every arrival of stock is a **batch** with its own cost; a batc
 | Event | Dr | Cr |
 |---|---|---|
 | **Purchase** (stocked products) | Stock (the line's net cost) + input tax | Supplier |
+| **Purchase paid at once** (cash, bank, M-Pesa) | the same | the cash / bank ledger — **no supplier debt, no bill**; the seller can be a vendor or just typed party details |
 | **Opening stock** (go-live) | Stock | Opening Stock Balance |
 | **Sale / Cash Sale** of stocked goods | (the sale as usual) **and** Cost of Goods Sold, at the cost of the batches the goods came from | Stock |
 | **Sale invoiced from a delivery** | the same cost, taken from what the delivery took out | Stock |
