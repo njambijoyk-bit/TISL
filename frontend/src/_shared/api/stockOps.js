@@ -21,3 +21,13 @@ export const recipesAPI = {
 export const stockJournalAPI = {
   list: async (params) => (await api.get('/admin/stock/journal', { params })).data,
 };
+
+export const stockJobsAPI = {
+  list: async (params) => (await api.get('/admin/stock/jobs', { params })).data,
+  show: async (id) => (await api.get(`/admin/stock/jobs/${id}`)).data,
+  open: async (payload) => (await api.post('/admin/stock/jobs', payload)).data,
+  issue: async (id, items) => (await api.post(`/admin/stock/jobs/${id}/issue`, { items })).data,
+  returnLine: async (id, lineId, quantity) => (await api.post(`/admin/stock/jobs/${id}/lines/${lineId}/return`, { quantity })).data,
+  complete: async (id, invoiceVoucherId) => (await api.post(`/admin/stock/jobs/${id}/complete`, { invoice_voucher_id: invoiceVoucherId || undefined })).data,
+  cancel: async (id) => (await api.post(`/admin/stock/jobs/${id}/cancel`)).data,
+};

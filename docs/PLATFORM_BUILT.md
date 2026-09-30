@@ -43,6 +43,10 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 25 | `25_stock_settings.sql` | `stock_settings` (one row) and `stock_setting_overrides` — Settings → Stock & expiry, with per-category / per-product exceptions |
 | 26 | `26_expiry_engine.sql` | `stock_batches.last_warned_days` (each warning band warns once); `stock_movements.voucher_id` may be empty (writing off a batch that cost nothing) |
 | 27 | `27_service_materials.sql` | `service_variant_materials` (a package's default materials); `voucher_items.material_mode` / `cost_amount` / `paid_ledger_id` (materials under a service line) |
+| 28 | `28_stock_holds_clearance_costing.sql` | `stock_batch_events` (batch history); `stock_batches.clearance_percent` / `held_reason`; `stock_movements.ref_type` / `ref_id`; `stock_settings.costing_method` / `returns_to_quarantine` |
+| 29 | `29_stock_transfers.sql` | `stock_transfers`, `stock_transfer_lines` (stock between branches) |
+| 30 | `30_stock_counts_recipes_production.sql` | `stock_counts` / `stock_count_lines`, `recipes` / `recipe_items`, `productions` / `production_lines` |
+| 31 | `31_work_in_progress_jobs.sql` | *Work in Progress* ledger + `accounting_settings.wip_ledger_id`; `stock_jobs`, `stock_job_lines` |
 
 ---
 

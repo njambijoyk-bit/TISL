@@ -285,6 +285,15 @@ Stock is valued. Every arrival of stock is a **batch** with its own cost; a batc
 | **Service, material included** (nail polish in a manicure) | no charge; **Cost of Services**, at the batch cost | Stock |
 | **Service, part bought elsewhere** (a side mirror) | the customer for what is charged (Cr its income ledger); and **Job Materials Cost** for what it cost | the supplier owed, or cash / bank it was paid from — as a bill to the supplier when owed |
 | **Service, customer's own part** | nothing — noted on the job | |
+| **Stock transfer** between branches | nothing — same stock, same company (in transit until received) | |
+| **Transfer received short** | Stock Loss, at the batch's cost, for what did not arrive | Stock |
+| **Stock count**, shortage | Stock Loss (net of gains on the same count) | Stock |
+| **Stock count**, surplus | Stock | Stock Loss |
+| **Production run** (ingredients → finished batch) | nothing — stock changes shape, not value; the finished batch costs what the ingredients cost | |
+| **Made-to-order item sold** (a recipe used on sale) | the sale as usual; **Cost of Goods Sold** at the cost of the ingredients used | Stock |
+| **Materials issued to a job** | Work in Progress | Stock |
+| **Materials returned from a job** | Stock | Work in Progress |
+| **Job completed** | Cost of Services | Work in Progress |
 
 Notes: a document that only moves stock (Delivery Note, Goods received) posts nothing; the cost is booked by the invoice or purchase made from it. Stock a purchase brought in cannot be edited or cancelled once some of it has been sold or used — return it to the supplier with a Debit Note. Debit notes post at the note's amount while the stock leaves at batch cost; the difference is a reconciliation item. Existing stock entered before batches has cost 0 until its real cost is set (script 23, part E).
 

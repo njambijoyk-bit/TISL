@@ -347,6 +347,7 @@ const DEFAULTS = [
   ['cost_of_services_ledger_id', 'Cost of services', 'Materials used up in a service but not charged to the customer.'],
   ['job_materials_ledger_id', 'Job materials cost', 'Parts bought elsewhere for a job (a side mirror bought for one repair).'],
   ['stock_loss_ledger_id', 'Stock loss', 'Expired, damaged or missing stock written off.'],
+  ['wip_ledger_id', 'Work in progress', 'Cost of materials issued to jobs that are not finished yet.'],
   ['opening_balance_ledger_id', 'Opening stock balance', 'What opening stock is balanced against when you enter the stock you already hold.'],
 ];
 
