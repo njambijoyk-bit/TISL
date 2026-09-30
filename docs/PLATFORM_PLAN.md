@@ -1135,3 +1135,20 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 - **Receipt/Payment party list** now shows customers and suppliers only, with "Show every ledger" for expenses and others.
 - **Purchases:** creating or editing a Purchase, Goods received note or Opening stock from Books now opens the **Purchases page** (same batch / expiry rules, create-a-product); that page gained **What this will post** (the accounts: stock/purchase, input VAT, supplier) like Sales.
 - Not yet: refund of credit as a payment, and a "apply credit after posting" tick on the invoice form. Tests: `billstest` (30 checks).
+
+## 29. Overpayments, advances and refunds (plan, 30 Sep 2026)
+
+**Words.** "Credit sale / credit account / credit limit" = they owe us. Money we hold for them is one of two things, and the screens say which:
+- **Overpayment** — they paid more than the bills they settled, by accident or rounding. Shown as *"You paid extra KSh {amount} on {RCT-…}"* (customer) / *"{Customer} paid extra KSh {amount} on {RCT-…}"* (admin).
+- **Advance / deposit** — paid on purpose for something not yet supplied (an order, a project milestone, a booking). Chosen on the receipt by a tick *"This is an advance for…"* plus what it is for; the same mechanism serves Projects and Bookings later.
+Both are a credit balance on the customer ledger and a row in the open-bills query (`kind: overpayment | advance`); the difference is only the wording, the reports and who is asked what. Suppliers: *paid in advance to supplier*.
+
+**Using it (with a checkbox, never silently).**
+- **Admin:** on a Sales (Purchase) invoice form, and on the posted invoice, if the party holds an overpayment or advance: *"{Customer} paid extra KSh {amount} on RCT-… — use it on this invoice?"* with a checkbox per voucher (amount = the lesser of what is held and what is owed). Ticked at posting applies it in the same save; unticked leaves it.
+- **Customer:** *My account*, *Order detail* and *Checkout* show the same sentence with the checkbox. A Sales Order is a record, so the tick is saved on the order (`meta.use_credit`) and **applied when the admin converts it to an invoice or cash sale**, like gift vouchers.
+
+**Refund.** *Refund* beside an overpayment/advance opens a **Payment voucher** prefilled: party, amount, and the narration **"Refund for voucher {RCT-…} for amount {amount} from {bank/cash account} account"** (the account is chosen on the voucher; the narration follows it). Posting it pays the money out (Dr Customer / Cr Bank or cash) and uses up that much of the overpayment, recorded on the payment as a settlement of the receipt's credit row; cancelling the payment puts the overpayment back. Finance and super-admin only.
+
+**Credit limit** is measured on the ledger's net balance (owed less overpayments/advances held), which it already is.
+
+**Build.** (a) rename and reword everything above; (b) `kind` on receipt advances plus the "advance for…" tick; (c) checkbox on invoice forms and posted invoices (apply at save); (d) refund as a prefilled Payment voucher that clears the overpayment, cancel restores; (e) customer-side messages and the tick on the order, applied at conversion. Then step 3 (write-off).
