@@ -300,6 +300,17 @@ class CheckoutService
         if ($mode === 'online' && (! $method || ! PaymentMethod::offeredAtCheckout()->whereKey($method->id)->exists())) {
             throw new BooksException('Choose a payment method.');
         }
+        if ($mode === 'credit') {
+            if (! $customer) {
+                throw new BooksException('Sign in to pay from the money you have paid us.');
+            }
+            if ($this->giftCodes($in)) {
+                throw new BooksException('Pay with a gift voucher or with your overpayment, not both on one order.');
+            }
+            if (empty($a['data']['use_credit'])) {
+                throw new BooksException('Tick the money you want to use.');
+            }
+        }
         if ($mode === 'account' && ! $customer) {
             throw new BooksException('Sign in to pay on account.');
         }
@@ -320,7 +331,9 @@ class CheckoutService
         // Cash Sale points at the right money ledger.
         $modes = app(PaymentModeService::class);
         $intent = ['kind' => 'later', 'label' => 'Pay later'];
-        if ($mode === 'account') {
+        if ($mode === 'credit') {
+            $intent = ['kind' => 'overpayment', 'label' => 'Paid from the money you had paid us'];
+        } elseif ($mode === 'account') {
             $intent = ['kind' => 'credit', 'label' => 'On credit (charged to your account)'];
         } elseif ($mode === 'online' && $method) {
             $intent = ['kind' => 'online', 'label' => $method->name, 'instructions' => $method->instructions, 'method_id' => $method->id, 'ledger_id' => $method->ledger_id];
@@ -353,6 +366,19 @@ class CheckoutService
             }
             $due = round($total - $giftApplied, 2);
 
+            // 0. paid from money they had already paid us (an overpayment or advance): the order becomes an invoice and the ticked
+            //    credit settles it — nothing new is charged
+            if ($mode === 'credit') {
+                $held = (float) array_sum(array_column(array_filter(app(OpenBillsService::class)->forCustomer($customer->id), fn ($c) => in_array($c['voucher_id'], $a['data']['use_credit'], true)), 'amount'));
+                if ($held + 0.005 < $total) {
+                    throw new BooksException('The money you chose (' . number_format($held, 2) . ') does not cover this order (' . number_format($total, 2) . '). Choose another way to pay, or pay the rest when it is invoiced.');
+                }
+                $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->toDateString()], null);   // applies the ticked credit as it is made
+                $paid = $this->vouchers->outstanding($invoice) <= 0.005;
+
+                return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'status' => $paid ? 'paid' : 'invoiced',
+                    'message' => $paid ? 'Paid from the money you had paid us. Thank you!' : 'Invoiced; part is still to pay.'];
+            }
             // 1. a gift voucher covers everything → paid now
             if ($giftApplied > 0 && $due <= 0.005) {
                 $sale = $this->settle($order, $tenders, $user);

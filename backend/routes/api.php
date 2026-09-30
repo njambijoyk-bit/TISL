@@ -606,6 +606,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('wishlist', [CustomerSyncController::class, 'clearWishlist']);
         Route::delete('quote-list', [CustomerSyncController::class, 'clearQuoteList']);
         
+        // My account: what I owe, what I have paid over, how to pay
+        Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
+
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);
         Route::post('/phone/send-otp', [VerificationController::class, 'sendPhoneOtp']);

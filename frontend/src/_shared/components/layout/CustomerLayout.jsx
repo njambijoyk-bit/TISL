@@ -37,6 +37,7 @@ const CUSTOMER_GROUPS = [
       { name: 'Cart',            icon: ShoppingCart,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/cart',              active: true },
       { name: 'Wishlist',        icon: Heart,         bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/wishlist',          active: true },
       { name: 'Quote List',      icon: ClipboardList, bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/quote-list',        active: true },
+      { name: 'My Account',      icon: User,          bg: 'linear-gradient(135deg,#6366f1,#818cf8)', path: '/my-account',        active: true },
       { name: 'My Wallet',       icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/gift-vouchers',     active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
       { name: 'Quote Requests',  icon: FileQuestion,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/my-quote-requests', active: true },

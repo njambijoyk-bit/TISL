@@ -44,7 +44,7 @@ export default function Checkout() {
   const [creditPick, setCreditPick] = useState(null);   // overpayments / advances they hold: ticked unless they untick
   const giftPicked = prefs.gift_codes;
   const setGiftPicked = (fn) => prefs.set({ gift_codes: typeof fn === 'function' ? fn(useCheckoutPrefs.getState().gift_codes) : fn });
-  const [mode, setMode] = useState('online');       // online | pay_later | account | ledger
+  const [mode, setMode] = useState('online');       // online | pay_later | account | ledger | credit
   const [methodId, setMethodId] = useState(null);
   const [ledgerId, setLedgerId] = useState(null);      // an offered bank / till / cash-on-delivery ledger chosen as how they will pay
   const [quote, setQuote] = useState(null);
@@ -199,6 +199,12 @@ export default function Checkout() {
                   <Choice key={m.ledger_id} active={mode === 'ledger' && ledgerId === m.ledger_id} onClick={() => { setMode('ledger'); setLedgerId(m.ledger_id); }} label={m.label}
                     sub={m.kind === 'cod' ? 'Pay the driver when it arrives' : m.kind === 'bank' ? 'Pay by bank transfer — details below' : m.kind === 'mobile' ? 'Pay to our number — details below' : 'Pay in cash'} />
                 ))}
+                {credits.length > 0 && (() => {
+                  const held = credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).reduce((t, c) => t + c.amount, 0);
+                  const covers = quote && held + 0.005 >= Number(quote.total);
+                  return <Choice active={mode === 'credit'} onClick={() => setMode('credit')} disabled={!covers} label="Pay from money I have already paid"
+                    sub={covers ? `Uses ${money(Math.min(held, Number(quote.total)))} of the ${money(held)} you paid us — nothing more to pay` : `The ticked ${money(held)} does not cover this order (${money(quote?.total ?? 0)})`} />;
+                })()}
                 <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />
                 {opts?.account && (
                   <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
@@ -266,7 +272,7 @@ export default function Checkout() {
           <div style={card}>
             <PolicyConsentCheckbox policyKeys={['standard_order_policy']} actionContext="standard_checkout" onChange={(_ok, acc) => setPolicies(acc)} disabled={busy} />
             <button type="submit" disabled={busy || !quote || !!pending} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: 'white', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', fontFamily: 'inherit' }}>
-              <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : 'Place order'}
+              <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
             </button>
             <p style={{ margin: '10px 0 0', fontSize: '0.74rem', color: '#9ca3af', textAlign: 'center' }}>Your order is saved under <Link to="/orders" style={{ color: 'var(--color-primary-500)' }}>My orders</Link> as soon as it is placed.</p>
           </div>

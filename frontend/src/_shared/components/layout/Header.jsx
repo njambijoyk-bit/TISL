@@ -406,6 +406,7 @@ export default function Header() {
   const customerLinks = [
     { label: 'My Profile',        icon: User,          to: profilePath },
     { label: 'My Orders',         icon: ShoppingBag,   to: '/orders' },
+    { label: 'My Account',         icon: User,          to: '/my-account' },
     { label: 'My Wallet',          icon: Gift,          to: '/gift-vouchers' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
     { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },

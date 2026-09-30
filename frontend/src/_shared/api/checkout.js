@@ -10,6 +10,7 @@ const checkoutAPI = {
   order: async (id) => (await api.get(`/customer/sales-orders/${id}`)).data,
   updateOrder: async (id, data) => (await api.put(`/customer/sales-orders/${id}`, data)).data,
   reviewDocument: async (id, note) => (await api.post(`/customer/sales-orders/documents/${id}/review`, { note })).data,
+  account: async () => (await api.get('/customer/account')).data,
   cancelOrder: async (id) => (await api.post(`/customer/sales-orders/${id}/cancel`)).data,
 };
 

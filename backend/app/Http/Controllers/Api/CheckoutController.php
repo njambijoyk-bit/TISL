@@ -88,7 +88,7 @@ class CheckoutController extends Controller
     {
         $request->validate($this->rules() + [
             'customer_email' => 'required|email', 'customer_phone' => 'required|string', 'shipping_address' => [\Illuminate\Validation\Rule::requiredIf(! empty($request->items)), 'nullable', 'string'],
-            'payment_mode' => 'required|in:online,pay_later,account', 'payment_method_id' => 'nullable|integer|exists:payment_methods,id', 'payment_ledger_id' => 'nullable|integer|exists:ledgers,id',
+            'payment_mode' => 'required|in:online,pay_later,account,credit', 'payment_method_id' => 'nullable|integer|exists:payment_methods,id', 'payment_ledger_id' => 'nullable|integer|exists:ledgers,id',
             'phone' => 'nullable|string', 'customer_notes' => 'nullable|string|max:1000',
             'policy_acceptances' => 'nullable|array', 'policy_acceptances.*.key' => 'required_with:policy_acceptances|string',
             'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
