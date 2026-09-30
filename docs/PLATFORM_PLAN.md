@@ -951,3 +951,30 @@ Until each is re-pointed, its screen shows an empty list or errors after script 
 - **Promo usage** is logged when a Sales Order, Invoice or Cash Sale carrying a promo code is posted (one `referral_code_usage` row per voucher, quotations never); a document made from one that already logged the use does not log it again; **cancelling or editing the voucher takes the use back** (counters down, a code that had run out becomes usable again).
 - **Loyalty on money received:** a Cash Sale earns when made and a Receipt when posted, on what was paid **after tax** (not on gift vouchers sold or the part paid with a gift voucher), times the tier multiplier; it adds to the customer's spend, a Cash Sale also counts as an order. An **Invoice earns nothing itself** — it counts as an order when posted, and each receipt against it earns. Cancelling or editing a voucher reverses its points, spend and order count (and re-earns on the edited figures).
 - **Rounding:** on Sales and Cash Sales the admin picks *Do not round / Nearest whole number / Nearest 0.50* (the starting choice comes from Books → Settings → Default ledgers; off unless switched on). The difference is an automatic line on the **Rounding** ledger; VAT is untouched. Checkout does not round yet (the storefront's amounts are unchanged).
+
+---
+
+## 22. What a customer can create on the storefront (plan, 1 Oct 2026)
+
+**Recommendation.** A customer creates a **Sales Order** (their request to buy), never a Sales invoice or a Cash Sale. Those two are *accounting documents* that the business (or the system on payment) makes from the order:
+
+| Customer does | System makes | When |
+|---|---|---|
+| Places an order at checkout | **Sales Order** (a promise to buy — posts nothing, reserves nothing yet) | at once |
+| Pays online (M-Pesa, gift voucher) | **Cash Sale** made from the order (money in, stock out, points earned) | when the payment lands |
+| Chooses "pay on account" (only customers allowed credit) | **Invoice** made from the order | at once, on approval rules |
+| Asks for a quote first | **Quotation** (staff price it) → customer accepts → Sales Order | existing quotes flow |
+| Staff deliver | **Delivery Note** | staff / driver |
+
+Why not let a customer create an invoice or cash sale directly: it would let them decide the price, tax, stock movement and accounts; an invoice is our legal document; a cash sale must only exist when money has really arrived. Staff can still make any of these on a customer's behalf from the admin.
+
+**What the customer sees (storefront).** *My orders* (the sales orders, with a status: placed → paid → delivered / cancelled), *Order detail* (items in the voucher-style table with tax, discounts, gift voucher used, payments, delivery), *Pay now* on an unpaid order, *Cancel* while nothing has been paid or delivered (already enforced), *Invoices & receipts* (their documents and what they still owe, for account customers), *Track delivery* once a delivery exists.
+
+**Rules to settle.**
+1. **Stock and price at order time:** does placing an order reserve the stock and lock the price, or is stock only taken when it is paid / delivered? *Proposal:* price is locked at order time; stock is checked at order time but only taken on the Cash Sale / Delivery Note; unpaid orders expire after N days (setting).
+2. **Editing an order:** customers cannot edit; they cancel and re-order (staff can edit in admin).
+3. **Pay later / account:** only customers marked as credit customers (with a limit) see "pay on account"; everyone else pays online or "pay on delivery" (order stays unpaid until staff take payment).
+4. **Guests:** may order with an email and phone (as now); the order is tied to a guest ledger and they can pay online, but cannot use gift vouchers, promo codes or points.
+5. **Currency:** always the base currency (section 20).
+
+**Build order.** (1) Order detail and My orders on the voucher engine (status, table, payments, cancel) — largely there; (2) pay-now on an unpaid order; (3) delivery tracking re-pointed to the voucher (section 19, item 1); (4) invoices and receipts for account customers, with statement; (5) unpaid-order expiry and stock check settings.
