@@ -11,11 +11,11 @@ export const stockCountsAPI = {
 };
 
 export const recipesAPI = {
-  list: async () => (await api.get('/admin/stock/recipes')).data,
-  save: async (payload) => (await api.put('/admin/stock/recipes', payload)).data,
-  remove: async (id) => (await api.delete(`/admin/stock/recipes/${id}`)).data,
-  produce: async (id, payload) => (await api.post(`/admin/stock/recipes/${id}/produce`, payload)).data,
-  cancelRun: async (id) => (await api.post(`/admin/stock/production/${id}/cancel`)).data,
+  list: async () => (await api.get('/admin/menus/recipes')).data,
+  save: async (payload) => (await api.put('/admin/menus/recipes', payload)).data,
+  remove: async (id) => (await api.delete(`/admin/menus/recipes/${id}`)).data,
+  produce: async (id, payload) => (await api.post(`/admin/menus/recipes/${id}/produce`, payload)).data,
+  cancelRun: async (id) => (await api.post(`/admin/menus/production/${id}/cancel`)).data,
 };
 
 export const stockJournalAPI = {

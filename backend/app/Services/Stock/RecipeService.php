@@ -56,7 +56,7 @@ class RecipeService
     {
         static $ready = null;
         $ready ??= Schema::hasTable('recipes');
-        if (! $ready) {
+        if (! $ready || ! app(\App\Services\Licensing\LicenseManager::class)->isActive('menus')) {   // recipes belong to Menus; Core sells normally without it
             return null;
         }
         $r = Recipe::where('variant_id', $variantId)->where('is_active', true)->where('deduct_on_sale', true)->first();

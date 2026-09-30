@@ -76,7 +76,7 @@ export const ADMIN_NAV = [
       },
       {
         id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', roles: FINANCE_READ,
-        keywords: 'buy stock supplier receive batch expiry expired opening stock write off recall quarantine transfer branch count recipe manufacture production journal job work in progress wip', also: ['/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/production', '/admin/stock/journal', '/admin/stock/jobs'],
+        keywords: 'buy stock supplier receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip', also: ['/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/jobs'],
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true },
           { title: 'Opening stock', path: '/admin/stock/opening' },
@@ -84,7 +84,6 @@ export const ADMIN_NAV = [
           { title: 'Held stock', path: '/admin/stock/held' },
           { title: 'Transfers', path: '/admin/stock/transfers' },
           { title: 'Stock counts', path: '/admin/stock/counts' },
-          { title: 'Production', path: '/admin/stock/production' },
           { title: 'Stock journal', path: '/admin/stock/journal' },
           { title: 'Jobs in progress', path: '/admin/stock/jobs' },
         ],
@@ -181,6 +180,18 @@ export const ADMIN_NAV = [
           { title: 'Sessions', path: '/admin/ai-analytics/sessions' },
           { title: 'Mimi', path: '/admin/ai-analytics/mimi', also: ['/admin/ai-analytics/mimi-sessions', '/admin/ai-analytics/mimi-eligibility', '/admin/ai-analytics/mimi-harmful'] },
         ],
+      },
+    ],
+  },
+
+  {
+    id: 'menus',
+    label: 'Menus',
+    module: MODULES.MENUS,
+    items: [
+      {
+        id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', keywords: 'recipe ingredients manufacture production made to order dish',
+        tabs: [{ title: 'Recipes & production', path: '/admin/menus/recipes' }],
       },
     ],
   },
