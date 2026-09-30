@@ -284,8 +284,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16 }}>
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               {!opening && (
-                <div>
-                  <label style={label}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}</label>
+                <div style={!h.party_ledger_id && !h.payment_method_id ? { border: '1.5px solid #dc2626', background: '#fef2f2', boxShadow: '0 0 0 3px rgba(220,38,38,0.10)', borderRadius: 10, padding: 8 } : undefined} data-needs={!h.party_ledger_id && !h.payment_method_id ? 'supplier' : undefined}>
+                  <label style={{ ...label, ...(!h.party_ledger_id && !h.payment_method_id ? { color: '#b91c1c' } : {}) }}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}{!h.party_ledger_id && !h.payment_method_id && <span style={{ fontWeight: 600 }}> — choose one</span>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value }))} style={small}>
                     <option value="">{h.payment_method_id ? 'Not a vendor…' : 'Choose…'}</option>
                     {suppliers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}

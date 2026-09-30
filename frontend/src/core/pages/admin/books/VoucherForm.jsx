@@ -128,6 +128,8 @@ function MaterialsEditor({ api, materials, onChange, ledgers }) {
 
 // Tally-style line grid: one header row, one row per line — Name of item | Quantity | per | Rate | Disc | Amount
 const LINE_COLS = 'minmax(220px,1fr) 88px 72px 104px 84px 116px 34px';
+// a box the admin must not forget: red until it is filled
+const NEEDS = { border: '1.5px solid #dc2626', background: '#fef2f2', boxShadow: '0 0 0 3px rgba(220,38,38,0.10)', borderRadius: 10 };
 const colHead = { fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
 
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
@@ -361,8 +363,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 </div>
               )}
               {type?.party_kind === 'customer' && hasItems && (
-                <div>
-                  <label style={label}>Customer {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
+                <div style={!h.customer && !h.party_name ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.customer && !h.party_name ? 'customer' : undefined}>
+                  <label style={{ ...label, ...(!h.customer && !h.party_name ? { color: '#b91c1c' } : {}) }}>Customer {!h.customer && !h.party_name && <span style={{ fontWeight: 600 }}>— choose one</span>} {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
                   {h.customer ? <div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div>
                     : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c, party_ledger_id: '' }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
@@ -376,8 +378,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 </>
               )}
               {(type?.party_kind === 'supplier' || isMoney) && (
-                <div>
-                  <label style={label}>{isMoney ? 'Party' : 'Supplier'}</label>
+                <div style={!h.party_ledger_id ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.party_ledger_id ? 'party' : undefined}>
+                  <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null }))} style={small}>
                     <option value="">Choose a ledger…</option>
                     {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
