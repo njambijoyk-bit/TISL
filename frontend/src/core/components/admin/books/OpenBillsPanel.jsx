@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import useAuthStore from '../../../../_shared/store/authStore';
+import WriteOffModal from './WriteOffModal';
 import booksAPI from '../../../../_shared/api/books';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { money } from './booksFmt';
@@ -28,6 +30,8 @@ const autoAllocate = (bills, amount) => {
 export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc, setAlloc, touched, setTouched }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [writing, setWriting] = useState(false);
+  const role = useAuthStore((s) => s.user?.role);
   const receipt = base === 'receipt';
 
   useEffect(() => {
@@ -60,6 +64,7 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
         <span>{receipt ? 'Owes us' : 'We owe them'} <strong style={{ color: (receipt ? t.owed_to_us : t.we_owe) > 0 ? colors.warningText : colors.text }}>{money(receipt ? t.owed_to_us : t.we_owe)}</strong></span>
         {receipt && t.overdue > 0 && <span style={{ color: colors.dangerText }}>{money(t.overdue)} overdue</span>}
         {credits.length > 0 && <span>{receipt ? 'Overpaid / paid in advance' : 'Paid in advance'} <strong style={{ color: colors.successText }}>{money(credits.reduce((x, c) => x + c.amount, 0))}</strong></span>}
+        {receipt && t.owed_to_us > 0.005 && ['finance', 'super_admin'].includes(role) && <button type="button" onClick={() => setWriting(true)} style={{ border: 'none', background: 'none', color: colors.dangerText, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Write off the balance…</button>}
         {other > 0 && <span style={{ color: colors.textMuted }}>{receipt ? 'We also owe them' : 'They also owe us'} {money(other)}</span>}
       </div>
 
@@ -98,6 +103,7 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
         </div>
       )}
 
+      {writing && <WriteOffModal party={{ ledgerId, name: data.ledger.name, owed: t.owed_to_us }} onClose={() => setWriting(false)} onDone={() => { setWriting(false); booksAPI.openBills(ledgerId, exceptId).then(setData).catch(() => {}); }} />}
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${colors.tint(0.08)}`, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.8rem', alignItems: 'center' }}>
         <span>Settling <strong>{money(allocated)}</strong></span>
         <span style={{ color: onAccount < -0.004 ? colors.dangerText : colors.text }}>{onAccount < -0.004 ? `Bills add up to more than the amount by ${money(-onAccount)}` : <>On account <strong>{money(onAccount)}</strong>{onAccount > 0.004 && <span style={{ color: colors.textMuted }}> — kept as an overpayment, to use on {receipt ? 'their' : 'our'} next {receipt ? 'invoice' : 'bill'}</span>}</>}</span>

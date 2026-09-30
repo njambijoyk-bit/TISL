@@ -520,6 +520,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/refund-to-gift-voucher', [BooksVoucherController::class, 'refundToGiftVoucher']);
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
+            Route::post('/vouchers/{id}/write-off',   [BooksVoucherController::class, 'writeOff'])->whereNumber('id');
+            Route::post('/ledgers/{ledgerId}/write-off', [BooksVoucherController::class, 'writeOffParty'])->whereNumber('ledgerId');
             Route::post('/vouchers/{id}/apply-credit',   [BooksVoucherController::class, 'applyCredit'])->whereNumber('id');
             Route::post('/vouchers/{id}/release-credit', [BooksVoucherController::class, 'releaseCredit'])->whereNumber('id');
             Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);

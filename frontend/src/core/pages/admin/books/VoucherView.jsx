@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift } from 'lucide-react';
+import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -11,6 +11,7 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
+import WriteOffModal from '../../../components/admin/books/WriteOffModal';
 import CreditPanel from '../../../components/admin/books/CreditPanel';
 import { Chip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
@@ -144,6 +145,7 @@ export default function VoucherView() {
   const live = v.status === 'posted';
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
   const refundable = live && base === 'credit_note' && Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0) > 0.005;
+  const canWriteOff = live && base === 'sales' && Number(v.outstanding) > 0.005 && ['finance', 'super_admin'].includes(user?.role);
   const receivable = live && ['sales', 'debit_note'].includes(base) && Number(v.outstanding) > 0.005;
   const lockedBy = base === 'sales_order' ? (v.children ?? []).find((c) => c.status !== 'cancelled') : null;
   const children = (id2) => (v.items ?? []).filter((i) => i.parent_item_id === id2);
@@ -167,7 +169,8 @@ export default function VoucherView() {
             {canWrite && convertible && !lockedBy && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
-            {canWrite && live && !lockedBy && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
+            {canWriteOff && <button type="button" style={btnGhost} onClick={() => setModal('writeoff')}><Eraser size={14} /> Write off</button>}
+            {canWrite && live && !lockedBy && !v.meta?.writeoff && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={cancel}><Ban size={14} /> Cancel</button>}
           </div>
         </div>
@@ -187,6 +190,17 @@ export default function VoucherView() {
           {v.outstanding != null && <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>OUTSTANDING</span><strong style={{ color: Number(v.outstanding) > 0.005 ? colors.warningText : colors.successText }}>{money(v.outstanding)}</strong></div>}
           {v.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>NARRATION</span>{v.narration}</div>}
         </div>
+
+        {v.meta?.writeoff && (
+          <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>
+            <strong>{v.meta.writeoff.kind === 'small_balance' ? 'Small balance written off' : 'Bad debt written off'}</strong> — {(v.meta.writeoff.bills ?? []).join(', ')} for {money(v.meta.writeoff.amount)}. Reason: {v.meta.writeoff.reason}.{v.meta.writeoff.vat_not_adjusted ? ' Tax was not adjusted.' : ''} Cancel this journal to open the invoice again.
+          </p>
+        )}
+        {(v.written_off ?? []).map((w) => (
+          <p key={w.voucher_id} role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>
+            {money(w.amount)} written off on <Link to={`/admin/books/vouchers/${w.voucher_id}`}>{w.voucher_number}</Link>{w.reason ? ` — ${w.reason}` : ''}.
+          </p>
+        ))}
 
         <CreditPanel v={v} canWrite={canWrite} onDone={load} />
 
@@ -246,6 +260,7 @@ export default function VoucherView() {
       </div>
       {modal === 'convert' && <ConvertModal v={v} methods={methods} onClose={() => setModal(null)} onDone={(c) => nav(`/admin/books/vouchers/${c.id}`)} />}
       {modal === 'refund' && <RefundVoucherModal v={v} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal === 'writeoff' && <WriteOffModal bill={v} onClose={() => setModal(null)} onDone={(r) => { setModal(null); if (r?.id) nav(`/admin/books/vouchers/${r.id}`); else load(); }} />}
       {modal === 'receive' && <ReceiveModal v={v} methods={methods} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </AdminLayout>
   );

@@ -59,6 +59,10 @@ class BooksVoucherController extends Controller
         // what a receipt / payment settles, so editing it shows the same allocations
         $out['allocations'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs')->where('voucher_id', $v->id)->where('ref_type', 'against')
             ->get(['against_voucher_id', 'amount'])->map(fn ($r) => ['against_voucher_id' => (int) $r->against_voucher_id, 'amount' => (float) $r->amount])->all();
+        // write-offs that settle this invoice (journals), with their reason
+        $out['written_off'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs as b')->join('vouchers as j', 'j.id', '=', 'b.voucher_id')->join('voucher_types as t', 't.id', '=', 'j.voucher_type_id')
+            ->where('b.against_voucher_id', $v->id)->where('b.ref_type', 'against')->where('j.status', 'posted')->where('t.base_type', 'journal')
+            ->get(['j.id', 'j.voucher_number', 'b.amount', 'j.meta'])->map(fn ($r) => ['voucher_id' => (int) $r->id, 'voucher_number' => $r->voucher_number, 'amount' => (float) $r->amount, 'reason' => (json_decode($r->meta ?? '[]', true)['writeoff']['reason'] ?? null)])->all();
         $out['credit_applied'] = app(\App\Services\Books\CreditService::class)->appliedTo($v);
         $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true) ? $this->vouchers->outstanding($v) : null;
 
@@ -205,6 +209,32 @@ class BooksVoucherController extends Controller
             $n = $credit->release(Voucher::findOrFail($id), $request->integer('credit_voucher_id') ?: null, $request->user());
 
             return response()->json(['released' => $n, 'message' => $n > 0 ? 'Credit given back: ' . number_format($n, 2) : 'No applied credit to give back.']);
+        });
+    }
+
+    /** Write off (part of) one unpaid invoice. Finance and super admin only. */
+    public function writeOff(Request $request, int $id, \App\Services\Books\WriteOffService $writeOff): JsonResponse
+    {
+        $d = $request->validate(['amount' => 'nullable|numeric|min:0.01', 'kind' => 'required|in:bad_debt,small_balance', 'reason' => 'required|string|max:500', 'date' => 'nullable|date']);
+
+        return $this->guard(function () use ($request, $id, $writeOff, $d) {
+            $j = $writeOff->writeOff([['voucher_id' => $id, 'amount' => isset($d['amount']) ? (float) $d['amount'] : null]], $d['kind'], $d['reason'], $request->user(), $d['date'] ?? null);
+
+            return response()->json(['id' => $j->id, 'voucher_number' => $j->voucher_number, 'message' => "Written off — {$j->voucher_number}."], 201);
+        });
+    }
+
+    /** Write off a customer's whole open balance (every unpaid invoice), or only the invoices listed. */
+    public function writeOffParty(Request $request, int $ledgerId, \App\Services\Books\WriteOffService $writeOff): JsonResponse
+    {
+        $d = $request->validate(['kind' => 'required|in:bad_debt,small_balance', 'reason' => 'required|string|max:500', 'date' => 'nullable|date',
+            'bills' => 'nullable|array', 'bills.*.voucher_id' => 'required|integer', 'bills.*.amount' => 'nullable|numeric|min:0.01']);
+
+        return $this->guard(function () use ($request, $ledgerId, $writeOff, $d) {
+            $items = $d['bills'] ?? $writeOff->openInvoicesOf($ledgerId);
+            $j = $writeOff->writeOff($items, $d['kind'], $d['reason'], $request->user(), $d['date'] ?? null);
+
+            return response()->json(['id' => $j->id, 'voucher_number' => $j->voucher_number, 'message' => "Written off — {$j->voucher_number}."], 201);
         });
     }
 

@@ -104,6 +104,9 @@ class VoucherService
                 throw new BooksException('A cancelled voucher can not be edited.');
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
+            if (! empty($voucher->meta['writeoff'])) {
+                throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
+            }
             app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account; apply again after the edit
             $this->assertNoLiveChildren($voucher, 'edit');
             if (! $voucher->type->has_items && StockMovement::where('voucher_id', $voucher->id)->exists()) {
@@ -1284,7 +1287,7 @@ class VoucherService
             if (! in_array($side, ['D', 'C'], true) || $amt <= 0 || empty($e['ledger_id'])) {
                 throw new BooksException('Every entry needs a ledger, a debit/credit side and an amount.');
             }
-            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null]);
+            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null, 'is_party' => ! empty($e['is_party'])]);
             $debit += $side === 'D' ? $amt : 0;
         }
         if (count($entries) < 2) {
@@ -1299,7 +1302,39 @@ class VoucherService
             }
         }
 
-        return [$entries, [], round($debit, 2)];
+        // A journal may settle bills (a write-off): each one must be the party's own open sales bill, and the journal must
+        // credit that party for at least what it settles.
+        $bills = [];
+        if ($base === VoucherType::JOURNAL && ! empty($data['settles'])) {
+            $credited = [];
+            foreach ($entries as $e) {
+                if ($e['side'] === 'C') {
+                    $credited[$e['ledger_id']] = round(($credited[$e['ledger_id']] ?? 0) + $e['amount'], 2);
+                }
+            }
+            $asked = [];
+            foreach ($data['settles'] as $a) {
+                $k = (int) ($a['against_voucher_id'] ?? 0);
+                $asked[$k] = round(($asked[$k] ?? 0) + (float) ($a['amount'] ?? 0), 2);
+            }
+            foreach ($asked as $billId => $amt) {
+                $bill = Voucher::with('type')->find($billId);
+                if (! $bill || $bill->status !== Voucher::POSTED || $bill->type->base_type !== VoucherType::SALES || $amt <= 0) {
+                    throw new BooksException('Only open sales invoices can be settled by a write-off.');
+                }
+                $left = $this->outstanding($bill, $plan['editing_id'] ?? null);
+                if ($amt - $left > 0.005) {
+                    throw new BooksException("{$bill->voucher_number} has only " . number_format($left, 2) . ' outstanding.');
+                }
+                $credited[$bill->party_ledger_id] = round(($credited[$bill->party_ledger_id] ?? 0) - $amt, 2);
+                if ($credited[$bill->party_ledger_id] < -0.005) {
+                    throw new BooksException("The write-off must credit the customer of {$bill->voucher_number} for at least {$amt}.");
+                }
+                $bills[] = ['type' => 'against', 'ledger_id' => $bill->party_ledger_id, 'amount' => $amt, 'due' => null, 'against' => $bill->id];
+            }
+        }
+
+        return [$entries, $bills, round($debit, 2)];
     }
 
     /** @return array{0: float, 1: int} the amount withheld and the ledger it sits in */
