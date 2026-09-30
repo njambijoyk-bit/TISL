@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
-import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
+import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import SimpleTable from '../ui/SimpleTable';
 import CurrencySelect from './CurrencySelect';
 import taxAPI from '../../../../_shared/api/tax';
@@ -46,6 +46,9 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     currency_id: ledger?.currency_id ?? '', rate_type: ledger?.rate_type ?? '', rate_value: ledger?.rate_value ?? '', valid_from: ledger?.valid_from ?? '', valid_until: ledger?.valid_until ?? '',
     tax_nature: ledger?.tax_nature ?? '', tax_rate_ledger_id: ledger?.tax_rate_ledger_id ?? '', affects_stock: ledger?.affects_stock ?? false,
     bank_name: ledger?.bank_name ?? '', account_number: ledger?.account_number ?? '', branch: ledger?.branch ?? '',
+    account_name: ledger?.account_name ?? '', swift_code: ledger?.swift_code ?? '', branch_code: ledger?.branch_code ?? '', accepts: ledger?.accepts ?? '',
+    mobile_kind: ledger?.mobile_kind ?? '', mobile_number: ledger?.mobile_number ?? '', cash_kind: ledger?.cash_kind ?? '',
+    offer_at_checkout: ledger?.offer_at_checkout ?? false, checkout_label: ledger?.checkout_label ?? '', checkout_instructions: ledger?.checkout_instructions ?? '', checkout_sort: ledger?.checkout_sort ?? 0,
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
     charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
     default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0, tax_follows: ledger?.settings?.tax_follows ?? 'own',
@@ -57,7 +60,11 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const trading = behaviour === 'sales' || behaviour === 'purchase';
   const charging = behaviour === 'charge';
   const taxed = trading || charging;
-  const bankish = behaviour === 'bank';
+  const inGroup = (name) => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (g.name === name) return true; g = all.find((x) => x.id === g.parent_id); } return false; };
+  const bankGroup = inGroup('Bank Accounts');
+  const cashGroup = inGroup('Cash-in-hand');
+  const money = bankGroup || cashGroup;   // a ledger money is paid into: bank, till, mobile money, cash on delivery
+  const bankish = behaviour === 'bank' || bankGroup;
   const isParty = (() => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (['Sundry Debtors', 'Sundry Creditors'].includes(g.name)) return true; g = all.find((x) => x.id === g.parent_id); } return false; })();
   const [rateChoices, setRateChoices] = useState([]);
   useEffect(() => {
@@ -86,7 +93,9 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
       }
-      if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; }
+      if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; body.account_name = null; body.swift_code = null; body.branch_code = null; }
+      if (!money) { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = null; }); body.offer_at_checkout = false; body.checkout_sort = 0; }
+      else { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = blank(f[k]); }); body.checkout_sort = Number(f.checkout_sort) || 0; }
       if (editing) await booksAPI.updateLedger(ledger.id, body); else await booksAPI.createLedger(body);
       toast.success(editing ? 'Ledger saved' : 'Ledger created');
       onSaved(); onClose();
@@ -180,9 +189,52 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
           {bankish && (
             <FormGrid>
               <Field label="Bank"><TextInput value={f.bank_name} onChange={(e) => set('bank_name')(e.target.value)} /></Field>
+              <Field label="Account name"><TextInput value={f.account_name} onChange={(e) => set('account_name')(e.target.value)} /></Field>
               <Field label="Account number"><TextInput value={f.account_number} onChange={(e) => set('account_number')(e.target.value)} /></Field>
+              <Field label="SWIFT code"><TextInput value={f.swift_code} onChange={(e) => set('swift_code')(e.target.value)} /></Field>
               <Field label="Branch"><TextInput value={f.branch} onChange={(e) => set('branch')(e.target.value)} /></Field>
+              <Field label="Branch code"><TextInput value={f.branch_code} onChange={(e) => set('branch_code')(e.target.value)} /></Field>
             </FormGrid>
+          )}
+          {money && (
+            <>
+              {bankGroup && (
+                <Field label="This account takes" hint="What you ask for when you record a receipt or payment on it.">
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                    {[['eft', 'Electronic fund transfer'], ['transfer', 'Other transfers'], ['cheque', 'Cheques'], ['card', 'Card'], ['mobile', 'Mobile money']].map(([k, label]) => {
+                      const on = f.accepts.split(',').includes(k);
+                      return <label key={k} style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={on} onChange={() => set('accepts')((on ? f.accepts.split(',').filter((x) => x && x !== k) : [...f.accepts.split(',').filter(Boolean), k]).join(','))} /> {label}</label>;
+                    })}
+                  </div>
+                </Field>
+              )}
+              {cashGroup && (
+                <FormGrid>
+                  <Field label="Kind of cash"><SelectInput value={f.cash_kind} onChange={(e) => set('cash_kind')(e.target.value)}>
+                    <option value="">Not set</option><option value="till">Till</option><option value="petty">Petty cash</option><option value="driver">Driver cash — cash on delivery</option><option value="undeposited">Undeposited</option>
+                  </SelectInput></Field>
+                  <Field label="Mobile money"><SelectInput value={f.mobile_kind} onChange={(e) => set('mobile_kind')(e.target.value)}>
+                    <option value="">Not mobile money</option><option value="till">Till number</option><option value="paybill">Paybill</option><option value="send">Send money (phone)</option>
+                  </SelectInput></Field>
+                  {f.mobile_kind && <Field label="Number"><TextInput value={f.mobile_number} onChange={(e) => set('mobile_number')(e.target.value)} /></Field>}
+                </FormGrid>
+              )}
+              <div style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 12 }}>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={f.offer_at_checkout} onChange={(e) => set('offer_at_checkout')(e.target.checked)} /> Offer this at checkout
+                </label>
+                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Customers can choose it as how they will pay. It is only a note on their order — the money is recorded when you convert the order.</p>
+                {f.offer_at_checkout && (
+                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                    <FormGrid>
+                      <Field label="Shown to the customer as" error={errs.checkout_label}><TextInput value={f.checkout_label} onChange={(e) => set('checkout_label')(e.target.value)} placeholder={f.cash_kind === 'driver' ? 'Cash on delivery' : f.name} /></Field>
+                      <Field label="Order in the list"><NumberInput min="0" value={f.checkout_sort} onChange={(e) => set('checkout_sort')(e.target.value)} /></Field>
+                    </FormGrid>
+                    <Field label="What the customer is told" error={errs.offer_at_checkout} hint="Blank = worked out from the details above (bank account, till number, cash on delivery)."><TextArea rows={2} value={f.checkout_instructions} onChange={(e) => set('checkout_instructions')(e.target.value)} /></Field>
+                  </div>
+                )}
+              </div>
+            </>
           )}
           {behaviour === 'delivery' && (
             <Field label="This ledger is" error={errs.side} hint="Charges we bill customers are income; what the courier costs us is an expense.">

@@ -107,6 +107,14 @@ export default function CustomerOrderPage() {
           </table>
         </div>
 
+        {o.payment_intent && !['later'].includes(o.payment_intent.kind) && (
+          <div style={{ margin: '10px 0', padding: 12, borderRadius: 10, background: 'rgba(16,185,129,0.06)', fontSize: '0.82rem' }}>
+            <strong>How you chose to pay: {o.payment_intent.label}</strong>
+            {o.payment_intent.instructions && <div style={{ marginTop: 3 }}>{o.payment_intent.instructions}</div>}
+            {['bank', 'mobile'].includes(o.payment_intent.kind) && <div style={{ marginTop: 3, color: '#6b7280' }}>Please quote order <strong>{o.number}</strong> as the reference.</div>}
+          </div>
+        )}
+
         {o.credits?.length > 0 && o.editable && !edit && (
           <div style={{ margin: '10px 0', padding: 12, borderRadius: 10, background: 'rgba(99,102,241,0.06)', fontSize: '0.82rem' }}>
             {o.credits.map((c) => <p key={c.voucher_id} style={{ margin: '2px 0' }}>{creditSentence(c)}{(o.use_credit ?? []).includes(c.voucher_id) ? <strong> — will be used on this order</strong> : ' — not being used on this order'}</p>)}

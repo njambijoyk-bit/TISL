@@ -70,6 +70,7 @@ class CheckoutController extends Controller
             'shipping' => app(ShippingOptionController::class)->publicIndex()->getData(true),
             'branches' => Location::where('is_active', true)->get(['id', 'name', 'code', 'is_default']),
             'account' => $account,
+            'ledger_modes' => app(\App\Services\Books\PaymentModeService::class)->offered(),
             'credits' => $customer ? app(\App\Services\Books\OpenBillsService::class)->forCustomer($customer->id) : [],
             'gift_vouchers_enabled' => PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->exists(),
             'base_currency' => $money->getBaseCurrency()->only(['code', 'symbol']),
@@ -87,7 +88,7 @@ class CheckoutController extends Controller
     {
         $request->validate($this->rules() + [
             'customer_email' => 'required|email', 'customer_phone' => 'required|string', 'shipping_address' => [\Illuminate\Validation\Rule::requiredIf(! empty($request->items)), 'nullable', 'string'],
-            'payment_mode' => 'required|in:online,pay_later,account', 'payment_method_id' => 'nullable|integer|exists:payment_methods,id',
+            'payment_mode' => 'required|in:online,pay_later,account', 'payment_method_id' => 'nullable|integer|exists:payment_methods,id', 'payment_ledger_id' => 'nullable|integer|exists:ledgers,id',
             'phone' => 'nullable|string', 'customer_notes' => 'nullable|string|max:1000',
             'policy_acceptances' => 'nullable|array', 'policy_acceptances.*.key' => 'required_with:policy_acceptances|string',
             'policy_acceptances.*.response' => 'required_with:policy_acceptances|in:accepted,disagreed',
@@ -179,6 +180,7 @@ class CheckoutController extends Controller
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
             'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount, 'review_requested' => ! empty($c->meta['review_requests'])])->values(),
+            'payment_intent' => $v->meta['payment_intent'] ?? null,
             'credits' => app(\App\Services\Books\OpenBillsService::class)->forCustomer((int) $v->customer_id), 'use_credit' => array_values((array) ($v->meta['use_credit'] ?? [])),
             'gift_codes_meant' => array_values((array) ($v->meta['gift_codes'] ?? [])),
             'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),

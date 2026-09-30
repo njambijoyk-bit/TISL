@@ -44,8 +44,9 @@ export default function Checkout() {
   const [creditPick, setCreditPick] = useState(null);   // overpayments / advances they hold: ticked unless they untick
   const giftPicked = prefs.gift_codes;
   const setGiftPicked = (fn) => prefs.set({ gift_codes: typeof fn === 'function' ? fn(useCheckoutPrefs.getState().gift_codes) : fn });
-  const [mode, setMode] = useState('online');       // online | pay_later | account
+  const [mode, setMode] = useState('online');       // online | pay_later | account | ledger
   const [methodId, setMethodId] = useState(null);
+  const [ledgerId, setLedgerId] = useState(null);      // an offered bank / till / cash-on-delivery ledger chosen as how they will pay
   const [quote, setQuote] = useState(null);
   const [quoteError, setQuoteError] = useState(null);
   const [quoting, setQuoting] = useState(false);
@@ -62,7 +63,8 @@ export default function Checkout() {
     checkoutAPI.options().then((o) => {
       setOpts(o);
       const first = o.payment_methods[0];
-      if (first) setMethodId(first.id); else setMode('pay_later');
+      if (first) setMethodId(first.id);
+      else if (o.ledger_modes?.length) { setMode('ledger'); setLedgerId(o.ledger_modes[0].ledger_id); } else setMode('pay_later');
       const ship = o.shipping ?? [];
       if (ship.length && !ship.some((x) => x.slug === useCheckoutPrefs.getState().delivery_method)) prefs.set({ delivery_method: ship[0].slug });
     }).catch((e) => toast.error(errMsg(e, 'Could not load checkout options')));
@@ -118,7 +120,7 @@ export default function Checkout() {
     try {
       const res = await checkoutAPI.place({
         ...payload(), customer_email: form.customer_email, customer_phone: form.customer_phone, shipping_address: form.shipping_address,
-        customer_notes: form.customer_notes || undefined, payment_mode: mode, payment_method_id: mode === 'online' ? methodId : undefined, phone: form.phone || form.customer_phone,
+        customer_notes: form.customer_notes || undefined, payment_mode: mode === 'ledger' ? 'pay_later' : mode, payment_method_id: mode === 'online' ? methodId : undefined, payment_ledger_id: mode === 'ledger' ? ledgerId : undefined, phone: form.phone || form.customer_phone,
         ...(policies.length ? { policy_acceptances: policies } : {}),
         ...(credits.length ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
       });
@@ -193,12 +195,26 @@ export default function Checkout() {
                 {(opts?.payment_methods ?? []).map((m) => (
                   <Choice key={m.id} active={mode === 'online' && methodId === m.id} onClick={() => { setMode('online'); setMethodId(m.id); }} label={m.name} sub={m.instructions || 'Pay now'} />
                 ))}
-                <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll confirm payment and delivery with you" />
+                {(opts?.ledger_modes ?? []).map((m) => (
+                  <Choice key={m.ledger_id} active={mode === 'ledger' && ledgerId === m.ledger_id} onClick={() => { setMode('ledger'); setLedgerId(m.ledger_id); }} label={m.label}
+                    sub={m.kind === 'cod' ? 'Pay the driver when it arrives' : m.kind === 'bank' ? 'Pay by bank transfer — details below' : m.kind === 'mobile' ? 'Pay to our number — details below' : 'Pay in cash'} />
+                ))}
+                <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />
                 {opts?.account && (
                   <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
                     label="Charge to my account" sub={opts.account.available_base > 0 ? `Invoiced now · due in ${opts.account.terms_days} days · ${formatMoney(opts.account.available_base, opts.base_currency.code)} available` : 'No credit available'} />
                 )}
               </div>
+              {mode === 'ledger' && (() => {
+                const m = (opts?.ledger_modes ?? []).find((x) => x.ledger_id === ledgerId);
+                return m ? (
+                  <div role="note" style={{ marginTop: 14, padding: 12, borderRadius: 10, background: 'rgba(99,102,241,0.06)', fontSize: '0.82rem' }}>
+                    <strong>{m.label}</strong>
+                    <div style={{ marginTop: 4 }}>{m.instructions}</div>
+                    <div style={{ marginTop: 4, color: '#6b7280', fontSize: '0.74rem' }}>Nothing is charged now. Your order is saved with how you chose to pay, and we'll bill you when we confirm it.</div>
+                  </div>
+                ) : null;
+              })()}
               {mode === 'online' && method?.gateway === 'mpesa_stk' && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}>M-Pesa number</label>

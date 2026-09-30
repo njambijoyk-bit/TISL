@@ -315,6 +315,22 @@ class CheckoutService
             throw new BooksException('Enter your email and phone so we can reach you about your order.');
         }
 
+        // How they say they will pay: a record on the order, nothing posts. An offered ledger (bank, till, cash on delivery),
+        // an automatic online method, on credit, or "later". A method row stands for the ledger so converting to a
+        // Cash Sale points at the right money ledger.
+        $modes = app(PaymentModeService::class);
+        $intent = ['kind' => 'later', 'label' => 'Pay later'];
+        if ($mode === 'account') {
+            $intent = ['kind' => 'credit', 'label' => 'On credit (charged to your account)'];
+        } elseif ($mode === 'online' && $method) {
+            $intent = ['kind' => 'online', 'label' => $method->name, 'instructions' => $method->instructions, 'method_id' => $method->id, 'ledger_id' => $method->ledger_id];
+            $a['data']['payment_method_id'] = $method->id;
+        } elseif (! empty($in['payment_ledger_id'])) {
+            $intent = $modes->intentFor((int) $in['payment_ledger_id']);
+            $a['data']['payment_method_id'] = $modes->methodFor((int) $in['payment_ledger_id'])->id;
+        }
+        $a['data']['meta'] = array_merge($a['data']['meta'] ?? [], ['payment_intent' => $intent]);
+
         return DB::transaction(function () use ($a, $in, $user, $customer, $mode, $method) {
             // Pay later: nothing is spent now; the order only remembers which gift vouchers the customer meant to use
             if ($mode === 'pay_later' && ($codes = $this->giftCodes($in)) && $customer) {

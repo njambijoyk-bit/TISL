@@ -103,7 +103,7 @@ class BooksMasterController extends Controller
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
-            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
+            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80', 'account_name' => 'nullable|string|max:120', 'swift_code' => 'nullable|string|max:20', 'branch_code' => 'nullable|string|max:20', 'accepts' => 'nullable|string|max:120', 'mobile_kind' => 'nullable|in:till,paybill,send', 'mobile_number' => 'nullable|string|max:30', 'cash_kind' => 'nullable|in:till,petty,driver,undeposited', 'offer_at_checkout' => 'nullable|boolean', 'checkout_label' => 'nullable|string|max:80', 'checkout_instructions' => 'nullable|string|max:1000', 'checkout_sort' => 'nullable|integer|min:0|max:999',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::KINDS), 'settings.timing' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TIMINGS),
             'settings.refundable' => 'nullable|boolean', 'settings.tax_follows' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TAX_FOLLOWS), 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
@@ -127,7 +127,7 @@ class BooksMasterController extends Controller
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
-            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80',
+            'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80', 'account_name' => 'nullable|string|max:120', 'swift_code' => 'nullable|string|max:20', 'branch_code' => 'nullable|string|max:20', 'accepts' => 'nullable|string|max:120', 'mobile_kind' => 'nullable|in:till,paybill,send', 'mobile_number' => 'nullable|string|max:30', 'cash_kind' => 'nullable|in:till,petty,driver,undeposited', 'offer_at_checkout' => 'nullable|boolean', 'checkout_label' => 'nullable|string|max:80', 'checkout_instructions' => 'nullable|string|max:1000', 'checkout_sort' => 'nullable|integer|min:0|max:999',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::KINDS), 'settings.timing' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TIMINGS),
             'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
@@ -144,6 +144,13 @@ class BooksMasterController extends Controller
     /** Rate fields only make sense in a group that behaves as tax or delivery, and a percentage cannot be a foreign-currency amount. */
     private function assertBehaviourFields(array $d, int $groupId, ?Ledger $existing = null): void
     {
+        if (! empty($d['offer_at_checkout'])) {   // only money ledgers can be how a customer pays
+            $probe = new Ledger(['group_id' => $groupId]);
+            $ledgers = app(\App\Services\Books\LedgerService::class);
+            if (! $ledgers->isUnderGroup($probe, 'Cash-in-hand') && ! $ledgers->isUnderGroup($probe, 'Bank Accounts')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['offer_at_checkout' => 'Only a cash, bank or mobile-money ledger can be offered at checkout.']);
+            }
+        }
         $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
         $rated = ! empty($d['rate_type']) || ! empty($d['rate_value']);
         if ($behaviour === 'charge') {

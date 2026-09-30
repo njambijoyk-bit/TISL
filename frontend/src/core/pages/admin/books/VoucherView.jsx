@@ -25,7 +25,7 @@ const TARGETS = { quotation: [['sales_order', 'Sales order'], ['sales', 'Sales i
 function ConvertModal({ v, methods, onClose, onDone }) {
   const options = TARGETS[v.type.base_type] ?? [];
   const [to, setTo] = useState(options[0]?.[0] ?? '');
-  const [method, setMethod] = useState('');
+  const [method, setMethod] = useState(v.payment_method_id ? String(v.payment_method_id) : '');   // the way the customer said they would pay
   const [date, setDate] = useState(today());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -191,6 +191,13 @@ export default function VoucherView() {
           {v.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>NARRATION</span>{v.narration}</div>}
         </div>
 
+        {v.meta?.payment_intent && v.meta.payment_intent.kind !== 'later' && (
+          <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.82rem' }}>
+            <strong>Customer will pay:</strong> {v.meta.payment_intent.label}{v.meta.payment_intent.kind === 'cod' ? ' (collected by the driver)' : v.meta.payment_intent.kind === 'credit' ? ' (on their account)' : ''}.{' '}
+            {v.meta.payment_intent.instructions && <span style={{ color: colors.textMuted }}>{v.meta.payment_intent.instructions}</span>}
+            {base === 'sales_order' && v.payment_method && ' Converting to a Cash Sale will start with that money ledger.'}
+          </p>
+        )}
         {v.meta?.writeoff && (
           <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>
             <strong>{v.meta.writeoff.kind === 'small_balance' ? 'Small balance written off' : 'Bad debt written off'}</strong> — {(v.meta.writeoff.bills ?? []).join(', ')} for {money(v.meta.writeoff.amount)}. Reason: {v.meta.writeoff.reason}.{v.meta.writeoff.vat_not_adjusted ? ' Tax was not adjusted.' : ''} Cancel this journal to open the invoice again.

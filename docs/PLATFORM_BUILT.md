@@ -53,6 +53,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 35 | `35_promo_usage_and_rounding.sql` | `referral_code_usage.voucher_id` (promo use follows the voucher; `order_id` optional); a *Rounding* ledger + `accounting_settings.rounding_ledger_id`, `sales_rounding`, `cash_sale_rounding` (default `none`) |
 | 36 | `36_voucher_versions.sql` | `voucher_versions` — the edit log: a snapshot of a voucher each time it is created, altered or deleted (version 1, 2, …) |
 | 37 | `37_system_ledgers.sql` | Ledgers *Bad Debts Written Off*, *Discount Allowed*, *Bank Charges*, *Bounced Cheque Charges*, *Cash Over / Short*, *Driver Cash*, and `accounting_settings.bad_debt_ledger_id`, `discount_allowed_ledger_id`, `bank_charges_ledger_id`, `bounce_fee_ledger_id`, `cash_over_short_ledger_id` |
+| 38 | `38_ledger_payment_characteristics.sql` | `ledgers`: `account_name`, `swift_code`, `branch_code`, `accepts`, `mobile_kind`, `mobile_number`, `cash_kind`, `offer_at_checkout`, `checkout_label`, `checkout_instructions`, `checkout_sort` |
 
 ---
 

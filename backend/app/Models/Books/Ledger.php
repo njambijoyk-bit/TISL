@@ -17,12 +17,14 @@ class Ledger extends Model
         'rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days', 'side', 'settings',
         'classification', 'unit_of_measure_id', 'calculation_base', 'calculation_sequence', 'requires_certificate',
         'tax_nature', 'tax_rate_ledger_id', 'affects_stock', 'bank_name', 'account_number', 'branch',
+        'account_name', 'swift_code', 'branch_code', 'accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'offer_at_checkout', 'checkout_label', 'checkout_instructions', 'checkout_sort',
     ];
 
     protected $casts = [
         'opening_balance' => 'decimal:2',
         'is_system'       => 'boolean',
         'is_active'       => 'boolean',
+        'offer_at_checkout' => 'boolean',
         'rate_value'      => 'decimal:4',
         'min_amount'      => 'decimal:2',
         'max_amount'      => 'decimal:2',
