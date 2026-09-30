@@ -126,7 +126,7 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
               <TextInput id="v-name" maxLength={255} value={form.name} onChange={(e) => set('name')(e.target.value)} placeholder={autoName || 'Standard'} />
             </Field>
             <Field label="SKU" htmlFor="v-sku" error={errors.sku}>
-              <TextInput id="v-sku" value={form.sku} onChange={(e) => set('sku')(e.target.value)} />
+              <TextInput id="v-sku" value={form.sku} onChange={(e) => set('sku')(e.target.value)} placeholder="Filled in for you: product SKU + a code" />
             </Field>
           </FormGrid>
 

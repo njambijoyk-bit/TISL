@@ -380,7 +380,7 @@ class ProductVariantController extends Controller
         try {
             $variant = DB::transaction(function () use ($request, $product, $optionValueIdsByOptionId) {
                 $variant = $product->productVariants()->create([
-                    'sku'                 => $request->sku,
+                    'sku'                 => filled($request->sku) ? $request->sku : app(\App\Services\SkuGenerator::class)->variant((string) $product->sku),
                     'barcode'             => $request->barcode,
                     'name'                => $request->name,
                     'combination_key'     => $request->filled('option_value_ids') ? $request->combination_key : 'default',
