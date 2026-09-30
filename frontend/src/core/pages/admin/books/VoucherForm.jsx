@@ -64,6 +64,68 @@ function BatchPick({ api, variantId, locationId, value, onChange }) {
   );
 }
 
+const MATERIAL_MODES = {
+  included: { label: 'Included in the price', add: 'Included (from stock)' },
+  charged: { label: 'Charged to the customer', add: 'Charged (from stock)' },
+  bought_outside: { label: 'Bought elsewhere for this job', add: 'Bought elsewhere' },
+  customer_supplied: { label: 'Customer’s own', add: 'Customer’s own' },
+};
+const newMaterial = (mode) => ({ key: Math.random().toString(36).slice(2), mode, quantity: 1, rate: '', description: '', cost: '', paid_ledger_id: '', variant_id: null });
+const variantLabel = (product, variant) => `${product}${variant && variant !== 'Standard' ? ` — ${variant}` : ''}`;
+const materialPayload = (m) => {
+  const base = { mode: m.mode, quantity: Number(m.quantity) || 0 };
+  if (m.mode === 'charged') return { ...base, variant_id: m.variant_id, variant_unit_id: m.variant_unit_id || undefined, rate: m.rate === '' ? undefined : Number(m.rate) };
+  if (m.mode === 'included') return { ...base, variant_id: m.variant_id, variant_unit_id: m.variant_unit_id || undefined };
+  if (m.mode === 'bought_outside') return { ...base, description: m.description, cost: Number(m.cost) || 0, rate: Number(m.rate) || 0, paid_ledger_id: m.paid_ledger_id || undefined };
+  return { ...base, description: m.description };
+};
+
+/** The parts a service used, filed under its line: from stock (charged or included), bought elsewhere, or the customer's own. */
+function MaterialsEditor({ api, materials, onChange, ledgers }) {
+  const set = (key, patch) => onChange(materials.map((m) => (m.key === key ? { ...m, ...patch } : m)));
+  const payFrom = ledgers.filter((l) => ['Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
+  return (
+    <div style={{ borderTop: `1px dashed ${colors.tint(0.15)}`, marginTop: 8, paddingTop: 8 }}>
+      <label style={label}>Materials used</label>
+      {materials.length === 0 && <p style={{ margin: '0 0 6px', fontSize: '0.72rem', color: colors.textFaint }}>None. Add what this job uses — from stock, bought elsewhere, or the customer’s own.</p>}
+      {materials.map((m) => (
+        <div key={m.key} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 8 }}>
+          <div style={{ flex: '2 1 200px', minWidth: 160 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 700, color: colors.primary, marginBottom: 2 }}>{MATERIAL_MODES[m.mode].label}</div>
+            {(m.mode === 'charged' || m.mode === 'included') && (m.variant_id
+              ? <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{m.label}</div>
+              : <Picker api={api} kind="product" purpose="purchase" placeholder="Search a product…" onPick={(r) => set(m.key, { variant_id: r.variant_id, label: variantLabel(r.product, r.variant), variant_unit_id: r.units.find((u) => u.role === 'base')?.id ?? r.units[0]?.id, unit_code: r.units.find((u) => u.role === 'base')?.code })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
+            {(m.mode === 'bought_outside' || m.mode === 'customer_supplied') && (
+              <input value={m.description} onChange={(e) => set(m.key, { description: e.target.value })} placeholder={m.mode === 'bought_outside' ? 'e.g. Side mirror' : 'e.g. Customer’s bumper'} style={small} />
+            )}
+          </div>
+          <div style={{ width: 84 }}><label style={label}>Qty{m.unit_code ? ` (${m.unit_code})` : ''}</label><input type="number" step="any" min="0" value={m.quantity} onChange={(e) => set(m.key, { quantity: e.target.value })} style={small} /></div>
+          {m.mode === 'charged' && <div style={{ width: 120 }}><label style={label}>Price each</label><input type="number" step="0.01" min="0" value={m.rate} placeholder="its price" onChange={(e) => set(m.key, { rate: e.target.value })} style={small} /></div>}
+          {m.mode === 'bought_outside' && (
+            <>
+              <div style={{ width: 120 }}><label style={label}>We paid (total)</label><input type="number" step="0.01" min="0" value={m.cost} onChange={(e) => set(m.key, { cost: e.target.value })} style={small} /></div>
+              <div style={{ width: 120 }}><label style={label}>Charge each</label><input type="number" step="0.01" min="0" value={m.rate} placeholder="0 = absorbed" onChange={(e) => set(m.key, { rate: e.target.value })} style={small} /></div>
+              <div style={{ width: 170 }}>
+                <label style={label}>Paid from / owed to</label>
+                <select value={m.paid_ledger_id} onChange={(e) => set(m.key, { paid_ledger_id: e.target.value })} style={small}>
+                  <option value="">Choose…</option>
+                  {payFrom.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+          <button type="button" aria-label="Remove material" onClick={() => onChange(materials.filter((x) => x.key !== m.key))} style={{ ...btnGhost, padding: '5px 6px', color: colors.danger }}><Trash2 size={13} /></button>
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {Object.entries(MATERIAL_MODES).map(([mode, d]) => (
+          <button key={mode} type="button" onClick={() => onChange([...materials, newMaterial(mode)])} style={{ ...btnGhost, padding: '3px 9px', fontSize: '0.68rem' }}><Plus size={11} /> {d.add}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
@@ -129,7 +191,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id).map((i) => {
           const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
           if (i.item_type === 'product') return { ...b, type: 'product', variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, rate: Number(i.rate), label: `${i.description}${i.variant_label ? ` — ${i.variant_label}` : ''}`, units: [] };
-          if (i.item_type === 'service') return { ...b, type: 'service', service_id: i.service_id, service_variant_id: i.service_variant_id, rate: Number(i.rate), label: i.description };
+          if (i.item_type === 'service') {
+            const materials = (v.items ?? []).filter((c) => c.parent_item_id === i.id && c.material_mode).map((c) => ({
+              ...newMaterial(c.material_mode), key: `m${c.id}`, variant_id: c.variant_id, variant_unit_id: c.variant_unit_id, unit_code: c.unit_code,
+              label: variantLabel(c.description, c.variant_label), quantity: Number(c.quantity), description: c.description,
+              rate: ['charged', 'bought_outside'].includes(c.material_mode) ? Number(c.rate) : '', cost: c.cost_amount ?? '', paid_ledger_id: c.paid_ledger_id ?? '',
+            }));
+            return { ...b, type: 'service', service_id: i.service_id, service_variant_id: i.service_variant_id, rate: Number(i.rate), label: i.description, materials };
+          }
           if (i.item_type === 'hamper') return { ...b, type: 'hamper', hamper_id: i.hamper_id, rate: '', label: i.description };
           if (i.item_type === 'charge') return { ...b, type: 'charge', kind: Number(i.amount) < 0 ? 'discount' : 'other', amount: Math.abs(Number(i.amount)), ledger_id: i.ledger_id ?? '' };
           return { ...b, type: 'custom', rate: Number(i.rate), ledger_id: i.ledger_id ?? '' };
@@ -158,7 +227,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       p.lines = lines.map((l) => {
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
         if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate), batch_id: l.batch_id || undefined };
-        if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate) };
+        if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate), materials: (l.materials ?? []).map(materialPayload) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
         if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
           ? { type: 'charge', kind: 'shipping', shipping_option_id: l.shipping_option_id }
@@ -309,7 +378,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Items</p>
                 {lines.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Nothing added yet.</p>}
                 {lines.map((l) => (
-                  <div key={l.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(auto-fit,minmax(84px,1fr)) auto', gap: 8, alignItems: 'end', padding: '10px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
+                  <div key={l.key} style={{ padding: '10px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(auto-fit,minmax(84px,1fr)) auto', gap: 8, alignItems: 'end' }}>
                     <div>
                       <label style={label}>{{ product: 'Product / variant', service: 'Service / package', hamper: 'Hamper', charge: 'Charge', custom: 'Custom line' }[l.type]}</label>
                       {l.type === 'product' && (l.variant_id
@@ -322,7 +392,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, track_expiry: Boolean(r.track_expiry), batch_id: '', label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '' })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
+                        : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '', materials: (r.materials ?? []).map((m) => ({ ...newMaterial(m.mode), variant_id: m.variant_id, variant_unit_id: m.variant_unit_id, unit_code: m.unit_code, label: variantLabel(m.product, m.variant), quantity: m.quantity })) })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
                       {l.type === 'hamper' && (l.hamper_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="hamper" placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span></>} />)}
@@ -369,6 +439,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       </>
                     )}
                     <button type="button" aria-label="Remove line" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} style={{ ...btnGhost, padding: '6px 8px', color: colors.danger }}><Trash2 size={14} /></button>
+                  </div>
+                    {l.type === 'service' && l.service_variant_id && (
+                      <MaterialsEditor api={api} materials={l.materials ?? []} ledgers={ledgers} onChange={(m) => setLine(l.key, { materials: m })} />
+                    )}
                   </div>
                 ))}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>

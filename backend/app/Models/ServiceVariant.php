@@ -40,6 +40,12 @@ class ServiceVariant extends Model
         return $this->belongsToMany(ServiceOptionValue::class, 'service_variant_options', 'variant_id', 'option_value_id');
     }
 
+    /** The materials this package normally uses (charged or included). */
+    public function materials(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ServiceVariantMaterial::class, 'service_variant_id')->orderBy('position')->orderBy('id');
+    }
+
     public function durationUnit(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasure::class, 'duration_unit_id');

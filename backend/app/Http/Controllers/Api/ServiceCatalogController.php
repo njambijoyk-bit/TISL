@@ -118,7 +118,7 @@ class ServiceCatalogController extends Controller
 
     private function payload(Service $service): array
     {
-        $service->load(['options.values', 'variants.optionValues', 'requirementFields']);
+        $service->load(['options.values', 'variants.optionValues', 'variants.materials.variant.product:id,name,is_for_sale', 'variants.materials.variant.units.unit:id,code', 'requirementFields']);
 
         return [
             'options' => $service->options->map(fn ($o) => [
@@ -128,6 +128,7 @@ class ServiceCatalogController extends Controller
             'variants' => $service->variants->map(fn (ServiceVariant $v) => array_merge($v->toArray(), [
                 'option_value_ids' => $v->optionValues->pluck('id')->values(),
                 'option_label'     => $v->optionLabel(),
+                'materials'        => $v->materials->map(fn ($m) => $m->toRow())->values(),
             ]))->values(),
             'requirements' => $service->requirementFields->values(),
         ];
@@ -319,6 +320,34 @@ class ServiceCatalogController extends Controller
             ]));
             if ($request->boolean('is_default')) {
                 $this->makeDefault($service, $variant);
+            }
+        });
+
+        return response()->json($this->payload($service));
+    }
+
+    /**
+     * Replace a package's default materials. Body: materials [{variant_id, quantity, mode: charged|included}].
+     * They fill in on every sale of the package (and can be changed there).
+     */
+    public function saveMaterials(Request $request, $serviceId, $variantId)
+    {
+        $service = Service::findOrFail($serviceId);
+        $variant = ServiceVariant::where('service_id', $service->id)->findOrFail($variantId);
+        $v = Validator::make($request->all(), [
+            'materials'               => 'present|array|max:50',
+            'materials.*.variant_id'  => 'required|integer|exists:product_variants,id',
+            'materials.*.quantity'    => 'required|numeric|gt:0',
+            'materials.*.mode'        => 'required|in:charged,included',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        DB::transaction(function () use ($request, $variant) {
+            $variant->materials()->delete();
+            foreach ($request->input('materials') as $i => $m) {
+                $variant->materials()->create(['variant_id' => $m['variant_id'], 'quantity' => $m['quantity'], 'mode' => $m['mode'], 'position' => $i]);
             }
         });
 

@@ -246,7 +246,9 @@ function FragmentRows({ item: i, kids, showDone }) {
   const done = showDone ? `${Number(i.delivered_quantity)} / ${Number(i.invoiced_quantity)}` : null;
   const row = (x, child) => (
     <tr key={x.id} style={{ background: x.is_header ? colors.tint(0.03) : 'transparent', color: child ? colors.textMuted : colors.text }}>
-      <td style={{ ...td, paddingLeft: child ? 28 : 10, fontWeight: x.is_header ? 700 : 500 }}>{child && '└ '}{x.description}</td>
+      <td style={{ ...td, paddingLeft: child ? 28 : 10, fontWeight: x.is_header ? 700 : 500 }}>{child && '└ '}{x.description}
+        {x.material_mode && <div style={{ fontSize: '0.68rem', color: colors.textFaint, fontWeight: 500 }}>{{ charged: 'Charged', included: 'Included in the price', bought_outside: `Bought for this job${Number(x.cost_amount) ? ` — cost ${money(x.cost_amount)}` : ''}`, customer_supplied: 'Customer’s own' }[x.material_mode]}</div>}
+      </td>
       <td style={td}>
         {x.variant_label && x.variant_label !== 'Standard' ? x.variant_label : ''}
         {(x.batch_no || x.expiry_date) && (

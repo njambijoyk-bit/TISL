@@ -20,7 +20,7 @@ class VoucherItem extends Model
         'sku', 'unit_code', 'unit_factor', 'quantity', 'base_quantity', 'rate', 'discount_amount', 'amount',
         'tax_rate_id', 'tax_rate_percent', 'tax_amount', 'ledger_id', 'location_id', 'delivered_quantity',
         'invoiced_quantity', 'source_item_id', 'notes', 'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price',
-        'gift_voucher_id', 'gift_meta', 'batch_no', 'mfg_date', 'expiry_date',
+        'gift_voucher_id', 'gift_meta', 'batch_no', 'mfg_date', 'expiry_date', 'material_mode', 'cost_amount', 'paid_ledger_id',
     ];
 
     protected $casts = [
@@ -37,6 +37,7 @@ class VoucherItem extends Model
         'tax_amount'         => 'decimal:2',
         'delivered_quantity' => 'decimal:4',
         'invoiced_quantity'  => 'decimal:4',
+        'cost_amount'        => 'decimal:2',
         'mfg_date'           => 'date:Y-m-d',
         'expiry_date'        => 'date:Y-m-d',
     ];

@@ -15,6 +15,8 @@ const serviceCatalogAPI = {
   createVariant: async (id, data) => (await api.post(`/admin/services/${id}/variants`, data)).data,
   updateVariant: async (id, variantId, data) => (await api.put(`/admin/services/${id}/variants/${variantId}`, data)).data,
   deleteVariant: async (id, variantId) => (await api.delete(`/admin/services/${id}/variants/${variantId}`)).data,
+  // The materials a package normally uses — [{ variant_id, quantity, mode: 'charged' | 'included' }]; replaces the set
+  saveMaterials: async (id, variantId, materials) => (await api.put(`/admin/services/${id}/variants/${variantId}/materials`, { materials })).data,
 
   createRequirement: async (id, data) => (await api.post(`/admin/services/${id}/requirements`, data)).data,
   updateRequirement: async (id, reqId, data) => (await api.put(`/admin/services/${id}/requirements/${reqId}`, data)).data,

@@ -279,7 +279,10 @@ Stock is valued. Every arrival of stock is a **batch** with its own cost; a batc
 | **Expired stock written off** | Stock Loss, at the batch's cost | Stock |
 | **Expired stock returned to the supplier** (Debit Note) | Supplier (against the purchase it came in on) | Stock, at the batch's cost |
 | Goods received before the invoice (Receipt Note) | nothing yet — stock and its batches arrive; the money is booked on the purchase | |
-| Service materials, write-offs, bought-outside parts | see PLATFORM_PLAN §17 (later steps) | |
+| **Service, material charged** (a door on a repair) | the customer, with the service — the material sells from stock like any sale, so **Cost of Goods Sold** / Cr Stock at its batch cost | Sales (its own account) |
+| **Service, material included** (nail polish in a manicure) | no charge; **Cost of Services**, at the batch cost | Stock |
+| **Service, part bought elsewhere** (a side mirror) | the customer for what is charged (Cr its income ledger); and **Job Materials Cost** for what it cost | the supplier owed, or cash / bank it was paid from — as a bill to the supplier when owed |
+| **Service, customer's own part** | nothing — noted on the job | |
 
 Notes: a document that only moves stock (Delivery Note, Goods received) posts nothing; the cost is booked by the invoice or purchase made from it. Stock a purchase brought in cannot be edited or cancelled once some of it has been sold or used — return it to the supplier with a Debit Note. Debit notes post at the note's amount while the stock leaves at batch cost; the difference is a reconciliation item. Existing stock entered before batches has cost 0 until its real cost is set (script 23, part E).
 

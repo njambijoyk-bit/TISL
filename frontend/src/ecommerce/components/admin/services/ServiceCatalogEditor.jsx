@@ -4,6 +4,7 @@ import serviceCatalogAPI from '../../../../_shared/api/serviceCatalog';
 import useUomStore from '../../../../_shared/store/uomStore';
 import { colors, card, input, btnPrimary, btnGhost, radius } from '../../../../_shared/theme/tokens';
 import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
+import booksAPI from '../../../../_shared/api/books';
 
 const cell = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${colors.border ?? '#eee'}` };
@@ -22,6 +23,77 @@ function Section({ title, description, action, children }) {
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * The materials a package normally uses: products taken from stock, each CHARGED to the customer or INCLUDED in the price.
+ * They fill in on every sale of the package (and can be changed there). Tools and things shared across many jobs are not
+ * listed — only what is worth counting against the job.
+ */
+function PackageMaterials({ variants, serviceId, readOnly, busy, run }) {
+  const [pkgId, setPkgId] = useState(variants[0]?.id ?? null);
+  const pkg = variants.find((v) => v.id === pkgId) ?? variants[0];
+  const [rows, setRows] = useState(() => (pkg?.materials ?? []).map((m) => ({ ...m })));
+  const [q, setQ] = useState('');
+  const [found, setFound] = useState([]);
+  useEffect(() => { setRows((pkg?.materials ?? []).map((m) => ({ ...m }))); }, [pkg?.id, JSON.stringify(pkg?.materials ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!q.trim()) { setFound([]); return undefined; }
+    const t = setTimeout(() => { booksAPI.lookup('product', q, 'purchase').then(setFound).catch(() => setFound([])); }, 200);
+    return () => clearTimeout(t);
+  }, [q]);
+  if (!pkg) return null;
+  const dirty = JSON.stringify(rows.map((r) => [r.variant_id, Number(r.quantity), r.mode])) !== JSON.stringify((pkg.materials ?? []).map((r) => [r.variant_id, Number(r.quantity), r.mode]));
+  const set = (i, patch) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+
+  return (
+    <Section title="Materials used" description="What this package normally uses from stock. Included: no separate charge, its cost counts against the job. Charged: added to the customer’s bill. On each sale they fill in and can be changed. Leave out tools and things shared across many jobs.">
+      {variants.length > 1 && (
+        <select value={pkg.id} onChange={(e) => setPkgId(Number(e.target.value))} style={{ ...cell, width: 240, marginBottom: 12 }} aria-label="Package">
+          {variants.map((v) => <option key={v.id} value={v.id}>{v.name || 'Standard'}</option>)}
+        </select>
+      )}
+      {rows.length === 0 && <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textFaint }}>No materials for this package.</p>}
+      {rows.map((r, i) => (
+        <div key={`${r.variant_id}-${i}`} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+          <strong style={{ minWidth: 220, fontSize: '0.82rem' }}>{r.product}{r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}{!r.for_sale && <span style={{ fontSize: '0.62rem', color: colors.textFaint, marginLeft: 6 }}>MATERIAL</span>}</strong>
+          <input type="number" min="0" step="any" value={r.quantity} disabled={readOnly} onChange={(e) => set(i, { quantity: e.target.value })} style={{ ...cell, width: 90 }} aria-label="Quantity" />
+          <span style={{ fontSize: '0.75rem', color: colors.textMuted, minWidth: 30 }}>{r.unit_code}</span>
+          <select value={r.mode} disabled={readOnly} onChange={(e) => set(i, { mode: e.target.value })} style={{ ...cell, width: 150 }} aria-label="How it is used">
+            <option value="included">Included in the price</option>
+            <option value="charged">Charged separately</option>
+          </select>
+          {!readOnly && <button type="button" style={{ ...btnGhost, padding: '4px 8px' }} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label="Remove"><Trash2 size={13} /></button>}
+        </div>
+      ))}
+      {!readOnly && (
+        <div style={{ position: 'relative', maxWidth: 360, marginTop: 8 }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Add a product used by this package…" style={cell} />
+          {found.length > 0 && (
+            <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
+              {found.map((f) => {
+                const base = f.units.find((u) => u.role === 'base') ?? f.units[0];
+                return (
+                  <button key={f.variant_id} type="button" onClick={() => { setRows((rs) => [...rs, { variant_id: f.variant_id, quantity: 1, mode: 'included', product: f.product, variant: f.variant, unit_code: base?.code, for_sale: f.for_sale }]); setQ(''); }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
+                    {f.product} <span style={{ color: '#9ca3af' }}>{f.variant && f.variant !== 'Standard' ? `${f.variant} · ` : ''}{f.sku}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+      {!readOnly && (
+        <div style={{ marginTop: 12 }}>
+          <button type="button" style={btnPrimary} disabled={busy || !dirty || rows.some((r) => !(Number(r.quantity) > 0))}
+            onClick={() => run(() => serviceCatalogAPI.saveMaterials(serviceId, pkg.id, rows.map((r) => ({ variant_id: r.variant_id, quantity: Number(r.quantity), mode: r.mode }))), 'Materials saved')}>
+            Save materials
+          </button>
+        </div>
+      )}
+    </Section>
   );
 }
 
@@ -219,6 +291,8 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
           </div>
         )}
       </Section>
+
+      <PackageMaterials variants={cat.variants} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
 
       {/* ── Requirements ── */}
       <Section title="What we need from the customer" description="Details the customer provides when they request a quote — an address, photos, a model number. Marked ones must be filled in.">

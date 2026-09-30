@@ -215,6 +215,12 @@ class VoucherService
                     $lines[] = $line;
                 } else {
                     $lines[] = $this->cloneLine($it, $qty, $ratio, $this->stockQtyFor($it, $qty, $sourceBase, $targetBase));
+                    foreach ($items->where('parent_item_id', $it->id) as $c) {   // a service's materials go with it
+                        $cq = round((float) $c->quantity * $ratio, 4);
+                        $m = $this->cloneLine($c, $cq, $ratio, $this->stockQtyFor($c, $cq, $sourceBase, $targetBase));
+                        $m['under_service'] = true;
+                        $lines[] = $m;
+                    }
                 }
             }
             if (! $lines) {
@@ -398,7 +404,7 @@ class VoucherService
 
             if ($type->posts_accounts) {
                 $plan['entries'] = $this->itemEntries($plan, $type, $method);   // also settles $plan['tenders']
-                $plan['bills'] = $this->itemBills($plan, $type, $data);
+                $plan['bills'] = array_merge($this->itemBills($plan, $type, $data), $this->outsideBills($plan));
             }
 
             $moves = array_key_exists('moves_stock', $data) ? (bool) $data['moves_stock'] : $type->stock_effect !== 'none';
@@ -435,6 +441,11 @@ class VoucherService
                 'custom'  => $this->customLine($l, $ctx),
                 default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
             };
+            if ($kind === 'service') {
+                foreach ($this->materialLines($l['materials'] ?? [], $ctx) as $m) {
+                    $out[] = $m;   // the parts used for the service sit right under it
+                }
+            }
         }
 
         // Shipping charges are worked out last: free-above thresholds depend on the rest of the order.
@@ -494,6 +505,7 @@ class VoucherService
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
             'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false, 'pick_batch_id' => null,
+            'material_mode' => null, 'under_service' => false, 'cost_amount' => 0.0, 'paid_ledger_id' => null,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
         ];
     }
@@ -799,7 +811,7 @@ class VoucherService
         foreach (['item_type', 'is_header', 'product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id',
                   'description', 'variant_label', 'sku', 'unit_code', 'ledger_id', 'location_id', 'notes', 'tax_rate_id', 'tax_rate_percent',
                   'discount_ledger_id', 'discount_source', 'discount_ref', 'shipping_option_id', 'pending_price', 'gift_meta',
-                  'batch_no', 'mfg_date', 'expiry_date'] as $k) {
+                  'batch_no', 'mfg_date', 'expiry_date', 'material_mode', 'paid_ledger_id'] as $k) {
             $line[$k] = $it->{$k};
         }
         $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Product::whereKey($it->product_id)->value('track_expiry') : false;
@@ -810,6 +822,7 @@ class VoucherService
         $line['discount_amount'] = round((float) $it->discount_amount * $ratio, 2);
         $line['amount'] = round((float) $it->amount * $ratio, 2);
         $line['source_item_id'] = $it->id;
+        $line['cost_amount'] = round((float) $it->cost_amount * $ratio, 2);
         $line['taxes'] = $it->taxes->map(fn ($t) => [
             'tax_rate_id' => $t->tax_rate_id, 'ledger_id' => $t->ledger_id, 'label' => $t->label,
             'base_amount' => round((float) $t->base_amount * $ratio, 2), 'tax_amount' => round((float) $t->tax_amount * $ratio, 2),
@@ -886,6 +899,9 @@ class VoucherService
             throw new BooksException('Choose the Stock ledger under Books → Settings → Default ledgers first.');
         }
         foreach ($this->postingLines($plan['lines']) as $l) {
+            if (in_array($l['material_mode'] ?? null, ['included', 'customer_supplied'], true)) {
+                continue;   // no charge: included materials are costed to Cost of Services, the customer's own part is only noted
+            }
             $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? $settings->default_sales_ledger_id : $settings->default_purchase_ledger_id);
             if ($stockLedgerId && $l['item_type'] === 'product' && ! empty($l['variant_id'])) {
                 $ledgerId = $stockLedgerId;
@@ -933,6 +949,16 @@ class VoucherService
             $side = $amt >= 0 ? $lineSide : $flip($lineSide);
             $add((int) $ledgerId, $side, abs($amt), ['is_tax' => true]);
             $total += $amt;
+        }
+
+        // Parts bought elsewhere for the job: what they cost us — Dr Job Materials Cost, Cr the supplier / cash / bank it was paid from.
+        foreach ($this->postingLines($plan['lines']) as $l) {
+            if (($l['material_mode'] ?? null) === 'bought_outside' && ($l['cost_amount'] ?? 0) > 0) {
+                $jobCost = $settings->job_materials_ledger_id
+                    ?? throw new BooksException('Choose the Job Materials Cost ledger under Books → Settings → Default ledgers first.');
+                $add((int) $jobCost, 'D', (float) $l['cost_amount'], ['narration' => 'Bought for the job: ' . $l['description']]);
+                $add((int) $l['paid_ledger_id'], 'C', (float) $l['cost_amount'], ['narration' => 'Paid for: ' . $l['description']]);
+            }
         }
 
         // The other side: customer / supplier ledger, or cash for a cash sale.
@@ -1248,6 +1274,7 @@ class VoucherService
                 $move['unit_cost'] = round((float) ($l['amount'] ?? 0) * $rate / (float) $l['stock_qty'], 4);
                 $move['batch'] = $this->batchInfo($l, $date);
             } elseif ($sign < 0) {
+                $move['purpose'] = ($l['material_mode'] ?? null) === 'included' ? 'included' : null;   // costed to Cost of Services, not cost of goods sold
                 if (! empty($l['pick_batch_id'])) {
                     $move['batch_id'] = (int) $l['pick_batch_id'];   // the seller chose the batch
                 }
@@ -1290,6 +1317,86 @@ class VoucherService
         return (filled($no) || filled($mfg) || filled($exp))
             ? ['batch_no' => filled($no) ? $no : null, 'mfg_date' => filled($mfg) ? $mfg : null, 'expiry_date' => filled($exp) ? $exp : null]
             : null;
+    }
+
+    // ── materials under a service line ───────────────────────────────────
+
+    /**
+     * What a service used, each entered one of four ways:
+     *  - charged            a priced line sold from stock (its cost goes to cost of goods sold, as any sale);
+     *  - included           no charge to the customer; leaves stock, and its cost is booked to Cost of Services;
+     *  - bought_outside     a part bought elsewhere for this job: not in stock; the customer is charged `rate` (may be
+     *                       nothing) and what it cost us is booked to Job Materials Cost, paid from a supplier / cash / bank ledger;
+     *  - customer_supplied  the customer's own part: noted on the job, no money, no stock.
+     * Each is a line of its own that the voucher files under the service line above it.
+     */
+    private function materialLines(array $materials, array $ctx): array
+    {
+        $out = [];
+        foreach ($materials as $i => $m) {
+            $mode = $m['mode'] ?? 'included';
+            $line = match ($mode) {
+                'charged'           => $this->productLine(array_merge($m, ['as_material' => true]), $ctx),
+                'included'          => $this->productLine(array_merge($m, ['rate' => 0, 'discount' => 0, 'as_material' => true]), $ctx),
+                'bought_outside'    => $this->outsideLine($m, $ctx),
+                'customer_supplied' => $this->ownPartLine($m, $ctx),
+                default             => throw new BooksException('Material ' . ($i + 1) . ': choose charged, included, bought outside or customer supplied.'),
+            };
+            $line['material_mode'] = $mode;
+            $line['under_service'] = true;
+            $out[] = $line;
+        }
+
+        return $out;
+    }
+
+    /** A part bought elsewhere for the job. `cost` is what was paid in all; `rate` is what the customer is charged each. */
+    private function outsideLine(array $m, array $ctx): array
+    {
+        $desc = trim((string) ($m['description'] ?? ''));
+        if ($desc === '') {
+            throw new BooksException('Name the part that was bought elsewhere.');
+        }
+        $cost = round((float) ($m['cost'] ?? 0), 2);
+        if ($cost > 0 && $ctx['type']->posts_accounts && empty($m['paid_ledger_id'])) {
+            throw new BooksException("{$desc}: say where the payment came from — the supplier owed, or the cash or bank account.");
+        }
+        $ledger = $m['ledger_id'] ?? $ctx['type']->default_ledger_id ?? AccountingSetting::current()->default_sales_ledger_id
+            ?? throw new BooksException("{$desc}: choose the income ledger the charge posts to (or set a default sales ledger in Books settings).");
+        $line = $this->customLine(['description' => $desc, 'quantity' => $m['quantity'] ?? 1, 'rate' => $m['rate'] ?? 0, 'ledger_id' => $ledger, 'discount' => $m['discount'] ?? 0, 'notes' => $m['notes'] ?? null], $ctx);
+        $line['cost_amount'] = $cost;
+        $line['paid_ledger_id'] = ! empty($m['paid_ledger_id']) ? (int) $m['paid_ledger_id'] : null;
+
+        return $line;
+    }
+
+    /** The customer's own part: on the job for the record, no money and no stock. */
+    private function ownPartLine(array $m, array $ctx): array
+    {
+        $desc = trim((string) ($m['description'] ?? ''));
+        if ($desc === '') {
+            throw new BooksException("Name the part the customer supplied.");
+        }
+        $qty = $this->qty($m, $desc);
+
+        return array_merge($this->blank('custom'), ['description' => $desc, 'quantity' => $qty, 'base_quantity' => $qty, 'notes' => $m['notes'] ?? null]);
+    }
+
+    /** The bought-outside parts of a sale, as bill references when they are owed to a supplier. */
+    private function outsideBills(array $plan): array
+    {
+        $bills = [];
+        foreach ($this->postingLines($plan['lines']) as $l) {
+            if (($l['material_mode'] ?? null) !== 'bought_outside' || ($l['cost_amount'] ?? 0) <= 0 || empty($l['paid_ledger_id'])) {
+                continue;
+            }
+            $ledger = Ledger::find($l['paid_ledger_id']);
+            if ($ledger && $this->ledgers->isUnderGroup($ledger, 'Sundry Creditors')) {
+                $bills[] = ['type' => 'new', 'ledger_id' => $ledger->id, 'amount' => (float) $l['cost_amount'], 'due' => null, 'against' => null];
+            }
+        }
+
+        return $bills;
     }
 
     // ── selling near-expiry and expired stock ─────────────────────────────
@@ -1372,9 +1479,15 @@ class VoucherService
             return [];
         }
 
-        $cost = 0.0;
+        $cost = 0.0;       // goods sold
+        $service = 0.0;    // materials a service used but did not charge for
         foreach ($allocs as $a) {
-            $cost += -(float) $a['qty'] * (float) $a['unit_cost'];   // out is positive cost, a return negative
+            $c = -(float) $a['qty'] * (float) $a['unit_cost'];   // out is positive cost, a return negative
+            if (($a['purpose'] ?? null) === 'included') {
+                $service += $c;
+            } else {
+                $cost += $c;
+            }
         }
         if ($base !== VoucherType::CREDIT_NOTE && ! empty($plan['source_id'])) {
             foreach ($this->postingLines($plan['lines']) as $l) {
@@ -1383,24 +1496,38 @@ class VoucherService
                 }
                 $delivered = (float) ($l['base_quantity'] ?? 0) - ($plan['moves_stock'] ? (float) ($l['stock_qty'] ?? 0) : 0.0);
                 if ($delivered > 0.00005 && ($avg = $this->familyAvgCost($plan['source_id'], (int) $l['variant_id'])) !== null) {
-                    $cost += $delivered * $avg;
+                    if (($l['material_mode'] ?? null) === 'included') {
+                        $service += $delivered * $avg;
+                    } else {
+                        $cost += $delivered * $avg;
+                    }
                 }
             }
         }
         $cost = round($cost, 2);
-        if (abs($cost) < 0.005) {
+        $service = round($service, 2);
+        if (abs($cost) < 0.005 && abs($service) < 0.005) {
             return [];
         }
 
-        $amount = round(abs($cost) / (float) $plan['rate'], 2);
-        $mk = fn (int $ledgerId, string $side, string $note) => [
-            'ledger_id' => $ledgerId, 'side' => $side, 'amount' => $amount, 'base_amount' => round(abs($cost), 2),
+        $mk = fn (int $ledgerId, string $side, float $amount, string $note) => [
+            'ledger_id' => $ledgerId, 'side' => $side, 'amount' => round(abs($amount) / (float) $plan['rate'], 2), 'base_amount' => round(abs($amount), 2),
             'is_party' => false, 'is_tax' => false, 'narration' => $note,
         ];
+        if ($cost < 0) {   // a return
+            return [$mk((int) $settings->stock_ledger_id, 'D', $cost, 'Returned stock at cost'), $mk((int) $settings->cogs_ledger_id, 'C', $cost, 'Cost of goods sold reversed')];
+        }
+        $serviceLedger = (int) ($settings->cost_of_services_ledger_id ?: $settings->cogs_ledger_id);
+        $entries = [];
+        if ($cost >= 0.005) {
+            $entries[] = $mk((int) $settings->cogs_ledger_id, 'D', $cost, 'Cost of goods sold');
+        }
+        if ($service >= 0.005) {
+            $entries[] = $mk($serviceLedger, 'D', $service, 'Materials used in services');
+        }
+        $entries[] = $mk((int) $settings->stock_ledger_id, 'C', $cost + $service, 'Stock used at cost');
 
-        return $cost > 0
-            ? [$mk((int) $settings->cogs_ledger_id, 'D', 'Cost of goods sold'), $mk((int) $settings->stock_ledger_id, 'C', 'Stock sold at cost')]
-            : [$mk((int) $settings->stock_ledger_id, 'D', 'Returned stock at cost'), $mk((int) $settings->cogs_ledger_id, 'C', 'Cost of goods sold reversed')];
+        return $entries;
     }
 
     /** What applyStock() would do for these moves, without doing it — so a preview can show the cost. */
@@ -1414,10 +1541,11 @@ class VoucherService
             if ($m['qty'] < 0 && ! empty($m['batch_id'])) {
                 $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $m['variant_id']], $batches->peek((int) $m['variant_id'], (int) $m['location_id'], abs($m['qty']), ['batch_id' => $m['batch_id']])));
             } elseif ($m['qty'] < 0) {
-                $key = $m['variant_id'] . ':' . $m['location_id'];
+                $base = $m['variant_id'] . ':' . $m['location_id'];
+                $key = $base . (($m['purpose'] ?? null) === 'included' ? ':included' : '');
                 $needs[$key] = ($needs[$key] ?? 0) + abs($m['qty']);
                 if (isset($m['window'])) {
-                    $wins[$key] = $m['window'];
+                    $wins[$base] = $m['window'];
                 }
             } elseif (array_key_exists('return_to', $m)) {
                 $left = (float) $m['qty'];
@@ -1435,7 +1563,8 @@ class VoucherService
         }
         foreach ($needs as $key => $qty) {
             [$variantId, $locId] = array_map('intval', explode(':', $key));
-            $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $variantId], $batches->peek($variantId, $locId, $qty, $wins[$key] ?? [])));
+            $purpose = str_ends_with($key, ':included') ? 'included' : null;
+            $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $variantId, 'purpose' => $purpose], $batches->peek($variantId, $locId, $qty, $wins[$variantId . ':' . $locId] ?? [])));
         }
 
         return $out;
@@ -1567,8 +1696,10 @@ class VoucherService
         // items (headers first so children can point at them)
         $n = 0;
         $made = [];
+        $service = null;   // the service line the materials that follow it belong to
         foreach ($plan['lines'] as $l) {
-            $header = $this->createItem($voucher, $l, ++$n, null);
+            $header = $this->createItem($voucher, $l, ++$n, ! empty($l['under_service']) ? $service : null);
+            $service = $l['item_type'] === 'service' ? $header->id : (! empty($l['under_service']) ? $service : null);
             if (! $l['is_header']) {
                 $made[] = [$header, $l];
             }
@@ -1641,6 +1772,7 @@ class VoucherService
             'discount_ref' => $l['discount_ref'] ?? null, 'shipping_option_id' => $l['shipping_option_id'] ?? null,
             'pending_price' => ! empty($l['pending_price']), 'gift_meta' => $l['gift_meta'] ?? null,
             'batch_no' => $l['batch_no'] ?? null, 'mfg_date' => $l['mfg_date'] ?? null, 'expiry_date' => $l['expiry_date'] ?? null,
+            'material_mode' => $l['material_mode'] ?? null, 'cost_amount' => ($l['cost_amount'] ?? 0) > 0 ? $l['cost_amount'] : null, 'paid_ledger_id' => $l['paid_ledger_id'] ?? null,
         ]);
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
@@ -1658,6 +1790,7 @@ class VoucherService
         $picked = [];     // stock going out of a batch the seller named
         $returns = [];    // a customer's return: goes back into the batch(es) it was sold from
         $windows = [];    // sales: shelf life a batch needs, and whether an expired one may go
+        $baseNeeds = [];  // what each variant needs at each branch, whatever it is for — availability is checked on this
         $batches = app(\App\Services\Stock\BatchService::class);
         foreach ($moves as $m) {
             if ($m['qty'] > 0 && ! empty($m['batch'])) {
@@ -1672,17 +1805,19 @@ class VoucherService
                 $picked[] = $m;
                 continue;
             }
-            $key = $m['variant_id'] . ':' . $m['location_id'];
+            $base = $m['variant_id'] . ':' . $m['location_id'];
+            $key = $base . (($m['purpose'] ?? null) === 'included' ? ':included' : '');   // included materials are kept apart so their cost can be booked separately
             $needs[$key] = ($needs[$key] ?? 0) + $m['qty'];
+            $baseNeeds[$base] = ($baseNeeds[$base] ?? 0) + $m['qty'];
             if (isset($m['window'])) {
-                $windows[$key] = $m['window'];
+                $windows[$base] = $m['window'];
             }
             if (isset($m['unit_cost']) && $m['qty'] > 0) {
                 $costs[$key]['amount'] = ($costs[$key]['amount'] ?? 0) + $m['unit_cost'] * $m['qty'];
                 $costs[$key]['qty'] = ($costs[$key]['qty'] ?? 0) + $m['qty'];
             }
         }
-        foreach ($needs as $key => $qty) {
+        foreach ($baseNeeds as $key => $qty) {
             if ($qty >= 0) {
                 continue;
             }
@@ -1734,21 +1869,23 @@ class VoucherService
         }
 
         $out = [];
-        $record = function (int $variantId, int $locId, array $allocs) use (&$out) {
+        $record = function (int $variantId, int $locId, array $allocs, ?string $purpose = null) use (&$out) {
             foreach ($allocs as $alloc) {
-                $out[] = ['variant_id' => $variantId, 'location_id' => $locId, 'qty' => $alloc['qty'], 'batch_id' => $alloc['batch_id'], 'unit_cost' => $alloc['unit_cost'], 'created' => $alloc['created']];
+                $out[] = ['variant_id' => $variantId, 'location_id' => $locId, 'qty' => $alloc['qty'], 'batch_id' => $alloc['batch_id'], 'unit_cost' => $alloc['unit_cost'], 'created' => $alloc['created'], 'purpose' => $purpose];
             }
         };
         foreach ($needs as $key => $qty) {
             [$variantId, $locId] = array_map('intval', explode(':', $key));
+            $purpose = str_ends_with($key, ':included') ? 'included' : null;
+            $base = $variantId . ':' . $locId;
             $opts = ['received_at' => $date];
             if (! empty($costs[$key]['qty'])) {
                 $opts['unit_cost'] = round($costs[$key]['amount'] / $costs[$key]['qty'], 4);   // lines of one arrival share a batch at their average cost
             }
-            if (isset($windows[$key])) {
-                $opts += $windows[$key];
+            if (isset($windows[$base])) {
+                $opts += $windows[$base];
             }
-            $record($variantId, $locId, $this->stock->applyDelta($variantId, $locId, $qty, $opts));
+            $record($variantId, $locId, $this->stock->applyDelta($variantId, $locId, $qty, $opts), $purpose);
         }
         foreach ($arrivals as $m) {
             $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], (float) $m['qty'],
@@ -1877,6 +2014,7 @@ class VoucherService
             'item_type' => $l['item_type'], 'is_header' => $l['is_header'], 'description' => $l['description'], 'variant_label' => $l['variant_label'],
             'sku' => $l['sku'], 'unit_code' => $l['unit_code'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'discount_amount' => $l['discount_amount'],
             'amount' => $l['amount'], 'tax_rate_percent' => $l['tax_rate_percent'], 'tax_amount' => $l['tax_amount'],
+            'material_mode' => $l['material_mode'] ?? null,
             'taxes' => array_map(fn ($t) => ['label' => $t['label'], 'tax_amount' => $t['tax_amount'], 'ledger_id' => $t['ledger_id']], $l['taxes']),
         ];
         $lines = [];

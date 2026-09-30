@@ -201,12 +201,13 @@ class BooksVoucherController extends Controller
                 $out[] = $this->productRow($v) + ['fuzzy' => $fuzzy];
             }
         } elseif ($kind === 'service') {
-            $variants = \App\Models\ServiceVariant::with('service:id,name,status')
+            $variants = \App\Models\ServiceVariant::with(['service:id,name,status', 'materials.variant.product:id,name,is_for_sale', 'materials.variant.units.unit:id,code'])
                 ->whereHas('service', fn ($s) => $s->where('status', 'active'))
                 ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhereHas('service', fn ($s) => $s->where('name', 'like', $like))))
                 ->orderBy('service_id')->limit(30)->get();
             foreach ($variants as $v) {
-                $out[] = ['type' => 'service', 'service_id' => $v->service_id, 'service_variant_id' => $v->id, 'service' => $v->service?->name, 'package' => $v->name, 'price' => $v->price !== null ? (float) $v->price : null];
+                $out[] = ['type' => 'service', 'service_id' => $v->service_id, 'service_variant_id' => $v->id, 'service' => $v->service?->name, 'package' => $v->name, 'price' => $v->price !== null ? (float) $v->price : null,
+                    'materials' => $v->materials->map(fn ($m) => $m->toRow())->values()];
             }
         } elseif ($kind === 'hamper') {
             $h = \App\Models\Hamper::where('status', 'active')->when($q !== '', fn ($w) => $w->where('name', 'like', $like))->limit(30)->get(['id', 'name', 'price', 'location_id']);

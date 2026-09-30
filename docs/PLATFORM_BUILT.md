@@ -42,6 +42,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 24 | `24_purchase_batches_and_opening_stock.sql` | `voucher_items.batch_no` / `mfg_date` / `expiry_date`; the *Opening Stock* voucher type (Dr Stock, Cr *Opening Stock Balance*) with its `WNKJ-OS-` series; `accounting_settings.opening_balance_ledger_id` |
 | 25 | `25_stock_settings.sql` | `stock_settings` (one row) and `stock_setting_overrides` — Settings → Stock & expiry, with per-category / per-product exceptions |
 | 26 | `26_expiry_engine.sql` | `stock_batches.last_warned_days` (each warning band warns once); `stock_movements.voucher_id` may be empty (writing off a batch that cost nothing) |
+| 27 | `27_service_materials.sql` | `service_variant_materials` (a package's default materials); `voucher_items.material_mode` / `cost_amount` / `paid_ledger_id` (materials under a service line) |
 
 ---
 

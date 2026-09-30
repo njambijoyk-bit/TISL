@@ -87,7 +87,7 @@ final class ModuleTables
             'categories', 'brands',
             'services', 'service_categories',
             // service options, packages (variants) and structured requirements
-            'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements',
+            'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements', 'service_variant_materials',
             // saved services (wishlist.service_ids) and quote-list lines with their chosen package + answers
             'customer_wishlists', 'customer_quote_lists',
             'customer_carts', 'review_helpful_votes',
