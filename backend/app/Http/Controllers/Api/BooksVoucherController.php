@@ -213,6 +213,43 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** Every cash ledger with its book balance and last count, and the cash-on-delivery orders still to collect. */
+    public function cash(\App\Services\Books\CashCountService $cash): JsonResponse
+    {
+        return response()->json($cash->overview());
+    }
+
+    public function cashCounts(Request $request, \App\Services\Books\CashCountService $cash): JsonResponse
+    {
+        $request->validate(['ledger_id' => 'nullable|integer']);
+
+        return response()->json(['rows' => $cash->history($request->integer('ledger_id') ?: null)]);
+    }
+
+    /** Count a cash ledger against the books; a difference needs a reason and can be posted to Cash over / short. */
+    public function cashCount(Request $request, \App\Services\Books\CashCountService $cash): JsonResponse
+    {
+        $d = $request->validate(['ledger_id' => 'required|integer|exists:ledgers,id', 'date' => 'nullable|date', 'counted' => 'required|numeric|min:0', 'reason' => 'nullable|string|max:255', 'post' => 'nullable|boolean']);
+
+        return $this->guard(function () use ($request, $cash, $d) {
+            $c = $cash->record((int) $d['ledger_id'], $d['date'] ?? null, (float) $d['counted'], $d['reason'] ?? null, (bool) ($d['post'] ?? true), $request->user());
+
+            return response()->json(['id' => $c->id, 'difference' => (float) $c->difference, 'message' => abs((float) $c->difference) < 0.005 ? 'Counted — the cash agrees with the books.' : 'Counted — ' . number_format(abs((float) $c->difference), 2) . ((float) $c->difference < 0 ? ' short' : ' over') . ($c->adjust_voucher_id ? ' and posted to Cash over / short.' : '.')], 201);
+        });
+    }
+
+    /** Cash a driver collected is handed in to the till. */
+    public function cashHandIn(Request $request, \App\Services\Books\CashCountService $cash): JsonResponse
+    {
+        $d = $request->validate(['from_ledger_id' => 'required|integer|exists:ledgers,id', 'to_ledger_id' => 'required|integer|exists:ledgers,id', 'amount' => 'required|numeric|min:0.01', 'by' => 'nullable|string|max:80', 'date' => 'nullable|date']);
+
+        return $this->guard(function () use ($request, $cash, $d) {
+            $v = $cash->handIn((int) $d['from_ledger_id'], (int) $d['to_ledger_id'], (float) $d['amount'], $d['by'] ?? null, $d['date'] ?? null, $request->user());
+
+            return response()->json(['id' => $v->id, 'voucher_number' => $v->voucher_number, 'message' => "Handed in — {$v->voucher_number}."], 201);
+        });
+    }
+
     /** The cheque register: cheques in hand, post-dated, deposited, issued, bounced, cleared. */
     public function cheques(Request $request, \App\Services\Books\ChequeService $cheques): JsonResponse
     {

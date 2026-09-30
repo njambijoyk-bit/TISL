@@ -106,6 +106,9 @@ class VoucherService
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
             app(InstrumentService::class)->assertEditable($voucher, 'edit');
+            if (! empty($voucher->meta['cash_count'])) {
+                throw new BooksException('A cash-count adjustment can not be edited. Cancel it and count again.');
+            }
             if (! empty($voucher->meta['bounce'])) {
                 throw new BooksException('A bounced-cheque entry can not be edited. Cancel it in the cheque register (the cheque goes back to how it was) and bounce it again.');
             }
@@ -171,6 +174,9 @@ class VoucherService
             app(InstrumentService::class)->void($voucher);
             if (! empty($voucher->meta['bounce'])) {
                 app(ChequeService::class)->onBounceCancelled($voucher);   // the cheque goes back to how it was
+            }
+            if (! empty($voucher->meta['cash_count'])) {
+                app(CashCountService::class)->onAdjustmentCancelled($voucher);   // the count stays; its difference is open again
             }
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
