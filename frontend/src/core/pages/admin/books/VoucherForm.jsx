@@ -200,6 +200,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
+      if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
@@ -260,7 +261,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   // What the chosen customer can use on this sale: their gift vouchers and promo codes, with the amounts they would cover.
   const custId = h.customer?.customer_id;
   // a different customer has different vouchers and discounts
-  useEffect(() => { if (!editing) setDiscountPick(null); setGiftPick(null); }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!editing) setDiscountPick(null); if (!(editing && base === 'sales_order')) setGiftPick(null); }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
   const saleTotal = Number(preview?.total) || 0;
   const saleNet = Number(preview?.subtotal) || 0;
   useEffect(() => {
@@ -301,6 +302,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
     if (base === 'sales' || base === 'cash_sale') p.rounding = rounding;
+    if (base === 'sales_order' && giftPick?.length) p.gift_codes = giftPick;   // only remembered; the invoice or cash sale spends them
     if (h.customer && discountPick !== null) p.discount_choices = discountPick;   // which of the customer's discounts to apply
     if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
       const giftMethod = methods.find((m) => m.kind === 'gift_voucher');
@@ -315,7 +317,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, base, methods, preview?.total, rounding]);
+  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -621,13 +623,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 14 }}>
                 <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>Gift vouchers for {h.customer?.name}</p>
                 <div style={{ display: 'grid', gap: 6 }}>
-                  <span style={label}>{base === 'cash_sale' ? 'Tick to pay with them' : 'Paid on a Cash Sale'}</span>
+                  <span style={label}>{base === 'cash_sale' ? 'Tick to pay with them' : base === 'sales_order' ? 'Tick the ones meant for this order (nothing is spent until it becomes a Cash Sale)' : 'Paid on a Cash Sale'}</span>
                   {ent.gift_vouchers.map((g) => {
                     const on = (giftPick ?? []).includes(g.code);
                     const used = giftPlan.find((x) => x.code === g.code)?.applied;
                     return (
-                      <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: base === 'cash_sale' ? 'pointer' : 'default' }}>
-                        <input type="checkbox" disabled={base !== 'cash_sale'} checked={on && base === 'cash_sale'} onChange={() => setGiftPick((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
+                      <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: ['cash_sale', 'sales_order'].includes(base) ? 'pointer' : 'default' }}>
+                        <input type="checkbox" disabled={!['cash_sale', 'sales_order'].includes(base)} checked={on && ['cash_sale', 'sales_order'].includes(base)} onChange={() => setGiftPick((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
                         <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: colors.textMuted }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
                         <span style={{ fontWeight: 700 }}>{on && base === 'cash_sale' ? `applies ${money(used ?? 0)}` : `could cover ${money(g.applicable)}`}</span>
                       </label>

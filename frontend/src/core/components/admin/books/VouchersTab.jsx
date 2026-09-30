@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { History, Plus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import SimpleTable from '../ui/SimpleTable';
 import { Toolbar } from '../ui/HubHeader';
-import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
+import { btnGhost, btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, ExportMenu } from './booksUi';
 import { money, filterStyle } from './booksFmt';
 
@@ -49,6 +49,7 @@ export default function VouchersTab({ canWrite, baseType = '', newPath = null, n
   return (
     <div>
       <Toolbar right={<>
+        <Link to="/admin/books/edit-log" style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
         <ExportMenu label="Export list" onExport={(format) => booksAPI.exportVouchers({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), format })} />
         {canWrite && newPath && (
           <button type="button" style={btnPrimary} onClick={() => nav(newPath)}><Plus size={14} /> {newLabel}</button>

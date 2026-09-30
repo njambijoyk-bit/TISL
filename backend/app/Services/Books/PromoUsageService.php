@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Promo code usage, kept in step with the vouchers. A code is used when the voucher that carries it is POSTED (a Sales
- * Order, an Invoice or a Cash Sale — never a quotation), one usage row per voucher, and the use is taken back when that
+ * Promo code usage, kept in step with the vouchers. A code is used when the voucher that carries it is POSTED (an Invoice
+ * or a Cash Sale — a Sales Order or a quotation only records it), one usage row per voucher, and the use is taken back when that
  * voucher is cancelled or edited. A document made from another that already logged the use does not log it again.
  */
 class PromoUsageService
 {
-    private const TYPES = [VoucherType::SALES_ORDER, VoucherType::SALES, VoucherType::CASH_SALE];
+    private const TYPES = [VoucherType::SALES, VoucherType::CASH_SALE];   // a Sales Order is only a record: it holds the code, it does not use it
 
     /** Log the use of the promo code this voucher carries. */
     public function record(Voucher $v): void
@@ -76,7 +76,7 @@ class PromoUsageService
         return $ok ??= Schema::hasTable('referral_code_usage') && Schema::hasColumn('referral_code_usage', 'voucher_id');
     }
 
-    /** A Sales Order that already logged the code: the invoice or cash sale made from it must not log it again. */
+    /** A document upstream that already logged the code (an older invoice this one was made from): do not log it again. */
     private function loggedUpstream(Voucher $v, int $codeId): bool
     {
         $src = $v->source_voucher_id;

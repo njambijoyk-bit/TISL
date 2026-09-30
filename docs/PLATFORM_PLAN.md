@@ -995,3 +995,10 @@ The order is priced once, at order time, by the same discount engine the admin u
 - **Ask for a review:** on a posted Invoice or Cash Sale the customer sends a note; staff see it on the voucher and answer; nothing on the voucher changes unless staff edit it.
 
 Open points: whether a gift voucher's balance should be *held* for an order (reduces surprises, complicates cancelling), and whether a customer's edit re-prices at today's prices (proposed) or keeps the original ones.
+
+## 23. Sales Order is a record; the edit log (built, 30 Sep 2026)
+
+- **A Sales Order is only a record**, like Tally's. It keeps the values (customer, items, discounts, the gift vouchers meant, narration) but does nothing: no stock, no accounts, no loyalty, **no promo use logged, no gift voucher spent**.
+- **Converting** to a Sales Invoice or Cash Sale carries every field over (customer, sold-to details, promo code, discounts, rounding) and then does the real things: the invoice/cash sale logs the promo use once, and a Cash Sale spends the gift vouchers the order remembered (`meta.gift_codes`), the remainder going to the chosen payment method.
+- **The order is the child of the invoice / cash sale.** Once it has a live child the order is **locked** (no edit, no convert); the screen says "made into INV-… — edit that". The invoice is edited under the normal editing rules. Cancelling the invoice frees the order again.
+- **Edit log** (`voucher_versions`, script 36): every create / alter / delete keeps a snapshot. `/admin/books/edit-log` lists changed vouchers with their version count and a "(Deleted)" group; a voucher opens a side-by-side Differences view of any two versions, differing values in red. Vouchers that predate the log get version 1 from their state just before the first change. API: `GET /books/edit-log`, `GET /books/vouchers/{id}/versions`.

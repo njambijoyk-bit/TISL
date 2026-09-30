@@ -83,6 +83,7 @@ class VoucherService
 
             $voucher = $this->persist($plan, $data, $user, null);
             $this->audit($voucher, 'created', $user);
+            $this->versionHook($voucher, 'created', $user);
             $this->rewardHook($voucher);
             $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
@@ -111,6 +112,7 @@ class VoucherService
             $plan = $this->plan($data, $type, $voucher, $user);
             $this->guard->assert('edit', $plan['date'], $user, $type->id);
 
+            $this->versionHook($voucher, null, $user);   // keep what it looks like now as version 1 if it has no history yet
             $this->undoRewards($voucher);   // its points, spend, order count and promo use are worked out again from the new figures
             $this->reverseEffects($voucher);
             $voucher->items()->delete();
@@ -120,6 +122,7 @@ class VoucherService
             $before = $voucher->only(['date', 'total_amount', 'party_ledger_id', 'narration']);
             $voucher = $this->persist($plan, $data, $user, $voucher);
             $this->audit($voucher, 'altered', $user, ['before' => $before]);
+            $this->versionHook($voucher, 'altered', $user);
             $this->rewardHook($voucher);
             $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
@@ -142,6 +145,7 @@ class VoucherService
                 throw new BooksException('Part of this credit note was refunded as a gift voucher (' . implode(', ', $voucher->meta['gift_vouchers'] ?? []) . '). Cancel those gift vouchers first.');
             }
 
+            $this->versionHook($voucher, null, $user);
             app(WithholdingRegisterService::class)->void($voucher);   // refuses when part of its credit was already cleared
             $this->reverseEffects($voucher);
             $voucher->update([
@@ -149,6 +153,7 @@ class VoucherService
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
+            $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
 
             return $voucher->load($this->relations());
@@ -240,9 +245,11 @@ class VoucherService
                 'currency_id'       => $source->currency_id,
                 'exchange_rate'     => $source->exchange_rate,
                 'payment_method_id' => $opts['payment_method_id'] ?? $source->payment_method_id,
-                'tenders'           => $opts['tenders'] ?? null,
+                'tenders'           => $opts['tenders'] ?? ($targetBase === VoucherType::CASH_SALE ? $this->rememberedGiftTenders($source, $lines, $opts) : null),
                 'reference_no'      => $opts['reference_no'] ?? $source->reference_no,
                 'supplier_invoice_no' => $opts['supplier_invoice_no'] ?? $source->supplier_invoice_no,
+                'party_name' => $source->party_name, 'party_phone' => $source->party_phone, 'party_address' => $source->party_address, 'party_tax_id' => $source->party_tax_id,
+                'rounding' => $opts['rounding'] ?? null,
                 'narration'         => $opts['narration'] ?? $source->narration,
                 'channel'           => $source->channel,
                 'source_voucher_id' => $source->id,
@@ -309,6 +316,41 @@ class VoucherService
         $type = VoucherType::byBase(VoucherType::SALES_ORDER) ?? throw new BooksException('The Sales Order voucher type is switched off.');
 
         return $this->create(array_merge($data, ['voucher_type_id' => $type->id, 'channel' => $data['channel'] ?? 'storefront']), $user);
+    }
+
+    /**
+     * A Sales Order only remembers which gift vouchers the customer meant to pay with (meta.gift_codes); nothing is spent
+     * until it becomes a Cash Sale. Then those vouchers become payment lines — each covering what is left of the total —
+     * and whatever remains is taken by the payment method chosen on the conversion.
+     */
+    private function rememberedGiftTenders(Voucher $source, array $lines, array $opts): ?array
+    {
+        $codes = array_values(array_filter((array) ($source->meta['gift_codes'] ?? [])));
+        if (! $codes || ! $source->customer_id) {
+            return null;
+        }
+        $method = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first();
+        if (! $method) {
+            throw new BooksException('Gift vouchers are not set up yet (payment method missing).');
+        }
+        [$sub, $tax] = $this->totals($lines);
+        $left = round($sub + $tax, 2);
+        $currency = $this->money->currencyFrom($source->currency_id);
+        $tenders = [];
+        foreach ($codes as $code) {
+            $gv = \App\Models\Books\GiftVoucher::with('currency')->where('code', $code)->where('customer_id', $source->customer_id)->first();
+            if (! $gv || ! $gv->isSpendable() || $left <= 0.004) {
+                continue;   // spent elsewhere in the meantime, or nothing left to pay: skipped, the order still converts
+            }
+            $use = round(min($this->money->convert((float) $gv->balance, $gv->currency, $currency), $left), 2);
+            $tenders[] = ['payment_method_id' => $method->id, 'amount' => $use, 'gift_voucher_code' => $gv->code];
+            $left = round($left - $use, 2);
+        }
+        if ($tenders && $left > 0.004 && ! empty($opts['payment_method_id'])) {
+            $tenders[] = ['payment_method_id' => (int) $opts['payment_method_id'], 'amount' => $left];
+        }
+
+        return $tenders ?: null;
     }
 
     /** Payment arrives for an order: the order becomes a Cash Sale (full payment). */
@@ -444,6 +486,11 @@ class VoucherService
         }
 
         $plan['discount_options'] = $discountOptions;
+
+        // A Sales Order only remembers which gift vouchers the customer meant to pay with; nothing is held or spent on it
+        if ($type->base_type === VoucherType::SALES_ORDER && ! empty($data['gift_codes']) && is_array($data['gift_codes'])) {
+            $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['gift_codes' => array_values(array_unique(array_map('strval', $data['gift_codes'])))]);
+        }
 
         // Rounding (Sales and Cash Sales only, and only when the admin chose it): the total the customer pays is rounded to
         // the nearest whole number or the nearest 0.50; the difference is its own line on the Rounding ledger and never
@@ -2207,6 +2254,17 @@ class VoucherService
                 VoucherType::SALES => $rewards->onInvoiced($voucher),
                 default => null,
             };
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** Edit log: keep a snapshot of the voucher (activity null = only make sure version 1 exists). Never stops a save. */
+    private function versionHook(Voucher $voucher, ?string $activity, ?User $user): void
+    {
+        try {
+            $versions = app(VoucherVersionService::class);
+            $activity === null ? $versions->baseline($voucher) : $versions->record($voucher, $activity, $user);
         } catch (\Throwable $e) {
             report($e);
         }

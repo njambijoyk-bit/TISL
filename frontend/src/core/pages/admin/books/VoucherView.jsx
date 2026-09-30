@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Pencil, Ban, ArrowRightLeft, Banknote, Gift } from 'lucide-react';
+import { ArrowLeft, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -144,6 +144,7 @@ export default function VoucherView() {
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
   const refundable = live && base === 'credit_note' && Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0) > 0.005;
   const receivable = live && ['sales', 'debit_note'].includes(base) && Number(v.outstanding) > 0.005;
+  const lockedBy = base === 'sales_order' ? (v.children ?? []).find((c) => c.status !== 'cancelled') : null;
   const children = (id2) => (v.items ?? []).filter((i) => i.parent_item_id === id2);
   const top = (v.items ?? []).filter((i) => !i.parent_item_id);
 
@@ -160,16 +161,19 @@ export default function VoucherView() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
-            {canWrite && convertible && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
+            {canWrite && convertible && !lockedBy && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
-            {canWrite && live && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
+            {canWrite && live && !lockedBy && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={cancel}><Ban size={14} /> Cancel</button>}
           </div>
         </div>
 
         {v.status === 'cancelled' && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>Cancelled{v.cancel_reason ? ` — ${v.cancel_reason}` : ''}. Its entries and stock movements are reversed.</p>}
+
+        {lockedBy && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.82rem' }}>This order is locked. It was made into <Link to={`/admin/books/vouchers/${lockedBy.id}`}>{lockedBy.voucher_number}</Link> — edit that instead.</p>}
 
         <div style={{ ...card, padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16, fontSize: '0.82rem' }}>
           <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>PARTY</span>{v.party_ledger?.name ?? '—'}</div>

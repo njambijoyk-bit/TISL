@@ -158,6 +158,22 @@ class BooksVoucherController extends Controller
     }
 
     /** Ready-made numbers for a form: next number per type, payment methods, etc. */
+    /** The edit log: vouchers that were altered or deleted, with how many versions each has. */
+    public function editLog(Request $request, \App\Services\Books\VoucherVersionService $versions): JsonResponse
+    {
+        $f = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'type' => 'nullable|string|max:40', 'search' => 'nullable|string|max:80']);
+
+        return response()->json(['rows' => $versions->log($f)]);
+    }
+
+    /** Every version of one voucher, for comparing any two. */
+    public function versions(int $id, \App\Services\Books\VoucherVersionService $versions): JsonResponse
+    {
+        $v = Voucher::with('type:id,name')->findOrFail($id);
+
+        return response()->json(['voucher' => ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'type' => $v->type?->name], 'versions' => $versions->versions($id)]);
+    }
+
     /** What a customer could use on a sale being entered: their gift vouchers (with what each covers) and promo codes (with the discount each gives). */
     public function entitlements(Request $request): JsonResponse
     {
