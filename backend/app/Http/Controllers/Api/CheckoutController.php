@@ -48,7 +48,7 @@ class CheckoutController extends Controller
             'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
             'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
             'delivery_method' => ['nullable', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
-            'promo_code' => 'nullable|string|max:40', 'gift_voucher_code' => 'nullable|string|max:60', 'gift_voucher_codes' => 'nullable|array', 'gift_voucher_codes.*' => 'string|max:60',
+            'promo_code' => 'nullable|string|max:40', 'use_credit' => 'nullable|array', 'use_credit.*' => 'integer', 'gift_voucher_code' => 'nullable|string|max:60', 'gift_voucher_codes' => 'nullable|array', 'gift_voucher_codes.*' => 'string|max:60',
         ];
     }
 
@@ -70,6 +70,7 @@ class CheckoutController extends Controller
             'shipping' => app(ShippingOptionController::class)->publicIndex()->getData(true),
             'branches' => Location::where('is_active', true)->get(['id', 'name', 'code', 'is_default']),
             'account' => $account,
+            'credits' => $customer ? app(\App\Services\Books\OpenBillsService::class)->forCustomer($customer->id) : [],
             'gift_vouchers_enabled' => PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->exists(),
             'base_currency' => $money->getBaseCurrency()->only(['code', 'symbol']),
         ]);
@@ -178,6 +179,7 @@ class CheckoutController extends Controller
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
             'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount, 'review_requested' => ! empty($c->meta['review_requests'])])->values(),
+            'credits' => app(\App\Services\Books\OpenBillsService::class)->forCustomer((int) $v->customer_id), 'use_credit' => array_values((array) ($v->meta['use_credit'] ?? [])),
             'gift_codes_meant' => array_values((array) ($v->meta['gift_codes'] ?? [])),
             'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),
         ]);
@@ -205,7 +207,7 @@ class CheckoutController extends Controller
 
         return $this->guard(function () use ($request, $id) {
             $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::SALES_ORDER))->where('customer_id', $request->user()?->customer?->id)->findOrFail($id);
-            $this->checkout->updateOrder($v, $request->only(['items', 'delivery_method', 'promo_code', 'customer_phone', 'shipping_address', 'customer_notes']), $request->user());
+            $this->checkout->updateOrder($v, $request->only(['items', 'delivery_method', 'promo_code', 'use_credit', 'customer_phone', 'shipping_address', 'customer_notes']), $request->user());
 
             return response()->json(['message' => 'Order updated — prices were worked out again at today\'s prices.']);
         });

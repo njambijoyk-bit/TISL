@@ -68,6 +68,7 @@ class CustomerWalletController extends Controller
         }
 
         return response()->json([
+            'credits' => app(\App\Services\Books\OpenBillsService::class)->forCustomer($customer->id),   // overpayments / advances we hold for them
             'base' => $money->getBaseCurrency()->only(['code', 'symbol']),
             'points' => [
                 'balance' => (int) $customer->loyalty_points, 'value' => $value,

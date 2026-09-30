@@ -7,6 +7,7 @@ import checkoutAPI from '../../../_shared/api/checkout';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { ORDER_STATUS } from './orderStatus';
+import { creditSentence } from '../../components/admin/books/creditText';
 
 export default function CustomerOrderPage() {
   const { id } = useParams();
@@ -50,7 +51,7 @@ export default function CustomerOrderPage() {
     finally { setBusy(false); }
   };
 
-  const startEdit = () => setEdit({ qty: Object.fromEntries(o.lines.filter((l) => !l.is_component).map((l) => [l.id, l.quantity])), address: o.contact?.shipping_address ?? '', promo: undefined });
+  const startEdit = () => setEdit({ qty: Object.fromEntries(o.lines.filter((l) => !l.is_component).map((l) => [l.id, l.quantity])), address: o.contact?.shipping_address ?? '', promo: undefined, credit: o.use_credit ?? [] });
   const saveEdit = async (e) => {
     e.preventDefault(); setBusy(true);
     try {
@@ -59,6 +60,7 @@ export default function CustomerOrderPage() {
       if (!items.length) { toast.error('An order needs at least one item — cancel it instead.'); return; }
       const body = { items, shipping_address: edit.address };
       if (edit.promo !== undefined) body.promo_code = edit.promo;
+      if ((o.credits ?? []).length) body.use_credit = edit.credit;
       const res = await checkoutAPI.updateOrder(id, body);
       toast.success(res.message, { duration: 6000 }); setEdit(null); load();
     } catch (err) { toast.error(errMsg(err, 'Could not update the order'), { duration: 8000 }); }
@@ -105,6 +107,13 @@ export default function CustomerOrderPage() {
           </table>
         </div>
 
+        {o.credits?.length > 0 && o.editable && !edit && (
+          <div style={{ margin: '10px 0', padding: 12, borderRadius: 10, background: 'rgba(99,102,241,0.06)', fontSize: '0.82rem' }}>
+            {o.credits.map((c) => <p key={c.voucher_id} style={{ margin: '2px 0' }}>{creditSentence(c)}{(o.use_credit ?? []).includes(c.voucher_id) ? <strong> — will be used on this order</strong> : ' — not being used on this order'}</p>)}
+            <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#6b7280' }}>Use <em>Change order</em> to tick or untick it. It is taken off when the order becomes an invoice.</p>
+          </div>
+        )}
+
         {o.gift_codes_meant?.length > 0 && !o.documents?.length && <p style={{ fontSize: '0.82rem', color: '#4b5563' }}>Gift voucher{o.gift_codes_meant.length > 1 ? 's' : ''} <strong>{o.gift_codes_meant.join(', ')}</strong> will be applied when this order is paid.</p>}
 
         {o.gift_vouchers?.length > 0 && (
@@ -145,6 +154,12 @@ export default function CustomerOrderPage() {
             <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Change the quantities above (0 removes an item). The order is priced again at today's prices and discounts.</p>
             <textarea aria-label="Delivery address" placeholder="Delivery address" value={edit.address} onChange={(e) => setEdit((x) => ({ ...x, address: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
             <input aria-label="Promo code" placeholder="Promo code (leave blank to keep the current one)" onChange={(e) => setEdit((x) => ({ ...x, promo: e.target.value.trim() === '' ? undefined : e.target.value.trim() }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
+            {(o.credits ?? []).map((c) => (
+              <label key={c.voucher_id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.8rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={edit.credit.includes(c.voucher_id)} onChange={() => setEdit((x) => ({ ...x, credit: x.credit.includes(c.voucher_id) ? x.credit.filter((i) => i !== c.voucher_id) : [...x.credit, c.voucher_id] }))} />
+                <span>{creditSentence(c)} — use it on this order?</span>
+              </label>
+            ))}
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" onClick={() => setEdit(null)}>Keep as it was</button>
               <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Saving…' : 'Save changes'}</button>

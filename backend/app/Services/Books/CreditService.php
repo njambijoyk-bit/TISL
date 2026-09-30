@@ -83,6 +83,22 @@ class CreditService
         });
     }
 
+    /** Apply whatever credit is there, quietly: for the tick on an invoice form or an order that said "use my overpayment". */
+    public function applyIfAny(Voucher $bill, ?array $creditIds, ?User $user): ?array
+    {
+        $bill->loadMissing('type');
+        if (! in_array($bill->type->base_type, ['sales', 'purchase'], true) || ! $bill->party_ledger_id || (float) $bill->exchange_rate !== 1.0) {
+            return null;
+        }
+        if (app(VoucherService::class)->outstanding($bill) <= 0.005) {
+            return null;
+        }
+        $kind = $bill->type->base_type === 'sales' ? 'credit' : 'prepaid';
+        $has = array_filter($this->open->forLedger((int) $bill->party_ledger_id)['credits'], fn ($c) => $c['kind'] === $kind && ($creditIds === null || in_array($c['voucher_id'], $creditIds, true)));
+
+        return $has ? $this->apply($bill, null, $creditIds, $user) : null;
+    }
+
     /** Give one credit (or all of them) back: the bill is outstanding again and the amount returns to the advance. */
     public function release(Voucher $bill, ?int $creditVoucherId, ?User $user): float
     {

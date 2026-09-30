@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import booksAPI from '../../../../_shared/api/books';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { money } from './booksFmt';
+import { creditSentence } from './creditText';
 
 const th = { padding: '7px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
 const td = { padding: '7px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
@@ -58,9 +59,15 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
         <strong>{data.ledger.name}</strong>
         <span>{receipt ? 'Owes us' : 'We owe them'} <strong style={{ color: (receipt ? t.owed_to_us : t.we_owe) > 0 ? colors.warningText : colors.text }}>{money(receipt ? t.owed_to_us : t.we_owe)}</strong></span>
         {receipt && t.overdue > 0 && <span style={{ color: colors.dangerText }}>{money(t.overdue)} overdue</span>}
-        {credits.length > 0 && <span>{receipt ? 'Credit on account' : 'Paid in advance'} <strong style={{ color: colors.successText }}>{money(credits.reduce((x, c) => x + c.amount, 0))}</strong></span>}
+        {credits.length > 0 && <span>{receipt ? 'Overpaid / paid in advance' : 'Paid in advance'} <strong style={{ color: colors.successText }}>{money(credits.reduce((x, c) => x + c.amount, 0))}</strong></span>}
         {other > 0 && <span style={{ color: colors.textMuted }}>{receipt ? 'We also owe them' : 'They also owe us'} {money(other)}</span>}
       </div>
+
+      {credits.length > 0 && (
+        <div style={{ padding: '8px 16px', fontSize: '0.78rem', color: colors.textMuted, borderTop: `1px solid ${colors.tint(0.06)}` }}>
+          {credits.map((c) => <div key={c.voucher_id}>{creditSentence(c, data.ledger.name, !receipt)}</div>)}
+        </div>
+      )}
 
       {bills.length === 0 ? (
         <p style={{ margin: 0, padding: '14px 16px', fontSize: '0.8rem', color: colors.textMuted }}>No open {receipt ? 'invoices' : 'bills'} for this party. Whatever you {receipt ? 'receive' : 'pay'} is kept on account.</p>
@@ -93,7 +100,7 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
 
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${colors.tint(0.08)}`, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.8rem', alignItems: 'center' }}>
         <span>Settling <strong>{money(allocated)}</strong></span>
-        <span style={{ color: onAccount < -0.004 ? colors.dangerText : colors.text }}>{onAccount < -0.004 ? `Bills add up to more than the amount by ${money(-onAccount)}` : <>On account <strong>{money(onAccount)}</strong>{onAccount > 0.004 && <span style={{ color: colors.textMuted }}> — kept as credit for {receipt ? 'their' : 'our'} next {receipt ? 'invoice' : 'bill'}</span>}</>}</span>
+        <span style={{ color: onAccount < -0.004 ? colors.dangerText : colors.text }}>{onAccount < -0.004 ? `Bills add up to more than the amount by ${money(-onAccount)}` : <>On account <strong>{money(onAccount)}</strong>{onAccount > 0.004 && <span style={{ color: colors.textMuted }}> — kept as an overpayment, to use on {receipt ? 'their' : 'our'} next {receipt ? 'invoice' : 'bill'}</span>}</>}</span>
         {touched && bills.length > 0 && <button type="button" onClick={() => setTouched(false)} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Spread the amount over the oldest bills</button>}
       </div>
     </div>

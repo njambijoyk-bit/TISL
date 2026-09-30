@@ -178,6 +178,12 @@ class BooksVoucherController extends Controller
         return response()->json($bills->forLedger($ledgerId, $request->integer('except') ?: null, $request->get('as_of')));
     }
 
+    /** The overpayments and advances a storefront customer holds, for the sales form. */
+    public function customerCredits(int $customerId, \App\Services\Books\OpenBillsService $bills): JsonResponse
+    {
+        return response()->json(['credits' => $bills->forCustomer($customerId)]);
+    }
+
     /** Settle a posted sales / purchase invoice from the party's credit on account. */
     public function applyCredit(Request $request, int $id, \App\Services\Books\CreditService $credit): JsonResponse
     {

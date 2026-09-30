@@ -145,7 +145,14 @@ class CheckoutService
             'email' => $in['customer_email'] ?? $user?->email, 'phone' => $in['customer_phone'] ?? $customer?->phone, 'name' => $in['customer_name'] ?? null,
             'shipping_address' => $in['shipping_address'] ?? null, 'delivery_method' => $option?->slug,
         ];
+        // an overpayment / advance they hold and meant to use: remembered on the order, applied when it becomes an invoice
+        $useCredit = [];
+        if ($customer && ! empty($in['use_credit']) && is_array($in['use_credit'])) {
+            $mine = array_column(app(OpenBillsService::class)->forCustomer($customer->id), 'voucher_id');
+            $useCredit = array_values(array_intersect(array_map('intval', $in['use_credit']), $mine));
+        }
         $data = $base + [
+            'use_credit' => $useCredit ?: null,
             'lines' => $final, 'narration' => $in['customer_notes'] ?? null,
             'meta' => array_filter([
                 'contact' => $contact, 'discounts' => $discounts, 'promo_code_id' => $promoCodeId, 'referral_code_id' => $referralCodeId,
@@ -389,7 +396,11 @@ class CheckoutService
         if ($a['hasGift']) {
             throw new BooksException('A gift voucher is paid for when it is bought; remove it and buy it again at checkout.');
         }
-        $keep = array_diff_key($order->meta ?? [], array_flip(['discounts', 'promo_code_id', 'referral_code_id', 'rounding', 'contact']));
+        $drop = ['discounts', 'promo_code_id', 'referral_code_id', 'rounding', 'contact'];
+        if (array_key_exists('use_credit', $in)) {
+            $drop[] = 'use_credit';   // they changed the tick; what is sent now replaces what was remembered
+        }
+        $keep = array_diff_key($order->meta ?? [], array_flip($drop));
         $a['data']['meta'] = array_merge($keep, $a['data']['meta']);
 
         return $this->vouchers->alter($order, $a['data'], null);

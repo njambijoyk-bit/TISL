@@ -6,6 +6,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import { money, today } from '../../../core/components/admin/books/booksFmt';
+import { creditSentence } from '../../../core/components/admin/books/creditText';
 import booksAPI from '../../../_shared/api/books';
 import locationsAPI from '../../../_shared/api/locations';
 import useAuthStore from '../../../_shared/store/authStore';
@@ -123,6 +124,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const [choose, setChoose] = useState(null);           // variants of a product just created / changed, to pick from
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
+  const [prepaid, setPrepaid] = useState([]);          // money already paid to this supplier in advance, offered on the bill
+  const [prepaidPick, setPrepaidPick] = useState(null);   // ids ticked (null = all)
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
   const [restored, setRestored] = useState(Boolean(draft0));
@@ -234,10 +237,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     return () => clearTimeout(t);
   }, [payload, ready]);
 
+  useEffect(() => {
+    setPrepaidPick(null);
+    if (editing || opening || receipt || !h.party_ledger_id) { setPrepaid([]); return; }
+    booksAPI.openBills(h.party_ledger_id).then((d) => setPrepaid((d.credits ?? []).filter((c) => c.kind === 'prepaid'))).catch(() => setPrepaid([]));
+  }, [h.party_ledger_id, editing, opening, receipt]);
+  const prepaidIds = prepaid.filter((c) => (prepaidPick ?? prepaid.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id);
+
   const save = async () => {
     setSaving(true); setSaveErr(null);
     try {
-      const res = editing ? await booksAPI.updateVoucher(id, payload) : await booksAPI.createVoucher(payload);
+      const body = !editing && prepaidIds.length ? { ...payload, apply_credit: prepaidIds } : payload;   // ticked prepayments settle this bill when it is posted
+      const res = editing ? await booksAPI.updateVoucher(id, payload) : await booksAPI.createVoucher(body);
       clearDraft(key);
       toast.success(res.message ?? 'Saved');
       nav(`/admin/books/vouchers/${res.data.id}`);
@@ -429,6 +440,22 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                 <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> Service or other charge</button>
               </div>
             </div>
+
+            {prepaid.length > 0 && (
+              <div style={{ ...card, padding: 14 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>Money already paid to this supplier</p>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {prepaid.map((c) => (
+                    <label key={c.voucher_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={(prepaidPick ?? prepaid.map((x) => x.voucher_id)).includes(c.voucher_id)}
+                        onChange={() => setPrepaidPick((cur) => { const all = cur ?? prepaid.map((x) => x.voucher_id); return all.includes(c.voucher_id) ? all.filter((x) => x !== c.voucher_id) : [...all, c.voucher_id]; })} />
+                      <span>{creditSentence(c, null, true)} — use it on this bill?</span>
+                    </label>
+                  ))}
+                </div>
+                <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Ticked ones settle this bill when it is posted (up to what it comes to). No money moves.</p>
+              </div>
+            )}
 
             {preview?.entries?.length > 0 && (
               <div style={{ ...card, padding: 18 }}>

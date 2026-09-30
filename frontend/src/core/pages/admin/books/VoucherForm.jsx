@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import { NoAccess } from '../../../components/admin/ui/HubHeader';
 import OpenBillsPanel from '../../../components/admin/books/OpenBillsPanel';
+import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
@@ -170,6 +171,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
   const [alloc, setAlloc] = useState({});            // receipt / payment: bill id -> amount settled
   const [allocTouched, setAllocTouched] = useState(false);
+  const [isAdvance, setIsAdvance] = useState(false);   // receipt: paid on purpose for something not yet supplied
+  const [advanceFor, setAdvanceFor] = useState('');
+  const [refund, setRefund] = useState(null);           // payment: { id, number, amount } when giving an overpayment back
+  const [custCredits, setCustCredits] = useState([]);   // overpayments / advances the chosen customer holds
+  const [creditPick, setCreditPick] = useState(null);   // ids ticked (null = all, ticked from the start)
   const [allParties, setAllParties] = useState(false);   // receipt / payment: customers and suppliers only, unless asked for every ledger
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
@@ -210,7 +216,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (!editing) return;
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
-      if ((v.allocations ?? []).length) { setAlloc(Object.fromEntries(v.allocations.map((a) => [a.against_voucher_id, a.amount]))); setAllocTouched(true); }
+      if (v.meta?.refund_of && (v.allocations ?? []).length) { setRefund({ id: v.allocations[0].against_voucher_id, number: v.meta.refund_of, amount: Number(v.total_amount) }); setAlloc({}); setAllocTouched(true); }
+      else if ((v.allocations ?? []).length) { setAlloc(Object.fromEntries(v.allocations.map((a) => [a.against_voucher_id, a.amount]))); setAllocTouched(true); }
+      if (v.meta?.advance) { setIsAdvance(true); setAdvanceFor(v.meta.advance.for ?? ''); }
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
@@ -272,6 +280,39 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   // What the chosen customer can use on this sale: their gift vouchers and promo codes, with the amounts they would cover.
   const custId = h.customer?.customer_id;
+  // what the chosen customer has paid over or in advance (offered on a Sales invoice or order)
+  useEffect(() => {
+    const cid = h.customer?.customer_id;
+    setCreditPick(null);
+    if (!cid || editing || !['sales', 'sales_order'].includes(base)) { setCustCredits([]); return; }
+    api.customerCredits(cid).then((d) => setCustCredits(d.credits ?? [])).catch(() => setCustCredits([]));
+  }, [h.customer?.customer_id, base, editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // giving an overpayment back: the Payment is prefilled from the receipt it refunds
+  const refundId = params.get('refund');
+  useEffect(() => {
+    if (!refundId || editing || base !== 'payment') return;
+    api.voucher(refundId).then(async (r) => {
+      const d = await api.openBills(r.party_ledger_id);
+      const c = (d.credits ?? []).find((x) => String(x.voucher_id) === String(refundId));
+      if (!c) { toast.error('Nothing is left to refund on that voucher.'); return; }
+      setRefund({ id: Number(refundId), number: r.voucher_number, amount: c.amount });
+      setH((x) => ({ ...x, party_ledger_id: r.party_ledger_id, customer: null, amount: c.amount }));
+      setAlloc({}); setAllocTouched(true);
+    }).catch((e) => toast.error(errMsg(e, 'Could not load the receipt to refund')));
+  }, [refundId, base, editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the refund's narration is written for them and follows the account chosen; typing their own stops it
+  const autoNarration = useRef('');
+  useEffect(() => {
+    if (!refund) return;
+    const m = methods.find((x) => String(x.id) === String(h.payment_method_id));
+    const acct = m?.ledger?.name ?? m?.name ?? ledgers.find((l) => String(l.id) === String(h.ledger_id))?.name;
+    const text = `Refund for voucher ${refund.number} for amount ${money(h.amount || refund.amount)}${acct ? ` from ${acct} account` : ''}`;
+    setH((x) => (x.narration === '' || x.narration === autoNarration.current ? { ...x, narration: text } : x));
+    autoNarration.current = text;
+  }, [refund, h.amount, h.payment_method_id, h.ledger_id, methods, ledgers]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // a different customer has different vouchers and discounts
   useEffect(() => { if (!editing) setDiscountPick(null); if (!(editing && base === 'sales_order')) setGiftPick(null); }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
   const saleTotal = Number(preview?.total) || 0;
@@ -308,13 +349,19 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     } else if (isMoney) {
       p.amount = Number(h.amount) || 0;
       p.ledger_id = h.ledger_id || undefined;
-      p.allocations = Object.entries(alloc).filter(([, v]) => Number(v) > 0).map(([against_voucher_id, v]) => ({ against_voucher_id: Number(against_voucher_id), amount: Number(v) }));
+      if (refund) p.refund_of = refund.id;
+      else p.allocations = Object.entries(alloc).filter(([, v]) => Number(v) > 0).map(([against_voucher_id, v]) => ({ against_voucher_id: Number(against_voucher_id), amount: Number(v) }));
+      if (base === 'receipt' && isAdvance) { p.is_advance = true; p.advance_for = advanceFor.trim() || undefined; }
       if (wh.tax_rate_id) p.withholding = { tax_rate_id: Number(wh.tax_rate_id), amount: wh.amount === '' ? undefined : Number(wh.amount), certificate_no: wh.certificate_no || undefined };
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
     if (base === 'sales' || base === 'cash_sale') p.rounding = rounding;
+    if (!editing && ['sales', 'sales_order'].includes(base) && custCredits.length) {   // "use it?" — ticked unless they untick
+      const ids = custCredits.filter((c) => (creditPick ?? custCredits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id);
+      if (ids.length) { if (base === 'sales') p.apply_credit = ids; else p.use_credit = ids; }
+    }
     if (base === 'sales_order' && giftPick?.length) p.gift_codes = giftPick;   // only remembered; the invoice or cash sale spends them
     if (h.customer && discountPick !== null) p.discount_choices = discountPick;   // which of the customer's discounts to apply
     if (!tenders.length && base === 'cash_sale' && giftPlan.length) {
@@ -330,7 +377,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, alloc, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
+  }, [typeId, h, lines, entries, tenders, wh, alloc, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -564,7 +611,17 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             {type && isMoney && (
               <div style={{ ...card, padding: 18, maxWidth: 360 }}>
                 <label style={label}>Amount</label>
-                <input type="number" step="0.01" min="0" value={h.amount} onChange={(e) => setH((x) => ({ ...x, amount: e.target.value }))} style={small} />
+                <input type="number" step="0.01" min="0" max={refund ? refund.amount : undefined} value={h.amount} onChange={(e) => setH((x) => ({ ...x, amount: e.target.value }))} style={small} />
+                {refund && <p role="status" style={{ margin: '8px 0 0', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.78rem' }}>Giving back money paid on <strong>{refund.number}</strong> (up to {money(refund.amount)}). Choose the bank or cash account it is paid from.</p>}
+                {base === 'receipt' && h.party_ledger_id && (
+                  <div style={{ marginTop: 12 }}>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.78rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={isAdvance} onChange={(e) => setIsAdvance(e.target.checked)} /> This is an advance — paid on purpose for something not yet supplied
+                    </label>
+                    {isAdvance && <input placeholder="What is it for? (order, project milestone, booking…)" value={advanceFor} onChange={(e) => setAdvanceFor(e.target.value)} style={{ ...small, marginTop: 6 }} />}
+                    <p style={{ fontSize: '0.7rem', color: colors.textMuted, margin: '4px 0 0' }}>Anything not matched to a bill is kept for the customer: as an overpayment, or as an advance if ticked.</p>
+                  </div>
+                )}
                 {whRates.length > 0 && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${colors.tint(0.08)}` }}>
                     <label style={label}>{base === 'receipt' ? 'Tax the customer withheld' : 'Tax we withheld'}</label>
@@ -584,7 +641,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               </div>
             )}
 
-            {type && isMoney && h.party_ledger_id && (
+            {type && isMoney && h.party_ledger_id && !refund && (
               <OpenBillsPanel ledgerId={Number(h.party_ledger_id)} base={base} amount={h.amount} exceptId={editing ? Number(id) : null}
                 alloc={alloc} setAlloc={setAlloc} touched={allocTouched} setTouched={setAllocTouched} />
             )}
@@ -635,6 +692,23 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     );
                   })}
                 </div>
+              </div>
+            )}
+            {custCredits.length > 0 && ['sales', 'sales_order'].includes(base) && (
+              <div style={{ ...card, padding: 14 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: colors.text }}>{base === 'sales' ? 'Money held for this customer' : 'Money held for this customer — use it when this becomes an invoice?'}</p>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {custCredits.map((c) => {
+                    const on = (creditPick ?? custCredits.map((x) => x.voucher_id)).includes(c.voucher_id);
+                    return (
+                      <label key={c.voucher_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={on} onChange={() => setCreditPick((cur) => { const all = cur ?? custCredits.map((x) => x.voucher_id); return all.includes(c.voucher_id) ? all.filter((x) => x !== c.voucher_id) : [...all, c.voucher_id]; })} />
+                        <span>{creditSentence(c, h.customer?.name)} — use it?</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>{base === 'sales' ? 'Ticked ones settle this invoice when it is posted (up to what it comes to). No money moves.' : 'Remembered on the order; nothing is used until it is turned into an invoice.'}</p>
               </div>
             )}
             {ent && ent.gift_vouchers?.length > 0 && (

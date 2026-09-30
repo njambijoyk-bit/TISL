@@ -1,3 +1,4 @@
+import { creditSentence } from '../../components/admin/books/creditText';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -134,6 +135,13 @@ export default function MyGiftVouchers() {
         {w && (
           <>
             <Points points={w.points} base={w.base} onDone={load} />
+            {(w.credits ?? []).length > 0 && (
+              <div style={{ margin: '14px 0 0', padding: 14, borderRadius: 12, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: '0.9rem' }}>Money you have paid us</p>
+                {w.credits.map((c) => <p key={c.voucher_id} style={{ margin: '3px 0', fontSize: '0.85rem' }}>{creditSentence(c)}</p>)}
+                <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: '#6b7280' }}>You can use it on your next order at checkout, or ask us for a refund.</p>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
               {tabBtn('vouchers', `Gift vouchers (${w.vouchers.filter((g) => g.status === 'active').length})`)}
               {tabBtn('history', 'History')}

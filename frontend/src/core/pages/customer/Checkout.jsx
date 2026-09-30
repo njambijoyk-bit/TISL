@@ -10,6 +10,7 @@ import checkoutAPI from '../../../_shared/api/checkout';
 import { toApiItem } from '../../../_shared/lib/cartItems';
 import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
 import SummaryLedger from '../../../_shared/components/common/SummaryLedger';
+import { creditSentence } from '../../components/admin/books/creditText';
 import useCheckoutPrefs from '../../../_shared/store/checkoutPrefsStore';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -40,6 +41,7 @@ export default function Checkout() {
   const [opts, setOpts] = useState(null);
   const prefs = useCheckoutPrefs();               // delivery method and promo code were chosen in the cart
   const [form, setForm] = useState({ customer_email: user?.email || '', customer_phone: user?.phone || '', shipping_address: '', customer_notes: '', gift_voucher_code: '', phone: user?.phone || '' });
+  const [creditPick, setCreditPick] = useState(null);   // overpayments / advances they hold: ticked unless they untick
   const giftPicked = prefs.gift_codes;
   const setGiftPicked = (fn) => prefs.set({ gift_codes: typeof fn === 'function' ? fn(useCheckoutPrefs.getState().gift_codes) : fn });
   const [mode, setMode] = useState('online');       // online | pay_later | account
@@ -51,6 +53,7 @@ export default function Checkout() {
   const [pending, setPending] = useState(null);      // { attemptId, orderId }
   const [policies, setPolicies] = useState([]);
   const done = useRef(false);
+  const credits = opts?.credits ?? [];
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   useEffect(() => { if (user) fetchCustomer(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,6 +120,7 @@ export default function Checkout() {
         ...payload(), customer_email: form.customer_email, customer_phone: form.customer_phone, shipping_address: form.shipping_address,
         customer_notes: form.customer_notes || undefined, payment_mode: mode, payment_method_id: mode === 'online' ? methodId : undefined, phone: form.phone || form.customer_phone,
         ...(policies.length ? { policy_acceptances: policies } : {}),
+        ...(credits.length ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
       });
       if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id }); return; }
       toast.success(res.message);
@@ -217,6 +221,21 @@ export default function Checkout() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+              {credits.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <label style={label}>Money you have paid us</label>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {credits.map((c) => (
+                      <label key={c.voucher_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '0.82rem' }}>
+                        <input type="checkbox" checked={(creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)}
+                          onChange={() => setCreditPick((cur) => { const all = cur ?? credits.map((x) => x.voucher_id); return all.includes(c.voucher_id) ? all.filter((x) => x !== c.voucher_id) : [...all, c.voucher_id]; })} />
+                        <span>{creditSentence(c)} — use it on this order?</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#6b7280' }}>Nothing is used now; it is taken off when your order becomes an invoice.</p>
                 </div>
               )}
               {opts?.gift_vouchers_enabled && (

@@ -88,6 +88,9 @@ class VoucherService
             $this->promoHook($voucher);
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
+            if (! empty($data['apply_credit'])) {   // the customer's / supplier's overpayment or advance, ticked on the form or remembered on the order
+                app(CreditService::class)->applyIfAny($voucher, is_array($data['apply_credit']) ? array_map('intval', $data['apply_credit']) : null, $user);
+            }
 
             return $voucher->load($this->relations());
         });
@@ -252,6 +255,7 @@ class VoucherService
                 'supplier_invoice_no' => $opts['supplier_invoice_no'] ?? $source->supplier_invoice_no,
                 'party_name' => $source->party_name, 'party_phone' => $source->party_phone, 'party_address' => $source->party_address, 'party_tax_id' => $source->party_tax_id,
                 'rounding' => $opts['rounding'] ?? null,
+                'apply_credit' => $targetBase === VoucherType::SALES && ! empty($source->meta['use_credit']) ? $source->meta['use_credit'] : null,   // the overpayment the customer meant to use
                 'narration'         => $opts['narration'] ?? $source->narration,
                 'channel'           => $source->channel,
                 'source_voucher_id' => $source->id,
@@ -490,6 +494,10 @@ class VoucherService
 
         $plan['discount_options'] = $discountOptions;
 
+        // ...and whether they meant to use an overpayment / advance they hold; applied when the order becomes an invoice
+        if ($type->base_type === VoucherType::SALES_ORDER && ! empty($data['use_credit']) && is_array($data['use_credit'])) {
+            $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['use_credit' => array_values(array_unique(array_map('intval', $data['use_credit'])))]);
+        }
         // A Sales Order only remembers which gift vouchers the customer meant to pay with; nothing is held or spent on it
         if ($type->base_type === VoucherType::SALES_ORDER && ! empty($data['gift_codes']) && is_array($data['gift_codes'])) {
             $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['gift_codes' => array_values(array_unique(array_map('strval', $data['gift_codes'])))]);
@@ -1173,7 +1181,7 @@ class VoucherService
             $withLedger = null;
             if (! empty($data['withholding'])) {
                 [$withheld, $withLedger] = $this->withholding($data['withholding'], $amount, $base);
-                $plan['meta_extra'] = ['withholding' => ['amount' => $withheld, 'tax_rate_id' => $data['withholding']['tax_rate_id'] ?? null, 'certificate_no' => $data['withholding']['certificate_no'] ?? null]];
+                $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['withholding' => ['amount' => $withheld, 'tax_rate_id' => $data['withholding']['tax_rate_id'] ?? null, 'certificate_no' => $data['withholding']['certificate_no'] ?? null]]);
             }
             $net = round($amount - $withheld, 2);
             if ($plan['tenders']) {
@@ -1189,6 +1197,27 @@ class VoucherService
 
             $bills = [];
             $allocated = 0.0;
+
+            // A refund: a Payment that gives a customer's overpayment / advance back. It settles that receipt's credit
+            // (no bill, no new credit) and cancelling it puts the credit back.
+            if ($base === VoucherType::PAYMENT && ! empty($data['refund_of'])) {
+                $src = Voucher::with('type')->find($data['refund_of']);
+                if (! $src || $src->status !== Voucher::POSTED || ! in_array($src->type->base_type, [VoucherType::RECEIPT, VoucherType::CREDIT_NOTE], true)) {
+                    throw new BooksException('That voucher has no overpayment to refund.');
+                }
+                if ($src->party_ledger_id !== $otherLedgerId) {
+                    throw new BooksException("{$src->voucher_number} belongs to a different party.");
+                }
+                $held = app(OpenBillsService::class)->creditLeft($src->id, $plan['editing_id'] ?? null);
+                if ($amount - $held > 0.005) {
+                    throw new BooksException("Only " . number_format($held, 2) . " of {$src->voucher_number} is left to refund.");
+                }
+                $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['refund_of' => $src->voucher_number]);
+                $bills[] = ['type' => 'against', 'ledger_id' => $otherLedgerId, 'amount' => $amount, 'due' => null, 'against' => $src->id];
+
+                return [$entries, $bills, $amount];
+            }
+
             // one row per bill even if the form sent it twice
             $asked = [];
             foreach ($data['allocations'] ?? [] as $a) {
@@ -1218,6 +1247,10 @@ class VoucherService
                 throw new BooksException('The bills add up to ' . number_format($allocated, 2) . ' but the amount is ' . number_format($amount, 2) . '.');
             }
             if ($amount - $allocated > 0.005) {
+                // paid on purpose for something not yet supplied, rather than an accidental overpayment
+                if (! empty($data['is_advance'])) {
+                    $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['advance' => ['for' => trim((string) ($data['advance_for'] ?? '')) ?: null]]);
+                }
                 $bills[] = ['type' => 'advance', 'ledger_id' => $otherLedgerId, 'amount' => round($amount - $allocated, 2), 'due' => null, 'against' => null];
             }
 

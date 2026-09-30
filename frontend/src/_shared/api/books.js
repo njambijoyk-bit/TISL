@@ -38,6 +38,7 @@ const booksAPI = {
   openBills: (ledgerId, except) => get(`/admin/books/ledgers/${ledgerId}/open-bills`, except ? { except } : undefined),
   applyCredit: (id, data) => send('post', `/admin/books/vouchers/${id}/apply-credit`, data),
   releaseCredit: (id, creditVoucherId) => send('post', `/admin/books/vouchers/${id}/release-credit`, creditVoucherId ? { credit_voucher_id: creditVoucherId } : {}),
+  customerCredits: (customerId) => get(`/admin/books/customers/${customerId}/credits`),
   editLog: (params) => get('/admin/books/edit-log', params),
   versions: (id) => get(`/admin/books/vouchers/${id}/versions`),
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),

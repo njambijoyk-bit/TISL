@@ -1152,3 +1152,9 @@ Both are a credit balance on the customer ledger and a row in the open-bills que
 **Credit limit** is measured on the ledger's net balance (owed less overpayments/advances held), which it already is.
 
 **Build.** (a) rename and reword everything above; (b) `kind` on receipt advances plus the "advance for…" tick; (c) checkbox on invoice forms and posted invoices (apply at save); (d) refund as a prefilled Payment voucher that clears the overpayment, cancel restores; (e) customer-side messages and the tick on the order, applied at conversion. Then step 3 (write-off).
+
+### 29.1 Built (30 Sep 2026)
+- **Overpayment vs advance:** a receipt with money not matched to a bill keeps it as an *overpayment*; ticking *"This is an advance — for …"* on the receipt stores what it is for (`meta.advance`). Open bills return `nature` (`overpayment` | `advance`), `for`, and the amount net of refunds.
+- **Use it, with a tick (ticked to start):** Sales / Purchase forms (and Sales Orders, remembered as `meta.use_credit` and applied when the order becomes an invoice) show *"{Name} paid extra KSh X on RCT-… — use it?"* per voucher; the posted invoice shows the same with *Use … on INV-…* and *Give back*. Checkout, the order page (and *Change order*) and *My wallet* show the same sentences to the customer. `POST /vouchers` accepts `apply_credit: [ids]`; `CreditService::applyIfAny` applies oldest first, quietly when there is nothing. A cash sale has no bill, so credit is not applied there.
+- **Refund:** *Refund* beside an overpayment opens a **Payment** prefilled with the party, the amount and the narration *"Refund for voucher RCT-… for amount X from {account} account"* (it follows the account chosen). `refund_of` makes the payment settle the receipt's credit (no bill, no new credit); the amount is capped at what is left; cancelling the payment restores it; the receipt cannot be cancelled while a refund stands.
+- Tests: `billstest` (47 checks).
