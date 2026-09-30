@@ -1,0 +1,54 @@
+import { formatMoney } from '../../lib/money';
+
+const n2 = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const SOURCE = { tier: 'Tier discount', customer_type: 'Customer discount', personal: 'Personal discount', referral: 'Referral discount', promo: 'Promo code' };
+
+/**
+ * The money, laid out like a voucher: Particulars on the left, amounts in a right-hand column, the total ruled off at the
+ * bottom. Everything comes from the checkout quote, so it is always what the books will post.
+ */
+export default function SummaryLedger({ quote, showCustomer = true }) {
+  if (!quote) return null;
+  const sym = quote.currency?.symbol || quote.currency?.code || '';
+  const charges = (quote.lines ?? []).filter((l) => l.item_type === 'charge');
+  const chargeTotal = charges.reduce((t, l) => t + Number(l.amount || 0), 0);
+  const net = Number(quote.subtotal) - chargeTotal;
+  const off = (quote.discounts ?? []).reduce((t, d) => t + Number(d.amount || 0), 0);
+  const gross = net + off;
+  const c = quote.customer;
+  const cell = { padding: '8px 14px', fontSize: '0.86rem', color: '#111827' };
+  const amt = { ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
+  const row = (key, label, value, extra = {}) => (
+    <tr key={key} style={extra.rule ? { borderTop: '1.5px solid #111827' } : undefined}>
+      <td style={{ ...cell, paddingLeft: extra.indent ? 30 : 14, color: extra.color ?? '#111827', fontWeight: extra.bold ? 800 : 400, fontStyle: extra.italic ? 'italic' : 'normal' }}>{label}</td>
+      <td style={{ ...amt, color: extra.color ?? '#111827', fontWeight: extra.bold ? 800 : 400 }}>{value}</td>
+    </tr>
+  );
+  return (
+    <div style={{ borderRadius: 12, border: '1px solid #e5e7eb', background: 'white', overflow: 'hidden' }}>
+      {showCustomer && c && (
+        <div style={{ padding: '10px 14px', background: '#faf9ff', borderBottom: '1px solid #e5e7eb', fontSize: '0.78rem', color: '#4b5563', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <span><strong style={{ color: '#111827' }}>{c.name}</strong></span>
+          {c.tier && <span>Tier <strong>{c.tier}</strong>{c.tier_discount > 0 && ` · ${c.tier_discount}% off`}{c.points_multiplier > 1 && ` · ${c.points_multiplier}× points`}</span>}
+          {c.customer_type && <span>{c.customer_type}</span>}
+          <span>{c.points} points</span>
+        </div>
+      )}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid #e5e7eb' }}><th style={{ ...cell, textAlign: 'left', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>Particulars</th><th style={{ ...amt, fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>Amount</th></tr>
+        </thead>
+        <tbody>
+          {off > 0 ? row('gross', 'Goods at list price', n2(gross)) : null}
+          {(quote.discounts ?? []).map((d, i) => row(`d${i}`, `Less: ${SOURCE[d.source] ?? d.source}${d.ref ? ` (${d.ref})` : ''}`, `−${n2(d.amount)}`, { indent: true, color: '#059669' }))}
+          {row('net', off > 0 ? 'Goods after discounts' : 'Goods', n2(net), { rule: off > 0, bold: off > 0 })}
+          {charges.map((l, i) => row(`c${i}`, l.description, Number(l.amount) === 0 ? 'Free' : n2(l.amount)))}
+          {(quote.tax_breakdown ?? []).map((t, i) => row(`t${i}`, `${t.label}${t.percent != null ? ` ${Number(t.percent)}%` : ''}`, n2(t.amount)))}
+          {row('total', 'Total', formatMoney(quote.total, sym), { rule: true, bold: true })}
+          {quote.gift && row('gift', `Less: gift voucher (${quote.gift.code})`, `−${n2(quote.gift.applied)}`, { indent: true, color: '#059669' })}
+          {quote.gift && row('due', 'To pay now', formatMoney(quote.due_now, sym), { rule: true, bold: true })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -168,6 +168,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/policies/accept', [PolicyController::class, 'recordAcceptance']);
 });
 
+// Checkout — open to guests too; a signed-in customer's token (if sent) makes it their prices, tier and vouchers
+Route::prefix('checkout')->group(function () {
+    Route::get('/options', [CheckoutController::class, 'options']);
+    Route::post('/quote', [CheckoutController::class, 'quote']);
+    Route::post('/place', [CheckoutController::class, 'place']);
+});
+
 // Public shipping options (for checkout)
 Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 
@@ -604,9 +611,6 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Checkout on the books — cart in, Sales Order (and Cash Sale when paid) out
         Route::prefix('checkout')->group(function () {
-            Route::get('/options', [CheckoutController::class, 'options']);
-            Route::post('/quote', [CheckoutController::class, 'quote']);
-            Route::post('/place', [CheckoutController::class, 'place']);
             Route::get('/attempts/{id}', [CheckoutController::class, 'attempt']);
             Route::post('/orders/{id}/pay', [CheckoutController::class, 'payOrder']);
         });

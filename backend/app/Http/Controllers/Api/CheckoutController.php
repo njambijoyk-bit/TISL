@@ -56,7 +56,7 @@ class CheckoutController extends Controller
     public function options(Request $request): JsonResponse
     {
         $money = app(CurrencyConversionService::class);
-        $customer = $request->user()?->customer;
+        $customer = $request->user('sanctum')?->customer;
         $account = null;
         if ($customer && $customer->has_credit_account && (float) $customer->credit_limit > 0) {
             $ledger = \App\Models\Books\Ledger::where('customer_id', $customer->id)->first();
@@ -79,7 +79,7 @@ class CheckoutController extends Controller
     {
         $request->validate($this->rules());
 
-        return $this->guard(fn () => response()->json($this->checkout->quote($request->all(), $request->user())));
+        return $this->guard(fn () => response()->json($this->checkout->quote($request->all(), $request->user('sanctum'))));
     }
 
     public function place(Request $request): JsonResponse
@@ -93,10 +93,10 @@ class CheckoutController extends Controller
         ]);
 
         return $this->guard(function () use ($request) {
-            $res = $this->checkout->place($request->all(), $request->user());
-            $customer = $request->user()?->customer;
+            $res = $this->checkout->place($request->all(), $request->user('sanctum'));
+            $customer = $request->user('sanctum')?->customer;
             foreach ($request->input('policy_acceptances', []) as $pa) {
-                $this->logPolicyAcceptance($pa['key'], 'standard_checkout', $pa['response'], $customer, $request->user(), null, 'voucher', $res['order']['id'], true, $request);
+                $this->logPolicyAcceptance($pa['key'], 'standard_checkout', $pa['response'], $customer, $request->user('sanctum'), null, 'voucher', $res['order']['id'], true, $request);
             }
 
             return response()->json($res, 201);

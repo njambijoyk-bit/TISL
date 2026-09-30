@@ -184,10 +184,23 @@ class CheckoutService
 
         return [
             'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift,
+            'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift, 'customer' => $this->customerCard($a['customer']),
             'due_now' => round($p['total'] - $applied, 2),
             'available' => $this->entitlements($a['customer'], (float) $p['total'], $a['promoNet'], $a['promoReferral'], $a['currency'], ! empty($in['promo_code']) ? (string) $in['promo_code'] : null),
         ];
+    }
+
+    /** Who is shopping, as the summary shows them: their tier and what it gives. Null for a guest. */
+    private function customerCard(?Customer $c): ?array
+    {
+        if (! $c) {
+            return null;
+        }
+        $tier = $c->tier_benefits ?? [];
+
+        return ['name' => trim($c->first_name . ' ' . $c->last_name), 'tier' => $c->tier ? ucfirst((string) $c->tier) : null, 'tier_discount' => (float) ($tier['discount'] ?? 0),
+            'points_multiplier' => (float) ($tier['loyalty_points_multiplier'] ?? 1), 'customer_type' => $c->customer_type ? ucfirst(str_replace('_', ' ', (string) $c->customer_type)) : null,
+            'points' => (int) $c->loyalty_points];
     }
 
     /** Codes chosen for this order: gift_voucher_codes[] (and the older single gift_voucher_code). */

@@ -1009,3 +1009,10 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 - `POST /sales-orders/documents/{id}/review`: on a posted **Invoice or Cash Sale** of theirs the customer sends a note. It becomes a help-desk ticket (billing) and is written on the voucher (`meta.review_requests`), which staff see as an amber banner on the voucher. Nothing on the voucher changes unless staff edit it.
 - Customer order page: *Change order* (editable orders), *Ask for a review* beside each invoice/cash sale under Documents.
 - Still to do: pay-now polish, delivery tracking re-point, invoices/receipts/statement for account customers, unpaid-order expiry.
+
+## 25. Cart and checkout laid out like the voucher (built, 30 Sep 2026)
+
+- **Fixed:** the customer checkout/order/wallet calls went to `/api/checkout/...` but the routes sit under `/api/customer/...`, so the quote failed. `options`, `quote` and `place` are now open routes at `/api/checkout/*` (a signed-in customer's token, if sent, gives their own tier, promos and gift vouchers; a guest sees list prices); the rest (`sales-orders`, `attempts`, `orders/{id}/pay`, `wallet`) use `/api/customer/...`.
+- **Cart:** the items stay as they were. Below them the **summary ledger** (Particulars | Amount: goods at list price, each discount, goods after discounts, delivery, each tax, total) with the customer's tier strip, then **Delivery methods** to pick from and the **promo codes** on offer (or type one). Choices are kept in `checkout-prefs`.
+- **Checkout is a confirmation page:** the order in voucher columns (Item, Variant, Qty, Rate, Discount, Amount, Tax), the same summary ledger, contact and address, **how you will pay** (M-Pesa, pay later, on account) and gift vouchers, then Place order. The order appears under My orders at once. Quotations and quote requests stay out of checkout.
+- Guests still sign in before the checkout page (the quote itself works for them).
