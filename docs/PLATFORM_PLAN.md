@@ -978,3 +978,20 @@ Why not let a customer create an invoice or cash sale directly: it would let the
 5. **Currency:** always the base currency (section 20).
 
 **Build order.** (1) Order detail and My orders on the voucher engine (status, table, payments, cancel) — largely there; (2) pay-now on an unpaid order; (3) delivery tracking re-pointed to the voucher (section 19, item 1); (4) invoices and receipts for account customers, with statement; (5) unpaid-order expiry and stock check settings.
+
+**Decisions (1 Oct 2026).** (1) A Sales Order **never touches stock or money**: an admin opens it and converts it (to a Delivery Note, Invoice or Cash Sale) — that is when stock moves. (2) A customer **can edit a Sales Order until it has been converted**; they can **never edit an Invoice or Cash Sale**, but can **ask for a review** of one (a request staff see on the voucher, e.g. through the help-desk tickets). (3) Payments are dealt with later. (4) Guests can order.
+
+### 22.1 Gift vouchers, discounts, promos and referrals on a customer's order
+
+The order is priced once, at order time, by the same discount engine the admin uses (section 21); everything below follows from "the order is a locked, priced request".
+
+- **Discounts (customer type, tier, personal):** worked out when the order is placed and stored as line discounts, before VAT. Converting the order carries the lines and their discounts over unchanged (the price the customer saw is the price they pay). If the customer edits the order it is priced again from scratch with the current prices and discounts.
+- **Promo codes:** one per order, chosen from the codes the customer holds or typed. **Use is logged when the order is posted** and taken back if the order is cancelled, expires or is edited (then logged again for the new order). The invoice or cash sale made from the order does not log it a second time.
+- **Referral discount** (a referred customer's first order): applied at order time; it is *used up* when money is received (the referrer's reward and the referred customer's completion fire on the first Cash Sale or Receipt). Rule to add: while one live order already carries the referral discount, a second order cannot take it.
+- **Gift vouchers:** an order takes no money, so a gift voucher is **not spent when the order is placed**. The customer says "I'll pay with these" (ticked, as today) and the order remembers the choice; the voucher is only redeemed — converted into a payment line — when the order becomes a Cash Sale or the customer pays it. Balance is not held in between, so if the voucher is spent elsewhere first the customer is told at payment time. Buying a gift voucher on an order works as now (issued when paid).
+- **Loyalty points:** earned only when money arrives (section 21), never on an order.
+- **Guests:** no customer discounts, no gift vouchers, no points; a promo code needs an account (as now).
+- **Cancelling / expiring an order:** reverses the promo use, drops the remembered gift voucher choice, and does not need any stock or money reversal (there was none).
+- **Ask for a review:** on a posted Invoice or Cash Sale the customer sends a note; staff see it on the voucher and answer; nothing on the voucher changes unless staff edit it.
+
+Open points: whether a gift voucher's balance should be *held* for an order (reduces surprises, complicates cancelling), and whether a customer's edit re-prices at today's prices (proposed) or keeps the original ones.
