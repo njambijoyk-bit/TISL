@@ -59,6 +59,7 @@ class BooksVoucherController extends Controller
         // what a receipt / payment settles, so editing it shows the same allocations
         $out['allocations'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs')->where('voucher_id', $v->id)->where('ref_type', 'against')
             ->get(['against_voucher_id', 'amount'])->map(fn ($r) => ['against_voucher_id' => (int) $r->against_voucher_id, 'amount' => (float) $r->amount])->all();
+        $out['credit_applied'] = app(\App\Services\Books\CreditService::class)->appliedTo($v);
         $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true) ? $this->vouchers->outstanding($v) : null;
 
         return response()->json($out);
@@ -175,6 +176,30 @@ class BooksVoucherController extends Controller
         $request->validate(['except' => 'nullable|integer', 'as_of' => 'nullable|date']);
 
         return response()->json($bills->forLedger($ledgerId, $request->integer('except') ?: null, $request->get('as_of')));
+    }
+
+    /** Settle a posted sales / purchase invoice from the party's credit on account. */
+    public function applyCredit(Request $request, int $id, \App\Services\Books\CreditService $credit): JsonResponse
+    {
+        $d = $request->validate(['amount' => 'nullable|numeric|min:0.01', 'credit_voucher_ids' => 'nullable|array', 'credit_voucher_ids.*' => 'integer']);
+
+        return $this->guard(function () use ($request, $id, $credit, $d) {
+            $res = $credit->apply(Voucher::findOrFail($id), isset($d['amount']) ? (float) $d['amount'] : null, $d['credit_voucher_ids'] ?? null, $request->user());
+
+            return response()->json($res + ['message' => 'Applied ' . number_format($res['applied'], 2) . ' of credit.']);
+        });
+    }
+
+    /** Give applied credit back: the invoice is outstanding again. */
+    public function releaseCredit(Request $request, int $id, \App\Services\Books\CreditService $credit): JsonResponse
+    {
+        $request->validate(['credit_voucher_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $id, $credit) {
+            $n = $credit->release(Voucher::findOrFail($id), $request->integer('credit_voucher_id') ?: null, $request->user());
+
+            return response()->json(['released' => $n, 'message' => $n > 0 ? 'Credit given back: ' . number_format($n, 2) : 'No applied credit to give back.']);
+        });
     }
 
     /** Every version of one voucher, for comparing any two. */

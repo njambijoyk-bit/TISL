@@ -430,6 +430,29 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               </div>
             </div>
 
+            {preview?.entries?.length > 0 && (
+              <div style={{ ...card, padding: 18 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>What this will post</p>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead><tr><th style={{ textAlign: 'left', padding: '4px', fontSize: '0.65rem', color: colors.textFaint }}> </th><th style={{ textAlign: 'left', fontSize: '0.65rem', color: colors.textFaint }}>Ledger</th><th style={{ textAlign: 'right', fontSize: '0.65rem', color: colors.textFaint }}>Debit</th><th style={{ textAlign: 'right', fontSize: '0.65rem', color: colors.textFaint }}>Credit</th></tr></thead>
+                  <tbody>
+                    {preview.entries.map((e, i) => (
+                      <tr key={i} style={{ borderTop: `1px solid ${colors.tint(0.05)}` }}>
+                        <td style={{ padding: '5px 4px', width: 40, color: colors.textFaint }}>{e.side === 'D' ? 'Dr' : 'Cr'}</td>
+                        <td style={{ paddingLeft: e.side === 'C' ? 18 : 0 }}>{e.ledger}</td>
+                        <td style={{ textAlign: 'right' }}>{e.side === 'D' ? money(e.amount) : ''}</td>
+                        <td style={{ textAlign: 'right' }}>{e.side === 'C' ? money(e.amount) : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(preview.tax_breakdown ?? []).length > 0 && (
+                  <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: colors.textMuted }}>Input tax claimed: {preview.tax_breakdown.map((t) => `${t.label} ${money(t.amount)}`).join(' · ')}</p>
+                )}
+                {preview.stock?.length > 0 && <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Brings stock in on {preview.stock.length} line(s).</p>}
+              </div>
+            )}
+
             <div style={{ ...card, padding: 18 }}>
               <div style={{ display: 'flex', gap: 24, justifyContent: 'flex-end', flexWrap: 'wrap', fontSize: '0.85rem' }}>
                 <div>Subtotal <strong>{money(preview?.subtotal ?? subtotal)}</strong></div>

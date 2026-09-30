@@ -11,6 +11,7 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
+import CreditPanel from '../../../components/admin/books/CreditPanel';
 import { Chip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
@@ -186,6 +187,8 @@ export default function VoucherView() {
           {v.outstanding != null && <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>OUTSTANDING</span><strong style={{ color: Number(v.outstanding) > 0.005 ? colors.warningText : colors.successText }}>{money(v.outstanding)}</strong></div>}
           {v.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>NARRATION</span>{v.narration}</div>}
         </div>
+
+        <CreditPanel v={v} canWrite={canWrite} onDone={load} />
 
         {top.length > 0 && (
           <div style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>

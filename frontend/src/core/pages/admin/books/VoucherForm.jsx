@@ -170,6 +170,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
   const [alloc, setAlloc] = useState({});            // receipt / payment: bill id -> amount settled
   const [allocTouched, setAllocTouched] = useState(false);
+  const [allParties, setAllParties] = useState(false);   // receipt / payment: customers and suppliers only, unless asked for every ledger
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -182,6 +183,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const isMoney = base === 'receipt' || base === 'payment';
   const isEntries = base === 'journal' || base === 'contra';
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
+
+  // purchases, goods received notes and opening stock are entered on the Purchases page (batches, expiry, create-a-product)
+  useEffect(() => {
+    if (mode !== 'books' || !base) return;
+    const to = { purchase: editing ? `/admin/purchases/${id}/edit` : '/admin/purchases/new', receipt_note: editing ? `/admin/purchases/${id}/edit` : '/admin/purchases/receipt/new', opening_stock: editing ? `/admin/purchases/${id}/edit` : '/admin/stock/opening/new' }[base];
+    if (to) nav(to, { replace: true });
+  }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     api.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
@@ -411,9 +419,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => { setAlloc({}); setAllocTouched(false); setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null })); }} style={small}>
                     <option value="">Choose a ledger…</option>
-                    {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : (isMoney && !allParties ? partyLedgers : ledgers)).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                   {h.party_ledger_id && <button type="button" onClick={clearParty} style={CHANGE_LINK}>{isMoney ? 'Select another party' : 'Select another supplier'}</button>}
+                  {isMoney && <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '0.72rem', color: colors.textMuted, cursor: 'pointer' }}><input type="checkbox" checked={allParties} onChange={(e) => setAllParties(e.target.checked)} /> Show every ledger (expenses, other accounts)</label>}
                 </div>
               )}
               {needsMethod && (

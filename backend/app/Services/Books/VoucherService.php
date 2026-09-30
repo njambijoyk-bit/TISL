@@ -101,6 +101,7 @@ class VoucherService
                 throw new BooksException('A cancelled voucher can not be edited.');
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
+            app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account; apply again after the edit
             $this->assertNoLiveChildren($voucher, 'edit');
             if (! $voucher->type->has_items && StockMovement::where('voucher_id', $voucher->id)->exists()) {
                 throw new BooksException('This voucher wrote stock off, so it can not be edited. Cancel it (the stock comes back) and write the stock off again.');
@@ -140,6 +141,7 @@ class VoucherService
                 throw new BooksException('That voucher is already cancelled.');
             }
             $this->guard->assertVoucher('cancel', $voucher, $user);
+            app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account
             $this->assertNoLiveChildren($voucher, 'cancel');
             if ((float) ($voucher->meta['gift_refunded'] ?? 0) > 0.005) {
                 throw new BooksException('Part of this credit note was refunded as a gift voucher (' . implode(', ', $voucher->meta['gift_vouchers'] ?? []) . '). Cancel those gift vouchers first.');
