@@ -24,6 +24,8 @@ import { btnPrimary, btnGhost, card, colors, input } from '../../../_shared/them
  * Batch number and expiry are only asked for on products that track expiry.
  */
 
+const CLEAR_BTN = { border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 800, padding: '1px 8px', borderRadius: 999, marginLeft: 6 };
+const CHANGE_LINK = { border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, padding: 0, marginTop: 4, textDecoration: 'underline' };
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const label = { display: 'block', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, marginBottom: 3 };
 const newKey = () => Math.random().toString(36).slice(2);
@@ -285,11 +287,12 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               {!opening && (
                 <div style={!h.party_ledger_id && !h.payment_method_id ? { border: '1.5px solid #dc2626', background: '#fef2f2', boxShadow: '0 0 0 3px rgba(220,38,38,0.10)', borderRadius: 10, padding: 8 } : undefined} data-needs={!h.party_ledger_id && !h.payment_method_id ? 'supplier' : undefined}>
-                  <label style={{ ...label, ...(!h.party_ledger_id && !h.payment_method_id ? { color: '#b91c1c' } : {}) }}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}{!h.party_ledger_id && !h.payment_method_id && <span style={{ fontWeight: 600 }}> — choose one</span>}</label>
+                  <label style={{ ...label, ...(!h.party_ledger_id && !h.payment_method_id ? { color: '#b91c1c' } : {}) }}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}{!h.party_ledger_id && !h.payment_method_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={() => setH((x) => ({ ...x, party_ledger_id: '' }))} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value }))} style={small}>
                     <option value="">{h.payment_method_id ? 'Not a vendor…' : 'Choose…'}</option>
                     {suppliers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
+                  {h.party_ledger_id && <button type="button" onClick={() => setH((x) => ({ ...x, party_ledger_id: '' }))} style={CHANGE_LINK}>Select another supplier</button>}
                 </div>
               )}
               {!opening && !receipt && (

@@ -130,6 +130,8 @@ function MaterialsEditor({ api, materials, onChange, ledgers }) {
 const LINE_COLS = 'minmax(220px,1fr) 88px 72px 104px 84px 116px 34px';
 // a box the admin must not forget: red until it is filled
 const NEEDS = { border: '1.5px solid #dc2626', background: '#fef2f2', boxShadow: '0 0 0 3px rgba(220,38,38,0.10)', borderRadius: 10 };
+const CLEAR_BTN = { border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 800, padding: '1px 8px', borderRadius: 999, marginLeft: 6 };
+const CHANGE_LINK = { border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, padding: 0, marginTop: 4, textDecoration: 'underline' };
 const colHead = { fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
 
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
@@ -326,6 +328,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     return () => clearTimeout(t);
   }, [payload, type, hasItems, isMoney, entries, lines.length, h.amount]);
 
+  const clearCustomer = () => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }));
+  const clearParty = () => setH((x) => ({ ...x, party_ledger_id: '', customer: null }));
   const setLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   const addLine = (t) => setLines((ls) => [...ls, emptyLine(t)]);
   const setEntry = (i, patch) => setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
@@ -382,8 +386,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               )}
               {type?.party_kind === 'customer' && hasItems && (
                 <div style={!h.customer && !h.party_name ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.customer && !h.party_name ? 'customer' : undefined}>
-                  <label style={{ ...label, ...(!h.customer && !h.party_name ? { color: '#b91c1c' } : {}) }}>Customer {!h.customer && !h.party_name && <span style={{ fontWeight: 600 }}>— choose one</span>} {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
-                  {h.customer ? <div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div>
+                  <label style={{ ...label, ...(!h.customer && !h.party_name ? { color: '#b91c1c' } : {}) }}>Customer {!h.customer && !h.party_name && <span style={{ fontWeight: 600 }}>— choose one</span>} {h.customer && <button type="button" onClick={clearCustomer} style={CLEAR_BTN}>Clear</button>}</label>
+                  {h.customer ? <><div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div><button type="button" onClick={clearCustomer} style={CHANGE_LINK}>Select another customer</button></>
                     : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c, party_ledger_id: '' }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
               )}
@@ -397,11 +401,12 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               )}
               {(type?.party_kind === 'supplier' || isMoney) && (
                 <div style={!h.party_ledger_id ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.party_ledger_id ? 'party' : undefined}>
-                  <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}</label>
+                  <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null }))} style={small}>
                     <option value="">Choose a ledger…</option>
                     {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
+                  {h.party_ledger_id && <button type="button" onClick={clearParty} style={CHANGE_LINK}>{isMoney ? 'Select another party' : 'Select another supplier'}</button>}
                 </div>
               )}
               {needsMethod && (
