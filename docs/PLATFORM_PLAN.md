@@ -1058,3 +1058,44 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 4. Cash count and driver-cash handling (script 40).
 
 **Decisions needed.** (a) Keep `payment_methods` as a thin layer generated from the ledgers (recommended, safe) or drop it now. (b) When a received cheque is posted: at receipt date to the bank ledger flagged uncleared (recommended, like Tally) or only when deposited. (c) Cash on delivery: a flagged cash ledger (recommended) or a separate mode. (d) Who bears the bounce fee by default: us, or billed to the customer.
+
+### 26.7 Decisions (30 Sep 2026)
+(a) Keep `payment_methods` as a thin layer generated from the ledgers. (b) A received cheque posts to the bank ledger on the receipt date, flagged *uncleared*. (c) Cash on delivery is a flagged cash ledger (kind Driver cash). (d) **A bounced cheque is recoverable from the customer:** the customer owes the original amount again **plus the bounce fee** (see 27.4, which replaces 26.4's "who bears it").
+
+## 27. Bill by bill: what we owe, what they owe, on-account credit, write-off (plan, 30 Sep 2026)
+
+**What exists.** Every posted Sales invoice opens a *new* bill; a Receipt can settle invoices (`allocations`) and whatever is not allocated is stored as an *advance* bill; `outstanding()` works out what is left on an invoice. **Gaps:** no screen sends allocations (the receipt form is party + amount only); you cannot see what a party owes while writing the voucher; purchase invoices and credit/debit notes do not have an outstanding figure, so payments cannot settle bills; an advance can never be used against a later invoice; nothing writes off a bad debt.
+
+### 27.1 Receipt / Payment: see the bills when you pick the party
+- Choose the customer (or supplier) ledger and the form shows a **balance strip**: *They owe us KSh X* / *We owe them KSh Y*, and any **credit on account** held (advances), then the **open bills**: voucher no., date, due date (overdue in red), original, outstanding, and a **Settle** amount box per bill.
+- Typing the amount received **auto-allocates oldest due first** (editable); ticking a bill fills its outstanding. The unallocated remainder shows as **On account** (becomes an advance), so **an overpayment goes on account automatically**. Payments work the same way against purchase invoices.
+- Settling against a bill that is not the party's, or more than is outstanding, is refused (already enforced).
+
+### 27.2 Outstanding for every bill-carrying voucher
+- `outstanding()` extended to Purchase, Debit/Credit Notes and opening balances; one open-bills query per party ledger (new bills + advances − settlements), used by the receipt/payment form, the customer account page, statements and ageing so they always agree.
+
+### 27.3 Using on-account credit (overpayment, advance, credit note)
+- On a new Sales invoice (or Purchase) the form shows **Credit on account: KSh X — apply**. Applying settles the invoice (fully or partly) against the advance: **no money moves and no new ledger entry is needed** (the customer ledger already holds the credit); only bill-reference rows change, stored on the invoice so cancelling or editing it gives the credit back.
+- The same **Apply credit** button sits on any open bill, so credit can settle an *older* invoice later. The customer then "pays partially or fully with the extra amount"; any difference is paid by receipt as usual.
+- A customer's credit can also be **refunded** (a Payment voucher against the advance) and, for storefront customers, shown on *My account* and offered as **Pay with account credit** at checkout (later).
+
+### 27.4 Bounced cheque (recoverable)
+- Bounce of a KSh 50,000 cheque posts one linked journal: **Dr Customer 50,000 / Cr Bank 50,000** and the **original bills are open again** (the receipt's settlements are reversed and a *returned cheque* bill carries the original due dates).
+- The bank's fee: **Dr Bank Charges / Cr Bank**; then billed on to the customer as recoverable: **Dr Customer / Cr Bank Charges** (the expense nets to nil) and a separate **Bounced cheque fee** bill opens. The customer now owes *original outstanding + fee*. If you waive the fee the second entry is simply not made.
+- Everything is bill-by-bill, so the customer's statement shows the returned cheque and the fee as two lines.
+
+### 27.5 Write-off
+- **Write off** on an open bill (or on the whole balance): *Dr Bad Debts / Cr Customer*, settles the bill (partly or fully), needs a **reason**, and is limited by **role and a maximum amount** (Settings). Seeded ledgers: **Bad Debts Written Off** (indirect expense) and **Discount Allowed / Small Balances** (for rounding-size differences, optional automatic below a threshold).
+- It is a voucher (Journal), so it is in the edit log, can be cancelled (the bill opens again), and reports list it. Loyalty points and promo use on the original sale are **not** reversed by a write-off (the goods were delivered); this is stated on the screen.
+- VAT on a written-off invoice: Kenya allows bad-debt relief only under conditions, so the system writes off the gross amount and flags "VAT not adjusted" — to be confirmed with the accountant before automating.
+- Suppliers: writing a payable back (a supplier forgives a bill) is the mirror (Dr Supplier / Cr Other Income), built later.
+
+### 27.6 Revised build order (steps 1-2 new)
+1. **Open bills + receipt/payment allocation screen** (API + form), outstanding for purchases and notes.
+2. **On-account credit**: apply to invoices/bills, refund, and write-off with its ledgers and limits (script 37).
+3. Ledger characteristics, offered-at-checkout list, payment intent on the order (script 38).
+4. Instruments and deposit slips (script 39).
+5. Cheque register, bounce with recoverable fee, bank-charge ledgers (script 40).
+6. Cash count and driver cash (script 41).
+
+**Decision needed.** Write-off approval: any finance user up to a set limit and a manager above it (recommended), or any finance user without a limit?
