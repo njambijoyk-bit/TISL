@@ -48,6 +48,22 @@ function Picker({ api, kind, purpose, placeholder, onPick, render }) {
   );
 }
 
+/** Which batch a sale line takes from — automatic (first expiring) unless the seller picks one. Shown for products that track expiry. */
+function BatchPick({ api, variantId, locationId, value, onChange }) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    let live = true;
+    (api.stockBatches ?? booksAPI.stockBatches)(variantId, locationId || undefined).then((r) => { if (live) setRows(r); }).catch(() => { if (live) setRows([]); });
+    return () => { live = false; };
+  }, [api, variantId, locationId]);
+  return (
+    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} style={{ ...small, marginTop: 4 }} aria-label="Batch">
+      <option value="">Batch: automatic (first expiring)</option>
+      {rows.map((b) => <option key={b.id} value={b.id}>{b.batch_no || `#${b.id}`} · {b.expiry_date ? `exp ${b.expiry_date}` : 'no expiry'} · {b.quantity} left</option>)}
+    </select>
+  );
+}
+
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
@@ -140,7 +156,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (hasItems) {
       p.lines = lines.map((l) => {
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
-        if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate) };
+        if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate), batch_id: l.batch_id || undefined };
         if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
         if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
@@ -295,8 +311,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     <div>
                       <label style={label}>{{ product: 'Product / variant', service: 'Service / package', hamper: 'Hamper', charge: 'Charge', custom: 'Custom line' }[l.type]}</label>
                       {l.type === 'product' && (l.variant_id
-                        ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
+                        ? <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
+                          {SALES_SIDE.includes(base) && !['quotation', 'credit_note'].includes(base) && l.track_expiry && (
+                            <BatchPick api={api} variantId={l.variant_id} locationId={h.location_id} value={l.batch_id} onChange={(v) => setLine(l.key, { batch_id: v })} />
+                          )}
+                        </div>
+                        : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, track_expiry: Boolean(r.track_expiry), batch_id: '', label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '' })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}

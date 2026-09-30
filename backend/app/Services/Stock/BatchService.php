@@ -99,6 +99,38 @@ class BatchService
         return $out;
     }
 
+    /**
+     * What issue() would take, without taking it — for previews. Same order, same skipping.
+     *
+     * @return array<int, array{batch_id:int, qty:float, unit_cost:float, created:bool}>  qty is negative
+     */
+    public function peek(int $variantId, int $locationId, float $qty, array $o = []): array
+    {
+        $left = round($qty, 4);
+        if ($left <= 0) {
+            return [];
+        }
+        $q = DB::table('stock_batch_balances as b')
+            ->join('stock_batches as s', 's.id', '=', 'b.batch_id')
+            ->where('s.variant_id', $variantId)->where('b.location_id', $locationId)->where('b.quantity', '>', 0);
+        if (! empty($o['batch_id'])) {
+            $q->where('s.id', $o['batch_id']);
+        } else {
+            $q->where('s.status', StockBatch::ACTIVE)->orderByRaw('s.expiry_date IS NULL')->orderBy('s.expiry_date')->orderBy('s.id');
+        }
+        $out = [];
+        foreach ($q->get(['b.batch_id', 'b.quantity', 's.unit_cost']) as $row) {
+            if ($left <= 0.00005) {
+                break;
+            }
+            $take = round(min((float) $row->quantity, $left), 4);
+            $out[] = ['batch_id' => (int) $row->batch_id, 'qty' => -$take, 'unit_cost' => (float) $row->unit_cost, 'created' => false];
+            $left = round($left - $take, 4);
+        }
+
+        return $out;
+    }
+
     /** Everything a variant has at a branch, across all its batches. */
     public function total(int $variantId, int $locationId): float
     {

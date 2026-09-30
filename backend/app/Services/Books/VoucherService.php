@@ -58,6 +58,9 @@ class VoucherService
         $type = $this->typeFrom($data);
         $plan = $this->plan($data, $type, null);
         $this->guard->assert('create', $plan['date'], $user, $type->id);
+        if ($plan['moves_stock']) {
+            $plan['entries'] = array_merge($plan['entries'], $this->cogsEntries($plan, $this->estimateAllocations($plan['stock'])));   // what the batches would cost
+        }
 
         return $this->describe($plan);
     }
@@ -369,6 +372,7 @@ class VoucherService
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
 
         $plan = [
+            'source_id' => ! empty($data['source_voucher_id']) ? (int) $data['source_voucher_id'] : null,
             'opening_ledger_id' => ! empty($data['opening_ledger_id']) ? (int) $data['opening_ledger_id'] : null,
             'type' => $type, 'date' => $date, 'due' => ! empty($data['due_date']) ? Carbon::parse($data['due_date']) : null,
             'location_id' => $locationId, 'customer' => $customer, 'party' => $party, 'currency' => $currency, 'rate' => $rate,
@@ -393,7 +397,7 @@ class VoucherService
             $moves = array_key_exists('moves_stock', $data) ? (bool) $data['moves_stock'] : $type->stock_effect !== 'none';
             $plan['moves_stock'] = $moves && $type->stock_effect !== 'none';
             if ($plan['moves_stock']) {
-                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date);
+                $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date, $plan['source_id'], $existing?->id);
             }
         } else {
             [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);   // also settles $plan['tenders']
@@ -481,7 +485,7 @@ class VoucherService
             'discount_amount' => 0.0, 'amount' => 0.0, 'tax_rate_id' => null, 'tax_rate_percent' => null, 'tax_amount' => 0.0,
             'ledger_id' => null, 'location_id' => null, 'source_item_id' => null, 'notes' => null,
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
-            'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false,
+            'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false, 'pick_batch_id' => null,
             'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
         ];
     }
@@ -616,6 +620,7 @@ class VoucherService
             'mfg_date' => filled($l['mfg_date'] ?? null) ? $l['mfg_date'] : null,
             'expiry_date' => filled($l['expiry_date'] ?? null) ? $l['expiry_date'] : null,
             'track_expiry' => (bool) $product->track_expiry,
+            'pick_batch_id' => filled($l['batch_id'] ?? null) ? (int) $l['batch_id'] : null,   // a sale may name the batch to take from; otherwise first-expiring goes first
         ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
         $line['pending_price'] = $pending;
@@ -1213,7 +1218,7 @@ class VoucherService
 
     // ── stock ──────────────────────────────────────────────────────────
 
-    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0, ?Carbon $date = null): array
+    private function stockPlan(array $lines, VoucherType $type, ?int $voucherLocationId, float $rate = 1.0, ?Carbon $date = null, ?int $sourceId = null, ?int $excludeVoucherId = null): array
     {
         $sign = $type->stock_effect === 'out' ? -1 : 1;
         $moves = [];
@@ -1226,10 +1231,16 @@ class VoucherService
                 throw new BooksException('Choose the branch stock moves from.');
             }
             $move = ['variant_id' => $l['variant_id'], 'location_id' => (int) $loc, 'qty' => $sign * (float) $l['stock_qty'], 'product' => $l['description']];
-            if ($sign > 0) {
+            if ($sign > 0 && $type->isSalesSide()) {
+                // a customer's return: back into the batch(es) it was sold from, at their cost (never at the selling price)
+                $move['unit_cost'] = null;
+                $move['return_to'] = $sourceId ? $this->returnableBatches($sourceId, (int) $l['variant_id'], (int) $loc, (float) $l['stock_qty'], $excludeVoucherId) : [];
+            } elseif ($sign > 0) {
                 // what this stock cost: the line's net amount (after discount, before tax) in base currency, per base unit
                 $move['unit_cost'] = round((float) ($l['amount'] ?? 0) * $rate / (float) $l['stock_qty'], 4);
                 $move['batch'] = $this->batchInfo($l, $date);
+            } elseif (! empty($l['pick_batch_id'])) {
+                $move['batch_id'] = (int) $l['pick_batch_id'];   // the seller chose the batch
             }
             $moves[] = $move;
         }
@@ -1264,6 +1275,180 @@ class VoucherService
         return (filled($no) || filled($mfg) || filled($exp))
             ? ['batch_no' => filled($no) ? $no : null, 'mfg_date' => filled($mfg) ? $mfg : null, 'expiry_date' => filled($exp) ? $exp : null]
             : null;
+    }
+
+    // ── cost of goods sold ──────────────────────────────────────────────
+
+    /**
+     * The Dr Cost of Goods Sold / Cr Stock pair for a sale (and its reverse for a customer's return), at the
+     * cost of the batches the goods came from. Only sales, cash sales and credit notes that post accounts;
+     * nothing is posted until the Stock and Cost of Goods Sold ledgers are chosen in Books → Settings.
+     *
+     * A sale invoiced from an order or delivery note did not move the stock itself: its cost is the cost of
+     * what the delivery took out (the average of that document family's movements for the product).
+     *
+     * @param  array  $allocs  what applyStock() did (or estimateAllocations() thinks it will do)
+     */
+    private function cogsEntries(array $plan, array $allocs): array
+    {
+        /** @var VoucherType $type */
+        $type = $plan['type'];
+        $base = $type->base_type;
+        if (! $type->posts_accounts || ! in_array($base, [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::CREDIT_NOTE], true)) {
+            return [];
+        }
+        $settings = AccountingSetting::current();
+        if (! $settings->stock_ledger_id || ! $settings->cogs_ledger_id) {
+            return [];
+        }
+
+        $cost = 0.0;
+        foreach ($allocs as $a) {
+            $cost += -(float) $a['qty'] * (float) $a['unit_cost'];   // out is positive cost, a return negative
+        }
+        if ($base !== VoucherType::CREDIT_NOTE && ! empty($plan['source_id'])) {
+            foreach ($this->postingLines($plan['lines']) as $l) {
+                if (empty($l['variant_id'])) {
+                    continue;
+                }
+                $delivered = (float) ($l['base_quantity'] ?? 0) - ($plan['moves_stock'] ? (float) ($l['stock_qty'] ?? 0) : 0.0);
+                if ($delivered > 0.00005 && ($avg = $this->familyAvgCost($plan['source_id'], (int) $l['variant_id'])) !== null) {
+                    $cost += $delivered * $avg;
+                }
+            }
+        }
+        $cost = round($cost, 2);
+        if (abs($cost) < 0.005) {
+            return [];
+        }
+
+        $amount = round(abs($cost) / (float) $plan['rate'], 2);
+        $mk = fn (int $ledgerId, string $side, string $note) => [
+            'ledger_id' => $ledgerId, 'side' => $side, 'amount' => $amount, 'base_amount' => round(abs($cost), 2),
+            'is_party' => false, 'is_tax' => false, 'narration' => $note,
+        ];
+
+        return $cost > 0
+            ? [$mk((int) $settings->cogs_ledger_id, 'D', 'Cost of goods sold'), $mk((int) $settings->stock_ledger_id, 'C', 'Stock sold at cost')]
+            : [$mk((int) $settings->stock_ledger_id, 'D', 'Returned stock at cost'), $mk((int) $settings->cogs_ledger_id, 'C', 'Cost of goods sold reversed')];
+    }
+
+    /** What applyStock() would do for these moves, without doing it — so a preview can show the cost. */
+    private function estimateAllocations(array $moves): array
+    {
+        $batches = app(\App\Services\Stock\BatchService::class);
+        $needs = [];
+        $out = [];
+        foreach ($moves as $m) {
+            if ($m['qty'] < 0 && ! empty($m['batch_id'])) {
+                $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $m['variant_id']], $batches->peek((int) $m['variant_id'], (int) $m['location_id'], abs($m['qty']), ['batch_id' => $m['batch_id']])));
+            } elseif ($m['qty'] < 0) {
+                $key = $m['variant_id'] . ':' . $m['location_id'];
+                $needs[$key] = ($needs[$key] ?? 0) + abs($m['qty']);
+            } elseif (array_key_exists('return_to', $m)) {
+                $left = (float) $m['qty'];
+                foreach ($m['return_to'] as [$batchId, $q]) {
+                    $q = min($q, $left);
+                    if ($q > 0.00005) {
+                        $out[] = ['variant_id' => $m['variant_id'], 'batch_id' => $batchId, 'qty' => $q, 'unit_cost' => (float) StockBatch::whereKey($batchId)->value('unit_cost'), 'created' => false];
+                        $left -= $q;
+                    }
+                }
+                if ($left > 0.00005) {
+                    $out[] = ['variant_id' => $m['variant_id'], 'batch_id' => null, 'qty' => $left, 'unit_cost' => $batches->lastCost((int) $m['variant_id']), 'created' => true];
+                }
+            }
+        }
+        foreach ($needs as $key => $qty) {
+            [$variantId, $locId] = array_map('intval', explode(':', $key));
+            $out = array_merge($out, array_map(fn ($a) => $a + ['variant_id' => $variantId], $batches->peek($variantId, $locId, $qty)));
+        }
+
+        return $out;
+    }
+
+    /** Every voucher in the same chain as this one (quotation → order → delivery → invoice → returns), minus `$exclude`. */
+    private function documentFamily(int $anyId, ?int $exclude = null): array
+    {
+        $root = $anyId;
+        for ($i = 0; $i < 10 && ($parent = Voucher::whereKey($root)->value('source_voucher_id')); $i++) {
+            $root = (int) $parent;
+        }
+        $ids = [$root];
+        $frontier = [$root];
+        for ($i = 0; $i < 10 && $frontier; $i++) {
+            $kids = array_values(array_diff(Voucher::whereIn('source_voucher_id', $frontier)->pluck('id')->map(fn ($x) => (int) $x)->all(), $ids));
+            $ids = array_merge($ids, $kids);
+            $frontier = $kids;
+        }
+
+        return $exclude ? array_values(array_diff($ids, [$exclude])) : $ids;
+    }
+
+    /** Average cost per base unit of what left stock for a product anywhere in this document chain; null if nothing did. */
+    private function familyAvgCost(int $sourceId, int $variantId): ?float
+    {
+        $rows = StockMovement::whereIn('voucher_id', $this->documentFamily($sourceId))->where('variant_id', $variantId)
+            ->where('quantity', '<', 0)->whereNotNull('unit_cost')->get(['quantity', 'unit_cost']);
+        $qty = $rows->sum(fn ($r) => abs((float) $r->quantity));
+
+        return $qty > 0 ? $rows->sum(fn ($r) => abs((float) $r->quantity) * (float) $r->unit_cost) / $qty : null;
+    }
+
+    /**
+     * Where a customer's return can go back to: the batches this chain took the product from and that have not
+     * already come back, as [batch_id, quantity] pairs (at most `$qty` in all).
+     */
+    private function returnableBatches(int $sourceId, int $variantId, int $locationId, float $qty, ?int $exclude = null): array
+    {
+        $net = StockMovement::whereIn('voucher_id', $this->documentFamily($sourceId, $exclude))
+            ->where('variant_id', $variantId)->where('location_id', $locationId)->whereNotNull('batch_id')
+            ->orderBy('id')->get(['batch_id', 'quantity'])
+            ->groupBy('batch_id')->map(fn ($g) => -$g->sum(fn ($r) => (float) $r->quantity));   // sold minus already returned
+        $out = [];
+        $left = $qty;
+        foreach ($net as $batchId => $sold) {
+            if ($sold > 0.00005 && $left > 0.00005) {
+                $take = min($sold, $left);
+                $out[] = [(int) $batchId, round($take, 4)];
+                $left -= $take;
+            }
+        }
+
+        return $out;
+    }
+
+    /** Write which batch each sale line came from, for products that track expiry (it prints on the invoice). */
+    private function stampBatches(array $made, array $applied, ?int $voucherLocation): void
+    {
+        $queues = [];
+        foreach ($applied as $a) {
+            if ($a['qty'] < 0) {
+                $queues[$a['variant_id'] . ':' . $a['location_id']][] = [$a['batch_id'], -(float) $a['qty']];
+            }
+        }
+        foreach ($made as [$item, $l]) {
+            $key = ($l['variant_id'] ?? 0) . ':' . ($l['location_id'] ?? $voucherLocation);
+            if (empty($l['track_expiry']) || empty($l['variant_id']) || (float) ($l['stock_qty'] ?? 0) <= 0 || empty($queues[$key])) {
+                continue;
+            }
+            $need = (float) $l['stock_qty'];
+            $used = [];
+            while ($need > 0.00005 && ! empty($queues[$key])) {
+                $take = min($queues[$key][0][1], $need);
+                $used[] = $queues[$key][0][0];
+                $queues[$key][0][1] -= $take;
+                $need -= $take;
+                if ($queues[$key][0][1] <= 0.00005) {
+                    array_shift($queues[$key]);
+                }
+            }
+            $batches = StockBatch::whereIn('id', $used)->get();
+            $item->update([
+                'batch_no'    => $batches->pluck('batch_no')->filter()->unique()->implode(', ') ?: null,
+                'expiry_date' => $batches->pluck('expiry_date')->filter()->sort()->first(),
+            ]);
+        }
     }
 
     // =====================================================================
@@ -1307,12 +1492,22 @@ class VoucherService
 
         // items (headers first so children can point at them)
         $n = 0;
+        $made = [];
         foreach ($plan['lines'] as $l) {
             $header = $this->createItem($voucher, $l, ++$n, null);
+            if (! $l['is_header']) {
+                $made[] = [$header, $l];
+            }
             foreach ($l['is_header'] ? $l['children'] : [] as $c) {
-                $this->createItem($voucher, $c, ++$n, $header->id);
+                $made[] = [$this->createItem($voucher, $c, ++$n, $header->id), $c];
             }
         }
+        if ($type->isSalesSide() && $applied) {
+            $this->stampBatches($made, $applied, $plan['location_id']);   // print which batch each line came from (expiry products only)
+        }
+
+        // what the goods sold cost (or, for a return, what comes back) — at the cost of the batches they came from
+        $plan['entries'] = array_merge($plan['entries'], $this->cogsEntries($plan, $applied));
 
         $i = 0;
         foreach ($plan['entries'] as $e) {
@@ -1383,9 +1578,19 @@ class VoucherService
         $needs = [];
         $costs = [];
         $arrivals = [];   // stock arriving with its own batch number / dates: each becomes its own batch
+        $picked = [];     // stock going out of a batch the seller named
+        $returns = [];    // a customer's return: goes back into the batch(es) it was sold from
         foreach ($moves as $m) {
             if ($m['qty'] > 0 && ! empty($m['batch'])) {
                 $arrivals[] = $m;
+                continue;
+            }
+            if ($m['qty'] > 0 && array_key_exists('return_to', $m)) {
+                $returns[] = $m;
+                continue;
+            }
+            if ($m['qty'] < 0 && ! empty($m['batch_id'])) {
+                $picked[] = $m;
                 continue;
             }
             $key = $m['variant_id'] . ':' . $m['location_id'];
@@ -1408,6 +1613,16 @@ class VoucherService
                 throw new BooksException("Not enough stock of {$name} at {$where}: need " . abs($qty) . ", have {$a['quantity']}.{$elsewhere}");
             }
         }
+        foreach ($picked as $m) {
+            $b = StockBatch::find($m['batch_id']);
+            $have = (float) DB::table('stock_batch_balances')->where('batch_id', $m['batch_id'])->where('location_id', $m['location_id'])->value('quantity');
+            if (! $b || (int) $b->variant_id !== (int) $m['variant_id'] || $b->status !== StockBatch::ACTIVE) {
+                throw new BooksException("{$m['product']}: that batch can not be sold from.");
+            }
+            if ($have + 0.00005 < abs($m['qty'])) {
+                throw new BooksException("{$m['product']}: batch " . ($b->batch_no ?: '#' . $b->id) . ' has only ' . round($have, 4) . ' here, need ' . abs($m['qty']) . '.');
+            }
+        }
 
         $out = [];
         $record = function (int $variantId, int $locId, array $allocs) use (&$out) {
@@ -1426,6 +1641,22 @@ class VoucherService
         foreach ($arrivals as $m) {
             $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], (float) $m['qty'],
                 ['received_at' => $date, 'unit_cost' => $m['unit_cost'] ?? null] + $m['batch']));
+        }
+        foreach ($picked as $m) {
+            $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], (float) $m['qty'], ['batch_id' => $m['batch_id']]));
+        }
+        foreach ($returns as $m) {
+            $left = (float) $m['qty'];
+            foreach ($m['return_to'] as [$batchId, $q]) {
+                $q = min($q, $left);
+                if ($q > 0.00005) {
+                    $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], $q, ['batch_id' => $batchId]));
+                    $left = round($left - $q, 4);
+                }
+            }
+            if ($left > 0.00005) {   // more came back than we can trace: a new batch at the latest known cost
+                $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], $left, ['received_at' => $date]));
+            }
         }
 
         return $out;

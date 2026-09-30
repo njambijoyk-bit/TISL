@@ -265,10 +265,28 @@ The **Tax return** then shows the value of supplies split into standard-rated, z
 
 ---
 
+## 12c. Stock, batches and cost of goods sold
+
+Stock is valued. Every arrival of stock is a **batch** with its own cost; a batch of a product that tracks expiry also has a batch number and expiry date. Sales take from the batch expiring first (oldest first when nothing expires). The **Stock** ledger holds the value of what is on the shelves; **Cost of Goods Sold** holds what sold goods cost. Both, and the other stock ledgers, are chosen under Books → Settings → Default ledgers — until they are chosen, purchases and sales post as they did before.
+
+| Event | Dr | Cr |
+|---|---|---|
+| **Purchase** (stocked products) | Stock (the line's net cost) + input tax | Supplier |
+| **Opening stock** (go-live) | Stock | Opening Stock Balance |
+| **Sale / Cash Sale** of stocked goods | (the sale as usual) **and** Cost of Goods Sold, at the cost of the batches the goods came from | Stock |
+| **Sale invoiced from a delivery** | the same cost, taken from what the delivery took out | Stock |
+| **Customer return** (Credit Note that puts goods back) | Stock, back into the batch it was sold from, at that batch's cost | Cost of Goods Sold |
+| Goods received before the invoice (Receipt Note) | nothing yet — stock and its batches arrive; the money is booked on the purchase | |
+| Service materials, write-offs, bought-outside parts | see PLATFORM_PLAN §17 (later steps) | |
+
+Notes: a document that only moves stock (Delivery Note, Goods received) posts nothing; the cost is booked by the invoice or purchase made from it. Stock a purchase brought in cannot be edited or cancelled once some of it has been sold or used — return it to the supplier with a Debit Note. Debit notes post at the note's amount while the stock leaves at batch cost; the difference is a reconciliation item. Existing stock entered before batches has cost 0 until its real cost is set (script 23, part E).
+
+---
+
 ## 13. What is not in the books (by design) and known limits
 
 * **Rules and campaigns** — tax rules, districts, exemption certificates, promo code rules, tiers, redemption rules, referral settings — are configuration; they decide amounts but hold no balances.
-* Goods rewards: the value is released, but the **cost of the goods** is not posted (the books do not value stock).
+* Goods rewards: the value is released, but the **cost of the goods** is not posted (goods rewards do not draw from stock yet).
 * VAT is not charged when a gift voucher is *sold* (it is charged when the voucher is spent).
 * The code of a sold gift voucher is shown to the buyer; it is not e-mailed to a recipient yet.
 * Still on the legacy tables: delivery manifests, older reports and analytics, the chat assistant, financial notes and inventory purchase orders.

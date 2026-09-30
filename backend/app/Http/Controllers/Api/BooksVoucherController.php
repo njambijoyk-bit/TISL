@@ -261,6 +261,24 @@ class BooksVoucherController extends Controller
         return response()->json($variants->map(fn ($v) => $this->productRow($v))->values());
     }
 
+    /**
+     * Batches of a product variant that can be sold from at a branch (active, with stock there), first-expiring first —
+     * for the "which batch?" choice on a sale line. Costs are not sent.
+     */
+    public function stockBatches(Request $request): JsonResponse
+    {
+        $d = $request->validate(['variant_id' => 'required|integer', 'location_id' => 'nullable|integer']);
+        $q = \Illuminate\Support\Facades\DB::table('stock_batch_balances as b')
+            ->join('stock_batches as s', 's.id', '=', 'b.batch_id')
+            ->where('s.variant_id', $d['variant_id'])->where('s.status', 'active')->where('b.quantity', '>', 0)
+            ->when(! empty($d['location_id']), fn ($x) => $x->where('b.location_id', $d['location_id']))
+            ->groupBy('s.id', 's.batch_no', 's.expiry_date')
+            ->orderByRaw('s.expiry_date IS NULL')->orderBy('s.expiry_date')->orderBy('s.id')
+            ->get(['s.id', 's.batch_no', 's.expiry_date', \Illuminate\Support\Facades\DB::raw('SUM(b.quantity) as quantity')]);
+
+        return response()->json($q->map(fn ($r) => ['id' => (int) $r->id, 'batch_no' => $r->batch_no, 'expiry_date' => $r->expiry_date, 'quantity' => (float) $r->quantity])->values());
+    }
+
     public function paymentMethods(): JsonResponse
     {
         return response()->json(PaymentMethod::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get());

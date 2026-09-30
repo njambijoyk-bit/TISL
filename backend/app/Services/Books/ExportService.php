@@ -87,7 +87,7 @@ class ExportService
         foreach ($v->items->sortBy('line_no') as $i) {
             $lines[] = [
                 'line' => $i->line_no, 'component' => $i->parent_item_id !== null, 'is_header' => (bool) $i->is_header,
-                'description' => $i->description, 'variant' => $i->variant_label, 'sku' => $i->sku, 'unit' => $i->unit_code,
+                'description' => $i->description . (($i->batch_no || $i->expiry_date) ? ' — ' . trim(($i->batch_no ? 'Batch ' . $i->batch_no : '') . ($i->expiry_date ? ($i->batch_no ? ', ' : '') . 'exp ' . $i->expiry_date->format('d M Y') : '')) : ''), 'variant' => $i->variant_label, 'sku' => $i->sku, 'unit' => $i->unit_code,
                 'quantity' => (float) $i->quantity, 'rate' => (float) $i->rate, 'discount' => (float) $i->discount_amount,
                 'amount' => (float) $i->amount, 'tax_rate' => $i->tax_rate_percent !== null ? (float) $i->tax_rate_percent : null, 'tax' => (float) $i->tax_amount,
             ];
