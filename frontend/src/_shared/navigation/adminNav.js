@@ -76,12 +76,13 @@ export const ADMIN_NAV = [
       },
       {
         id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', roles: FINANCE_READ,
-        keywords: 'buy stock supplier receive batch expiry expired opening stock write off recall quarantine', also: ['/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held'],
+        keywords: 'buy stock supplier receive batch expiry expired opening stock write off recall quarantine transfer branch', also: ['/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers'],
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true },
           { title: 'Opening stock', path: '/admin/stock/opening' },
           { title: 'Expiring stock', path: '/admin/stock/expiry' },
           { title: 'Held stock', path: '/admin/stock/held' },
+          { title: 'Transfers', path: '/admin/stock/transfers' },
         ],
       },
       {

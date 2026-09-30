@@ -139,8 +139,12 @@ class StockReconciliationService
         if ($o['received'] > 0) {
             $note .= " {$fmt($o['received'])} received on notes not yet billed (in the batches, booked on the purchase).";
         }
+        $transit = \Illuminate\Support\Facades\Schema::hasTable('stock_transfers') ? app(StockTransferService::class)->inTransitValue() : 0.0;
+        if ($transit > 0) {
+            $note .= " {$fmt($transit)} on transfers between branches not yet received (out of the sending branch, not in the other).";
+        }
         $note .= ' Any other difference: a price changed after receipt, a debit note at another amount, stock entered before batches at cost 0, or an entry made straight on the Stock ledger.';
 
-        return ['book' => round($book, 2), 'register' => $v['total'], 'explained' => round($o['delivered'] - $o['received'], 2), 'note' => $note];
+        return ['book' => round($book, 2), 'register' => $v['total'], 'explained' => round($o['delivered'] - $o['received'] + $transit, 2), 'note' => $note];
     }
 }

@@ -379,6 +379,18 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // STOCK TRANSFERS (Core) — see: finance, managers; send / receive / cancel: finance, admins
+    Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/stock/transfers')->group(function () {
+        $c = \App\Http\Controllers\Admin\StockTransferController::class;
+        Route::get('/', [$c, 'index']);
+        Route::get('/{id}', [$c, 'show'])->whereNumber('id');
+        Route::middleware('role:admin,super_admin,finance')->group(function () use ($c) {
+            Route::post('/', [$c, 'store']);
+            Route::post('/{id}/receive', [$c, 'receive'])->whereNumber('id');
+            Route::post('/{id}/cancel', [$c, 'cancel'])->whereNumber('id');
+        });
+    });
+
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
     Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
         Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);
