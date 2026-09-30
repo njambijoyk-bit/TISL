@@ -480,7 +480,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               )}
               {(type?.party_kind === 'customer' || base === 'cash_sale') && hasItems && !h.customer && (
                 <>
-                  <div><label style={label}>Sold to (name)</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} placeholder="Walk-in buyer's name" /></div>
+                  <div><label style={label}>Not a customer? Type the name here</label><input value={h.party_name} onChange={(e) => setH((x) => ({ ...x, party_name: e.target.value }))} style={small} placeholder="Buyer's name (walk-in)" /></div>
                   <div><label style={label}>Their phone</label><input value={h.party_phone} onChange={(e) => setH((x) => ({ ...x, party_phone: e.target.value }))} style={small} /></div>
                   <div><label style={label}>Their address</label><input value={h.party_address} onChange={(e) => setH((x) => ({ ...x, party_address: e.target.value }))} style={small} /></div>
                   <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
@@ -810,6 +810,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       </label>
                     );
                   })}
+                  {base === 'cash_sale' && giftPlan.length > 0 && (() => {
+                    const byGift = giftPlan.reduce((t, g) => t + g.applied, 0);
+                    const rest = Math.max(0, (Number(preview?.total) || 0) - byGift);
+                    const mName = methods.find((m) => String(m.id) === String(h.payment_method_id))?.name;
+                    return <p role="status" style={{ margin: '4px 0 0', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.8rem' }}>
+                      Gift vouchers pay <strong>{money(byGift)}</strong> · {rest > 0.004 ? <>{mName ?? 'the payment method'} pays the rest: <strong>{money(rest)}</strong>{!mName && <span style={{ color: '#b91c1c' }}> — choose a payment method above</span>}</> : 'nothing is left to pay'}
+                    </p>;
+                  })()}
                 </div>
               </div>
             )}
