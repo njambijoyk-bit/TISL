@@ -27,7 +27,7 @@ const autoAllocate = (bills, amount) => {
  * What the chosen party owes us / we owe them, bill by bill, for a Receipt or Payment. Shows the open bills with a box to
  * settle each; whatever is not settled is kept on account (an advance) for the party.
  */
-export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc, setAlloc, touched, setTouched }) {
+export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc, setAlloc, touched, setTouched, advance = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [writing, setWriting] = useState(false);
@@ -44,7 +44,8 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
   const bills = useMemo(() => (data?.bills ?? []).filter((b) => b.side === (receipt ? 'receivable' : 'payable')), [data, receipt]);
 
   // until they type in a box themselves, the amount is spread over the oldest bills
-  useEffect(() => { if (!touched) setAlloc(autoAllocate(bills, amount)); }, [bills, amount, touched]); // eslint-disable-line react-hooks/exhaustive-deps
+  // an advance is paid on purpose for something else, so no bill is settled by it
+  useEffect(() => { if (advance) setAlloc({}); else if (!touched) setAlloc(autoAllocate(bills, amount)); }, [bills, amount, touched, advance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!ledgerId) return null;
   if (error) return <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>{error}</p>;
@@ -55,7 +56,8 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
   const credits = (data.credits ?? []).filter((c) => c.kind === (receipt ? 'credit' : 'prepaid'));
   const allocated = Math.round(Object.values(alloc).reduce((x, v) => x + (Number(v) || 0), 0) * 100) / 100;
   const onAccount = Math.round(((Number(amount) || 0) - allocated) * 100) / 100;
-  const set = (id, v) => { setTouched(true); setAlloc((a) => ({ ...a, [id]: v === '' ? '' : Math.max(0, Number(v)) })); };
+  // a bill can never be settled for more than it is owed: a bigger number snaps back to the full bill
+  const set = (id, v, max) => { setTouched(true); setAlloc((a) => ({ ...a, [id]: v === '' ? '' : Math.min(Math.max(0, Number(v)), max) })); };
 
   return (
     <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
@@ -91,9 +93,9 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
                     <td style={{ ...td, ...r }}>{money(b.original)}</td>
                     <td style={{ ...td, ...r }}>{money(b.outstanding)}</td>
                     <td style={{ ...td, ...r, whiteSpace: 'nowrap' }}>
-                      <input type="number" step="0.01" min="0" max={b.outstanding} aria-label={`Settle ${b.voucher_number}`} value={v} onChange={(e) => set(b.voucher_id, e.target.value)}
-                        style={{ width: 96, padding: '4px 6px', borderRadius: 6, border: `1px solid ${colors.tint(0.15)}`, textAlign: 'right' }} />
-                      <button type="button" onClick={() => set(b.voucher_id, b.outstanding)} style={{ marginLeft: 6, border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline' }}>all</button>
+                      <input type="number" step="0.01" min="0" max={b.outstanding} aria-label={`Settle ${b.voucher_number}`} value={v} onChange={(e) => set(b.voucher_id, e.target.value, b.outstanding)} disabled={advance}
+                        style={{ width: 150, padding: '6px 8px', borderRadius: 6, border: `1px solid ${colors.tint(0.15)}`, textAlign: 'right', opacity: advance ? 0.5 : 1 }} />
+                      <button type="button" onClick={() => set(b.voucher_id, b.outstanding, b.outstanding)} disabled={advance} style={{ marginLeft: 6, border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline' }}>all</button>
                     </td>
                   </tr>
                 );
@@ -106,8 +108,9 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
       {writing && <WriteOffModal party={{ ledgerId, name: data.ledger.name, owed: t.owed_to_us }} onClose={() => setWriting(false)} onDone={() => { setWriting(false); booksAPI.openBills(ledgerId, exceptId).then(setData).catch(() => {}); }} />}
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${colors.tint(0.08)}`, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.8rem', alignItems: 'center' }}>
         <span>Settling <strong>{money(allocated)}</strong></span>
-        <span style={{ color: onAccount < -0.004 ? colors.dangerText : colors.text }}>{onAccount < -0.004 ? `Bills add up to more than the amount by ${money(-onAccount)}` : <>On account <strong>{money(onAccount)}</strong>{onAccount > 0.004 && <span style={{ color: colors.textMuted }}> — kept as an overpayment, to use on {receipt ? 'their' : 'our'} next {receipt ? 'invoice' : 'bill'}</span>}</>}</span>
-        {touched && bills.length > 0 && <button type="button" onClick={() => setTouched(false)} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Spread the amount over the oldest bills</button>}
+        <span style={{ color: onAccount < -0.004 ? colors.dangerText : colors.text }}>{onAccount < -0.004 ? `Bills add up to more than the amount by ${money(-onAccount)}` : <>On account <strong>{money(onAccount)}</strong>{onAccount > 0.004 && <span style={{ color: colors.textMuted }}> — kept as {advance ? 'an advance' : 'an overpayment'}, to use on {receipt ? 'their' : 'our'} next {receipt ? 'invoice' : 'bill'}</span>}</>}</span>
+        {advance && <span style={{ color: colors.textMuted }}>Advance — the whole amount is kept on account; no bill is settled.</span>}
+        {!advance && touched && bills.length > 0 && <button type="button" onClick={() => setTouched(false)} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Spread the amount over the oldest bills</button>}
       </div>
     </div>
   );

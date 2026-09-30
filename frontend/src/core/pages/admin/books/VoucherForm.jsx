@@ -609,14 +609,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             )}
 
             {type && isMoney && (
-              <div style={{ ...card, padding: 18, maxWidth: 360 }}>
+              <div style={{ ...card, padding: 18, maxWidth: 640 }}>
                 <label style={label}>Amount</label>
                 <input type="number" step="0.01" min="0" max={refund ? refund.amount : undefined} value={h.amount} onChange={(e) => setH((x) => ({ ...x, amount: e.target.value }))} style={small} />
                 {refund && <p role="status" style={{ margin: '8px 0 0', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.78rem' }}>Giving back money paid on <strong>{refund.number}</strong> (up to {money(refund.amount)}). Choose the bank or cash account it is paid from.</p>}
                 {base === 'receipt' && h.party_ledger_id && (
                   <div style={{ marginTop: 12 }}>
                     <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={isAdvance} onChange={(e) => setIsAdvance(e.target.checked)} /> This is an advance — paid on purpose for something not yet supplied
+                      <input type="checkbox" checked={isAdvance} onChange={(e) => { setIsAdvance(e.target.checked); setAllocTouched(false); }} /> This is an advance — paid on purpose for something not yet supplied
                     </label>
                     {isAdvance && <input placeholder="What is it for? (order, project milestone, booking…)" value={advanceFor} onChange={(e) => setAdvanceFor(e.target.value)} style={{ ...small, marginTop: 6 }} />}
                     <p style={{ fontSize: '0.7rem', color: colors.textMuted, margin: '4px 0 0' }}>Anything not matched to a bill is kept for the customer: as an overpayment, or as an advance if ticked.</p>
@@ -643,7 +643,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
             {type && isMoney && h.party_ledger_id && !refund && (
               <OpenBillsPanel ledgerId={Number(h.party_ledger_id)} base={base} amount={h.amount} exceptId={editing ? Number(id) : null}
-                alloc={alloc} setAlloc={setAlloc} touched={allocTouched} setTouched={setAllocTouched} />
+                alloc={alloc} setAlloc={setAlloc} touched={allocTouched} setTouched={setAllocTouched} advance={base === 'receipt' && isAdvance} />
             )}
 
             {type && isEntries && (
