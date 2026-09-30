@@ -234,7 +234,7 @@ export default function HamperDetail() {
                   onClick={() => {
                     addItem({
                       id: `hamper-${hamper.id}`, hamper_id: hamper.id, line_key: `h:${hamper.id}`, name: hamper.name,
-                      price: hamper.display_price ?? hamper.price, image_url: hamper.cover_image, is_hamper: true,
+                      price: hamper.display_price ?? hamper.price, image_url: hamper.cover_image, is_hamper: true, currency: hamper.currency,
                     }, 1);
                     toast.success(`${hamper.name} added to cart`);
                     navigate('/cart');

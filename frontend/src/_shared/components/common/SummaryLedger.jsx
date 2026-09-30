@@ -40,10 +40,10 @@ export default function SummaryLedger({ quote, showCustomer = true }) {
         </thead>
         <tbody>
           {off > 0 ? row('gross', 'Goods at list price', n2(gross)) : null}
-          {(quote.discounts ?? []).map((d, i) => row(`d${i}`, `Less: ${SOURCE[d.source] ?? d.source}${d.ref ? ` (${d.ref})` : ''}`, `−${n2(d.amount)}`, { indent: true, color: '#059669' }))}
+          {(quote.discounts ?? []).map((d, i) => row(`d${i}`, d.source === 'customer_type' && !d.ref ? 'Less: Personal discount' : `Less: ${SOURCE[d.source] ?? d.source}${d.ref ? ` (${d.ref})` : ''}`, `−${n2(d.amount)}`, { indent: true, color: '#059669' }))}
           {row('net', off > 0 ? 'Goods after discounts' : 'Goods', n2(net), { rule: off > 0, bold: off > 0 })}
           {charges.map((l, i) => row(`c${i}`, l.description, Number(l.amount) === 0 ? 'Free' : n2(l.amount)))}
-          {(quote.tax_breakdown ?? []).map((t, i) => row(`t${i}`, `${t.label}${t.percent != null ? ` ${Number(t.percent)}%` : ''}`, n2(t.amount)))}
+          {(quote.tax_breakdown ?? []).map((t, i) => row(`t${i}`, t.percent != null && !String(t.label).includes('%') ? `${t.label} ${Number(t.percent)}%` : t.label, n2(t.amount)))}
           {row('total', 'Total', formatMoney(quote.total, sym), { rule: true, bold: true })}
           {quote.gift && row('gift', `Less: gift voucher (${quote.gift.code})`, `−${n2(quote.gift.applied)}`, { indent: true, color: '#059669' })}
           {quote.gift && row('due', 'To pay now', formatMoney(quote.due_now, sym), { rule: true, bold: true })}

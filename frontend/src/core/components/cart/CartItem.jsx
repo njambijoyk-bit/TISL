@@ -1,7 +1,10 @@
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import useCartStore, { lineKey } from '../../../_shared/store/cartStore';
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+import { formatMoney } from '../../../_shared/lib/money';
+
+// each line shows in the currency of the item itself, never converted
+const fmtIn = (n, currency) => formatMoney(n ?? 0, currency ?? 'KES', { decimals: 'auto' });
 
 export default function CartItem({ item }) {
   const { updateQuantity, removeItem } = useCartStore();
@@ -61,11 +64,11 @@ export default function CartItem({ item }) {
         {/* Price */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>
-            {fmt(item.price)}
+            {fmtIn(item.price, item.currency)}
           </span>
           {hasDiscount && (
             <span style={{ fontSize: '0.72rem', color: '#ef4444', textDecoration: 'line-through' }}>
-              {fmt(item.original_price)}
+              {fmtIn(item.original_price, item.currency)}
             </span>
           )}
         </div>
@@ -125,14 +128,14 @@ export default function CartItem({ item }) {
       {/* Subtotal + savings */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
         <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
-          {fmt(parseFloat(item.price) * item.quantity)}
+          {fmtIn(parseFloat(item.price) * item.quantity, item.currency)}
         </span>
         {hasDiscount && saved > 0 && (
           <span style={{
             fontSize: '0.68rem', fontWeight: 700, color: '#065f46',
             background: '#d1fae5', padding: '2px 8px', borderRadius: 99,
           }}>
-            Saved {fmt(saved)}
+            Saved {fmtIn(saved, item.currency)}
           </span>
         )}
       </div>
