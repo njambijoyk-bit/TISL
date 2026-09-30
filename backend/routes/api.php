@@ -615,7 +615,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('sales-orders')->group(function () {
             Route::get('/', [CheckoutController::class, 'orders']);
             Route::get('/{id}', [CheckoutController::class, 'order']);
+            Route::put('/{id}', [CheckoutController::class, 'updateOrder']);
             Route::post('/{id}/cancel', [CheckoutController::class, 'cancelOrder']);
+            Route::post('/documents/{id}/review', [CheckoutController::class, 'reviewDocument']);
         });
 
         Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);

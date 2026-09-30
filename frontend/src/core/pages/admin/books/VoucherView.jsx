@@ -175,6 +175,8 @@ export default function VoucherView() {
 
         {lockedBy && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.tint(0.05), fontSize: '0.82rem' }}>This order is locked. It was made into <Link to={`/admin/books/vouchers/${lockedBy.id}`}>{lockedBy.voucher_number}</Link> — edit that instead.</p>}
 
+        {(v.meta?.review_requests ?? []).map((q, i) => <p key={i} role="status" style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.12)', fontSize: '0.82rem' }}><strong>Customer asked for a review</strong> ({q.at}{q.ticket ? ` · ${q.ticket}` : ''}): {q.note}</p>)}
+
         <div style={{ ...card, padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16, fontSize: '0.82rem' }}>
           <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>PARTY</span>{v.party_ledger?.name ?? '—'}</div>
           {v.payment_method && <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>PAYMENT</span>{v.payment_method.name}</div>}

@@ -167,7 +167,7 @@ class CheckoutController extends Controller
         $footer = app(\App\Services\Books\ExportService::class)->footer($v);
         $lines = $v->items->where('is_header', false)->map(fn ($i) => [
             'id' => $i->id, 'description' => $i->description, 'variant_label' => $i->variant_label, 'unit_code' => $i->unit_code, 'quantity' => (float) $i->quantity, 'rate' => (float) $i->rate,
-            'amount' => (float) $i->amount, 'discount' => (float) $i->discount_amount, 'tax_amount' => (float) $i->tax_amount, 'is_component' => $i->parent_item_id !== null,
+            'amount' => (float) $i->amount, 'discount' => (float) $i->discount_amount, 'tax_amount' => (float) $i->tax_amount, 'is_component' => $i->parent_item_id !== null, 'product_id' => $i->product_id, 'variant_id' => $i->variant_id, 'variant_unit_id' => $i->variant_unit_id, 'hamper_id' => $i->is_header ? $i->hamper_id : null,
             'item_type' => $i->item_type, 'delivered' => (float) $i->delivered_quantity,
         ])->values();
 
@@ -177,7 +177,8 @@ class CheckoutController extends Controller
             'contact' => $v->meta['contact'] ?? null, 'branch' => $v->location?->name, 'narration' => $v->narration,
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
-            'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'total' => (float) $c->total_amount])->values(),
+            'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount, 'review_requested' => ! empty($c->meta['review_requests'])])->values(),
+            'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),
         ]);
     }
 
@@ -191,6 +192,45 @@ class CheckoutController extends Controller
             $this->vouchers->cancel($v, 'Cancelled by customer', null);
 
             return response()->json(['message' => 'Order cancelled']);
+        });
+    }
+
+    /** The customer changes their order before it is converted; it is priced again at today's prices. */
+    public function updateOrder(Request $request, $id): JsonResponse
+    {
+        $request->validate($this->rules() + [
+            'items' => 'required|array|min:1', 'customer_phone' => 'nullable|string', 'shipping_address' => 'nullable|string', 'customer_notes' => 'nullable|string|max:1000',
+        ]);
+
+        return $this->guard(function () use ($request, $id) {
+            $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::SALES_ORDER))->where('customer_id', $request->user()?->customer?->id)->findOrFail($id);
+            $this->checkout->updateOrder($v, $request->only(['items', 'delivery_method', 'promo_code', 'customer_phone', 'shipping_address', 'customer_notes']), $request->user());
+
+            return response()->json(['message' => 'Order updated — prices were worked out again at today\'s prices.']);
+        });
+    }
+
+    /** The customer asks staff to look at a posted invoice or cash sale. Staff see it as a help-desk ticket and on the voucher. */
+    public function reviewDocument(Request $request, $id): JsonResponse
+    {
+        $data = $request->validate(['note' => 'required|string|max:2000']);
+
+        return $this->guard(function () use ($request, $id, $data) {
+            $customer = $request->user()?->customer;
+            $v = Voucher::whereHas('type', fn ($t) => $t->whereIn('base_type', [VoucherType::SALES, VoucherType::CASH_SALE]))->where('customer_id', $customer?->id)
+                ->where('status', Voucher::POSTED)->findOrFail($id);
+            $prefix = 'TKT-' . now()->format('Y') . '-';
+            $last = \App\Models\Ticket::withTrashed()->where('ticket_number', 'like', $prefix . '%')->orderByDesc('id')->value('ticket_number');
+            $ticket = \App\Models\Ticket::create([
+                'ticket_number' => $prefix . str_pad($last ? ((int) substr($last, strlen($prefix))) + 1 : 1, 5, '0', STR_PAD_LEFT), 'customer_id' => $customer->id,
+                'subject' => "Review requested: {$v->voucher_number}", 'description' => $data['note'], 'priority' => 'medium', 'category' => 'billing', 'status' => 'open',
+            ]);
+            $meta = $v->meta ?? [];
+            $meta['review_requests'][] = ['at' => now()->toDateTimeString(), 'note' => $data['note'], 'ticket' => $ticket->ticket_number];
+            $v->meta = $meta;
+            $v->save();
+
+            return response()->json(['message' => "We have your request ({$ticket->ticket_number}) and will get back to you."], 201);
         });
     }
 

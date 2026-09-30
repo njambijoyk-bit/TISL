@@ -344,6 +344,40 @@ class CheckoutService
         });
     }
 
+    /**
+     * The customer changes their Sales Order before it has been converted: the cart is priced again from scratch at today's
+     * prices and discounts and the order is altered in place (the edit log keeps the old version). Contact details and
+     * anything the customer does not resend stay as they were.
+     */
+    public function updateOrder(Voucher $order, array $in, ?User $user): Voucher
+    {
+        if ($order->status === Voucher::CANCELLED) {
+            throw new BooksException('A cancelled order can not be changed.');
+        }
+        if ($order->children()->where('status', Voucher::POSTED)->exists()) {
+            throw new BooksException('This order has already been turned into an invoice or sale, so it can no longer be changed here. Ask us for a review instead.');
+        }
+        $old = $order->meta['contact'] ?? [];
+        $in += [
+            'customer_email' => $old['email'] ?? null, 'customer_phone' => $old['phone'] ?? null, 'customer_name' => $old['name'] ?? null,
+            'shipping_address' => $old['shipping_address'] ?? null, 'customer_notes' => $order->narration,
+        ];
+        if (! array_key_exists('delivery_method', $in)) {
+            $in['delivery_method'] = $old['delivery_method'] ?? null;   // unchanged unless they chose another
+        }
+        if (! array_key_exists('promo_code', $in) && ! empty($order->meta['promo_code_id'])) {
+            $in['promo_code'] = \App\Models\ReferralCode::whereKey($order->meta['promo_code_id'])->value('code');
+        }
+        $a = $this->assemble($in, $user);
+        if ($a['hasGift']) {
+            throw new BooksException('A gift voucher is paid for when it is bought; remove it and buy it again at checkout.');
+        }
+        $keep = array_diff_key($order->meta ?? [], array_flip(['discounts', 'promo_code_id', 'referral_code_id', 'rounding', 'contact']));
+        $a['data']['meta'] = array_merge($keep, $a['data']['meta']);
+
+        return $this->vouchers->alter($order, $a['data'], null);
+    }
+
     /** Paid at checkout: the order becomes a Cash Sale. If stock can't be taken right now the sale is still recorded; delivery moves the stock. */
     public function settle(Voucher $order, array $tenders, ?User $user): Voucher
     {
