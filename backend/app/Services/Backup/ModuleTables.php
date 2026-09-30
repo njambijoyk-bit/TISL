@@ -33,7 +33,7 @@ final class ModuleTables
             'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',
             'financial_years', 'accounting_settings', 'voucher_edit_limits',
             'vouchers', 'voucher_items', 'voucher_item_taxes', 'voucher_entries', 'voucher_bill_refs',
-            'stock_movements', 'stock_batches', 'stock_batch_balances', 'stock_batch_events', 'stock_transfers', 'stock_transfer_lines', 'stock_settings', 'stock_setting_overrides', 'voucher_audit_logs', 'voucher_tenders',
+            'stock_movements', 'stock_batches', 'stock_batch_balances', 'stock_batch_events', 'stock_transfers', 'stock_transfer_lines', 'stock_counts', 'stock_count_lines', 'recipes', 'recipe_items', 'productions', 'production_lines', 'stock_settings', 'stock_setting_overrides', 'voucher_audit_logs', 'voucher_tenders',
             'gift_vouchers', 'gift_voucher_transactions', 'company_profile', 'currency_rates',
             'quotes', 'quote_items', 'quote_requests',
             'referral_codes', 'referral_code_usage',

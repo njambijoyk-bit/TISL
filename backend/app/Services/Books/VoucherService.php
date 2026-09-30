@@ -1266,6 +1266,17 @@ class VoucherService
             if (! $loc) {
                 throw new BooksException('Choose the branch stock moves from.');
             }
+            // made to order (a recipe that uses its ingredients when sold): the ingredients leave stock, the item itself holds none
+            if ($type->isSalesSide() && ($recipe = app(\App\Services\Stock\RecipeService::class)->onSale((int) $l['variant_id']))) {
+                if ($sign < 0) {
+                    foreach ($recipe['items'] as $ing) {
+                        $moves[] = ['variant_id' => $ing['variant_id'], 'location_id' => (int) $loc, 'qty' => -round($ing['quantity'] * (float) $l['stock_qty'] / $recipe['yield'], 4),
+                            'product' => $ing['name'], 'purpose' => null, 'window' => $this->sellWindow($ing['product_id'], $channel, $override)];
+                    }
+                }
+
+                continue;
+            }
             $move = ['variant_id' => $l['variant_id'], 'location_id' => (int) $loc, 'qty' => $sign * (float) $l['stock_qty'], 'product' => $l['description']];
             if ($sign > 0 && $type->isSalesSide()) {
                 // a customer's return: back into the batch(es) it was sold from, at their cost (never at the selling price)

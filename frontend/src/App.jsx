@@ -123,6 +123,9 @@ const PurchaseForm       = lazy(() => import('./ecommerce/pages/admin/PurchaseFo
 const ExpiringStock      = lazy(() => import('./ecommerce/pages/admin/ExpiringStock'));
 const HeldStock          = lazy(() => import('./ecommerce/pages/admin/HeldStock'));
 const StockTransfers     = lazy(() => import('./ecommerce/pages/admin/StockTransfers'));
+const StockCounts        = lazy(() => import('./ecommerce/pages/admin/StockCounts'));
+const Production         = lazy(() => import('./ecommerce/pages/admin/Production'));
+const StockJournal       = lazy(() => import('./ecommerce/pages/admin/StockJournal'));
 const AdminAuctions      = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionDetail'));
 const AdminAuctionCreator = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionCreator'));
@@ -727,6 +730,9 @@ function App() {
               <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ExpiringStock /></ProtectedRoute>} />
               <Route path="/admin/stock/held" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><HeldStock /></ProtectedRoute>} />
               <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockTransfers /></ProtectedRoute>} />
+              <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockCounts /></ProtectedRoute>} />
+              <Route path="/admin/stock/production" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><Production /></ProtectedRoute>} />
+              <Route path="/admin/stock/journal" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockJournal /></ProtectedRoute>} />
               <Route path="/admin/stock/opening" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><AdminPurchases initial="opening_stock" /></ProtectedRoute>} />
               <Route path="/admin/stock/opening/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="opening" /></ProtectedRoute>} />
               <Route

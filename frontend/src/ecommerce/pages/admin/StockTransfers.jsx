@@ -6,12 +6,12 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
 import { money } from '../../../core/components/admin/books/booksFmt';
-import booksAPI from '../../../_shared/api/books';
 import stockTransfersAPI from '../../../_shared/api/stockTransfers';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, btnPrimary, card, colors, input } from '../../../_shared/theme/tokens';
+import VariantPicker from '../../components/admin/VariantPicker';
+import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
 /**
  * Stock transfers: move stock from one branch to another. It is "in transit" — out of the sending branch, not yet in
@@ -24,31 +24,6 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRig
 const TONE = { in_transit: '#c2410c', received: '#15803d', cancelled: '#6b7280' };
 const LABEL = { in_transit: 'In transit', received: 'Received', cancelled: 'Cancelled' };
 const label = (l) => `${l.product}${l.variant && l.variant !== 'Standard' ? ` — ${l.variant}` : ''}`;
-
-function ItemPicker({ onPick }) {
-  const [q, setQ] = useState('');
-  const [rows, setRows] = useState([]);
-  useEffect(() => {
-    if (q.trim().length < 2) { setRows([]); return undefined; }
-    const t = setTimeout(() => booksAPI.lookup('product', q.trim(), 'purchase').then(setRows).catch(() => setRows([])), 200);
-    return () => clearTimeout(t);
-  }, [q]);
-  return (
-    <div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a product or SKU to add…" style={input} aria-label="Search products" />
-      {rows.length > 0 && (
-        <div style={{ ...card, padding: 4, marginTop: 4, maxHeight: 200, overflowY: 'auto' }}>
-          {rows.map((r) => (
-            <button key={r.variant_id} type="button" onClick={() => { onPick(r); setQ(''); setRows([]); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
-              {r.product} <span style={{ color: colors.textFaint }}>{r.variant && r.variant !== 'Standard' ? `${r.variant} · ` : ''}{r.sku}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SendModal({ branches, onClose, onDone }) {
   const [from, setFrom] = useState('');
@@ -74,7 +49,7 @@ function SendModal({ branches, onClose, onDone }) {
             <Field label="From"><SelectInput required value={from} onChange={(e) => setFrom(e.target.value)}><option value="">Choose…</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
             <Field label="To"><SelectInput required value={to} onChange={(e) => setTo(e.target.value)}><option value="">Choose…</option>{branches.filter((b) => String(b.id) !== String(from)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
           </div>
-          <ItemPicker onPick={add} />
+          <VariantPicker onPick={add} />
           {items.map((i) => (
             <div key={i.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}</span>

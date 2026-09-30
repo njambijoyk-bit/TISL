@@ -391,6 +391,26 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // STOCK COUNTS, RECIPES & PRODUCTION, STOCK JOURNAL (Core) — see: finance, managers; act: finance, admins
+    Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/stock')->group(function () {
+        $n = \App\Http\Controllers\Admin\StockCountController::class;
+        $r = \App\Http\Controllers\Admin\RecipeController::class;
+        Route::get('/journal', [\App\Http\Controllers\Admin\StockJournalController::class, 'index']);
+        Route::get('/counts', [$n, 'index']);
+        Route::get('/counts/{id}', [$n, 'show'])->whereNumber('id');
+        Route::get('/recipes', [$r, 'index']);
+        Route::middleware('role:admin,super_admin,finance')->group(function () use ($n, $r) {
+            Route::post('/counts', [$n, 'store']);
+            Route::put('/counts/{id}', [$n, 'save'])->whereNumber('id');
+            Route::post('/counts/{id}/post', [$n, 'post'])->whereNumber('id');
+            Route::post('/counts/{id}/cancel', [$n, 'cancel'])->whereNumber('id');
+            Route::put('/recipes', [$r, 'save']);
+            Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');
+            Route::post('/recipes/{id}/produce', [$r, 'produce'])->whereNumber('id');
+            Route::post('/production/{id}/cancel', [$r, 'cancelRun'])->whereNumber('id');
+        });
+    });
+
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
     Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
         Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);
