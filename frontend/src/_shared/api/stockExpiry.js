@@ -7,4 +7,12 @@ const stockExpiryAPI = {
   returnToSupplier: async (payload) => (await api.post('/admin/stock/expiry/return-to-supplier', payload)).data,
 };
 
+/** Held stock: quarantine, recall, trace and clearance price on a batch. */
+export const stockHoldsAPI = {
+  list: async () => (await api.get('/admin/stock/holds')).data,
+  search: async (q) => (await api.get('/admin/stock/holds/search', { params: { q } })).data,
+  show: async (id) => (await api.get(`/admin/stock/holds/${id}`)).data,
+  act: async (id, action, payload = {}) => (await api.post(`/admin/stock/holds/${id}/${action}`, payload)).data,
+};
+
 export default stockExpiryAPI;

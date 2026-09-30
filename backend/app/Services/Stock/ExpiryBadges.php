@@ -31,14 +31,15 @@ class ExpiryBadges
                 ->join('stock_batch_balances as bb', 'bb.batch_id', '=', 'sb.id')
                 ->whereIn('pv.product_id', $tracked->pluck('id'))->where('bb.quantity', '>', 0)
                 ->where('sb.status', 'active')->whereNotNull('sb.expiry_date')->where('sb.expiry_date', '>=', today()->toDateString())
-                ->groupBy('pv.product_id')->select('pv.product_id', DB::raw('MIN(sb.expiry_date) as next_expiry'))
-                ->pluck('next_expiry', 'product_id');
+                ->groupBy('pv.product_id', 'sb.id', 'sb.expiry_date', 'sb.clearance_percent')->orderBy('sb.expiry_date')->orderBy('sb.id')
+                ->get(['pv.product_id', 'sb.expiry_date', 'sb.clearance_percent'])->unique('product_id')->keyBy('product_id');
         } catch (Throwable $e) {
             return;   // batches not set up yet: no badge
         }
         foreach ($tracked as $p) {
-            $date = $next[$p->id] ?? null;
-            $p->expiry_badge = $date && $this->policy->forProduct($p)['show_expiry_badge'] ? substr((string) $date, 0, 10) : null;
+            $row = $next[$p->id] ?? null;
+            $p->expiry_badge = $row && $this->policy->forProduct($p)['show_expiry_badge'] ? substr((string) $row->expiry_date, 0, 10) : null;
+            $p->clearance_percent = $row && $row->clearance_percent > 0 ? (float) $row->clearance_percent : null;   // "clearance — 30% off at checkout" on the next batch to be sold
         }
     }
 }

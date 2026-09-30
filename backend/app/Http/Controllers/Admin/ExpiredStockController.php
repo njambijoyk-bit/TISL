@@ -36,7 +36,7 @@ class ExpiredStockController extends Controller
             ->where('sb.expiry_date', '<=', $today->copy()->addDays($within)->toDateString())
             ->when(! empty($d['location_id']), fn ($q) => $q->where('bb.location_id', $d['location_id']))
             ->orderBy('sb.expiry_date')->orderBy('sb.id')
-            ->get(['sb.id as batch_id', 'sb.batch_no', 'sb.expiry_date', 'sb.status', 'sb.unit_cost', 'sb.received_voucher_id', 'bb.location_id', 'bb.quantity',
+            ->get(['sb.id as batch_id', 'sb.batch_no', 'sb.expiry_date', 'sb.status', 'sb.unit_cost', 'sb.clearance_percent', 'sb.received_voucher_id', 'bb.location_id', 'bb.quantity',
                 'p.id as product_id', 'p.name as product', 'pv.id as variant_id', 'pv.name as variant', 'pv.sku', 'l.name as location',
                 'rv.voucher_number as received_on', 'rv.party_ledger_id as supplier_id', 'sup.name as supplier']);
 
@@ -53,7 +53,7 @@ class ExpiredStockController extends Controller
             $out[] = [
                 'batch_id' => (int) $r->batch_id, 'batch_no' => $r->batch_no, 'expiry_date' => $r->expiry_date, 'days_left' => $left, 'bucket' => $key,
                 'status' => $r->status, 'location_id' => (int) $r->location_id, 'location' => $r->location, 'quantity' => (float) $r->quantity,
-                'unit_cost' => (float) $r->unit_cost, 'value' => $value, 'product_id' => (int) $r->product_id, 'product' => $r->product,
+                'unit_cost' => (float) $r->unit_cost, 'clearance_percent' => $r->clearance_percent !== null ? (float) $r->clearance_percent : null, 'value' => $value, 'product_id' => (int) $r->product_id, 'product' => $r->product,
                 'variant' => $r->variant, 'sku' => $r->sku, 'received_on' => $r->received_on, 'supplier_id' => $r->supplier_id ? (int) $r->supplier_id : null, 'supplier' => $r->supplier,
             ];
         }

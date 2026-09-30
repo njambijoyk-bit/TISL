@@ -383,6 +383,7 @@ class VoucherService
         $tenders = $this->rawTenders($data);
         $method ??= $tenders[0]['method'] ?? null;
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
+        $ctx['channel'] = (string) ($data['channel'] ?? 'admin');
 
         $plan = [
             'source_id' => ! empty($data['source_voucher_id']) ? (int) $data['source_voucher_id'] : null,
@@ -644,6 +645,7 @@ class VoucherService
         ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
         $line['pending_price'] = $pending;
+        $this->applyClearance($line, $l, $variant, $ctx);
         $this->finishAmounts($line, $product, 'product', $unitRow->unit_id, $ctx);
 
         return $line;
@@ -1268,6 +1270,7 @@ class VoucherService
             if ($sign > 0 && $type->isSalesSide()) {
                 // a customer's return: back into the batch(es) it was sold from, at their cost (never at the selling price)
                 $move['unit_cost'] = null;
+                $move['hold'] = ! empty($l['track_expiry']) && app(\App\Services\Stock\StockPolicy::class)->global()['returns_to_quarantine'];   // an expiry product a customer brought back is checked before it is shelved
                 $move['return_to'] = $sourceId ? $this->returnableBatches($sourceId, (int) $l['variant_id'], (int) $loc, (float) $l['stock_qty'], $excludeVoucherId) : [];
             } elseif ($sign > 0) {
                 // what this stock cost: the line's net amount (after discount, before tax) in base currency, per base unit
@@ -1317,6 +1320,41 @@ class VoucherService
         return (filled($no) || filled($mfg) || filled($exp))
             ? ['batch_no' => filled($no) ? $no : null, 'mfg_date' => filled($mfg) ? $mfg : null, 'expiry_date' => filled($exp) ? $exp : null]
             : null;
+    }
+
+    // ── clearance pricing ────────────────────────────────────────────────
+
+    /**
+     * A batch on clearance sells cheaper: what a sale takes from it is discounted by the batch's percent. The batches
+     * are the ones the sale would take (first expiring first, or the one the seller named); a sale that takes from
+     * several is discounted by the quantity-weighted percent. A typed price, or a discount the seller entered, stands.
+     */
+    private function applyClearance(array &$line, array $l, ProductVariant $variant, array $ctx): void
+    {
+        $type = $ctx['type'];
+        if (! $type->isSalesSide() || in_array($type->base_type, [VoucherType::CREDIT_NOTE, VoucherType::DELIVERY_NOTE], true) || ! $variant->product?->track_expiry) {
+            return;
+        }
+        if ((isset($l['rate']) && $l['rate'] !== '') || (float) ($l['discount'] ?? 0) > 0 || (float) $line['rate'] <= 0) {
+            return;
+        }
+        $batches = app(\App\Services\Stock\BatchService::class);
+        $loc = (int) ($l['location_id'] ?? $ctx['locationId'] ?? 0);
+        $win = $this->sellWindow($variant->product_id, (string) ($ctx['channel'] ?? 'admin'), null);
+        $allocs = ! empty($l['batch_id'])
+            ? $batches->peek($variant->id, $loc, (float) $line['base_quantity'], ['batch_id' => (int) $l['batch_id']])
+            : $batches->peek($variant->id, $loc, (float) $line['base_quantity'], $win);
+        $taken = 0.0;
+        $weighted = 0.0;
+        foreach ($allocs as $a) {
+            $taken += abs((float) $a['qty']);
+            $weighted += abs((float) $a['qty']) * (float) (StockBatch::whereKey($a['batch_id'])->value('clearance_percent') ?? 0);
+        }
+        $pct = $taken > 0 ? $weighted / $taken : 0.0;
+        if ($pct > 0) {
+            $line['discount_amount'] = round(round((float) $line['quantity'] * (float) $line['rate'], 2) * $pct / 100, 2);
+            $line['discount_source'] = 'clearance';
+        }
     }
 
     // ── materials under a service line ───────────────────────────────────
@@ -1899,7 +1937,11 @@ class VoucherService
             foreach ($m['return_to'] as [$batchId, $q]) {
                 $q = min($q, $left);
                 if ($q > 0.00005) {
-                    $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], $q, ['batch_id' => $batchId]));
+                    if (! empty($m['hold']) && ($orig = StockBatch::find($batchId))) {
+                        $record((int) $m['variant_id'], (int) $m['location_id'], $batches->receiveHeld($orig, (int) $m['location_id'], $q, 'Customer return — check before shelving', ['received_at' => $date]));
+                    } else {
+                        $record((int) $m['variant_id'], (int) $m['location_id'], $this->stock->applyDelta((int) $m['variant_id'], (int) $m['location_id'], $q, ['batch_id' => $batchId]));
+                    }
                     $left = round($left - $q, 4);
                 }
             }

@@ -52,6 +52,10 @@ class BatchService
         }
 
         $this->addBalance($batch->id, $locationId, $qty);
+        if (empty($o['no_blend']) && app(StockPolicy::class)->costingMethod() === 'average') {
+            $this->blend($variantId);
+            $batch->refresh();
+        }
 
         return [['batch_id' => $batch->id, 'qty' => $qty, 'unit_cost' => (float) $batch->unit_cost, 'created' => $created]];
     }
@@ -134,6 +138,41 @@ class BatchService
     public function total(int $variantId, int $locationId): float
     {
         return $this->sellable($variantId, $locationId);
+    }
+
+    /**
+     * Moving-average costing: every batch of the product that still holds stock takes the average cost of them all.
+     * The value of the stock does not change (each batch is re-priced, the total stays), so the Stock ledger still agrees.
+     */
+    public function blend(int $variantId): void
+    {
+        $rows = DB::table('stock_batch_balances as b')->join('stock_batches as s', 's.id', '=', 'b.batch_id')
+            ->where('s.variant_id', $variantId)->where('b.quantity', '>', 0)
+            ->groupBy('s.id', 's.unit_cost')->get(['s.id', 's.unit_cost', DB::raw('SUM(b.quantity) as q')]);
+        $qty = (float) $rows->sum('q');
+        if ($qty <= 0) {
+            return;
+        }
+        $avg = round($rows->sum(fn ($r) => (float) $r->q * (float) $r->unit_cost) / $qty, 4);
+        StockBatch::whereIn('id', $rows->pluck('id'))->update(['unit_cost' => $avg]);
+    }
+
+    /**
+     * Stock that came back and must be checked before it is shelved: a copy of the batch it came from, held
+     * (quarantined), with the returned quantity at the same cost.
+     *
+     * @return array<int, array{batch_id:int, qty:float, unit_cost:float, created:bool}>
+     */
+    public function receiveHeld(StockBatch $from, int $locationId, float $qty, string $reason, array $o = []): array
+    {
+        $held = StockBatch::create([
+            'variant_id' => $from->variant_id, 'batch_no' => $from->batch_no, 'mfg_date' => $from->mfg_date, 'expiry_date' => $from->expiry_date,
+            'unit_cost' => $from->unit_cost, 'received_at' => $o['received_at'] ?? now()->toDateString(), 'received_voucher_id' => $o['voucher_id'] ?? null,
+            'status' => StockBatch::QUARANTINED, 'held_reason' => $reason, 'notes' => 'Returned by a customer',
+        ]);
+        $this->addBalance($held->id, $locationId, round($qty, 4));
+
+        return [['batch_id' => $held->id, 'qty' => round($qty, 4), 'unit_cost' => (float) $held->unit_cost, 'created' => true]];
     }
 
     /**

@@ -148,7 +148,7 @@ export default function ProductCard({ product }) {
         <div className="absolute top-2 left-2 z-40 flex flex-col gap-2 pointer-events-none">
           {hasAuction   && <div className="pointer-events-auto"><Badge variant="danger"  size="sm" className="shadow-lg gap-1.5 animate-pulse">🔴 LIVE AUCTION</Badge></div>}
           {customBadge  && <div className="pointer-events-auto"><Badge variant="info"    size="sm" className="shadow-lg">{customBadge}</Badge></div>}
-          {product.expiry_badge && <div className="pointer-events-auto"><Badge variant="warning" size="sm" className="shadow-lg">Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</Badge></div>}
+          {product.expiry_badge && <div className="pointer-events-auto"><Badge variant="warning" size="sm" className="shadow-lg">{product.clearance_percent ? `Clearance −${Math.round(product.clearance_percent)}% · ` : ''}Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</Badge></div>}
           {isNew        && <div className="pointer-events-auto"><Badge variant="success" size="sm" className="shadow-lg gap-1.5"><Sparkles size={10} />New Arrival</Badge></div>}
           {onSale       && <div className="pointer-events-auto"><Badge variant="danger"  size="sm" className="shadow-lg gap-1.5"><Tag size={10} />On Sale</Badge></div>}
           {isFeatured   && <div className="pointer-events-auto"><Badge variant="primary" size="sm" className="shadow-lg gap-1.5"><Star size={10} />Featured</Badge></div>}

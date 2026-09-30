@@ -13,11 +13,12 @@ class StockSetting extends Model
 
     protected $fillable = [
         'expired_on_storefront', 'show_expiry_badge', 'sell_expired', 'override_roles', 'min_days_online', 'min_days_till',
-        'expiry_action', 'write_off_after_days', 'warning_days', 'notify_roles', 'pick_order', 'updated_by', 'updated_at',
+        'expiry_action', 'write_off_after_days', 'warning_days', 'notify_roles', 'pick_order', 'costing_method', 'returns_to_quarantine', 'updated_by', 'updated_at',
     ];
 
     protected $casts = [
         'show_expiry_badge'    => 'boolean',
+        'returns_to_quarantine' => 'boolean',
         'override_roles'       => 'array',
         'notify_roles'         => 'array',
         'warning_days'         => 'array',

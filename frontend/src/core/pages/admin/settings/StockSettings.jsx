@@ -254,6 +254,20 @@ export default function StockSettings() {
           <Radio value="fifo" current={form.pick_order} onChange={(x) => set('pick_order', x)} title="Oldest first" hint="The batch that arrived first goes first, whatever its expiry." />
         </div>
 
+        <div style={card}>
+          <h2 style={h2}>How stock is valued</h2>
+          <p style={sub}>What a unit costs when it is sold or used.</p>
+          <Radio value="lot" current={form.costing_method ?? 'lot'} onChange={(x) => set('costing_method', x)} title="Each batch keeps its own cost (recommended)" hint="A unit is costed at what its batch cost when it arrived." />
+          <Radio value="average" current={form.costing_method ?? 'lot'} onChange={(x) => set('costing_method', x)} title="Average cost" hint="Every arrival blends into one average cost per product. Total stock value does not change when the average moves." />
+        </div>
+
+        <div style={card}>
+          <h2 style={h2}>Customer returns</h2>
+          <p style={sub}>Where returned expiry products go.</p>
+          <Radio value={false} current={!!form.returns_to_quarantine} onChange={(x) => set('returns_to_quarantine', x)} title="Back on the shelf" hint="Returned stock is available to sell again." />
+          <Radio value={true} current={!!form.returns_to_quarantine} onChange={(x) => set('returns_to_quarantine', x)} title="Held in quarantine" hint="Returned stock is held until someone checks it and releases it on the Held stock page." />
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
           <button type="button" style={btn(true)} disabled={saving} onClick={save}><Save size={15} /> {saving ? 'Saving…' : 'Save settings'}</button>
         </div>

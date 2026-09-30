@@ -56,6 +56,8 @@ class StockSettingsController extends Controller
             'warning_days'          => 'nullable|array|max:6', 'warning_days.*' => 'integer|min:1|max:3650',
             'notify_roles'          => 'nullable|array', 'notify_roles.*' => 'string|max:40',
             'pick_order'            => ['required', Rule::in(['fefo', 'fifo'])],
+            'costing_method'        => ['required', Rule::in(['lot', 'average'])],
+            'returns_to_quarantine' => 'required|boolean',
         ]);
         $d['warning_days'] = collect($d['warning_days'] ?? [])->map(fn ($x) => (int) $x)->unique()->sortDesc()->values()->all();
         $d['override_roles'] = array_values($d['override_roles'] ?? []);

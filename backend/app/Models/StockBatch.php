@@ -22,7 +22,7 @@ class StockBatch extends Model
 
     protected $fillable = [
         'variant_id', 'batch_no', 'mfg_date', 'expiry_date', 'unit_cost',
-        'received_at', 'received_voucher_id', 'status', 'notes',
+        'received_at', 'received_voucher_id', 'status', 'notes', 'clearance_percent', 'held_reason', 'last_warned_days',
     ];
 
     protected $casts = [
@@ -30,11 +30,17 @@ class StockBatch extends Model
         'expiry_date' => 'date:Y-m-d',
         'received_at' => 'date:Y-m-d',
         'unit_cost'   => 'decimal:4',
+        'clearance_percent' => 'decimal:2',
     ];
 
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    public function events(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockBatchEvent::class, 'batch_id')->orderByDesc('id');
     }
 
     public function scopeActive(Builder $q): Builder

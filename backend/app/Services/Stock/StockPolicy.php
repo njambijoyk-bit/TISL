@@ -33,6 +33,8 @@ class StockPolicy
         'warning_days'          => [90, 60, 30],
         'notify_roles'          => ['manager', 'admin'],
         'pick_order'            => 'fefo',        // fefo | fifo
+        'costing_method'        => 'lot',         // lot (each batch keeps its own cost) | average (a product's batches share a moving average)
+        'returns_to_quarantine' => false,         // a customer's return of an expiry product goes into a held batch for checking
     ];
 
     /** What a category or a product may override. The rest is shop-wide only. */
@@ -94,6 +96,12 @@ class StockPolicy
     public function pickOrder(): string
     {
         return $this->global()['pick_order'] === 'fifo' ? 'fifo' : 'fefo';
+    }
+
+    /** How stock is costed: 'lot' or 'average'. */
+    public function costingMethod(): string
+    {
+        return $this->global()['costing_method'] === 'average' ? 'average' : 'lot';
     }
 
     /** Forget what was read (after settings change, and in tests). */

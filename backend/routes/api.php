@@ -363,6 +363,22 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // HELD STOCK (Core) — quarantine, recall, trace, clearance price: see (finance, managers), act (finance, admins)
+    Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/stock/holds')->group(function () {
+        $c = \App\Http\Controllers\Admin\StockHoldController::class;
+        Route::get('/', [$c, 'index']);
+        Route::get('/search', [$c, 'search']);
+        Route::get('/{id}', [$c, 'show'])->whereNumber('id');
+        Route::middleware('role:admin,super_admin,finance')->group(function () use ($c) {
+            Route::post('/{id}/quarantine', [$c, 'quarantine'])->whereNumber('id');
+            Route::post('/{id}/release', [$c, 'release'])->whereNumber('id');
+            Route::post('/{id}/recall', [$c, 'recall'])->whereNumber('id');
+            Route::post('/{id}/cancel-recall', [$c, 'cancelRecall'])->whereNumber('id');
+            Route::post('/{id}/notify', [$c, 'notify'])->whereNumber('id');
+            Route::post('/{id}/clearance', [$c, 'clearance'])->whereNumber('id');
+        });
+    });
+
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
     Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
         Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);

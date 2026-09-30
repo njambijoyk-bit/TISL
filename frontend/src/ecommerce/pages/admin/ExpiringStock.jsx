@@ -6,7 +6,7 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
 import { money } from '../../../core/components/admin/books/booksFmt';
-import stockExpiryAPI from '../../../_shared/api/stockExpiry';
+import stockExpiryAPI, { stockHoldsAPI } from '../../../_shared/api/stockExpiry';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -98,6 +98,29 @@ function ReturnModal({ row, suppliers, onClose, onDone }) {
   );
 }
 
+function ClearanceModal({ row, onClose, onDone }) {
+  const [pct, setPct] = useState(row.clearance_percent ?? '');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const go = async (e) => {
+    e.preventDefault(); setBusy(true); setErr(null);
+    try { const res = await stockHoldsAPI.act(row.batch_id, 'clearance', { percent: pct === '' ? 0 : Number(pct) }); toast.success(res.message); onDone(); }
+    catch (x) { setErr(errMsg(x, 'Could not save the clearance price')); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title="Clearance price" subtitle={`${row.product}, batch ${row.batch_no ?? `#${row.batch_id}`}`} onClose={onClose}>
+      <form onSubmit={go}>
+        <FormStack>
+          <FormError message={err} />
+          <Field label="Discount off the price (%) — leave empty to remove"><NumberInput min="0" max="100" step="any" value={pct} onChange={(e) => setPct(e.target.value)} /></Field>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Sales that take this batch are discounted automatically, and the storefront shows a clearance badge.</p>
+          <ModalActions onCancel={onClose} submitLabel="Save" busy={busy} />
+        </FormStack>
+      </form>
+    </Modal>
+  );
+}
+
 export default function ExpiringStock() {
   const user = useAuthStore((s) => s.user);
   const nav = useNavigate();
@@ -165,6 +188,7 @@ export default function ExpiringStock() {
                       <td style={td}>{r.supplier ?? '—'}</td>
                       {canWrite && (
                         <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          {r.bucket !== 'expired' && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'clearance', row: r })}>{r.clearance_percent ? `Clearance ${r.clearance_percent}%` : 'Clearance price'}</button>}
                           <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'return', row: r })}>Return to supplier</button>
                           {r.bucket === 'expired' && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', color: '#b91c1c', borderColor: '#fecaca' }} onClick={() => setModal({ kind: 'write-off', row: r })}>Write off</button>}
                         </td>
@@ -178,6 +202,7 @@ export default function ExpiringStock() {
         </div>
       </div>
 
+      {modal?.kind === 'clearance' && <ClearanceModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal?.kind === 'write-off' && <WriteOffModal row={modal.row} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal?.kind === 'return' && <ReturnModal row={modal.row} suppliers={data?.suppliers ?? []} onClose={() => setModal(null)} onDone={(id) => { setModal(null); load(); if (id) nav(`/admin/books/vouchers/${id}`); }} />}
     </AdminLayout>
