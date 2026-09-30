@@ -8,6 +8,7 @@ import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/Poli
 import { useCartStore, useAuthStore } from '../../../_shared/store/index';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import checkoutAPI from '../../../_shared/api/checkout';
+import { toApiItem } from '../../../_shared/lib/cartItems';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 
@@ -29,9 +30,6 @@ function Choice({ active, onClick, label: text, sub, disabled }) {
 }
 
 /** The cart line as the server wants it: ids and quantities only — prices are worked out by the books. */
-const toApiItem = (i) => (i.hamper_id
-  ? { hamper_id: i.hamper_id, quantity: i.quantity }
-  : { product_id: i.id, variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, quantity: i.quantity });
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -222,7 +220,9 @@ export default function Checkout() {
                     <Row k="Subtotal" v={money(quote.subtotal)} />
                     {quote.lines.filter((l) => l.item_type === 'charge').map((l, i) => <Row key={i} k={l.description} v={Number(l.amount) === 0 ? 'Free' : money(l.amount)} />)}
                     {quote.discounts.map((d, i) => <Row key={i} k={`Discount — ${d.source.replace('_', ' ')}${d.ref ? ` (${d.ref})` : ''}`} v={`−${money(d.amount)}`} color="#059669" />)}
-                    {Number(quote.tax_total) > 0 && <Row k="Tax" v={money(quote.tax_total)} />}
+                    {(quote.tax_breakdown ?? []).length > 0
+                      ? quote.tax_breakdown.map((t, i) => <Row key={i} k={t.label} v={money(t.amount)} />)
+                      : Number(quote.tax_total) > 0 && <Row k="Tax" v={money(quote.tax_total)} />}
                     {quote.gift && <Row k="Gift voucher" v={`−${money(quote.gift.applied)}`} color="#059669" />}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.05rem', borderTop: '2px solid #e5e7eb', paddingTop: 10, marginTop: 4 }}>
                       <span>{mode === 'online' || quote.gift ? 'To pay now' : 'Total'}</span><span>{money(mode === 'online' || quote.gift ? quote.due_now : quote.total)}</span>

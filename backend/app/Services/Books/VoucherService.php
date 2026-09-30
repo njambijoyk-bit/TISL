@@ -2077,6 +2077,31 @@ class VoucherService
 
     // ── describe / audit ───────────────────────────────────────────────
 
+    /**
+     * The tax on a document, one row per tax as the sales / purchase ledger names it ("VAT 16%") — nothing hardcoded.
+     *
+     * @return array<int, array{label: string, percent: ?float, amount: float}>
+     */
+    private function taxBreakdown(array $lines): array
+    {
+        $rows = [];
+        $walk = function (array $l) use (&$rows, &$walk) {
+            foreach ($l['taxes'] ?? [] as $t) {
+                $key = ($t['ledger_id'] ?? '') . '|' . ($t['label'] ?? '');
+                $rows[$key] ??= ['label' => (string) ($t['label'] ?? 'Tax'), 'percent' => isset($t['percent']) ? (float) $t['percent'] : null, 'amount' => 0.0];
+                $rows[$key]['amount'] = round($rows[$key]['amount'] + (float) $t['tax_amount'], 2);
+            }
+            foreach ($l['children'] ?? [] as $c) {
+                $walk($c);
+            }
+        };
+        foreach ($lines as $l) {
+            $walk($l);
+        }
+
+        return array_values(array_filter($rows, fn ($r) => abs($r['amount']) >= 0.005));
+    }
+
     private function describe(array $plan): array
     {
         $flat = fn (array $l) => [
@@ -2101,7 +2126,7 @@ class VoucherService
             'currency' => $plan['currency']->code, 'exchange_rate' => $plan['rate'],
             'party' => $plan['party']?->name, 'lines' => $lines,
             'entries' => array_map(fn ($e) => $e + ['ledger' => $ledgerNames[$e['ledger_id']] ?? null], $plan['entries']),
-            'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'total' => $plan['total'],
+            'subtotal' => $plan['subtotal'], 'tax_total' => $plan['tax_total'], 'tax_breakdown' => $this->taxBreakdown($plan['lines']), 'total' => $plan['total'],
             'stock' => array_map(fn ($m) => ['variant_id' => $m['variant_id'], 'location_id' => $m['location_id'], 'qty' => $m['qty']], $plan['stock']),
             'warnings' => $plan['warnings'] ?? [],
         ];

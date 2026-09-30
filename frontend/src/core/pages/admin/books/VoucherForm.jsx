@@ -126,6 +126,10 @@ function MaterialsEditor({ api, materials, onChange, ledgers }) {
   );
 }
 
+// Tally-style line grid: one header row, one row per line — Name of item | Quantity | per | Rate | Disc | Amount
+const LINE_COLS = 'minmax(220px,1fr) 88px 72px 104px 84px 116px 34px';
+const colHead = { fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
+
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
@@ -386,11 +390,17 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Items</p>
                 {lines.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Nothing added yet.</p>}
-                {lines.map((l) => (
-                  <div key={l.key} style={{ padding: '10px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(auto-fit,minmax(84px,1fr)) auto', gap: 8, alignItems: 'end' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, padding: '6px 0', borderBottom: `2px solid ${colors.tint(0.14)}`, ...colHead }}>
+                  <span>Name of item</span><span style={{ textAlign: 'right' }}>Quantity</span><span>per</span><span style={{ textAlign: 'right' }}>Rate</span><span style={{ textAlign: 'right' }}>Disc</span><span style={{ textAlign: 'right' }}>Amount</span><span />
+                </div>
+                {lines.map((l, idx) => {
+                  const pv = preview?.lines?.[idx];
+                  const money0 = l.type === 'charge';
+                  const cellNum = { ...small, textAlign: 'right' };
+                  return (
+                  <div key={l.key} style={{ padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, alignItems: 'start' }}>
                     <div>
-                      <label style={label}>{{ product: 'Product / variant', service: 'Service / package', hamper: 'Hamper', charge: 'Charge', custom: 'Custom line' }[l.type]}</label>
                       {l.type === 'product' && (l.variant_id
                         ? <div>
                           <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
@@ -411,41 +421,38 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         </select>
                       )}
                       {l.type === 'custom' && <input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} placeholder="Description" style={small} />}
-                    </div>
-                    {l.type === 'charge' && l.kind === 'shipping' ? (
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <label style={label}>Delivery method</label>
-                        <select value={l.shipping_option_id} onChange={(e) => setLine(l.key, { shipping_option_id: e.target.value ? Number(e.target.value) : '' })} style={small}>
-                          <option value="">Choose…</option>
+                      {l.type === 'charge' && l.kind === 'shipping' && (
+                        <select value={l.shipping_option_id} onChange={(e) => setLine(l.key, { shipping_option_id: e.target.value ? Number(e.target.value) : '' })} style={{ ...small, marginTop: 4 }} aria-label="Delivery method">
+                          <option value="">Delivery method…</option>
                           {shipOptions.map((o) => <option key={o.id} value={o.id}>{o.name} — {o.currency?.code} {money(o.cost)}</option>)}
                         </select>
-                      </div>
-                    ) : l.type === 'charge' ? (
+                      )}
+                      {l.type === 'charge' && l.kind !== 'shipping' && (
+                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">{l.kind === 'other' ? 'Ledger…' : 'Ledger (auto)'}</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                      )}
+                      {l.type === 'custom' && (
+                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                      )}
+                    </div>
+                    {money0 ? <><span /><span /><span /><span /></> : (
                       <>
-                        <div><label style={label}>Amount</label><input type="number" step="0.01" min="0" value={l.amount} onChange={(e) => setLine(l.key, { amount: e.target.value })} style={small} /></div>
-                        <div><label style={label}>Ledger{l.kind === 'other' ? '' : ' (auto)'}</label>
-                          <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={small}><option value="">Default</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+                        <input type="number" step="any" min="0" value={l.quantity} aria-label="Quantity" onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={cellNum} />
+                        {l.type === 'product' && (l.units?.length > 1) ? (
+                          <select value={l.variant_unit_id ?? ''} aria-label="Unit" onChange={(e) => setLine(l.key, { variant_unit_id: Number(e.target.value), rate: '' })} style={small}>
+                            {l.units.filter((u) => u.sellable || u.role === 'base').map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}
+                          </select>
+                        ) : <span style={{ fontSize: '0.78rem', color: colors.textMuted, paddingTop: 8 }}>{pv?.unit_code ?? ''}</span>}
+                        {l.type !== 'hamper' ? (
+                          <input type="number" step="0.01" min="0" value={l.rate} aria-label="Rate" onChange={(e) => setLine(l.key, { rate: e.target.value })} style={cellNum}
+                            placeholder={l.rate === '' && pv?.rate != null && l.type !== 'custom' ? money(pv.rate) : '0.00'} />
+                        ) : <span />}
+                        <input type="number" step="0.01" min="0" value={l.discount} aria-label="Discount" onChange={(e) => setLine(l.key, { discount: e.target.value })} style={cellNum} />
                       </>
+                    )}
+                    {money0 && !(l.kind === 'shipping') ? (
+                      <input type="number" step="0.01" min="0" value={l.amount} aria-label="Amount" onChange={(e) => setLine(l.key, { amount: e.target.value })} style={cellNum} />
                     ) : (
-                      <>
-                        <div><label style={label}>Qty</label><input type="number" step="any" min="0" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={small} /></div>
-                        {l.type === 'product' && (l.units?.length > 1) && (
-                          <div><label style={label}>Unit</label>
-                            <select value={l.variant_unit_id ?? ''} onChange={(e) => setLine(l.key, { variant_unit_id: Number(e.target.value), rate: '' })} style={small}>
-                              {l.units.filter((u) => u.sellable || u.role === 'base').map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}
-                            </select></div>
-                        )}
-                        {l.type !== 'hamper' && (
-                          <div><label style={label}>Rate</label>
-                            <input type="number" step="0.01" min="0" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value })} style={small}
-                              placeholder={ ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'].includes(base) && l.type !== 'custom' ? 'catalogue' : '0.00'} /></div>
-                        )}
-                        {l.type === 'custom' && (
-                          <div><label style={label}>Ledger</label>
-                            <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={small}><option value="">Choose…</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-                        )}
-                        <div><label style={label}>Discount</label><input type="number" step="0.01" min="0" value={l.discount} onChange={(e) => setLine(l.key, { discount: e.target.value })} style={small} /></div>
-                      </>
+                      <span style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', paddingTop: 8 }}>{pv ? money(pv.amount) : ''}</span>
                     )}
                     <button type="button" aria-label="Remove line" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} style={{ ...btnGhost, padding: '6px 8px', color: colors.danger }}><Trash2 size={14} /></button>
                   </div>
@@ -453,7 +460,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       <MaterialsEditor api={api} materials={l.materials ?? []} ledgers={ledgers} onChange={(m) => setLine(l.key, { materials: m })} />
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {[['product', 'Product'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
@@ -562,7 +570,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       </tbody>
                     </table>
                     <p style={{ textAlign: 'right', margin: '10px 0 0', fontSize: '0.85rem' }}>
-                      Subtotal {money(preview.subtotal)} · Tax {money(preview.tax_total)} · <strong>Total {preview.currency} {money(preview.total)}</strong>
+                      Subtotal {money(preview.subtotal)}{(preview.tax_breakdown ?? []).length > 0 ? preview.tax_breakdown.map((t) => ` · ${t.label} ${money(t.amount)}`).join('') : (Number(preview.tax_total) ? ` · Tax ${money(preview.tax_total)}` : '')} · <strong>Total {preview.currency} {money(preview.total)}</strong>
                     </p>
                     {preview.stock?.length > 0 && <p style={{ textAlign: 'right', margin: '4px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Moves stock on {preview.stock.length} line(s).</p>}
                   </>

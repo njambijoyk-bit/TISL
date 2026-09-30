@@ -1,18 +1,33 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, ShoppingBag, Truck } from 'lucide-react';
 import useCartStore from '../../../_shared/store/cartStore';
 import useAuthStore from '../../../_shared/store/authStore';
+import useCurrencyStore from '../../../_shared/store/currencyStore';
+import checkoutAPI from '../../../_shared/api/checkout';
+import { toApiItem } from '../../../_shared/lib/cartItems';
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+const fmtIn = (n, code) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: code || 'KES', minimumFractionDigits: 0 });
 
 export default function CartSummary() {
   const navigate        = useNavigate();
   const { items, getTotal } = useCartStore();
   const { isAuthenticated } = useAuthStore();
 
-  const subtotal     = getTotal();
-  const tax          = subtotal * 0.16;
-  const total        = subtotal + tax;         
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
+
+  // The books price the cart: prices are tax-exclusive and the tax is whatever the item's sales ledger says ("VAT 16%").
+  const [quote, setQuote] = useState(null);
+  useEffect(() => {
+    if (!items.length) { setQuote(null); return undefined; }
+    const t = setTimeout(() => {
+      checkoutAPI.quote({ items: items.map(toApiItem), currency: displayCurrency || undefined }).then(setQuote).catch(() => setQuote(null));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [items, displayCurrency]);
+
+  const fmt = (n) => fmtIn(n, quote?.currency?.code);
+  const subtotal     = quote ? Number(quote.subtotal) : getTotal();
   const freeShipping = subtotal >= 50000;
   const toFree       = 50000 - subtotal;
 
@@ -35,7 +50,7 @@ export default function CartSummary() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
         {[
           { label: `Subtotal (${items.length} item${items.length !== 1 ? 's' : ''})`, value: fmt(subtotal) },
-          { label: 'VAT (16%)', value: fmt(tax) },
+          ...(quote ? (quote.tax_breakdown ?? []).map((t) => ({ label: t.label, value: fmt(t.amount) })) : [{ label: 'Tax', value: '…' }]),
         ].map(({ label, value }) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
             <span style={{ color: '#6b7280' }}>{label}</span>
@@ -71,7 +86,7 @@ export default function CartSummary() {
         paddingTop: 12, marginBottom: 18, borderTop: '1px solid #e5e7eb',
       }}>
         <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827' }}>Total</span>
-        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>{fmt(total)}</span>
+        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>{quote ? fmt(quote.total) : '…'}</span>
       </div>
 
       {/* Checkout */}

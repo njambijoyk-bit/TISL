@@ -199,7 +199,7 @@ class CheckoutService
         }
 
         return [
-            'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'],
+            'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
             'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift,
             'due_now' => round($p['total'] - ($gift['applied'] ?? 0), 2),
         ];
