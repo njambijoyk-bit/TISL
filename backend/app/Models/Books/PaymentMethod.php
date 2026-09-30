@@ -27,7 +27,7 @@ class PaymentMethod extends Model
     public function scopeOfferedAtCheckout($q)
     {
         return $q->where('is_active', true)->where('is_online', true)->whereNotNull('gateway')->where(function ($w) {
-            $w->whereNull('ledger_id')->orWhereIn('ledger_id', fn ($s) => $s->select('id')->from('ledgers')->where('offer_at_checkout', true)->whereNull('deleted_at'));
+            $w->whereNull('ledger_id')->orWhereIn('ledger_id', fn ($s) => $s->select('id')->from('ledgers')->where('offer_at_checkout', true));
         });
     }
 
