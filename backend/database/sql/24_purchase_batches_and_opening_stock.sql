@@ -8,8 +8,8 @@
 --                     brings in (asked only for products that track expiry)
 --   accounting_settings.opening_balance_ledger_id
 --                     the ledger opening stock is balanced against
---                     ("Opening Stock Balance", under Capital)
---   voucher_types     + "Opening Stock" (base type opening_stock): Dr Stock,
+--                     ("Opening Stock Balance", under Capital / equity)
+--   voucher_types     + "Opening Stock" (code OS, base type opening_stock): Dr Stock,
 --                     Cr the opening balance ledger; moves stock in
 --   voucher_series    + WNKJ-OS- numbering for it
 --
@@ -32,9 +32,16 @@ WHERE table_schema = DATABASE()
 SELECT id, code, base_type, stock_effect, has_items, party_kind, posts_accounts
 FROM voucher_types WHERE base_type IN ('journal', 'receipt_note', 'opening_stock');
 
--- A3. The Capital group the opening ledger goes under (expect 1 row; if none the
---     ledger is skipped and you choose one under Books → Settings → Default ledgers)
-SELECT id, name, nature FROM ledger_groups WHERE name = 'Capital';
+-- A3. The group the opening ledger goes under: "Capital", else a liability group with capital / equity in
+--     its name, else the first primary liability group. Look at what is picked (you can move the ledger later).
+SELECT id, name, nature, parent_id FROM ledger_groups
+WHERE nature = 'liability' AND (name = 'Capital' OR name LIKE '%capital%' OR name LIKE '%equity%' OR parent_id IS NULL)
+ORDER BY (name = 'Capital') DESC, (name LIKE '%capital%' OR name LIKE '%equity%') DESC, id;
+
+-- A4. Existing voucher type codes and how long the column allows (the new code is 'OS')
+SELECT code, name, base_type, CHARACTER_MAXIMUM_LENGTH AS code_max_length
+FROM voucher_types, information_schema.columns
+WHERE table_schema = DATABASE() AND table_name = 'voucher_types' AND column_name = 'code';
 
 
 -- ---------------------------------------------------------------------
@@ -73,7 +80,12 @@ SET SQL_SAFE_UPDATES = 0;
 START TRANSACTION;
 
 -- The ledger opening stock is balanced against.
-SET @grp_capital := (SELECT id FROM ledger_groups WHERE name = 'Capital' ORDER BY id LIMIT 1);
+SET @grp_capital := COALESCE(
+    (SELECT id FROM ledger_groups WHERE name = 'Capital' ORDER BY id LIMIT 1),
+    (SELECT id FROM ledger_groups WHERE nature = 'liability' AND (name LIKE '%capital%' OR name LIKE '%equity%')
+        ORDER BY (parent_id IS NULL) DESC, id LIMIT 1),
+    (SELECT id FROM ledger_groups WHERE nature = 'liability' AND parent_id IS NULL ORDER BY id LIMIT 1)
+);
 
 INSERT INTO ledgers (group_id, name, opening_balance, is_system, is_active, created_at, updated_at)
 SELECT @grp_capital, 'Opening Stock Balance', 0, 1, 1, NOW(), NOW()
@@ -86,7 +98,7 @@ WHERE id = 1 AND opening_balance_ledger_id IS NULL;
 -- The voucher type. stock_effect comes from the Receipt Note row and party_kind from the Journal
 -- row, so the values are always ones this database already uses.
 INSERT INTO voucher_types (code, name, base_type, posts_accounts, stock_effect, has_items, party_kind, default_ledger_id, is_system, is_active, created_at, updated_at)
-SELECT 'opening_stock', 'Opening Stock', 'opening_stock', 1, rn.stock_effect, 1, jr.party_kind, NULL, 1, 1, NOW(), NOW()
+SELECT 'OS', 'Opening Stock', 'opening_stock', 1, rn.stock_effect, 1, jr.party_kind, NULL, 1, 1, NOW(), NOW()
 FROM voucher_types rn
 JOIN voucher_types jr ON jr.base_type = 'journal'
 WHERE rn.base_type = 'receipt_note'
