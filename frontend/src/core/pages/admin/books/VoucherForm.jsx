@@ -191,6 +191,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       setTypeId(String(v.voucher_type_id));
       setH((x) => ({ ...x, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: v.payment_method_id ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+      if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id).map((i) => {
           const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
@@ -322,9 +323,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               )}
               {type?.party_kind === 'customer' && hasItems && (
                 <div>
-                  <label style={label}>Customer {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
+                  <label style={label}>Customer {h.customer && <button type="button" onClick={() => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }))} style={{ border: 'none', background: 'none', color: colors.primary, cursor: 'pointer', fontSize: '0.68rem' }}>clear</button>}</label>
                   {h.customer ? <div style={{ ...small, background: colors.tint(0.05) }}>{h.customer.name}</div>
-                    : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
+                    : <Picker api={api} kind="customer" placeholder="Search customers (blank = walk-in)…" onPick={(c) => setH((x) => ({ ...x, customer: c, party_ledger_id: '' }))} render={(c) => <>{c.name} <span style={{ color: colors.textFaint }}>{c.email}</span></>} />}
                 </div>
               )}
               {type?.party_kind === 'customer' && hasItems && !h.customer && (
@@ -338,7 +339,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               {(type?.party_kind === 'supplier' || isMoney) && (
                 <div>
                   <label style={label}>{isMoney ? 'Party' : 'Supplier'}</label>
-                  <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value }))} style={small}>
+                  <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null }))} style={small}>
                     <option value="">Choose a ledger…</option>
                     {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>

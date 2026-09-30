@@ -52,6 +52,10 @@ class BooksVoucherController extends Controller
         $v = Voucher::with($this->vouchers->relations())->findOrFail($id);
         $out = $v->toArray();
         $out['footer'] = $this->export->footer($v);
+        // how it was paid, so editing a split payment shows the split again
+        $out['tenders'] = \Illuminate\Support\Facades\DB::table('voucher_tenders as t')->leftJoin('gift_vouchers as g', 'g.id', '=', 't.gift_voucher_id')
+            ->where('t.voucher_id', $v->id)->orderBy('t.id')->get(['t.payment_method_id', 't.amount', 't.reference', 'g.code as gift_code'])
+            ->map(fn ($t) => ['payment_method_id' => (int) $t->payment_method_id, 'amount' => (float) $t->amount, 'reference' => $t->reference, 'code' => $t->gift_code])->all();
         $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::DEBIT_NOTE], true) ? $this->vouchers->outstanding($v) : null;
 
         return response()->json($out);

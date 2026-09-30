@@ -28,7 +28,6 @@ final class ModuleTables
             'tax_applicability', 'tax_applications', 'tax_legitimacy_certificates', 'tax_activity_logs',
             'withholding_certificates', 'withholding_classifications',
             'withholding_clearances', 'withholding_activity_logs',
-            'orders', 'order_items',
             // Books: chart of accounts, numbering, vouchers and everything they post.
             'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',
             'financial_years', 'accounting_settings', 'voucher_edit_limits',
@@ -50,7 +49,7 @@ final class ModuleTables
             'payment_attempts', 'payments', 'store_credit_transactions',
             'customer_credit_invoices', 'customer_credit_invoice_items',
             'customer_credit_schedules', 'customer_credit_schedule_items', 'customer_credit_transactions',
-            'order_activity_logs', 'order_shipments', 'shipping_activities',
+            'shipping_activities',
             'financial_notes', 'reconciliation_sessions', 'reconciliation_lines',
             // Bookings (Core capability) and their worksheets
             'bookings', 'booking_settings', 'booking_staff', 'booking_orders',

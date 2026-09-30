@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\OrderActivityLog;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Read-only views of the retired order tables (customer history, activity feed, report counts, project links,
@@ -18,6 +19,9 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
+        if ($this->gone()) {
+            return $this->emptyPage($request);
+        }
         $query = Order::with(['customer', 'items']);
 
         if ($request->filled('status'))         $query->where('status', $request->status);
@@ -60,6 +64,9 @@ class OrderController extends Controller
 
     public function adminCustomerOrders(Request $request, $customerId)
     {
+        if ($this->gone()) {
+            return $this->emptyPage($request);
+        }
         $query = Order::with(['customer'])
               ->withCount('items')
               ->where('customer_id', $customerId);
@@ -83,6 +90,7 @@ class OrderController extends Controller
 
     public function adminShow(Request $request, $id)
     {
+        abort_if($this->gone(), 404, 'Orders are vouchers now.');
         $order = Order::with(['items.product', 'customer', 'assignedTo', 'quote', 'promoCode', 'referralCode', 'payments'])->findOrFail($id);
         //return response()->json(['order' => $order], 200);
         return response()->json([
@@ -96,6 +104,9 @@ class OrderController extends Controller
 
     public function statistics(Request $request)
     {
+        if ($this->gone()) {
+            return response()->json(array_fill_keys(['total_orders', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'total_revenue', 'today', 'today_revenue', 'gross_revenue', 'unpaid_amount', 'average_order_value', 'orders_with_backorder'], 0));
+        }
         $allOrders = Order::with('items')->get();
 
         $orderNetKes = function ($order) {
@@ -137,6 +148,9 @@ class OrderController extends Controller
 
     public function customerOrderStatistics($customerId)
     {
+        if ($this->gone()) {
+            return response()->json(['total_orders' => 0, 'total_spent' => 0.0, 'average_order_value' => 0, 'first_order_date' => null, 'last_order_date' => null]);
+        }
         $customer = Customer::findOrFail($customerId);
 
         // ✅ ALL ORDERS ONLY (no filtering anywhere)
@@ -162,11 +176,11 @@ class OrderController extends Controller
         ]);
     }
 
-    // GET /admin/orders/{id}/activity  — used in OrderDetail
-
-    // GET /admin/orders/activity  — used in activity logs page
     public function getAllOrderActivity(Request $request): JsonResponse
     {
+        if ($this->gone() || ! Schema::hasTable('order_activity_logs')) {
+            return $this->emptyPage($request);
+        }
         $query = OrderActivityLog::with('order:id,order_number')
             ->orderByDesc('created_at');
 
@@ -180,12 +194,17 @@ class OrderController extends Controller
         );
     }
 
-    // ========================================
-    // SHARED ORDER ITEM CREATION
-    // ========================================
+    /** The old order tables can be dropped (script 34); until the screens that read them move to vouchers they show nothing. */
+    private function gone(): bool
+    {
+        return ! Schema::hasTable('orders');
+    }
 
-    // ========================================
-    // HELPER METHODS
-    // ========================================
-
+    private function emptyPage(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => [], 'current_page' => 1, 'last_page' => 1, 'per_page' => $request->integer('per_page', 20), 'total' => 0, 'from' => null, 'to' => null,
+            'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => $request->integer('per_page', 20), 'total' => 0, 'from' => null, 'to' => null],
+        ]);
+    }
 }
