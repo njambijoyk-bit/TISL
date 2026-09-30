@@ -2,19 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { X, Search, Loader2, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import useProjectStore from '../../../_shared/store/projectStore';
-import { getAdminQuoteRequests } from '../../../_shared/api/quoteRequests';
-import { getAllQuotes } from '../../../_shared/api/quotes';
 import ordersAPI from '../../../_shared/api/orders';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const LINK_TYPES = ['quote_request', 'quote', 'order'];
+const LINK_TYPES = ['order'];
 const RELATIONS  = ['primary', 'addendum', 'revision', 'phase'];
 const typeLabel  = (t) => t?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
 
 const TAB_META = {
-  quote_request: { label: 'Quote Requests', accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',  border: 'rgba(37,99,235,0.25)'  },
-  quote:         { label: 'Quotes',         accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', border: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
   order:         { label: 'Orders',         accent: '#16a34a', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)'  },
 };
 
@@ -73,14 +69,6 @@ const fetchAllPages = async (fetcher, customerId) => {
 
 const fetchDocuments = async (linkType, customerId) => {
   try {
-    if (linkType === 'quote_request') {
-      const list = await fetchAllPages(getAdminQuoteRequests, customerId);
-      return list.map((d) => ({ id: d.id, document_number: d.request_number, title: d.title ?? null, status: d.status, link_type: 'quote_request' }));
-    }
-    if (linkType === 'quote') {
-      const list = await fetchAllPages(getAllQuotes, customerId);
-      return list.map((d) => ({ id: d.id, document_number: d.quote_number, title: d.title ?? null, status: d.status, link_type: 'quote' }));
-    }
     if (linkType === 'order') {
       const list = await fetchAllPages(ordersAPI.getAllOrders, customerId);
       return list.map((d) => ({ id: d.id, document_number: d.order_number, title: d.title ?? null, status: d.status, link_type: 'order' }));
@@ -112,14 +100,14 @@ const Checkbox = ({ checked }) => (
 const LinkProjectModal = ({ project, onClose }) => {
   const { addLink } = useProjectStore();
 
-  const [activeTab,   setActiveTab]   = useState('quote_request');
+  const [activeTab,   setActiveTab]   = useState('order');
   const [search,      setSearch]      = useState('');
   const [submitting,  setSubmitting]  = useState(false);
   const [tabDropdown, setTabDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  const [docCache, setDocCache] = useState({ quote_request: null, quote: null, order: null });
-  const [fetching, setFetching] = useState({ quote_request: false, quote: false, order: false });
+  const [docCache, setDocCache] = useState({ order: null });
+  const [fetching, setFetching] = useState({ order: false });
   const [selections, setSelections] = useState(new Map());
 
   useEffect(() => {

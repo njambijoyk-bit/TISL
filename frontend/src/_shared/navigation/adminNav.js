@@ -47,11 +47,7 @@ export const ADMIN_NAV = [
       { id: 'orders', title: 'Orders', icon: ShoppingCart, color: '#f97316', path: '/admin/orders', keywords: 'invoices shipping' },
       { id: 'payments', title: 'Payments', icon: DollarSign, color: '#10b981', path: '/admin/finance/payments', roles: PAYMENTS_ROLES, keywords: 'mpesa transactions' },
       {
-        id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes', also: ['/admin/quote-requests'],
-        tabs: [
-          { title: 'Quotes', path: '/admin/quotes' },
-          { title: 'Quote requests', path: '/admin/quote-requests' },
-        ],
+        id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes',
       },
       { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'gift voucher invoices' },
       { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
@@ -368,7 +364,7 @@ export const liveTabs = (item) => (item?.tabs ?? []).filter((t) => !t.soon);
 
 // ─── Matching ────────────────────────────────────────────────────────────────
 
-/** Does `pathname` sit at or under `path`? Segment-aware: /admin/quotes ≠ /admin/quote-requests. */
+/** Does `pathname` sit at or under `path`? Segment-aware: /admin/orders ≠ /admin/orders-old. */
 export function pathMatches(pathname, path, exact = false) {
   if (pathname === path) return true;
   if (exact) return false;

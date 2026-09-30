@@ -384,26 +384,6 @@ const Services = () => {
           <Pagination pagination={pagination} onPageChange={handlePageChange} />
         )}
 
-        {/* ── CTA ──────────────────────────────────────────────────────────── */}
-        <div className="mt-12 rounded-2xl p-8 text-center" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 8%, transparent), color-mix(in srgb, var(--color-primary-600) 5%, transparent))', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Can't find what you're looking for?</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">Request a custom quote and we'll help you find the perfect solution</p>
-          <button
-            onClick={() => navigate('/request-quote')}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '12px 28px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-              color: 'white', fontSize: '0.95rem', fontWeight: 700,
-              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
-              transition: 'opacity 150ms',
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            Request Custom Quote
-          </button>
-        </div>
       </div>
 
       <Footer />

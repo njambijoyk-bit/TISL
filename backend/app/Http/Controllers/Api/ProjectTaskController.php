@@ -50,7 +50,7 @@ class ProjectTaskController extends Controller
             'priority'     => 'nullable|in:low,medium,high,urgent',
             'assigned_to'  => 'nullable|integer|exists:users,id',
             'due_date'     => 'nullable|date',
-            'related_type' => 'nullable|in:project_item,quote_request,quote,order,milestone',
+            'related_type' => 'nullable|in:project_item,order,milestone',
             'related_id'   => 'nullable|integer|min:1',
         ]);
 
@@ -95,7 +95,7 @@ class ProjectTaskController extends Controller
             'priority'     => 'sometimes|in:low,medium,high,urgent',
             'assigned_to'  => 'nullable|integer|exists:users,id',
             'due_date'     => 'nullable|date',
-            'related_type' => 'nullable|in:project_item,quote_request,quote,order,milestone',
+            'related_type' => 'nullable|in:project_item,order,milestone',
             'related_id'   => 'nullable|integer|min:1',
         ]);
 

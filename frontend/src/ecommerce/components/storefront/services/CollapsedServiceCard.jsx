@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Monitor, Clock, FileText } from 'lucide-react';
-import useQuoteListStore from '../../../../_shared/store/quoteListStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
-import toast from 'react-hot-toast';
 
 /**
  * CollapsedServiceCard
@@ -23,19 +21,10 @@ export default function CollapsedServiceCard({ service }) {
   const [imageError, setImageError] = useState(false);
 
   // ── Stores ────────────────────────────────────────────────────────────────
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
 
-  const inQL   = service?.id ? inQuoteList(`s:${service.id}`) : false;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleCardClick = () => navigate(`/services/${service?.id}`);
-
-  const handleAddToQuoteList = (e) => {
-    e.stopPropagation();
-    if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList(service, 1);
-    toast.success(`${service?.name} added to quote list`, { icon: '📋' });
-  };
 
   // ── Normalise fields ──────────────────────────────────────────────────────
   const imageUrl = service?.main_image_url ?? service?.main_image ?? service?.image_url ?? null;
@@ -55,11 +44,6 @@ export default function CollapsedServiceCard({ service }) {
   const pricingDisplay = getPricingDisplay();
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-
-  const handleQuote = (e) => {
-    e.stopPropagation();
-    navigate(`/request-quote?service=${service?.id}`);
-  };
 
   // ── Badge pill ────────────────────────────────────────────────────────────
   const eyebrow = isFeatured
@@ -119,18 +103,7 @@ export default function CollapsedServiceCard({ service }) {
               {service.estimated_duration}
             </span>
           )}
-          {/* Quote list */}
-          <button
-            type="button"
-            onClick={handleAddToQuoteList}
-            className={`csc-quote-btn ${inQL ? 'in-list' : ''}`}
-            aria-label={inQL ? 'View quote list' : 'Add to quote list'}
-            title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}
-          >
-            <FileText size={11} />
-            {inQL ? 'In List →' : 'Quote'}
-          </button>
-        </div>
+                  </div>
       </div>
 
       {/* ── Right: circular image ──────────────────────────────────────── */}

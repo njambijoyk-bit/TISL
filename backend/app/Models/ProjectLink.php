@@ -34,8 +34,6 @@ class ProjectLink extends Model
     public function getLinkedModelAttribute()
     {
         return match ($this->link_type) {
-            'quote_request' => QuoteRequest::query()->find($this->link_id),
-            'quote'         => Quote::query()->find($this->link_id),
             'order'         => Order::query()->find($this->link_id),
             default         => null,
         };

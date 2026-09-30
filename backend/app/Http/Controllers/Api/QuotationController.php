@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
-use App\Models\QuoteRequest;
 use App\Services\Books\BooksException;
 use App\Services\Books\ExportService;
 use App\Services\Books\QuotationService;
@@ -59,7 +58,6 @@ class QuotationController extends Controller
         $v = Voucher::with($this->vouchers->relations())->findOrFail($id);
         $out = $v->toArray();
         $out['footer'] = $this->export->footer($v);
-        $out['request'] = $v->quote_request_id ? QuoteRequest::with('customer:id,first_name,last_name,email,phone')->find($v->quote_request_id) : null;
 
         return response()->json($out);
     }
@@ -82,19 +80,6 @@ class QuotationController extends Controller
     public function lookup(Request $request): JsonResponse
     {
         return app(BooksVoucherController::class)->lookup($request);
-    }
-
-    public function fromRequest(Request $request, $requestId): JsonResponse
-    {
-        return $this->guard(function () use ($request, $requestId) {
-            $qr = QuoteRequest::findOrFail($requestId);
-            $v = $this->quotes->fromRequest($qr, $request->user());
-            if ($qr->status === 'pending') {
-                $qr->update(['status' => 'reviewing']);
-            }
-
-            return response()->json(['message' => "{$v->voucher_number} created — now price it", 'data' => $v], 201);
-        });
     }
 
     /** Price / edit the lines (same payload as the voucher form). */

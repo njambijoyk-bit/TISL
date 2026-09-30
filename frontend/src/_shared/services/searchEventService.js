@@ -178,18 +178,4 @@ export const searchEvents = {
       originating_query: _lastQuery,
     });
   },
-
-  /**
-   * Call inside quoteListStore addItem.
-   */
-  addToQuotelist(product) {
-    fire({
-      event_type:        'add_to_quotelist',
-      entity_type:       'product',
-      entity_id:         product.id,
-      entity_name:       product.name ?? null,
-      entity_sku:        product.sku  ?? null,
-      originating_query: _lastQuery,
-    });
-  },
 };

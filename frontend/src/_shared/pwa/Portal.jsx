@@ -14,7 +14,7 @@ import {
   Eye, EyeOff, Loader2, Sparkles, Globe, ShieldCheck,
   RouteIcon,
 } from 'lucide-react';
-import { useAuthStore, useCartStore, useQuoteListStore, usePromoCodeStore } from '../store/index';
+import { useAuthStore, useCartStore, usePromoCodeStore } from '../store/index';
 import {
   customersAPI, authAPI, customerLoyaltyAPI,
   referralsAPI, customerTiersAPI, workAPI, notificationsAPI,
@@ -60,7 +60,6 @@ const glowBtn = (color) => ({
 const CUSTOMER_ROUTES = [
   { key: 'orders',         label: 'My Orders',      icon: ShoppingBag,   path: '/orders',            color: '#f97316' },
   { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: 'var(--color-primary-400)' },
-  { key: 'quote-requests', label: 'Quote Requests', icon: MessageSquare, path: '/my-quote-requests', color: '#ec4899' },
   { key: 'bookings',       label: 'Bookings',       icon: ClipboardList, path: '/bookings',          color: '#10b981' },
   { key: 'tickets',        label: 'Support',        icon: LifeBuoy,      path: '/my-tickets',        color: '#ef4444' },
   { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6' },
@@ -89,7 +88,6 @@ const ADMIN_ROUTES = [
   { key: 'projects',   label: 'Projects',   icon: FolderOpen,      path: '/admin/projects',       color: '#14b8a6' },
   { key: 'loyalty',    label: 'Loyalty',    icon: Award,           path: '/admin/loyalty',        color: '#f59e0b' },
   { key: 'settings',   label: 'Settings',   icon: Settings,        path: '/admin/settings',       color: '#64748b' },
-  { key: 'q-requests', label: 'Quote Reqs', icon: MessageSquare,   path: '/admin/quote-requests', color: '#f43f5e' },
   { key: 'employees',  label: 'Employees',  icon: Users,           path: '/admin/employees',      color: '#0ea5e9' },
   { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: 'var(--color-primary-600)' },
   { key: 'manifests',  label: 'Manifests',  icon: ScrollText,      path: '/admin/delivery',       color: '#f97316' },
@@ -631,10 +629,8 @@ const CUSTOMER_TABS = [
 function CustomerPWAHome({ user, onLogout }) {
   const navigate = useNavigate();
   const { items: cartItems }      = useCartStore();
-  const { items: quoteListItems } = useQuoteListStore();
   const { myCodes, fetchMyCodes } = usePromoCodeStore();
   const cartCount      = cartItems?.reduce((s, i) => s + (i.quantity ?? 1), 0) ?? 0;
-  const quoteListCount = quoteListItems?.length ?? 0;
   const [activeTab, setActiveTab] = useState('personal');
   const [customer,  setCustomer]  = useState(null);
   const [wallet,    setWallet]    = useState(null);
@@ -706,22 +702,6 @@ function CustomerPWAHome({ user, onLogout }) {
           {cartCount > 0 && (
             <span style={{ position: 'absolute', top: 6, right: 8, minWidth: 16, height: 16, borderRadius: 99, padding: '0 3px', background: PURPLE, color: 'white', fontSize: '0.55rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {cartCount > 99 ? '99+' : cartCount}
-            </span>
-          )}
-        </button>
-        <button onClick={() => navigate('/quote-list')} className="portal-press" style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '10px', borderRadius: 11, border: 'none',
-          background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_D})`,
-          cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: '0.82rem', fontWeight: 700, color: 'white', position: 'relative',
-          boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
-        }}>
-          <FileText size={15} strokeWidth={2.2} />
-          Quote List
-          {quoteListCount > 0 && (
-            <span style={{ position: 'absolute', top: 6, right: 8, minWidth: 16, height: 16, borderRadius: 99, padding: '0 3px', background: 'white', color: PURPLE_D, fontSize: '0.55rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {quoteListCount > 99 ? '99+' : quoteListCount}
             </span>
           )}
         </button>
@@ -917,16 +897,16 @@ function AdminPWAHome({ user, onLogout }) {
   const navigate = useNavigate();
   const [activeTab,    setActiveTab]    = useState('overview');
   const [loading,      setLoading]      = useState(true);
-  const [assignments,  setAssignments]  = useState({ customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
+  const [assignments,  setAssignments]  = useState({ customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
   const [empRecord,    setEmpRecord]    = useState(null);
-  const [openSections, setOpenSections] = useState({ customers: true, projects: true, orders: false, quotes: false, quoteRequests: false, tickets: false });
+  const [openSections, setOpenSections] = useState({ customers: true, projects: true, orders: false, tickets: false });
 
   const toggleSection = key => setOpenSections(p => ({ ...p, [key]: !p[key] }));
   const daysUntil     = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
   useEffect(() => {
     workAPI.myDashboard().then(data => {
-      setAssignments(data?.assignments ?? { customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
+      setAssignments(data?.assignments ?? { customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
       setLoading(false);
     }).catch(() => setLoading(false));
     employeesAPI.getMyRecord().then(data => setEmpRecord(data.employee)).catch(() => {});
@@ -1091,18 +1071,6 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
             <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{o.customer?.full_name}</p>
           </div>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>{o.currency || 'KES'} {Number(o.total||0).toLocaleString()}</span>
-          <ChevronRight size={13} color={MUTED} />
-        </button>
-      ),
-    },
-    {
-      key: 'quotes', label: 'Assigned Quotes', count: assignments.counts?.quotes || 0, color: 'var(--color-primary-400)', items: assignments.quotes, emptyMsg: 'No quotes assigned',
-      renderItem: (q, i) => (
-        <button key={i} onClick={() => navigate(`/admin/quotes/${q.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{q.quote_number}</p>
-            <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{q.customer?.full_name}</p>
-          </div>
           <ChevronRight size={13} color={MUTED} />
         </button>
       ),

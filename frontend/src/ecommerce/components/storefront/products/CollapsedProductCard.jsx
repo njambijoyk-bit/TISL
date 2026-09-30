@@ -5,7 +5,6 @@ import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
 import useCartStore from '../../../../_shared/store/cartStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
-import useQuoteListStore from '../../../../_shared/store/quoteListStore';
 import toast from 'react-hot-toast';
 
 const BOOST_BADGE = {
@@ -20,7 +19,6 @@ export default function CollapsedProductCard({ product }) {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
   const { toggle, has } = useWishlistStore();
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   const [imageError, setImageError] = useState(false);
 
   const hasAuction = product?.active_auction && product.active_auction.status === 'active';
@@ -48,7 +46,6 @@ export default function CollapsedProductCard({ product }) {
     product?.short_description ?? product?.shortdescription ?? product?.description ?? '';
 
   const wished = product?.id ? has(product.id) : false;
-  const inQL   = product?.id ? inQuoteList(product.id) : false;
 
   // ---------- Handlers ----------
   const handleAddToCart = (e) => {
@@ -56,19 +53,6 @@ export default function CollapsedProductCard({ product }) {
     if (!inStock) { toast.error('Product is out of stock'); return; }
     addItem(product, 1);
     toast.success(`${product?.name} added to cart!`);
-  };
-
-  const handleAddToQuoteList = (e) => {
-    e.stopPropagation();
-    if (inQL) {
-      navigate('/quote-list');
-      return;
-    }
-    addToQuoteList(product, 1);
-    toast.success(`${product?.name} added to quote list`, {
-      icon: '📋',
-      action: { label: 'View', onClick: () => navigate('/quote-list') },
-    });
   };
 
   const handleViewProduct = () => navigate(`/products/${product?.id}`);
@@ -91,11 +75,8 @@ export default function CollapsedProductCard({ product }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span className="collapsed-price">{money.price(product)}</span><ChargedInBadge style={{ marginLeft: 6 }} />
           {isPriceNegotiable && (
-            <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
-              style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
-              Negotiable
-            </button>
-          )}
+<span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6' }}>Negotiable</span>
+)}
         </div>
         {!inStock && <span className="collapsed-price out-of-stock">Out of Stock</span>}
       </div>
@@ -168,10 +149,7 @@ export default function CollapsedProductCard({ product }) {
               <button type="button" onClick={handleToggleWishlist} className="collapsed-wand-btn" aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
                 <Heart size={13} style={{ color: 'var(--color-primary-500)', fill: wished ? 'var(--color-primary-500)' : 'none', transition: 'fill 150ms ease' }} />
               </button>
-              <button type="button" onClick={handleAddToQuoteList} className={`collapsed-action-btn ${inQL ? 'in-quote-list' : isPriceNegotiable ? 'negotiable' : 'quote'}`} title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}>
-                <FileText size={13} /> {isPriceNegotiable ? (inQL ? 'In List →' : 'Quote') : ''}
-              </button>
-            </div>
+                          </div>
             <button type="button" onClick={handleAddToCart} disabled={!inStock} className="collapsed-action-btn primary">
               <ShoppingCart size={13} /> {inStock ? 'Add' : 'N/A'}
             </button>

@@ -33,7 +33,6 @@ import CollapsedProductCard from '../../components/storefront/products/Collapsed
 import ReviewCard from '../../components/storefront/products/ReviewCard';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
-import useQuoteListStore from '../../../_shared/store/quoteListStore';
 
 import { productsAPI } from '../../../_shared/api/index';
 import { useCartStore, useProductStore, useAuthStore } from '../../../_shared/store/index';
@@ -142,8 +141,6 @@ export default function ProductDetail() {
   const { toggle, has } = useWishlistStore();
   const wished = Boolean(product?.id) ? has(product.id) : false;
 
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
-  const inQL = Boolean(product?.id) ? inQuoteList(product.id) : false;
   const { isAuthenticated } = useAuthStore();
 
   const getImageUrl = (imagePath) => {
@@ -300,11 +297,6 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
-  const handleRequestQuote = () => {
-    if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList(cartLine(), quantity);
-    toast.success(`${product?.name} added to quote list`);
-  };
   const handleToggleWishlist = (e) => {
     e.stopPropagation();
     if (!product?.id) return;
@@ -722,10 +714,7 @@ export default function ProductDetail() {
                       <Gavel size={13} /> This item is up for auction — place a bid to purchase
                     </span>
                   ) : isPriceNegotiable && (
-                    <button type="button" onClick={handleRequestQuote}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, marginTop: 8 }}>
-                      {inQL ? 'Price is negotiable — View in Quote List →' : 'Price is negotiable — request a quote'}
-                    </button>
+                    <span style={{ display: 'inline-flex', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', marginTop: 8 }}>Price is negotiable — contact us</span>
                   )}
                 </div>
 
@@ -975,20 +964,6 @@ export default function ProductDetail() {
                         </button>
                       )}
 
-                      <button onClick={handleRequestQuote} type="button"
-                        title={inQL ? 'In quote list — click to view' : 'Add to quote list'}
-                        style={{
-                          ...(isPriceNegotiable ? { flex: '1 1 130px' } : { width: 50, flexShrink: 0 }),
-                          height: 50, borderRadius: 12, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em',
-                          border: inQL ? '1.5px solid var(--color-primary-500)' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
-                          background: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
-                          color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'all 150ms ease',
-                        }}>
-                        <FileText size={16} />
-                        {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Request a Quote') : ''}
-                      </button>
                     </div>
                   );
                 })()}

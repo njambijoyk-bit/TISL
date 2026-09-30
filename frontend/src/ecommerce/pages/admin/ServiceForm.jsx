@@ -4,8 +4,8 @@ import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
-import ProductSelectorModalAdmin from '../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
-import ServiceSelectorModalAdmin from '../../components/admin/quotes/request-wizard/ServiceSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../components/admin/pickers/ProductSelectorModalAdmin';
+import ServiceSelectorModalAdmin from '../../components/admin/pickers/ServiceSelectorModalAdmin';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';

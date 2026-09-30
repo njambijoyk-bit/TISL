@@ -12,10 +12,8 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Order;
-use App\Models\Quote;
 use App\Models\Customer;
 use App\Models\User;
-use App\Models\QuoteRequest;
 use App\Models\Project;
 use App\Models\ReferralCode;
 use App\Models\Payment;
@@ -84,7 +82,7 @@ class ChatController extends Controller
         $contents = array_merge(
             [
                 ['role' => 'user',  'parts' => [['text' => $systemPrompt]]],
-                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, {$this->company()}'s assistant. Ready to help with products, orders, quotes, payments, and more."]]],
+                ['role' => 'model', 'parts' => [['text' => "Understood! I am Mimi, {$this->company()}'s assistant. Ready to help with products, orders, payments, and more."]]],
             ],
             $history,
             [['role' => 'user', 'parts' => [['text' => $request->message]]]]
@@ -221,28 +219,6 @@ class ChatController extends Controller
                     " | {$o->created_at->format('M d, Y')}"
                 )->join("\n") ?: 'No orders yet.';
 
-            // ── Quotes ────────────────────────────────────────────────────────
-            $quotes = Quote::where('customer_id', $customer->id)
-                ->select('id', 'quote_number', 'status', 'total', 'valid_until', 'created_at')
-                ->latest()
-                ->limit(5)
-                ->get()
-                ->map(fn($q) =>
-                    "📄 Quote #{$q->quote_number} | Status: {$q->status} | KSh " . number_format($q->total, 2) .
-                    ($q->valid_until ? " | Valid until: {$q->valid_until->format('M d, Y')}" : "") .
-                    " | Created: {$q->created_at->format('M d, Y')}"
-                )->join("\n") ?: 'No quotes yet.';
-
-            // ── Quote Requests ─────────────────────────────────────────────────
-            $quoteRequests = QuoteRequest::where('customer_id', $customer->id)
-                ->select('id', 'request_number', 'status', 'request_title', 'created_at')
-                ->latest()
-                ->limit(3)
-                ->get()
-                ->map(fn($qr) =>
-                    "🔍 Request #{$qr->request_number} | {$qr->request_title} | Status: {$qr->status} | {$qr->created_at->format('M d, Y')}"
-                )->join("\n") ?: 'No quote requests.';
-
             // ── Projects ──────────────────────────────────────────────────────
             $projects = Project::whereHas('participants', fn($q) =>
                 $q->where('customer_id', $customer->id)
@@ -339,16 +315,6 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
 {$payments}
 
 ════════════════════════════════════════
-📄 RECENT QUOTES (last 5)
-════════════════════════════════════════
-{$quotes}
-
-════════════════════════════════════════
-🔍 RECENT QUOTE REQUESTS (last 3)
-════════════════════════════════════════
-{$quoteRequests}
-
-════════════════════════════════════════
 🚀 ACTIVE PROJECTS (last 3)
 ════════════════════════════════════════
 {$projects}
@@ -414,16 +380,6 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
                 }
                 break;
 
-            case 'quote_lookup':
-                $quote = Quote::with(['customer:id,first_name,last_name,email', 'items'])
-                    ->where('quote_number', $intent['identifier'])
-                    ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
-                    ->first();
-                $parts['lookup'] = $quote
-                    ? $this->formatQuoteDetail($quote)
-                    : "Quote '{$intent['identifier']}' not found.";
-                break;
-
             case 'customer_lookup':
                 $customer = Customer::with(['user:id,name,email,phone'])
                     ->where('email', $intent['identifier'])
@@ -471,14 +427,6 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
         }
         if (preg_match('/order\s*#?\s*(\d+)/i', $message, $m)) {
             return ['type' => 'order_lookup', 'identifier' => $m[1]];
-        }
-
-        // Quote number: QT-2025-001
-        if (preg_match('/(qt-\d{4}-\d+)/i', $message, $m)) {
-            return ['type' => 'quote_lookup', 'identifier' => strtoupper($m[1])];
-        }
-        if (preg_match('/quote\s*#?\s*(\w+)/i', $message, $m)) {
-            return ['type' => 'quote_lookup', 'identifier' => strtoupper($m[1])];
         }
 
         // Customer: email, customer number CUST-2025-0001, or "customer 42"
@@ -556,32 +504,9 @@ Expected: KSh " . number_format($payment->amount_expected, 2) .
 "\nDispute: {$payment->dispute_status}";
     }
 
-    private function formatQuoteDetail(Quote $quote): string
-    {
-        $customer = $quote->customer;
-        $name     = $customer
-            ? trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''))
-            : 'Unknown';
-
-        $items = $quote->items->map(fn($i) =>
-            "  • " . ($i->product_name ?? $i->service_name ?? $i->name ?? 'Item') . " × {$i->quantity} @ KSh " . number_format($i->unit_price ?? $i->price ?? 0, 2)
-        )->join("\n") ?: '  No items';
-
-        return "
-📄 QUOTE #{$quote->quote_number}
-Customer: {$name} ({$customer?->email})
-Status: {$quote->status}
-Total: KSh " . number_format($quote->total, 2) .
-($quote->valid_until ? "\nValid Until: {$quote->valid_until->format('M d, Y')}" : "") .
-"\nCreated: {$quote->created_at->format('M d, Y H:i')}
-ITEMS:
-{$items}";
-    }
-
     private function formatCustomerDetail(Customer $customer): string
     {
         $orderCount = Order::where('customer_id', $customer->id)->count();
-        $quoteCount = Quote::where('customer_id', $customer->id)->count();
         $totalSpent = Order::where('customer_id', $customer->id)->where('payment_status', 'paid')->sum('total_kes');
         $openDisputes = Payment::where('customer_id', $customer->id)->whereIn('dispute_status', ['raised', 'investigating'])->count();
 
@@ -590,7 +515,7 @@ ITEMS:
 Email: {$customer->email} | Phone: {$customer->phone}
 Customer #: {$customer->customer_number} | Tier: " . strtoupper($customer->tier ?? 'bronze') . "
 Member Since: {$customer->created_at->format('M d, Y')}
-Orders: {$orderCount} | Quotes: {$quoteCount}
+Orders: {$orderCount}
 Total Spent: KSh " . number_format($totalSpent, 2) .
 ($customer->company_name ? "\nCompany: {$customer->company_name}" : "") .
 ($openDisputes > 0 ? "\n⚠️ Open payment disputes: {$openDisputes}" : "") .
@@ -608,10 +533,6 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
                 'total'   => Order::count(),
                 'pending' => Order::where('status', 'pending')->count(),
                 'today'   => Order::whereDate('created_at', today())->count(),
-            ],
-            'quotes' => [
-                'total'   => Quote::count(),
-                'pending' => Quote::where('status', 'pending')->count(),
             ],
             'customers' => Customer::count(),
             'products'  => Product::where('status', 'active')->count(),
@@ -716,7 +637,7 @@ Pending (latest 5):
         $roleBlock = $isStaff
             ? "🔐 YOU ARE STAFF (Role: {$context['userRole']})
 You have access to admin data below. You can:
-• Look up orders, quotes, customers, payments by number or identifier
+• Look up orders, customers, payments by number or identifier
 • Summarise stats and recent activity
 • For finance role: view payment status, pending pushes, disputes for your own payments
 • For admin/super_admin: full visibility across all records
@@ -726,13 +647,12 @@ Always verify sensitive lookups from the data context provided — never invent 
 Use ONLY their personal data below — never reference other customers.
 You can help with:
 • Order tracking and payment status
-• Quote management
 • Promo codes and referral code
 • Projects and account details
 If they ask about anything not in their data, direct them to contact support."
                 : "🌐 YOU ARE HELPING A GUEST USER
 Provide general store information only.
-Encourage login for personalized features like order tracking, quotes, and promo codes.");
+Encourage login for personalized features like order tracking and promo codes.");
 
         return "
 You are Mimi, {$this->company()}'s friendly and knowledgeable assistant .

@@ -21,12 +21,10 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\SearchEventController;
-use App\Http\Controllers\Api\QuoteRequestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
@@ -647,19 +645,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{slug}',                       [PublicHamperController::class, 'show']);
         });
 
-        // Quotes
-        Route::prefix('quotes')->group(function () {
-            Route::get('/', [QuoteController::class, 'myQuotes']);
-            Route::get('/{id}', [QuoteController::class, 'show']);
-            Route::post('/', [QuoteController::class, 'store']);
-            Route::delete('/{id}', [QuoteController::class, 'customerTrash']);
-            Route::post('/{id}/accept', [QuoteController::class, 'accept']);
-            Route::post('/{id}/reject', [QuoteController::class, 'reject']);
-            Route::post('/{id}/request-revision', [QuoteController::class, 'requestRevision']);
-            Route::patch('/{id}/customer-update', [QuoteController::class, 'customerUpdate']);
-            Route::post('/{id}/convert-to-order', [QuoteController::class, 'convertToOrder']);
-        });
-
         // Quotations (Customer) — priced quotes for a request, accept / decline / ask for changes
         Route::prefix('quotations')->group(function () {
             Route::get('/', [QuotationController::class, 'myIndex']);
@@ -667,16 +652,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/accept', [QuotationController::class, 'accept']);
             Route::post('/{id}/decline', [QuotationController::class, 'decline']);
             Route::post('/{id}/revision', [QuotationController::class, 'revision']);
-        });
-
-        // Quote Requests (Customer)
-        Route::prefix('quote-requests')->group(function () {
-            Route::get('/', [QuoteRequestController::class, 'myQuoteRequests']);
-            Route::post('/', [QuoteRequestController::class, 'store']);
-            Route::get('/{id}', [QuoteRequestController::class, 'show']);
-            Route::put('/{id}', [QuoteRequestController::class, 'update']);
-            Route::post('/{id}/clarify', [QuoteRequestController::class, 'respondToClarification']);
-            Route::get('/{id}/attachments/{index}', [QuoteRequestController::class, 'downloadAttachment']);
         });
 
         Route::prefix('projects')->middleware('module:projects')->group(function () {
@@ -1085,21 +1060,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}',       [ShippingOptionController::class, 'destroy']);
         });
 
-        // Quotes Management
-        Route::prefix('quotes')->group(function () {
-            Route::get('/', [QuoteController::class, 'adminIndex']);
-            Route::get('/trash', [QuoteController::class, 'trashIndex']);      // trashed only
-
-            Route::post('/restore-multiple', [QuoteController::class, 'restoreMultiple']); // bulk restore
-            
-            Route::get('/{id}', [QuoteController::class, 'adminShow']);
-            Route::post('/', [QuoteController::class, 'store']);
-            Route::post('/from-request/{requestId}', [QuoteController::class, 'createFromRequest']);
-            Route::put('/{id}', [QuoteController::class, 'update']);
-            
-            Route::delete('/{id}', [QuoteController::class, 'destroy']);      // soft delete (role rules)
-            Route::post('/{id}/restore', [QuoteController::class, 'restore']); // restore single
-        });
         
         // Quotations (Admin) — the priced document; requests stay the intake
         Route::prefix('quotations')->group(function () {
@@ -1107,7 +1067,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/meta', [QuotationController::class, 'meta']);
             Route::get('/lookup', [QuotationController::class, 'lookup']);
             Route::post('/preview', [QuotationController::class, 'preview']);
-            Route::post('/from-request/{requestId}', [QuotationController::class, 'fromRequest']);
             Route::get('/{id}', [QuotationController::class, 'show']);
             Route::put('/{id}', [QuotationController::class, 'update']);
             Route::post('/{id}/send', [QuotationController::class, 'send']);
@@ -1115,20 +1074,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/export', [QuotationController::class, 'export']);
         });
 
-        // Quote Requests Management (Admin)
-        Route::prefix('quote-requests')->group(function () {
-            Route::get('/', [QuoteRequestController::class, 'index']);
-            Route::get('/statistics', [QuoteRequestController::class, 'statistics']);
-            Route::get('/{id}', [QuoteRequestController::class, 'adminShow']);
-            Route::post('/{id}/assign', [QuoteRequestController::class, 'assign']);
-            Route::post('/{id}/clarify', [QuoteRequestController::class, 'requestClarification']);
-            Route::post('/{id}/reject', [QuoteRequestController::class, 'reject']);
-            Route::post('/{id}/convert', [QuoteRequestController::class, 'convertToQuote']);
-            Route::put('/{id}/priority', [QuoteRequestController::class, 'updatePriority']);
-            Route::put('/{id}/status', [QuoteRequestController::class, 'updateStatus']);
-            Route::post('/{id}/notes', [QuoteRequestController::class, 'addNotes']);
-            Route::get('/{id}/attachments/{index}', [QuoteRequestController::class, 'downloadAttachment']);
-        });
         
         // Orders (retired): read-only views for the screens that still show them. Orders are vouchers now.
         Route::prefix('orders')->group(function () {
@@ -2140,11 +2085,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // System Settings
         // Route::get('/settings', [SettingsController::class, 'index']);
         // Route::put('/settings', [SettingsController::class, 'update']);
-
-        Route::prefix('quotes')->group(function () {
-            Route::delete('/{id}/force', [QuoteController::class, 'forceDelete']);
-            Route::post('/force-delete-multiple', [QuoteController::class, 'forceDeleteMultiple']);
-        });
 
         Route::prefix('projects')->middleware('module:projects')->group(function () {
             Route::delete('/{project}/force', [ProjectController::class, 'forceDestroy'])

@@ -40,8 +40,6 @@ class ProjectTask extends Model
         return match ($this->related_type) {
             'project_item' => ProjectItem::query()->find($this->related_id),
             'milestone'    => ProjectMilestone::query()->find($this->related_id),
-            'quote_request'=> QuoteRequest::query()->find($this->related_id),
-            'quote'        => Quote::query()->find($this->related_id),
             'order'        => Order::query()->find($this->related_id),
             default        => null,
         };

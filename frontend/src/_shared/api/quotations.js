@@ -11,7 +11,6 @@ const send = async (method, url, data) => (await api[method](url, data)).data;
 const quotationsAPI = {
   // admin
   list: (params) => get('/admin/quotations', params),
-  fromRequest: (requestId) => send('post', `/admin/quotations/from-request/${requestId}`),
   send: (id) => send('post', `/admin/quotations/${id}/send`),
   withdraw: (id, reason) => send('post', `/admin/quotations/${id}/withdraw`, { reason }),
   exportQuotation: async (id, format) => {

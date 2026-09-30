@@ -2,14 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { X, Search, Loader2, ChevronDown, ChevronUp, User, Link2 } from 'lucide-react';
 import useProjectStore from '../../../_shared/store/projectStore';
-import { getAdminQuoteRequests } from '../../../_shared/api/quoteRequests';
-import { getAllQuotes } from '../../../_shared/api/quotes';
 import ordersAPI from '../../../_shared/api/orders';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const RELATED_TYPES = ['quote_request', 'quote', 'order', 'project_item', 'milestone'];
-const TYPE_LABEL    = { quote_request: 'Quote Request', quote: 'Quote', order: 'Order', project_item: 'Project Item', milestone: 'Milestone' };
+const RELATED_TYPES = ['order', 'project_item', 'milestone'];
+const TYPE_LABEL    = { order: 'Order', project_item: 'Project Item', milestone: 'Milestone' };
 
 const STATUS_BADGE = {
   pending:         { bg: 'rgba(234,179,8,0.12)',   color: '#b45309' },
@@ -84,14 +82,6 @@ const fetchAllPages = async (fetcher, customerId) => {
 
 const fetchDocuments = async (relatedType, customerId) => {
   try {
-    if (relatedType === 'quote_request') {
-      const list = await fetchAllPages(getAdminQuoteRequests, customerId);
-      return list.map((d) => ({ id: d.id, label: d.request_number, sublabel: d.title ?? null, status: d.status }));
-    }
-    if (relatedType === 'quote') {
-      const list = await fetchAllPages(getAllQuotes, customerId);
-      return list.map((d) => ({ id: d.id, label: d.quote_number, sublabel: d.title ?? null, status: d.status }));
-    }
     if (relatedType === 'order') {
       const list = await fetchAllPages(ordersAPI.getAllOrders, customerId);
       return list.map((d) => ({ id: d.id, label: d.order_number, sublabel: d.title ?? null, status: d.status }));
@@ -279,7 +269,7 @@ const CreateTaskModal = ({ project, onClose }) => {
 
   useEffect(() => {
     setRelatedDoc(null);
-    const apiTypes = ['quote_request', 'quote', 'order'];
+    const apiTypes = ['order'];
     if (!relatedType || !apiTypes.includes(relatedType)) return;
     if (docCache[relatedType]) return;
 
@@ -289,7 +279,7 @@ const CreateTaskModal = ({ project, onClose }) => {
       .catch(() => { setDocCache((c) => ({ ...c, [relatedType]: [] })); setDocLoading(false); });
   }, [relatedType]);
 
-  const isApiType    = ['quote_request', 'quote', 'order'].includes(relatedType);
+  const isApiType    = ['order'].includes(relatedType);
   const projectLinks = project?.links ?? [];
 
   const currentDocs = (() => {

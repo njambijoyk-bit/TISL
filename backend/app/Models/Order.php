@@ -158,14 +158,6 @@ class Order extends Model
     }
 
     /**
-     * Get the quote this order was created from (if any).
-     */
-    public function quote()
-    {
-        return $this->belongsTo(Quote::class);
-    }
-
-    /**
      * Get the referral code used (if any).
      */
     public function referralCode()

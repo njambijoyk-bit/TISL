@@ -1990,7 +1990,7 @@ class VoucherService
                 'status' => Voucher::POSTED, 'posted_at' => now(), 'created_by' => $user?->id,
                 'fulfilment_status' => in_array($type->base_type, [VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::PURCHASE_ORDER, VoucherType::RECEIPT_NOTE], true) ? 'open' : null,
                 'doc_status' => $type->base_type === VoucherType::QUOTATION ? ($data['doc_status'] ?? 'quoted') : null,
-                'valid_until' => $data['valid_until'] ?? null, 'quote_request_id' => $data['quote_request_id'] ?? null,
+                'valid_until' => $data['valid_until'] ?? null,
             ]);
         }
 

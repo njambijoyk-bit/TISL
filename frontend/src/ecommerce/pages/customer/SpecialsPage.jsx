@@ -485,9 +485,8 @@ export default function SpecialsPage() {
             <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-primary-500/15 transition-all duration-500" />
             <div className="relative px-8 py-14 lg:px-16 lg:py-20 text-center">
               <h2 className="text-3xl lg:text-5xl font-black text-primary mb-5 leading-[1.05]">Can't find what you're looking for?</h2>
-              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">Send us a quote request and we'll respond within <span className="text-primary-400 font-semibold">24 hours</span>.</p>
+              <p className="text-zinc-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">Browse the full catalogue, or get in touch and we'll help.</p>
               <div className="flex flex-wrap gap-4 justify-center">
-                <Link to="/request-quote" className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-black rounded-lg text-sm transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">Request a Quote <ArrowRight size={15} /></Link>
                 <Link to="/products" className="inline-flex items-center gap-2 px-8 py-3.5 border border-primary-500/40 hover:border-primary-400/70 text-zinc-300 hover:text-primary-300 font-semibold rounded-lg text-sm transition-all duration-200 bg-zinc-900/50 hover:bg-zinc-900/80 hover:-translate-y-0.5">Browse Catalogue</Link>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-6 mt-10 pt-8">

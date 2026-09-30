@@ -57,6 +57,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 39 | `39_voucher_instruments.sql` | `voucher_instruments` — the transfer reference / cheque (number, date, other bank, status) on a receipt or payment and the deposit / withdrawal slip on a contra; one row per voucher |
 | 40 | `40_cheque_register.sql` | `voucher_instruments`: `deposited_on`, `cleared_on`, `bounce_voucher_id`, `bounce_reason` (needs script 39) |
 | 41 | `41_cash_counts.sql` | `cash_counts` — the day-end count of a cash ledger against the books and the journal that posted the difference |
+| 42 | `42_drop_legacy_quotes.sql` | drops `quote_items`, `quote_requests`, `quotes` and the old link columns (`vouchers.quote_request_id`, `orders.quote_id`, `order_items.quote_item_id`); quotation vouchers are kept |
 
 ---
 

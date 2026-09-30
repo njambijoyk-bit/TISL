@@ -253,7 +253,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
     <Modal isOpen={true} onClose={onClose} title={<span style={{ color: purple }}>Assign Admin</span>} size="md">
       <form onSubmit={handleSubmit}>
         <p style={{ fontSize: '0.83rem', color: '#6b7280', marginBottom: 20, lineHeight: 1.65 }}>
-          Select an admin to assign this quote request or quote to. They will be responsible for reviewing and processing it.
+          Select an admin to take responsibility for this.
         </p>
 
         {/* Error */}
@@ -277,18 +277,6 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
           </p>
         </div>
 
-        {/* Info box */}
-        <div style={{ padding: '14px 16px', borderRadius: 12, background: purpleLt, border: `1px solid ${purpleBd}`, marginBottom: 24 }}>
-          <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: purple, marginBottom: 10 }}>What happens next</p>
-          {[
-            'The request status will change to "Under Review"',
-            'The admin can create a quote from this request',
-          ].map(s => (
-            <p key={s} style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 5px', display: 'flex', gap: 7 }}>
-              <span style={{ color: purple, fontWeight: 700, flexShrink: 0 }}>·</span>{s}
-            </p>
-          ))}
-        </div>
 
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
@@ -296,7 +284,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
           <Btn type="submit" disabled={submitting || !selectedAdmin}>
             {submitting
               ? <><LoadingSpinner size="sm" />&nbsp;Assigning…</>
-              : <><UserCheck size={15} />Assign Request</>}
+              : <><UserCheck size={15} />Assign</>}
           </Btn>
         </div>
       </form>

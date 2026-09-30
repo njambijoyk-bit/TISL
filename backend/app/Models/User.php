@@ -13,7 +13,6 @@ use App\Models\DriverLocationPing;
 use App\Models\DeliveryRating;
 use App\Models\MpesaTransaction;
 use App\Models\Order;
-use App\Models\Quote;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Auth\MustVerifyEmail;
 
@@ -225,24 +224,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get quotes submitted by this user (who created the quote).
-     * This is for admin/sales rep who create quotes on behalf of customers.
-     */
-    public function submittedQuotes()
-    {
-        return $this->hasMany(Quote::class, 'submitted_by');
-    }
-
-    /**
-     * Get quotes of this user's customer record.
-     * This is for when user is a customer and has their own quotes.
-     */
-    public function customerQuotes()
-    {
-        return $this->customer ? $this->customer->quotes : collect();
-    }
-
-    /**
      * Get customers assigned to this user (if sales rep).
      */
     public function assignedCustomers()
@@ -312,14 +293,6 @@ class User extends Authenticatable
     public function assignedOrders()
     {
         return $this->hasMany(Order::class, 'assigned_to');
-    }
-
-    /**
-     * Get quotes assigned to this user (if admin).
-     */
-    public function assignedQuotes()
-    {
-        return $this->hasMany(Quote::class, 'assigned_to');
     }
 
     /**
@@ -637,18 +610,6 @@ class User extends Authenticatable
         }
         
         return $this->placedOrders;
-    }
-
-    /**
-     * Get all quotes for this user (combines both customer quotes and submitted quotes).
-     */
-    public function getAllQuotes()
-    {
-        if ($this->isCustomer() && $this->customer) {
-            return $this->customer->quotes;
-        }
-        
-        return $this->submittedQuotes;
     }
 
     /**

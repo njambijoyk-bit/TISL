@@ -146,14 +146,6 @@ class Customer extends Model
     }
 
     /**
-     * Get all quotes for this customer.
-     */
-    public function quotes()
-    {
-        return $this->hasMany(Quote::class);
-    }
-
-    /**
      * Get all reviews by this customer.
      */
     public function reviews()

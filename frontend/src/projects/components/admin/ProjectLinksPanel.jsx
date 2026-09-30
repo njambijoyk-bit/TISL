@@ -5,15 +5,11 @@ import useProjectStore from '../../../_shared/store/projectStore';
 import LinkProjectModal from './LinkProjectModal';
 
 const TYPE_LABELS = {
-  quote_request: 'Quote Request',
-  quote:         'Quote',
   order:         'Order',
 };
 
 // Type pills — visible on both themes (colored text + tinted fill)
 const TYPE_PILL = {
-  quote_request: { color: '#60a5fa', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.28)'  },
-  quote:         { color: 'var(--color-primary-400)', bg: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)',  border: 'color-mix(in srgb, var(--color-primary-500) 28%, transparent)'  },
   order:         { color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.28)'  },
 };
 
@@ -47,8 +43,6 @@ const typeLabel = (t) =>
   t?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
 
 const docRoute = (linkType, linkId) => {
-  if (linkType === 'quote_request') return `/admin/quote-requests/${linkId}`;
-  if (linkType === 'quote')         return `/admin/quotes/${linkId}`;
   if (linkType === 'order')         return `/admin/orders/${linkId}`;
   return '#';
 };
@@ -113,7 +107,7 @@ const ProjectLinksPanel = ({ project }) => {
 
       ) : links.length === 0 ? (
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontStyle: 'italic', margin: 0 }}>
-          No documents linked yet. Attach a quote request, quote, or order.
+          No documents linked yet. Attach an order.
         </p>
 
       ) : (

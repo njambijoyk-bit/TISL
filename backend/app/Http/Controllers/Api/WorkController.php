@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Employee;
 use App\Models\Customer;
 use App\Models\Order;
-use App\Models\Quote;
-use App\Models\QuoteRequest;
 use App\Models\Project;
 use App\Models\ProjectParticipant;
 use App\Models\ProjectTask;
@@ -176,22 +174,6 @@ class WorkController extends Controller
             ->limit(20)
             ->get();
 
-        // ── Quotes ─────────────────
-        $quotes = Quote::with(['customer:id,first_name,last_name'])
-            ->where('assigned_to', $uid)
-            ->select('id', 'quote_number', 'status', 'total', 'currency', 'customer_id', 'assigned_to', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
-        // ── Quote requests ─────────
-        $quoteRequests = QuoteRequest::with(['customer:id,first_name,last_name'])
-            ->where('assigned_to', $uid)
-            ->select('id', 'request_number', 'request_title', 'status', 'priority', 'customer_id', 'assigned_to', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
         // ── Projects ───────────────
         $participantProjectIds = ProjectParticipant::where('admin_user_id', $uid)
             ->where('participant_type', 'admin')
@@ -269,8 +251,6 @@ class WorkController extends Controller
         return [
             'customers'     => $customers,
             'orders'        => $orders,
-            'quotes'        => $quotes,
-            'quoteRequests' => $quoteRequests,
             'projects'      => $projects,
             'tasks'         => $tasks,
             'milestones'    => $milestones,
@@ -279,8 +259,6 @@ class WorkController extends Controller
             'counts' => [
                 'customers'     => $customers->count(),
                 'orders'        => $orders->count(),
-                'quotes'        => $quotes->count(),
-                'quoteRequests' => $quoteRequests->count(),
                 'projects'      => $projects->count(),
                 'tasks'         => $tasks->count(),
                 'milestones'    => $milestones->count(),
@@ -318,27 +296,6 @@ class WorkController extends Controller
                 'status'   => $p->status,
                 'url'      => "/admin/projects/{$p->id}",
             ]);
-
-        // Quotes expiring within 14 days - ONLY if valid_until column exists
-        $quotes = collect();
-        try {
-            $quotes = Quote::where('assigned_to', $uid)
-                ->whereBetween('valid_until', [$now, now()->addDays(14)])
-                ->whereNotIn('status', ['approved', 'rejected', 'expired', 'converted'])
-                ->select('id', 'quote_number', 'status', 'valid_until')
-                ->orderBy('valid_until')
-                ->get()
-                ->map(fn($q) => [
-                    'type'     => 'quote',
-                    'id'       => $q->id,
-                    'label'    => $q->quote_number,
-                    'deadline' => $q->valid_until,
-                    'status'   => $q->status,
-                    'url'      => "/admin/quotes/{$q->id}",
-                ]);
-        } catch (\Exception $e) {
-            Log::warning('Quote deadlines query failed - valid_until column may be missing', ['error' => $e->getMessage()]);
-        }
 
         // Milestones due within 30 days
         $myProjectIds = array_unique(
@@ -408,7 +365,6 @@ class WorkController extends Controller
 
         return [
             'projects'   => $projects,
-            'quotes'     => $quotes,
             'milestones' => $milestones,
             'tasks'      => $tasksDue,
             'tickets'    => $tickets,
@@ -434,16 +390,7 @@ class WorkController extends Controller
             ->get()
             ->map(fn($o) => array_merge($o->toArray(), ['assignedTo' => $assignedUser]));
 
-        $quoteActivity = Quote::where('assigned_to', $uid)
-            ->select('id', 'quote_number as reference', 'status', 'updated_at',
-                DB::raw("'quote' as type"),
-                DB::raw("CONCAT('/admin/quotes/', id) as url"))
-            ->orderBy('updated_at', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(fn($q) => array_merge($q->toArray(), ['assignedTo' => $assignedUser]));
-
-        return $orderActivity->concat($quoteActivity)
+        return $orderActivity
             ->sortByDesc('updated_at')
             ->take(20)
             ->values()
@@ -473,18 +420,6 @@ class WorkController extends Controller
 
         $orderCounts = Order::whereIn('assigned_to', $staffIds)
             ->whereNotIn('status', ['delivered', 'cancelled'])
-            ->selectRaw('assigned_to as user_id, COUNT(*) as count')
-            ->groupBy('assigned_to')
-            ->pluck('count', 'user_id');
-
-        $quoteCounts = Quote::whereIn('assigned_to', $staffIds)
-            ->whereNotIn('status', ['approved', 'rejected', 'expired', 'converted'])
-            ->selectRaw('assigned_to as user_id, COUNT(*) as count')
-            ->groupBy('assigned_to')
-            ->pluck('count', 'user_id');
-
-        $quoteRequestCounts = QuoteRequest::whereIn('assigned_to', $staffIds)
-            ->whereNotIn('status', ['quoted', 'rejected', 'expired'])
             ->selectRaw('assigned_to as user_id, COUNT(*) as count')
             ->groupBy('assigned_to')
             ->pluck('count', 'user_id');
@@ -549,7 +484,7 @@ class WorkController extends Controller
         // ── Assemble result without any more queries ─────────────────────────
 
         return $staff->map(function (User $u) use (
-            $customerCounts, $orderCounts, $quoteCounts, $quoteRequestCounts,
+            $customerCounts, $orderCounts,
             $taskCounts, $bookingCounts, $ticketCounts, $projectIdsByUser, $milestoneCounts, $employees
         ) {
             $myProjectIds = $projectIdsByUser[$u->id] ?? [];
@@ -563,8 +498,6 @@ class WorkController extends Controller
                 'counts' => [
                     'customers'     => $customerCounts->get($u->id, 0),
                     'orders'        => $orderCounts->get($u->id, 0),
-                    'quotes'        => $quoteCounts->get($u->id, 0),
-                    'quoteRequests' => $quoteRequestCounts->get($u->id, 0),
                     'projects'      => count($myProjectIds),
                     'tasks'         => $taskCounts->get($u->id, 0),
                     'milestones'    => $milestoneCount,
@@ -581,22 +514,6 @@ class WorkController extends Controller
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->with(['customer:id,first_name,last_name'])
             ->select('id', 'order_number', 'status', 'total', 'currency', 'customer_id', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
-        $quotes = Quote::whereNull('assigned_to')
-            ->whereNotIn('status', ['approved', 'rejected', 'expired', 'converted'])
-            ->with(['customer:id,first_name,last_name'])
-            ->select('id', 'quote_number', 'status', 'total', 'currency', 'customer_id', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
-        $quoteRequests = QuoteRequest::whereNull('assigned_to')
-            ->whereNotIn('status', ['quoted', 'rejected', 'expired'])
-            ->with(['customer:id,first_name,last_name'])
-            ->select('id', 'request_number', 'request_title', 'status', 'priority', 'customer_id', 'created_at')
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
@@ -629,15 +546,11 @@ class WorkController extends Controller
 
         return [
             'orders'        => $orders,
-            'quotes'        => $quotes,
-            'quoteRequests' => $quoteRequests,
             'tasks'         => $tasks,
             'bookings'      => $bookings,  
             'tickets'       => $tickets,
             'counts' => [
                 'orders'        => $orders->count(),
-                'quotes'        => $quotes->count(),
-                'quoteRequests' => $quoteRequests->count(),
                 'tasks'         => $tasks->count(),
                 'bookings'      => $bookings->count(), 
                 'tickets'       => $tickets->count(),
@@ -667,29 +580,6 @@ class WorkController extends Controller
                 'customer' => $p->customer ? trim("{$p->customer->first_name} {$p->customer->last_name}") : null,
                 'url'      => "/admin/projects/{$p->id}",
             ]);
-
-        // Quotes with valid_until - wrapped in try-catch
-        $quotes = collect();
-        try {
-            $quotes = Quote::with(['customer:id,first_name,last_name', 'assignedTo:id,name'])
-                ->whereBetween('valid_until', [$now, now()->addDays(14)])
-                ->whereNotIn('status', ['approved', 'rejected', 'expired', 'converted'])
-                ->select('id', 'quote_number', 'status', 'valid_until', 'customer_id', 'assigned_to')
-                ->orderBy('valid_until')
-                ->limit(30)
-                ->get()
-                ->map(fn($q) => [
-                    'type'       => 'quote',
-                    'id'         => $q->id,
-                    'label'      => $q->quote_number,
-                    'deadline'   => $q->valid_until,
-                    'status'     => $q->status,
-                    'assignedTo' => $q->assignedTo?->name,
-                    'url'        => "/admin/quotes/{$q->id}",
-                ]);
-        } catch (\Exception $e) {
-            Log::warning('teamDeadlines quotes query failed', ['error' => $e->getMessage()]);
-        }
 
         $milestones = ProjectMilestone::with(['project:id,title,project_number'])
             ->whereBetween('due_date', [$now, $soon])
@@ -750,7 +640,6 @@ class WorkController extends Controller
 
         return [
             'projects'   => $projects,
-            'quotes'     => $quotes,
             'milestones' => $milestones,
             'bookings'   => $bookings,
             'tasks'      => $tasks,
@@ -767,12 +656,7 @@ class WorkController extends Controller
                 DB::raw("CONCAT('/admin/orders/', id) as url"))
             ->orderBy('updated_at', 'desc')->limit(15)->get();
 
-        $quotes = Quote::select('id', 'quote_number as reference', 'status', 'updated_at', 'assigned_to',
-                DB::raw("'quote' as type"),
-                DB::raw("CONCAT('/admin/quotes/', id) as url"))
-            ->orderBy('updated_at', 'desc')->limit(15)->get();
-
-        $combined = $orders->concat($quotes);
+        $combined = $orders;
 
         // One query to load all assigned users
         $userIds = $combined->pluck('assigned_to')->filter()->unique();

@@ -181,14 +181,6 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    /**
-     * Get quote items for this product.
-     */
-    public function quoteItems()
-    {
-        return $this->hasMany(QuoteItem::class);
-    }
-
     // ========================================
     // VARIANT / OPTION / IMAGE RELATIONSHIPS
     // ========================================

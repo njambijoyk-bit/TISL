@@ -36,11 +36,9 @@ const CUSTOMER_GROUPS = [
       { name: 'My Orders',       icon: ShoppingBag,   bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/orders',            active: true },
       { name: 'Cart',            icon: ShoppingCart,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/cart',              active: true },
       { name: 'Wishlist',        icon: Heart,         bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/wishlist',          active: true },
-      { name: 'Quote List',      icon: ClipboardList, bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/quote-list',        active: true },
       { name: 'My Account',      icon: User,          bg: 'linear-gradient(135deg,#6366f1,#818cf8)', path: '/my-account',        active: true },
       { name: 'My Wallet',       icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/gift-vouchers',     active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
-      { name: 'Quote Requests',  icon: FileQuestion,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/my-quote-requests', active: true },
       { name: 'My Projects',     icon: FolderOpen,    bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/my-projects',       active: true },
       { name: 'My Bookings',     icon: Calendar,      bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/bookings',          active: true },
       { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
@@ -52,7 +50,6 @@ const CUSTOMER_GROUPS = [
   {
     label: 'Actions',
     items: [
-      { name: 'Request Quote',   icon: FileSpreadsheet, bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/request-quote',     active: true },
       { name: 'Checkout',        icon: CreditCard,      bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/checkout',          active: true },
       { name: 'Report a Bug',    icon: Bug,             bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/report-bug',        active: true },
       { name: 'Track Bug',       icon: MapPin,          bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/track-bug',         active: true },

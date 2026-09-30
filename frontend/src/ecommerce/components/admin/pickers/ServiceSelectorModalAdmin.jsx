@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Wrench, Check, Star, Clock, X } from 'lucide-react';
-import AdminPagination from '../../../../../_shared/components/common/AdminPagination';
-import useServiceStore from '../../../../../_shared/store/serviceStore';
-import { servicesAPI } from '../../../../../_shared/api/index';
-import { formatMoney } from '../../../../../_shared/lib/money';
+import AdminPagination from '../../../../_shared/components/common/AdminPagination';
+import useServiceStore from '../../../../_shared/store/serviceStore';
+import { servicesAPI } from '../../../../_shared/api/index';
+import { formatMoney } from '../../../../_shared/lib/money';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
@@ -84,7 +84,7 @@ const getPricingDisplay = (service) => {
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
+const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] }) => {
   const { services, categories, types, loading, fetchServices, fetchCategories, fetchTypes } = useServiceStore();
 
   const [searchTerm,       setSearchTerm]       = useState('');
@@ -114,7 +114,7 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
       
       // Use ADMIN endpoint (confirm this matches your Laravel route)
-      const res = await servicesAPI.getServices(params);
+      const res = await servicesAPI.getAdminServices(params);
       
       setLocalServices(res.data || []);
       setPagination({
@@ -291,7 +291,17 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
             })}
           </div>
 
+          {/* Footer */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+              {pagination.total} service{pagination.total !== 1 ? 's' : ''} available
+            </p>
+            
+            <AdminPagination
+              pagination={pagination}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="outline" onClick={onClose}>Cancel</Btn>
               <Btn variant="primary" onClick={() => onSelect(localSelected)} disabled={localSelected.length === 0}>
@@ -299,22 +309,10 @@ const ServiceSelectorModal = ({ onClose, onSelect, selectedServices = [] }) => {
               </Btn>
             </div>
           </div>
-
-          {/* Footer */}
-          <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            
-            <AdminPagination
-              pagination={pagination}
-              onPageChange={(newPage) => setPage(newPage)}
-            />
-            
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
-            
-          </div>
         </div>
       </div>
     </>
   );
 };
 
-export default ServiceSelectorModal;
+export default ServiceSelectorModalAdmin;

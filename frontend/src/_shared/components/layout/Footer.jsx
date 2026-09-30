@@ -261,7 +261,7 @@ export default function Footer() {
             : /* Fallback: show default link columns if CMS has none */
               [
                 { title: 'Products', items: [{ label: 'All Products', url: '/products' }, { label: 'Deals', url: '/specials' }, { label: 'New Arrivals', url: '/products?is_new=true' }] },
-                { title: 'Company', items: [{ label: 'About', url: '/about' }, { label: 'Contact', url: '/contact' }, { label: 'Request Quote', url: '/request-quote' }] },
+                { title: 'Company', items: [{ label: 'About', url: '/about' }, { label: 'Contact', url: '/contact' }] },
                 { title: 'Support', items: [{ label: 'FAQ', url: '/faq' }, { label: 'Shipping', url: '/shipping' }, { label: 'Returns', url: '/returns' }] },
               ].map((col, idx) => (
                 <div key={idx}>

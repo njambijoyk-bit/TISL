@@ -7,8 +7,6 @@ use App\Http\Controllers\Api\Traits\LogsProjectActivity;
 use App\Models\Order;
 use App\Models\Project;
 use App\Models\ProjectLink;
-use App\Models\Quote;
-use App\Models\QuoteRequest;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,7 +42,7 @@ class ProjectLinkController extends Controller
         $this->authorize('manageLinks', $project);
 
         $validated = $request->validate([
-            'link_type' => 'required|in:quote_request,quote,order',
+            'link_type' => 'required|in:order',
             'link_id'   => 'required|integer|min:1',
             'relation'  => 'nullable|in:primary,addendum,revision,phase',
             'notes'     => 'nullable|string|max:1000',
@@ -147,8 +145,6 @@ class ProjectLinkController extends Controller
     private function targetExists(string $type, int $id): bool
     {
         return match ($type) {
-            'quote_request' => QuoteRequest::where('id', $id)->exists(),
-            'quote'         => Quote::where('id', $id)->exists(),
             'order'         => Order::where('id', $id)->exists(),
             default         => false,
         };
@@ -160,8 +156,6 @@ class ProjectLinkController extends Controller
     private function targetBelongsToCustomer(string $type, int $id, int $customerId): bool
     {
         return match ($type) {
-            'quote_request' => QuoteRequest::where('id', $id)->where('customer_id', $customerId)->exists(),
-            'quote'         => Quote::where('id', $id)->where('customer_id', $customerId)->exists(),
             'order'         => Order::where('id', $id)->where('customer_id', $customerId)->exists(),
             default         => false,
         };
@@ -178,12 +172,6 @@ class ProjectLinkController extends Controller
     private function resolveSummary(string $type, int $id): ?array
     {
         $model = match ($type) {
-            'quote_request' => QuoteRequest::with('customer:id,first_name,last_name')
-                ->select('id', 'request_number', 'request_title', 'status', 'customer_id')
-                ->find($id),
-            'quote'  => Quote::with('customer:id,first_name,last_name')
-                ->select('id', 'quote_number', 'reference_number', 'status', 'customer_id')
-                ->find($id),
             'order'  => Order::with('customer:id,first_name,last_name')
                 ->select('id', 'order_number', 'project_name', 'status', 'customer_id')
                 ->find($id),
@@ -193,16 +181,12 @@ class ProjectLinkController extends Controller
         if (!$model) return null;
 
         $documentNumber = match ($type) {
-            'quote_request' => $model->request_number,
-            'quote'         => $model->quote_number,
             'order'         => $model->order_number,
             default         => null,
         };
 
         // Derive a human-readable name from the fields that actually exist
         $name = match ($type) {
-            'quote_request' => $model->request_title ?: $model->request_number,
-            'quote'         => $model->reference_number ?: $model->quote_number,
             'order'         => $model->project_name ?: $model->order_number,
             default         => null,
         };
@@ -226,8 +210,6 @@ class ProjectLinkController extends Controller
     private function resolveName(string $type, int $id): ?string
     {
         $model = match ($type) {
-            'quote_request' => QuoteRequest::select('id', 'request_number', 'request_title')->find($id),
-            'quote'         => Quote::select('id', 'quote_number', 'reference_number')->find($id),
             'order'         => Order::select('id', 'order_number', 'project_name')->find($id),
             default         => null,
         };
@@ -235,8 +217,6 @@ class ProjectLinkController extends Controller
         if (!$model) return null;
 
         return match ($type) {
-            'quote_request' => $model->request_title ?: $model->request_number,
-            'quote'         => $model->reference_number ?: $model->quote_number,
             'order'         => $model->project_name ?: $model->order_number,
             default         => null,
         };

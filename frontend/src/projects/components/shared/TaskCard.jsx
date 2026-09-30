@@ -10,8 +10,6 @@ import ProjectPriorityBadge from './ProjectPriorityBadge';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_LABEL = {
-  quote_request: 'Quote Request',
-  quote:         'Quote',
   order:         'Order',
   project_item:  'Project Item',
   milestone:     'Milestone',
@@ -91,8 +89,6 @@ const resolveRelation = (task) => {
   const secondaryText = primaryText !== docNum ? docNum : null;
   const status  = summary?.status;
   const route = (() => {
-    if (typeKey === 'quote_request') return `/admin/quote-requests/${id}`;
-    if (typeKey === 'quote')         return `/admin/quotes/${id}`;
     if (typeKey === 'order')         return `/admin/orders/${id}`;
     return null;
   })();

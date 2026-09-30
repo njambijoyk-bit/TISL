@@ -15,7 +15,7 @@ import useLocationStore from '../../store/locationStore';
 import LocationPicker from '../common/LocationPicker';
 import CurrencyToggle from '../common/currency/CurrencyToggle';
 import SmartSearchBox from '../common/SmartSearchBox';
-import { useAuthStore, useCartStore, useQuoteListStore } from '../../store/index';
+import { useAuthStore, useCartStore } from '../../store/index';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
 import useNavStore from '../../store/navStore';
@@ -215,7 +215,6 @@ export default function Header() {
   const navPosition = 'fixed';
   const { items: cartItems } = useCartStore();
   const { ids: wishlistIds, serviceIds: wishlistServiceIds } = useWishlistStore();
-  const { items: quoteListItems } = useQuoteListStore();
 
   // Storefront nav (admin-controlled, per active module).
   const navLinks = useNavStore((s) => s.links);
@@ -261,7 +260,6 @@ export default function Header() {
                   user?.role === 'driver';  
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
   const wishlistCount = (wishlistIds?.length ?? 0) + (wishlistServiceIds?.length ?? 0);
-  const quoteListCount = quoteListItems?.length ?? 0;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   useEffect(() => {
@@ -378,7 +376,6 @@ export default function Header() {
     {
       label: 'Commerce', items: [
         { label: 'Orders',         icon: ShoppingBag,    to: '/admin/orders' },
-        { label: 'Quote Requests', icon: ClipboardList,  to: '/admin/quote-requests' },
         { label: 'Quotes',         icon: FileText,       to: '/admin/quotes' },
         { label: 'Projects',       icon: FolderOpen,     to: '/admin/projects' },
       ],
@@ -409,7 +406,6 @@ export default function Header() {
     { label: 'My Account',         icon: User,          to: '/my-account' },
     { label: 'My Wallet',          icon: Gift,          to: '/gift-vouchers' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
-    { label: 'Quote Requests',    icon: ClipboardList, to: '/my-quote-requests' },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects', module: MODULES.PROJECTS },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
     { label: 'My Hampers',        icon: Package,       to: '/hampers', module: MODULES.HAMPERS },
@@ -597,11 +593,6 @@ export default function Header() {
                     }} />
                   ))}
                 </div>
-                <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border-primary)' }}>
-                  <Link to="/request-quote" onClick={() => services.setOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none', padding: '6px 8px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
-                    <FileText size={13} /> Request a Custom Quote
-                  </Link>
-                </div>
               </MegaPanel>
             </div>
             )}
@@ -667,14 +658,6 @@ export default function Header() {
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
             )}
-
-            {/* Quote list */}
-            <Link to="/quote-list" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
-              className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Quote List">
-              <ClipboardList size={17} />
-              {quoteListCount > 0 && <Badge count={quoteListCount} color="var(--color-primary-600)" />}
-            </Link>
 
             {/* Cart */}
             <Link to="/cart" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}

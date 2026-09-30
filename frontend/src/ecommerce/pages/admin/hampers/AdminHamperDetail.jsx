@@ -7,7 +7,7 @@ import {
   Wallet, Star, Clock, Activity,
 } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
-import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../../components/admin/pickers/ProductSelectorModalAdmin';
 import hampersAPI from '../../../../_shared/api/hampers';
 import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
 import toast from 'react-hot-toast';

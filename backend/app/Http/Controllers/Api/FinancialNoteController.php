@@ -137,7 +137,6 @@ class FinancialNoteController extends Controller
         $numberColumn = match($table) {
             'orders'         => 'order_number',
             'payments'       => 'payment_number',
-            'quotes'         => 'quote_number',
             default          => null,
         };
 

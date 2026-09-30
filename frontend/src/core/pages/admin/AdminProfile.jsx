@@ -5,7 +5,7 @@ import {
   FolderOpen, FileText, AlertCircle, MapPin, ShoppingBag,
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
-  MessageSquareQuote, ArrowRight, CalendarClock, Bell, Truck,
+  ArrowRight, CalendarClock, Bell, Truck,
   ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar,
 } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
@@ -77,10 +77,10 @@ export default function AdminProfile() {
   const [loading,   setLoading]   = useState(true);
 
   const [assignments, setAssignments] = useState({
-    customers: [], orders: [], quotes: [], quoteRequests: [],
+    customers: [], orders: [],
     projects: [], tasks: [], milestones: [], tickets: [], bookings: [], counts: {},
   });
-  const [deadlines, setDeadlines] = useState({ projects: [], quotes: [], milestones: [], tasks: [], tickets: [] });
+  const [deadlines, setDeadlines] = useState({ projects: [], milestones: [], tasks: [], tickets: [] });
   const [activity,  setActivity]  = useState([]);
 
   // Collapsible sections state for My Work tab
@@ -88,8 +88,6 @@ export default function AdminProfile() {
     customers: true,
     projects:  true,
     orders:    false,
-    quotes:    false,
-    quoteRequests: false,
     tickets:   false,
     bookings:  false,
   });
@@ -149,9 +147,9 @@ export default function AdminProfile() {
       } else {
         const dashData = await workAPI.myDashboard();
         setAssignments(
-          dashData?.assignments ?? { customers: [], orders: [], quotes: [], quoteRequests: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} }
+          dashData?.assignments ?? { customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} }
         );
-        setDeadlines(dashData?.deadlines ?? { projects: [], quotes: [], milestones: [], tasks: [], tickets: [] });
+        setDeadlines(dashData?.deadlines ?? { projects: [], milestones: [], tasks: [], tickets: [] });
         setActivity(dashData?.activity ?? []);
         // Fire and forget — banner is non-blocking
         workAPI.incompleteManifests()
@@ -412,12 +410,11 @@ export default function AdminProfile() {
                 {/* Quick stats */}
                 <div style={card}>
                   <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats</p>
-                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                     {[
                       { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff' },
                       { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4' },
                       { label: 'Orders',    value: assignments.counts?.orders    || 0, color: '#f59e0b', bg: '#fffbeb' },
-                      { label: 'Quotes',    value: assignments.counts?.quotes    || 0, color: 'var(--color-primary-400)', bg: '#f5f3ff' },
                       { label: 'Tickets',   value: assignments.counts?.tickets   || 0, color: '#06b6d4', bg: '#ecfeff' },
                     ].map(({ label, value, color, bg }) => (
                       <div key={label} style={{ padding: 16, borderRadius: 10, background: bg, textAlign: 'center' }}>
@@ -558,56 +555,6 @@ export default function AdminProfile() {
                             {o.currency || 'KES'} {Number(o.total || 0).toLocaleString()}
                           </p>
                           <StatusBadge status={o.status} />
-                        </div>
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'quotes',
-                    label: 'Assigned Quotes',
-                    count: assignments.counts?.quotes || 0,
-                    icon: FileText,
-                    color: 'var(--color-primary-400)',
-                    colorBg: '#f5f3ff',
-                    items: assignments.quotes,
-                    emptyMsg: 'No quotes assigned to you yet',
-                    renderItem: (q, idx) => (
-                      <Link key={idx} to={`/admin/quotes/${q.id}`} style={rowStyle}>
-                        <Avatar icon={FileText} color="#f5f3ff" textColor="var(--color-primary-400)" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{q.quote_number}</p>
-                          <p style={rowSub}>{q.customer?.full_name || 'Unknown'}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>
-                            {q.currency || 'KES'} {Number(q.total || 0).toLocaleString()}
-                          </p>
-                          <StatusBadge status={q.status} />
-                        </div>
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'quoteRequests',
-                    label: 'Assigned Quote Requests',
-                    count: assignments.counts?.quoteRequests || 0,
-                    icon: MessageSquareQuote,
-                    color: '#ec4899',
-                    colorBg: '#fdf2f8',
-                    items: assignments.quoteRequests,
-                    emptyMsg: 'No quote requests assigned to you yet',
-                    renderItem: (qr, idx) => (
-                      <Link key={idx} to={`/admin/quote-requests/${qr.id}`} style={rowStyle}>
-                        <Avatar icon={MessageSquareQuote} color="#fdf2f8" textColor="#ec4899" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{qr.request_number}</p>
-                          <p style={rowSub}>{qr.request_title || 'No title'}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <PriorityBadge priority={qr.priority} />
-                          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{qr.status}</p>
                         </div>
                         <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
                       </Link>
@@ -1000,8 +947,6 @@ export default function AdminProfile() {
                 { label: 'Customers',      value: assignments.counts?.customers     || 0 },
                 { label: 'Projects',       value: assignments.counts?.projects      || 0 },
                 { label: 'Orders',         value: assignments.counts?.orders        || 0 },
-                { label: 'Quotes',         value: assignments.counts?.quotes        || 0 },
-                { label: 'Quote Requests', value: assignments.counts?.quoteRequests || 0 },
                 { label: 'Bookings',       value: assignments.counts?.bookings      || 0 },
                 { label: 'Tickets',        value: assignments.counts?.tickets       || 0 },
               ].map(({ label, value }) => (
@@ -1013,12 +958,12 @@ export default function AdminProfile() {
             </div>
 
             {/* Upcoming deadlines */}
-            {([...(deadlines.projects || []), ...(deadlines.quotes || []), ...(deadlines.tickets || [])].length > 0) && (
+            {([...(deadlines.projects || []), ...(deadlines.tickets || [])].length > 0) && (
               <div style={card}>
                 <p style={{ ...sectionTitle, marginBottom: 14 }}>
                   <CalendarClock size={14} style={{ color: 'var(--color-primary-600)' }} /> Upcoming deadlines
                 </p>
-                {[...(deadlines.projects || []), ...(deadlines.quotes || []), ...(deadlines.tickets || [])]
+                {[...(deadlines.projects || []), ...(deadlines.tickets || [])]
                   .sort((a, b) => new Date(a.deadline || a.created_at) - new Date(b.deadline || b.created_at))
                   .slice(0, 5)
                   .map((item, idx) => {

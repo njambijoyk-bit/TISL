@@ -16,7 +16,7 @@ import { canReadFinance, canActOnCredit } from '../../../_shared/lib/roles';
 import customersAPI from '../../../_shared/api/customers';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import ordersAPI from '../../../_shared/api/orders';
-import AssignModal from '../../../ecommerce/components/admin/quotes/AssignModal';
+import AssignModal from '../../../ecommerce/components/admin/pickers/AssignModal';
 
 // ── Style constants ───────────────────────────────────────────────────────────
 

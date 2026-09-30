@@ -21,10 +21,10 @@ export default function MyQuotations() {
       <Header />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>My quotations</h1>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>Prices we've prepared for your requests. <Link to="/my-quote-requests">See your requests</Link></p>
+        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>Prices we've prepared for you.</p>
         {error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
         {!rows && !error && <p>Loading…</p>}
-        {rows?.length === 0 && <p style={{ color: '#6b7280' }}>Nothing here yet — <Link to="/request-quote">request a quote</Link>.</p>}
+        {rows?.length === 0 && <p style={{ color: '#6b7280' }}>Nothing here yet.</p>}
         <div style={{ display: 'grid', gap: 12 }}>
           {rows?.map((q) => {
             const [label, color] = STATUS[q.doc_status] ?? [q.doc_status, '#6b7280'];

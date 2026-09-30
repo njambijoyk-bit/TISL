@@ -68,7 +68,7 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::with(['user', 'salesRep', 'orders', 'quotes', 'currency:id,code,name,symbol'])
+        $customer = Customer::with(['user', 'salesRep', 'orders', 'currency:id,code,name,symbol'])
             ->findOrFail($id);
 
         return response()->json([

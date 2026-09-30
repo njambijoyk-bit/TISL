@@ -732,7 +732,7 @@ function AlgorithmAppendix() {
     { key: 'frequency',  label: 'Frequency',  weight: 20, color: '#3b82f6', formula: 'min(100, log(total_orders + 1) / log(50) × 100)',       source: 'customers.total_orders' },
     { key: 'monetary',   label: 'Monetary',   weight: 20, color: '#10b981', formula: 'PERCENT_RANK() OVER (ORDER BY total_spent) × 100',      source: 'customers.total_spent' },
     { key: 'loyalty',    label: 'Loyalty',    weight: 15, color: '#f59e0b', formula: 'min(100, loyalty_points / 100)',                        source: 'customers.loyalty_points' },
-    { key: 'engagement', label: 'Engagement', weight: 10, color: 'var(--color-primary-400)', formula: 'min(100, reviews×20 + bids×10 + quote_requests×15)',    source: 'product_reviews, auction_bids, quote_requests' },
+    { key: 'engagement', label: 'Engagement', weight: 10, color: 'var(--color-primary-400)', formula: 'min(100, reviews×20 + bids×10)',    source: 'product_reviews, auction_bids' },
     { key: 'service',    label: 'Service',    weight:  5, color: '#06b6d4', formula: 'min(100, bookings×25 + service_order_items×15)',         source: 'bookings, order_items (type=service)' },
     { key: 'referral',   label: 'Referral',   weight:  5, color: '#ec4899', formula: 'min(100, completed_referrals × 20)',                    source: 'referral_code_usage (status=completed)' },
   ];
@@ -1073,7 +1073,6 @@ function RouteMapAppendix() {
         { path: '/specials',                  comp: 'Specials (filtered products)' },
         { path: '/cart',                      comp: 'Cart' },
         { path: '/wishlist',                  comp: 'Wishlist' },
-        { path: '/quote-list',                comp: 'QuoteList' },
         { path: '/about',                     comp: 'ContentPageController@showBySlug' },
         { path: '/contact',                   comp: 'ContentPageController@showBySlug' },
         { path: '/manual',                    comp: 'ContentPageController@showBySlug' },
@@ -1113,9 +1112,6 @@ function RouteMapAppendix() {
         { path: '/bookings',                    comp: 'BookingController@customerIndex' },
         { path: '/bookings/:id',                comp: 'BookingController@customerShow' },
         { path: '/services/:id/book',           comp: 'Book Service' },
-        { path: '/request-quote',               comp: 'QuoteRequestController@store' },
-        { path: '/my-quote-requests',           comp: 'QuoteRequestController@myQuoteRequests' },
-        { path: '/my-quote-requests/:id',       comp: 'QuoteRequestController@show' },
         { path: '/my-quotes',                   comp: 'QuoteController@myQuotes' },
         { path: '/my-quotes/:id',               comp: 'QuoteController@show' },
         { path: '/my-tickets',                  comp: 'TicketController@myTickets' },
@@ -1157,11 +1153,7 @@ function RouteMapAppendix() {
       ]} />
 
       <RouteGroup title="7. Admin — Quotes & Tickets" routes={[
-        { path: '/admin/quote-requests',            comp: 'QuoteRequestController@index' },
-        { path: '/admin/quote-requests/:id',        comp: 'QuoteRequestController@adminShow' },
         { path: '/admin/quotes',                    comp: 'QuoteController@adminIndex' },
-        { path: '/admin/quotes/create',             comp: 'QuoteController@store' },
-        { path: '/admin/quotes/new',                comp: 'QuoteController@store (alias)' },
         { path: '/admin/quotes/:id',                comp: 'QuoteController@adminShow' },
         { path: '/admin/quotes/:id/edit',           comp: 'QuoteController@update' },
         { path: '/admin/tickets',                   comp: 'TicketController@adminIndex' },
@@ -1305,11 +1297,8 @@ function RouteMapAppendix() {
 
       <RoleGroup role="SALES_REP" description="Quote and customer communication management."
         pages={[
-          { path: '/admin/quote-requests',           label: 'Quote Requests — review incoming leads' },
-          { path: '/admin/quote-requests/:id',       label: 'Quote Request Detail — clarification thread' },
-          { path: '/admin/quotes',                   label: 'Quotes — manage formal proposals' },
-          { path: '/admin/quotes/create',            label: 'Create Quote' },
-          { path: '/admin/quotes/:id',               label: 'Quote Detail — conversion history' },
+              { path: '/admin/quotes',                   label: 'Quotes — manage formal proposals' },
+            { path: '/admin/quotes/:id',               label: 'Quote Detail — conversion history' },
           { path: '/admin/quotes/:id/edit',          label: 'Edit Quote — pricing adjustments' },
           { path: '/admin/customers',                label: 'CRM — assigned customer view' },
           { path: '/admin/orders',                   label: 'Orders — post-quote conversion tracking' },
@@ -1335,8 +1324,7 @@ function RouteMapAppendix() {
           { path: '/bookings',             label: 'My Bookings — upcoming appointments' },
           { path: '/services/:id/book',    label: 'Book Service — scheduling calendar' },
           { path: '/my-quotes',            label: 'My Quotes — approved proposals' },
-          { path: '/my-quote-requests',    label: 'My Quote Requests — pending leads' },
-          { path: '/my-tickets',           label: 'My Tickets — support history' },
+            { path: '/my-tickets',           label: 'My Tickets — support history' },
           { path: '/my-projects',          label: 'My Projects — collaborative workspaces' },
           { path: '/hampers',              label: 'Hampers — tier-gated bundles' },
           { path: '/checkout',             label: 'Checkout — standard order payment' },

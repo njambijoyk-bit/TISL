@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -49,7 +49,7 @@ export default function QuotationsPage() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <HubHeader title="Quotations" description={<>Requests become quotations here: price them, send them, and an accepted quotation turns into a sales order. New ones start from a <Link to="/admin/quote-requests">quote request</Link>.</>} />
+        <HubHeader title="Quotations" description={<>Price them, send them, and an accepted quotation turns into a sales order.</>} />
         <Tabs tabs={TABS.map(([id, label]) => ({ id, label, count: id ? counts[id] : undefined }))} active={status} onChange={setStatus} />
         <Toolbar>
           <div style={{ position: 'relative' }}>
@@ -57,7 +57,7 @@ export default function QuotationsPage() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Number, request, text…" style={{ ...filterStyle, paddingLeft: 30, width: 240 }} />
           </div>
         </Toolbar>
-        <SimpleTable columns={columns} rows={rows} loading={loading} onRowClick={(v) => nav(`/admin/quotes/${v.id}`)} empty="No quotations yet. Open a quote request and choose “Convert to Quote”." />
+        <SimpleTable columns={columns} rows={rows} loading={loading} onRowClick={(v) => nav(`/admin/quotes/${v.id}`)} empty="No quotations yet." />
       </div>
     </AdminLayout>
   );

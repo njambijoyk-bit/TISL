@@ -12,8 +12,6 @@ import useAiPanelStore from '../store/useAiPanelStore';
  *   /admin/bookings/:id        → bookings  / booking
  *   /admin/orders/:id          → orders    / order
  *   /admin/customers/:id       → customers / customer
- *   /admin/quotes/:id          → quotes    / quote
- *   /admin/quote-requests/:id  → quotes    / quote_request
  *   /admin/work                → work      / null
  *   /admin/inventory           → inventory / null
  *   /admin/reports             → reports   / null
@@ -70,26 +68,6 @@ const MATCHERS = [
       entityType: 'customer',
       entityId:    Number(m[1]),
       label:      `Customer #${m[1]}`,
-    }),
-  },
-  // Quote detail
-  {
-    pattern: /^\/admin\/quotes\/(\d+)/,
-    resolve: (m) => ({
-      moduleKey:  'quotes',
-      entityType: 'quote',
-      entityId:    Number(m[1]),
-      label:      `Quote #${m[1]}`,
-    }),
-  },
-  // Quote request detail
-  {
-    pattern: /^\/admin\/quote-requests\/(\d+)/,
-    resolve: (m) => ({
-      moduleKey:  'quotes',
-      entityType: 'quote_request',
-      entityId:    Number(m[1]),
-      label:      `Quote Request #${m[1]}`,
     }),
   },
   // Work dashboard

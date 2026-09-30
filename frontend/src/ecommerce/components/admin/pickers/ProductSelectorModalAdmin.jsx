@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Package, Check, X } from 'lucide-react';
-import AdminPagination from '../../../../../_shared/components/common/AdminPagination';
-import useProductStore from '../../../../../_shared/store/productStore';
-import { productsAPI } from '../../../../../_shared/api/index';
-import { formatMoney } from '../../../../../_shared/lib/money';
+import AdminPagination from '../../../../_shared/components/common/AdminPagination';
+import useProductStore from '../../../../_shared/store/productStore';
+import { productsAPI } from '../../../../_shared/api/index';
+import { formatMoney } from '../../../../_shared/lib/money';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';

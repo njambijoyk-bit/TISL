@@ -34,7 +34,6 @@ final class ModuleTables
             'vouchers', 'voucher_items', 'voucher_item_taxes', 'voucher_entries', 'voucher_bill_refs',
             'stock_movements', 'stock_batches', 'stock_batch_balances', 'stock_batch_events', 'stock_transfers', 'stock_transfer_lines', 'stock_counts', 'stock_count_lines', 'stock_jobs', 'stock_job_lines', 'stock_settings', 'stock_setting_overrides', 'voucher_audit_logs', 'voucher_tenders',
             'gift_vouchers', 'gift_voucher_transactions', 'company_profile', 'currency_rates',
-            'quotes', 'quote_items', 'quote_requests',
             'referral_codes', 'referral_code_usage',
             'admin_saved_notes', 'vault_settings', 'nav_links',
             // Multi-location (Core): branches + staff clearance + offered-at/priced-at.

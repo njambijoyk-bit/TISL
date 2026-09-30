@@ -16,9 +16,7 @@ import {
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 import Badge from '../../../../_shared/components/common/Badge';
-import useQuoteListStore from '../../../../_shared/store/quoteListStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
 
 /**
@@ -71,26 +69,8 @@ const ServiceCard = ({ service, onClick }) => {
     return labels[service.pricing_model] || 'Custom Pricing';
   };
 
-  // Handle quick quote
-  const handleQuickQuote = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Quick quote for:', service.name);
-    // TODO: Open quick quote modal
-  };
-
   
-const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
 
-  const inQL   = service?.id ? inQuoteList(`s:${service.id}`) : false;
-
-  const handleAddToQuoteList = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (inQL) { window.location.href = '/quote-list'; return; }
-    addToQuoteList(service, 1);
-    toast.success(`${service?.name} added to quote list`, { icon: '📋' });
-  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden w-full"
@@ -154,28 +134,12 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
             </Badge>
           ) : null}
         </div>
-        {/* Top-right controls — quotelist */}
         <div style={{
           position: 'absolute', top: 8, right: 8, zIndex: 50,
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6,
         }}>
 
-          <button
-            onClick={handleAddToQuoteList}
-            title={inQL ? 'Already in quote list — click to view' : 'Add to quote list'}
-            type="button"
-            style={{
-              padding: '0.4rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
-              transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white',
-              boxShadow: inQL ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-600) 50%, transparent)' : 'none',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
-          >
-            <FileText size={16} style={{ color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'color 150ms ease' }} />
-          </button>
-        </div>
+                  </div>
         {/* Boost badge strip */}
         {service.boost_message && service.boost_badge_type && (() => {
           const badge = BOOST_BADGE[service.boost_badge_type] ?? BOOST_BADGE.tip;
@@ -319,25 +283,7 @@ const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
               View Details
             </Link>
           )}
-          <button
-            onClick={handleAddToQuoteList}
-            title={inQL ? 'In quote list — click to view' : 'Add to quote list'}
-            type="button"
-            style={{
-              padding: '0.375rem 0.625rem', borderRadius: '0.5rem', cursor: 'pointer',
-              transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem',
-              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-600) 15%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
-              color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)',
-              border: `1px solid ${inQL ? 'var(--color-primary-600)' : 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'}`,
-              fontWeight: inQL ? 700 : 500, fontSize: '0.75rem',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)'; e.currentTarget.style.color = 'white'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 15%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)'; }}
-          >
-            <FileText size={14} />
-            {inQL ? '✓' : ''}
-          </button>
-        </div>
+                  </div>
       </div>
     </div>
   );

@@ -38,7 +38,6 @@ export default function QuotationDetailPage() {
   const pending = lines.filter((i) => i.pending_price).length;
   const cancelled = q.status === 'cancelled';
   const canEdit = !cancelled && ['requested', 'quoted', 'revision_requested'].includes(q.doc_status);
-  const request = q.request;
   const order = (q.children ?? []).find((c) => c.status === 'posted');
 
   return (
@@ -66,8 +65,7 @@ export default function QuotationDetailPage() {
         {pending > 0 && canEdit && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.82rem' }}>{pending} line(s) have no price yet. Choose “Price it”, enter the prices, then send.</p>}
 
         <div style={{ ...card, padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginBottom: 16, fontSize: '0.82rem' }}>
-          <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>CUSTOMER</span>{request?.customer ? `${request.customer.first_name ?? ''} ${request.customer.last_name ?? ''}`.trim() : (q.party_ledger?.name ?? '—')}</div>
-          {request && <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>REQUEST</span><Link to={`/admin/quote-requests/${request.id}`}>{request.request_number}</Link></div>}
+          <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>CUSTOMER</span>{q.party_ledger?.name ?? '—'}</div>
           <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>CURRENCY</span>{q.currency?.code}</div>
           {q.meta?.request?.timeline_needed && <div><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>NEEDED BY</span>{q.meta.request.timeline_needed}</div>}
           {q.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ color: colors.textFaint, fontSize: '0.68rem', display: 'block' }}>REQUEST</span><span style={{ whiteSpace: 'pre-wrap' }}>{q.narration}</span></div>}

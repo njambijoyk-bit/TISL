@@ -189,14 +189,6 @@ class Service extends Model
     }
 
     /**
-     * Get all quote items that reference this service.
-     */
-    public function quoteItems()
-    {
-        return $this->hasMany(QuoteItem::class);
-    }
-
-    /**
      * Get all order items that reference this service.
      */
     public function orderItems()

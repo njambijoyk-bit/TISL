@@ -33,16 +33,12 @@ const AuctionListPage      = lazy(() => import('./ecommerce/pages/customer/Aucti
 const AuctionDetailPage    = lazy(() => import('./ecommerce/pages/customer/AuctionDetailPage'));
 const Cart                 = lazy(() => import('./core/pages/customer/Cart'));
 const Wishlist             = lazy(() => import('./ecommerce/pages/customer/Wishlist'));
-const QuoteList            = lazy(() => import('./core/pages/customer/QuoteList'));
 const Checkout             = lazy(() => import('./core/pages/customer/Checkout'));
 const MyOrders             = lazy(() => import('./core/pages/customer/MyOrdersPage'));
 const CustomerOrderDetail  = lazy(() => import('./core/pages/customer/CustomerOrderPage'));
 const Services             = lazy(() => import('./ecommerce/pages/customer/Services'));
 const ServiceDetail        = lazy(() => import('./ecommerce/pages/customer/ServiceDetail'));
 const SpecialsPage         = lazy(() => import('./ecommerce/pages/customer/SpecialsPage'));
-const RequestQuote         = lazy(() => import('./core/pages/customer/RequestQuote'));
-const MyQuoteRequests      = lazy(() => import('./core/pages/customer/MyQuoteRequests'));
-const MyQuoteRequestDetail = lazy(() => import('./core/pages/customer/MyQuoteRequestDetail'));
 const MyAccount            = lazy(() => import('./core/pages/customer/MyAccount'));
 const MyGiftVouchers       = lazy(() => import('./core/pages/customer/MyGiftVouchers'));
 const MyQuotes             = lazy(() => import('./core/pages/customer/MyQuotations'));
@@ -140,10 +136,7 @@ const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services')
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
 const Work               = lazy(() => import('./projects/pages/admin/Work'));
-const QuoteRequests      = lazy(() => import('./core/pages/admin/QuoteRequests'));
-const QuoteRequestDetail = lazy(() => import('./core/pages/admin/QuoteRequestDetail'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
-const QuoteCreatePage    = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
 const QuoteDetail        = lazy(() => import('./core/pages/admin/quotations/QuotationDetailPage'));
 const QuoteEdit          = lazy(() => import('./core/pages/admin/quotations/QuotationEditPage'));
 const AdminCustomers     = lazy(() => import('./core/pages/admin/Customers'));
@@ -428,7 +421,6 @@ function App() {
             <Route path="/services/:id" element={<ModuleRoute module="ecommerce"><ServiceDetail /></ModuleRoute>} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/wishlist" element={<ModuleRoute module="ecommerce"><Wishlist /></ModuleRoute>} />
-            <Route path="/quote-list" element={<QuoteList />} />
 
             {/* Content Pages — public, no auth required */}
             <Route path="/about"   element={<About />} />
@@ -541,30 +533,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CustomerDeliveryHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/request-quote"
-              element={
-                <ProtectedRoute>
-                  <RequestQuote />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-quote-requests"
-              element={
-                <ProtectedRoute>
-                  <MyQuoteRequests />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-quote-requests/:id"
-              element={
-                <ProtectedRoute>
-                  <MyQuoteRequestDetail />
                 </ProtectedRoute>
               }
             />
@@ -1110,25 +1078,8 @@ function App() {
               <Route path="/admin/orders" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister /></ProtectedRoute>} />
               <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
 
-              {/* Admin Quote Request Routes */}
-              <Route
-                path="/admin/quote-requests"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <QuoteRequests />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/quote-requests/:id"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <QuoteRequestDetail />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Admin Quote Routes */}
+              {/* Admin Quote Routes (the old quote requests now live as quotations) */}
+              <Route path="/admin/quote-requests/*" element={<Navigate to="/admin/quotes" replace />} />
               <Route
                 path="/admin/quotes"
                 element={
@@ -1136,18 +1087,6 @@ function App() {
                     <Quotes />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/admin/quotes/create"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <QuoteCreatePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/quotes/new"
-                element={<Navigate to="/admin/quote-requests" replace />}
               />
               <Route
                 path="/admin/quotes/:id"

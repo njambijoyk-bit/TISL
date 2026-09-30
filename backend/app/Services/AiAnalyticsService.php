@@ -124,7 +124,6 @@ class AiAnalyticsService
             'customers' => $this->fetchCustomersData($entityId),
             'finance'   => $this->fetchFinanceData($entityId),
             'auctions'  => $this->fetchAuctionsData($entityId),
-            'quotes'    => $this->fetchQuotesData($entityId),
             'reconciliation' => $this->fetchReconciliationData($entityId, $extraData),
 
             // ── Delivery module ──────────────────────────────────────────────
@@ -643,121 +642,6 @@ class AiAnalyticsService
         ");
 
         return compact('stats', 'topAuctions', 'endingSoon');
-    }
-
-    private function fetchQuotesData(?int $entityId): array
-    {
-        // ── Single quote ─────────────────────────────────────────────
-        if ($entityId) {
-            $quote = DB::selectOne("
-                SELECT q.id, q.quote_number, q.status, q.priority, q.quote_type,
-                    q.subtotal_kes, q.tax, q.discount, q.shipping_cost, q.total_kes,
-                    q.pricing_type, q.is_negotiable, q.valid_from, q.valid_until,
-                    q.sent_at, q.viewed_at, q.responded_at, q.converted_at,
-                    q.converted_to_order_id, q.version, q.billing_schedule,
-                    CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
-                    c.tier AS customer_tier
-                FROM quotes q
-                LEFT JOIN customers c ON c.id = q.customer_id
-                WHERE q.id = ?
-                AND q.deleted_at IS NULL
-            ", [$entityId]);
-
-            $items = DB::select("
-                SELECT qi.item_type, qi.product_name, qi.service_name,
-                    qi.quantity, qi.unit_of_measure, qi.unit_price,
-                    qi.line_total, qi.discount_amount, qi.line_total_after_discount,
-                    qi.estimated_hours, qi.labor_cost, qi.material_cost,
-                    qi.availability_status, qi.is_custom_item, qi.is_negotiated_price
-                FROM quote_items qi
-                WHERE qi.quote_id = ?
-                ORDER BY qi.display_order
-            ", [$entityId]);
-
-            return ['quote' => $quote, 'items' => $items];
-        }
-
-        // ── Module-wide (last 30 days) ───────────────────────────────
-        $stats = DB::selectOne("
-            SELECT
-                COUNT(*)                                                              AS total_quotes,
-                COUNT(CASE WHEN status = 'draft'     THEN 1 END)                    AS draft,
-                COUNT(CASE WHEN status = 'pending'   THEN 1 END)                    AS pending,
-                COUNT(CASE WHEN status = 'revised'   THEN 1 END)                    AS revised,
-                COUNT(CASE WHEN status = 'approved'  THEN 1 END)                    AS approved,
-                COUNT(CASE WHEN status = 'rejected'  THEN 1 END)                    AS rejected,
-                COUNT(CASE WHEN status = 'expired'   THEN 1 END)                    AS expired,
-                COUNT(CASE WHEN status = 'converted' THEN 1 END)                    AS converted,
-                ROUND(
-                    COUNT(CASE WHEN status = 'converted' THEN 1 END) * 100.0
-                    / NULLIF(COUNT(*), 0), 2
-                )                                                                    AS conversion_rate_pct,
-                SUM(total_kes)                                                       AS total_pipeline_kes,
-                SUM(CASE WHEN status = 'converted' THEN total_kes END)              AS total_converted_kes,
-                ROUND(AVG(total_kes), 2)                                             AS avg_quote_value_kes,
-                COUNT(CASE WHEN valid_until < NOW()
-                            AND status NOT IN ('converted','rejected') THEN 1 END)  AS expiring_soon,
-                COUNT(CASE WHEN is_negotiable = 1 THEN 1 END)                       AS negotiable_quotes,
-                COUNT(CASE WHEN viewed_at IS NULL
-                            AND sent_at IS NOT NULL THEN 1 END)                     AS sent_unviewed
-            FROM quotes
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            AND deleted_at IS NULL
-        ");
-
-        $byType = DB::select("
-            SELECT quote_type,
-                COUNT(*)            AS total,
-                SUM(total_kes)      AS value_kes,
-                ROUND(AVG(total_kes), 2) AS avg_value_kes
-            FROM quotes
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            AND deleted_at IS NULL
-            GROUP BY quote_type
-        ");
-
-        $topQuotes = DB::select("
-            SELECT q.id, q.quote_number, q.status, q.quote_type,
-                q.total_kes, q.valid_until, q.priority,
-                CONCAT(c.first_name, ' ', c.last_name) AS customer_name
-            FROM quotes q
-            LEFT JOIN customers c ON c.id = q.customer_id
-            WHERE q.created_at >= NOW() - INTERVAL 30 DAY
-            AND q.deleted_at IS NULL
-            ORDER BY q.total_kes DESC
-            LIMIT 5
-        ");
-
-        $quoteRequests = DB::selectOne("
-            SELECT
-                COUNT(*)                                                        AS total_requests,
-                COUNT(CASE WHEN status = 'pending'   THEN 1 END)              AS pending,
-                COUNT(CASE WHEN status = 'reviewing' THEN 1 END)              AS reviewing,
-                COUNT(CASE WHEN status = 'quoted'    THEN 1 END)              AS quoted,
-                COUNT(CASE WHEN status = 'rejected'  THEN 1 END)              AS rejected,
-                COUNT(CASE WHEN status = 'expired'   THEN 1 END)              AS expired,
-                COUNT(CASE WHEN priority = 'urgent'  THEN 1 END)              AS urgent,
-                COUNT(CASE WHEN requires_clarification = 1 THEN 1 END)        AS needs_clarification,
-                COUNT(CASE WHEN assigned_to IS NULL
-                            AND status = 'pending' THEN 1 END)                AS unassigned_pending
-            FROM quote_requests
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            AND deleted_at IS NULL
-        ");
-
-        $itemBreakdown = DB::select("
-            SELECT qi.item_type,
-                COUNT(*)                        AS line_items,
-                SUM(qi.line_total_after_discount) AS total_kes,
-                COUNT(CASE WHEN qi.is_custom_item = 1 THEN 1 END) AS custom_items
-            FROM quote_items qi
-            JOIN quotes q ON q.id = qi.quote_id
-            WHERE q.created_at >= NOW() - INTERVAL 30 DAY
-            AND q.deleted_at IS NULL
-            GROUP BY qi.item_type
-        ");
-
-        return compact('stats', 'byType', 'topQuotes', 'quoteRequests', 'itemBreakdown');
     }
 
     private function fetchReconciliationData(?int $sessionId, array $extraData = []): array

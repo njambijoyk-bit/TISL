@@ -149,14 +149,6 @@ class OrderItem extends Model
         return $this->belongsTo(Service::class);
     }
 
-    /**
-     * Get the quote item this was converted from (if applicable).
-     */
-    public function quoteItem()
-    {
-        return $this->belongsTo(QuoteItem::class);
-    }
-
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================

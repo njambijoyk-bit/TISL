@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Briefcase, Users, ShoppingBag, FileText, FolderOpen,
-  MessageSquareQuote, AlertTriangle, CalendarClock, Activity,
+  AlertTriangle, CalendarClock, Activity,
   ArrowRight, Loader2, RefreshCw, Bell, Calendar,
   CheckSquare, Milestone, Ticket, Truck,
 } from 'lucide-react';
@@ -100,8 +100,6 @@ function Row({ to, children }) {
 
 const TYPE_ICON_META = {
   order:         { accent: '#ea580c', bg: 'rgba(234,88,12,0.1)',   Icon: ShoppingBag        },
-  quote:         { accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  Icon: FileText           },
-  quote_request: { accent: '#be185d', bg: 'rgba(190,24,93,0.1)',   Icon: MessageSquareQuote },
   project:       { accent: '#059669', bg: 'rgba(5,150,105,0.1)',   Icon: FolderOpen         },
   task:          { accent: '#0d9488', bg: 'rgba(13,148,136,0.1)',  Icon: CheckSquare        },
   milestone:     { accent: '#4338ca', bg: 'rgba(67,56,202,0.1)',   Icon: Milestone          },
@@ -309,10 +307,8 @@ export default function Work() {
 
   const unassignedTotal =
     (data?.unassigned?.counts?.orders        || 0) +
-    (data?.unassigned?.counts?.quotes        || 0) +
-    (data?.unassigned?.counts?.quoteRequests || 0) +
     (data?.unassigned?.counts?.tasks         || 0) +
-    (data?.unassigned?.counts?.bookings      || 0);+
+    (data?.unassigned?.counts?.bookings      || 0) +
     (data?.unassigned?.counts?.tickets       || 0);
 
   const STAT_CARDS = [
@@ -567,8 +563,6 @@ export default function Work() {
                                 <LoadPill icon={Users}              label="Customers"  value={member.counts.customers}     color="blue"   />
                                 <LoadPill icon={FolderOpen}         label="Projects"   value={member.counts.projects}      color="green"  />
                                 <LoadPill icon={ShoppingBag}        label="Orders"     value={member.counts.orders}        color="orange" />
-                                <LoadPill icon={FileText}           label="Quotes"     value={member.counts.quotes}        color="purple" />
-                                <LoadPill icon={MessageSquareQuote} label="Requests"   value={member.counts.quoteRequests} color="pink"   />
                                 <LoadPill icon={CheckSquare}        label="Tasks"      value={member.counts.tasks}         color="teal"   />
                                 <LoadPill icon={Milestone}          label="Milestones" value={member.counts.milestones}    color="indigo" />
                                 <LoadPill icon={Ticket}             label="Tickets"    value={member.counts.tickets}       color="cyan"   />
@@ -616,44 +610,6 @@ export default function Work() {
                           ))}
                         </div>
                       ) : <EmptyState icon={ShoppingBag} message="No unassigned orders" positive />}
-                    </Section>
-
-                    <Section title={`Unassigned Quotes (${data?.unassigned?.counts?.quotes || 0})`} icon={FileText} alert={data?.unassigned?.counts?.quotes > 0}>
-                      {data?.unassigned?.quotes?.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {data.unassigned.quotes.map((q, idx) => (
-                            <Row key={idx} to={`/admin/quotes/${q.id}`}>
-                              <TypeIcon type="quote" />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <RowTitle>{q.quote_number}</RowTitle>
-                                <RowSub>{q.customer ? `${q.customer.first_name} ${q.customer.last_name}` : 'Unknown customer'}</RowSub>
-                              </div>
-                              <StatusPill status={q.status} />
-                              <span style={{ fontSize: '0.72rem', color: '#9ca3af', flexShrink: 0 }}>{fmtDate(q.created_at)}</span>
-                              <ArrowRight size={13} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                            </Row>
-                          ))}
-                        </div>
-                      ) : <EmptyState icon={FileText} message="No unassigned quotes" positive />}
-                    </Section>
-
-                    <Section title={`Unassigned Quote Requests (${data?.unassigned?.counts?.quoteRequests || 0})`} icon={MessageSquareQuote} alert={data?.unassigned?.counts?.quoteRequests > 0}>
-                      {data?.unassigned?.quoteRequests?.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {data.unassigned.quoteRequests.map((qr, idx) => (
-                            <Row key={idx} to={`/admin/quote-requests/${qr.id}`}>
-                              <TypeIcon type="quote_request" />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <RowTitle>{qr.request_number}</RowTitle>
-                                <RowSub>{qr.request_title || 'No title'}</RowSub>
-                              </div>
-                              <PriorityPill priority={qr.priority} />
-                              <span style={{ fontSize: '0.72rem', color: '#9ca3af', flexShrink: 0 }}>{fmtDate(qr.created_at)}</span>
-                              <ArrowRight size={13} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                            </Row>
-                          ))}
-                        </div>
-                      ) : <EmptyState icon={MessageSquareQuote} message="No unassigned quote requests" positive />}
                     </Section>
 
                     <Section title={`Unassigned Bookings (${data?.unassigned?.counts?.bookings || 0})`} icon={Calendar} alert={data?.unassigned?.counts?.bookings > 0}>
@@ -825,28 +781,6 @@ export default function Work() {
                         </div>
                       ) : <EmptyState icon={CheckSquare} message="No tasks due in the next 14 days" positive />}
                     </Section>
-
-                    <Section title={`Expiring Quotes (${data?.deadlines?.quotes?.length || 0})`} icon={FileText}>
-                      {data?.deadlines?.quotes?.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {data.deadlines.quotes.map((q, idx) => {
-                            const days = daysUntil(q.deadline);
-                            return (
-                              <Row key={idx} to={q.url}>
-                                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: urgencyDotColor(days) }} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <RowTitle>{q.label}</RowTitle>
-                                  <RowSub>{q.assignedTo ? `Assigned to: ${q.assignedTo}` : 'Unassigned'}</RowSub>
-                                </div>
-                                <StatusPill status={q.status} />
-                                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: urgencyColor(days), flexShrink: 0 }}>{days}d</span>
-                                <ArrowRight size={13} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                              </Row>
-                            );
-                          })}
-                        </div>
-                      ) : <EmptyState icon={FileText} message="No quotes expiring in the next 14 days" positive />}
-                    </Section>
                   </div>
                 )}
 
@@ -854,7 +788,7 @@ export default function Work() {
                 {activeTab === 'activity' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0 0 6px' }}>
-                      Recent order and quote activity across the team.
+                      Recent order activity across the team.
                     </p>
                     {data?.activity?.length > 0 ? (
                       data.activity.map((item, idx) => (

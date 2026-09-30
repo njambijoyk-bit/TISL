@@ -18,7 +18,6 @@ const useAuthStore = create(
           setTimeout(() => {
             import('./cartStore').then(m => m.default.getState().loadFromServer());
             import('./wishlistStore').then(m => m.default.getState().loadFromServer());
-            import('./quoteListStore').then(m => m.default.getState().loadFromServer());
             import('./noteStore').then(m => m.default.getState().loadFromServer());
           }, 0);
         }
@@ -31,7 +30,6 @@ const useAuthStore = create(
 
         import('./cartStore').then(m => m.default.getState().resetLocal());
         import('./wishlistStore').then(m => m.default.getState().resetLocal());
-        import('./quoteListStore').then(m => m.default.getState().resetLocal());
       },
 
       updateUser: (user) => set({ user }),

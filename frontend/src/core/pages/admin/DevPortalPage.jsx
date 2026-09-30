@@ -104,7 +104,7 @@ function DevWarningModal({ onClose }) {
           {/* Section 1 — existing */}
           <div>
             <p className="bug-text-sm bug-font-semibold bug-text" style={{ margin: '0 0 6px' }}>
-              Cart / wishlist / quote-list sync
+              Cart / wishlist sync
             </p>
             <p className="bug-text-sm bug-text" style={{ lineHeight: 1.7, margin: '0 0 8px' }}>
               Tightly coupled to the shared auth/axios interceptor. Changes here have previously caused <strong>403 errors</strong> on:

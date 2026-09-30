@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api\Traits;
 use App\Models\Order;
 use App\Models\ProjectItem;
 use App\Models\ProjectMilestone;
-use App\Models\Quote;
-use App\Models\QuoteRequest;
 use Illuminate\Support\Collection;
 
 trait ResolvesTaskRelations
@@ -28,26 +26,6 @@ trait ResolvesTaskRelations
             $ids = $typeTasks->pluck('related_id')->unique()->values();
 
             $resolved[$type] = match ($type) {
-
-                'quote_request' => QuoteRequest::whereIn('id', $ids)
-                    ->get(['id', 'request_number', 'request_title', 'status'])
-                    ->keyBy('id')
-                    ->map(fn($m) => [
-                        'name'            => $m->request_number,
-                        'title'           => $m->request_title,
-                        'document_number' => $m->request_number,
-                        'status'          => $m->status,
-                    ]),
-
-                'quote' => Quote::whereIn('id', $ids)
-                    ->get(['id', 'quote_number', 'status'])
-                    ->keyBy('id')
-                    ->map(fn($m) => [
-                        'name'            => $m->quote_number,
-                        'title'           => null,
-                        'document_number' => $m->quote_number,
-                        'status'          => $m->status,
-                    ]),
 
                 'order' => Order::whereIn('id', $ids)
                     ->get(['id', 'order_number', 'status'])

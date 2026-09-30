@@ -20,7 +20,6 @@ import {
   Heart,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
-import useQuoteListStore from '../../../_shared/store/quoteListStore';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 import useServicePackages from '../../components/storefront/services/useServicePackages';
 import ServicePackagePicker from '../../components/storefront/services/ServicePackagePicker';
@@ -50,7 +49,6 @@ const ServiceDetail = () => {
     clearCurrentService,
   } = useServiceStore();
 
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
 
   const [activeTab, setActiveTab] = useState('description');
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
@@ -81,8 +79,6 @@ const ServiceDetail = () => {
   const pkg = picker.variant;
   const dispCode = picker.data?.display_currency;
   const fmtDisp = (n) => formatMoney(n ?? 0, dispCode, { decimals: 'auto' });
-  const lineKey = currentService?.id ? `s:${currentService.id}:${pkg?.id ?? 'default'}` : null;
-  const inQL = lineKey ? inQuoteList(lineKey) : false;
   const { hasService, toggleService } = useWishlistStore();
   const saved = currentService?.id ? hasService(currentService.id) : false;
   const trimNum = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -97,21 +93,6 @@ const ServiceDetail = () => {
       fromModels: ['fixed', 'project_based'],
       suffixes: { subscription: '/month' },
     });
-  };
-
-  const handleRequestQuote = () => {
-    if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList({
-      ...currentService,
-      line_key: lineKey,
-      package: pkg ? {
-        id: pkg.id, name: pkg.name, label: picker.label,
-        price: pkg.price, display_price: pkg.display_price, display_currency: dispCode,
-        duration: pkgDuration, price_unit: pkg.price_unit?.name ?? null, tax_label: picker.data?.tax_label ?? null,
-      } : null,
-      requirement_fields: picker.data?.requirements ?? [],
-    }, 1);
-    toast.success(`${currentService?.name}${pkg && picker.label && picker.label !== 'Standard' ? ` (${picker.label})` : ''} added to quote list`);
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -413,22 +394,6 @@ const ServiceDetail = () => {
               {/* CTA buttons */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
-                  onClick={handleRequestQuote}
-                  type="button"
-                  style={{
-                    flex: '1 1 160px', height: 50, borderRadius: 12, border: 'none',
-                    background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                    color: '#ffffff', fontSize: '0.88rem', fontWeight: 700,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    boxShadow: '0 4px 15px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', transition: 'all 200ms ease',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  <FileText size={16} />
-                  {inQL ? 'In Quote List →' : 'Request a Quote'}
-                </button>
-
-                <button
                   type="button"
                   onClick={() => { toggleService(service.id); toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist'); }}
                   aria-pressed={saved}
@@ -591,7 +556,7 @@ const ServiceDetail = () => {
 
               {activeTab === 'requirements' && hasRequirements && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>You'll be asked for these when you request a quote.</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>What we'll need from you for this service.</p>
                   {requirementFields.map((req) => (
                     <div key={req.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>

@@ -15,8 +15,6 @@ class DataEngineService
         'orders'                       => ['order_number', 'invoice_number'],
         'payments'                     => ['payment_number', 'mpesa_receipt_number'],
         'customer_credit_transactions' => ['id'],
-        'quotes'                       => ['quote_number', 'reference_number'],
-        'quote_requests'               => ['request_number'],
     ];
 
     // ── Amount-like column patterns (used for variance flagging) ──
@@ -303,7 +301,7 @@ class DataEngineService
             ]);
 
         // Soft-delete aware
-        if (in_array($table, ['orders', 'quotes', 'quote_requests'])) {
+        if (in_array($table, ['orders'])) {
             $query->whereNull('deleted_at');
         }
 

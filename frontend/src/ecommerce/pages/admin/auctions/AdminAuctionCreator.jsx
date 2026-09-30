@@ -11,7 +11,7 @@ import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChar
 import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
-import ProductSelectorModalAdmin from '../../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../../components/admin/pickers/ProductSelectorModalAdmin';
 
 const inputStyle = {
   width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb',

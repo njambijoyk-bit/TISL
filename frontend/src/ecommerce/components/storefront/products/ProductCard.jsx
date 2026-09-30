@@ -7,7 +7,6 @@ import {
   Eye,
   Tag,
   Award,
-  FileText,
   ChevronLeft,
   ChevronRight,
   Package,
@@ -19,7 +18,6 @@ import {
 import useCartStore from '../../../../_shared/store/cartStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
-import useQuoteListStore from '../../../../_shared/store/quoteListStore';
 import toast from 'react-hot-toast';
 import Badge from '../../../../_shared/components/common/Badge';
 
@@ -35,7 +33,6 @@ export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
   const { toggle, has } = useWishlistStore();
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   
   const hasAuction = product?.active_auction && product.active_auction.status === 'active';
   const auction = product.active_auction || null;
@@ -81,7 +78,6 @@ export default function ProductCard({ product }) {
   const hasMultipleImages = images.length > 1;
 
   const wished = Boolean(product?.id) ? has(product.id) : false;
-  const inQL   = Boolean(product?.id) ? inQuoteList(product.id) : false;
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -95,13 +91,6 @@ export default function ProductCard({ product }) {
     if (!inStock) { toast.error('Product is out of stock'); return; }
     addItem(product, 1);
     navigate('/cart');
-  };
-
-  const handleAddToQuoteList = (e) => {
-    e.stopPropagation();
-    if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList(product, 1);
-    toast.success(`${product?.name} added to quote list`, { icon: '📋' });
   };
 
   const handleViewProduct = () => navigate(`/products/${product?.id}`);
@@ -242,23 +231,6 @@ export default function ProductCard({ product }) {
             <Heart size={18} style={{ color: 'var(--color-primary-500)', fill: wished ? 'var(--color-primary-500)' : 'none', transition: 'fill 150ms ease' }} />
           </button>
 
-          {/* Quote list */}
-          <button
-            onClick={handleAddToQuoteList}
-            aria-label={inQL ? 'View quote list' : 'Get Quote'}
-            title={inQL ? 'Already in quote list — click to view' : 'Get Quote'}
-            type="button"
-            style={{
-              padding: '0.5rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
-              transition: 'all 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white',
-              boxShadow: inQL ? '0 0 0 1.5px color-mix(in srgb, var(--color-primary-600) 50%, transparent)' : 'none',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 5%, var(--bg-card))'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = inQL ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'white'; e.currentTarget.style.transform = 'scale(1)'; }}
-          >
-            <FileText size={18} style={{ color: inQL ? 'var(--color-primary-600)' : 'var(--color-primary-500)', transition: 'color 150ms ease' }} />
-          </button>
           
         <p className="collapsed-name">
           {product.boost_badge_type && (() => {
@@ -331,11 +303,7 @@ export default function ProductCard({ product }) {
             <span className="text-sm text-secondary line-through">{originalText}</span>
           )}
           {isPriceNegotiable && (
-            <button type="button" onClick={(e) => { e.stopPropagation(); handleAddToQuoteList(e); }}
-              className="mt-1 p-0 bg-transparent hover:bg-transparent border-none text-xs font-medium text-primary underline underline-offset-2"
-              title="Get Quote">
-              Negotiable
-            </button>
+            <span className="mt-1 text-xs font-medium text-primary">Negotiable</span>
           )}
         </div>
 
@@ -373,15 +341,6 @@ export default function ProductCard({ product }) {
                   Buy Now
                 </button>
               )}
-              <button
-                onClick={handleAddToQuoteList}
-                className={`quote-btn py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm ${isPriceNegotiable ? 'flex-1' : ''} ${inQL ? 'in-list' : ''}`}
-                title={inQL ? 'In quote list — click to view' : 'Get Quote'}
-                type="button"
-              >
-                <FileText size={16} />
-                {isPriceNegotiable ? (inQL ? 'In Quote List →' : 'Get Quote') : ''}
-              </button>
             </>
           )}
         </div>
@@ -437,11 +396,6 @@ export default function ProductCard({ product }) {
         .buy-now-btn:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
         .dark .buy-now-btn:disabled { background-color: #374151; color: #6b7280; }
 
-        .quote-btn { background-color: color-mix(in srgb, var(--color-primary-500) 8%, transparent); color: var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent); }
-        .quote-btn:hover { background-color: var(--color-primary-500); color: white; border-color: var(--color-primary-500); transform: translateY(-1px); }
-        .quote-btn.in-list { background-color: color-mix(in srgb, var(--color-primary-600) 15%, transparent); color: var(--color-primary-600); border-color: var(--color-primary-600); font-weight: 700; }
-        .quote-btn.in-list:hover { background-color: var(--color-primary-600); color: white; }
-        .dark .quote-btn { background-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent); color: var(--color-primary-400); border-color: color-mix(in srgb, var(--color-primary-500) 30%, transparent); }
       `}</style>
     </div>
   );

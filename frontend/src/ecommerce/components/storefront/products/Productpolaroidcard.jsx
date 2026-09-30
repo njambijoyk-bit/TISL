@@ -5,7 +5,6 @@ import { Pin, Package, Zap, Award, Sparkles, ShoppingCart, FileText, Heart, Gave
 import useCartStore from '../../../../_shared/store/cartStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
-import useQuoteListStore from '../../../../_shared/store/quoteListStore';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +75,6 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const navigate   = useNavigate();
   const { addItem }                         = useCartStore();
   const { toggle, has }                     = useWishlistStore();
-  const { addItem: addToQuoteList, has: inQuoteList } = useQuoteListStore();
   const [imageError, setImageError]         = useState(false);
 
   const type   = deriveType(product);
@@ -105,7 +103,6 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const auction     = product?.active_auction ?? null;
 
   const wished = product?.id ? has(product.id) : false;
-  const inQL   = product?.id ? inQuoteList(product.id) : false;
 
   // ── Boost / catalogue badge ───────────────────────────────────────────────
   const boostType    = product?.boost_badge_type ?? null;
@@ -117,13 +114,6 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
     if (!inStock) { toast.error('Out of stock'); return; }
     addItem(product, 1);
     toast.success(`${product?.name} added to cart!`);
-  };
-
-  const handleQuote = (e) => {
-    e.stopPropagation();
-    if (inQL) { navigate('/quote-list'); return; }
-    addToQuoteList(product, 1);
-    toast.success(`${product?.name} added to quote list`, { icon: '📋' });
   };
 
   const handleWishlist = (e) => {
@@ -390,11 +380,8 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
               <span className="ppc-price-orig">{originalText}</span>
             )}
             {isNegotiable && (
-              <button type="button" onClick={handleQuote}
-                style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'inherit' }}>
-                Negotiable
-              </button>
-            )}
+<span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6' }}>Negotiable</span>
+)}
           </div>
 
           {/* Expiry badge — only for products that track expiry, with a dated batch (set in Settings → Stock & expiry) */}
@@ -462,20 +449,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
                 >
                   <ShoppingCart size={11} /> {inStock ? 'Add' : 'N/A'}
                 </button>
-                <button
-                  className="ppc-btn-icon"
-                  onClick={handleQuote}
-                  title={inQL ? (isNegotiable ? 'In quote list — click to view' : 'In quote list') : isNegotiable ? 'Get Quote' : 'Add to quote list'}
-                  style={{
-                    background: inQL ? cfg.accentDim : isNegotiable ? 'rgba(59,130,246,0.08)' : 'transparent',
-                    border: `1px solid ${inQL ? cfg.accent : isNegotiable ? 'rgba(59,130,246,0.4)' : 'rgba(128,128,128,0.2)'}`,
-                    borderRadius: 8,
-                    color: inQL ? cfg.accent : isNegotiable ? '#3b82f6' : '#9ca3af',
-                  }}
-                >
-                  <FileText size={13} />
-                </button>
-              </>
+                              </>
             )}
           </div>
         </div>

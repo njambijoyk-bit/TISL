@@ -5,9 +5,7 @@ namespace App\Services\Books;
 use App\Models\Books\AccountingSetting;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
-use App\Models\Customer;
 use App\Models\Notification;
-use App\Models\QuoteRequest;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -26,59 +24,6 @@ class QuotationService
         return (int) (AccountingSetting::current()->quotation_valid_days ?: 14);
     }
 
-    /** Build an unpriced (or catalogue-priced) quotation from a customer's request. */
-    public function fromRequest(QuoteRequest $qr, ?User $user = null): Voucher
-    {
-        if ($qr->quotation_voucher_id && Voucher::where('id', $qr->quotation_voucher_id)->where('status', Voucher::POSTED)->exists()) {
-            throw new BooksException('This request already has a quotation.');
-        }
-        $type = VoucherType::byBase(VoucherType::QUOTATION) ?? throw new BooksException('The Quotation voucher type is switched off (or script 20 has not been run).');
-        $customer = Customer::findOrFail($qr->customer_id);
-        $defaultSales = AccountingSetting::current()->default_sales_ledger_id;
-
-        $lines = [];
-        foreach ((array) $qr->requested_items as $it) {
-            $kind = $it['item_type'] ?? 'custom_product';
-            $qty = max(0.01, (float) ($it['quantity'] ?? 1));
-            $note = trim(implode(' · ', array_filter([$it['specifications'] ?? null, $it['notes'] ?? null,
-                isset($it['budget_per_unit']) ? 'Budget ' . $it['budget_per_unit'] . ' per unit' : null, $it['lead_time'] ?? null])));
-            if ($kind === 'product' && ! empty($it['product_id'])) {
-                $lines[] = ['type' => 'product', 'product_id' => $it['product_id'], 'variant_id' => $it['variant_id'] ?? null, 'quantity' => $qty, 'notes' => $note ?: null];
-            } elseif ($kind === 'service' && ! empty($it['service_id'])) {
-                $pkg = $it['service_variant_id'] ?? Service::find($it['service_id'])?->variants()->orderByDesc('is_default')->value('id');
-                if ($pkg) {
-                    $lines[] = ['type' => 'service', 'service_id' => $it['service_id'], 'service_variant_id' => $pkg, 'quantity' => $qty, 'notes' => $note ?: null];
-                    continue;
-                }
-                $lines[] = $this->custom($it, $qty, $note, $defaultSales);
-            } else {
-                $lines[] = $this->custom($it, $qty, $note, $defaultSales);
-            }
-        }
-        if (! $lines) {
-            $lines[] = $this->custom(['description' => $qr->request_title], 1, $qr->request_description, $defaultSales);
-        }
-
-        return DB::transaction(function () use ($qr, $type, $customer, $lines, $user) {
-            $v = $this->vouchers->create([
-                'voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'customer_id' => $customer->id,
-                'currency_id' => $customer->currency_id, 'lines' => $lines, 'doc_status' => 'requested', 'quote_request_id' => $qr->id,
-                'reference_no' => $qr->request_number, 'narration' => trim($qr->request_title . "\n" . $qr->request_description),
-                'channel' => 'storefront',
-                'meta' => ['request' => $qr->only(['request_number', 'request_title', 'timeline_needed', 'delivery_location', 'budget_range', 'customer_notes'])],
-            ], $user);
-            $qr->forceFill(['quotation_voucher_id' => $v->id])->save();
-
-            return $v;
-        });
-    }
-
-    private function custom(array $it, float $qty, ?string $note, ?int $ledger): array
-    {
-        return ['type' => 'custom', 'description' => $it['description'] ?? 'Requested item', 'quantity' => $qty, 'rate' => 0, 'ledger_id' => $ledger,
-            'pending_price' => true, 'notes' => $note ?: null];
-    }
-
     /** The admin has priced it: it goes to the customer and stays valid for N days. */
     public function send(Voucher $q, ?User $user = null): Voucher
     {
@@ -91,9 +36,6 @@ class QuotationService
             throw new BooksException("{$unpriced} line(s) still have no price — price every line before sending.");
         }
         $q->update(['doc_status' => 'quoted', 'sent_at' => now(), 'valid_until' => today()->addDays($this->validDays())->toDateString()]);
-        if ($q->quote_request_id) {
-            QuoteRequest::whereKey($q->quote_request_id)->update(['status' => 'quoted', 'quoted_at' => now()]);
-        }
         $this->notify($q, 'quotation_sent', 'Your quotation is ready', "Quotation {$q->voucher_number} is ready — valid until {$q->valid_until->toDateString()}.");
 
         return $q->fresh();
@@ -122,9 +64,6 @@ class QuotationService
         $this->assertQuotation($q);
         $this->assertOpen($q);
         $q->update(['doc_status' => 'revision_requested', 'responded_at' => now(), 'response_note' => $note]);
-        if ($q->quote_request_id) {
-            QuoteRequest::whereKey($q->quote_request_id)->update(['status' => 'reviewing']);
-        }
 
         return $q->fresh();
     }

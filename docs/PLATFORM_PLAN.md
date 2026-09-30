@@ -1220,4 +1220,13 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 ### 28.13 Sidebar: chart of accounts and reports (30 Sep 2026)
 - **Sidebar (Tax & Finance):** *Books* (Overview · Vouchers · Gift vouchers · Edit log · Settings), **Chart of accounts**, *Cash & bank* (Cash · Cheques), **Reports** (now the books' reports: day book, ledger, trial balance, profit & loss, balance sheet, ageing, tax return, withholding, reconciliation), *Tax & Compliance*, *Withholding*, and *Site analytics* as its own item.
 - **The old Reports page** (orders, products, brands, services, quote funnel, projects, customers, tickets, promos) is removed from the app; `/admin/reports` now goes to the books' reports. It had no tables of its own: it read the legacy order tables (script 34 drops them) and other modules' data.
-- **Not removed yet — the admin Dashboard still reads the old report endpoints** (`/admin/reports/revenue`, `orders`, `products`, `brands`, `services`, `quote-funnel`, `projects`, `customers`). Deleting `ReportsController` and `reportsAPI` has to wait until the Dashboard is rebuilt on vouchers.
+- *(Done in 28.14: the Dashboard, `ReportsController` and `reportsAPI` are removed.)*
+
+### 28.14 Old dashboard, reports and legacy quotes removed (30 Sep 2026)
+- **Dashboard:** the old 830-line page and its report endpoints (`ReportsController`, `reportsAPI`, `/admin/reports/*`) are gone. `/admin` is a placeholder with shortcuts. **The new Dashboard will be graphs for stock and vouchers, plus a quote funnel — to be planned.**
+- **Legacy quotes and quote requests removed** (code and, with script 42, tables):
+  - Backend: models `Quote`, `QuoteItem`, `QuoteRequest`; controllers, mail classes, mail services and e-mail views; their customer/admin/super-admin routes; relations on User, Customer, Product, Service, Order, OrderItem; the quote parts of Work, Chat assistant, AI analytics, algorithm score, data engine, backup module list, financial-note search and project links/tasks.
+  - Frontend: admin and customer quote / quote-request pages, the request wizard, stores and APIs, the storefront "add to quote list" / "request a quote" buttons, the Quote List header icon, and the quote entries in menus, the Portal, My work, the timetable and project links. Sidebar *Quotes* is now one item (quotations).
+  - Kept: the voucher **Quotation** pages (`/admin/quotes`, `/my-quotes`). Their "create from a request" step is gone — a quotation is started on its own.
+  - Kept for now: the customer "quote list" sync endpoints and `customer_quote_lists` table (used by site analytics); nothing in the app writes to it any more.
+- **Script 42** `42_drop_legacy_quotes.sql` drops `quote_items`, `quote_requests`, `quotes` and the old link columns `vouchers.quote_request_id`, `orders.quote_id`, `order_items.quote_item_id`. The code no longer writes `vouchers.quote_request_id`, so the script can be run any time.

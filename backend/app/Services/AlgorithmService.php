@@ -204,11 +204,7 @@ class AlgorithmService
             ->where('bidder_id', $customer->user_id)
             ->count();
 
-        $quotes = DB::table('quote_requests')
-            ->where('customer_id', $customer->id)
-            ->count();
-
-        return min(100, ($reviews * 20) + ($bids * 10) + ($quotes * 15));
+        return min(100, ($reviews * 20) + ($bids * 10));
     }
 
     protected function serviceScore(Customer $customer): int

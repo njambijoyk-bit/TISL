@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   X, ChevronLeft, ChevronRight, CalendarClock,
   FolderOpen, FileText, CheckSquare, Milestone,
-  ShoppingBag, MessageSquareQuote, Ticket, Activity as ActivityIcon,
+  ShoppingBag, Ticket, Activity as ActivityIcon,
   Users, AlertTriangle,
 } from 'lucide-react';
 
@@ -49,10 +49,8 @@ const SOURCE_CONFIG = {
 const SUBTYPE_LABELS = {
   project:      'Project',
   milestone:    'Milestone',
-  quote:        'Quote',
   task:         'Task',
   order:        'Order',
-  quoteRequest: 'Quote Req.',
   ticket:       'Ticket',
   booking:      'Booking', 
 };
@@ -67,14 +65,11 @@ function buildEvents(data) {
   const dl = data.deadlines ?? {};
   (dl.projects   ?? []).forEach(p =>  p.deadline   && events.push({ date: toYMD(p.deadline),   label: p.label,          url: p.url,                              source: 'deadline',   subtype: 'project',      status: p.status,  priority: null        }));
   (dl.milestones ?? []).forEach(m =>  m.deadline   && events.push({ date: toYMD(m.deadline),   label: m.label,          url: m.url,                              source: 'deadline',   subtype: 'milestone',    status: m.status,  priority: null        }));
-  (dl.quotes     ?? []).forEach(q =>  q.deadline   && events.push({ date: toYMD(q.deadline),   label: q.label,          url: q.url,                              source: 'deadline',   subtype: 'quote',        status: q.status,  priority: null        }));
   (dl.tasks      ?? []).forEach(t =>  t.deadline   && events.push({ date: toYMD(t.deadline),   label: t.label,          url: t.url,                              source: 'deadline',   subtype: 'task',         status: t.status,  priority: t.priority  }));
 
   // Unassigned — placed on created_at
   const ua = data.unassigned ?? {};
   (ua.orders         ?? []).forEach(o => o.created_at && events.push({ date: toYMD(o.created_at), label: o.order_number,   url: `/admin/orders/${o.id}`,            source: 'unassigned', subtype: 'order',        status: o.status,  priority: null        }));
-  (ua.quotes         ?? []).forEach(q => q.created_at && events.push({ date: toYMD(q.created_at), label: q.quote_number,   url: `/admin/quotes/${q.id}`,            source: 'unassigned', subtype: 'quote',        status: q.status,  priority: null        }));
-  (ua.quoteRequests  ?? []).forEach(r => r.created_at && events.push({ date: toYMD(r.created_at), label: r.request_number, url: `/admin/quote-requests/${r.id}`,    source: 'unassigned', subtype: 'quoteRequest', status: r.status,  priority: r.priority  }));
   (ua.tasks          ?? []).forEach(t => t.created_at && events.push({ date: toYMD(t.created_at), label: t.title,          url: `/admin/projects/${t.project_id}`,  source: 'unassigned', subtype: 'task',         status: t.status,  priority: t.priority  }));
   (ua.tickets        ?? []).forEach(t => t.created_at && events.push({ date: toYMD(t.created_at), label: t.ticket_number,  url: `/admin/tickets/${t.id}`,           source: 'unassigned', subtype: 'ticket',       status: t.status,  priority: t.priority  }));
 

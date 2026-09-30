@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../../_shared/api/index';
 import toast from 'react-hot-toast';
-import ProductSelectorModalAdmin from '../../components/admin/quotes/request-wizard/ProductSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../components/admin/pickers/ProductSelectorModalAdmin';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';

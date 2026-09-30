@@ -59,7 +59,7 @@ class ProjectItemController extends Controller
             'variant_details'       => 'nullable|array',
             'notes'                 => 'nullable|string',
             'status'                => 'nullable|in:planned,requested,quoted,approved,ordered,delivered,completed,cancelled',
-            'source_type'           => 'nullable|in:manual,from_quote_request,from_quote,from_order',
+            'source_type'           => 'nullable|in:manual,from_order',
             'source_id'             => 'nullable|integer',
             'metadata'              => 'nullable|array',
             'display_order'         => 'nullable|integer|min:0',
