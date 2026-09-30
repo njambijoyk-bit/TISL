@@ -921,3 +921,24 @@ Until each is re-pointed, its screen shows an empty list or errors after script 
 - **Admin voucher entry** shows the same for the chosen customer: their gift vouchers (balance and amount applicable) and promo codes (discount applicable), selectable.
 
 **Decisions and status.** Built as proposed, plus: the "Charged in {base}" note shows on storefront prices only when the shopper's chosen currency differs from the base currency; usable gift vouchers are **ticked automatically** at checkout (the customer can untick) and a gift voucher in another currency is **converted at the day's rate**; promo codes keep the **current rules** (one code, after tier and referral discounts); an admin sale with **no customer** offers no lists. Several gift vouchers can be used on one order (each covers what is left). A promo code entered on an admin sale is applied by the server as a discount line and its use is recorded through the voucher's meta. No SQL script.
+
+---
+
+## 21. Sales voucher: discounts, promo / gift / loyalty lifecycle and rounding (plan, 1 Oct 2026)
+
+**What the code does today (checked).**
+- **Discounts before tax already work for per-line discounts:** a line's discount is taken off before its tax, and posts as *gross sale (Cr) + Discounts Allowed (Dr)*, with VAT on the net. Checkout already spreads tier / customer-type / referral / promo discounts across the lines as per-line shares.
+- **The bug in the screenshot is my admin promo:** I added it as a separate "discount charge" line, so it is not spread over the items and VAT stays on the full price (VAT 595.48 instead of 535.93). It must use the same per-line spreading as checkout.
+- **Gift vouchers** live in `gift_vouchers` (code, customer, currency, initial and remaining balance) with `gift_voucher_transactions` as their history; the money owed sits in the *Gift Vouchers Liability* ledger. Paying with one is a tender on the voucher (`voucher_tenders`); cancelling the voucher already **restores** the balance, and gift vouchers a cancelled sale issued are voided (refused if already spent).
+- **Loyalty** is already on the voucher system (`RewardService`): points are earned when a Cash Sale posts (an Invoice earns when fully paid), per `points_per_100` × the tier's multiplier; cancelling reverses the points and the customer's order / spend counters.
+- **Promo usage** is recorded (`recordPromo`) when the sale earns, but **cancelling does not reverse it** — a gap.
+
+**Build plan (in order).**
+1. **One discount engine** (`DiscountService`), used by admin vouchers and checkout: lists what a customer *could* get — customer-type %, tier %, personal %, referral, each promo code they hold — with the amount each gives, and applies the chosen ones in a fixed order on the running net (type/tier → referral → promo), **spread over the lines in proportion**, so every line's taxable base is reduced before VAT. Zero-rated and exempt lines share the discount too; each ledger's VAT is worked on its own net. Postings stay gross sales + Discounts Allowed (split by line), VAT on net. Clearance-batch and manual line discounts stay as they are.
+2. **Admin sales voucher:** replace the promo/gift panel with "Discounts for {customer}" — customer type and tier shown with their rate, then referral and promo codes; each row has a tick and the amount; automatic ones (type, tier, referral) are ticked, promo codes are left for the admin to tick. The preview shows the worked example (price → discount → taxable → VAT → total).
+3. **Promo usage:** logged on posting a Cash Sale / Invoice / Sales Order that used the code (one `referral_code_usage` row per voucher), **reversed when the voucher is cancelled** (usage count and discount-given totals go back); the same rows serve checkout.
+4. **Cancellation reverses everything:** gift voucher tenders (already), promo usage (new), loyalty points and counters (already), plus referral completion rewards.
+5. **Loyalty earning basis:** points earn on the **net sale after discounts, before VAT** (proposal), times the tier multiplier and the loyalty settings; reversed on cancel.
+6. **Rounding:** a checkbox on the voucher (default from Settings) — **none / nearest whole number / nearest 0.50** — applied to the grand total; the difference posts to a *Rounding* ledger (the existing rounding line kind), VAT is never changed by rounding. Same setting for checkout.
+
+**Decisions to confirm.** (a) Promo usage counted when the voucher is *posted* rather than when it is fully paid; (b) loyalty points earned on net-before-VAT; (c) rounding defaults off; the per-voucher tick and a Settings default for cash sales.
