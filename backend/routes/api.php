@@ -484,6 +484,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers/next-number',     [BooksVoucherController::class, 'nextNumber']);
         Route::get('/vouchers/entitlements', [BooksVoucherController::class, 'entitlements']);
         Route::get('/edit-log', [BooksVoucherController::class, 'editLog']);
+            Route::get('/ledgers/{ledgerId}/open-bills', [BooksVoucherController::class, 'openBills'])->whereNumber('ledgerId');
         Route::get('/vouchers/{id}/versions', [BooksVoucherController::class, 'versions'])->whereNumber('id');
         Route::get('/vouchers/check-supplier-invoice', [BooksVoucherController::class, 'checkSupplierInvoice']);
         Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);

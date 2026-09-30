@@ -56,7 +56,10 @@ class BooksVoucherController extends Controller
         $out['tenders'] = \Illuminate\Support\Facades\DB::table('voucher_tenders as t')->leftJoin('gift_vouchers as g', 'g.id', '=', 't.gift_voucher_id')
             ->where('t.voucher_id', $v->id)->orderBy('t.id')->get(['t.payment_method_id', 't.amount', 't.reference', 'g.code as gift_code'])
             ->map(fn ($t) => ['payment_method_id' => (int) $t->payment_method_id, 'amount' => (float) $t->amount, 'reference' => $t->reference, 'code' => $t->gift_code])->all();
-        $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::DEBIT_NOTE], true) ? $this->vouchers->outstanding($v) : null;
+        // what a receipt / payment settles, so editing it shows the same allocations
+        $out['allocations'] = \Illuminate\Support\Facades\DB::table('voucher_bill_refs')->where('voucher_id', $v->id)->where('ref_type', 'against')
+            ->get(['against_voucher_id', 'amount'])->map(fn ($r) => ['against_voucher_id' => (int) $r->against_voucher_id, 'amount' => (float) $r->amount])->all();
+        $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true) ? $this->vouchers->outstanding($v) : null;
 
         return response()->json($out);
     }
@@ -164,6 +167,14 @@ class BooksVoucherController extends Controller
         $f = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'type' => 'nullable|string|max:40', 'search' => 'nullable|string|max:80']);
 
         return response()->json(['rows' => $versions->log($f)]);
+    }
+
+    /** What one party owes us and what we owe it, bill by bill, plus credit on account — for the receipt and payment form. */
+    public function openBills(Request $request, int $ledgerId, \App\Services\Books\OpenBillsService $bills): JsonResponse
+    {
+        $request->validate(['except' => 'nullable|integer', 'as_of' => 'nullable|date']);
+
+        return response()->json($bills->forLedger($ledgerId, $request->integer('except') ?: null, $request->get('as_of')));
     }
 
     /** Every version of one voucher, for comparing any two. */

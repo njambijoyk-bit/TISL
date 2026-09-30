@@ -1122,3 +1122,9 @@ Open points: whether a gift voucher's balance should be *held* for an order (red
 **Rules carried through all steps.** Every posting is a voucher (edit log, cancel reverses everything it did: bills, credit applied, instruments, cheque status). A cancelled receipt gives its settlements back. Nothing in the order or checkout posts money; payment mode on an order is a record only. Finance users and super-admin only for write-off, bounce and refund.
 
 **Start with step 1.**
+
+### 28.1 Step 1 built (30 Sep 2026): open bills and allocation
+- `OpenBillsService::forLedger()` and `GET /admin/books/ledgers/{id}/open-bills` (`?except=` a receipt/payment being edited, `?as_of=`): per party, the open sales (receivable) and purchase (payable) bills oldest due first with original, outstanding, days late; credit on account (advances from receipts / credit notes) and prepaid (from payments / debit notes); totals (owed to us, we owe, credit held, overdue, net).
+- Receipt / Payment form: choose a party and the **balance strip and open-bill table** appear; the amount spreads over the oldest bills (editable per bill, "all" per row, "spread over the oldest" to reset); the remainder shows as **On account** and is saved as an advance. Editing a receipt shows what it settled.
+- Rules (server): a receipt settles sales invoices and a payment settles purchase invoices; the same bill sent twice is merged; bills may not add up to more than the amount; a bill may not be settled for more than is outstanding (its own earlier settlement does not count when editing). `outstanding()` now works for purchases (shown on the purchase voucher).
+- Tests: `billstest` (20 checks). No SQL script needed.

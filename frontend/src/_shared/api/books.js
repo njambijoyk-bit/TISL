@@ -35,6 +35,7 @@ const booksAPI = {
   convertVoucher: (id, data) => send('post', `/admin/books/vouchers/${id}/convert`, data),
   receive: (id, data) => send('post', `/admin/books/vouchers/${id}/receive`, data),
   nextNumbers: (params) => get('/admin/books/vouchers/next-number', params),
+  openBills: (ledgerId, except) => get(`/admin/books/ledgers/${ledgerId}/open-bills`, except ? { except } : undefined),
   editLog: (params) => get('/admin/books/edit-log', params),
   versions: (id) => get(`/admin/books/vouchers/${id}/versions`),
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),

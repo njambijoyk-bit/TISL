@@ -360,12 +360,13 @@ class VoucherService
     }
 
     /** What is still owed on a sales invoice / purchase (new bill minus receipts / payments against it). */
-    public function outstanding(Voucher $invoice): float
+    public function outstanding(Voucher $invoice, ?int $exceptVoucherId = null): float
     {
         $new = (float) VoucherBillRef::where('voucher_id', $invoice->id)->where('ref_type', 'new')->sum('amount');
         $paid = (float) DB::table('voucher_bill_refs as b')
             ->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
             ->where('b.against_voucher_id', $invoice->id)->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)
+            ->when($exceptVoucherId, fn ($q) => $q->where('b.voucher_id', '!=', $exceptVoucherId))   // editing a receipt: its own settlements do not count against it
             ->sum('b.amount');
 
         return round($new - $paid, 2);
@@ -535,6 +536,7 @@ class VoucherService
                 $plan['stock'] = $this->stockPlan($lines, $type, $locationId, (float) $rate, $date, $plan['source_id'], $existing?->id, $plan['expired_override'], (string) ($data['channel'] ?? 'admin'));
             }
         } else {
+            $plan['editing_id'] = $existing?->id;
             [$plan['entries'], $plan['bills'], $plan['total']] = $this->directEntries($data, $type, $plan, $method);   // also settles $plan['tenders']
             $plan['moves_stock'] = false;
         }
@@ -1185,20 +1187,33 @@ class VoucherService
 
             $bills = [];
             $allocated = 0.0;
+            // one row per bill even if the form sent it twice
+            $asked = [];
             foreach ($data['allocations'] ?? [] as $a) {
-                $inv = Voucher::with('type')->find($a['against_voucher_id'] ?? null);
-                $amt = round((float) ($a['amount'] ?? 0), 2);
+                $key = (int) ($a['against_voucher_id'] ?? 0);
+                $asked[$key] = round(($asked[$key] ?? 0) + (float) ($a['amount'] ?? 0), 2);
+            }
+            foreach ($asked as $invId => $amt) {
+                $inv = Voucher::with('type')->find($invId);
                 if (! $inv || $inv->status !== Voucher::POSTED || $amt <= 0) {
-                    throw new BooksException('One of the invoices being settled is not valid.');
+                    throw new BooksException('One of the bills being settled is not valid.');
                 }
                 if ($inv->party_ledger_id !== $otherLedgerId) {
                     throw new BooksException("{$inv->voucher_number} belongs to a different party.");
                 }
-                if ($amt - $this->outstanding($inv) > 0.005) {
-                    throw new BooksException("{$inv->voucher_number} has only " . number_format($this->outstanding($inv), 2) . ' outstanding.');
+                $wantBase = $base === VoucherType::RECEIPT ? VoucherType::SALES : VoucherType::PURCHASE;
+                if ($inv->type->base_type !== $wantBase) {
+                    throw new BooksException("A " . ($base === VoucherType::RECEIPT ? 'receipt' : 'payment') . " settles " . ($base === VoucherType::RECEIPT ? 'sales invoices' : 'purchase invoices') . ", not {$inv->voucher_number}.");
+                }
+                $left = $this->outstanding($inv, $plan['editing_id'] ?? null);
+                if ($amt - $left > 0.005) {
+                    throw new BooksException("{$inv->voucher_number} has only " . number_format($left, 2) . ' outstanding.');
                 }
                 $bills[] = ['type' => 'against', 'ledger_id' => $otherLedgerId, 'amount' => $amt, 'due' => null, 'against' => $inv->id];
                 $allocated += $amt;
+            }
+            if ($allocated - $amount > 0.005) {
+                throw new BooksException('The bills add up to ' . number_format($allocated, 2) . ' but the amount is ' . number_format($amount, 2) . '.');
             }
             if ($amount - $allocated > 0.005) {
                 $bills[] = ['type' => 'advance', 'ledger_id' => $otherLedgerId, 'amount' => round($amount - $allocated, 2), 'due' => null, 'against' => null];

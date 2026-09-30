@@ -4,6 +4,7 @@ import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import { NoAccess } from '../../../components/admin/ui/HubHeader';
+import OpenBillsPanel from '../../../components/admin/books/OpenBillsPanel';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
@@ -167,6 +168,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [giftPick, setGiftPick] = useState(null);     // gift voucher codes ticked (null = not chosen yet: all usable ones are ticked)
   const [whRates, setWhRates] = useState([]);
   const [wh, setWh] = useState({ tax_rate_id: '', amount: '', certificate_no: '' });
+  const [alloc, setAlloc] = useState({});            // receipt / payment: bill id -> amount settled
+  const [allocTouched, setAllocTouched] = useState(false);
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -199,6 +202,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (!editing) return;
     api.voucher(id).then((v) => {
       setTypeId(String(v.voucher_type_id));
+      if ((v.allocations ?? []).length) { setAlloc(Object.fromEntries(v.allocations.map((a) => [a.against_voucher_id, a.amount]))); setAllocTouched(true); }
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
@@ -296,6 +300,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     } else if (isMoney) {
       p.amount = Number(h.amount) || 0;
       p.ledger_id = h.ledger_id || undefined;
+      p.allocations = Object.entries(alloc).filter(([, v]) => Number(v) > 0).map(([against_voucher_id, v]) => ({ against_voucher_id: Number(against_voucher_id), amount: Number(v) }));
       if (wh.tax_rate_id) p.withholding = { tax_rate_id: Number(wh.tax_rate_id), amount: wh.amount === '' ? undefined : Number(wh.amount), certificate_no: wh.certificate_no || undefined };
     } else if (isEntries) {
       p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
@@ -317,7 +322,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
+  }, [typeId, h, lines, entries, tenders, wh, alloc, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -404,7 +409,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               {(type?.party_kind === 'supplier' || isMoney) && (
                 <div style={!h.party_ledger_id ? { ...NEEDS, padding: 8 } : undefined} data-needs={!h.party_ledger_id ? 'party' : undefined}>
                   <label style={{ ...label, ...(!h.party_ledger_id ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
-                  <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null }))} style={small}>
+                  <select value={h.party_ledger_id} onChange={(e) => { setAlloc({}); setAllocTouched(false); setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null })); }} style={small}>
                     <option value="">Choose a ledger…</option>
                     {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
@@ -567,8 +572,12 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     <p style={{ fontSize: '0.7rem', color: colors.textMuted, margin: '6px 0 0' }}>The amount above is the gross. {base === 'receipt' ? 'Cash received is the gross less the tax withheld; the withheld tax becomes a credit we hold.' : 'Cash paid is the gross less the tax we withheld and will remit.'}</p>
                   </div>
                 )}
-                <p style={{ fontSize: '0.72rem', color: colors.textMuted, marginBottom: 0 }}>Recorded on account (advance). To settle a specific invoice, open it and use “Receive payment”.</p>
               </div>
+            )}
+
+            {type && isMoney && h.party_ledger_id && (
+              <OpenBillsPanel ledgerId={Number(h.party_ledger_id)} base={base} amount={h.amount} exceptId={editing ? Number(id) : null}
+                alloc={alloc} setAlloc={setAlloc} touched={allocTouched} setTouched={setAllocTouched} />
             )}
 
             {type && isEntries && (
