@@ -80,8 +80,7 @@ class BatchService
         if (! empty($o['batch_id'])) {
             $q->where('s.id', $o['batch_id']);
         } else {
-            $q->where('s.status', StockBatch::ACTIVE)
-              ->orderByRaw('s.expiry_date IS NULL')->orderBy('s.expiry_date')->orderBy('s.id');
+            $this->pickOrder($q->where('s.status', StockBatch::ACTIVE));
         }
 
         $out = [];
@@ -116,7 +115,7 @@ class BatchService
         if (! empty($o['batch_id'])) {
             $q->where('s.id', $o['batch_id']);
         } else {
-            $q->where('s.status', StockBatch::ACTIVE)->orderByRaw('s.expiry_date IS NULL')->orderBy('s.expiry_date')->orderBy('s.id');
+            $this->pickOrder($q->where('s.status', StockBatch::ACTIVE));
         }
         $out = [];
         foreach ($q->get(['b.batch_id', 'b.quantity', 's.unit_cost']) as $row) {
@@ -164,6 +163,20 @@ class BatchService
     public function lastCost(int $variantId): float
     {
         return (float) (StockBatch::where('variant_id', $variantId)->orderByDesc('id')->value('unit_cost') ?? 0);
+    }
+
+    /**
+     * The order stock is taken in, from Settings → Stock & expiry: first-expiring first (batches with no
+     * expiry after those with one, oldest first among equals — plain oldest-first for products without
+     * expiry), or oldest first regardless of expiry.
+     */
+    private function pickOrder($q)
+    {
+        if (app(StockPolicy::class)->pickOrder() === 'fifo') {
+            return $q->orderBy('s.id');
+        }
+
+        return $q->orderByRaw('s.expiry_date IS NULL')->orderBy('s.expiry_date')->orderBy('s.id');
     }
 
     private function addBalance(int $batchId, int $locationId, float $qty): void

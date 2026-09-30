@@ -56,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(LoyaltyService::class);
         $this->app->singleton(HamperEligibilityService::class);
         $this->app->singleton(AlgorithmService::class);
+        $this->app->singleton(\App\Services\Stock\StockPolicy::class);   // stock & expiry rules, read once per request
         $this->app->singleton(CatalogueRankingService::class);
         $this->app->singleton(CustomerCreditService::class);
         $this->app->singleton(AuctionActivityService::class);

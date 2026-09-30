@@ -259,6 +259,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Units', path: '/admin/settings/units', description: 'Units of measure' },
           { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', description: 'Tiers and their discounts' },
           { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', description: 'Zones and delivery fees' },
+          { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', roles: ['admin', 'super_admin'], description: 'Expired goods, warnings and which batch is used first' },
           { group: 'Content', title: 'About', path: '/admin/settings/content/about' },
           { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact' },
           { group: 'Content', title: 'Manual', path: '/admin/settings/content/manual' },

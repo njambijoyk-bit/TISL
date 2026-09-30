@@ -232,6 +232,7 @@ const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPa
 
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
 const ModuleCenter         = lazy(() => import('./core/pages/admin/settings/ModuleCenter'));
+const StockSettings        = lazy(() => import('./core/pages/admin/settings/StockSettings'));
 const NavigationSettings   = lazy(() => import('./core/pages/admin/settings/NavigationSettings'));
 const LocationsSettings    = lazy(() => import('./core/pages/admin/settings/LocationsSettings'));
 const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));
@@ -1556,6 +1557,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin requireSuperAdmin>
                     <ModuleCenter />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/stock"
+                element={
+                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                    <StockSettings />
                   </ProtectedRoute>
                 }
               />

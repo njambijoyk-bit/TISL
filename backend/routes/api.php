@@ -354,6 +354,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // BACKUPS (Core) — config + run: admin/super_admin; restore: super_admin
     // ============================================
+    // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin
+    Route::middleware('role:admin,super_admin')->prefix('admin/stock/settings')->group(function () {
+        Route::get('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'show']);
+        Route::put('/',                [\App\Http\Controllers\Admin\StockSettingsController::class, 'update']);
+        Route::get('/targets',         [\App\Http\Controllers\Admin\StockSettingsController::class, 'targets']);
+        Route::put('/overrides',       [\App\Http\Controllers\Admin\StockSettingsController::class, 'saveOverride']);
+        Route::delete('/overrides/{id}', [\App\Http\Controllers\Admin\StockSettingsController::class, 'deleteOverride'])->whereNumber('id');
+    });
+
     Route::middleware('role:admin,super_admin')->prefix('admin/backups')->group(function () {
         Route::get('/settings', [BackupController::class, 'settings']);
         Route::put('/settings',  [BackupController::class, 'updateSettings']);
