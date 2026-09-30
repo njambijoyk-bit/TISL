@@ -30,7 +30,7 @@ class OpenBillsService
 
         $rows = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('b.ledger_id', $ledgerId)->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->where('v.date', '<=', $asOf->toDateString())
-            ->whereIn('t.base_type', ['sales', 'purchase'])
+            ->whereIn('t.base_type', ['sales', 'purchase', 'journal'])   // a journal only opens a bill for a bounced-cheque fee
             ->get(['b.voucher_id', 'b.amount', 'b.due_date', 'v.voucher_number', 'v.date', 'v.narration', 'v.reference_no', 'v.supplier_invoice_no', 't.base_type', 't.name as type_name']);
 
         $settled = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
@@ -54,7 +54,7 @@ class OpenBillsService
             $due = Carbon::parse($r->due_date ?? $r->date);
             $bills[] = [
                 'voucher_id' => (int) $r->voucher_id, 'voucher_number' => $r->voucher_number, 'type' => $r->base_type, 'type_name' => $r->type_name,
-                'side' => $r->base_type === 'sales' ? 'receivable' : 'payable', 'date' => (string) $r->date, 'due_date' => $due->toDateString(),
+                'side' => in_array($r->base_type, ['sales', 'journal'], true) ? 'receivable' : 'payable', 'date' => (string) $r->date, 'due_date' => $due->toDateString(),
                 'days_late' => max(0, (int) $due->diffInDays($asOf, false)), 'original' => round((float) $r->amount, 2), 'outstanding' => $open,
                 'reference' => $r->supplier_invoice_no ?: $r->reference_no, 'this_voucher' => round((float) ($mine[$r->voucher_id] ?? 0), 2),
             ];

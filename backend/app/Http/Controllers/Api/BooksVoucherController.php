@@ -213,6 +213,38 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** The cheque register: cheques in hand, post-dated, deposited, issued, bounced, cleared. */
+    public function cheques(Request $request, \App\Services\Books\ChequeService $cheques): JsonResponse
+    {
+        $request->validate(['status' => 'nullable|in:in_hand,post_dated,deposited,issued,cleared,bounced,all', 'search' => 'nullable|string|max:80']);
+
+        return response()->json($cheques->register($request->only(['status', 'search'])));
+    }
+
+    /** Deposit, clear or undo a cheque. Posts nothing. */
+    public function chequeMove(Request $request, int $id, \App\Services\Books\ChequeService $cheques): JsonResponse
+    {
+        $d = $request->validate(['action' => 'required|in:deposit,clear,undo', 'date' => 'nullable|date']);
+
+        return $this->guard(function () use ($request, $id, $cheques, $d) {
+            $i = $cheques->move($id, $d['action'], $d['date'] ?? null, $request->user());
+
+            return response()->json(['status' => $i->status, 'message' => 'Cheque ' . $i->number . ' is now ' . $i->status . '.']);
+        });
+    }
+
+    /** A cheque we received was returned by the bank. Finance and super admin only. */
+    public function chequeBounce(Request $request, int $id, \App\Services\Books\ChequeService $cheques): JsonResponse
+    {
+        $d = $request->validate(['reason' => 'required|string|max:160', 'bank_fee' => 'nullable|numeric|min:0', 'bill_fee' => 'nullable|numeric|min:0', 'date' => 'nullable|date']);
+
+        return $this->guard(function () use ($request, $id, $cheques, $d) {
+            $j = $cheques->bounce($id, $d, $request->user());
+
+            return response()->json(['id' => $j->id, 'voucher_number' => $j->voucher_number, 'message' => "Bounce recorded — {$j->voucher_number}."], 201);
+        });
+    }
+
     /** Write off (part of) one unpaid invoice. Finance and super admin only. */
     public function writeOff(Request $request, int $id, \App\Services\Books\WriteOffService $writeOff): JsonResponse
     {

@@ -106,6 +106,9 @@ class VoucherService
             }
             $this->guard->assertVoucher('edit', $voucher, $user);
             app(InstrumentService::class)->assertEditable($voucher, 'edit');
+            if (! empty($voucher->meta['bounce'])) {
+                throw new BooksException('A bounced-cheque entry can not be edited. Cancel it in the cheque register (the cheque goes back to how it was) and bounce it again.');
+            }
             if (! empty($voucher->meta['writeoff'])) {
                 throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
             }
@@ -166,6 +169,9 @@ class VoucherService
             ]);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
             app(InstrumentService::class)->void($voucher);
+            if (! empty($voucher->meta['bounce'])) {
+                app(ChequeService::class)->onBounceCancelled($voucher);   // the cheque goes back to how it was
+            }
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
 
@@ -1241,7 +1247,8 @@ class VoucherService
                     throw new BooksException("{$inv->voucher_number} belongs to a different party.");
                 }
                 $wantBase = $base === VoucherType::RECEIPT ? VoucherType::SALES : VoucherType::PURCHASE;
-                if ($inv->type->base_type !== $wantBase) {
+                $isFeeBill = $base === VoucherType::RECEIPT && $inv->type->base_type === VoucherType::JOURNAL && ! empty($inv->meta['bounce']);   // the fee billed after a bounced cheque
+                if ($inv->type->base_type !== $wantBase && ! $isFeeBill) {
                     throw new BooksException("A " . ($base === VoucherType::RECEIPT ? 'receipt' : 'payment') . " settles " . ($base === VoucherType::RECEIPT ? 'sales invoices' : 'purchase invoices') . ", not {$inv->voucher_number}.");
                 }
                 $left = $this->outstanding($inv, $plan['editing_id'] ?? null);
@@ -1336,6 +1343,29 @@ class VoucherService
                     throw new BooksException("The write-off must credit the customer of {$bill->voucher_number} for at least {$amt}.");
                 }
                 $bills[] = ['type' => 'against', 'ledger_id' => $bill->party_ledger_id, 'amount' => $amt, 'due' => null, 'against' => $bill->id];
+            }
+        }
+
+        // A bounced cheque: the receipt's settlements are taken back (negative settlements, so the invoices are open again),
+        // what was left of it on account is used up, and any fee billed to the customer opens its own bill.
+        if ($base === VoucherType::JOURNAL && ! empty($data['bounce_instrument_id'])) {
+            $inst = \App\Models\Books\VoucherInstrument::find($data['bounce_instrument_id']);
+            if (! $inst || $inst->type !== 'cheque' || $inst->direction !== 'in' || ! in_array($inst->status, ['received', 'deposited'], true)) {
+                throw new BooksException('That is not a received cheque that can bounce.');
+            }
+            $partyEntry = collect($entries)->firstWhere('is_party', true) ?? throw new BooksException('A bounce debits the customer.');
+            foreach ($data['reopen'] ?? [] as $r) {
+                $bill = Voucher::find($r['against_voucher_id'] ?? null);
+                if (! $bill || $bill->status !== Voucher::POSTED || (float) ($r['amount'] ?? 0) <= 0) {
+                    throw new BooksException('One of the bills to open again is not valid.');
+                }
+                $bills[] = ['type' => 'against', 'ledger_id' => $partyEntry['ledger_id'], 'amount' => -round((float) $r['amount'], 2), 'due' => null, 'against' => $bill->id];
+            }
+            if (! empty($data['credit_off']['voucher_id']) && (float) ($data['credit_off']['amount'] ?? 0) > 0) {
+                $bills[] = ['type' => 'against', 'ledger_id' => $partyEntry['ledger_id'], 'amount' => round((float) $data['credit_off']['amount'], 2), 'due' => null, 'against' => (int) $data['credit_off']['voucher_id']];
+            }
+            if ((float) ($data['fee_bill'] ?? 0) > 0) {
+                $bills[] = ['type' => 'new', 'ledger_id' => $partyEntry['ledger_id'], 'amount' => round((float) $data['fee_bill'], 2), 'due' => Carbon::today(), 'against' => null];
             }
         }
 

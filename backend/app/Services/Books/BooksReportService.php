@@ -185,7 +185,7 @@ class BooksReportService
     public function ageing(string $kind, ?string $asOf = null, ?int $ledgerId = null): array
     {
         $asOf = Carbon::parse($asOf ?? today());
-        $bases = $kind === 'payables' ? ['purchase', 'credit_note'] : ['sales', 'debit_note'];
+        $bases = $kind === 'payables' ? ['purchase', 'credit_note'] : ['sales', 'debit_note', 'journal'];   // a journal only opens a bill for a bounced-cheque fee
         $bills = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->join('ledgers as l', 'l.id', '=', 'b.ledger_id')
             ->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $bases)

@@ -55,6 +55,7 @@ build, see **`PLATFORM_PLAN.md`** (the roadmap).
 | 37 | `37_system_ledgers.sql` | Ledgers *Bad Debts Written Off*, *Discount Allowed*, *Bank Charges*, *Bounced Cheque Charges*, *Cash Over / Short*, *Driver Cash*, and `accounting_settings.bad_debt_ledger_id`, `discount_allowed_ledger_id`, `bank_charges_ledger_id`, `bounce_fee_ledger_id`, `cash_over_short_ledger_id` |
 | 38 | `38_ledger_payment_characteristics.sql` | `ledgers`: `account_name`, `swift_code`, `branch_code`, `accepts`, `mobile_kind`, `mobile_number`, `cash_kind`, `offer_at_checkout`, `checkout_label`, `checkout_instructions`, `checkout_sort` |
 | 39 | `39_voucher_instruments.sql` | `voucher_instruments` — the transfer reference / cheque (number, date, other bank, status) on a receipt or payment and the deposit / withdrawal slip on a contra; one row per voucher |
+| 40 | `40_cheque_register.sql` | `voucher_instruments`: `deposited_on`, `cleared_on`, `bounce_voucher_id`, `bounce_reason` (needs script 39) |
 
 ---
 

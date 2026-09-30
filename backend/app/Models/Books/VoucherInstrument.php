@@ -10,9 +10,9 @@ class VoucherInstrument extends Model
 {
     protected $table = 'voucher_instruments';
 
-    protected $fillable = ['voucher_id', 'ledger_id', 'direction', 'type', 'number', 'instrument_date', 'bank_name', 'deposited_by', 'reference', 'amount', 'status', 'status_at'];
+    protected $fillable = ['voucher_id', 'ledger_id', 'direction', 'type', 'number', 'instrument_date', 'bank_name', 'deposited_by', 'reference', 'amount', 'status', 'status_at', 'deposited_on', 'cleared_on', 'bounce_voucher_id', 'bounce_reason'];
 
-    protected $casts = ['amount' => 'decimal:2', 'instrument_date' => 'date:Y-m-d', 'status_at' => 'datetime'];
+    protected $casts = ['amount' => 'decimal:2', 'instrument_date' => 'date:Y-m-d', 'status_at' => 'datetime', 'deposited_on' => 'date:Y-m-d', 'cleared_on' => 'date:Y-m-d'];
 
     public function voucher(): BelongsTo
     {

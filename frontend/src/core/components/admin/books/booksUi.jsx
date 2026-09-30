@@ -12,6 +12,11 @@ const CHIP = {
   open: [colors.infoBg, colors.infoText],
   partial: [colors.warningBg, colors.warningText],
   closed: [colors.neutralBg, colors.neutralText],
+  received: [colors.warningBg, colors.warningText],
+  issued: [colors.warningBg, colors.warningText],
+  deposited: [colors.infoBg, colors.infoText],
+  cleared: [colors.successBg, colors.successText],
+  bounced: [colors.dangerBg, colors.dangerText],
 };
 
 export function Chip({ status }) {
