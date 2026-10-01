@@ -16,7 +16,7 @@ function HamperCard({ hamper, onClick }) {
   const accentMid  = `${accent}35`;
   const soldOut    = hamper.is_sold_out && !hamper.is_backorderable;
   const atLimit    = hamper.at_purchase_limit;
-  const unavailable = soldOut || atLimit;
+  const unavailable = soldOut;   // a card at its limit can still be opened to read about it; only the ordering is closed
 
   return (
     <div
