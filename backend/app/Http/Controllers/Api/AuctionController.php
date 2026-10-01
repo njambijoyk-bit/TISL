@@ -93,6 +93,7 @@ class AuctionController extends Controller
             'upfront' => app(\App\Services\Books\AuctionChargeService::class)->quote($auction, (float) $auction->start_price, 0, $customer)['upfront'],
             'registration' => $reg ? ['status' => $reg->status, 'order_id' => $reg->order_voucher_id, 'entry_amount' => $reg->entry_amount, 'deposit_amount' => $reg->deposit_amount, 'deposit_status' => $reg->deposit_status] : null,
             'can_bid' => $svc->blockReason($auction, $customer) === null,
+            'terms' => app(\App\Services\AuctionTermsService::class)->status($customer),
         ]);
     }
 
@@ -103,6 +104,7 @@ class AuctionController extends Controller
             return response()->json(['message' => 'Only customers can register to bid.'], 403);
         }
         try {
+            app(\App\Services\AuctionTermsService::class)->enforce($customer, $request->all(), $auction);
             $reg = app(\App\Services\Books\AuctionRegistrationService::class)->register($auction, $customer, $request->user());
         } catch (\App\Services\Books\BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -410,6 +412,11 @@ class AuctionController extends Controller
             return response()->json(['message' => 'Auction is closed.'], 422);
         }
 
+        try {
+            app(\App\Services\AuctionTermsService::class)->enforce($request->user()?->customer, $request->all(), $auction);
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage(), 'requires_terms' => true], 422);
+        }
         if ($why = app(\App\Services\Books\AuctionRegistrationService::class)->blockReason($auction, $request->user()?->customer)) {
             return response()->json(['message' => $why, 'requires_registration' => true], 422);
         }

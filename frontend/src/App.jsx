@@ -60,6 +60,7 @@ const WebsitePolicy        = lazy(() => import('./_shared/components/legal/Websi
 const HamperPolicy         = lazy(() => import('./_shared/components/legal/HamperPolicy'));
 const AiPolicy             = lazy(() => import('./_shared/components/legal/AiPolicy'));
 const OrderPolicy          = lazy(() => import('./_shared/components/legal/OrderPolicy'));
+const AuctionTerms         = lazy(() => import('./_shared/components/legal/AuctionTerms'));
 const BookingPolicy        = lazy(() => import('./_shared/components/legal/BookingPolicy'));
 const MyTickets            = lazy(() => import('./core/pages/customer/MyTickets'));
 const MyTicketDetail       = lazy(() => import('./core/pages/customer/MyTicketDetail'));
@@ -436,6 +437,7 @@ function App() {
             <Route path="/website-policy"   element={<WebsitePolicy />} />
             <Route path="/hamper-policy"    element={<HamperPolicy />} />
             <Route path="/order-policy"     element={<OrderPolicy />} />
+            <Route path="/auction-terms"    element={<AuctionTerms />} />
             <Route path="/booking-policy"   element={<BookingPolicy />} />
             <Route path="ai-policy"         element={<AiPolicy />} />
 

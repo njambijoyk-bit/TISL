@@ -56,8 +56,9 @@ const auctionsAPI = {
   },
 
   // Protected: Place a bid
-  placeBid: async (auctionId, maxBid) => {
-    const response = await api.post(`/auctions/${auctionId}/bid`, { max_bid: maxBid });
+  // acceptances: the policy agreements ticked with this action, e.g. [{ key: 'auction_terms', response: 'accepted' }]
+  placeBid: async (auctionId, maxBid, acceptances = []) => {
+    const response = await api.post(`/auctions/${auctionId}/bid`, { max_bid: maxBid, policy_acceptances: acceptances });
     return response.data;
   },
 
@@ -72,8 +73,8 @@ const auctionsAPI = {
     const response = await api.get(`/auctions/${auctionId}/registration`);
     return response.data;
   },
-  register: async (auctionId) => {
-    const response = await api.post(`/auctions/${auctionId}/register`);
+  register: async (auctionId, acceptances = []) => {
+    const response = await api.post(`/auctions/${auctionId}/register`, { policy_acceptances: acceptances });
     return response.data;
   },
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import PolicyConsentCheckbox from '../../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import auctionsAPI from '../../../../_shared/api/auctions';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../../_shared/lib/money';
@@ -7,6 +8,12 @@ import useAuctionSSE from '../../../../_shared/hooks/useAuctionSSE';
 export default function BidModal({ auction, onClose, onSuccess }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  // the auction terms: asked for until the customer has agreed to them once
+  const [terms, setTerms] = useState(null);
+  const [agreed, setAgreed] = useState(false);
+  const [acceptances, setAcceptances] = useState([]);
+  useEffect(() => { auctionsAPI.getRegistration(auction.id).then((r) => setTerms(r.terms ?? null)).catch(() => {}); }, [auction.id]);
+  const needsTerms = !!terms?.required && !terms?.accepted;
 
   // Real-time data stream
   const liveData = useAuctionSSE(auction.id);
@@ -23,13 +30,16 @@ export default function BidModal({ auction, onClose, onSuccess }) {
 
   const handleBid = async () => {
     const val = parseFloat(amount);
+    if (needsTerms && !agreed) {
+      return toast.error('Please agree to the auction terms first.');
+    }
     if (!val || val < minBid) {
       return toast.error(`Minimum bid is ${money(minBid)}`);
     }
 
     setLoading(true);
     try {
-      await auctionsAPI.placeBid(auction.id, val);
+      await auctionsAPI.placeBid(auction.id, val, acceptances);
       toast.success('Bid placed successfully!');
       onSuccess?.();
       onClose();
@@ -79,6 +89,11 @@ export default function BidModal({ auction, onClose, onSuccess }) {
               />
             </div>
           </div>
+
+          {needsTerms && (
+            <PolicyConsentCheckbox policyKeys={[terms.policy_key]} actionContext="auction_bidding"
+              onChange={(checked, a) => { setAgreed(checked); setAcceptances(a); }} />
+          )}
         </div>
 
         {/* Footer */}
@@ -88,7 +103,7 @@ export default function BidModal({ auction, onClose, onSuccess }) {
           </button>
           <button 
             onClick={handleBid} 
-            disabled={loading}
+            disabled={loading || (needsTerms && !agreed)}
             className="flex-1 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition"
           >
             {loading ? 'Placing...' : 'Place Bid'}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import auctionsAPI from '../../../../_shared/api/auctions';
 import { useAuthStore } from '../../../../_shared/store/index';
+import PolicyConsentCheckbox from '../../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 
 /**
  * What winning would actually cost, and what is needed before bidding.
@@ -16,6 +17,8 @@ export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegis
   const [quote, setQuote] = useState(null);
   const [reg, setReg] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [acceptances, setAcceptances] = useState([]);
 
   useEffect(() => {
     if (!auctionId || !(bid > 0)) return undefined;
@@ -34,9 +37,10 @@ export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegis
 
   const register = async () => {
     if (!isAuthenticated) { navigate(`/login?redirect=/auctions/${auctionId}`); return; }
+    if (reg?.terms?.required && !reg.terms.accepted && !agreed) { toast.error('Please agree to the auction terms first.'); return; }
     setBusy(true);
     try {
-      const res = await auctionsAPI.register(auctionId);
+      const res = await auctionsAPI.register(auctionId, acceptances);
       toast.success(res.message ?? 'Registered');
       loadRegistration();
     } catch (err) { toast.error(err.response?.data?.message || 'Could not register'); }
@@ -58,8 +62,13 @@ export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegis
             This auction asks for {upfront.map((u) => `${u.name.toLowerCase()} ${money(u.gross)}${u.refundable ? ' (refundable)' : ''}`).join(' and ')} before you can bid.
             {upfront.some((u) => u.refundable) && ' A deposit is released to your account when the auction closes.'}
           </p>
+          {!status && reg.terms?.required && !reg.terms.accepted && (
+            <div style={{ margin: '0 0 10px' }}>
+              <PolicyConsentCheckbox policyKeys={[reg.terms.policy_key]} actionContext="auction_bidding" onChange={(checked, a) => { setAgreed(checked); setAcceptances(a); }} />
+            </div>
+          )}
           {!status && (
-            <button type="button" onClick={register} disabled={busy}
+            <button type="button" onClick={register} disabled={busy || (reg.terms?.required && !reg.terms.accepted && !agreed)}
               style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: '#d97706', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
               {busy ? 'Registering…' : 'Register now'}
             </button>

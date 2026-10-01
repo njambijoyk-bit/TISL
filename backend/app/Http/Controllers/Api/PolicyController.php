@@ -23,6 +23,7 @@ class PolicyController extends Controller
      */
     public function index(): JsonResponse
     {
+        app(\App\Services\AuctionTermsService::class)->ensure();   // the auction terms exist from the first time policies are listed
         $policies = Policy::where('is_active', true)
             ->get(['id', 'key', 'title', 'content', 'disagree_consequence_text',
                    'sensitivity', 'major_version', 'minor_version', 'requires_acceptance']);
@@ -38,6 +39,9 @@ class PolicyController extends Controller
      */
     public function show(string $key): JsonResponse
     {
+        if ($key === \App\Services\AuctionTermsService::KEY) {
+            app(\App\Services\AuctionTermsService::class)->ensure();
+        }
         $policy = Policy::where('key', $key)->where('is_active', true)->firstOrFail();
 
         return response()->json($this->renderPolicy($policy));
@@ -51,7 +55,7 @@ class PolicyController extends Controller
     {
         $data = $request->validate([
             'policy_key'      => 'required|string|exists:policies,key',
-            'action_context'  => 'required|in:login,register,hamper_checkout,standard_checkout,booking_checkout,cookie_consent,website_policy',
+            'action_context'  => 'required|in:login,register,hamper_checkout,standard_checkout,booking_checkout,cookie_consent,website_policy,auction_bidding',
             'response'        => 'required|in:accepted,disagreed',
             'disagree_reason' => 'nullable|string|max:1000',
         ]);
@@ -172,6 +176,7 @@ class PolicyController extends Controller
      */
     public function adminIndex(): JsonResponse
     {
+        app(\App\Services\AuctionTermsService::class)->ensure();
         $policies = Policy::withCount([
                 'acceptances as total_acceptances',
                 'acceptances as total_disagreements' => fn($q) => $q->where('response', 'disagreed'),
