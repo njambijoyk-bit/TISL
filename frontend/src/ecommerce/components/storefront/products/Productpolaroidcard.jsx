@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Package, Zap, Award, Sparkles, ShoppingCart, FileText, Heart, Gavel, Star } from 'lucide-react';
-import useCartStore from '../../../../_shared/store/cartStore';
+import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
@@ -73,7 +73,7 @@ function discountPct(price, original) {
 
 export default function ProductPolaroidCard({ product, index = 0 }) {
   const navigate   = useNavigate();
-  const { addItem }                         = useCartStore();
+  const { add: addToCart, chooser }         = useCartAdder();
   const { toggle, has }                     = useWishlistStore();
   const [imageError, setImageError]         = useState(false);
 
@@ -112,8 +112,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const handleCart = (e) => {
     e.stopPropagation();
     if (!inStock) { toast.error('Out of stock'); return; }
-    addItem(product, 1);
-    toast.success(`${product?.name} added to cart!`);
+    addToCart(product, 1);
   };
 
   const handleWishlist = (e) => {
@@ -125,6 +124,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
 
   return (
     <>
+      {chooser}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
 

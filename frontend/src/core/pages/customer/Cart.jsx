@@ -9,9 +9,11 @@ import CartSummary from '../../components/cart/CartSummary';
 import EmptyCart from '../../components/cart/EmptyCart';
 import Button from '../../../_shared/components/common/Button';
 import { useCartStore } from '../../../_shared/store/index';
+import useCartVariantCheck from '../../../ecommerce/components/storefront/useCartVariantCheck';
 
 export default function Cart() {
   const { items, clearCart } = useCartStore();
+  const variants = useCartVariantCheck();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -44,6 +46,18 @@ export default function Cart() {
               </button>
             </div>
 
+            {variants.unresolved.length > 0 && (
+              <div role="alert" style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: '0.88rem' }}>Choose an option before you check out</p>
+                {variants.unresolved.map((n) => (
+                  <div key={n.item.line_key ?? n.item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '4px 0', fontSize: '0.85rem' }}>
+                    <span>{n.item.name} has {n.data.variants.length} options.</span>
+                    <button type="button" onClick={() => variants.choose(n)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, color: 'white', background: 'var(--color-primary-500)' }}>Choose</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Cart Items */}
               <div className="lg:col-span-2 space-y-4">
@@ -54,7 +68,7 @@ export default function Cart() {
 
               {/* Cart Summary */}
               <div className="lg:col-span-3">
-                <CartSummary />
+                <CartSummary blocked={variants.blocked} />
               </div>
             </div>
 
@@ -62,6 +76,7 @@ export default function Cart() {
         )}
       </div>
 
+      {variants.chooser}
       <Footer />
 
     </div>

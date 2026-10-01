@@ -1,7 +1,7 @@
 import { Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
-import useCartStore from '../../../../_shared/store/cartStore';
+import useCartAdder from '../useCartAdder';
 
 import useMoney from '../../../../_shared/hooks/useMoney';
 
@@ -9,7 +9,7 @@ export default function WishlistItem({ item }) {
   const navigate    = useNavigate();
   const money       = useMoney();
   const { remove }  = useWishlistStore();
-  const { addItem } = useCartStore();
+  const { add: addToCart, chooser } = useCartAdder();
 
   const hasPriceDiff = item.original_price && parseFloat(item.original_price) !== parseFloat(item.price);
 
@@ -21,6 +21,8 @@ export default function WishlistItem({ item }) {
     return `${API_BASE}${path}`;
   };
   return (
+    <>
+    {chooser}
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 14,
       padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', boxShadow: '0 1px 0 color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
@@ -102,7 +104,7 @@ export default function WishlistItem({ item }) {
       {/* Actions — far right, vertically centred */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <button
-          onClick={() => addItem(item, 1)}
+          onClick={() => addToCart(item, 1)}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
@@ -131,5 +133,6 @@ export default function WishlistItem({ item }) {
         </button>
       </div>
     </div>
+    </>
   );
 }

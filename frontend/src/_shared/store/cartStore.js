@@ -43,6 +43,19 @@ const useCartStore = create(
         searchEvents.addToCart(product);
       },
 
+      /** Swap one line for another (a line that had no variant, now with one); quantities add up if the new line is already in the cart. */
+      replaceLine: (oldKey, line) => {
+        const items = get().items;
+        const old = items.find((i) => lineKey(i) === oldKey);
+        if (!old) return;
+        const rest = items.filter((i) => lineKey(i) !== oldKey);
+        const key = lineKey(line);
+        const has = rest.find((i) => lineKey(i) === key);
+        const next = has ? rest.map((i) => (lineKey(i) === key ? { ...i, quantity: i.quantity + old.quantity } : i)) : [...rest, { ...line, quantity: old.quantity }];
+        set({ items: next });
+        syncCartToServer(next);
+      },
+
       /** @param key  lineKey(item) — the product id for lines without a variant */
       removeItem: (key) => {
         const next = get().items.filter(i => lineKey(i) !== key);

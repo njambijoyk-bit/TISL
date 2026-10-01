@@ -15,7 +15,7 @@ import {
   Gavel,
   Info,
 } from 'lucide-react';
-import useCartStore from '../../../../_shared/store/cartStore';
+import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
@@ -31,7 +31,7 @@ const BOOST_BADGE = {
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
-  const { addItem } = useCartStore();
+  const { add: addToCart, chooser } = useCartAdder();
   const { toggle, has } = useWishlistStore();
   
   const hasAuction = product?.active_auction && product.active_auction.status === 'active';
@@ -82,15 +82,13 @@ export default function ProductCard({ product }) {
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (!inStock) { toast.error('Product is out of stock'); return; }
-    addItem(product, 1);
-    toast.success(`${product?.name} added to cart!`);
+    addToCart(product, 1);
   };
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
     if (!inStock) { toast.error('Product is out of stock'); return; }
-    addItem(product, 1);
-    navigate('/cart');
+    addToCart(product, 1).then((ok) => { if (ok) navigate('/cart'); });
   };
 
   const handleViewProduct = () => navigate(`/products/${product?.id}`);
@@ -346,6 +344,7 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
+      {chooser}
       <style>{`
         .product-card:hover { transform: translateY(-4px); }
 

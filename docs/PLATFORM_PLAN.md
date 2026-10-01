@@ -1263,3 +1263,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Fix:** the code and discounts now travel on the plan and are saved on the voucher, so posting a Sales / Cash Sale logs the use (one row per voucher; cancelled or edited vouchers take it back) and the code's limit applies from the next sale.
 - **Old vouchers:** `php artisan promo:backfill-usage --dry-run` counts the live vouchers that used a promo (their line says so) without it being logged; without `--dry-run` it logs them.
 
+### 28.19 Cart: a variant is always chosen (1 Oct 2026)
+- **Add to cart on a card** (product cards, wishlist) now fills the variant in: a product with **one** variant gets it automatically; one with **several** opens a small "Choose the option you want" window first. (The product page already made you choose.)
+- **Cart check:** lines that were added without a variant are fixed on opening the cart — a single variant is filled in; a product with several shows a banner "Choose an option before you check out" with a **Choose** button, and **Proceed to checkout** stays off until every one is chosen. Checkout sends the shopper back to the cart if any is left.
+- **Server check:** placing an order with a product line that names no variant, for a product with more than one active variant, is refused ("Choose an option for … before you check out") instead of quietly using the default.
+

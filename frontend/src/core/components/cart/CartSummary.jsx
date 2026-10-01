@@ -26,7 +26,7 @@ function Pick({ active, onClick, name, detail, amount, tone }) {
 }
 
 /** The cart's money: the summary ledger, the promos on offer, and the delivery methods to choose from. */
-export default function CartSummary() {
+export default function CartSummary({ blocked = false }) {
   const navigate = useNavigate();
   const { items } = useCartStore();
   const { isAuthenticated } = useAuthStore();
@@ -97,7 +97,7 @@ export default function CartSummary() {
         </div>
       </div>
 
-      <button onClick={() => navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout')} style={{
+      <button onClick={() => { if (blocked) { toast.error('Choose an option for the items marked above first'); return; } navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout'); }} disabled={blocked} style={{ opacity: blocked ? 0.6 : 1,
         width: '100%', padding: '13px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,

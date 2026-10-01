@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useCartVariantCheck from '../../../ecommerce/components/storefront/useCartVariantCheck';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Package, Truck, CreditCard, Tag, Loader2, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -37,6 +38,7 @@ function Choice({ active, onClick, label: text, sub, disabled }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, clearCart } = useCartStore();
+  const variantCheck = useCartVariantCheck();
   const { user, fetchCustomer } = useAuthStore();
   const [opts, setOpts] = useState(null);
   const prefs = useCheckoutPrefs();               // delivery method and promo code were chosen in the cart
@@ -58,6 +60,10 @@ export default function Checkout() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   useEffect(() => { if (user) fetchCustomer(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // an item with several variants and none chosen sends the shopper back to the cart to choose
+  useEffect(() => {
+    if (!variantCheck.checking && variantCheck.unresolved.length) { toast.error(`Choose an option for ${variantCheck.unresolved[0].item.name} first`); navigate('/cart'); }
+  }, [variantCheck.checking, variantCheck.unresolved.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     checkoutAPI.options().then((o) => {
@@ -116,6 +122,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     if (!items.length) { toast.error('Your cart is empty'); return; }
+    if (variantCheck.blocked) { toast.error('Choose an option for every item first — go back to your cart.'); return; }
     setBusy(true);
     try {
       const res = await checkoutAPI.place({

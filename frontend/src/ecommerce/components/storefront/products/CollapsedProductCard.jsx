@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
-import useCartStore from '../../../../_shared/store/cartStore';
+import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
@@ -17,7 +17,7 @@ const BOOST_BADGE = {
 
 export default function CollapsedProductCard({ product }) {
   const navigate = useNavigate();
-  const { addItem } = useCartStore();
+  const { add: addToCart, chooser } = useCartAdder();
   const { toggle, has } = useWishlistStore();
   const [imageError, setImageError] = useState(false);
 
@@ -51,8 +51,7 @@ export default function CollapsedProductCard({ product }) {
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (!inStock) { toast.error('Product is out of stock'); return; }
-    addItem(product, 1);
-    toast.success(`${product?.name} added to cart!`);
+    addToCart(product, 1);
   };
 
   const handleViewProduct = () => navigate(`/products/${product?.id}`);
@@ -157,6 +156,7 @@ export default function CollapsedProductCard({ product }) {
         )}
       </div>
 
+      {chooser}
       <style>{`
         .collapsed-card {
           display: flex; align-items: center; gap: 12px;

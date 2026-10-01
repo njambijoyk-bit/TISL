@@ -51,6 +51,11 @@ class CheckoutService
             if (! empty($it['hamper_id'])) {
                 $lines[] = ['type' => 'hamper', 'hamper_id' => (int) $it['hamper_id'], 'quantity' => $qty];
             } elseif (! empty($it['product_id'])) {
+                // a product with several variants must say which one — never quietly the default
+                if (empty($it['variant_id']) && \App\Models\ProductVariant::where('product_id', (int) $it['product_id'])->where('status', \App\Models\ProductVariant::STATUS_ACTIVE)->count() > 1) {
+                    $name = \App\Models\Product::whereKey((int) $it['product_id'])->value('name') ?? 'that product';
+                    throw new BooksException("Choose an option for {$name} before you check out.");
+                }
                 $lines[] = ['type' => 'product', 'product_id' => (int) $it['product_id'], 'variant_id' => $it['variant_id'] ?? null,
                     'variant_unit_id' => $it['variant_unit_id'] ?? null, 'quantity' => $qty, 'location_id' => $locationId];
             } else {
