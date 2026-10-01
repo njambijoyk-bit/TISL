@@ -126,6 +126,11 @@ class CheckoutController extends Controller
             $customerId = $request->user()?->customer?->id;
             $order = Voucher::with('type')->where('customer_id', $customerId)->whereKey($id)->firstOrFail();
             $base = $order->type->base_type;
+            // an order already charged to the customer's account (an auction registration): the payment settles its invoice
+            if ($base === VoucherType::SALES_ORDER && ($inv = $order->children()->with('type')->where('status', Voucher::POSTED)->get()->first(fn ($c) => $c->type?->base_type === VoucherType::SALES && $this->vouchers->outstanding($c) > 0.005))) {
+                $order = $inv;
+                $base = VoucherType::SALES;
+            }
             if (! in_array($base, [VoucherType::SALES_ORDER, VoucherType::SALES], true) || $order->status !== Voucher::POSTED) {
                 throw new BooksException('That order can not be paid now.');
             }
@@ -186,6 +191,8 @@ class CheckoutController extends Controller
             'payment_intent' => $v->meta['payment_intent'] ?? null,
             'credits' => app(\App\Services\Books\OpenBillsService::class)->forCustomer((int) $v->customer_id), 'use_credit' => array_values((array) ($v->meta['use_credit'] ?? [])),
             'gift_codes_meant' => array_values((array) ($v->meta['gift_codes'] ?? [])),
+            'due' => ($inv = $v->children->where('status', Voucher::POSTED)->first(fn ($c) => $c->type?->base_type === VoucherType::SALES)) ? max(0.0, $this->vouchers->outstanding($inv)) : null,   // what is still owed on its invoice
+            'registration' => ! empty($v->meta['auction_registration']),
             'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),
         ]);
     }
@@ -194,7 +201,14 @@ class CheckoutController extends Controller
     {
         return $this->guard(function () use ($request, $id) {
             $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::SALES_ORDER))->where('customer_id', $request->user()?->customer?->id)->findOrFail($id);
-            if ($v->children()->where('status', Voucher::POSTED)->exists()) {
+            $live = $v->children()->with('type')->where('status', Voucher::POSTED)->get();
+            // an auction registration is charged to the account at once; while nothing has been paid, cancelling takes the charge back too
+            $unpaidCharge = fn ($c) => $c->type?->base_type === VoucherType::SALES && abs($this->vouchers->outstanding($c) - (float) $c->total_amount) < 0.005;
+            if (! empty($v->meta['auction_registration']) && $live->isNotEmpty() && $live->every($unpaidCharge)) {
+                foreach ($live as $c) {
+                    $this->vouchers->cancel($c, 'Registration cancelled by customer', null);
+                }
+            } elseif ($live->isNotEmpty()) {
                 throw new BooksException('This order has already been paid or delivered, so it can not be cancelled here. Contact us.');
             }
             $this->vouchers->cancel($v, 'Cancelled by customer', null);

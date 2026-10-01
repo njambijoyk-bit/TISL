@@ -58,8 +58,10 @@ class AuctionRegistrationService
 
                 return $reg;
             }
-            $paid = Voucher::where('source_voucher_id', $reg->order_voucher_id)->where('status', Voucher::POSTED)
-                ->whereHas('type', fn ($q) => $q->where('base_type', VoucherType::CASH_SALE))->exists();
+            $kids = Voucher::with('type')->where('source_voucher_id', $reg->order_voucher_id)->where('status', Voucher::POSTED)->get();
+            // paid: a Cash Sale came from the order, or its invoice (charged to the customer's account) has nothing left outstanding
+            $paid = $kids->contains(fn ($v) => $v->type?->base_type === VoucherType::CASH_SALE)
+                || $kids->contains(fn ($v) => $v->type?->base_type === VoucherType::SALES && $this->vouchers->outstanding($v) <= 0.005);
             if ($paid) {
                 $reg->update(['status' => AuctionRegistration::REGISTERED]);
             }
@@ -114,6 +116,10 @@ class AuctionRegistrationService
                 'date' => today()->toDateString(), 'customer_id' => $customer->id, 'currency_id' => $a->currency_id, 'location_id' => $a->location_id,
                 'narration' => "Auction #{$a->id} — registration", 'meta' => ['auction_id' => $a->id, 'auction_registration' => true], 'lines' => $lines,
             ], $by);
+
+            // the fee and the deposit are charged to the customer's account at once (Dr customer; Cr deposit liability, entry-fee income, VAT):
+            // they owe it until they pay, and the payment settles this invoice
+            $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->toDateString()], $by);
 
             return AuctionRegistration::create([
                 'auction_id' => $a->id, 'customer_id' => $customer->id, 'user_id' => $by?->id, 'order_voucher_id' => $order->id,

@@ -32,13 +32,16 @@ export default function CustomerOrderPage() {
   const [label, color] = ORDER_STATUS[o.status] ?? [o.status, '#6b7280'];
   // the order in the same shape the checkout priced it, so it reads the same as the confirmation page and the admin's voucher
   const q = { currency: o.currency, lines: o.lines, subtotal: o.subtotal, tax_total: o.tax_total, total: o.total, due_now: o.total, discounts: o.discounts ?? [], tax_breakdown: o.tax_breakdown ?? [], gift: null, customer: null };
-  const canPay = o.payment === 'unpaid' && o.status !== 'cancelled' && (opts?.payment_methods?.length ?? 0) > 0;
-  const canCancel = o.payment === 'unpaid' && o.status !== 'cancelled' && !(o.documents?.length);
+  // owed: not paid yet, or charged to the account (an auction registration) with something still outstanding
+  const owed = o.payment === 'unpaid' || (o.payment === 'invoiced' && Number(o.due) > 0.005);
+  const canPay = owed && o.status !== 'cancelled' && (opts?.payment_methods?.length ?? 0) > 0;
+  const registrationUnpaid = o.registration && o.payment === 'invoiced' && Number(o.due) >= Number(o.total) - 0.005;
+  const canCancel = o.status !== 'cancelled' && ((o.payment === 'unpaid' && !(o.documents?.length)) || registrationUnpaid);
 
   const startPay = async (e) => {
     e.preventDefault(); setBusy(true);
     try {
-      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId), phone: pay.phone, gift_voucher_code: pay.gift || undefined });
+      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId || opts.payment_methods[0].id), phone: pay.phone, gift_voucher_code: pay.gift || undefined });
       toast.success(res.message);
       setPay((p) => ({ ...p, open: false }));
       // poll for the confirmation
@@ -163,7 +166,6 @@ export default function CustomerOrderPage() {
         )}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-          {canPay && !pay.open && <button type="button" onClick={() => setPay((p) => ({ ...p, open: true, methodId: opts.payment_methods[0].id }))} style={{ padding: '10px 18px', borderRadius: 10, border: 'none', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', cursor: 'pointer' }}>Pay now</button>}
           {o.editable && !edit && <button type="button" onClick={startEdit} style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', fontWeight: 700, cursor: 'pointer' }}>Change order</button>}
           {canCancel && <button type="button" onClick={cancel} style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'white', color: '#b91c1c', fontWeight: 700, cursor: 'pointer' }}>Cancel order</button>}
         </div>
@@ -196,15 +198,23 @@ export default function CustomerOrderPage() {
           </form>
         )}
 
-        {pay.open && (
+        {canPay && (
           <form onSubmit={startPay} style={{ display: 'grid', gap: 10, maxWidth: 420, marginTop: 16 }}>
-            <select value={pay.methodId} onChange={(e) => setPay((p) => ({ ...p, methodId: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }}>
-              {opts.payment_methods.map((mm) => <option key={mm.id} value={mm.id}>{mm.name}</option>)}
-            </select>
+            <p style={{ margin: 0, fontWeight: 800 }}>Pay {o.due != null ? m(o.due) : m(o.total)}</p>
+            <div role="radiogroup" aria-label="Payment method" style={{ display: 'grid', gap: 6 }}>
+              {opts.payment_methods.map((mm) => {
+                const on = String(pay.methodId || opts.payment_methods[0].id) === String(mm.id);
+                return (
+                  <label key={mm.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', border: `1.5px solid ${on ? '#6d28d9' : '#e5e7eb'}`, background: on ? 'rgba(109,40,217,0.05)' : 'white', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <input type="radio" name="pay-method" checked={on} onChange={() => setPay((p) => ({ ...p, methodId: mm.id }))} />
+                    {mm.name}
+                  </label>
+                );
+              })}
+            </div>
             <input required placeholder="M-Pesa number" value={pay.phone} onChange={(e) => setPay((p) => ({ ...p, phone: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
             {opts.gift_vouchers_enabled && <input placeholder="Gift voucher code (optional)" value={pay.gift} onChange={(e) => setPay((p) => ({ ...p, gift: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setPay((p) => ({ ...p, open: false }))}>Cancel</button>
               <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Sending…' : 'Send payment prompt'}</button>
             </div>
           </form>
