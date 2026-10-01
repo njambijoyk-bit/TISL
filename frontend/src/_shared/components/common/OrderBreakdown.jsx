@@ -26,13 +26,16 @@ export default function OrderBreakdown({ quote, children, linesOnly = false, qty
         <tbody>
           {lines.map((l, i) => (
             <tr key={i} style={l.is_component ? { color: '#6b7280' } : undefined}>
-              <td style={{ ...td, paddingLeft: l.is_component ? 30 : 14, color: l.is_component ? '#6b7280' : td.color }}>{l.is_component ? '└ ' : ''}{l.description}</td>
+              <td style={{ ...td, paddingLeft: l.is_component ? 30 : 14, color: l.is_component ? '#6b7280' : td.color }}>
+                {l.is_component ? '└ ' : ''}{l.description}
+                {l.is_header && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, background: 'rgba(217,119,6,0.12)', color: '#b45309', verticalAlign: 'middle' }}>Hamper</span>}
+              </td>
               <td style={td}>{l.variant_label && l.variant_label !== 'Standard' ? l.variant_label : ''}</td>
               <td style={{ ...td, ...r }}>{(qtyCell && qtyCell(l)) || (l.item_type === 'charge' ? '' : `${Number(l.quantity)}${l.unit_code ? ` ${l.unit_code}` : ''}`)}</td>
-              <td style={{ ...td, ...r }}>{l.item_type === 'charge' || l.is_component ? '' : n2(l.rate)}</td>
+              <td style={{ ...td, ...r }}>{l.item_type === 'charge' ? '' : n2(l.rate)}</td>
               {hasDisc && <td style={{ ...td, ...r, color: '#059669' }}>{!l.is_component && Number(l.discount_amount) > 0 ? `−${n2(l.discount_amount)}` : ''}</td>}
-              <td style={{ ...td, ...r }}>{l.is_component ? '' : Number(l.amount) === 0 && l.item_type === 'charge' ? 'Free' : n2(l.amount)}</td>
-              <td style={{ ...td, ...r }}>{l.is_component ? '' : taxCell(l)}</td>
+              <td style={{ ...td, ...r }}>{Number(l.amount) === 0 && l.item_type === 'charge' ? 'Free' : n2(l.amount)}</td>
+              <td style={{ ...td, ...r }}>{taxCell(l)}</td>
             </tr>
           ))}
           {!linesOnly && (quote.discounts ?? []).map((d, i) => (

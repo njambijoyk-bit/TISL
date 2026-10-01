@@ -167,7 +167,7 @@ class CheckoutController extends Controller
         $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::SALES_ORDER))->where('customer_id', $request->user()?->customer?->id)
             ->with(['currency:id,code,symbol', 'items.taxes', 'children.type:id,base_type,name', 'location:id,name'])->findOrFail($id);
         $footer = app(\App\Services\Books\ExportService::class)->footer($v);
-        $lines = $v->items->where('is_header', false)->map(fn ($i) => [
+        $lines = $v->items->map(fn ($i) => [
             'id' => $i->id, 'description' => $i->description, 'variant_label' => $i->variant_label, 'unit_code' => $i->unit_code, 'quantity' => (float) $i->quantity, 'rate' => (float) $i->rate,
             'amount' => (float) $i->amount, 'discount' => (float) $i->discount_amount, 'tax_amount' => (float) $i->tax_amount, 'is_component' => $i->parent_item_id !== null, 'product_id' => $i->product_id, 'variant_id' => $i->variant_id, 'variant_unit_id' => $i->variant_unit_id, 'hamper_id' => $i->is_header ? $i->hamper_id : null,
             'item_type' => $i->item_type, 'delivered' => (float) $i->delivered_quantity,
