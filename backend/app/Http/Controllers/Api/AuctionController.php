@@ -552,15 +552,36 @@ class AuctionController extends Controller
         );
     }
 
-    /** Turn a won auction into a Sales Order for the winner (books). */
+    /**
+     * Turn a won auction into the winner's order and invoice: the winning bid and each charge due on winning, each on its own
+     * account with its own tax, charged to the winner's account. Deposits are then released to their owners; the winner's
+     * own deposit is set against the invoice.
+     */
     public function createOrder(Request $request, $id)
     {
         try {
             $a = Auction::with('winner.customer')->findOrFail($id);
-            $v = app(\App\Services\Books\AuctionOrderService::class)->fromAuction($a, $request->user());
+            $orders = app(\App\Services\Books\AuctionOrderService::class);
+            $vouchers = app(\App\Services\Books\VoucherService::class);
+            $order = $orders->fromAuction($a, $request->user());
+            $invoice = $vouchers->convert($order, \App\Models\Books\VoucherType::SALES, ['due_date' => today()->toDateString()], $request->user());
             app(\App\Services\Books\AuctionRegistrationService::class)->releaseDeposits($a, $request->user());   // the auction is settled: deposits go back to the bidders' accounts
 
-            return response()->json(['message' => "Order {$v->voucher_number} created for the winner", 'voucher_id' => $v->id], 201);
+            // the winner's own released deposit pays towards the invoice
+            $deposits = \App\Models\AuctionRegistration::where('auction_id', $a->id)->where('customer_id', $a->winner?->customer?->id)->whereNotNull('release_voucher_id')->pluck('release_voucher_id')->all();
+            $applied = null;
+            if ($deposits) {
+                try {
+                    $applied = app(\App\Services\Books\CreditService::class)->applyIfAny($invoice->fresh(), array_map('intval', $deposits), $request->user());
+                } catch (\Throwable $e) {
+                    report($e);   // the invoice stands; the deposit can be applied from the invoice
+                }
+            }
+
+            return response()->json([
+                'message' => "Invoice {$invoice->voucher_number} created for the winner (order {$order->voucher_number})" . ($applied ? ' — their deposit was set against it' : ''),
+                'voucher_id' => $invoice->id,
+            ], 201);
         } catch (\App\Services\Books\BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

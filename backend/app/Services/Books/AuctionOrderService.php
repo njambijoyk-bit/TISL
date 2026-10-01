@@ -7,14 +7,16 @@ use App\Models\Books\Voucher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-/** A won auction becomes a Sales Order at the winning bid, in the auction's own currency; the winner pays it from My orders. */
+/** A won auction becomes a Sales Order at the winning bid (plus its charges due on winning), in the auction's own currency; it is then charged to the winner's account as an invoice. */
 class AuctionOrderService
 {
     public function __construct(private VoucherService $vouchers, private AuctionChargeService $charges) {}
 
     public function existing(Auction $a): ?Voucher
     {
-        return Voucher::where('status', Voucher::POSTED)->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.auction_id')) = ?", [(string) $a->id])->first();
+        // the winner's order — not the registration orders, which also carry the auction id
+        return Voucher::where('status', Voucher::POSTED)->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.auction_id')) = ?", [(string) $a->id])
+            ->whereRaw("JSON_EXTRACT(meta, '$.auction_registration') IS NULL AND JSON_EXTRACT(meta, '$.auction_registration_id') IS NULL")->first();
     }
 
     public function fromAuction(Auction $a, ?User $by = null): Voucher

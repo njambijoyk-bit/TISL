@@ -245,7 +245,7 @@ export default function AdminAuctionDetail() {
   };
 
   const handleCreateOrder = async () => {
-    if (!window.confirm('Create a sales order for the winner at the winning bid?')) return;
+    if (!window.confirm('Create the winner\'s invoice? It has the winning bid and the charges added on winning, is charged to their account, and their deposit is set against it.')) return;
     try {
       const res = await auctionsAPI.createOrder(id);
       toast.success(res.message);
@@ -328,7 +328,7 @@ export default function AdminAuctionDetail() {
                   </button>
                 )}
                 {auction.winner_id && (
-            <button onClick={handleCreateOrder} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#059669', color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Create order for winner</button>
+            <button onClick={handleCreateOrder} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#059669', color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Create invoice for winner</button>
           )}
           <button onClick={handleDelete}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid rgba(220,38,38,0.4)', borderRadius: 10, background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontWeight: 700, fontSize: '0.825rem', cursor: 'pointer' }}>
