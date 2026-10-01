@@ -158,7 +158,7 @@ class Hamper extends Model
 
     public function purchaseCountForCustomer(int $customerId): int
     {
-        // Counted from the unified sales register once checkout is rebuilt.
-        return 0;
+        // What this customer already holds: each order → delivery → invoice chain counts once (HamperEditionService)
+        return (int) round(app(\App\Services\Books\HamperEditionService::class)->taken((int) $this->id, $customerId));
     }
 }

@@ -14,7 +14,7 @@ class PublicHamperController extends Controller
     /**
      * GET /hampers
      * Returns only hampers this customer is eligible for.
-     * Sold out hampers are included but flagged.
+     * Sold-out hampers are left out; one the customer has taken as many of as allowed is shown with at_purchase_limit.
      */
     public function index(): JsonResponse
     {
@@ -25,7 +25,11 @@ class PublicHamperController extends Controller
         }
 
         $hampers = Hamper::available()->with(['items', 'location:id,name,code', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->get();
+        app(\App\Services\Books\HamperEditionService::class)->sync($hampers->pluck('id')->all());   // the edition counters follow the vouchers
+        $hampers = Hamper::available()->whereIn('id', $hampers->pluck('id'))->with(['items', 'location:id,name,code', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->get();
 
+        // a finished edition is hidden, like a hamper the customer is not eligible for
+        $hampers = $hampers->reject(fn ($h) => $h->is_sold_out)->values();
         $eligible = $this->eligibility->getEligibleHampers($customer, $hampers);
 
         $result = $eligible->map(function ($hamper) use ($customer) {
@@ -56,6 +60,12 @@ class PublicHamperController extends Controller
         }
 
         $hamper = Hamper::available()->where('slug', $slug)->with(['items.product.currency:id,code,symbol', 'items.variant:id,name,sku', 'location:id,name,code', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->firstOrFail();
+
+        app(\App\Services\Books\HamperEditionService::class)->sync([$hamper->id]);
+        $hamper->refresh();
+        if ($hamper->is_sold_out) {
+            abort(404);   // a finished edition is hidden
+        }
 
         $status = $this->eligibility->getStatus($customer, $hamper);
 

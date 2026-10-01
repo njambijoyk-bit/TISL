@@ -250,7 +250,7 @@ export default function HamperDetail() {
               ) : (
                 <div style={{ padding: '14px', borderRadius: 12, background: '#f3f4f6', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#6b7280' }}>
-                    {soldOut ? 'Sold Out' : atLimit ? 'Purchase Limit Reached' : 'Unavailable'}
+                    {soldOut ? 'Sold Out' : atLimit ? 'Max reached — you have redeemed this hamper as many times as allowed' : 'Unavailable'}
                   </p>
                 </div>
               )}

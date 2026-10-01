@@ -59,7 +59,7 @@ function HamperCard({ hamper, onClick }) {
         )}
         {atLimit && !soldOut && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ background: '#6b7280', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800 }}>LIMIT REACHED</span>
+            <span style={{ background: '#6b7280', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800 }}>MAX REDEMPTIONS MET</span>
           </div>
         )}
 
@@ -111,6 +111,7 @@ function HamperCard({ hamper, onClick }) {
               View Deal
             </button>
           )}
+          {atLimit && !soldOut && <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6b7280' }}>Max reached</span>}
         </div>
       </div>
     </div>
