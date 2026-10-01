@@ -123,13 +123,20 @@ function ReceiveModal({ v, methods, onClose, onDone }) {
   const [ref, setRef] = useState('');
   const [wh, setWh] = useState('');
   const [whRates, setWhRates] = useState([]);
+  const [whAmount, setWhAmount] = useState('');   // typed by hand; blank = worked out from the rate
   useEffect(() => { taxAPI.getRates({ active: true }).then((r) => setWhRates((r.tax_rates ?? []).filter((x) => x.tax_type?.application_mode === 'withheld'))).catch(() => {}); }, []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const chosen = methods.find((m) => String(m.id) === String(method));
+  // withholding is taken off the part of the payment that is before tax
+  const rate = whRates.find((r) => String(r.id) === String(wh));
+  const share = Number(v.total_amount) > 0 && Number(v.subtotal) > 0 ? Math.min(1, Number(v.subtotal) / Number(v.total_amount)) : 1;
+  const beforeTax = Math.round(Number(amount || 0) * share * 100) / 100;
+  const worked = rate ? (rate.rate_type === 'percentage' ? Math.round(beforeTax * Number(rate.rate_value)) / 100 : Number(rate.rate_value)) : 0;
+  const withheld = whAmount !== '' ? Number(whAmount) : worked;
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await booksAPI.receive(v.id, { payment_method_id: method, amount: Number(amount), reference_no: ref || undefined, date: today(), ...(wh ? { withholding: { tax_rate_id: Number(wh) } } : {}) }); toast.success(res.message); onDone(); }
+    try { const res = await booksAPI.receive(v.id, { payment_method_id: method, amount: Number(amount), reference_no: ref || undefined, date: today(), ...(wh ? { withholding: { tax_rate_id: Number(wh), amount: withheld } } : {}) }); toast.success(res.message); onDone(); }
     catch (x) { setErr(errMsg(x, 'Could not record the payment')); }
     finally { setBusy(false); }
   };
@@ -142,9 +149,24 @@ function ReceiveModal({ v, methods, onClose, onDone }) {
           <Field label="Payment method"><SelectInput required value={method} onChange={(e) => setMethod(e.target.value)}><option value="">Choose…</option>{methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</SelectInput></Field>
           <Field label={chosen?.requires_reference ? 'Reference (required)' : 'Reference'}><TextInput required={chosen?.requires_reference} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="M-Pesa code, cheque no.…" /></Field>
           {whRates.length > 0 && (
-            <Field label="Customer withheld tax?" hint="The amount above is the gross settling the invoice; the withheld part becomes a tax credit we hold.">
-              <SelectInput value={wh} onChange={(e) => setWh(e.target.value)}><option value="">No</option>{whRates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.name} {Number(r.rate_value)}{r.rate_type === 'percentage' ? '%' : ''}{r.classification ? ` — ${r.classification}` : ''}</option>)}</SelectInput>
-            </Field>
+            <>
+              <Field label="Customer withheld tax?" hint="The amount above settles the invoice. Tax is withheld on the part before VAT; the withheld part becomes a tax credit we hold.">
+                <SelectInput value={wh} onChange={(e) => { setWh(e.target.value); setWhAmount(''); }}><option value="">No</option>{whRates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.name} {Number(r.rate_value)}{r.rate_type === 'percentage' ? '%' : ''}{r.classification ? ` — ${r.classification}` : ''}</option>)}</SelectInput>
+              </Field>
+              {rate && (
+                <>
+                  <div style={{ fontSize: '0.78rem', color: colors.textMuted, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <span>Rate: <strong>{Number(rate.rate_value)}{rate.rate_type === 'percentage' ? '%' : ' fixed'}</strong></span>
+                    <span>Before tax: <strong>{money(beforeTax)}</strong></span>
+                    <span>Worked out: <strong>{money(worked)}</strong></span>
+                  </div>
+                  <Field label="Amount withheld" hint="Worked out from the rate; type the figure on the customer's certificate if it differs.">
+                    <NumberInput min="0" step="0.01" max={Number(amount) || undefined} value={whAmount !== '' ? whAmount : worked.toFixed(2)} onChange={(e) => setWhAmount(e.target.value)} />
+                  </Field>
+                  <div style={{ fontSize: '0.8rem' }}>Cash actually received: <strong>{money(Math.max(0, Number(amount || 0) - withheld))}</strong></div>
+                </>
+              )}
+            </>
           )}
           <ModalActions onCancel={onClose} submitLabel="Record receipt" busy={busy} />
         </FormStack>

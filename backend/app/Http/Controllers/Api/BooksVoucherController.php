@@ -166,7 +166,7 @@ class BooksVoucherController extends Controller
     /** Record a receipt against an invoice. */
     public function receive(Request $request, $id): JsonResponse
     {
-        $request->validate(['payment_method_id' => 'required_without:tenders|nullable|integer|exists:payment_methods,id', 'tenders' => 'nullable|array', 'withholding' => 'nullable|array', 'withholding.tax_rate_id' => 'required_with:withholding|integer|exists:tax_rates,id', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
+        $request->validate(['payment_method_id' => 'required_without:tenders|nullable|integer|exists:payment_methods,id', 'tenders' => 'nullable|array', 'withholding' => 'nullable|array', 'withholding.tax_rate_id' => 'required_with:withholding|integer|exists:ledgers,id', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
 
         return $this->guard(function () use ($request, $id) {
             $v = $this->vouchers->receive(Voucher::findOrFail($id), $request->all(), $request->user());

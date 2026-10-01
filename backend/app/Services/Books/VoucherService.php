@@ -518,7 +518,7 @@ class VoucherService
             'exchange_rate'     => $opts['exchange_rate'] ?? null,   // blank = the rate in force today; the difference vs the invoice is booked as exchange gain/loss
             'payment_method_id' => $opts['payment_method_id'] ?? null,
             'tenders'           => $opts['tenders'] ?? null,
-            'withholding'       => $opts['withholding'] ?? null,
+            'withholding'       => $this->withholdingOnNet($opts['withholding'] ?? null, $invoice, $amount),
             'reference_no'      => $opts['reference_no'] ?? null,
             'narration'         => $opts['narration'] ?? "Payment of {$invoice->voucher_number}",
             'amount'            => $amount,
@@ -1585,6 +1585,18 @@ class VoucherService
         return [$entries, $bills, round($debit, 2)];
     }
 
+    /** Withholding is worked out on the part of the payment that is before tax: the payment × (invoice subtotal ÷ invoice total), unless the amount is typed in. */
+    private function withholdingOnNet(?array $w, Voucher $invoice, float $amount): ?array
+    {
+        if (! $w || (isset($w['amount']) && $w['amount'] !== '')) {
+            return $w;
+        }
+        $total = (float) $invoice->total_amount;
+        $w['base'] = $total > 0 && (float) $invoice->subtotal > 0 ? round($amount * min(1.0, (float) $invoice->subtotal / $total), 2) : $amount;
+
+        return $w;
+    }
+
     /** @return array{0: float, 1: int} the amount withheld and the ledger it sits in */
     private function withholding(array $w, float $gross, string $base): array
     {
@@ -1596,7 +1608,7 @@ class VoucherService
             $rate = app(TaxLedgerService::class)->provisionRate($rate);
         }
         $amount = isset($w['amount']) && $w['amount'] !== '' ? round((float) $w['amount'], 2)
-            : ($rate->rate_type === \App\Models\TaxRate::TYPE_PERCENTAGE ? round($gross * (float) $rate->rate_value / 100, 2) : round((float) $rate->rate_value, 2));
+            : ($rate->rate_type === \App\Models\TaxRate::TYPE_PERCENTAGE ? round((isset($w['base']) ? (float) $w['base'] : $gross) * (float) $rate->rate_value / 100, 2) : round((float) $rate->rate_value, 2));
         if ($amount < 0 || $amount > $gross) {
             throw new BooksException('The withheld tax can not be more than the payment.');
         }
