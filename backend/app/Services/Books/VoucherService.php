@@ -201,6 +201,13 @@ class VoucherService
         if ($source->status !== Voucher::POSTED) {
             throw new BooksException('Only a live invoice can be credited.');
         }
+        // A written-off invoice is one we gave up collecting: a credit note on top would leave the customer with a credit for money they never paid.
+        $writtenOff = DB::table('voucher_bill_refs as b')->join('vouchers as j', 'j.id', '=', 'b.voucher_id')
+            ->where('b.against_voucher_id', $source->id)->where('b.ref_type', 'against')->where('j.status', Voucher::POSTED)->pluck('j.meta', 'j.voucher_number')
+            ->filter(fn ($m) => ! empty(json_decode((string) $m, true)['writeoff'] ?? null))->keys()->first();
+        if ($writtenOff) {
+            throw new BooksException("{$source->voucher_number} was written off ({$writtenOff}). Cancel the write-off first, then write the credit note; whatever is still unpaid can be written off again.");
+        }
         if (! $source->party_ledger_id) {
             throw new BooksException("{$source->voucher_number} has no customer or supplier account, so a note can not be written against it.");
         }

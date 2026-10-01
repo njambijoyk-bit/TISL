@@ -1240,6 +1240,7 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
   - *Damaged — write off stock* (credit note only) — the customer is credited, but no stock comes back and cost of goods sold is **not** reversed (the cost stays as the loss). The line is noted and listed in the note's meta.
   - *Price adjustment (no goods)* — reverse an amount; no stock moves. Services, hampers and charges are always reversed by amount.
 - **Settling.** The note is recorded against the invoice (reduces what is owed); if the invoice was already paid it becomes the customer's overpayment, and the existing refund flow applies.
+- **A written-off invoice can't be credited** until its write-off is cancelled (the invoice opens again; write the credit note; write off whatever is still unpaid). A write-off gives up collecting and does not reverse the sale or its VAT; a credit note does, so doing both would leave the customer with a credit for money they never paid.
 - **Not yet:** a credit note against a cash sale, or a debit note against a cash purchase (no customer/supplier account to credit) — write them without an invoice for now. A note made from an invoice cannot be edited (cancel and write again). Credit / debit notes without an invoice still work as before.
 - **Endpoints:** `GET /admin/books/vouchers/{id}/returnable`, `POST /admin/books/vouchers/{id}/return`.
 
