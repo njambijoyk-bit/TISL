@@ -305,7 +305,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
               {/* Amount if present */}
               {a.amount > 0 && (
                 <p style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600, margin: '2px 0 0' }}>
-                  {fmt(a.amount, statistics?.base_currency)}
+                  {fmt(a.amount, a.currency ?? a.metadata?.currency)}
                 </p>
               )}
 
