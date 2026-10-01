@@ -10,7 +10,7 @@ const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320
 
 function Tile({ title, sub, children }) {
   return (
-    <div style={{ ...card, padding: 16 }}>
+    <div style={{ ...card, padding: 16, minWidth: 0 }}>
       <div style={{ fontWeight: 800, fontSize: '1rem' }}>{title}</div>
       {sub && <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginBottom: 8 }}>{sub}</div>}
       {children}
@@ -38,8 +38,8 @@ function Trend({ series }) {
   // series: [{name, points:[{label,value}]}]
   const data = series[0].points.map((p, i) => ({ label: p.label, ...Object.fromEntries(series.map((s) => [s.name, s.points[i]?.value ?? 0])) }));
   return (
-    <div style={{ height: 230 }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div style={{ height: 230, width: '100%', minWidth: 0 }}>
+      <ResponsiveContainer width="100%" height={230} minWidth={0}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid stroke={colors.tint(0.06)} vertical={false} />
           <XAxis dataKey="label" tick={{ fontSize: 10 }} />
@@ -141,13 +141,15 @@ export default function DashboardTabs() {
   const [tab, setTab] = useState('sales');
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());
-  const [data, setData] = useState(null);
+  const [loaded, setLoaded] = useState(null);   // { tab, data }: a tab never renders another tab's figures
   const [error, setError] = useState('');
+
+  const data = loaded && loaded.tab === tab ? loaded.data : null;
 
   useEffect(() => {
     let live = true;
-    setData(null); setError('');
-    booksAPI.dashboard(tab, { from, to }).then((r) => { if (live) setData(r.data ?? r); }).catch((e) => { if (live) setError(errMsg(e)); });
+    setLoaded(null); setError('');
+    booksAPI.dashboard(tab, { from, to }).then((r) => { if (live) setLoaded({ tab, data: r }); }).catch((e) => { if (live) setError(errMsg(e)); });
     return () => { live = false; };
   }, [tab, from, to]);
 
