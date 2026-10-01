@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2 } from 'lucide-react';
+import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -21,6 +21,44 @@ const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${co
 const r = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 const TARGETS = { quotation: [['sales_order', 'Sales order'], ['sales', 'Sales invoice']], purchase_order: [['receipt_note', 'Receipt note (goods in)'], ['purchase', 'Purchase invoice']], receipt_note: [['purchase', 'Purchase invoice']], sales_order: [['delivery_note', 'Delivery note'], ['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']], delivery_note: [['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']] };
+
+const SENDABLE = ['sales', 'cash_sale', 'credit_note', 'sales_order', 'delivery_note', 'debit_note', 'purchase_order'];
+
+/** Send a document to the customer: e-mail from the company's default address, or a WhatsApp message quoting the default phone. */
+function SendModal({ v, onClose }) {
+  const [info, setInfo] = useState(null);
+  const [to, setTo] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  useEffect(() => { booksAPI.shareInfo(v.id).then((d) => { setInfo(d); setTo(d.to_email ?? ''); }).catch((e) => setErr(errMsg(e, 'Could not load'))); }, [v.id]);
+  const send = async () => {
+    setBusy(true); setErr(null);
+    try { const r = await booksAPI.emailDocument(v.id, { to: to || undefined, note: note || undefined }); toast.success(r.message); onClose(); }
+    catch (e) { setErr(errMsg(e, 'Could not send')); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Modal title={`Send ${v.type.name} ${v.voucher_number}`} onClose={onClose}>
+      {!info ? <p style={{ color: colors.textMuted }}>{err ?? 'Loading…'}</p> : (
+        <FormStack>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>
+            {info.from_email ? <>E-mail goes out from <strong>{info.from_email}</strong> and replies come back to it.</> : <span style={{ color: colors.dangerText }}>No company e-mail yet — add one in Books → Settings → Company.</span>}
+            {info.company_phone && <> The WhatsApp message quotes <strong>{info.company_phone}</strong>.</>}
+          </p>
+          <Field label="Send the e-mail to"><TextInput type="email" value={to} placeholder="customer@email.com" onChange={(e) => setTo(e.target.value)} /></Field>
+          <Field label="A note above the document (optional)"><TextInput value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+          {err && <FormError>{err}</FormError>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" style={btnPrimary} disabled={busy || !info.from_email} onClick={send}><Send size={14} /> {busy ? 'Sending…' : 'Send e-mail'}</button>
+            <a href={info.whatsapp_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none' }}><MessageCircle size={14} /> WhatsApp{info.to_phone ? ` ${info.to_phone}` : ''}</a>
+          </div>
+          {!info.whatsapp_to_number && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>This customer has no phone number on file — WhatsApp will open so you can choose the contact.</p>}
+        </FormStack>
+      )}
+    </Modal>
+  );
+}
 
 function ConvertModal({ v, methods, onClose, onDone }) {
   const options = TARGETS[v.type.base_type] ?? [];
@@ -169,6 +207,7 @@ export default function VoucherView() {
             {canWrite && convertible && !lockedBy && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
+            {canWrite && live && SENDABLE.includes(base) && <button type="button" style={btnGhost} onClick={() => setModal('send')}><Send size={14} /> Send</button>}
             {canWrite && live && ['sales', 'purchase'].includes(base) && v.party_ledger_id && <Link to={`/admin/books/vouchers/${v.id}/return`} style={{ ...btnGhost, textDecoration: 'none' }}><Undo2 size={14} /> {base === 'sales' ? 'Credit note' : 'Debit note'}</Link>}
             {canWriteOff && <button type="button" style={btnGhost} onClick={() => setModal('writeoff')}><Eraser size={14} /> Write off</button>}
             {canWrite && live && !lockedBy && !v.meta?.writeoff && !v.meta?.returned_from && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
@@ -267,6 +306,7 @@ export default function VoucherView() {
           </div>
         )}
       </div>
+      {modal === 'send' && <SendModal v={v} onClose={() => setModal(null)} />}
       {modal === 'convert' && <ConvertModal v={v} methods={methods} onClose={() => setModal(null)} onDone={(c) => nav(`/admin/books/vouchers/${c.id}`)} />}
       {modal === 'refund' && <RefundVoucherModal v={v} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal === 'writeoff' && <WriteOffModal bill={v} onClose={() => setModal(null)} onDone={(r) => { setModal(null); if (r?.id) nav(`/admin/books/vouchers/${r.id}`); else load(); }} />}

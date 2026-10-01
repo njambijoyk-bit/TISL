@@ -407,6 +407,36 @@ function DefaultsSection({ isSuper }) {
   );
 }
 
+/** A list of phone numbers or email addresses with a label each; the starred one is the default (mail goes out from it / WhatsApp quotes it). */
+function ContactList({ title, hint, rows, onChange, placeholder, type, disabled, errors }) {
+  const list = rows ?? [];
+  const set = (i, patch) => onChange(list.map((r, k) => (k === i ? { ...r, ...patch } : r)));
+  const makeDefault = (i) => onChange(list.map((r, k) => ({ ...r, is_default: k === i })));
+  const remove = (i) => { const next = list.filter((_, k) => k !== i); if (next.length && !next.some((r) => r.is_default)) next[0] = { ...next[0], is_default: true }; onChange(next); };
+  const add = () => onChange([...list, { value: '', label: '', is_default: list.length === 0 }]);
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <p style={{ margin: '0 0 2px', fontSize: '0.78rem', fontWeight: 700, color: colors.text }}>{title}</p>
+      <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: colors.textMuted }}>{hint}</p>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {list.map((r, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr) auto auto', gap: 8, alignItems: 'center' }}>
+            <TextInput disabled={disabled} type={type} value={r.value ?? ''} placeholder={placeholder} onChange={(e) => set(i, { value: e.target.value })} aria-label={`${title} ${i + 1}`} />
+            <TextInput disabled={disabled} value={r.label ?? ''} placeholder="Label (Sales, Support…)" onChange={(e) => set(i, { label: e.target.value })} aria-label={`${title} ${i + 1} label`} />
+            <button type="button" disabled={disabled} onClick={() => makeDefault(i)} title={r.is_default ? 'Default' : 'Make this the default'} aria-pressed={Boolean(r.is_default)}
+              style={{ ...btnGhost, padding: '6px 10px', fontSize: '0.72rem', background: r.is_default ? colors.tint(0.12) : 'transparent', fontWeight: r.is_default ? 700 : 500 }}>
+              <Star size={12} style={{ marginRight: 4, fill: r.is_default ? 'currentColor' : 'none' }} />{r.is_default ? 'Default' : 'Set default'}
+            </button>
+            <button type="button" disabled={disabled} onClick={() => remove(i)} aria-label={`Remove ${title} ${i + 1}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.danger }}><Trash2 size={15} /></button>
+          </div>
+        ))}
+      </div>
+      {errors && <p role="alert" style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.dangerText }}>{errors}</p>}
+      {!disabled && <button type="button" onClick={add} style={{ ...btnGhost, marginTop: 8, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> Add {type === 'email' ? 'an email address' : 'a phone number'}</button>}
+    </div>
+  );
+}
+
 function CompanySection({ isSuper }) {
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -420,12 +450,18 @@ function CompanySection({ isSuper }) {
     catch (x) { setErrs(fieldErrors(x)); toast.error(errMsg(x, 'Could not save')); }
     finally { setBusy(false); }
   };
-  const rows = [['name', 'Trading name'], ['short_code', 'Short code'], ['legal_name', 'Legal name'], ['tax_pin', 'Tax PIN'], ['email', 'Email'], ['phone', 'Phone'], ['address', 'Address'], ['city', 'City'], ['country', 'Country'], ['website', 'Website'], ['tagline', 'Tagline']];
+  const rows = [['name', 'Trading name'], ['short_code', 'Short code'], ['legal_name', 'Legal name'], ['tax_pin', 'Tax PIN'], ['address', 'Address'], ['city', 'City'], ['country', 'Country'], ['website', 'Website'], ['tagline', 'Tagline']];
   return (
     <Section title="Company" hint="Emails, documents and the chat assistant use these — nothing is written into the code.">
       <FormGrid min={240}>
         {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!isSuper} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
       </FormGrid>
+      <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
+        <ContactList title="Phone numbers" type="tel" placeholder="+254 7…" disabled={!isSuper} rows={f.phones} onChange={(phones) => setF((x) => ({ ...x, phones }))}
+          hint="Printed on invoices (default first) and quoted in the WhatsApp message to customers. The default is the main number." errors={errs.phones} />
+        <ContactList title="Email addresses" type="email" placeholder="sales@yourcompany.com" disabled={!isSuper} rows={f.emails} onChange={(emails) => setF((x) => ({ ...x, emails }))}
+          hint="The default is the address the system sends mail from; customers' replies come back to it. The others are printed on invoices." errors={errs['emails.0.value'] || errs.emails} />
+      </div>
       {isSuper ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
         : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>Only a super admin can change these.</p>}
     </Section>

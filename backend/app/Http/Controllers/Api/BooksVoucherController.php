@@ -119,6 +119,28 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** Where a document would be sent (e-mail, WhatsApp) and what the message says. */
+    public function shareInfo($id): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Books\VoucherShareService::class)->info(Voucher::with(['type', 'customer', 'partyLedger', 'currency'])->findOrFail($id))));
+    }
+
+    /** E-mail a document to the customer from the company's default address. */
+    public function emailDocument(Request $request, $id): JsonResponse
+    {
+        $request->validate(['to' => 'nullable|email|max:160', 'note' => 'nullable|string|max:1000']);
+
+        return $this->guard(function () use ($request, $id) {
+            try {
+                $to = app(\App\Services\Books\VoucherShareService::class)->email(Voucher::with('type')->findOrFail($id), $request->input('to'), $request->input('note'));
+            } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+                throw new BooksException('The mail server refused it: ' . $e->getMessage());
+            }
+
+            return response()->json(['message' => "Sent to {$to}"]);
+        });
+    }
+
     /** What can still be credited / debited on an invoice, line by line. */
     public function returnable($id): JsonResponse
     {

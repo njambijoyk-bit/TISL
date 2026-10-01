@@ -83,6 +83,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Mail goes out from the company's default email address (Books → Settings → Company), under the company's name.
+        if (! $this->app->runningInConsole() || ! $this->app->runningUnitTests()) {
+            try {
+                $from = \App\Models\CompanyProfile::defaultEmail();
+                if ($from) {
+                    config(['mail.from.address' => $from, 'mail.from.name' => \App\Models\CompanyProfile::name()]);
+                }
+            } catch (\Throwable) {
+                // no company row / cache yet (fresh install, migrations): keep the .env sender
+            }
+        }
+
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
 

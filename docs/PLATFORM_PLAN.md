@@ -1251,3 +1251,10 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Add items on the request page itself:** a search with Products / Services tabs; pick one, choose its variant (or package) and quantity, **Add to request**.
 - **Privacy until sent:** while a quotation is `requested` the customer sees no prices or totals, even if the admin has already typed them in — they appear when the admin presses **Send to customer**. The admin page now says so once every line is priced.
 
+### 28.17 Company contacts, document header, sending to customers (1 Oct 2026)
+- **Several phones and emails, one default each** (Books → Settings → Company; script `43_company_contacts.sql` adds `phones` / `emails`, the old single columns mirror the default). Until the script is run only the default of each is saved.
+- **The default email is the sender:** system mail goes out *from* it, under the company name, and replies come back to it. **The default phone** is printed first on documents and quoted in WhatsApp messages.
+- **Every printed / PDF / HTML document starts with the company block:** name, legal name, address, phones (default first), emails, website, PIN.
+- **Send** button on a live sales-side document (and debit note / purchase order): *E-mail* (the document as the mail body, plus a PDF attachment when the PDF package is installed) from the default address, to the customer's email or one typed in; *WhatsApp* opens `wa.me/<customer number>` with a prefilled message (document, total, "call us on <default phone>"). Local numbers get the country code in front (`PHONE_COUNTRY_CODE`, default 254).
+- Needs working mail settings in `.env` (`MAIL_MAILER` and the server details): the sender address must be one the mail server allows.
+

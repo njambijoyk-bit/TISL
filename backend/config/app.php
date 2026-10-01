@@ -67,6 +67,9 @@ return [
     |
     */
 
+    // Country code put in front of local phone numbers (0712… → 254712…) for WhatsApp links.
+    'phone_country_code' => env('PHONE_COUNTRY_CODE', '254'),
+
     'timezone' => 'Africa/Nairobi',
 
     /*

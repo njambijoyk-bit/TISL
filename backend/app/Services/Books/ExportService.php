@@ -48,6 +48,28 @@ class ExportService
         };
     }
 
+    /** The printable document as one HTML page (what the HTML export and the e-mail body show). */
+    public function voucherHtml(Voucher $v): string
+    {
+        $v->loadMissing(['type', 'partyLedger', 'location', 'currency', 'paymentMethod', 'items.taxes', 'entries.ledger']);
+
+        return $this->html($this->voucherBody($this->voucherArray($v)), $v->voucher_number);
+    }
+
+    /** The document as PDF bytes, or null when the PDF package is not installed. */
+    public function voucherPdfBytes(Voucher $v): ?string
+    {
+        if (! class_exists(\Dompdf\Dompdf::class)) {
+            return null;
+        }
+        $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
+        $pdf->loadHtml($this->voucherHtml($v));
+        $pdf->setPaper('A4');
+        $pdf->render();
+
+        return $pdf->output();
+    }
+
     private function assertFormat(string $format): void
     {
         if (! in_array($format, self::FORMATS, true)) {
@@ -95,6 +117,7 @@ class ExportService
 
         return [
             ...$this->footer($v),
+            'company' => $this->company(),
             'voucher_number' => $v->voucher_number, 'type' => $v->type?->name, 'date' => $v->date?->toDateString(), 'status' => $v->status,
             'party' => $v->partyLedger?->name ?? $v->party_name, 'party_phone' => $v->party_phone, 'party_tax_id' => $v->party_tax_id,
             'party_address' => $v->party_address ?: $v->partyLedger?->address, 'branch' => $v->location?->name, 'currency' => $cur, 'payment_method' => $v->paymentMethod?->name,
@@ -105,11 +128,48 @@ class ExportService
         ];
     }
 
+    /** Who is issuing the document: name, address, phones and emails (default first), tax PIN. */
+    private function company(): array
+    {
+        $c = \App\Models\CompanyProfile::current();
+        $first = fn (array $l) => collect($l)->sortByDesc('is_default')->pluck('value')->values()->all();
+
+        return array_filter([
+            'name' => $c->name, 'legal_name' => $c->legal_name, 'tax_pin' => $c->tax_pin, 'address' => $c->address, 'city' => $c->city, 'country' => $c->country,
+            'website' => $c->website, 'phones' => $first($c->phoneList()), 'emails' => $first($c->emailList()), 'tagline' => $c->tagline,
+        ], fn ($x) => $x !== null && $x !== '' && $x !== []);
+    }
+
+    private function companyHeader(array $co): string
+    {
+        $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        if (! $co) {
+            return '';
+        }
+        $h = "<div class='co'><div class='coname'>{$e($co['name'] ?? '')}</div>";
+        if (! empty($co['legal_name']) && ($co['legal_name'] !== ($co['name'] ?? null))) {
+            $h .= "<div>{$e($co['legal_name'])}</div>";
+        }
+        $addr = implode(', ', array_filter([$co['address'] ?? null, $co['city'] ?? null, $co['country'] ?? null]));
+        $line = array_filter([
+            $addr ?: null,
+            ! empty($co['phones']) ? 'Tel: ' . implode(' / ', $co['phones']) : null,
+            ! empty($co['emails']) ? 'Email: ' . implode(' / ', $co['emails']) : null,
+            $co['website'] ?? null,
+            ! empty($co['tax_pin']) ? 'PIN: ' . $co['tax_pin'] : null,
+        ]);
+        if ($line) {
+            $h .= "<div class='cod'>{$e(implode(' · ', $line))}</div>";
+        }
+
+        return $h . '</div>';
+    }
+
     private function voucherBody(array $d): string
     {
         $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         $n = fn ($x) => number_format((float) $x, 2);
-        $h = "<h1>{$e($d['type'])} {$e($d['voucher_number'])}</h1>";
+        $h = $this->companyHeader($d['company'] ?? []) . "<h1>{$e($d['type'])} {$e($d['voucher_number'])}</h1>";
         $h .= "<p class='meta'>Date: {$e($d['date'])} · Status: {$e($d['status'])}"
             . ($d['party'] ? " · Party: {$e($d['party'])}" : '') . ($d['branch'] ? " · Branch: {$e($d['branch'])}" : '')
             . ($d['payment_method'] ? " · Payment: {$e($d['payment_method'])}" : '') . ($d['reference'] ? " · Ref: {$e($d['reference'])}" : '') . '</p>';
@@ -235,7 +295,7 @@ class ExportService
     private function html(string $body, string $title): string
     {
         $css = 'body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:18px 0 6px}'
-            . '.meta{color:#555;margin:0 0 12px}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border-bottom:1px solid #ddd;padding:5px 6px;text-align:left}'
+            . '.co{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}.coname{font-size:16px;font-weight:700}.cod{color:#444;font-size:11px;margin-top:2px}.meta{color:#555;margin:0 0 12px}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border-bottom:1px solid #ddd;padding:5px 6px;text-align:left}'
             . 'th{background:#f3f3f3;font-weight:600}.r{text-align:right}.hdr td{font-weight:600;background:#fafafa}.comp td{color:#444;font-size:11px}.ind{color:#999;margin-left:12px}.tot{text-align:right;margin-top:10px}';
 
         return '<!doctype html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($title) . "</title><style>$css</style></head><body>$body</body></html>";
