@@ -30,7 +30,7 @@ export default function CustomerQuotationDetail() {
 
   const accept = async () => {
     const res = await run(() => quotationsAPI.accept(id));
-    if (res?.order) nav('/my-orders');
+    if (res?.order) nav(`/orders/${res.order.id}`);
   };
 
   if (error) return <><Header /><main style={{ padding: 32 }}><p role="alert" style={{ color: '#991b1b' }}>{error}</p><Link to="/my-quotes">Back</Link></main><Footer /></>;
@@ -48,7 +48,7 @@ export default function CustomerQuotationDetail() {
         <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>{q.valid_until ? `Valid until ${q.valid_until}` : 'We are preparing your prices'}</p>
 
         {q.doc_status === 'requested' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(245,158,11,0.1)' }}>We're preparing your prices. You'll be notified when this is ready.</p>}
-        {q.doc_status === 'accepted' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(16,185,129,0.1)' }}>You accepted this quotation{q.order ? ` — order ${q.order.number}` : ''}.</p>}
+        {q.doc_status === 'accepted' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(16,185,129,0.1)' }}>You accepted this quotation{q.order ? <> — order <Link to={`/orders/${q.order.id}`}>{q.order.number}</Link></> : ''}.</p>}
         {q.doc_status === 'declined' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(239,68,68,0.08)' }}>You declined this quotation.</p>}
         {q.doc_status === 'expired' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(107,114,128,0.1)' }}>This quotation has expired. You can request a new one.</p>}
         {q.doc_status === 'revision_requested' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(245,158,11,0.1)' }}>You asked for changes{q.response_note ? `: “${q.response_note}”` : ''}. We'll send a revised quotation.</p>}
