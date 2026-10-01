@@ -69,49 +69,84 @@ class BooksReportService
         ];
     }
 
+    /** @return array<int, object{id:int, code:string, is_base:int, conversion_rate:float}> currencies by id */
+    private function currencyMap(): array
+    {
+        return DB::table('currencies')->get(['id', 'code', 'is_base', 'conversion_rate'])->keyBy('id')->all();
+    }
+
+    /**
+     * An amount in a voucher's own currency, as the base currency of today. The books keep each voucher's base figure as it
+     * was posted; when the base currency has been changed since, that figure is in the OLD base and must not be added to new-base
+     * amounts, so it is restated at today's rate. A stored figure within a factor of two of today's rate is trusted as it was
+     * posted (rates drift); one far from it was made under another base.
+     *
+     * @return array{0: float, 1: bool}  [amount in today's base, restated?]
+     */
+    private function inBase(float $amount, float $storedBase, $currencyId, array $cur): array
+    {
+        $c = $currencyId !== null ? ($cur[$currencyId] ?? null) : null;
+        if (! $c || (int) $c->is_base === 1) {
+            return [$amount, $c !== null && abs($amount - $storedBase) > 0.01];   // in the base currency: the amount IS the base figure
+        }
+        $now = $amount * (float) $c->conversion_rate;
+        if ($now <= 0.0 || $storedBase <= 0.0) {
+            return [$storedBase, false];
+        }
+        $ratio = $storedBase / $now;
+
+        return ($ratio < 0.5 || $ratio > 2.0) ? [round($now, 2), true] : [$storedBase, false];
+    }
+
     public function ledgerStatement(int $ledgerId, ?string $from, ?string $to): array
     {
         $ledger = DB::table('ledgers')->where('id', $ledgerId)->first();
         abort_unless($ledger, 404, 'Ledger not found.');
-        $open = $this->opening($ledger);
-        if ($from) {
-            $prior = $this->movement(null, null, $from)[$ledgerId] ?? ['dr' => 0, 'cr' => 0];
-            $open += $prior['dr'] - $prior['cr'];
-        }
+        $cur = $this->currencyMap();
+        $baseCode = (string) (collect($cur)->firstWhere('is_base', 1)->code ?? '');
         $rows = DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('e.ledger_id', $ledgerId)->where('v.status', Voucher::POSTED)
-            ->when($from, fn ($q) => $q->where('v.date', '>=', $from))
             ->when($to, fn ($q) => $q->where('v.date', '<=', $to))
-            ->leftJoin('currencies as c', 'c.id', '=', 'v.currency_id')
             ->orderBy('v.date')->orderBy('v.id')->orderBy('e.line_no')
             ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.amount', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration',
-                'v.exchange_rate', 'c.code as currency']);
-        $baseCode = (string) (DB::table('currencies')->where('is_base', 1)->value('code') ?? '');
-        $bal = $open;
+                'v.currency_id']);
+        $open = $this->opening($ledger);
+        $bal = null;
         $out = [];
         $dr = $cr = 0.0;
         $byCur = [];   // what each currency moved, in that currency (the running balance below is in the base currency)
+        $restated = false;
         foreach ($rows as $r) {
-            $amt = (float) $r->base_amount;
-            $code = $r->currency ?: $baseCode;
-            $r->side === 'D' ? ($bal += $amt) : ($bal -= $amt);
+            [$amt, $re] = $this->inBase((float) $r->amount, (float) $r->base_amount, $r->currency_id, $cur);
+            $sign = $r->side === 'D' ? 1 : -1;
+            if ($from && $r->date < $from) {   // before the period: only moves the opening balance
+                $open += $sign * $amt;
+                continue;
+            }
+            $bal ??= $open;
+            $bal += $sign * $amt;
             $r->side === 'D' ? ($dr += $amt) : ($cr += $amt);
+            $c = $r->currency_id !== null ? ($cur[$r->currency_id] ?? null) : null;
+            $code = $c->code ?? $baseCode;
+            $foreign = $c && (int) $c->is_base !== 1;
             $fc = (float) $r->amount;
             $byCur[$code] ??= ['currency' => $code, 'debit' => 0.0, 'credit' => 0.0, 'net' => 0.0];
             $byCur[$code][$r->side === 'D' ? 'debit' : 'credit'] += $fc;
-            $byCur[$code]['net'] += $r->side === 'D' ? $fc : -$fc;
+            $byCur[$code]['net'] += $sign * $fc;
+            $restated = $restated || $re;
             $out[] = ['voucher_id' => $r->voucher_id, 'date' => $r->date, 'voucher_number' => $r->voucher_number, 'type' => $r->type,
-                'currency' => $code, 'foreign' => $code !== '' && $code !== $baseCode, 'amount_fc' => round($fc, 2), 'rate' => $r->exchange_rate !== null ? (float) $r->exchange_rate : 1.0,
-                'in_currency' => ($code !== '' && $code !== $baseCode) ? $code . ' ' . number_format($fc, 2) . ($r->side === 'D' ? ' Dr' : ' Cr') : '',
+                'currency' => $code, 'foreign' => $foreign, 'amount_fc' => round($fc, 2), 'rate' => $fc > 0 ? round($amt / $fc, 6) : 1.0, 'restated' => $re,
+                'in_currency' => $foreign ? $code . ' ' . number_format($fc, 2) . ($r->side === 'D' ? ' Dr' : ' Cr') : '',
                 'debit' => $r->side === 'D' ? $amt : 0, 'credit' => $r->side === 'C' ? $amt : 0, 'balance' => round($bal, 2),
                 'narration' => $r->narration ?: $r->voucher_narration];
         }
+        $bal ??= $open;
         $byCur = array_map(fn ($x) => array_map(fn ($v) => is_float($v) ? round($v, 2) : $v, $x), array_values($byCur));
 
         return ['ledger' => ['id' => $ledger->id, 'name' => $ledger->name], 'from' => $from, 'to' => $to, 'base_currency' => $baseCode,
             'opening' => round($open, 2), 'debit' => round($dr, 2), 'credit' => round($cr, 2), 'closing' => round($bal, 2), 'rows' => $out,
-            'by_currency' => $byCur, 'has_foreign' => (bool) collect($out)->firstWhere('foreign', true)];
+            'by_currency' => $byCur, 'has_foreign' => (bool) collect($out)->firstWhere('foreign', true), 'restated' => $restated];
     }
 
     public function trialBalance(?string $from, ?string $to): array
@@ -204,9 +239,9 @@ class BooksReportService
             ->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $bases)
             ->where('v.date', '<=', $asOf->toDateString())
             ->when($ledgerId, fn ($q) => $q->where('b.ledger_id', $ledgerId))
-            ->leftJoin('currencies as cu', 'cu.id', '=', 'v.currency_id')
-            ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount', 'v.exchange_rate', 'cu.code as currency']);
-        $baseCode = (string) (DB::table('currencies')->where('is_base', 1)->value('code') ?? '');
+            ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount', 'v.total_amount', 'v.base_total', 'v.currency_id']);
+        $cur = $this->currencyMap();
+        $baseCode = (string) (collect($cur)->firstWhere('is_base', 1)->code ?? '');
         $paid = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
             ->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)->where('v.date', '<=', $asOf->toDateString())
             ->groupBy('b.against_voucher_id')->selectRaw('b.against_voucher_id as id, SUM(b.amount) as paid')->pluck('paid', 'id');
@@ -218,8 +253,10 @@ class BooksReportService
                 continue;
             }
             // every bucket is in the base currency (at the rate on the bill) so bills in different currencies add up; the bill keeps its own figure too
-            $code = $b->currency ?: $baseCode;
-            $open = round($openFc * ((float) ($b->exchange_rate ?: 1.0)), 2);
+            $c = $b->currency_id !== null ? ($cur[$b->currency_id] ?? null) : null;
+            $code = $c->code ?? $baseCode;
+            [$billBase] = $this->inBase((float) $b->total_amount, (float) $b->base_total, $b->currency_id, $cur);   // what the whole bill is, in today's base
+            $open = (float) $b->total_amount > 0 ? round($openFc * $billBase / (float) $b->total_amount, 2) : $openFc;
             $due = Carbon::parse($b->due_date ?? $b->date);
             $late = max(0, $due->diffInDays($asOf, false));
             $bucket = $late === 0 ? 'current' : ($late <= 30 ? 'd1_30' : ($late <= 60 ? 'd31_60' : ($late <= 90 ? 'd61_90' : 'd90_plus')));

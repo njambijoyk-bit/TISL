@@ -53,24 +53,24 @@ function View({ id, data, nav, onRefresh }) {
   );
   if (id === 'ledger') return (
     <>
-    {data.has_foreign && (
+    {(data.has_foreign || data.restated) && (
       <div style={{ ...card, padding: 12, marginBottom: 12, fontSize: '0.8rem' }}>
-        <strong>Moved in each currency</strong> <span style={{ color: colors.textMuted }}>(the columns below are in {data.base_currency}, at the rate on each voucher)</span>
+        <strong>Moved in each currency</strong> <span style={{ color: colors.textMuted }}>(the columns below are in {data.base_currency}{data.restated ? "; vouchers made when the base currency was different are shown at today's rate and marked restated" : ', at the rate on each voucher'})</span>
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 6 }}>
           {data.by_currency.map((c) => <span key={c.currency}><strong>{c.currency}</strong> Dr {money(c.debit)} · Cr {money(c.credit)} · net <strong>{money(Math.abs(c.net))} {c.net >= 0 ? 'Dr' : 'Cr'}</strong></span>)}
         </div>
       </div>
     )}
-    <Table head={[['Date'], ['Number'], ['Type'], ...(data.has_foreign ? [['In its currency']] : []), [`Debit (${data.base_currency ?? ''})`, true], [`Credit (${data.base_currency ?? ''})`, true], ['Balance (Dr +)', true]]}>
-      <tr style={{ background: colors.tint(0.02) }}><td style={td} colSpan={data.has_foreign ? 6 : 5}>Opening balance</td><td style={{ ...td, ...num }}>{money(data.opening)}</td></tr>
+    <Table head={[['Date'], ['Number'], ['Type'], ...((data.has_foreign || data.restated) ? [['In its currency']] : []), [`Debit (${data.base_currency ?? ''})`, true], [`Credit (${data.base_currency ?? ''})`, true], ['Balance (Dr +)', true]]}>
+      <tr style={{ background: colors.tint(0.02) }}><td style={td} colSpan={(data.has_foreign || data.restated) ? 6 : 5}>Opening balance</td><td style={{ ...td, ...num }}>{money(data.opening)}</td></tr>
       {data.rows.map((r, i) => (
         <tr key={i} onClick={() => nav(`/admin/books/vouchers/${r.voucher_id}`)} style={{ cursor: 'pointer' }}>
           <td style={td}>{r.date}</td><td style={{ ...td, fontFamily: 'monospace' }}>{r.voucher_number}</td><td style={td}>{r.type}</td>
-          {data.has_foreign && <td style={{ ...td, color: colors.textMuted, whiteSpace: 'nowrap' }}>{r.in_currency}{r.foreign ? <span style={{ color: colors.textFaint }}> @ {r.rate}</span> : ''}</td>}
+          {(data.has_foreign || data.restated) && <td style={{ ...td, color: colors.textMuted, whiteSpace: 'nowrap' }}>{r.in_currency}{r.foreign ? <span style={{ color: colors.textFaint }}> @ {r.rate}</span> : ''}{r.restated ? <span title="Made when the base currency was different: shown at today's rate" style={{ color: colors.warningText, marginLeft: 6, fontSize: '0.68rem' }}>restated</span> : ''}</td>}
           <td style={{ ...td, ...num }}>{r.debit ? money(r.debit) : ''}</td><td style={{ ...td, ...num }}>{r.credit ? money(r.credit) : ''}</td><td style={{ ...td, ...num }}>{money(r.balance)}</td>
         </tr>
       ))}
-      <Total><td style={td} colSpan={data.has_foreign ? 4 : 3}>Totals</td><td style={{ ...td, ...num }}>{money(data.debit)}</td><td style={{ ...td, ...num }}>{money(data.credit)}</td><td style={{ ...td, ...num }}>{money(data.closing)}</td></Total>
+      <Total><td style={td} colSpan={(data.has_foreign || data.restated) ? 4 : 3}>Totals</td><td style={{ ...td, ...num }}>{money(data.debit)}</td><td style={{ ...td, ...num }}>{money(data.credit)}</td><td style={{ ...td, ...num }}>{money(data.closing)}</td></Total>
     </Table>
     </>
   );
@@ -187,7 +187,7 @@ function View({ id, data, nav, onRefresh }) {
   // ageing
   return (
     <>
-    {data.base_currency && <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: colors.textMuted }}>The columns are in {data.base_currency} (each bill at the rate on its voucher); bills in other currencies also show their own amount.</p>}
+    {data.base_currency && <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: colors.textMuted }}>The columns are in {data.base_currency} (each bill at the rate on its voucher); bills in other currencies also show their own amount. Bills made when the base currency was different are shown at today's rate.</p>}
     <Table head={[['Party'], ['Current', true], ['1–30', true], ['31–60', true], ['61–90', true], ['90+', true], ['Total', true]]}>
       {data.rows.length ? data.rows.map((r) => (
         <tr key={r.ledger_id}><td style={td}>{r.party}{r.has_foreign && <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>Open: {r.currencies}</div>}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{r.bills.map((b) => `${b.voucher_number} (${b.foreign ? `${b.currency} ${money(b.open_fc)} = ${money(b.open)}` : money(b.open)}${b.days_late ? `, ${b.days_late}d late` : ''})`).join(' · ')}</div></td>
