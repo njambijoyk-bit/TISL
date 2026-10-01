@@ -12,4 +12,9 @@ return [
     'callback_token'      => env('DARAJA_CALLBACK_TOKEN'),
     'account_reference'   => env('DARAJA_ACCOUNT_REFERENCE', 'ORDER'),
     'transaction_desc'    => env('DARAJA_TRANSACTION_DESC', 'Order Payment'),
+    // TLS to Safaricom. Normally leave both unset. If this machine's PHP cannot verify Safaricom's certificate
+    // (antivirus / a proxy re-signing HTTPS, or no CA bundle), point DARAJA_CA_BUNDLE at a cacert.pem.
+    // DARAJA_VERIFY_SSL=false switches verification off but is only honoured when APP_ENV=local, so it can never reach production.
+    'ca_bundle'           => env('DARAJA_CA_BUNDLE'),
+    'verify_ssl'          => env('DARAJA_VERIFY_SSL', true),
 ];

@@ -37,10 +37,24 @@ class DarajaService
     // Cached for 55 minutes (token valid for 60).
     // =========================================================================
 
+    /** How to verify Safaricom's certificate: the PHP default, a CA bundle file, or (local development only) not at all. */
+    private function tls(): array
+    {
+        if ($bundle = config('daraja.ca_bundle')) {
+            return ['verify' => $bundle];
+        }
+        if (config('daraja.verify_ssl') === false || config('daraja.verify_ssl') === 'false') {
+            return ['verify' => ! app()->environment('local')];
+        }
+
+        return [];
+    }
+
     public function getAccessToken(): string
     {
         return Cache::remember('daraja_access_token', 55 * 60, function () {
             $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
+                ->withOptions($this->tls())
                 ->timeout(30)
                 ->get("{$this->baseUrl}/oauth/v1/generate", ['grant_type' => 'client_credentials']);
 
@@ -106,6 +120,7 @@ class DarajaService
         ]);
 
         $response = Http::withToken($token)
+            ->withOptions($this->tls())
             ->timeout(30)
             ->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
 
@@ -231,6 +246,7 @@ class DarajaService
         $password  = base64_encode($this->businessShortCode . $this->passkey . $timestamp);
 
         $response = Http::withToken($token)
+            ->withOptions($this->tls())
             ->timeout($timeout)
             ->post("{$this->baseUrl}/mpesa/stkpushquery/v1/query", [
                 'BusinessShortCode' => $this->businessShortCode,
