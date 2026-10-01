@@ -184,15 +184,11 @@ class DashboardService
             $rows = $this->pendingOrderLines($base, $loc)->get();
             $orders[] = ['key' => $base, 'label' => $label, 'count' => $rows->pluck('vid')->unique()->count(), 'amount' => round($rows->sum('value'), 2)];
         }
+        // delivery / receipt notes are judged like orders: what is still not invoiced, line by line (the same test as the "Open" badge on the voucher)
         $notes = [];
-        $tot = RestatedBase::total();
-        foreach (['receipt_note' => ['Goods received but bills not received', ['purchase']], 'delivery_note' => ['Goods delivered but bills not made', ['sales', 'cash_sale']]] as $base => [$label, $billed]) {
-            $rows = RestatedBase::join(DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id'))
-                ->where('v.status', Voucher::POSTED)->where('t.base_type', $base)->when($loc, fn ($q) => $q->where('v.location_id', $loc))
-                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('vouchers as c')->join('voucher_types as ct', 'ct.id', '=', 'c.voucher_type_id')
-                    ->whereColumn('c.source_voucher_id', 'v.id')->where('c.status', Voucher::POSTED)->whereIn('ct.base_type', $billed))
-                ->selectRaw("v.id as vid, {$tot} as total")->get();
-            $notes[] = ['key' => $base, 'label' => $label, 'count' => $rows->count(), 'amount' => round($rows->sum('total'), 2)];
+        foreach (['receipt_note' => 'Goods received but bills not received', 'delivery_note' => 'Goods delivered but bills not made'] as $base => $label) {
+            $rows = $this->pendingOrderLines($base, $loc)->get();
+            $notes[] = ['key' => $base, 'label' => $label, 'count' => $rows->pluck('vid')->unique()->count(), 'amount' => round($rows->sum('value'), 2)];
         }
         $out = [];
         foreach (['receivables' => 'Net pending receivables', 'payables' => 'Net pending payables'] as $kind => $label) {
