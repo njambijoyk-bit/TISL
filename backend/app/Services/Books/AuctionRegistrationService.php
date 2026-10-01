@@ -43,13 +43,21 @@ class AuctionRegistrationService
     {
         $reg = AuctionRegistration::where('auction_id', $a->id)->where('customer_id', $customer->id)->where('status', '!=', AuctionRegistration::CANCELLED)->latest('id')->first();
 
-        return $reg ? $this->refresh($reg) : null;
+        $reg = $reg ? $this->refresh($reg) : null;
+
+        return $reg && $reg->status !== AuctionRegistration::CANCELLED ? $reg : null;   // a cancelled registration is as good as none: the customer can register again
     }
 
     /** Paid means the order was settled: a posted Cash Sale exists that came from it. */
     public function refresh(AuctionRegistration $reg): AuctionRegistration
     {
         if ($reg->status === AuctionRegistration::AWAITING && $reg->order_voucher_id) {
+            // the customer cancelled the registration order before paying it: the registration goes with it
+            if (Voucher::whereKey($reg->order_voucher_id)->where('status', Voucher::CANCELLED)->exists()) {
+                $reg->update(['status' => AuctionRegistration::CANCELLED]);
+
+                return $reg;
+            }
             $paid = Voucher::where('source_voucher_id', $reg->order_voucher_id)->where('status', Voucher::POSTED)
                 ->whereHas('type', fn ($q) => $q->where('base_type', VoucherType::CASH_SALE))->exists();
             if ($paid) {
