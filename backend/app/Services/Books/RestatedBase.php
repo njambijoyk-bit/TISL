@@ -40,6 +40,15 @@ class RestatedBase
             . "WHEN {$cu}.conversion_rate > 0 AND {$v}.total_amount > 0 THEN {$e}.amount * {$cu}.conversion_rate ELSE {$e}.base_amount END)";
     }
 
+    /** SQL: a voucher's whole total in today's base. */
+    public static function total(string $v = 'v', string $cu = 'cu'): string
+    {
+        $t = self::trusted($v, $cu);
+
+        return "(CASE WHEN {$cu}.id IS NULL THEN {$v}.base_total WHEN {$cu}.is_base = 1 THEN {$v}.total_amount WHEN {$t} THEN {$v}.base_total "
+            . "WHEN {$cu}.conversion_rate > 0 AND {$v}.total_amount > 0 THEN {$v}.total_amount * {$cu}.conversion_rate ELSE {$v}.base_total END)";
+    }
+
     /** SQL: the rate that turns the voucher's own currency into today's base. */
     public static function rate(string $v = 'v', string $cu = 'cu'): string
     {

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Banknote, Boxes, FileText, Receipt } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import DashboardTabs from '../../components/admin/dashboard/DashboardTabs';
 import HubHeader from '../../components/admin/ui/HubHeader';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../_shared/lib/roles';
@@ -22,9 +23,10 @@ export default function Dashboard() {
   const canWrite = canWriteFinance(user);
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
-        <HubHeader title="Dashboard" description="Stock and voucher graphs are being built. For now, jump to where the work is." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginTop: 16 }}>
+      <div style={{ padding: '32px 24px', maxWidth: 1400, margin: '0 auto' }}>
+        <HubHeader title="Dashboard" description="Sales, purchases, pending documents and how documents travel." />
+        <DashboardTabs />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginTop: 20 }}>
           {LINKS.map((l) => (
             <Link key={l.to} to={l.to} style={{ ...card, padding: 18, textDecoration: 'none', color: 'inherit', display: 'block' }}>
               <l.icon size={20} color={l.color} />

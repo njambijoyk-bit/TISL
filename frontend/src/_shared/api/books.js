@@ -79,6 +79,7 @@ const booksAPI = {
   expireGiftVouchers: () => send('post', '/admin/books/gift-vouchers/expire-due'),
 
   // reports
+  dashboard: (tab, params) => get(`/admin/books/dashboard/${tab}`, params),
   report: (name, params) => get(`/admin/books/reports/${name}`, params),
   itemAccounts: (type, id) => get('/admin/books/item-accounts', { type, id }),
   saveItemAccounts: (d) => send('put', '/admin/books/item-accounts', d),

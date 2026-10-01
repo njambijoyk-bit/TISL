@@ -494,6 +494,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
         Route::get('/vouchers/{id}/export',     [BooksVoucherController::class, 'export']);
         Route::get('/reports/{name}',           [BooksVoucherController::class, 'report']);
+        Route::get('/dashboard/{tab}',          [\App\Http\Controllers\Api\BooksDashboardController::class, 'show']);
         Route::get('/credit/overview',          [CustomerAccountController::class, 'overview']);
         Route::get('/customer-accounts/{customerId}', [CustomerAccountController::class, 'show']);
         Route::get('/gift-vouchers',            [GiftVoucherController::class, 'index']);
