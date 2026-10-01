@@ -11,7 +11,7 @@ import useDeleteConfirm from './useDeleteConfirm';
 import { formatMoney } from '../../../../../_shared/lib/money';
 import { btnPrimary, colors } from '../../../../../_shared/theme/tokens';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString('en-CA');
 
 export const formatRate = (r) => r.rate_type === 'percentage'
   ? `${Number(r.rate_value)}%`

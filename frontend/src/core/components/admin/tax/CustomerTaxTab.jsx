@@ -11,7 +11,7 @@ import {
   colors, card, input, focusRing, label as labelStyle, hint as hintStyle, btnPrimary, radius,
 } from '../../../../_shared/theme/tokens';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString('en-CA');
 const isCurrentlyValid = (c) =>
   c.status === 'verified' && (!c.valid_until || c.valid_until.slice(0, 10) >= today());
 

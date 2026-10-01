@@ -9,7 +9,7 @@ import UnitSelect from '../../../../../_shared/components/common/UnitSelect';
 import CurrencySelect from '../../../../../_shared/components/common/currency/CurrencySelect';
 import { colors } from '../../../../../_shared/theme/tokens';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString('en-CA');
 
 const BASES = [
   { id: 'post_discount', label: 'After discounts', help: 'The usual choice.' },

@@ -22,7 +22,7 @@ export default function ClassificationForm({ classification, onClose }) {
     is_active: classification?.is_active ?? true,
   });
   // enter the rate right here: a withholding tax type (created if you have none), and the rate as a percentage
-  const [nr, setNr] = useState({ type_id: '', type_name: 'Withholding tax', type_code: 'WHT', rate: '', valid_from: new Date().toISOString().slice(0, 10) });
+  const [nr, setNr] = useState({ type_id: '', type_name: 'Withholding tax', type_code: 'WHT', rate: '', valid_from: new Date().toLocaleDateString('en-CA') });
   const setN = (k) => (v) => setNr((x) => ({ ...x, [k]: v }));
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);

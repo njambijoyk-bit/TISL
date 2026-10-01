@@ -20,7 +20,7 @@ export default function ApplyClearanceModal({ credit, onClose }) {
   const [form, setForm] = useState({
     amount: remaining.toFixed(2),
     against_ledger_id: '',
-    cleared_on: new Date().toISOString().slice(0, 10),
+    cleared_on: new Date().toLocaleDateString('en-CA'),
     reference: '',
     notes: '',
   });

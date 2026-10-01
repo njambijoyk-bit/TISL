@@ -15,7 +15,7 @@ import TaxCertificateForm from './TaxCertificateForm';
 import { customerName } from './customerName';
 import { colors, card, btnPrimary, btnGhost, radius } from '../../../../../_shared/theme/tokens';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString('en-CA');
 const effectiveStatus = (c) =>
   c.status === 'verified' && c.valid_until && c.valid_until.slice(0, 10) < today() ? 'expired' : c.status;
 

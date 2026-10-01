@@ -53,7 +53,7 @@ const field = {
     error: { fontSize: '0.72rem', color: '#ef4444', marginTop: 4 },
 };
 
-function today() { return new Date().toISOString().split('T')[0]; }
+function today() { return new Date().toLocaleDateString('en-CA'); }
 function fmtDate(str) {
     if (!str) return '—';
     return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

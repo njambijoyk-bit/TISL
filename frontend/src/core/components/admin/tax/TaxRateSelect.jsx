@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import taxAPI from '../../../../_shared/api/tax';
 import { input, inputDisabled, focusRing } from '../../../../_shared/theme/tokens';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString('en-CA');
 
 /** "VAT 16%" — how a rate is named in dropdowns and summaries. */
 export const taxRateLabel = (r) => {

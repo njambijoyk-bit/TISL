@@ -55,7 +55,7 @@ export default function GatewayTab({ canWrite }) {
   useEffect(() => {
     booksAPI.types().then((t) => setTypes(Array.isArray(t) ? t : t.data ?? [])).catch(() => {});
     booksAPI.settings().then((s) => {
-      const t = new Date().toISOString().slice(0, 10);
+      const t = new Date().toLocaleDateString('en-CA');
       setYear((s.years ?? []).find((y) => y.start_date <= t && y.end_date >= t) ?? null);
     }).catch(() => {});
   }, []);

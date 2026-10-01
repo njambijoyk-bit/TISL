@@ -6,7 +6,7 @@ export const FORMATS = [
   ['pdf', 'PDF'], ['html', 'HTML'], ['csv', 'CSV'], ['xml', 'XML'], ['json', 'JSON'],
 ];
 
-export const today = () => new Date().toISOString().slice(0, 10);
+export const today = () => new Date().toLocaleDateString('en-CA');
 export const monthStart = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString('en-CA'); };
 export const yearStart = () => `${new Date().getFullYear()}-01-01`;
 
