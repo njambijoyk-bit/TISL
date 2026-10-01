@@ -574,7 +574,7 @@ class BooksVoucherController extends Controller
                 $d = $this->reports->ledgerStatement((int) $r->ledger_id, $from, $to);
                 $rows = array_merge([['date' => $from, 'voucher_number' => '', 'type' => 'Opening balance', 'debit' => '', 'credit' => '', 'balance' => $d['opening']]], $d['rows']);
 
-                return [$d, ['title' => 'Ledger: ' . $d['ledger']['name'], 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'debit' => 'Debit', 'credit' => 'Credit', 'balance' => 'Balance (Dr +)'], 'rows' => $rows, 'totals' => ['type' => 'Totals', 'debit' => $d['debit'], 'credit' => $d['credit'], 'balance' => $d['closing']]]];
+                return [$d, ['title' => 'Ledger: ' . $d['ledger']['name'], 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'in_currency' => 'In its currency', 'debit' => 'Debit (' . $d['base_currency'] . ')', 'credit' => 'Credit (' . $d['base_currency'] . ')', 'balance' => 'Balance (Dr +, ' . $d['base_currency'] . ')'], 'rows' => $rows, 'totals' => ['type' => 'Totals', 'debit' => $d['debit'], 'credit' => $d['credit'], 'balance' => $d['closing']]]];
             case 'trial-balance':
                 $d = $this->reports->trialBalance($from, $to);
 
@@ -604,7 +604,7 @@ class BooksVoucherController extends Controller
             case 'payables':
                 $d = $this->reports->ageing($name, $to);
 
-                return [$d, ['title' => ucfirst($name) . ' ageing', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['party' => 'Party', 'current' => 'Current', 'd1_30' => '1–30', 'd31_60' => '31–60', 'd61_90' => '61–90', 'd90_plus' => '90+', 'total' => 'Total'], 'rows' => array_map(fn ($x) => array_diff_key($x, ['bills' => 1]), $d['rows']), 'totals' => ['party' => 'Total'] + $d['totals']]];
+                return [$d, ['title' => ucfirst($name) . ' ageing', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['party' => 'Party', 'currencies' => 'Open in its currency', 'current' => 'Current', 'd1_30' => '1–30', 'd31_60' => '31–60', 'd61_90' => '61–90', 'd90_plus' => '90+', 'total' => 'Total'], 'rows' => array_map(fn ($x) => array_diff_key($x, ['bills' => 1, 'by_currency' => 1]), $d['rows']), 'totals' => ['party' => 'Total'] + $d['totals']]];
             case 'tax-return':
                 $d = app(\App\Services\Books\ComplianceReportService::class)->taxReturn($from, $to);
                 $rows = [];

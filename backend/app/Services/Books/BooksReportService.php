@@ -83,22 +83,35 @@ class BooksReportService
             ->where('e.ledger_id', $ledgerId)->where('v.status', Voucher::POSTED)
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))
             ->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->leftJoin('currencies as c', 'c.id', '=', 'v.currency_id')
             ->orderBy('v.date')->orderBy('v.id')->orderBy('e.line_no')
-            ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration']);
+            ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.amount', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration',
+                'v.exchange_rate', 'c.code as currency']);
+        $baseCode = (string) (DB::table('currencies')->where('is_base', 1)->value('code') ?? '');
         $bal = $open;
         $out = [];
         $dr = $cr = 0.0;
+        $byCur = [];   // what each currency moved, in that currency (the running balance below is in the base currency)
         foreach ($rows as $r) {
             $amt = (float) $r->base_amount;
+            $code = $r->currency ?: $baseCode;
             $r->side === 'D' ? ($bal += $amt) : ($bal -= $amt);
             $r->side === 'D' ? ($dr += $amt) : ($cr += $amt);
+            $fc = (float) $r->amount;
+            $byCur[$code] ??= ['currency' => $code, 'debit' => 0.0, 'credit' => 0.0, 'net' => 0.0];
+            $byCur[$code][$r->side === 'D' ? 'debit' : 'credit'] += $fc;
+            $byCur[$code]['net'] += $r->side === 'D' ? $fc : -$fc;
             $out[] = ['voucher_id' => $r->voucher_id, 'date' => $r->date, 'voucher_number' => $r->voucher_number, 'type' => $r->type,
+                'currency' => $code, 'foreign' => $code !== '' && $code !== $baseCode, 'amount_fc' => round($fc, 2), 'rate' => $r->exchange_rate !== null ? (float) $r->exchange_rate : 1.0,
+                'in_currency' => ($code !== '' && $code !== $baseCode) ? $code . ' ' . number_format($fc, 2) . ($r->side === 'D' ? ' Dr' : ' Cr') : '',
                 'debit' => $r->side === 'D' ? $amt : 0, 'credit' => $r->side === 'C' ? $amt : 0, 'balance' => round($bal, 2),
                 'narration' => $r->narration ?: $r->voucher_narration];
         }
+        $byCur = array_map(fn ($x) => array_map(fn ($v) => is_float($v) ? round($v, 2) : $v, $x), array_values($byCur));
 
-        return ['ledger' => ['id' => $ledger->id, 'name' => $ledger->name], 'from' => $from, 'to' => $to,
-            'opening' => round($open, 2), 'debit' => round($dr, 2), 'credit' => round($cr, 2), 'closing' => round($bal, 2), 'rows' => $out];
+        return ['ledger' => ['id' => $ledger->id, 'name' => $ledger->name], 'from' => $from, 'to' => $to, 'base_currency' => $baseCode,
+            'opening' => round($open, 2), 'debit' => round($dr, 2), 'credit' => round($cr, 2), 'closing' => round($bal, 2), 'rows' => $out,
+            'by_currency' => $byCur, 'has_foreign' => (bool) collect($out)->firstWhere('foreign', true)];
     }
 
     public function trialBalance(?string $from, ?string $to): array
@@ -191,25 +204,32 @@ class BooksReportService
             ->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $bases)
             ->where('v.date', '<=', $asOf->toDateString())
             ->when($ledgerId, fn ($q) => $q->where('b.ledger_id', $ledgerId))
-            ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount']);
+            ->leftJoin('currencies as cu', 'cu.id', '=', 'v.currency_id')
+            ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount', 'v.exchange_rate', 'cu.code as currency']);
+        $baseCode = (string) (DB::table('currencies')->where('is_base', 1)->value('code') ?? '');
         $paid = DB::table('voucher_bill_refs as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')
             ->where('b.ref_type', 'against')->where('v.status', Voucher::POSTED)->where('v.date', '<=', $asOf->toDateString())
             ->groupBy('b.against_voucher_id')->selectRaw('b.against_voucher_id as id, SUM(b.amount) as paid')->pluck('paid', 'id');
 
         $parties = [];
         foreach ($bills as $b) {
-            $open = round((float) $b->amount - (float) ($paid[$b->voucher_id] ?? 0), 2);
-            if ($open <= 0.005) {
+            $openFc = round((float) $b->amount - (float) ($paid[$b->voucher_id] ?? 0), 2);   // in the bill's own currency
+            if ($openFc <= 0.005) {
                 continue;
             }
+            // every bucket is in the base currency (at the rate on the bill) so bills in different currencies add up; the bill keeps its own figure too
+            $code = $b->currency ?: $baseCode;
+            $open = round($openFc * ((float) ($b->exchange_rate ?: 1.0)), 2);
             $due = Carbon::parse($b->due_date ?? $b->date);
             $late = max(0, $due->diffInDays($asOf, false));
             $bucket = $late === 0 ? 'current' : ($late <= 30 ? 'd1_30' : ($late <= 60 ? 'd31_60' : ($late <= 90 ? 'd61_90' : 'd90_plus')));
             $p = &$parties[$b->ledger_id];
-            $p ??= ['ledger_id' => $b->ledger_id, 'party' => $b->party, 'current' => 0, 'd1_30' => 0, 'd31_60' => 0, 'd61_90' => 0, 'd90_plus' => 0, 'total' => 0, 'bills' => []];
+            $p ??= ['ledger_id' => $b->ledger_id, 'party' => $b->party, 'current' => 0, 'd1_30' => 0, 'd31_60' => 0, 'd61_90' => 0, 'd90_plus' => 0, 'total' => 0, 'bills' => [], 'by_currency' => []];
             $p[$bucket] = round($p[$bucket] + $open, 2);
             $p['total'] = round($p['total'] + $open, 2);
-            $p['bills'][] = ['voucher_id' => $b->voucher_id, 'voucher_number' => $b->voucher_number, 'date' => $b->date, 'due_date' => $due->toDateString(), 'open' => $open, 'days_late' => $late];
+            $p['by_currency'][$code] = round(($p['by_currency'][$code] ?? 0) + $openFc, 2);
+            $p['bills'][] = ['voucher_id' => $b->voucher_id, 'voucher_number' => $b->voucher_number, 'date' => $b->date, 'due_date' => $due->toDateString(), 'open' => $open,
+                'currency' => $code, 'open_fc' => $openFc, 'foreign' => $code !== $baseCode, 'days_late' => $late];
             unset($p);
         }
         $rows = array_values($parties);
@@ -221,6 +241,12 @@ class BooksReportService
             }
         }
 
-        return ['kind' => $kind, 'as_of' => $asOf->toDateString(), 'rows' => $rows, 'totals' => $tot];
+        foreach ($rows as &$row) {
+            $row['currencies'] = implode('; ', array_map(fn ($c, $v) => $c . ' ' . number_format($v, 2), array_keys($row['by_currency']), $row['by_currency']));
+            $row['has_foreign'] = (bool) array_diff(array_keys($row['by_currency']), [$baseCode]);
+        }
+        unset($row);
+
+        return ['kind' => $kind, 'as_of' => $asOf->toDateString(), 'base_currency' => $baseCode, 'rows' => $rows, 'totals' => $tot];
     }
 }
