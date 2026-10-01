@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import useCartVariantCheck from '../../../ecommerce/components/storefront/useCartVariantCheck';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Package, Truck, CreditCard, Tag, Loader2, Gift } from 'lucide-react';
@@ -54,9 +54,21 @@ export default function Checkout() {
   const [quoting, setQuoting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null);      // { attemptId, orderId }
-  const [policies, setPolicies] = useState([]);
-  const [agreed, setAgreed] = useState(false);          // the order terms box is ticked
-  const [termsCount, setTermsCount] = useState(null);    // how many terms there are to agree to (null = still loading)
+  // The terms that apply to what is in the cart: orders (products, services, gift vouchers), hampers, auctions — one box each
+  const termKeys = useMemo(() => {
+    const api = items.map(toApiItem);
+    const keys = [];
+    if (api.some((i) => !i.hamper_id && !i.auction_id)) keys.push(['standard_order_policy', 'standard_checkout']);
+    if (api.some((i) => i.hamper_id)) keys.push(['hamper_policy', 'hamper_checkout']);
+    if (api.some((i) => i.auction_id)) keys.push(['auction_terms', 'auction_bidding']);
+    return keys;
+  }, [items]);
+  const [termState, setTermState] = useState({});   // key -> { count: how many terms were found (null = loading), agreed }
+  const setTerm = (key, patch) => setTermState((t) => ({ ...t, [key]: { count: null, agreed: false, ...t[key], ...patch } }));
+  const loadingTerms = termKeys.some(([k]) => (termState[k]?.count ?? null) === null);
+  const missingTerms = termKeys.filter(([k]) => (termState[k]?.count ?? 0) > 0 && !termState[k]?.agreed);
+  const termsOk = !loadingTerms && missingTerms.length === 0;
+  const policies = termKeys.filter(([k]) => termState[k]?.agreed).map(([k]) => ({ key: k, response: 'accepted' }));
   const done = useRef(false);
   const credits = opts?.credits ?? [];
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -124,7 +136,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     if (!items.length) { toast.error('Your cart is empty'); return; }
-    if (termsCount !== 0 && !agreed) { toast.error('Please agree to the order terms and conditions first.'); return; }
+    if (!termsOk) { toast.error('Please tick the box to agree to the terms first.'); return; }
     if (variantCheck.blocked) { toast.error('Choose an option for every item first — go back to your cart.'); return; }
     setBusy(true);
     try {
@@ -280,13 +292,20 @@ export default function Checkout() {
           </div>
 
           <div style={card}>
-            <PolicyConsentCheckbox policyKeys={['standard_order_policy']} actionContext="standard_checkout" onChange={(ok, acc) => { setAgreed(ok); setPolicies(acc); }} onLoaded={setTermsCount} disabled={busy} />
-            {(termsCount === 0 || agreed) ? (
-              <button type="submit" disabled={busy || !quote || !!pending} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: 'white', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', fontFamily: 'inherit' }}>
-                <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
-              </button>
-            ) : (
-              <p role="status" style={{ margin: '12px 0 0', fontSize: '0.8rem', color: '#6b7280' }}>{termsCount === null ? 'Loading the order terms…' : 'Tick the box above to agree to the order terms and conditions — then you can place your order.'}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {termKeys.map(([key, ctx]) => (
+                <PolicyConsentCheckbox key={key} policyKeys={[key]} actionContext={ctx} disabled={busy}
+                  onChange={(ok) => setTerm(key, { agreed: ok })} onLoaded={(n) => setTerm(key, { count: n })} />
+              ))}
+            </div>
+            <button type="submit" disabled={busy || !quote || !!pending || !termsOk}
+              style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: termsOk ? 'white' : '#9ca3af', cursor: busy || !quote || !termsOk ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: termsOk ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#e5e7eb', fontFamily: 'inherit' }}>
+              <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
+            </button>
+            {!termsOk && (
+              <p role="status" style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#6b7280', textAlign: 'center' }}>
+                {loadingTerms ? 'Loading the terms…' : missingTerms.length > 1 ? 'Tick the boxes above to agree to the terms — then you can place your order.' : 'Tick the box above to agree to the terms — then you can place your order.'}
+              </p>
             )}
             <p style={{ margin: '10px 0 0', fontSize: '0.74rem', color: '#9ca3af', textAlign: 'center' }}>Your order is saved under <Link to="/orders" style={{ color: 'var(--color-primary-500)' }}>My orders</Link> as soon as it is placed.</p>
           </div>

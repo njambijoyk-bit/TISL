@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import {
   AlertTriangle, CheckCircle, XCircle, Loader2, Shield, X,
 } from 'lucide-react';
@@ -272,6 +272,7 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
 //   disabled      bool       optional — greys out the whole thing
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PolicyConsentCheckbox({ policyKeys, actionContext, onChange, onLoaded, disabled = false }) {
+  const boxId = useId();   // several of these can be on one page
   const [policies,      setPolicies]      = useState([]);       // fetched policy objects
   const [loadingKeys,   setLoadingKeys]   = useState(true);
   const [checked,       setChecked]       = useState(false);
@@ -339,7 +340,7 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
     <>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, opacity: disabled ? 0.5 : 1 }}>
         <input
-          id="policy-consent-checkbox"
+          id={boxId}
           type="checkbox"
           checked={checked}
           onChange={handleCheck}
@@ -347,7 +348,7 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
           style={{ marginTop: 3, accentColor: 'var(--color-primary-500)', cursor: disabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}
         />
         <label
-          htmlFor="policy-consent-checkbox"
+          htmlFor={boxId}
           style={{ fontSize: '0.78rem', lineHeight: 1.6, cursor: disabled ? 'not-allowed' : 'pointer', color: '#6b7280' }}
         >
           I agree to the {renderLinks()}

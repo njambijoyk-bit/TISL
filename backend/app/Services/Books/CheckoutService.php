@@ -168,35 +168,58 @@ class CheckoutService
         return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral') + ['option' => $option];
     }
 
-    private const ORDER_TERMS = 'standard_order_policy';
+    /**
+     * The terms this cart has to be agreed to under: the order terms (products, services, gift vouchers), the hamper policy
+     * (when a hamper is in it) and the auction terms (when an auction item is). Only policies the shop has switched on count.
+     *
+     * @return array<int, array{0: \App\Models\Policy, 1: string}> policy and the context its acceptance is logged under
+     */
+    private function termsFor(array $in): array
+    {
+        $items = $in['items'] ?? [];
+        $want = [];
+        if (collect($items)->contains(fn ($i) => empty($i['hamper_id']) && empty($i['auction_id']))) {
+            $want['standard_order_policy'] = 'standard_checkout';
+        }
+        if (collect($items)->contains(fn ($i) => ! empty($i['hamper_id']))) {
+            $want['hamper_policy'] = 'hamper_checkout';
+        }
+        if (collect($items)->contains(fn ($i) => ! empty($i['auction_id']))) {
+            $want['auction_terms'] = 'auction_bidding';
+        }
+        $out = [];
+        foreach ($want as $key => $context) {
+            if ($policy = \App\Models\Policy::where('key', $key)->where('is_active', true)->first()) {
+                $out[] = [$policy, $context];
+            }
+        }
 
-    /** The order terms and conditions, when the shop has switched them on: an order can not be placed without agreeing. */
+        return $out;
+    }
+
+    /** An order can not be placed without agreeing to every set of terms that applies to it. */
     private function assertTermsAccepted(array $in): void
     {
-        $policy = \App\Models\Policy::where('key', self::ORDER_TERMS)->where('is_active', true)->first();
-        if (! $policy) {
-            return;
-        }
-        $agreed = collect($in['policy_acceptances'] ?? [])->contains(fn ($a) => ($a['key'] ?? null) === $policy->key && ($a['response'] ?? 'accepted') === 'accepted');
-        if (! $agreed) {
-            throw new BooksException('Please agree to the order terms and conditions to place your order.');
+        foreach ($this->termsFor($in) as [$policy]) {
+            $agreed = collect($in['policy_acceptances'] ?? [])->contains(fn ($a) => ($a['key'] ?? null) === $policy->key && ($a['response'] ?? 'accepted') === 'accepted');
+            if (! $agreed) {
+                throw new BooksException('Please agree to the ' . $policy->title . ' to place your order.');
+            }
         }
     }
 
-    /** Keep the proof: who agreed to which version of the terms, on which order, from where, and what the terms said. */
+    /** Keep the proof: who agreed to which version of which terms, on which order, from where, and what the terms said. */
     private function logTermsAcceptance(Voucher $order, array $in, ?Customer $customer, ?User $user): void
     {
-        $policy = \App\Models\Policy::where('key', self::ORDER_TERMS)->where('is_active', true)->first();
-        if (! $policy) {
-            return;
+        foreach ($this->termsFor($in) as [$policy, $context]) {
+            \App\Models\PolicyAcceptance::create([
+                'policy_id' => $policy->id, 'policy_key' => $policy->key, 'policy_version' => $policy->version, 'policy_snapshot' => $policy->content,
+                'customer_id' => $customer?->id, 'user_id' => $user?->id, 'customer_number' => $customer?->customer_number,
+                'action_context' => $context, 'reference_type' => 'voucher', 'reference_id' => $order->id,
+                'response' => 'accepted', 'ip_address' => request()->ip(), 'user_agent' => substr((string) request()->userAgent(), 0, 500),
+                'was_successful' => true, 'flagged' => false, 'accepted_at' => now(),
+            ]);
         }
-        \App\Models\PolicyAcceptance::create([
-            'policy_id' => $policy->id, 'policy_key' => $policy->key, 'policy_version' => $policy->version, 'policy_snapshot' => $policy->content,
-            'customer_id' => $customer?->id, 'user_id' => $user?->id, 'customer_number' => $customer?->customer_number,
-            'action_context' => 'standard_checkout', 'reference_type' => 'voucher', 'reference_id' => $order->id,
-            'response' => 'accepted', 'ip_address' => request()->ip(), 'user_agent' => substr((string) request()->userAgent(), 0, 500),
-            'was_successful' => true, 'flagged' => false, 'accepted_at' => now(),
-        ]);
     }
 
     private function tierWaivesShipping(?Customer $customer, float $netSubtotal, Currency $currency): bool
