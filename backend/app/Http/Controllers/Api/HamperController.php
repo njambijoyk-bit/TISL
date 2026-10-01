@@ -111,6 +111,7 @@ class HamperController extends Controller
 
     public function show($id): JsonResponse
     {
+        app(\App\Services\Books\HamperEditionService::class)->sync([(int) $id]);   // sold on vouchers: keep the remaining count true
         $hamper = Hamper::with(['items.product.currency:id,code,symbol', 'items.variant:id,name,sku,combination_key', 'location:id,name,code', 'createdBy:id,name', 'currency:id,code,symbol', 'taxRate.taxType:id,name,code'])->findOrFail($id);
         return response()->json(array_merge($hamper->toArray(), ['price_check' => $this->priceCheck($hamper)]));
     }
@@ -250,6 +251,8 @@ class HamperController extends Controller
                 ['changes' => $changes]
             );
         }
+
+        app(\App\Services\Books\HamperEditionService::class)->sync([$hamper->id]);   // the edition counter follows the vouchers
 
         return response()->json(['message' => 'Hamper updated', 'data' => $hamper->fresh('currency:id,code,symbol')]);
     }

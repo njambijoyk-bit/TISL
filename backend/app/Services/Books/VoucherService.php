@@ -86,6 +86,7 @@ class VoucherService
             $this->versionHook($voucher, 'created', $user);
             $this->rewardHook($voucher);
             $this->promoHook($voucher);
+            app(HamperEditionService::class)->sync(app(HamperEditionService::class)->idsOn($voucher));
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
             app(InstrumentService::class)->sync($voucher, $data);   // the cheque / transfer reference or the slip
@@ -137,6 +138,7 @@ class VoucherService
             $this->versionHook($voucher, null, $user);   // keep what it looks like now as version 1 if it has no history yet
             $this->undoRewards($voucher);   // its points, spend, order count and promo use are worked out again from the new figures
             $this->reverseEffects($voucher);
+            $hampersBefore = app(HamperEditionService::class)->idsOn($voucher);
             $voucher->items()->delete();
             $voucher->entries()->delete();
             $voucher->billRefs()->delete();
@@ -147,6 +149,7 @@ class VoucherService
             $this->versionHook($voucher, 'altered', $user);
             $this->rewardHook($voucher);
             $this->promoHook($voucher);
+            app(HamperEditionService::class)->sync(array_merge($hampersBefore, app(HamperEditionService::class)->idsOn($voucher)));
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
             app(InstrumentService::class)->sync($voucher, $data);
@@ -187,6 +190,7 @@ class VoucherService
             }
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
+            app(HamperEditionService::class)->sync(app(HamperEditionService::class)->idsOn($voucher));   // the edition is given back
 
             return $voucher->load($this->relations());
         });
@@ -761,6 +765,7 @@ class VoucherService
                 unset($rl);
             }
             $plan['lines'] = $lines;
+            app(HamperEditionService::class)->assertCanTake($lines, $type, $customer, $plan['source_id'], $existing);   // on sale, eligible, per-customer limit, edition size
             [$plan['subtotal'], $plan['tax_total']] = $this->totals($lines);
             $plan['total'] = round($plan['subtotal'] + $plan['tax_total'], 2);
 
