@@ -141,7 +141,7 @@ class DashboardService
         return $out;
     }
 
-    /** What is still to be billed on open orders, by item: ordered less invoiced. */
+    /** What is still to be billed on open orders or notes, by item: ordered less invoiced, with its tax (the amount a bill will carry). */
     private function pendingOrderLines(string $orderBase, ?int $loc)
     {
         $rate = RestatedBase::rate();
@@ -151,7 +151,7 @@ class DashboardService
             ->whereRaw('i.quantity > COALESCE(i.invoiced_quantity, 0)')
             ->when($loc, fn ($q) => $q->where('v.location_id', $loc))
             ->selectRaw("v.id as vid, i.description as item, (i.quantity - COALESCE(i.invoiced_quantity, 0)) as pending, "
-                . "(i.quantity - COALESCE(i.invoiced_quantity, 0)) * (i.amount / NULLIF(i.quantity, 0)) * {$rate} as value");
+                . "(i.quantity - COALESCE(i.invoiced_quantity, 0)) * ((i.amount + COALESCE(i.tax_amount, 0)) / NULLIF(i.quantity, 0)) * {$rate} as value");
     }
 
     private function topPendingOrders(string $orderBase, ?int $loc): array
