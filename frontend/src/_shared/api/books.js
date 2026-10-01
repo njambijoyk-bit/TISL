@@ -56,7 +56,7 @@ const booksAPI = {
   versions: (id) => get(`/admin/books/vouchers/${id}/versions`),
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),
   checkSupplierInvoice: (params) => get('/admin/books/vouchers/check-supplier-invoice', params),
-  lookup: (kind, q, purpose) => get('/admin/books/lookup', { kind, q, purpose }),
+  lookup: (kind, q, purpose, extra = {}) => get('/admin/books/lookup', { kind, q, purpose, ...extra }),
   productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),
   stockBatches: (variantId, locationId) => get('/admin/books/stock-batches', { variant_id: variantId, location_id: locationId }),
   exportVoucher: (id, format) => saveBlob(`/admin/books/vouchers/${id}/export`, { format }, `voucher.${format}`),

@@ -116,6 +116,48 @@ class HamperEditionService
         return $this->restrictedFromLines($rows->map(fn ($r) => ['is_header' => true, 'hamper_id' => $r->hamper_id, 'amount' => $r->amount, 'tax_amount' => $r->tax_amount])->all(), $flag);
     }
 
+    /**
+     * Small status badges for the voucher form's hamper list, for the customer on the voucher (if any):
+     * eligibility, what is left of the edition, and the customer's own limit. tone: ok | warn | bad | info.
+     *
+     * @return array<int, array{label: string, tone: string}>
+     */
+    public function badges(Hamper $h, ?Customer $customer): array
+    {
+        $out = [];
+        if ($customer) {
+            $status = $this->eligibility->getStatus($customer, $h);
+            $out[] = $status === 'eligible' ? ['label' => 'Eligible', 'tone' => 'ok']
+                : ['label' => match ($status) { 'blacklisted' => 'Blacklisted', 'suspended' => 'Suspended', default => 'Not eligible' }, 'tone' => 'bad'];
+        } else {
+            $out[] = $h->eligibility_type === 'all' ? ['label' => 'Open to all', 'tone' => 'info'] : ['label' => 'Choose a customer', 'tone' => 'warn'];
+        }
+        if ($h->total_stock !== null) {
+            $left = max(0, (int) round((float) $h->total_stock - $this->taken($h->id)));
+            $out[] = $left > 0 ? ['label' => "{$left} of {$h->total_stock} left", 'tone' => $left <= max(1, (int) floor($h->total_stock * 0.2)) ? 'warn' : 'ok'] : ['label' => 'Sold out', 'tone' => 'bad'];
+        }
+        if ($customer && $h->max_purchases_per_customer) {
+            $had = (int) round($this->taken($h->id, $customer->id));
+            $out[] = $had >= $h->max_purchases_per_customer ? ['label' => "Max reached ({$had}/{$h->max_purchases_per_customer})", 'tone' => 'bad']
+                : ['label' => "Customer {$had}/{$h->max_purchases_per_customer}", 'tone' => 'info'];
+        }
+        if (($h->valid_from && $h->valid_from->isFuture()) || ($h->valid_until && $h->valid_until->isPast())) {
+            $out[] = ['label' => 'Outside its dates', 'tone' => 'bad'];
+        }
+        $rules = [];
+        if (! $h->allow_store_credit) {
+            $rules[] = 'no gift vouchers';
+        }
+        if (! $h->earn_loyalty_points) {
+            $rules[] = 'no points';
+        }
+        foreach ($rules as $r) {
+            $out[] = ['label' => ucfirst($r), 'tone' => 'info'];
+        }
+
+        return $out;
+    }
+
     /** Hamper ids a voucher carries. */
     public function idsOn(Voucher $v): array
     {

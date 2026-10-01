@@ -438,9 +438,11 @@ class BooksVoucherController extends Controller
                     'materials' => $v->materials->map(fn ($m) => $m->toRow())->values()];
             }
         } elseif ($kind === 'hamper') {
-            $h = \App\Models\Hamper::where('status', 'active')->when($q !== '', fn ($w) => $w->where('name', 'like', $like))->limit(30)->get(['id', 'name', 'price', 'location_id']);
+            $h = \App\Models\Hamper::where('status', 'active')->when($q !== '', fn ($w) => $w->where('name', 'like', $like))->limit(30)->get();
+            $who = $request->filled('customer_id') ? \App\Models\Customer::find($request->customer_id) : null;
+            $rules = app(\App\Services\Books\HamperEditionService::class);
             foreach ($h as $x) {
-                $out[] = ['type' => 'hamper', 'hamper_id' => $x->id, 'name' => $x->name, 'price' => (float) $x->price, 'location_id' => $x->location_id];
+                $out[] = ['type' => 'hamper', 'hamper_id' => $x->id, 'name' => $x->name, 'price' => (float) $x->price, 'location_id' => $x->location_id, 'badges' => $rules->badges($x, $who)];
             }
         } elseif ($kind === 'customer') {
             $c = \App\Models\Customer::when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)))

@@ -25,15 +25,36 @@ const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const label = { display: 'block', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, marginBottom: 3 };
 
 /** Search-as-you-type picker over /admin/books/lookup. */
-function Picker({ api, kind, purpose, placeholder, onPick, render }) {
+const BADGE = { ok: ['#065f46', '#d1fae5'], warn: ['#92400e', '#fef3c7'], bad: ['#991b1b', '#fee2e2'], info: ['#4b5563', '#f3f4f6'] };
+function Badges({ list }) {
+  if (!list?.length) return null;
+  return (
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, marginLeft: 6, verticalAlign: 'middle' }}>
+      {list.map((b, i) => <span key={i} style={{ padding: '1px 7px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 700, color: BADGE[b.tone]?.[0], background: BADGE[b.tone]?.[1] }}>{b.label}</span>)}
+    </span>
+  );
+}
+
+/** A hamper already on the voucher, with its badges for the customer now on the voucher (they change when the customer does). */
+function HamperLineBadges({ api, hamperId, name, customerId }) {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    let live = true;
+    api.lookup('hamper', name, undefined, customerId ? { customer_id: customerId } : {}).then((rows) => { if (live) setList((rows.find((r) => r.hamper_id === hamperId) ?? {}).badges ?? []); }).catch(() => {});
+    return () => { live = false; };
+  }, [api, hamperId, name, customerId]);
+  return <Badges list={list} />;
+}
+
+function Picker({ api, kind, purpose, extra, placeholder, onPick, render }) {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return undefined;
-    const t = setTimeout(() => { api.lookup(kind, q, purpose).then(setRows).catch(() => setRows([])); }, 200);
+    const t = setTimeout(() => { api.lookup(kind, q, purpose, extra).then(setRows).catch(() => setRows([])); }, 200);
     return () => clearTimeout(t);
-  }, [api, q, open, kind, purpose]);
+  }, [api, q, open, kind, purpose, extra]);
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -316,6 +337,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   // What the chosen customer can use on this sale: their gift vouchers and promo codes, with the amounts they would cover.
   const custId = h.customer?.customer_id;
+  const hamperExtra = useMemo(() => (h.customer?.customer_id ? { customer_id: h.customer.customer_id } : {}), [h.customer?.customer_id]);
   // what the chosen customer has paid over or in advance (offered on a Sales invoice or order)
   useEffect(() => {
     const cid = h.customer?.customer_id;
@@ -638,8 +660,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '', materials: (r.materials ?? []).map((m) => ({ ...newMaterial(m.mode), variant_id: m.variant_id, variant_unit_id: m.variant_unit_id, unit_code: m.unit_code, label: variantLabel(m.product, m.variant), quantity: m.quantity })) })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
                       {l.type === 'hamper' && (l.hamper_id
-                        ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker api={api} kind="hamper" placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span></>} />)}
+                        ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}<HamperLineBadges api={api} hamperId={l.hamper_id} name={l.label} customerId={h.customer?.customer_id} /></div>
+                        : <Picker api={api} kind="hamper" extra={hamperExtra} placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span><Badges list={r.badges} /></>} />)}
                       {l.type === 'charge' && (
                         <select value={l.kind} onChange={(e) => setLine(l.key, { kind: e.target.value })} style={small}>
                           <option value="shipping">Shipping / delivery</option><option value="discount">Discount</option><option value="rounding">Rounding</option><option value="other">Other charge</option>
