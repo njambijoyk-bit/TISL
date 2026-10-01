@@ -338,7 +338,7 @@ class HamperController extends Controller
             [
                 'product_id' => $product->id,
                 'quantity'   => $request->quantity,
-                'sale_price' => $request->filled('sale_price') ? $request->sale_price : ($variant->price ?? $product->price),
+                'sale_price' => $request->filled('sale_price') ? $request->sale_price : $this->catalogPriceIn($hamper, $variant, $product),
                 'snapshot'   => array_merge(HamperItem::buildSnapshot($product), ['variant_id' => $variant->id, 'variant_name' => $variant->name]),
             ]
         );
@@ -397,6 +397,30 @@ class HamperController extends Controller
         $this->logHamperActivity($hamper->id, 'prices_distributed', "Hamper price split across components.", 'info', []);
 
         return response()->json(['message' => 'Prices distributed', 'data' => $hamper->fresh('items')->items, 'price_check' => $this->priceCheck($hamper->fresh('items'))]);
+    }
+
+    /** What a product sells for, in the hamper's currency (the product is priced in its own currency). */
+    private function catalogPriceIn(Hamper $hamper, \App\Models\ProductVariant $variant, $product): float
+    {
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $price = (float) ($variant->price ?? $product->price ?? 0);
+
+        return $money->convert($price, $money->currencyFrom($product->currency_id), $money->currencyFrom($hamper->currency_id));
+    }
+
+    /** Set every component's price to its catalogue price in the hamper's currency (items added before the hamper's currency was set, or in another currency). */
+    public function repriceItems($id): JsonResponse
+    {
+        $hamper = Hamper::with('items.variant', 'items.product')->findOrFail($id);
+        foreach ($hamper->items as $item) {
+            if ($item->variant && $item->product) {
+                $item->update(['sale_price' => $this->catalogPriceIn($hamper, $item->variant, $item->product)]);
+            }
+        }
+        $this->logHamperActivity($hamper->id, 'prices_converted', 'Component prices set from the catalogue in the hamper currency.', 'info', []);
+        $fresh = $hamper->fresh('items');
+
+        return response()->json(['message' => 'Prices converted to the hamper currency', 'data' => $fresh->items, 'price_check' => $this->priceCheck($fresh)]);
     }
 
     private function priceCheck(Hamper $hamper): array

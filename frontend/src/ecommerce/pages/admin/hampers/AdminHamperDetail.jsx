@@ -294,6 +294,16 @@ function ProductsTab({ hamper, onRefresh }) {
   const diff = Math.round((hamperPrice - itemsTotal) * 100) / 100;
   const balanced = Math.abs(diff) < 0.005;
 
+  const reprice = async () => {
+    setDistributing(true);
+    try {
+      await hampersAPI.repriceItems(hamper.id);
+      toast.success(`Prices set in ${hamper.currency?.code ?? 'the hamper currency'}`);
+      onRefresh();
+    } catch (err) { toast.error(err?.response?.data?.message || 'Could not convert the prices'); }
+    finally { setDistributing(false); }
+  };
+
   const distribute = async () => {
     setDistributing(true);
     try {
@@ -446,9 +456,10 @@ function ProductsTab({ hamper, onRefresh }) {
                 Items total {itemsTotal.toFixed(2)} · Hamper price {hamperPrice.toFixed(2)} ·{' '}
                 {balanced ? 'prices add up' : diff > 0 ? `${diff.toFixed(2)} still to allocate` : `${Math.abs(diff).toFixed(2)} over the hamper price`}
               </span>
-              {!balanced && (
-                <Btn onClick={distribute} disabled={distributing}>{distributing ? 'Splitting…' : 'Auto-distribute'}</Btn>
-              )}
+              <span style={{ display: 'inline-flex', gap: 8 }}>
+                <Btn onClick={reprice} disabled={distributing}>{`Convert to ${hamper.currency?.code ?? 'hamper currency'}`}</Btn>
+                {!balanced && <Btn onClick={distribute} disabled={distributing}>{distributing ? 'Splitting…' : 'Auto-distribute'}</Btn>}
+              </span>
             </div>
           )}
         </div>

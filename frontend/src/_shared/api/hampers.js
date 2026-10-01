@@ -74,6 +74,12 @@ const hampersAPI = {
     return response.data;
   },
 
+  // Set each component's price from the catalogue, converted to the hamper's currency
+  repriceItems: async (id) => {
+    const response = await api.post(`/admin/hampers/${id}/reprice-items`);
+    return response.data;
+  },
+
   // Suggest products based on related_products of current items
   suggestProducts: async (id) => {
     const response = await api.get(`/admin/hampers/${id}/suggest-products`);

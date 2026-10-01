@@ -1953,6 +1953,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/products/{productId}',         [HamperController::class, 'removeProduct']);
             Route::patch('/{id}/items/{itemId}',                [HamperController::class, 'updateItem']);
             Route::post('/{id}/distribute-prices',              [HamperController::class, 'distributePrices']);
+            Route::post('/{id}/reprice-items',                  [HamperController::class, 'repriceItems']);
             Route::post('/{id}/cover-image',                    [HamperController::class, 'uploadCoverImage']);
             Route::get('/{id}/suggest-products',                [HamperController::class, 'suggestProducts']);
         
