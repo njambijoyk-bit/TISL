@@ -16,9 +16,10 @@ class BooksReportService
     /** Per-ledger movement inside a period (posted vouchers only). */
     private function movement(?string $from, ?string $to, ?string $before = null): array
     {
-        $q = DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
+        $b = RestatedBase::entry();   // today's base: see RestatedBase
+        $q = RestatedBase::join(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id'))
             ->where('v.status', Voucher::POSTED)
-            ->selectRaw("e.ledger_id, SUM(CASE WHEN e.side='D' THEN e.base_amount ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN e.base_amount ELSE 0 END) AS cr")
+            ->selectRaw("e.ledger_id, SUM(CASE WHEN e.side='D' THEN {$b} ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN {$b} ELSE 0 END) AS cr")
             ->groupBy('e.ledger_id');
         if ($from) {
             $q->where('v.date', '>=', $from);
@@ -58,14 +59,17 @@ class BooksReportService
             ->when($locationId, fn ($q) => $q->where('location_id', $locationId))
             ->orderBy('date')->orderBy('id')->get();
 
+        $cur = \App\Models\Currency::all()->keyBy('id')->all();
+        $base = fn ($v) => RestatedBase::amount((float) $v->total_amount, (float) $v->base_total, $v->currency_id, $cur, (float) $v->total_amount, (float) $v->base_total)[0];
+
         return [
             'from' => $from, 'to' => $to,
             'rows' => $rows->map(fn ($v) => [
                 'id' => $v->id, 'date' => $v->date?->toDateString(), 'voucher_number' => $v->voucher_number,
                 'type' => $v->type?->name, 'base_type' => $v->type?->base_type, 'party' => $v->partyLedger?->name,
-                'status' => $v->status, 'narration' => $v->narration, 'total' => (float) $v->base_total,
+                'status' => $v->status, 'narration' => $v->narration, 'total' => round($base($v), 2),
             ])->all(),
-            'total' => round($rows->where('status', Voucher::POSTED)->sum('base_total'), 2),
+            'total' => round($rows->where('status', Voucher::POSTED)->sum(fn ($v) => $base($v)), 2),
         ];
     }
 
@@ -73,29 +77,6 @@ class BooksReportService
     private function currencyMap(): array
     {
         return DB::table('currencies')->get(['id', 'code', 'is_base', 'conversion_rate'])->keyBy('id')->all();
-    }
-
-    /**
-     * An amount in a voucher's own currency, as the base currency of today. The books keep each voucher's base figure as it
-     * was posted; when the base currency has been changed since, that figure is in the OLD base and must not be added to new-base
-     * amounts, so it is restated at today's rate. A stored figure within a factor of two of today's rate is trusted as it was
-     * posted (rates drift); one far from it was made under another base.
-     *
-     * @return array{0: float, 1: bool}  [amount in today's base, restated?]
-     */
-    private function inBase(float $amount, float $storedBase, $currencyId, array $cur): array
-    {
-        $c = $currencyId !== null ? ($cur[$currencyId] ?? null) : null;
-        if (! $c || (int) $c->is_base === 1) {
-            return [$amount, $c !== null && abs($amount - $storedBase) > 0.01];   // in the base currency: the amount IS the base figure
-        }
-        $now = $amount * (float) $c->conversion_rate;
-        if ($now <= 0.0 || $storedBase <= 0.0) {
-            return [$storedBase, false];
-        }
-        $ratio = $storedBase / $now;
-
-        return ($ratio < 0.5 || $ratio > 2.0) ? [round($now, 2), true] : [$storedBase, false];
     }
 
     public function ledgerStatement(int $ledgerId, ?string $from, ?string $to): array
@@ -110,7 +91,7 @@ class BooksReportService
             ->when($to, fn ($q) => $q->where('v.date', '<=', $to))
             ->orderBy('v.date')->orderBy('v.id')->orderBy('e.line_no')
             ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.amount', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration',
-                'v.currency_id']);
+                'v.currency_id', 'v.total_amount as v_total', 'v.base_total as v_base']);
         $open = $this->opening($ledger);
         $bal = null;
         $out = [];
@@ -118,7 +99,7 @@ class BooksReportService
         $byCur = [];   // what each currency moved, in that currency (the running balance below is in the base currency)
         $restated = false;
         foreach ($rows as $r) {
-            [$amt, $re] = $this->inBase((float) $r->amount, (float) $r->base_amount, $r->currency_id, $cur);
+            [$amt, $re] = RestatedBase::amount((float) $r->amount, (float) $r->base_amount, $r->currency_id, $cur, (float) $r->v_total, (float) $r->v_base);
             $sign = $r->side === 'D' ? 1 : -1;
             if ($from && $r->date < $from) {   // before the period: only moves the opening balance
                 $open += $sign * $amt;
@@ -170,7 +151,7 @@ class BooksReportService
         }
 
         return ['from' => $from, 'to' => $to, 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
-            'balanced' => abs($tDr - $tCr) < 0.01];
+            'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount()];
     }
 
     /** Income & expense ledgers for a period, split into trading (gross profit) and the rest. */
@@ -194,7 +175,7 @@ class BooksReportService
         $gross = round($sum('income_direct') - $sum('expense_direct'), 2);
         $net = round($gross + $sum('income_indirect') - $sum('expense_indirect'), 2);
 
-        return ['from' => $from, 'to' => $to, 'sections' => $sec,
+        return ['from' => $from, 'to' => $to, 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
             'totals' => ['direct_income' => $sum('income_direct'), 'direct_expense' => $sum('expense_direct'), 'gross_profit' => $gross,
                 'indirect_income' => $sum('income_indirect'), 'indirect_expense' => $sum('expense_indirect'), 'net_profit' => $net]];
     }
@@ -226,7 +207,7 @@ class BooksReportService
         $tA = round(array_sum(array_column($assets, 'amount')), 2);
         $tL = round(array_sum(array_column($liabilities, 'amount')), 2);
 
-        return ['as_of' => $asOf, 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
+        return ['as_of' => $asOf, 'restated_vouchers' => RestatedBase::restatedCount(), 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
     }
 
     /** Open bills per party, bucketed by days past due. kind: receivables | payables. */
@@ -255,7 +236,7 @@ class BooksReportService
             // every bucket is in the base currency (at the rate on the bill) so bills in different currencies add up; the bill keeps its own figure too
             $c = $b->currency_id !== null ? ($cur[$b->currency_id] ?? null) : null;
             $code = $c->code ?? $baseCode;
-            [$billBase] = $this->inBase((float) $b->total_amount, (float) $b->base_total, $b->currency_id, $cur);   // what the whole bill is, in today's base
+            [$billBase] = RestatedBase::amount((float) $b->total_amount, (float) $b->base_total, $b->currency_id, $cur, (float) $b->total_amount, (float) $b->base_total);   // what the whole bill is, in today's base
             $open = (float) $b->total_amount > 0 ? round($openFc * $billBase / (float) $b->total_amount, 2) : $openFc;
             $due = Carbon::parse($b->due_date ?? $b->date);
             $late = max(0, $due->diffInDays($asOf, false));

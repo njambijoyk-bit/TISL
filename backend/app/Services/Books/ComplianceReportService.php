@@ -28,9 +28,10 @@ class ComplianceReportService
         if (! $ledgerIds) {
             return [];
         }
-        $q = DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
+        $b = RestatedBase::entry();
+        $q = RestatedBase::join(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id'))
             ->where('v.status', Voucher::POSTED)->whereIn('e.ledger_id', $ledgerIds)
-            ->selectRaw("e.ledger_id, SUM(CASE WHEN e.side='D' THEN e.base_amount ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN e.base_amount ELSE 0 END) AS cr")
+            ->selectRaw("e.ledger_id, SUM(CASE WHEN e.side='D' THEN {$b} ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN {$b} ELSE 0 END) AS cr")
             ->groupBy('e.ledger_id');
         $from && $q->where('v.date', '>=', $from);
         $to && $q->where('v.date', '<=', $to);
@@ -44,13 +45,14 @@ class ComplianceReportService
         if (! $ledgerIds) {
             return [];
         }
-        $rows = DB::table('voucher_item_taxes as t')->join('voucher_items as i', 'i.id', '=', 't.item_id')
-            ->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as vt', 'vt.id', '=', 'v.voucher_type_id')
+        $rate = RestatedBase::rate();
+        $rows = RestatedBase::join(DB::table('voucher_item_taxes as t')->join('voucher_items as i', 'i.id', '=', 't.item_id')
+            ->join('vouchers as v', 'v.id', '=', 'i.voucher_id'))->join('voucher_types as vt', 'vt.id', '=', 'v.voucher_type_id')
             ->where('v.status', Voucher::POSTED)->whereIn('t.ledger_id', $ledgerIds)
             ->whereIn('vt.base_type', ['sales', 'cash_sale', 'credit_note', 'purchase', 'debit_note'])
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
             ->groupBy('t.ledger_id', 'vt.base_type')
-            ->selectRaw('t.ledger_id, vt.base_type, SUM(t.base_amount * v.exchange_rate) AS base')->get();
+            ->selectRaw("t.ledger_id, vt.base_type, SUM(t.base_amount * {$rate}) AS base")->get();
         $out = [];
         foreach ($rows as $r) {
             $side = in_array($r->base_type, ['sales', 'cash_sale', 'credit_note'], true) ? 'sales' : 'purchases';
@@ -105,7 +107,7 @@ class ComplianceReportService
         }
         $totals['net'] = $totals['output'] - $totals['input'];
 
-        return ['from' => $from, 'to' => $to, 'types' => $types, 'supplies' => $this->supplies($from, $to), 'totals' => array_map(fn ($v) => round($v, 2), $totals)];
+        return ['from' => $from, 'to' => $to, 'types' => $types, 'supplies' => $this->supplies($from, $to), 'totals' => array_map(fn ($v) => round($v, 2), $totals), 'restated_vouchers' => RestatedBase::restatedCount()];
     }
 
     /**
@@ -116,13 +118,14 @@ class ComplianceReportService
      */
     private function supplies(?string $from, ?string $to): array
     {
-        $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as vt', 'vt.id', '=', 'v.voucher_type_id')
+        $rate = RestatedBase::rate();
+        $rows = RestatedBase::join(DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id'))->join('voucher_types as vt', 'vt.id', '=', 'v.voucher_type_id')
             ->leftJoin('ledgers as l', 'l.id', '=', 'i.ledger_id')
             ->where('v.status', Voucher::POSTED)->where('i.is_header', false)->whereNull('i.gift_meta')
             ->whereIn('vt.base_type', ['sales', 'cash_sale', 'credit_note', 'purchase', 'debit_note'])
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
             ->groupBy('vt.base_type', 'l.tax_nature')
-            ->selectRaw('vt.base_type as base, l.tax_nature as nature, SUM(i.amount * v.exchange_rate) as value')->get();
+            ->selectRaw("vt.base_type as base, l.tax_nature as nature, SUM(i.amount * {$rate}) as value")->get();
         $out = ['sales' => [], 'purchases' => []];
         foreach ($rows as $r) {
             $side = in_array($r->base, ['sales', 'cash_sale', 'credit_note'], true) ? 'sales' : 'purchases';
@@ -143,14 +146,15 @@ class ComplianceReportService
     /** Every withholding certificate raised by a receipt / payment in the period. */
     public function withholdingRegister(?string $from, ?string $to): array
     {
-        $rows = DB::table('withholding_certificates as c')->join('vouchers as v', 'v.id', '=', 'c.voucher_id')
+        $rate = RestatedBase::rate();
+        $rows = RestatedBase::join(DB::table('withholding_certificates as c')->join('vouchers as v', 'v.id', '=', 'c.voucher_id'))
             ->leftJoin('ledgers as p', 'p.id', '=', 'c.party_ledger_id')->leftJoin('ledgers as r', 'r.id', '=', 'c.tax_rate_id')
             ->leftJoin('ledger_groups as g', 'g.id', '=', 'r.group_id')
             ->where('c.status', '<>', 'void')
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
             ->orderBy('v.date')->orderBy('c.id')
             ->get(['c.id', 'v.date', 'v.voucher_number', 'v.id as voucher_id', 'c.certificate_number', 'c.direction', 'p.name as party', 'g.name as tax', 'r.name as rate',
-                'c.gross_amount', 'c.withheld_amount', 'c.net_amount', 'c.status', 'c.credit_status', 'c.cleared_amount', 'c.exchange_rate'])
+                'c.gross_amount', 'c.withheld_amount', 'c.net_amount', 'c.status', 'c.credit_status', 'c.cleared_amount', DB::raw("{$rate} as exchange_rate")])
             ->map(function ($x) {
                 $x->withheld_base = round((float) $x->withheld_amount * (float) ($x->exchange_rate ?: 1), 2);
 
@@ -195,8 +199,9 @@ class ComplianceReportService
         if ($recv) {
             $book = array_sum(array_map(fn ($id) => $this->ledgers->balance((int) $id, $asOf), $recv));
             $opening = array_sum(array_map(fn ($id) => (float) Ledger::whereKey($id)->value('opening_balance') * (Ledger::whereKey($id)->value('opening_side') === 'C' ? -1 : 1), $recv));
-            $reg = (float) DB::table('withholding_certificates')->where('direction', 'receivable')->whereIn('credit_status', ['held', 'partially_cleared'])
-                ->sum(DB::raw('(withheld_amount - cleared_amount) * COALESCE(exchange_rate, 1)'));
+            $reg = (float) RestatedBase::join(DB::table('withholding_certificates as c')->join('vouchers as v', 'v.id', '=', 'c.voucher_id'))
+                ->where('c.direction', 'receivable')->whereIn('c.credit_status', ['held', 'partially_cleared'])
+                ->sum(DB::raw('(c.withheld_amount - c.cleared_amount) * ' . RestatedBase::rate()));
             $add('withholding-credits', 'Withholding tax receivable', $book, $reg, 'The register holds credits raised by receipts; an opening balance carried in is not in it.', $opening);
         }
         // stock: what is on the shelves, at cost, against the Stock ledger — and the shop's numbers against the batches
@@ -220,7 +225,7 @@ class ComplianceReportService
         $ageP = app(BooksReportService::class)->ageing('payables', $asOf)['totals']['total'];
         $add('payables', 'Payables (supplier ledgers vs open bills)', $creditors, $ageP, 'Differs by advances, on-account payments and balances not tracked bill by bill.');
 
-        return ['as_of' => $asOf, 'checks' => $checks, 'all_ok' => ! in_array(false, array_column($checks, 'ok'), true)];
+        return ['as_of' => $asOf, 'checks' => $checks, 'all_ok' => ! in_array(false, array_column($checks, 'ok'), true), 'restated_vouchers' => RestatedBase::restatedCount()];
     }
 
     private function groupBalance(string $groupName, string $asOf): float

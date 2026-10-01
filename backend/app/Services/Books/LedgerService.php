@@ -68,10 +68,12 @@ class LedgerService
         }
         $q = \Illuminate\Support\Facades\DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
             ->where('e.ledger_id', $ledgerId)->where('v.status', 'posted');
+        RestatedBase::join($q);
+        $b = RestatedBase::entry();
         if ($asOf) {
             $q->where('v.date', '<=', $asOf);
         }
-        $row = $q->selectRaw("COALESCE(SUM(CASE WHEN e.side='D' THEN e.base_amount ELSE 0 END),0) dr, COALESCE(SUM(CASE WHEN e.side='C' THEN e.base_amount ELSE 0 END),0) cr")->first();
+        $row = $q->selectRaw("COALESCE(SUM(CASE WHEN e.side='D' THEN {$b} ELSE 0 END),0) dr, COALESCE(SUM(CASE WHEN e.side='C' THEN {$b} ELSE 0 END),0) cr")->first();
         $open = (float) $l->opening_balance * ($l->opening_side === 'C' ? -1 : 1);
 
         return round($open + (float) $row->dr - (float) $row->cr, 2);

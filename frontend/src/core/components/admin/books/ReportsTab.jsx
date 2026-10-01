@@ -40,7 +40,21 @@ function Table({ head, children }) {
 const Empty = ({ cols }) => <tr><td colSpan={cols} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing posted for this period.</td></tr>;
 const Total = ({ children }) => <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}>{children}</tr>;
 
-function View({ id, data, nav, onRefresh }) {
+function View(props) {
+  const n = Number(props.data?.restated_vouchers) || 0;
+  return (
+    <>
+      {n > 0 && (
+        <div style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: colors.warningText }}>
+          {n} voucher{n === 1 ? ' was' : 's were'} made when the base currency was different and {n === 1 ? 'is' : 'are'} shown at today's rate, so every figure here is in the current base currency.
+        </div>
+      )}
+      <ViewBody {...props} />
+    </>
+  );
+}
+
+function ViewBody({ id, data, nav, onRefresh }) {
   if (id === 'day-book') return (
     <Table head={[['Date'], ['Number'], ['Type'], ['Party'], ['Status'], ['Total', true]]}>
       {data.rows.length ? data.rows.map((r) => (
