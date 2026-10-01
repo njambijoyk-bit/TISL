@@ -688,9 +688,11 @@ class VoucherService
             if ($choices !== null && array_filter($discountOptions, fn ($o) => $o['chosen'])) {
                 $sp = $engine->spread($eligible, $discountOptions);
                 $lineData = array_values($data['lines'] ?? []);
+                $shares = [];   // per typed line: how much of its discount came from the customer's discounts (so an edit can take it apart again)
                 foreach ($sp['perLine'] as $i => $parts) {
                     usort($parts, fn ($a, $b) => $b['amount'] <=> $a['amount']);
                     $lineData[$i]['share_discount'] = round(array_sum(array_column($parts, 'amount')), 2);
+                    $shares[$i] = $lineData[$i]['share_discount'];
                     $lineData[$i]['discount_source'] = $parts[0]['source'];
                     $lineData[$i]['discount_ref'] = $parts[0]['ref'];
                 }
@@ -698,6 +700,8 @@ class VoucherService
                 // $data is this method's own copy, so what must reach the saved voucher goes on the plan (persist() reads meta_extra)
                 $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], array_filter([
                     'discounts' => $sp['discounts'],
+                    'discount_choices' => collect($discountOptions)->where('chosen', true)->pluck('key')->values()->all(),   // the boxes that were ticked
+                    'discount_shares' => $shares,
                     'promo_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'promo')['promo_id'] ?? null,
                     'referral_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'referral')['referral_id'] ?? null,
                 ], fn ($v) => $v !== null));

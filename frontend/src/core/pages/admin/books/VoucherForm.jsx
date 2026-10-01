@@ -195,6 +195,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const hasItems = Boolean(type?.has_items);
   const isMoney = base === 'receipt' || base === 'payment';
   const isEntries = base === 'journal' || base === 'contra';
+  const [legacyDiscounts, setLegacyDiscounts] = useState(null);   // an older voucher's discounts, matched to the ticks once they are known
   const [currencies, setCurrencies] = useState([]);              // for the currency choice when an old voucher's currency is not the base any more
   const [cashPurchase, setCashPurchase] = useState(false);   // a purchase paid at once: cash or bank instead of the supplier
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
@@ -232,7 +233,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       if (v.meta?.advance) { setIsAdvance(true); setAdvanceFor(v.meta.advance.for ?? ''); }
       setRounding(v.meta?.rounding ?? 'none');   // the rounding line is worked out again on save
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
-      setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
+      // the discounts the voucher was saved with come back ticked, and each line goes back to its own (manual) discount — the share the
+      // customer's discounts took is put back by the ticks, so nothing is taken twice
+      const savedChoices = v.meta?.discount_choices;
+      const legacy = !Array.isArray(savedChoices) && (v.meta?.discounts ?? []).length ? v.meta.discounts : null;   // saved before the ticks were remembered
+      const SHARE_SRC = ['tier', 'customer_type', 'promo', 'referral', 'personal'];
+      setDiscountPick(Array.isArray(savedChoices) ? savedChoices : []);
+      setLegacyDiscounts(legacy);
       setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), currency_id: (origCurrency.current = v.currency_id ?? null) ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.base_type === 'purchase') {
@@ -241,8 +248,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       }
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       if (v.type?.has_items) {
-        setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i) => {
-          const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Number(i.discount_amount) || '', description: i.description, notes: i.notes ?? '' };
+        setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i, idx) => {
+          const shared = v.meta?.discount_shares ? Number(v.meta.discount_shares[idx] ?? 0) : (legacy && SHARE_SRC.includes(i.discount_source) ? Number(i.discount_amount) : 0);
+          const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Math.max(0, Number(i.discount_amount) - shared) || '', description: i.description, notes: i.notes ?? '' };
           if (i.item_type === 'product') return { ...b, type: 'product', variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, rate: Number(i.rate), label: `${i.description}${i.variant_label ? ` — ${i.variant_label}` : ''}`, units: [] };
           if (i.item_type === 'service') {
             const materials = (v.items ?? []).filter((c) => c.parent_item_id === i.id && c.material_mode).map((c) => ({
@@ -290,6 +298,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   // The customer's automatic discounts (personal / tier / type, referral) are ticked for the admin once they load; promo codes are not.
   const discountOptions = preview?.discount_options ?? [];
+  // an older voucher did not remember which boxes were ticked: match each discount it took to the closest box
+  useEffect(() => {
+    if (!editing || !legacyDiscounts || !discountOptions.length) return;
+    const picks = [];
+    legacyDiscounts.forEach((d) => {
+      const cands = discountOptions.filter((o) => !picks.includes(o.key) && (d.source === 'promo' ? o.kind === 'promo' && o.ref === d.ref : d.source === 'customer_type' ? ['personal', 'customer_type'].includes(o.kind) : o.kind === d.source));
+      const best = [...cands].sort((x, y) => Math.abs(x.amount - d.amount) - Math.abs(y.amount - d.amount))[0];
+      if (best) picks.push(best.key);
+    });
+    setDiscountPick(picks);
+    setLegacyDiscounts(null);
+  }, [legacyDiscounts, discountOptions, editing]);
   useEffect(() => {
     if (!editing && h.customer && discountPick === null && discountOptions.length) setDiscountPick(discountOptions.filter((o) => o.auto).map((o) => o.key));
   }, [discountOptions, discountPick, editing, h.customer]);

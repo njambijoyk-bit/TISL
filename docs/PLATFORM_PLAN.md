@@ -1278,3 +1278,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Now:** an edit keeps the voucher's own currency (also for edits made through the API). When that currency is **not** the base any more, the edit form shows a **Currency** dropdown preselected with the voucher's currency, with a note ("Made in USD; the base is now KES. Keep it, or change it."). When the voucher is in the base currency nothing extra shows.
 - The rate to the base is worked out from the rates on the voucher's date; prices on catalogue lines follow the chosen currency.
 
+### 28.22 Editing keeps the customer's discounts ticked (1 Oct 2026)
+- **Bug:** a Sales / Cash Sale saved with the customer's discounts (tier, customer type, promo, referral) came back for editing with every box unticked and the discount already inside each line's Disc figure — ticking a box took it off a second time.
+- **Now:** the voucher remembers which boxes were ticked and how much of each line's discount came from them (`meta.discount_choices`, `meta.discount_shares`). Editing shows the same boxes **ticked** and each line back at its own (manual) discount; the ticks put the share back, so nothing is counted twice. Unticking one takes it off.
+- **Vouchers saved before this change** have no such memory: the form works out the ticks from the discounts the voucher listed (matching each to the closest box by kind and amount) and treats the lines' discount from those sources as theirs — check the totals once when you edit an older one.
+
