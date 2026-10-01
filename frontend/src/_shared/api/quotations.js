@@ -31,6 +31,12 @@ const quotationsAPI = {
   paymentMethods: async () => [],
   ledgers: async () => [],
   nextNumbers: async () => [],
+  // things the shared voucher form asks any adapter for; a quotation has none of them
+  settings: async () => ({ settings: {} }),
+  entitlements: async () => null,
+  customerCredits: async () => ({ credits: [] }),
+  openBills: async () => ({ bills: [] }),
+  stockBatches: async () => [],
 
   // customer
   mine: () => get('/customer/quotations'),
