@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
@@ -222,7 +222,9 @@ export default function ReportsTab() {
   const [to, setTo] = useState(today());
   const [ledgerId, setLedgerId] = useState(params.get('ledger') ?? '');
   const [ledgers, setLedgers] = useState([]);
-  const [data, setData] = useState(null);
+  const [result, setResult] = useState(null);   // { id, data }: a report never draws another report's figures
+  const seq = useRef(0);
+  const data = result && result.id === id ? result.data : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -231,11 +233,12 @@ export default function ReportsTab() {
   const query = useCallback(() => ({ ...(def.asOf ? { to } : { from, to }), ...(id === 'ledger' ? { ledger_id: ledgerId } : {}) }), [def, from, to, id, ledgerId]);
 
   const run = useCallback(async () => {
-    if (id === 'ledger' && !ledgerId) { setData(null); return; }
+    const mine = ++seq.current;   // an older answer arriving late is dropped
+    if (id === 'ledger' && !ledgerId) { setResult(null); return; }
     setLoading(true); setError(null);
-    try { setData(await booksAPI.report(id, query())); }
-    catch (e) { setData(null); setError(errMsg(e, 'Could not run the report')); toast.error(errMsg(e, 'Could not run the report')); }
-    finally { setLoading(false); }
+    try { const d = await booksAPI.report(id, query()); if (mine === seq.current) setResult({ id, data: d }); }
+    catch (e) { if (mine === seq.current) { setResult(null); setError(errMsg(e, 'Could not run the report')); toast.error(errMsg(e, 'Could not run the report')); } }
+    finally { if (mine === seq.current) setLoading(false); }
   }, [id, ledgerId, query]);
 
   useEffect(() => { run(); }, [run]);
