@@ -193,6 +193,12 @@ class ReferralCode extends Model
     /**
      * Get the target customer for per-customer promo codes.
      */
+    /** The currency a fixed amount / minimum order is quoted in. */
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
     public function targetCustomer()
     {
         return $this->belongsTo(Customer::class, 'target_customer_id');

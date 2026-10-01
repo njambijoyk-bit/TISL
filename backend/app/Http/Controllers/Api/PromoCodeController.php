@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsReferralActivity;
 use App\Models\ReferralCode;
 use App\Models\Customer;
-use App\Models\Order;
 use App\Services\PromoCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -34,7 +33,7 @@ class PromoCodeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ReferralCode::with(['targetCustomer.user', 'createdBy'])
+        $query = ReferralCode::with(['targetCustomer.user', 'createdBy', 'currency:id,code,symbol'])
             ->whereNotIn('type', ['customer_referral']); // exclude personal referral codes
 
         // Search
@@ -92,6 +91,7 @@ class PromoCodeController extends Controller
         $adminCreated  = (clone $base)->where('auto_generated', false)->count();
 
         return response()->json([
+            'base_currency' => \App\Models\Currency::where('is_base', true)->value('code'),   // totals are in the base currency
             'counts' => [
                 'total'         => (clone $base)->count(),
                 'active'        => (clone $base)->where('status', 'active')->count(),
@@ -127,9 +127,10 @@ class PromoCodeController extends Controller
             'targetCustomer.user',
             'createdBy',
             'updatedBy',
+            'currency:id,code,symbol',
         ])->findOrFail($id);
 
-        return response()->json(['code' => $code]);
+        return response()->json(['code' => $code, 'base_currency' => \App\Models\Currency::where('is_base', true)->value('code')]);
     }
 
     // ═══════════════════════════════════════════════════
@@ -519,32 +520,31 @@ class PromoCodeController extends Controller
         ]);
     }
 
+    /** Every sale this code was used on: from the usage log, each in its own voucher's currency. */
     public function redemptions(Request $request, $id): JsonResponse
     {
-        // Standard orders that used this promo code
-        $standardOrders = Order::withTrashed()
-            ->where('promo_code_id', $id)
-            ->with('customer:id,first_name,last_name,email')
-            ->select('id','order_number','customer_id','subtotal_kes','promo_discount','total_kes','status','created_at')
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn($o) => [
-                'order_id'       => $o->id,
-                'order_number'   => $o->order_number,
-                'order_type'     => 'standard',
-                'customer_name'  => $o->customer ? trim($o->customer->first_name . ' ' . $o->customer->last_name) : '—',
-                'customer_email' => $o->customer?->email ?? '—',
-                'subtotal_kes'   => round((float) $o->subtotal_kes, 2),
-                'promo_discount' => round((float) $o->promo_discount, 2),
-                'total_kes'      => round((float) $o->total_kes, 2),
-                'status'         => $o->status,
-                'redeemed_at'    => $o->created_at,
-            ]);
+        $rows = DB::table('referral_code_usage as u')
+            ->join('vouchers as v', 'v.id', '=', 'u.voucher_id')
+            ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
+            ->leftJoin('currencies as cu', 'cu.id', '=', 'v.currency_id')
+            ->leftJoin('customers as c', 'c.id', '=', 'v.customer_id')
+            ->where('u.referral_code_id', $id)->whereNotNull('u.voucher_id')
+            ->orderByDesc('u.completed_at')->orderByDesc('u.id')
+            ->get(['u.id as usage_id', 'u.status as usage_status', 'u.completed_at', 'u.discount_amount as base_discount', 'v.id as voucher_id', 'v.voucher_number', 'v.status',
+                'v.subtotal', 'v.total_amount', 'v.meta', 'v.exchange_rate', 'cu.code as currency', 't.name as type', 'c.first_name', 'c.last_name', 'c.email']);
 
-        $redemptions = $standardOrders
-            ->sortByDesc('redeemed_at')
-            ->values();
+        $redemptions = $rows->map(function ($r) {
+            $meta = json_decode((string) $r->meta, true) ?: [];
+            $discount = collect($meta['discounts'] ?? [])->where('source', 'promo')->sum('amount');
 
-        return response()->json(['redemptions' => $redemptions]);
+            return [
+                'voucher_id' => $r->voucher_id, 'voucher_number' => $r->voucher_number, 'type' => $r->type,
+                'customer_name' => trim(($r->first_name ?? '') . ' ' . ($r->last_name ?? '')) ?: '—', 'customer_email' => $r->email ?? '—',
+                'currency' => $r->currency, 'subtotal' => round((float) $r->subtotal, 2), 'promo_discount' => round((float) $discount, 2), 'total' => round((float) $r->total_amount, 2),
+                'status' => $r->usage_status === 'cancelled' ? 'cancelled' : $r->status, 'redeemed_at' => $r->completed_at,
+            ];
+        });
+
+        return response()->json(['redemptions' => $redemptions->values(), 'base_currency' => \App\Models\Currency::where('is_base', true)->value('code')]);
     }
 }

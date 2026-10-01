@@ -45,13 +45,14 @@ const STAT_META = [
   { key: 'total',          label: 'Total codes',    icon: <Tag size={18} />,        accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',  val: (s) => s.counts?.total ?? 0                                    },
   { key: 'active',         label: 'Active',         icon: <Zap size={18} />,        accent: '#059669', bg: 'rgba(5,150,105,0.08)',   val: (s) => s.counts?.active ?? 0                                   },
   { key: 'auto_generated', label: 'Auto-generated', icon: <RefreshCw size={18} />,  accent: '#0891b2', bg: 'rgba(8,145,178,0.08)',   val: (s) => s.counts?.auto_generated ?? 0                           },
-  { key: 'revenue',        label: 'Total revenue',  icon: <DollarSign size={18} />, accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue)                                  },
-  { key: 'discount',       label: 'Discount given', icon: <Tag size={18} />,        accent: '#dc2626', bg: 'rgba(220,38,38,0.08)',   val: (s) => fmt(s.totals?.discount_given)                           },
+  { key: 'revenue',        label: 'Total revenue',  icon: <DollarSign size={18} />, accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue, s.base_currency)                                  },
+  { key: 'discount',       label: 'Discount given', icon: <Tag size={18} />,        accent: '#dc2626', bg: 'rgba(220,38,38,0.08)',   val: (s) => fmt(s.totals?.discount_given, s.base_currency)                           },
   { key: 'orders',         label: 'Total orders',   icon: <TrendingUp size={18} />, accent: '#d97706', bg: 'rgba(217,119,6,0.08)',   val: (s) => (s.totals?.orders ?? 0).toLocaleString()                },
-  { key: 'avg_order',      label: 'Avg order value',icon: <Star size={18} />,       accent: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  val: (s) => fmt(s.totals?.avg_order_value)                          },
+  { key: 'avg_order',      label: 'Avg order value',icon: <Star size={18} />,       accent: 'var(--color-primary-500)', bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  val: (s) => fmt(s.totals?.avg_order_value, s.base_currency)                          },
 ];
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+// an amount with its currency code: a code is quoted in its own currency, the totals in the base currency
+const fmt = (n, cur = '') => `${cur ? `${cur} ` : ''}${Number(n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -275,9 +276,11 @@ export default function PromoCodes() {
     }
   };
 
+  // a fixed amount and a minimum order are in the code's own currency (the base currency when none was chosen)
+  const codeCurrency = (code) => code.currency?.code ?? statistics?.base_currency ?? '';
   const rewardStr = (code) => {
     if (code.reward_type === 'percentage')   return `${code.reward_value}% off`;
-    if (code.reward_type === 'fixed_amount') return `${fmt(code.reward_value)} off`;
+    if (code.reward_type === 'fixed_amount') return `${fmt(code.reward_value, codeCurrency(code))} off`;
     return REWARD_META[code.reward_type]?.label ?? '—';
   };
 
@@ -487,6 +490,7 @@ export default function PromoCodes() {
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 200 }}><TH_LABEL>Code / Name</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}><TH_LABEL>Event type</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 120 }}><TH_LABEL>Reward</TH_LABEL></th>
+                <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 80 }}><TH_LABEL>Currency</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 100 }}><TH_LABEL>Status</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 140 }}><TH_LABEL>Target</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'right', minWidth: 80  }}><TH_LABEL>Uses</TH_LABEL></th>
@@ -566,9 +570,14 @@ export default function PromoCodes() {
                             </span>
                             {code.min_order_value > 0 && (
                               <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>
-                                min. {fmt(code.min_order_value)}
+                                min. {fmt(code.min_order_value, codeCurrency(code))}
                               </p>
                             )}
+                          </td>
+
+                          {/* Currency */}
+                          <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                            {code.reward_type === 'fixed_amount' || code.min_order_value > 0 ? codeCurrency(code) : '—'}
                           </td>
 
                           {/* Status */}

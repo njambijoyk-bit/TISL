@@ -118,7 +118,7 @@ const Btn = ({ children, onClick, disabled, variant = 'ghost', icon, size = 'md'
   );
 };
 
-const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
+const fmt     = (n, cur = '') => `${cur ? `${cur} ` : ''}${Number(n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 const fmtDate = (d) => { try { return format(new Date(d), 'MMM d, yyyy'); } catch { return '—'; } };
 const fmtDT   = (d) => { try { return format(new Date(d), 'MMM d, yyyy · h:mm a'); } catch { return '—'; } };
 
@@ -133,11 +133,12 @@ export default function PromoCodeDetail() {
   const [actLoading, setActLoading] = useState(null);
 
   const [redemptions, setRedemptions] = useState([]);
+  const [baseCur, setBaseCur] = useState('');   // the totals are in the base currency
 
   useEffect(() => {
     if (!id) return;
     promoCodesAPI.getRedemptions(id)
-      .then(data => setRedemptions(data.redemptions ?? []))
+      .then(data => { setRedemptions(data.redemptions ?? []); setBaseCur((c) => c || data.base_currency || ''); })
       .catch(() => setRedemptions([]));
   }, [id]);
 
@@ -148,6 +149,7 @@ export default function PromoCodeDetail() {
     try {
       const res = await promoCodesAPI.getOne(id);
       setCode(res.code);
+      setBaseCur(res.base_currency ?? '');
     } catch {
       toast.error('Failed to load promo code.');
       navigate('/admin/promo-codes');
@@ -193,10 +195,11 @@ export default function PromoCodeDetail() {
   const eventMeta  = EVENT_META[code.event_type]  || EVENT_META.general;
   const statusMeta = STATUS_META[code.status]     || {};
 
+  const codeCur = code.currency?.code ?? baseCur;   // a fixed amount and a minimum order are in the code's own currency
   const rewardStr = code.reward_type === 'percentage'
     ? `${code.reward_value}% off`
     : code.reward_type === 'fixed_amount'
-      ? `KES ${Number(code.reward_value).toLocaleString()} off`
+      ? `${codeCur} ${Number(code.reward_value).toLocaleString()} off`
       : code.reward_type === 'free_shipping'
         ? 'Free Shipping'
         : 'Gift Voucher';
@@ -290,7 +293,7 @@ export default function PromoCodeDetail() {
               {/* Conditions */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {[
-                  { label: 'Min Order Value',     value: code.min_order_value ? `KES ${Number(code.min_order_value).toLocaleString()}` : 'None' },
+                  { label: 'Min Order Value',     value: code.min_order_value ? `${codeCur} ${Number(code.min_order_value).toLocaleString()}` : 'None' },
                   { label: 'Min Items',           value: code.min_items       ? code.min_items                                          : 'None' },
                   { label: 'Max Uses (Total)',    value: code.max_uses        ? code.max_uses                                           : 'Unlimited' },
                   { label: 'Max Per Customer',    value: code.max_uses_per_customer ?? 'Unlimited' },
@@ -314,38 +317,38 @@ export default function PromoCodeDetail() {
             <div style={{ padding: '18px 22px' }}>
               {redemptions.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: '0.85rem' }}>
-                  No orders have used this code yet.
+                  No sale has used this code yet.
                 </div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                      {['Order', 'Customer', 'Subtotal (KES)', 'Discount', 'Status', 'Date'].map(h => (
+                      {['Voucher', 'Customer', 'Subtotal', 'Discount', 'Status', 'Date'].map(h => (
                         <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {redemptions.map((r, i) => (
-                      <tr key={`${r.order_type || 'std'}-${r.order_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                        <td style={{ padding: '10px 10px', fontWeight: 700, color: r.order_type === 'hamper' ? '#d97706' : purple }}>
-                          {r.order_number}
-                          {r.order_type === 'hamper' && <span style={{ marginLeft: 6, fontSize: '0.65rem', background: 'rgba(217,119,6,0.1)', color: '#d97706', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>Hamper</span>}
+                      <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 10px', fontWeight: 700 }}>
+                          <a href={`/admin/books/vouchers/${r.voucher_id}`} style={{ color: purple, textDecoration: 'none', fontFamily: 'monospace' }}>{r.voucher_number}</a>
+                          <div style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 500 }}>{r.type}</div>
                         </td>
                         <td style={{ padding: '10px 10px' }}>
                           <div style={{ fontWeight: 600, color: '#111827' }}>{r.customer_name}</div>
                           <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{r.customer_email}</div>
                         </td>
-                        <td style={{ padding: '10px 10px', fontWeight: 700 }}>KES {r.subtotal_kes.toLocaleString()}</td>
-                        <td style={{ padding: '10px 10px', color: '#ef4444', fontWeight: 700 }}>- KES {r.promo_discount.toLocaleString()}</td>
+                        <td style={{ padding: '10px 10px', fontWeight: 700 }}>{fmt(r.subtotal, r.currency)}</td>
+                        <td style={{ padding: '10px 10px', color: '#ef4444', fontWeight: 700 }}>- {fmt(r.promo_discount, r.currency)}</td>
                         <td style={{ padding: '10px 10px' }}>
                           <span style={{
                             padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
-                            background: r.status === 'delivered' ? '#d1fae5' : r.status === 'cancelled' ? '#fee2e2' : '#fef3c7',
-                            color:      r.status === 'delivered' ? '#065f46' : r.status === 'cancelled' ? '#991b1b' : '#92400e',
+                            background: r.status === 'cancelled' ? '#fee2e2' : '#d1fae5',
+                            color:      r.status === 'cancelled' ? '#991b1b' : '#065f46',
                           }}>{r.status}</span>
                         </td>
-                        <td style={{ padding: '10px 10px', color: '#6b7280' }}>{new Date(r.redeemed_at).toLocaleDateString()}</td>
+                        <td style={{ padding: '10px 10px', color: '#6b7280' }}>{r.redeemed_at ? new Date(r.redeemed_at).toLocaleDateString() : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -363,8 +366,8 @@ export default function PromoCodeDetail() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
                 {[
                   { label: 'Total Uses',    value: code.times_used      ?? 0 },
-                  { label: 'Revenue Subtotal',       value: fmt(code.total_revenue) },
-                  { label: 'Discount Given',value: fmt(code.total_discount_given) },
+                  { label: 'Revenue Subtotal',       value: fmt(code.total_revenue, baseCur) },
+                  { label: 'Discount Given',value: fmt(code.total_discount_given, baseCur) },
                   { label: 'Conversion',    value: `${Number(code.conversion_rate ?? 0).toFixed(1)}%` },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, background: purpleLt, border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
