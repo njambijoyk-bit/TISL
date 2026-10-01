@@ -268,9 +268,10 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
 //   onChange      fn         called with (checked, acceptances[]) on every state change
 //                            acceptances = [{ key, response:'accepted' }] when checked
 //                            acceptances = [] when unchecked
+//   onLoaded      fn         optional — called once with how many policies were found (0 = none to agree to)
 //   disabled      bool       optional — greys out the whole thing
 // ─────────────────────────────────────────────────────────────────────────────
-export default function PolicyConsentCheckbox({ policyKeys, actionContext, onChange, disabled = false }) {
+export default function PolicyConsentCheckbox({ policyKeys, actionContext, onChange, onLoaded, disabled = false }) {
   const [policies,      setPolicies]      = useState([]);       // fetched policy objects
   const [loadingKeys,   setLoadingKeys]   = useState(true);
   const [checked,       setChecked]       = useState(false);
@@ -279,10 +280,10 @@ export default function PolicyConsentCheckbox({ policyKeys, actionContext, onCha
 
   // Fetch all required policies once
   useEffect(() => {
-    if (!policyKeys?.length) { setLoadingKeys(false); return; }
+    if (!policyKeys?.length) { setLoadingKeys(false); onLoaded?.(0); return; }
     Promise.all(policyKeys.map(k => policyAPI.getByKey(k)))
-      .then(setPolicies)
-      .catch(() => toast.error('Failed to load policies'))
+      .then((ps) => { setPolicies(ps); onLoaded?.(ps.length); })
+      .catch(() => { toast.error('Failed to load policies'); onLoaded?.(0); })
       .finally(() => setLoadingKeys(false));
   }, [policyKeys?.join(',')]);
 

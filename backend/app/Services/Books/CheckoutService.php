@@ -168,6 +168,37 @@ class CheckoutService
         return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral') + ['option' => $option];
     }
 
+    private const ORDER_TERMS = 'standard_order_policy';
+
+    /** The order terms and conditions, when the shop has switched them on: an order can not be placed without agreeing. */
+    private function assertTermsAccepted(array $in): void
+    {
+        $policy = \App\Models\Policy::where('key', self::ORDER_TERMS)->where('is_active', true)->first();
+        if (! $policy) {
+            return;
+        }
+        $agreed = collect($in['policy_acceptances'] ?? [])->contains(fn ($a) => ($a['key'] ?? null) === $policy->key && ($a['response'] ?? 'accepted') === 'accepted');
+        if (! $agreed) {
+            throw new BooksException('Please agree to the order terms and conditions to place your order.');
+        }
+    }
+
+    /** Keep the proof: who agreed to which version of the terms, on which order, from where, and what the terms said. */
+    private function logTermsAcceptance(Voucher $order, array $in, ?Customer $customer, ?User $user): void
+    {
+        $policy = \App\Models\Policy::where('key', self::ORDER_TERMS)->where('is_active', true)->first();
+        if (! $policy) {
+            return;
+        }
+        \App\Models\PolicyAcceptance::create([
+            'policy_id' => $policy->id, 'policy_key' => $policy->key, 'policy_version' => $policy->version, 'policy_snapshot' => $policy->content,
+            'customer_id' => $customer?->id, 'user_id' => $user?->id, 'customer_number' => $customer?->customer_number,
+            'action_context' => 'standard_checkout', 'reference_type' => 'voucher', 'reference_id' => $order->id,
+            'response' => 'accepted', 'ip_address' => request()->ip(), 'user_agent' => substr((string) request()->userAgent(), 0, 500),
+            'was_successful' => true, 'flagged' => false, 'accepted_at' => now(),
+        ]);
+    }
+
     private function tierWaivesShipping(?Customer $customer, float $netSubtotal, Currency $currency): bool
     {
         if (! $customer || ! $customer->tier) {
@@ -327,6 +358,7 @@ class CheckoutService
                 throw new BooksException('A gift voucher can\'t be paid for with another gift voucher.');
             }
         }
+        $this->assertTermsAccepted($in);
         if (! $customer && (empty($in['customer_email']) || empty($in['customer_phone']))) {
             throw new BooksException('Enter your email and phone so we can reach you about your order.');
         }
@@ -355,6 +387,7 @@ class CheckoutService
                 $a['data']['gift_codes'] = $codes;
             }
             $order = $this->vouchers->placeOrder($a['data'], null);
+            $this->logTermsAcceptance($order, $in, $customer, $user);
             $total = (float) $order->total_amount;
 
             $giftApplied = 0.0;

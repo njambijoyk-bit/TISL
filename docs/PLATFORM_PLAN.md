@@ -1268,3 +1268,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Cart check:** lines that were added without a variant are fixed on opening the cart — a single variant is filled in; a product with several shows a banner "Choose an option before you check out" with a **Choose** button, and **Proceed to checkout** stays off until every one is chosen. Checkout sends the shopper back to the cart if any is left.
 - **Server check:** placing an order with a product line that names no variant, for a product with more than one active variant, is refused ("Choose an option for … before you check out") instead of quietly using the default.
 
+### 28.20 Order terms: tick to place the order, and keep the proof (1 Oct 2026)
+- **Checkout:** the *Place order* button is not shown until the "I agree to the order terms and conditions" box is ticked (and goes away if it is unticked). If the shop has no order terms switched on there is nothing to agree to and the button shows as before.
+- **The server enforces it:** with the order terms (`standard_order_policy`) active, an order without the agreement is refused — a hand-made request can't skip the box.
+- **Logged:** every placed order writes an acceptance record (Policies → acceptances) — the policy and its **version and full text at that moment**, the order, the customer / user, IP address, browser, and the time; the agreement is also kept on the order. Guests are logged too (no customer).
+

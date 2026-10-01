@@ -55,6 +55,8 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null);      // { attemptId, orderId }
   const [policies, setPolicies] = useState([]);
+  const [agreed, setAgreed] = useState(false);          // the order terms box is ticked
+  const [termsCount, setTermsCount] = useState(null);    // how many terms there are to agree to (null = still loading)
   const done = useRef(false);
   const credits = opts?.credits ?? [];
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -122,6 +124,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     if (!items.length) { toast.error('Your cart is empty'); return; }
+    if (termsCount !== 0 && !agreed) { toast.error('Please agree to the order terms and conditions first.'); return; }
     if (variantCheck.blocked) { toast.error('Choose an option for every item first — go back to your cart.'); return; }
     setBusy(true);
     try {
@@ -277,10 +280,14 @@ export default function Checkout() {
           </div>
 
           <div style={card}>
-            <PolicyConsentCheckbox policyKeys={['standard_order_policy']} actionContext="standard_checkout" onChange={(_ok, acc) => setPolicies(acc)} disabled={busy} />
-            <button type="submit" disabled={busy || !quote || !!pending} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: 'white', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', fontFamily: 'inherit' }}>
-              <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
-            </button>
+            <PolicyConsentCheckbox policyKeys={['standard_order_policy']} actionContext="standard_checkout" onChange={(ok, acc) => { setAgreed(ok); setPolicies(acc); }} onLoaded={setTermsCount} disabled={busy} />
+            {(termsCount === 0 || agreed) ? (
+              <button type="submit" disabled={busy || !quote || !!pending} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: 'white', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', fontFamily: 'inherit' }}>
+                <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
+              </button>
+            ) : (
+              <p role="status" style={{ margin: '12px 0 0', fontSize: '0.8rem', color: '#6b7280' }}>{termsCount === null ? 'Loading the order terms…' : 'Tick the box above to agree to the order terms and conditions — then you can place your order.'}</p>
+            )}
             <p style={{ margin: '10px 0 0', fontSize: '0.74rem', color: '#9ca3af', textAlign: 'center' }}>Your order is saved under <Link to="/orders" style={{ color: 'var(--color-primary-500)' }}>My orders</Link> as soon as it is placed.</p>
           </div>
         </form>
