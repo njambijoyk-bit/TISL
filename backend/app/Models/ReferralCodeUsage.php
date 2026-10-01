@@ -95,6 +95,12 @@ class ReferralCodeUsage extends Model
         return $this->belongsTo(Order::class);
     }
 
+    /** The invoice / cash sale this code was used on (orders no longer exist). */
+    public function voucher()
+    {
+        return $this->belongsTo(\App\Models\Books\Voucher::class, 'voucher_id');
+    }
+
     /**
      * Get the referrer (customer who owns the code).
      */

@@ -22,7 +22,7 @@ class ReferralController extends Controller
 
     public function index(Request $request)
     {
-        $query = ReferralCode::with(['customer.user', 'createdBy'])
+        $query = ReferralCode::with(['customer.user', 'createdBy', 'currency:id,code,symbol'])
             ->withCount('usages');
 
         // Search
@@ -87,6 +87,7 @@ class ReferralController extends Controller
             ->get();
 
         return response()->json([
+            'base_currency' => \App\Models\Currency::where('is_base', true)->value('code'),   // totals are in the base currency
             'counts' => [
                 'total'          => $total,
                 'active'         => $active,
@@ -120,10 +121,11 @@ class ReferralController extends Controller
             'customer.user',
             'createdBy',
             'updatedBy',
+            'currency:id,code,symbol',
         ])->findOrFail($id);
 
         // Usage breakdown
-        $usages = ReferralCodeUsage::with(['customer.user', 'referrer.user', 'order'])
+        $usages = ReferralCodeUsage::with(['customer.user', 'referrer.user', 'voucher:id,voucher_number'])
             ->where('referral_code_id', $id)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -145,6 +147,7 @@ class ReferralController extends Controller
             ->get();
 
         return response()->json([
+            'base_currency' => \App\Models\Currency::where('is_base', true)->value('code'),
             'code'          => $code,
             'usages'        => $usages,
             'metrics'       => $metrics,

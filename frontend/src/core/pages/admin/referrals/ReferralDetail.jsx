@@ -69,8 +69,8 @@ const sectionHeader = {
   display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
 };
 
-const fmt     = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const fmt    = (n, cur = '') => `${cur ? `${cur} ` : ''}${Number(n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;   // a code's own amounts in its currency, totals in the base currency
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 const fmtDT   = (d) => d ? new Date(d).toLocaleString('en-GB',  { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -245,6 +245,8 @@ export default function ReferralDetail() {
 
   const code    = currentCode?.code;
   const metrics = currentCode?.metrics;
+  const baseCur = currentCode?.base_currency ?? '';        // totals are in the base currency
+  const codeCur = code?.currency?.code ?? baseCur;         // a fixed amount and a minimum order are in the code's own currency
   const monthly = currentCode?.monthly_trend  || [];
   const byStatus= currentCode?.usage_by_status || {};
   const tm      = TYPE_META[code?.type]    ?? TYPE_META.general;
@@ -269,7 +271,7 @@ export default function ReferralDetail() {
   const rewardStr = code?.reward_type === 'percentage'
     ? `${code.reward_value}% off`
     : code?.reward_type === 'fixed_amount'
-      ? `${fmt(code.reward_value)} off`
+      ? `${fmt(code.reward_value, codeCur)} off`
       : code?.reward_type ?? '—';
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -385,15 +387,15 @@ export default function ReferralDetail() {
                 <p style={sectionHeader}><TrendingUp size={14} style={{ color: '#c4b5fd' }} /> Performance</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
                   <StatBlock label="Total uses"      value={(metrics?.total_uses_count ?? code.times_used ?? 0).toLocaleString()} color="var(--color-primary-600)" />
-                  <StatBlock label="Revenue"         value={fmt(metrics?.total_revenue)}  color="#065f46" />
-                  <StatBlock label="Discount given"  value={fmt(metrics?.total_discount)} color="#b91c1c" />
+                  <StatBlock label="Revenue"         value={fmt(metrics?.total_revenue, baseCur)}  color="#065f46" />
+                  <StatBlock label="Discount given"  value={fmt(metrics?.total_discount, baseCur)} color="#b91c1c" />
                   <StatBlock label="Conversion rate 'conversion_rate' => ($this->successful_uses / $this->attempts) * 100" value={`${Number(code.conversion_rate || 0).toFixed(1)}%`} color="#0891b2" />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                   <StatBlock label="Views"     value={(code.views      ?? 0).toLocaleString()} />
                   <StatBlock label="Attempts"  value={(code.attempts   ?? 0).toLocaleString()} />
                   <StatBlock label="Successful"value={(code.successful_uses ?? 0).toLocaleString()} />
-                  <StatBlock label="Avg order" value={fmt(code.average_order_value)} />
+                  <StatBlock label="Avg order" value={fmt(code.average_order_value, baseCur)} />
                 </div>
               </div>
 
@@ -435,7 +437,7 @@ export default function ReferralDetail() {
                             }} />
                           </div>
                           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', width: 24, textAlign: 'right' }}>{m.count}</span>
-                          <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 80, textAlign: 'right' }}>{fmt(m.revenue)}</span>
+                          <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 80, textAlign: 'right' }}>{fmt(m.revenue, baseCur)}</span>
                         </div>
                       ));
                     })()}
@@ -452,7 +454,7 @@ export default function ReferralDetail() {
                     { label: 'Referrer reward',   value: code.referrer_reward_type === 'none' || !code.referrer_reward_type ? 'None' : `${code.referrer_reward_value} ${code.referrer_reward_type}` },
                     { label: 'Max uses',          value: code.max_uses ? `${code.times_used} / ${code.max_uses}` : 'Unlimited' },
                     { label: 'Per customer',      value: `${code.max_uses_per_customer ?? 1} use${code.max_uses_per_customer !== 1 ? 's' : ''}` },
-                    { label: 'Min order',         value: code.min_order_value ? fmt(code.min_order_value) : 'None' },
+                    { label: 'Min order',         value: code.min_order_value ? fmt(code.min_order_value, codeCur) : 'None' },
                     { label: 'Min items',         value: code.min_items ?? 'None' },
                     { label: 'Valid from',        value: fmtDate(code.valid_from) },
                     { label: 'Valid until',       value: fmtDate(code.valid_until) },
@@ -598,19 +600,17 @@ export default function ReferralDetail() {
 
                               {/* Order */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
-                                {u.order
-                                  ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 700 }}>#{u.order.order_number}</span>
-                                  : u.hamper_order
-                                    ? <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#d97706', fontWeight: 700 }}>#{u.hamper_order.order_number} <span style={{ fontSize: '0.65rem', background: 'rgba(217,119,6,0.1)', padding: '1px 6px', borderRadius: 4 }}>Hamper</span></span>
-                                    : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                {u.voucher
+                                  ? <a href={`/admin/books/vouchers/${u.voucher.id}`} style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 700, textDecoration: 'none' }}>{u.voucher.voucher_number}</a>
+                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
                               </td>
 
                               {/* Referred Discount */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {(() => {
-                                  const discount = parseFloat(u.order?.referral_discount) || parseFloat(u.discount_amount) || 0;
+                                  const discount = parseFloat(u.discount_amount) || 0;
                                   return discount > 0
-                                    ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>-{fmt(discount)}</span>
+                                    ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>-{fmt(discount, baseCur)}</span>
                                     : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>;
                                 })()}
                               </td>
@@ -619,7 +619,7 @@ export default function ReferralDetail() {
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.referrer_reward_amount ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{fmt(u.referrer_reward_amount)}</span>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{fmt(u.referrer_reward_amount, baseCur)}</span>
                                     {u.referrer_reward_paid
                                       ? <BadgeCheck size={13} style={{ color: '#10b981' }} />
                                       : <AlertCircle size={13} style={{ color: '#f59e0b' }} />}

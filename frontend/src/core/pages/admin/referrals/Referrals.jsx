@@ -59,12 +59,12 @@ const REFERRAL_ACTION_META = {
 const STAT_META = [
   { key: 'total',   label: 'Total codes',  icon: <Gift size={18} />,        accent: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)',  val: (s) => s.counts?.total ?? 0         },
   { key: 'active',  label: 'Active',       icon: <Zap size={18} />,         accent: '#059669', bg: 'rgba(5,150,105,0.08)',   val: (s) => s.counts?.active ?? 0        },
-  { key: 'revenue', label: 'Total revenue',icon: <DollarSign size={18} />,  accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue), raw: true },
+  { key: 'revenue', label: 'Total revenue',icon: <DollarSign size={18} />,  accent: '#2563eb', bg: 'rgba(37,99,235,0.08)',   val: (s) => fmt(s.totals?.revenue, s.base_currency), raw: true },
   { key: 'uses',    label: 'Total uses',   icon: <Users size={18} />,       accent: '#0891b2', bg: 'rgba(8,145,178,0.08)',   val: (s) => (s.totals?.total_uses ?? 0).toLocaleString() },
 ];
 
-const fmt = (n) => Number(n ?? 0).toLocaleString('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 });
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const fmt = (n, cur = '') => `${cur ? `${cur} ` : ''}${Number(n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;   // a code's own amounts in its currency, totals in the base currency
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -305,7 +305,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
               {/* Amount if present */}
               {a.amount > 0 && (
                 <p style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600, margin: '2px 0 0' }}>
-                  {fmt(a.amount)}
+                  {fmt(a.amount, statistics?.base_currency)}
                 </p>
               )}
 
@@ -318,7 +318,7 @@ function ReferralActivityTimeline({ items, pag, onLoadMore, loading }) {
 
               {/* Timestamp + actor type */}
               <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '3px 0 0' }}>
-                {new Date(a.created_at).toLocaleString('en-KE', {
+                {new Date(a.created_at).toLocaleString(undefined, {
                   day: 'numeric', month: 'short', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
                 })}
@@ -616,9 +616,10 @@ export default function Referrals() {
     catch { toast.error('Failed to delete.'); }
   };
 
+  const codeCur = (code) => code.currency?.code ?? statistics?.base_currency ?? '';   // the code's own currency
   const rewardStr = (code) => {
     if (code.reward_type === 'percentage')   return `${code.reward_value}% off`;
-    if (code.reward_type === 'fixed_amount') return `${fmt(code.reward_value)} off`;
+    if (code.reward_type === 'fixed_amount') return `${fmt(code.reward_value, codeCur(code))} off`;
     return REWARD_META[code.reward_type]?.label ?? '—';
   };
 
@@ -918,7 +919,7 @@ export default function Referrals() {
                             </span>
                             {code.min_order_value > 0 && (
                               <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>
-                                min. {fmt(code.min_order_value)}
+                                min. {fmt(code.min_order_value, codeCur(code))}
                               </p>
                             )}
                           </td>
@@ -946,7 +947,7 @@ export default function Referrals() {
                           {/* Revenue */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>
-                              {fmt(code.total_revenue)}
+                              {fmt(code.total_revenue, statistics?.base_currency)}
                             </span>
                           </td>
 
