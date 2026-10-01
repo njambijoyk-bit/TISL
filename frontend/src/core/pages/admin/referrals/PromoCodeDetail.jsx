@@ -200,9 +200,7 @@ export default function PromoCodeDetail() {
     ? `${code.reward_value}% off`
     : code.reward_type === 'fixed_amount'
       ? `${codeCur} ${Number(code.reward_value).toLocaleString()} off`
-      : code.reward_type === 'free_shipping'
-        ? 'Free Shipping'
-        : 'Gift Voucher';
+      : '—';
 
   const usagePct = code.max_uses
     ? Math.min((code.times_used / code.max_uses) * 100, 100)

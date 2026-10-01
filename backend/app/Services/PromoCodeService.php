@@ -489,6 +489,43 @@ class PromoCodeService
     // ═══════════════════════════════════════════════════
 
     /** Money amounts on a code (fixed reward, minimum order) are in the code's own currency (base when unset). */
+    /**
+     * A code in words, as it was set up: "10% off", or "UGX 100 off (fixed, set in UGX)", with its minimum order, expiry and limits.
+     * The amount a sale actually gets is shown separately, in the sale's own currency.
+     */
+    public function describe(ReferralCode $code): string
+    {
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 2), '0'), '.');
+        if ($code->type === 'customer_referral') {   // the referral programme's own settings
+            $s = \App\Services\ReferralSettings::get();
+            $cur = $money->currencyFrom($s['referral_discount_currency_id']);
+            $parts = [$s['referral_discount_type'] === 'percentage' ? $fmt($s['referral_discount_value']) . '% off' : $cur->code . ' ' . $fmt($s['referral_discount_value']) . ' off (fixed, set in ' . $cur->code . ')'];
+            if (($s['referral_discount_max'] ?? '') !== '' && $s['referral_discount_max'] !== null) {
+                $parts[] = 'up to ' . $cur->code . ' ' . $fmt($s['referral_discount_max']);
+            }
+            if (($s['referral_min_order'] ?? '') !== '' && $s['referral_min_order'] !== null) {
+                $parts[] = 'minimum order ' . $cur->code . ' ' . $fmt($s['referral_min_order']);
+            }
+
+            return 'First-order referral discount: ' . implode(' · ', $parts);
+        }
+        $cur = $this->codeCurrency($code);
+        $parts = [$code->reward_type === 'percentage' ? $fmt($code->reward_value) . '% off' : $cur->code . ' ' . $fmt($code->reward_value) . ' off (fixed, set in ' . $cur->code . ')'];
+        if ((float) $code->min_order_value > 0) {
+            $parts[] = 'minimum order ' . $cur->code . ' ' . $fmt($code->min_order_value);
+        }
+        if ($code->valid_until) {
+            $parts[] = 'valid until ' . $code->valid_until->format('j M Y');
+        }
+        if ($code->max_uses_per_customer) {
+            $parts[] = $code->max_uses_per_customer . ' per customer';
+        }
+        $head = trim((string) ($code->name ?: $code->description));
+
+        return ($head !== '' ? $head . ' — ' : '') . implode(' · ', $parts);
+    }
+
     private function codeCurrency(ReferralCode $code): \App\Models\Currency
     {
         return app(\App\Services\CurrencyConversionService::class)->currencyFrom($code->currency_id);

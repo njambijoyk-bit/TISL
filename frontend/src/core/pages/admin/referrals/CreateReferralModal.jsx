@@ -16,8 +16,6 @@ const TYPES = [
 const REWARD_TYPES = [
   { value: 'percentage',   label: '% Discount'    },
   { value: 'fixed_amount', label: 'Fixed Amount'  },
-  { value: 'free_shipping',label: 'Free Shipping' },
-  { value: 'store_credit', label: 'Gift Voucher'  },
 ];
 
 const REFERRER_REWARD_TYPES = [
@@ -77,7 +75,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
   };
 
   const showReferrerValue = form.referrer_reward_type !== 'none';
-  const showRewardValue   = form.reward_type !== 'free_shipping';
+  const showRewardValue   = true;
   const selectedType      = TYPES.find(t => t.value === form.type) || TYPES[0];
 
   return (

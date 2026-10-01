@@ -226,13 +226,13 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
             <Field
               label={form.reward_type === 'percentage' ? 'Discount %' : 'Discount amount'}
               required
-              hint={form.reward_type === 'free_shipping' || form.reward_type === 'store_credit' ? 'Value not applicable for this type' : undefined}
+              hint={undefined}
             >
               <input
                 type="number" min="0" step="0.01"
                 value={form.reward_value}
                 onChange={e => set('reward_value', e.target.value)}
-                disabled={form.reward_type === 'free_shipping'}
+                disabled={false}
                 style={iBase} onFocus={fIn} onBlur={fOut}
               />
             </Field>

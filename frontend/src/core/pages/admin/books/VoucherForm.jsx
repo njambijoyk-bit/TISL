@@ -830,7 +830,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                           if (c.includes(o.key)) return c.filter((k) => k !== o.key);
                           return o.kind === 'promo' ? [...c.filter((k) => !k.startsWith('promo:')), o.key] : [...c, o.key];   // one promo code per sale
                         })} />
-                        <span style={{ flex: 1 }}>{o.label}{o.error && <span style={{ color: '#b91c1c', marginLeft: 8 }}>{o.error}</span>}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{o.label}{o.error && <span style={{ color: '#b91c1c', marginLeft: 8 }}>{o.error}</span>}{o.detail && <span style={{ display: 'block', fontSize: '0.7rem', color: colors.textMuted, marginTop: 1 }}>{o.detail}</span>}</span>
                         <span style={{ fontWeight: 700, color: on ? '#059669' : colors.textMuted }}>{on ? `−${money(o.amount)}` : `would take off ${money(o.amount)}`}</span>
                       </label>
                     );

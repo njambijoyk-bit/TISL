@@ -71,6 +71,7 @@ class DiscountService
             $on = $pick('referral', true);
             $row = $this->row('referral', 'referral', 'Referral discount (' . $rc->code . ')', null, round($amount, 2), $on, true, $rc->code);
             $row['referral_id'] = $rc->id;
+            $row['detail'] = $this->promos->describe($rc);
             $rows[] = $row;
             if ($on) {
                 $referralTaken = round($amount, 2);
@@ -114,6 +115,7 @@ class DiscountService
             $take = $on && ! $promoOn;
             $row = $this->row($key, 'promo', 'Promo ' . $res['code']->code, null, $amount, $take, false, $res['code']->code);
             $row['promo_id'] = $res['code']->id;
+            $row['detail'] = $this->promos->describe($res['code']);
             if ($on && $promoOn) {
                 $row['error'] = 'Only one promo code can be used on a sale.';
             }
@@ -156,7 +158,7 @@ class DiscountService
 
     private function row(string $key, string $kind, string $label, ?float $percent, float $amount, bool $chosen, bool $auto, ?string $ref): array
     {
-        return ['key' => $key, 'kind' => $kind, 'label' => $label, 'percent' => $percent, 'amount' => $amount, 'chosen' => $chosen, 'auto' => $auto, 'ref' => $ref, 'promo_id' => null, 'referral_id' => null, 'error' => null];
+        return ['key' => $key, 'kind' => $kind, 'label' => $label, 'percent' => $percent, 'amount' => $amount, 'chosen' => $chosen, 'auto' => $auto, 'ref' => $ref, 'promo_id' => null, 'referral_id' => null, 'error' => null, 'detail' => null];
     }
 
     private function pct(float $p): string
