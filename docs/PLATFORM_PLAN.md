@@ -1273,3 +1273,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **The server enforces it:** with the order terms (`standard_order_policy`) active, an order without the agreement is refused — a hand-made request can't skip the box.
 - **Logged:** every placed order writes an acceptance record (Policies → acceptances) — the policy and its **version and full text at that moment**, the order, the customer / user, IP address, browser, and the time; the agreement is also kept on the order. Guests are logged too (no customer).
 
+### 28.21 Editing keeps the voucher's currency (1 Oct 2026)
+- **Bug:** editing a voucher saved it in the *current* base currency, so after the base currency was changed an old voucher silently switched currency.
+- **Now:** an edit keeps the voucher's own currency (also for edits made through the API). When that currency is **not** the base any more, the edit form shows a **Currency** dropdown preselected with the voucher's currency, with a note ("Made in USD; the base is now KES. Keep it, or change it."). When the voucher is in the base currency nothing extra shows.
+- The rate to the base is worked out from the rates on the voucher's date; prices on catalogue lines follow the chosen currency.
+

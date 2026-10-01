@@ -15,6 +15,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import shippingAPI from '../../../../_shared/api/shipping';
 import taxAPI from '../../../../_shared/api/tax';
+import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
@@ -157,7 +158,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [manual, setManual] = useState(false);
@@ -194,6 +195,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const hasItems = Boolean(type?.has_items);
   const isMoney = base === 'receipt' || base === 'payment';
   const isEntries = base === 'journal' || base === 'contra';
+  const [currencies, setCurrencies] = useState([]);              // for the currency choice when an old voucher's currency is not the base any more
   const [cashPurchase, setCashPurchase] = useState(false);   // a purchase paid at once: cash or bank instead of the supplier
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
 
@@ -205,6 +207,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (editing) currencyAPI.getCurrencies().then((r) => setCurrencies(Array.isArray(r) ? r : r.currencies ?? r.data ?? [])).catch(() => {});
     api.types().then((t) => setTypes(t.filter((x) => x.is_active))).catch((e) => toast.error(errMsg(e, 'Could not load voucher types')));
     shippingAPI.getActiveOptions().then(setShipOptions).catch(() => {});
     taxAPI.getRates({ active: true }).then((r) => setWhRates((r.tax_rates ?? []).filter((x) => x.tax_type?.application_mode === 'withheld'))).catch(() => {});
@@ -231,7 +234,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       if (v.meta?.gift_codes) setGiftPick(v.meta.gift_codes);
       setDiscountPick([]);   // a saved voucher keeps the discounts it was saved with; tick more to add
       setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
-        payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
+        payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), currency_id: (origCurrency.current = v.currency_id ?? null) ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.base_type === 'purchase') {
         const paidEntry = (v.entries ?? []).find((e) => e.is_party);
         if (paidEntry && Number(paidEntry.ledger_id) !== Number(v.party_ledger_id ?? 0)) { setCashPurchase(true); setH((x) => ({ ...x, paid_ledger_id: paidEntry.ledger_id })); }
@@ -317,6 +320,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   // the refund's narration is written for them and follows the account chosen; typing their own stops it
   const autoNarration = useRef('');
+  const origCurrency = useRef(null);   // the currency the voucher was made in
   useEffect(() => {
     if (!refund) return;
     const m = methods.find((x) => String(x.id) === String(h.payment_method_id));
@@ -360,6 +364,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
       paid_ledger_id: base === 'purchase' && cashPurchase ? (h.paid_ledger_id || null) : undefined,
+      currency_id: editing && h.currency_id ? Number(h.currency_id) : undefined,   // an edit keeps the voucher's own currency; a new one is in the base currency
       valid_until: h.valid_until || undefined,
     };
     if (hasItems) {
@@ -458,6 +463,15 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
+              {editing && currencies.length > 0 && h.currency_id && !currencies.find((c) => String(c.id) === String(h.currency_id))?.is_base && (
+                <div>
+                  <label style={label}>Currency</label>
+                  <select value={h.currency_id} onChange={(e) => setH((x) => ({ ...x, currency_id: e.target.value }))} style={small} aria-label="Currency of this voucher">
+                    {currencies.filter((c) => c.is_active !== false).map((c) => <option key={c.id} value={c.id}>{c.code}{c.is_base ? ' (base)' : ''}</option>)}
+                  </select>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: colors.textMuted }}>Made in {currencies.find((c) => String(c.id) === String(origCurrency.current))?.code ?? 'another currency'}; the base is now {currencies.find((c) => c.is_base)?.code}. Keep it, or change it.</p>
+                </div>
+              )}
               <div><label style={label}>Date</label><input type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
               <div>
                 <label style={label}>Branch</label>

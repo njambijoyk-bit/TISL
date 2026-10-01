@@ -127,6 +127,7 @@ class VoucherService
             $type = $voucher->type;
             $data['voucher_type_id'] = $type->id;
             $data['source_voucher_id'] = $data['source_voucher_id'] ?? $voucher->source_voucher_id;
+            $data['currency_id'] = ! empty($data['currency_id']) ? $data['currency_id'] : $voucher->currency_id;   // an edit stays in the voucher's own currency unless the admin changes it (the base currency may have changed since)
             $plan = $this->plan($data, $type, $voucher, $user);
             $this->guard->assert('edit', $plan['date'], $user, $type->id);
 
