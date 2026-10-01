@@ -627,6 +627,13 @@ class PromoCodeService
     /**
      * Get all promo codes for a customer grouped by status.
      */
+    /** Codes anyone may use: not tied to one customer, marked public, and still valid (limits per customer are checked when it is applied). */
+    public function getPublicPromoCodes()
+    {
+        return ReferralCode::where('is_public', true)->whereNull('target_customer_id')->whereNotIn('type', ['customer_referral'])
+            ->valid()->orderBy('created_at', 'desc')->get()->filter(fn ($c) => ! $c->is_expired)->values();
+    }
+
     public function getCustomerPromoCodes(Customer $customer): array
     {
         $codes = ReferralCode::where('target_customer_id', $customer->id)

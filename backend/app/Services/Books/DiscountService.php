@@ -13,7 +13,7 @@ use App\Services\PromoCodeService;
  * The rows, in the order they are worked out:
  *   personal / tier / customer_type — a % of the goods, added together and capped at 30% in all;
  *   referral                        — the referral programme's discount on a referred customer's first order;
- *   promo:CODE                      — a promo code the customer holds (one per sale), on what is left after the above.
+ *   promo:CODE                      — a promo code the customer holds, or a public one (one per sale), on what is left after the above.
  * Each chosen row is taken off BEFORE tax: the caller spreads the total over the lines (see spread()), so every
  * line's taxable amount is reduced and the VAT follows.
  */
@@ -81,6 +81,9 @@ class DiscountService
         // ── promo codes: the ones the customer holds (plus one typed in); only one can be used on a sale
         $codes = [];
         foreach ($this->promos->getCustomerPromoCodes($customer)['active_codes'] as $c) {
+            $codes[strtoupper($c->code)] = true;
+        }
+        foreach ($this->promos->getPublicPromoCodes() as $c) {   // public codes are open to every customer
             $codes[strtoupper($c->code)] = true;
         }
         foreach (array_filter([$promoCode]) as $typed) {

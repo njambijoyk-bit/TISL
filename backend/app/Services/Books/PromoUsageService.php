@@ -23,7 +23,12 @@ class PromoUsageService
     {
         $v->loadMissing('type');
         $codeId = $v->meta['promo_code_id'] ?? null;
-        if (! $codeId || $v->status !== Voucher::POSTED || ! in_array($v->type->base_type, self::TYPES, true) || ! $this->ready()) {
+        if (! $codeId || $v->status !== Voucher::POSTED || ! in_array($v->type->base_type, self::TYPES, true)) {
+            return;
+        }
+        if (! $this->ready()) {
+            \Illuminate\Support\Facades\Log::warning("Promo code use on {$v->voucher_number} was not logged: referral_code_usage has no voucher_id column — run database/sql/35_promo_usage_and_rounding.sql.");
+
             return;
         }
         if (ReferralCodeUsage::where('voucher_id', $v->id)->where('referral_code_id', $codeId)->where('status', 'completed')->exists() || $this->loggedUpstream($v, (int) $codeId)) {
