@@ -33,12 +33,12 @@ const quotationsAPI = {
   nextNumbers: async () => [],
 
   // customer
-  mine: () => get('/quotations'),
-  request: (data) => send('post', '/quotations', data),
-  mineShow: (id) => get(`/quotations/${id}`),
-  accept: (id) => send('post', `/quotations/${id}/accept`),
-  decline: (id, note) => send('post', `/quotations/${id}/decline`, { note }),
-  revision: (id, note) => send('post', `/quotations/${id}/revision`, { note }),
+  mine: () => get('/customer/quotations'),
+  request: (data) => send('post', '/customer/quotations', data),
+  mineShow: (id) => get(`/customer/quotations/${id}`),
+  accept: (id) => send('post', `/customer/quotations/${id}/accept`),
+  decline: (id, note) => send('post', `/customer/quotations/${id}/decline`, { note }),
+  revision: (id, note) => send('post', `/customer/quotations/${id}/revision`, { note }),
 };
 
 export default quotationsAPI;
