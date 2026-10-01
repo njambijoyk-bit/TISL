@@ -60,7 +60,7 @@ class LedgerService
     }
 
     /** Signed closing balance of a ledger in base currency (debit +, credit −): opening + posted entries. */
-    public function balance(int $ledgerId, ?string $asOf = null): float
+    public function balance(int $ledgerId, ?string $asOf = null, bool $asPosted = false): float
     {
         $l = Ledger::find($ledgerId);
         if (! $l) {
@@ -69,7 +69,7 @@ class LedgerService
         $q = \Illuminate\Support\Facades\DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')
             ->where('e.ledger_id', $ledgerId)->where('v.status', 'posted');
         RestatedBase::join($q);
-        $b = RestatedBase::entry();
+        $b = $asPosted ? 'e.base_amount' : RestatedBase::entry();   // asPosted: figures as posted, for registers that were never restated
         if ($asOf) {
             $q->where('v.date', '<=', $asOf);
         }

@@ -184,13 +184,13 @@ class ComplianceReportService
 
         // gift vouchers
         if ($s->gift_voucher_ledger_id) {
-            $book = -$this->ledgers->balance((int) $s->gift_voucher_ledger_id, $asOf);
+            $book = -$this->ledgers->balance((int) $s->gift_voucher_ledger_id, $asOf, true);
             $reg = app(GiftVoucherService::class)->registerValue();
             $add('gift-vouchers', 'Gift vouchers outstanding', $book, $reg, 'Each voucher at the value actually booked; an exchange difference on a spent foreign-currency voucher is journalled when it closes.');
         }
         // loyalty points
         if ($s->loyalty_liability_ledger_id) {
-            $book = -$this->ledgers->balance((int) $s->loyalty_liability_ledger_id, $asOf);
+            $book = -$this->ledgers->balance((int) $s->loyalty_liability_ledger_id, $asOf, true);
             $liab = app(PointLotService::class)->liability();
             $add('loyalty-points', 'Loyalty points liability', $book, $liab['value'], "{$liab['points']} points held, each lot at the value of a point on the day it was earned.");
         }
@@ -207,7 +207,7 @@ class ComplianceReportService
         // stock: what is on the shelves, at cost, against the Stock ledger — and the shop's numbers against the batches
         if ($s->stock_ledger_id && $asOf >= today()->toDateString()) {   // batches show today's stock, so only today can be proved
             $rec = app(\App\Services\Stock\StockReconciliationService::class);
-            $sv = $rec->valueCheck($this->ledgers->balance((int) $s->stock_ledger_id, $asOf));
+            $sv = $rec->valueCheck($this->ledgers->balance((int) $s->stock_ledger_id, $asOf, true));
             $add('stock', 'Stock (Stock ledger vs batches at cost)', $sv['book'], $sv['register'], $sv['note'], $sv['explained']);
 
             $bad = $rec->unitMismatches();
