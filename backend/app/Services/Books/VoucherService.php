@@ -694,7 +694,8 @@ class VoucherService
                     $lineData[$i]['discount_ref'] = $parts[0]['ref'];
                 }
                 $data['lines'] = $lineData;
-                $data['meta'] = array_merge($data['meta'] ?? [], array_filter([
+                // $data is this method's own copy, so what must reach the saved voucher goes on the plan (persist() reads meta_extra)
+                $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], array_filter([
                     'discounts' => $sp['discounts'],
                     'promo_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'promo')['promo_id'] ?? null,
                     'referral_code_id' => collect($discountOptions)->firstWhere(fn ($o) => $o['chosen'] && $o['kind'] === 'referral')['referral_id'] ?? null,

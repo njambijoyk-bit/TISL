@@ -1258,3 +1258,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Send** button on a live sales-side document (and debit note / purchase order): *E-mail* (the document as the mail body, plus a PDF attachment when the PDF package is installed) from the default address, to the customer's email or one typed in; *WhatsApp* opens `wa.me/<customer number>` with a prefilled message (document, total, "call us on <default phone>"). Local numbers get the country code in front (`PHONE_COUNTRY_CODE`, default 254).
 - Needs working mail settings in `.env` (`MAIL_MAILER` and the server details): the sender address must be one the mail server allows.
 
+### 28.18 Promo usage bug (1 Oct 2026)
+- **Bug:** a promo code chosen on a voucher gave its discount but was never logged as used, so a code's maximum uses was never reached or checked. The voucher's record of the code (and of which discounts were taken) was set on a private copy of the data while planning and never reached the saved voucher.
+- **Fix:** the code and discounts now travel on the plan and are saved on the voucher, so posting a Sales / Cash Sale logs the use (one row per voucher; cancelled or edited vouchers take it back) and the code's limit applies from the next sale.
+- **Old vouchers:** `php artisan promo:backfill-usage --dry-run` counts the live vouchers that used a promo (their line says so) without it being logged; without `--dry-run` it logs them.
+

@@ -47,6 +47,41 @@ class PromoUsageService
         });
     }
 
+    /**
+     * Log the promo codes that live vouchers used but never logged (they were saved before the code was carried onto the
+     * voucher). A promo line's discount names its code; the voucher is then given the code and logged like any other.
+     *
+     * @return int how many vouchers were logged
+     */
+    public function backfill(bool $dryRun = false): int
+    {
+        if (! $this->ready()) {
+            return 0;
+        }
+        $done = 0;
+        $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
+            ->where('i.discount_source', 'promo')->whereNotNull('i.discount_ref')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', self::TYPES)
+            ->groupBy('v.id', 'i.discount_ref')->orderBy('v.id')->get(['v.id as voucher_id', 'i.discount_ref as code', DB::raw('SUM(i.discount_amount) as discount')]);
+        foreach ($rows as $r) {
+            $v = Voucher::find($r->voucher_id);
+            $code = ReferralCode::where('code', strtoupper(trim((string) $r->code)))->first();
+            if (! $v || ! $code || ! empty($v->meta['promo_code_id']) || ReferralCodeUsage::where('voucher_id', $v->id)->where('status', 'completed')->exists()) {
+                continue;
+            }
+            $done++;
+            if ($dryRun) {
+                continue;
+            }
+            $meta = (array) $v->meta;
+            $meta['promo_code_id'] = $code->id;
+            $meta['discounts'] = array_merge((array) ($meta['discounts'] ?? []), [['source' => 'promo', 'ref' => $code->code, 'amount' => round((float) $r->discount, 2)]]);
+            $v->update(['meta' => $meta]);
+            $this->record($v->fresh());
+        }
+
+        return $done;
+    }
+
     /** Take back the use(s) logged for this voucher. */
     public function reverse(Voucher $v): void
     {
