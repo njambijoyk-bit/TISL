@@ -8,7 +8,8 @@ export default function useAuctionSSE(auctionId, isPaused = false) {
     if (!auctionId || isPaused) return;
 
     // Base URL from env or default (adjust if your API URL differs)
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    // VITE_API_URL already ends in /api (the axios client uses it as is), so take that off before adding it back
+    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
     const url = `${baseUrl}/api/auctions/${auctionId}/stream`;
 
     const es = new EventSource(url);
