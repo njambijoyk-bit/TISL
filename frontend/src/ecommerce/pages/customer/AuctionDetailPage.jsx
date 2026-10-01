@@ -54,7 +54,7 @@ export default function AuctionDetailPage() {
   const minBid = currentPrice + Number(auction?.bid_increment || 50);
   // Bids happen in the auction's own currency — shown as-is, never converted
   const bidCode = auction?.currency?.code ?? 'KES';
-  const money = (n) => formatMoney(n ?? 0, auction?.currency?.symbol || bidCode, { decimals: 'auto' });
+  const money = (n) => formatMoney(n ?? 0, auction?.currency?.symbol || bidCode, { decimals: 'auto', max: 10 });
   // Status is the source of truth — an admin can end an auction abruptly before the
   // countdown reaches zero. Countdown is a secondary/visual signal only.
   const isEnded = auction != null && (

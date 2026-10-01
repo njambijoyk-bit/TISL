@@ -82,7 +82,7 @@ export default function AuctionChargesEditor({ currencyId, currencyCode, value, 
                 </td>
                 <td style={cell}>{DUE[o.timing] ?? o.timing}</td>
                 <td style={{ ...cell, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <input type="number" min="0" step="0.01" disabled={locked || !r.is_enabled} value={r.amount ?? ''}
+                  <input type="number" min="0" step="any" disabled={locked || !r.is_enabled} value={r.amount ?? ''}
                     onChange={(e) => patch(o.ledger.id, { amount: e.target.value })}
                     style={{ width: 90, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, textAlign: 'right', fontSize: '0.8rem' }} />
                   <span style={{ marginLeft: 6, color: '#6b7280', fontSize: '0.72rem' }}>{unit}</span>

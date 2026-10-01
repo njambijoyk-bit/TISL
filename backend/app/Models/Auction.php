@@ -19,8 +19,8 @@ class Auction extends Model
     ];
 
     protected $casts = [
-        'start_price' => 'decimal:2', 'current_price' => 'decimal:2',
-        'reserve_price' => 'decimal:2', 'bid_increment' => 'decimal:2',
+        'start_price' => 'decimal:10', 'current_price' => 'decimal:10',   // prices keep up to 10 decimals (a currency may be worth very little per unit)
+        'reserve_price' => 'decimal:10', 'bid_increment' => 'decimal:10',
         'start_time' => 'datetime', 'end_time' => 'datetime',
     ];
 

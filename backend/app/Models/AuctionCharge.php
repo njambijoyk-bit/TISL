@@ -15,7 +15,7 @@ class AuctionCharge extends Model
     protected $fillable = ['auction_id', 'ledger_id', 'basis', 'amount', 'min_amount', 'max_amount', 'free_days', 'timing', 'refundable', 'is_enabled', 'sort_order'];
 
     protected $casts = [
-        'amount' => 'decimal:4', 'min_amount' => 'decimal:2', 'max_amount' => 'decimal:2',
+        'amount' => 'decimal:10', 'min_amount' => 'decimal:10', 'max_amount' => 'decimal:10',
         'free_days' => 'integer', 'refundable' => 'boolean', 'is_enabled' => 'boolean',
     ];
 

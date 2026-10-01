@@ -210,7 +210,7 @@ export default function AdminAuctionCreator() {
               <div>
                 <label style={labelStyle}>Starting bid ({code}, excl. tax) <span style={{ color: '#ef4444' }}>*</span></label>
                 <input type="number" name="start_price" value={form.start_price} onChange={handleChange}
-                  style={inputStyle} min="0" placeholder="e.g. 500"
+                  style={inputStyle} min="0" step="any" placeholder="e.g. 500"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
@@ -218,7 +218,7 @@ export default function AdminAuctionCreator() {
               <div>
                 <label style={labelStyle}>Reserve price ({code}, excl. tax) <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
                 <input type="number" name="reserve_price" value={form.reserve_price} onChange={handleChange}
-                  style={inputStyle} min="0" placeholder="Leave empty for no reserve"
+                  style={inputStyle} min="0" step="any" placeholder="Leave empty for no reserve"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
@@ -229,7 +229,7 @@ export default function AdminAuctionCreator() {
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>Bid Increment ({code})</label>
                 <input type="number" name="bid_increment" value={form.bid_increment} onChange={handleChange}
-                  style={inputStyle} min="0.01" step="0.01" placeholder="50"
+                  style={inputStyle} min="0" step="any" placeholder="50"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />

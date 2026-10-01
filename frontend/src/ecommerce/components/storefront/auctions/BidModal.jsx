@@ -25,7 +25,7 @@ export default function BidModal({ auction, onClose, onSuccess }) {
 
   // Bids are placed in the auction's own currency
   const code = auction.currency?.code ?? 'KES';
-  const money = (n) => formatMoney(n ?? 0, auction.currency?.symbol || code, { decimals: 'auto' });
+  const money = (n) => formatMoney(n ?? 0, auction.currency?.symbol || code, { decimals: 'auto', max: 10 });
   const timeLeft = liveData?.time_left ?? Math.max(0, (new Date(auction.end_time) - new Date()) / 1000);
 
   const handleBid = async () => {
@@ -81,7 +81,7 @@ export default function BidModal({ auction, onClose, onSuccess }) {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{code}</span>
               <input
-                type="number"
+                type="number" step="any"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={`Min: ${money(minBid)}`}
