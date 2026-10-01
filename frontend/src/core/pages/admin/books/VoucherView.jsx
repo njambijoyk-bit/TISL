@@ -150,7 +150,7 @@ function ReceiveModal({ v, methods, onClose, onDone }) {
           <Field label={chosen?.requires_reference ? 'Reference (required)' : 'Reference'}><TextInput required={chosen?.requires_reference} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="M-Pesa code, cheque no.…" /></Field>
           {whRates.length > 0 && (
             <>
-              <Field label="Customer withheld tax?" hint="The amount above settles the invoice. Tax is withheld on the part before VAT; the withheld part becomes a tax credit we hold.">
+              <Field label="Customer withheld tax?" hint="Tax is withheld on the part before VAT. The invoice keeps the withheld part as a balance until the customer gives you their certificate; record it under Withholding → Certificates and it becomes a tax credit we hold.">
                 <SelectInput value={wh} onChange={(e) => { setWh(e.target.value); setWhAmount(''); }}><option value="">No</option>{whRates.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.name} {Number(r.rate_value)}{r.rate_type === 'percentage' ? '%' : ''}{r.classification ? ` — ${r.classification}` : ''}</option>)}</SelectInput>
               </Field>
               {rate && (

@@ -229,9 +229,19 @@ class WithholdingController extends Controller
         return response()->json(['certificate' => $certificate->fresh()], 200);
     }
 
-    public function adminMarkReceived($id)
+    public function adminMarkReceived(Request $request, $id)
     {
         $certificate = WithholdingCertificate::findOrFail($id);
+        // tax a customer withheld stays owed by them until the certificate arrives; recording it books the tax credit
+        if ($certificate->direction === 'receivable' && $certificate->credit_status === null && $certificate->status !== WithholdingCertificate::STATUS_VOID) {
+            try {
+                $voucher = app(\App\Services\Books\WithholdingRegisterService::class)->settle($certificate, $request->input('certificate_number'), $request->input('date'), Auth::user());
+            } catch (\App\Services\Books\BooksException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return response()->json(['certificate' => $certificate->fresh(), 'voucher' => $voucher->only(['id', 'voucher_number']), 'message' => "Recorded as {$voucher->voucher_number}: the tax is now a credit we hold."], 200);
+        }
         $certificate->markReceived();
 
         return response()->json(['certificate' => $certificate->fresh()], 200);

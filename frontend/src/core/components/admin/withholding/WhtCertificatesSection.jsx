@@ -27,7 +27,7 @@ export default function WhtCertificatesSection({ canWrite }) {
   useEffect(() => { fetchCertificates(filters).catch(() => {}); }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const doReceive = async () => {
-    try { await markReceived(receiving.id); toast.success('Marked as received'); setReceiving(null); }
+    try { await markReceived(receiving.id); toast.success(receiving.direction === 'receivable' && !receiving.credit_status ? 'Recorded — the tax is now a credit we hold and the invoice is settled.' : 'Marked as received'); setReceiving(null); }
     catch (err) { toast.error(err.response?.data?.message ?? 'Could not update the certificate'); }
   };
 
@@ -44,7 +44,10 @@ export default function WhtCertificatesSection({ canWrite }) {
       key: 'actions', label: '', align: 'right',
       render: (c) => (
         c.status === 'pending' ? (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setIssuing(c); }} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }}>Mark issued</button>
+          <span style={{ display: 'inline-flex', gap: 6 }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setIssuing(c); }} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }}>Mark issued</button>
+            {c.direction === 'receivable' && !c.credit_status && <button type="button" onClick={(e) => { e.stopPropagation(); setReceiving(c); }} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }}>Certificate received</button>}
+          </span>
         ) : c.status === 'issued' ? (
           <button type="button" onClick={(e) => { e.stopPropagation(); setReceiving(c); }} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }}>Mark received</button>
         ) : null
@@ -74,7 +77,9 @@ export default function WhtCertificatesSection({ canWrite }) {
       {issuing && <MarkIssuedModal certificate={issuing} onClose={() => setIssuing(null)} />}
       {receiving && (
         <ConfirmModal title="Mark certificate received"
-          message={`You now hold the customer's withholding certificate for ${receiving.certificate_number} (${money(receiving.withheld_amount)} withheld).`}
+          message={receiving.direction === 'receivable' && !receiving.credit_status
+            ? `You now hold the customer's withholding certificate for ${receiving.certificate_number}. The ${money(receiving.withheld_amount)} they withheld stops being owed by them: it settles the invoice and becomes a tax credit we hold.`
+            : `You now hold the customer's withholding certificate for ${receiving.certificate_number} (${money(receiving.withheld_amount)} withheld).`}
           confirmLabel="Mark received" busyLabel="Saving…" busy={actionLoading}
           onConfirm={doReceive} onClose={() => setReceiving(null)} />
       )}

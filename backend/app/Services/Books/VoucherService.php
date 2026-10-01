@@ -115,6 +115,9 @@ class VoucherService
             if (! empty($voucher->meta['returned_from'])) {
                 throw new BooksException('A note made from an invoice keeps that invoice\'s prices and taxes, so it can not be edited. Cancel it and write it again with the right lines.');
             }
+            if (! empty($voucher->meta['withholding']['amount']) || ! empty($voucher->meta['withholding_settlement'])) {
+                throw new BooksException('A receipt that had tax withheld, and the entry made when the certificate arrived, can not be edited. Cancel it (the invoice opens again) and record it again.');
+            }
             if (! empty($voucher->meta['writeoff'])) {
                 throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
             }
@@ -1411,6 +1414,15 @@ class VoucherService
                 $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['withholding' => ['amount' => $withheld, 'tax_rate_id' => $data['withholding']['tax_rate_id'] ?? null, 'certificate_no' => $data['withholding']['certificate_no'] ?? null]]);
             }
             $net = round($amount - $withheld, 2);
+            // A customer's withholding stays owed by them until the certificate arrives (then WithholdingRegisterService::settle books it
+            // to the tax receivable): the receipt clears the party and the bills for what was actually paid. A payment keeps booking the
+            // tax payable at once — what we owe the authority is real the moment we hold it back.
+            $heldBack = $base === VoucherType::RECEIPT && $withheld > 0;
+            if ($heldBack) {
+                $data['allocations'] = $this->scaleAllocations($data['allocations'] ?? [], $amount, $net);
+                $plan['meta_extra']['withholding']['gross'] = $amount;
+                $amount = $net;
+            }
             if ($plan['tenders']) {
                 $plan['tenders'] = $this->finalizeTenders($plan['tenders'], $net, $plan);
                 $cash = array_map(fn ($t) => $mk((int) $t['method']->ledger_id, $cashSide, $t['amount']), $plan['tenders']);
@@ -1419,7 +1431,7 @@ class VoucherService
             } else {
                 $cash = [];
             }
-            $taxEntry = $withheld > 0 ? [$mk((int) $withLedger, $cashSide, $withheld, ['is_tax' => true, 'narration' => 'Tax withheld'])] : [];
+            $taxEntry = $withheld > 0 && ! $heldBack ? [$mk((int) $withLedger, $cashSide, $withheld, ['is_tax' => true, 'narration' => 'Tax withheld'])] : [];
             $entries = array_merge($cash, $taxEntry, [$mk($otherLedgerId, $partySide, $amount, ['is_party' => true])]);
 
             $bills = [];
@@ -1583,6 +1595,24 @@ class VoucherService
         }
 
         return [$entries, $bills, round($debit, 2)];
+    }
+
+    /** The bills a receipt settles, cut down pro rata when part of the payment was withheld (the last one takes the rounding). */
+    private function scaleAllocations(array $allocations, float $gross, float $net): array
+    {
+        if (! $allocations || $gross <= 0) {
+            return $allocations;
+        }
+        $left = $net;
+        $last = array_key_last($allocations);
+        foreach ($allocations as $k => $a) {
+            $amt = $k === $last ? $left : round((float) ($a['amount'] ?? 0) * $net / $gross, 2);
+            $amt = max(0.0, min($amt, $left));
+            $allocations[$k]['amount'] = $amt;
+            $left = round($left - $amt, 2);
+        }
+
+        return $allocations;
     }
 
     /** Withholding is worked out on the part of the payment that is before tax: the payment × (invoice subtotal ÷ invoice total), unless the amount is typed in. */

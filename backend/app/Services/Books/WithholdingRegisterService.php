@@ -44,7 +44,8 @@ class WithholdingRegisterService
             return;
         }
         $receipt = $voucher->type->base_type === VoucherType::RECEIPT;
-        $gross = round((float) $voucher->total_amount, 2);
+        // a customer's receipt carries only what was paid; the gross it settles is that plus what they withheld
+        $gross = round((float) $voucher->total_amount + ($receipt ? $withheld : 0.0), 2);
         $row = [
             'customer_id'     => $voucher->customer_id,
             'voucher_id'      => $voucher->id,
@@ -62,21 +63,90 @@ class WithholdingRegisterService
                 $this->assertUntouched($existing);
             }
             $existing->update($row + ['status' => $existing->status === WithholdingCertificate::STATUS_VOID ? WithholdingCertificate::STATUS_PENDING : $existing->status,
-                'credit_status' => $receipt ? ($existing->credit_status ?? WithholdingCredit::STATUS_HELD) : null]);
+                'credit_status' => $receipt ? $existing->credit_status : null]);
 
             return;
         }
         WithholdingCertificate::create($row + [
             'certificate_number' => ($w['certificate_no'] ?? null) ?: $this->number(),
             'status'             => WithholdingCertificate::STATUS_PENDING,
-            'credit_status'      => $receipt ? WithholdingCredit::STATUS_HELD : null,
+            'credit_status'      => null,   // a receipt's credit begins when the customer's certificate is recorded — see settle()
             'cleared_amount'     => 0,
         ]);
+    }
+
+    /**
+     * The customer's certificate has arrived: what they withheld stops being owed by them and becomes a tax credit we hold.
+     * Books a Receipt whose "bank" is the tax receivable — Dr Tax receivable, Cr the customer — against the same invoices the
+     * original receipt settled, then starts the credit (held) so it can be set against our own tax.
+     */
+    public function settle(WithholdingCertificate $cert, ?string $number, ?string $on, ?User $user): Voucher
+    {
+        return DB::transaction(function () use ($cert, $number, $on, $user) {
+            $cert = WithholdingCertificate::whereKey($cert->id)->lockForUpdate()->firstOrFail();
+            if ($cert->direction !== 'receivable') {
+                throw new BooksException('Only tax a customer withheld from us waits for a certificate this way.');
+            }
+            if ($cert->status === WithholdingCertificate::STATUS_VOID || ! $cert->voucher_id) {
+                throw new BooksException('This certificate was voided with its receipt.');
+            }
+            if ($cert->credit_status !== null) {
+                throw new BooksException('This certificate was already recorded — the tax is booked as a credit.');
+            }
+            $receipt = Voucher::findOrFail($cert->voucher_id);
+            if ($receipt->status !== Voucher::POSTED) {
+                throw new BooksException('The receipt this certificate belongs to is not live.');
+            }
+            $withheld = round((float) $cert->withheld_amount, 2);
+            $type = VoucherType::byBase(VoucherType::RECEIPT) ?? throw new BooksException('The Receipt voucher type is switched off.');
+            $receivable = $this->receivableLedger($cert);
+
+            // the same bills the receipt settled, cut down to what was withheld (the last takes the rounding)
+            $refs = DB::table('voucher_bill_refs')->where('voucher_id', $receipt->id)->where('ref_type', 'against')->orderBy('id')->get(['against_voucher_id', 'amount']);
+            $paid = round((float) $refs->sum('amount'), 2);
+            $allocs = [];
+            $left = $withheld;
+            foreach ($refs as $i => $r) {
+                $amt = $i === $refs->count() - 1 ? $left : round((float) $r->amount / max($paid, 0.01) * $withheld, 2);
+                $amt = max(0.0, min($amt, $left));
+                if ($amt > 0) {
+                    $allocs[] = ['against_voucher_id' => (int) $r->against_voucher_id, 'amount' => $amt];
+                }
+                $left = round($left - $amt, 2);
+            }
+
+            $voucher = $this->vouchers->create([
+                'voucher_type_id' => $type->id, 'date' => $on ?? now()->toDateString(), 'location_id' => $receipt->location_id,
+                'customer_id' => $receipt->customer_id, 'party_ledger_id' => $receipt->party_ledger_id,
+                'currency_id' => $cert->currency_id, 'exchange_rate' => $cert->exchange_rate ?: null,
+                'ledger_id' => $receivable, 'amount' => $withheld, 'allocations' => $allocs, 'source_voucher_id' => $receipt->id,
+                'narration' => "Withholding certificate {$cert->certificate_number} received for {$receipt->voucher_number}",
+                'meta' => ['withholding_settlement' => $cert->id],
+            ], $user);
+
+            $row = ['credit_status' => WithholdingCredit::STATUS_HELD, 'status' => WithholdingCertificate::STATUS_RECEIVED];
+            if ($number && $number !== $cert->certificate_number && ! WithholdingCertificate::where('certificate_number', $number)->exists()) {
+                $row['certificate_number'] = $number;
+            }
+            $cert->update($row);
+
+            return $voucher;
+        });
     }
 
     /** The voucher is being cancelled: its certificate is void — unless part of its credit was already cleared. */
     public function void(Voucher $voucher): void
     {
+        // the entry made when a certificate arrived is being cancelled: the tax is owed by the customer again
+        if (! empty($voucher->meta['withholding_settlement'])) {
+            $cert = WithholdingCertificate::find($voucher->meta['withholding_settlement']);
+            if ($cert) {
+                $this->assertUntouched($cert);
+                $cert->update(['credit_status' => null, 'status' => WithholdingCertificate::STATUS_PENDING]);
+            }
+
+            return;
+        }
         $cert = WithholdingCertificate::where('voucher_id', $voucher->id)->first();
         if ($cert) {
             $this->assertUntouched($cert);
@@ -167,7 +237,7 @@ class WithholdingRegisterService
         $cert->update(['cleared_amount' => $cleared, 'credit_status' => $status]);
     }
 
-    private function receivableLedger(WithholdingCredit $credit): int
+    private function receivableLedger(WithholdingCredit|WithholdingCertificate $credit): int
     {
         $rate = TaxRate::with('taxType')->find($credit->tax_rate_id);
 
