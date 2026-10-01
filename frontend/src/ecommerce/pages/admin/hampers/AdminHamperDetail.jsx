@@ -890,6 +890,34 @@ const TABS = [
   { key: 'activity',    label: 'Activity',    icon: Activity  },
 ];
 
+// ── Activity: what was done to this hamper, newest first ─────────────────────
+function ActivityTab({ hamperId }) {
+  const [logs, setLogs] = useState(null);
+  useEffect(() => {
+    let live = true;
+    hampersAPI.getHamperActivity(hamperId).then((d) => { if (live) setLogs(Array.isArray(d) ? d : d?.data ?? []); }).catch(() => { if (live) setLogs([]); });
+    return () => { live = false; };
+  }, [hamperId]);
+  const dot = { info: '#3b82f6', warning: '#f59e0b', error: '#ef4444', critical: '#ef4444' };
+  if (logs === null) return <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Loading…</p>;
+  if (!logs.length) return <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', padding: '24px 0' }}>Nothing has been recorded for this hamper yet.</p>;
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--color-border-tertiary)', borderRadius: 14, padding: '6px 20px' }}>
+      {logs.map((l) => (
+        <div key={l.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid #f3f4f6' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot[l.severity] ?? '#9ca3af', marginTop: 6, flexShrink: 0 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.85rem', color: '#111827' }}>{l.description || String(l.action ?? '').replace(/_/g, ' ')}</div>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 2 }}>
+              {l.performed_by ? `${l.performed_by} · ` : ''}{(() => { try { return format(new Date(l.created_at), 'MMM d, yyyy · h:mm a'); } catch { return ''; } })()}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminHamperDetail() {
   const { id }              = useParams();
   const navigate            = useNavigate();
