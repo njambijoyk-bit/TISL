@@ -264,7 +264,7 @@ class AuctionController extends Controller
             }
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== $auction->status) {   // the edit form sends the status as it is: only a real change needs checking
             $allowedTransitions = [
                 'scheduled' => ['active', 'cancelled'],
                 'active'    => ['ended', 'cancelled'],
