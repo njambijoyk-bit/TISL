@@ -34,6 +34,7 @@ const quotationsAPI = {
 
   // customer
   mine: () => get('/quotations'),
+  request: (data) => send('post', '/quotations', data),
   mineShow: (id) => get(`/quotations/${id}`),
   accept: (id) => send('post', `/quotations/${id}/accept`),
   decline: (id, note) => send('post', `/quotations/${id}/decline`, { note }),

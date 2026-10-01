@@ -50,6 +50,7 @@ const CUSTOMER_GROUPS = [
   {
     label: 'Actions',
     items: [
+      { name: 'Request Quote',   icon: FileSpreadsheet, bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/request-quote',     active: true },
       { name: 'Checkout',        icon: CreditCard,      bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/checkout',          active: true },
       { name: 'Report a Bug',    icon: Bug,             bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/report-bug',        active: true },
       { name: 'Track Bug',       icon: MapPin,          bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/track-bug',         active: true },

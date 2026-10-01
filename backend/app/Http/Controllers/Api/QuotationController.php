@@ -151,6 +151,24 @@ class QuotationController extends Controller
         ];
     }
 
+    /** A customer asks for prices: their list of items (item, variant, quantity) becomes a quotation waiting for the admin's prices. */
+    public function request(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'items' => 'required|array|min:1|max:100', 'items.*.product_id' => 'nullable|integer', 'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
+            'items.*.service_id' => 'nullable|integer', 'items.*.service_variant_id' => 'nullable|integer', 'items.*.quantity' => 'required|numeric|min:0.0001', 'items.*.notes' => 'nullable|string|max:500',
+            'note' => 'nullable|string|max:2000',
+        ]);
+        $customer = $request->user()->customer;
+        abort_unless($customer, 403, 'Only customers can ask for a quotation.');
+
+        return $this->guard(function () use ($request, $data, $customer) {
+            $v = $this->quotes->request($customer, $data['items'], $data['note'] ?? null, $request->user());
+
+            return response()->json(['message' => "{$v->voucher_number} sent — we'll price it and let you know", 'data' => ['id' => $v->id, 'number' => $v->voucher_number]], 201);
+        });
+    }
+
     public function myIndex(Request $request): JsonResponse
     {
         $customerId = $request->user()->customer?->id;

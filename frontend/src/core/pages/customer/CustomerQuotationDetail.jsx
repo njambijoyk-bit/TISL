@@ -65,9 +65,9 @@ export default function CustomerQuotationDetail() {
                   <td style={{ textAlign: 'right' }}>{l.pending_price ? '—' : formatMoney(l.amount, cur)}</td>
                 </tr>
               ))}
-              {q.charges.map((c, i) => <tr key={`c${i}`} style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={3}>{c.description}</td><td style={{ textAlign: 'right' }}>{formatMoney(c.amount, cur)}</td></tr>)}
-              {q.tax_total > 0 && <tr style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={3}>Tax</td><td style={{ textAlign: 'right' }}>{formatMoney(q.tax_total, cur)}</td></tr>}
-              <tr style={{ borderTop: '2px solid #e5e7eb', fontWeight: 800 }}><td style={{ padding: 8 }} colSpan={3}>Total</td><td style={{ textAlign: 'right' }}>{formatMoney(q.total, cur)}</td></tr>
+              {q.doc_status !== 'requested' && q.charges.map((c, i) => <tr key={`c${i}`} style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={3}>{c.description}</td><td style={{ textAlign: 'right' }}>{formatMoney(c.amount, cur)}</td></tr>)}
+              {q.doc_status !== 'requested' && q.tax_total > 0 && <tr style={{ borderTop: '1px solid #f3f4f6' }}><td style={{ padding: 8 }} colSpan={3}>Tax</td><td style={{ textAlign: 'right' }}>{formatMoney(q.tax_total, cur)}</td></tr>}
+              {q.doc_status !== 'requested' && <tr style={{ borderTop: '2px solid #e5e7eb', fontWeight: 800 }}><td style={{ padding: 8 }} colSpan={3}>Total</td><td style={{ textAlign: 'right' }}>{formatMoney(q.total, cur)}</td></tr>}
             </tbody>
           </table>
         </div>

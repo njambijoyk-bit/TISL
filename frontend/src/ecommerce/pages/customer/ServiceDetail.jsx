@@ -20,6 +20,7 @@ import {
   Heart,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
+import useRequestListStore from '../../../_shared/store/requestListStore';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 import useServicePackages from '../../components/storefront/services/useServicePackages';
 import ServicePackagePicker from '../../components/storefront/services/ServicePackagePicker';
@@ -81,6 +82,11 @@ const ServiceDetail = () => {
   const fmtDisp = (n) => formatMoney(n ?? 0, dispCode, { decimals: 'auto' });
   const { hasService, toggleService } = useWishlistStore();
   const saved = currentService?.id ? hasService(currentService.id) : false;
+  const addToRequest = useRequestListStore((s) => s.add);
+  const handleRequestQuote = () => {
+    addToRequest({ kind: 'service', service_id: currentService.id, service_variant_id: pkg?.id ?? null, name: currentService.name, variant_label: pkg ? (picker.label || pkg.name) : null, unit_code: null, quantity: 1 });
+    toast.success(`${currentService?.name} added to your quote request`, { action: { label: 'View', onClick: () => navigate('/request-quote') } });
+  };
   const trimNum = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const pkgDuration = pkg?.duration_value
     ? `${trimNum(pkg.duration_value)} ${(pkg.duration_unit?.name ?? '').toLowerCase()}${pkg.duration_value > 1 && pkg.duration_unit ? 's' : ''}`.trim()
@@ -393,6 +399,13 @@ const ServiceDetail = () => {
 
               {/* CTA buttons */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button" onClick={handleRequestQuote}
+                  style={{ flex: '1 1 160px', height: 50, borderRadius: 12, cursor: 'pointer', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', border: 'none', color: '#ffffff', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, letterSpacing: '0.04em' }}
+                >
+                  <FileText size={16} /> Request a quote
+                </button>
+
                 <button
                   type="button"
                   onClick={() => { toggleService(service.id); toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist'); }}

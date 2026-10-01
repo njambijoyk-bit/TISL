@@ -33,6 +33,7 @@ import CollapsedProductCard from '../../components/storefront/products/Collapsed
 import ReviewCard from '../../components/storefront/products/ReviewCard';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
+import useRequestListStore from '../../../_shared/store/requestListStore';
 
 import { productsAPI } from '../../../_shared/api/index';
 import { useCartStore, useProductStore, useAuthStore } from '../../../_shared/store/index';
@@ -297,6 +298,15 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
+  const addToRequest = useRequestListStore((s) => s.add);
+  const handleRequestQuote = () => {
+    if (hasStructured && !choice) { toast.error('Please choose from the available options'); return; }
+    addToRequest({
+      kind: 'product', product_id: product.id, variant_id: choice?.variant.id ?? null, variant_unit_id: choice?.unit.id ?? null,
+      name: product.name, variant_label: choice ? (choice.variant.name || choice.label) : null, unit_code: choice?.unit.unit?.code ?? null, quantity,
+    });
+    toast.success(`${product?.name} added to your quote request`, { action: { label: 'View', onClick: () => navigate('/request-quote') } });
+  };
   const handleToggleWishlist = (e) => {
     e.stopPropagation();
     if (!product?.id) return;
@@ -964,6 +974,15 @@ export default function ProductDetail() {
                         </button>
                       )}
 
+                      <button onClick={handleRequestQuote} type="button" title="Add to your quote request"
+                        style={{
+                          ...(isPriceNegotiable ? { flex: '1 1 130px' } : { flex: '1 1 130px' }),
+                          height: 50, borderRadius: 12, cursor: 'pointer', background: 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em',
+                          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', color: 'var(--color-primary-500)',
+                        }}>
+                        <FileText size={16} /> Request a quote
+                      </button>
                     </div>
                   );
                 })()}

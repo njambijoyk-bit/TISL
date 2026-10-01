@@ -650,6 +650,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Quotations (Customer) — priced quotes for a request, accept / decline / ask for changes
         Route::prefix('quotations')->group(function () {
             Route::get('/', [QuotationController::class, 'myIndex']);
+            Route::post('/', [QuotationController::class, 'request']);
             Route::get('/{id}', [QuotationController::class, 'myShow']);
             Route::post('/{id}/accept', [QuotationController::class, 'accept']);
             Route::post('/{id}/decline', [QuotationController::class, 'decline']);

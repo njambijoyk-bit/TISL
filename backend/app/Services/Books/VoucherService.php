@@ -741,6 +741,16 @@ class VoucherService
             if (! $lines) {
                 throw new BooksException('Add at least one line.');
             }
+            if ($type->base_type === VoucherType::QUOTATION && ! empty($data['as_request'])) {
+                // a customer's request for a quotation: every line waits for the admin's price
+                foreach ($lines as &$rl) {
+                    $rl['pending_price'] = true;
+                    foreach ($rl['children'] ?? [] as $ck => $_) {
+                        $rl['children'][$ck]['pending_price'] = true;
+                    }
+                }
+                unset($rl);
+            }
             $plan['lines'] = $lines;
             [$plan['subtotal'], $plan['tax_total']] = $this->totals($lines);
             $plan['total'] = round($plan['subtotal'] + $plan['tax_total'], 2);

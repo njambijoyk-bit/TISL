@@ -3,6 +3,7 @@
 namespace App\Services\Books;
 
 use App\Models\Books\AccountingSetting;
+use App\Models\Customer;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Notification;
@@ -22,6 +23,53 @@ class QuotationService
     public function validDays(): int
     {
         return (int) (AccountingSetting::current()->quotation_valid_days ?: 14);
+    }
+
+    /**
+     * A customer asks for prices: item, variant and quantity per line, nothing priced. It becomes a Quotation voucher
+     * in "requested" — the admin prices it and sends it.
+     *
+     * @param  array  $items  [{product_id?, variant_id?, variant_unit_id?, service_id?, service_variant_id?, quantity, notes?}]
+     */
+    public function request(Customer $customer, array $items, ?string $note = null, ?User $user = null): Voucher
+    {
+        $type = VoucherType::byBase(VoucherType::QUOTATION) ?? throw new BooksException('Quotations are switched off.');
+        $lines = [];
+        foreach ($items as $it) {
+            $qty = max(0.0001, (float) ($it['quantity'] ?? 1));
+            $notes = filled($it['notes'] ?? null) ? trim((string) $it['notes']) : null;
+            if (! empty($it['service_variant_id']) || ! empty($it['service_id'])) {
+                $pkg = $it['service_variant_id'] ?? Service::find($it['service_id'])?->variants()->orderByDesc('is_default')->value('id');
+                if (! $pkg) {
+                    throw new BooksException('Pick a service package for each service.');
+                }
+                $lines[] = ['type' => 'service', 'service_id' => $it['service_id'] ?? null, 'service_variant_id' => $pkg, 'quantity' => $qty, 'rate' => 0, 'notes' => $notes];
+            } else {
+                $lines[] = ['type' => 'product', 'product_id' => $it['product_id'] ?? null, 'variant_id' => $it['variant_id'] ?? null, 'variant_unit_id' => $it['variant_unit_id'] ?? null, 'quantity' => $qty, 'rate' => 0, 'notes' => $notes];
+            }
+        }
+        if (! $lines) {
+            throw new BooksException('Add at least one item to ask for a quotation.');
+        }
+        $v = $this->vouchers->create([
+            'voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'customer_id' => $customer->id, 'currency_id' => $customer->currency_id,
+            'lines' => $lines, 'doc_status' => 'requested', 'channel' => 'storefront', 'as_request' => true, 'narration' => $note ?: null,
+        ], $user);
+        $this->notifyAdmins($v, $customer);
+
+        return $v;
+    }
+
+    private function notifyAdmins(Voucher $q, Customer $customer): void
+    {
+        try {
+            $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'A customer';
+            foreach (User::whereIn('role', ['super_admin', 'admin'])->get() as $admin) {
+                Notification::createFor($admin, 'quotation_requested', 'New quotation request', "{$name} asked for prices — {$q->voucher_number}.", '/admin/quotes/' . $q->id, 'Price it', ['voucher_id' => $q->id], ['database'], 'normal');
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** The admin has priced it: it goes to the customer and stays valid for N days. */

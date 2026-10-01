@@ -16,6 +16,7 @@ import LocationPicker from '../common/LocationPicker';
 import CurrencyToggle from '../common/currency/CurrencyToggle';
 import SmartSearchBox from '../common/SmartSearchBox';
 import { useAuthStore, useCartStore } from '../../store/index';
+import useRequestListStore from '../../store/requestListStore';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
 import useNavStore from '../../store/navStore';
@@ -214,6 +215,7 @@ export default function Header() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navPosition = 'fixed';
   const { items: cartItems } = useCartStore();
+  const requestCount = useRequestListStore((s) => s.items.length);
   const { ids: wishlistIds, serviceIds: wishlistServiceIds } = useWishlistStore();
 
   // Storefront nav (admin-controlled, per active module).
@@ -657,6 +659,15 @@ export default function Header() {
               <Heart size={17} />
               {wishlistCount > 0 && <Badge count={wishlistCount} />}
             </Link>
+            )}
+
+            {/* Quote request list */}
+            {requestCount > 0 && (
+              <Link to="/request-quote" onClick={audio.playIconAction} onMouseEnter={audio.playHover} style={{ position: 'relative', width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: navColor, textDecoration: 'none' }}
+                className="dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" title="Quote request">
+                <FileText size={17} />
+                <Badge count={requestCount} />
+              </Link>
             )}
 
             {/* Cart */}

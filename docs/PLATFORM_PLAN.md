@@ -1244,3 +1244,8 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
 - **Not yet:** a credit note against a cash sale, or a debit note against a cash purchase (no customer/supplier account to credit) — write them without an invoice for now. A note made from an invoice cannot be edited (cancel and write again). Credit / debit notes without an invoice still work as before.
 - **Endpoints:** `GET /admin/books/vouchers/{id}/returnable`, `POST /admin/books/vouchers/{id}/return`.
 
+### 28.16 Customer: request a quote (1 Oct 2026)
+- **Request a quote** button on product and service pages adds the item (name, variant, quantity) to a list kept in the browser; a header icon counts it. The list page `/request-quote` shows **Name · Variant · Qty** (quantity editable, remove), an optional note, and **Send request** (asks the visitor to sign in first; the list waits).
+- **Sending** creates a **Quotation voucher** in `requested` (`POST /quotations`): every line is unpriced (`pending_price`), nothing posts, no stock moves. Admins get a notification and see it under Quotes; **Price it** opens the price form, **Send** is refused until every line has a price. The customer sees "to be confirmed" on each line and no totals until it is sent.
+- Then the existing flow: accept → Sales Order, decline, ask for changes.
+
