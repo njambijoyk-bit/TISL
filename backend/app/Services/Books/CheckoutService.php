@@ -244,9 +244,11 @@ class CheckoutService
         $a = $this->assemble($in, $user);
         $p = $this->vouchers->preview($a['data'], null);
 
-        $gifts = $this->giftApplications($this->giftCodes($in), (float) $p['total'], $a['currency'], $a['customer']);
+        $held = app(HamperEditionService::class)->restrictedFromLines($p['lines'] ?? [], 'allow_store_credit');   // hampers that do not accept gift vouchers
+        $gifts = $this->giftApplications($this->giftCodes($in), max(0.0, round((float) $p['total'] - $held, 2)), $a['currency'], $a['customer']);
         $applied = round(array_sum(array_column($gifts, 'applied')), 2);
-        $gift = $gifts ? ['code' => implode(', ', array_column($gifts, 'code')), 'applied' => $applied, 'vouchers' => $gifts] : null;
+        $gift = $gifts ? ['code' => implode(', ', array_column($gifts, 'code')), 'applied' => $applied, 'vouchers' => $gifts,
+            'note' => $held > 0 ? 'A hamper in your order does not accept gift vouchers, so they cover the rest only.' : null] : null;
 
         return [
             'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
@@ -417,7 +419,8 @@ class CheckoutService
             $tenders = [];
             if ($codes = $this->giftCodes($in)) {
                 $giftMethod = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first() ?? throw new BooksException('Gift vouchers are not set up yet (payment method missing).');
-                foreach ($this->giftApplications($codes, $total, $a['currency'], $customer) as $g) {
+                $held = app(HamperEditionService::class)->restrictedOn($order, 'allow_store_credit');
+                foreach ($this->giftApplications($codes, max(0.0, round($total - $held, 2)), $a['currency'], $customer) as $g) {
                     if ($g['applied'] <= 0) {
                         continue;
                     }

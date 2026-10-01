@@ -559,7 +559,8 @@ class VoucherService
             throw new BooksException('Gift vouchers are not set up yet (payment method missing).');
         }
         [$sub, $tax] = $this->totals($lines);
-        $left = round($sub + $tax, 2);
+        $whole = round($sub + $tax, 2);
+        $left = round($whole - app(HamperEditionService::class)->restrictedFromLines($lines, 'allow_store_credit'), 2);   // hampers that do not take gift vouchers are left to the other payment
         $currency = $this->money->currencyFrom($source->currency_id);
         $tenders = [];
         foreach ($codes as $code) {
@@ -571,8 +572,9 @@ class VoucherService
             $tenders[] = ['payment_method_id' => $method->id, 'amount' => $use, 'gift_voucher_code' => $gv->code];
             $left = round($left - $use, 2);
         }
-        if ($tenders && $left > 0.004 && ! empty($opts['payment_method_id'])) {
-            $tenders[] = ['payment_method_id' => (int) $opts['payment_method_id'], 'amount' => $left];
+        $rest = round($whole - array_sum(array_column($tenders, 'amount')), 2);
+        if ($tenders && $rest > 0.004 && ! empty($opts['payment_method_id'])) {
+            $tenders[] = ['payment_method_id' => (int) $opts['payment_method_id'], 'amount' => $rest];
         }
 
         return $tenders ?: null;
@@ -1687,6 +1689,12 @@ class VoucherService
         if (abs($sum - $total) > 0.005) {
             throw new BooksException('The payments add up to ' . number_format($sum, 2) . ' but ' . number_format($total, 2) . ' is due.');
         }
+        // a hamper can be set not to take gift vouchers: they can cover the rest of the sale only
+        $giftCap = round($total - app(HamperEditionService::class)->restrictedFromLines($plan['lines'] ?? [], 'allow_store_credit'), 2);
+        $giftSum = round(array_sum(array_map(fn ($t) => $t['gift'] ? $t['amount'] : 0, $tenders)), 2);
+        if ($giftSum > $giftCap + 0.005) {
+            throw new BooksException('A hamper in this sale does not accept gift vouchers: at most ' . number_format(max(0, $giftCap), 2) . ' of it can be paid with one.');
+        }
         foreach ($tenders as &$t) {
             if ($t['amount'] <= 0) {
                 throw new BooksException('Every payment needs an amount above zero.');
@@ -2595,7 +2603,7 @@ class VoucherService
     private function describe(array $plan): array
     {
         $flat = fn (array $l) => [
-            'item_type' => $l['item_type'], 'is_header' => $l['is_header'], 'description' => $l['description'], 'variant_label' => $l['variant_label'],
+            'item_type' => $l['item_type'], 'is_header' => $l['is_header'], 'hamper_id' => $l['hamper_id'] ?? null, 'description' => $l['description'], 'variant_label' => $l['variant_label'],
             'sku' => $l['sku'], 'unit_code' => $l['unit_code'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'discount_amount' => $l['discount_amount'],
             'amount' => $l['amount'], 'tax_rate_percent' => $l['tax_rate_percent'], 'tax_amount' => $l['tax_amount'],
             'material_mode' => $l['material_mode'] ?? null,

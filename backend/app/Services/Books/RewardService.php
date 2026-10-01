@@ -52,12 +52,31 @@ class RewardService
             $paid = max(0.0, (float) $v->base_total - $giftSold - $giftPaid);
             $countOrder = $base === VoucherType::CASH_SALE;
 
-            $points = $this->earnPoints($v, $customer, $paid);
+            // a hamper can be set not to earn points: what was paid towards it earns none
+            $hampers = app(HamperEditionService::class);
+            $noPoints = $base === VoucherType::CASH_SALE
+                ? $hampers->restrictedOn($v, 'earn_loyalty_points') * $rate
+                : $this->receiptOnNoPointHampers($v, $hampers) * $rate;
+            $points = $this->earnPoints($v, $customer, max(0.0, $paid - $noPoints));
             $this->recordStats($customer, $paid, $countOrder);
             $this->completeReferral($v, $customer);
 
             $v->update(['meta' => array_merge($v->meta ?? [], ['rewarded_at' => now()->toIso8601String(), 'points_earned' => $points, 'spend_counted' => $paid, 'order_counted' => $countOrder])]);
         });
+    }
+
+    /** The part of a receipt that settled invoices, spread by how much of each invoice is hampers that earn no points (voucher currency). */
+    private function receiptOnNoPointHampers(Voucher $receipt, HamperEditionService $hampers): float
+    {
+        $sum = 0.0;
+        foreach (DB::table('voucher_bill_refs')->where('voucher_id', $receipt->id)->where('ref_type', 'against')->get(['against_voucher_id', 'amount']) as $r) {
+            $inv = Voucher::find($r->against_voucher_id);
+            if ($inv && (float) $inv->total_amount > 0) {
+                $sum += (float) $r->amount * min(1.0, $hampers->restrictedOn($inv, 'earn_loyalty_points') / (float) $inv->total_amount);
+            }
+        }
+
+        return $sum;
     }
 
     /** An Invoice counts as an order when it is posted (it earns nothing itself: its receipts do). */

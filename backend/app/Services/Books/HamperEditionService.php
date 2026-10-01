@@ -86,6 +86,36 @@ class HamperEditionService
         }
     }
 
+    /**
+     * What the hampers in a sale that do NOT take a thing add up to (price + tax): $flag is one of
+     * allow_store_credit (gift vouchers), earn_loyalty_points. Hampers are never discounted, so promo codes never reach them.
+     */
+    public function restrictedFromLines(array $lines, string $flag): float
+    {
+        $sum = 0.0;
+        $ok = [];
+        foreach ($lines as $l) {
+            if (empty($l['is_header']) || empty($l['hamper_id'])) {
+                continue;
+            }
+            $id = (int) $l['hamper_id'];
+            $ok[$id] ??= (bool) (Hamper::whereKey($id)->value($flag) ?? true);
+            if (! $ok[$id]) {
+                $sum += (float) ($l['amount'] ?? 0) + (float) ($l['tax_amount'] ?? 0);
+            }
+        }
+
+        return round($sum, 2);
+    }
+
+    /** The same for a saved voucher. */
+    public function restrictedOn(Voucher $v, string $flag): float
+    {
+        $rows = DB::table('voucher_items')->where('voucher_id', $v->id)->where('is_header', true)->whereNotNull('hamper_id')->get(['hamper_id', 'amount', 'tax_amount']);
+
+        return $this->restrictedFromLines($rows->map(fn ($r) => ['is_header' => true, 'hamper_id' => $r->hamper_id, 'amount' => $r->amount, 'tax_amount' => $r->tax_amount])->all(), $flag);
+    }
+
     /** Hamper ids a voucher carries. */
     public function idsOn(Voucher $v): array
     {
