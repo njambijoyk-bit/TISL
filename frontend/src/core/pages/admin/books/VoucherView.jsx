@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -180,6 +180,7 @@ export default function VoucherView() {
   if (!v) return <AdminLayout><div style={{ padding: 32, color: colors.textMuted }}>Loading…</div></AdminLayout>;
 
   const base = v.type.base_type;
+  if (base === 'quotation') return <Navigate to={`/admin/quotes/${v.id}`} replace />;   // quotations have their own page: price it, send it
   const live = v.status === 'posted';
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
   const refundable = live && base === 'credit_note' && Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0) > 0.005;
