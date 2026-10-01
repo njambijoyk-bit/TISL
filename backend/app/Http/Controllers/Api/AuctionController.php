@@ -552,6 +552,24 @@ class AuctionController extends Controller
         );
     }
 
+    /** End an active auction now: the highest bid wins if there is one and it meets the reserve (the same as when its time runs out). */
+    public function closeNow(Request $request, $id)
+    {
+        $a = Auction::findOrFail($id);
+        if ($a->status !== 'active') {
+            return response()->json(['message' => 'Only an active auction can be ended.'], 422);
+        }
+        $highest = $a->bids()->orderByDesc('amount')->first();
+        if ($highest && (! $a->reserve_price || (float) $highest->amount >= (float) $a->reserve_price)) {
+            $a->update(['status' => 'ended', 'winner_id' => $highest->bidder_id, 'end_time' => min($a->end_time, now())]);
+
+            return response()->json(['message' => 'Auction ended — the highest bidder won. You can now create their invoice.']);
+        }
+        $a->update(['status' => $highest ? 'failed' : 'ended', 'end_time' => min($a->end_time, now())]);
+
+        return response()->json(['message' => $highest ? 'Auction ended — the reserve price was not met, so there is no winner.' : 'Auction ended with no bids.']);
+    }
+
     /**
      * Turn a won auction into the winner's order and invoice: the winning bid and each charge due on winning, each on its own
      * account with its own tax, charged to the winner's account. Deposits are then released to their owners; the winner's

@@ -112,6 +112,12 @@ const auctionsAPI = {
     return response.data;
   },
 
+  // Admin: end an active auction now (the highest bid wins if it meets the reserve)
+  closeAuction: async (auctionId) => {
+    const response = await api.post(`/admin/auctions/${auctionId}/close`);
+    return response.data;
+  },
+
   // Admin: Auction activity log
   getAuctionActivity: async (auctionId, params = {}) => {
     const response = await api.get(`/admin/auctions/${auctionId}/activity`, { params });

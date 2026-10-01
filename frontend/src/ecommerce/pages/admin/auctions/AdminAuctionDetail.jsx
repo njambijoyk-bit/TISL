@@ -244,6 +244,17 @@ export default function AdminAuctionDetail() {
     }
   };
 
+  const handleCloseNow = async () => {
+    if (!window.confirm('End this auction now? The highest bid wins (if it meets the reserve) and you can then create the winner\'s invoice.')) return;
+    try {
+      const res = await auctionsAPI.closeAuction(id);
+      toast.success(res.message, { duration: 6000 });
+      fetchAuction();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not end the auction');
+    }
+  };
+
   const handleCreateOrder = async () => {
     if (!window.confirm('Create the winner\'s invoice? It has the winning bid and the charges added on winning, is charged to their account, and their deposit is set against it.')) return;
     try {
@@ -321,6 +332,12 @@ export default function AdminAuctionDetail() {
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
                   <Edit size={14} /> Edit
                 </button>
+                {auction.status === 'active' && (
+                  <button onClick={handleCloseNow}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid rgba(5,150,105,0.4)', borderRadius: 10, background: 'rgba(5,150,105,0.06)', color: '#059669', fontWeight: 700, fontSize: '0.825rem', cursor: 'pointer' }}>
+                    End auction now
+                  </button>
+                )}
                 {auction.status === 'active' && (
                   <button onClick={handleCancelStatus}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid rgba(234,88,12,0.4)', borderRadius: 10, background: 'rgba(234,88,12,0.06)', color: '#ea580c', fontWeight: 700, fontSize: '0.825rem', cursor: 'pointer' }}>
