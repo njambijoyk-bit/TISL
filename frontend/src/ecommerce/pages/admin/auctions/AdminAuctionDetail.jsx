@@ -8,7 +8,7 @@ import {
   CreditCard, Truck, XCircle, Activity, Settings,
   CheckCircle, Plus, Minus, ShoppingCart, ChevronDown,
   ChevronUp, Ban, RotateCcw, FileText, Send, DollarSign,
-  MapPin, Phone, Mail
+  MapPin, Phone, Mail, Tag
 } from 'lucide-react';
 import auctionsAPI from '../../../../_shared/api/auctions';
 import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChargesEditor';
@@ -37,6 +37,13 @@ const statusConfig = {
   cancelled: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
   failed:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
 };
+
+const CHARGE_KIND = {
+  buyer_premium: "Buyer's premium", entry_fee: 'Entry fee', deposit: 'Deposit', delivery: 'Delivery', handling: 'Handling',
+  storage: 'Storage', removal: 'Removal', payment: 'Payment fee', customs: 'Customs', other: 'Charge',
+};
+const CHARGE_DUE = { entry: 'To take part', deposit: 'Held as deposit', on_win: 'Added on winning', after_win: 'After winning' };
+const CHARGE_TAX = { taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'No tax' };
 
 const StatusBadge = ({ status }) => {
   const s = statusConfig[status] ?? statusConfig.ended;
@@ -151,6 +158,7 @@ export default function AdminAuctionDetail() {
   useEffect(() => { if (!adminCurrencies.length) fetchAdminCurrencies().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [stats, setStats] = useState({});
   const [registrations, setRegistrations] = useState([]);
+  const [charges, setCharges] = useState([]);   // the charges this auction carries, as saved
   const [releasing, setReleasing] = useState(false);
   const [activityLogs] = useState([]);
 
@@ -160,6 +168,7 @@ export default function AdminAuctionDetail() {
       const data = await auctionsAPI.getAdminAuction(id);
       setAuction(data.auction);
       setStats(data.stats);
+      setCharges(data.charges ?? []);
       auctionsAPI.listRegistrations(id).then(setRegistrations).catch(() => setRegistrations([]));
       setForm({
         currency_id: data.auction.currency_id ?? data.auction.currency?.id ?? '',
@@ -483,6 +492,50 @@ export default function AdminAuctionDetail() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* ── Charges this auction carries (the ticked ones) ── */}
+        {!editing && (
+          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Tag size={16} style={{ color: 'var(--color-primary-500)' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Charges on this auction</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>{charges.filter((c) => c.is_enabled).length} ticked</span>
+            </div>
+            {charges.filter((c) => c.is_enabled).length === 0 ? (
+              <p style={{ margin: 0, padding: '18px 20px', fontSize: '0.8rem', color: '#9ca3af' }}>No other charges are ticked — the winner pays the winning bid{auction.tax_info ? ' plus tax' : ''} only.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {['Charge', 'Charged', 'Amount', 'Limits', 'Tax'].map((h, i) => <th key={h} style={{ padding: '8px 16px', textAlign: i === 2 ? 'right' : 'left' }}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {charges.filter((c) => c.is_enabled).map((c) => {
+                      const kind = (c.ledger?.settings ?? {}).charge_kind;
+                      const amount = Number(c.amount);
+                      const how = c.basis === 'percent' ? `${amount}% of the winning bid` : c.basis === 'per_day' ? `${auctionSymbol} ${amount}/day` : `${auctionSymbol} ${amount}`;
+                      const limits = [c.min_amount != null && Number(c.min_amount) > 0 ? `min ${Number(c.min_amount)}` : null, c.max_amount != null && Number(c.max_amount) > 0 ? `max ${Number(c.max_amount)}` : null, c.basis === 'per_day' && c.free_days ? `first ${c.free_days} days free` : null].filter(Boolean).join(' · ');
+                      return (
+                        <tr key={c.id ?? c.ledger_id} style={{ borderTop: '1px solid #f3f4f6', fontSize: '0.82rem' }}>
+                          <td style={{ padding: '10px 16px' }}>
+                            <strong style={{ color: '#111827' }}>{c.ledger?.name ?? `Account ${c.ledger_id}`}</strong>
+                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{CHARGE_KIND[kind] ?? 'Charge'}{c.refundable ? ' · refundable' : ''}</div>
+                          </td>
+                          <td style={{ padding: '10px 16px' }}>{CHARGE_DUE[c.timing] ?? c.timing}</td>
+                          <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{how}</td>
+                          <td style={{ padding: '10px 16px', color: '#6b7280' }}>{limits || '—'}</td>
+                          <td style={{ padding: '10px 16px', color: '#6b7280' }}>{CHARGE_TAX[c.ledger?.tax_nature] ?? '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
