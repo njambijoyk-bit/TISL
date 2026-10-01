@@ -150,6 +150,7 @@ const CashPage           = lazy(() => import('./core/pages/admin/books/CashPage'
 const ChequeRegister     = lazy(() => import('./core/pages/admin/books/ChequeRegister'));
 const EditLog            = lazy(() => import('./core/pages/admin/books/EditLog'));
 const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherView'));
+const ReturnFromInvoice  = lazy(() => import('./core/pages/admin/books/ReturnFromInvoice'));
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
@@ -1486,6 +1487,7 @@ function App() {
               <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><CashPage /></ProtectedRoute>} />
               <Route path="/admin/books/cheques" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ChequeRegister /></ProtectedRoute>} />
               <Route path="/admin/books/edit-log" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><EditLog /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id/return" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><ReturnFromInvoice /></ProtectedRoute>} />
               <Route path="/admin/books/vouchers/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
               {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
               <Route

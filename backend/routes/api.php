@@ -487,6 +487,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/customers/{customerId}/credits', [BooksVoucherController::class, 'customerCredits'])->whereNumber('customerId');
             Route::get('/ledgers/{ledgerId}/open-bills', [BooksVoucherController::class, 'openBills'])->whereNumber('ledgerId');
         Route::get('/vouchers/{id}/versions', [BooksVoucherController::class, 'versions'])->whereNumber('id');
+        Route::get('/vouchers/{id}/returnable', [BooksVoucherController::class, 'returnable'])->whereNumber('id');
         Route::get('/vouchers/check-supplier-invoice', [BooksVoucherController::class, 'checkSupplierInvoice']);
         Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
@@ -519,6 +520,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
             Route::post('/vouchers/{id}/refund-to-gift-voucher', [BooksVoucherController::class, 'refundToGiftVoucher']);
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
+            Route::post('/vouchers/{id}/return',    [BooksVoucherController::class, 'createReturn'])->whereNumber('id');
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
             Route::post('/cash/count', [BooksVoucherController::class, 'cashCount']);
             Route::post('/cash/hand-in', [BooksVoucherController::class, 'cashHandIn']);

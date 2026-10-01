@@ -112,6 +112,9 @@ class VoucherService
             if (! empty($voucher->meta['bounce'])) {
                 throw new BooksException('A bounced-cheque entry can not be edited. Cancel it in the cheque register (the cheque goes back to how it was) and bounce it again.');
             }
+            if (! empty($voucher->meta['returned_from'])) {
+                throw new BooksException('A note made from an invoice keeps that invoice\'s prices and taxes, so it can not be edited. Cancel it and write it again with the right lines.');
+            }
             if (! empty($voucher->meta['writeoff'])) {
                 throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
             }
@@ -182,6 +185,187 @@ class VoucherService
             $this->undoRewards($voucher);
 
             return $voucher->load($this->relations());
+        });
+    }
+
+    // ── returns: credit note / debit note against an invoice ─────────────
+
+    /** The note a document is reversed with: a sales invoice by a credit note, a purchase by a debit note. */
+    private function returnBase(Voucher $source): string
+    {
+        $source->loadMissing('type');
+        $base = $source->type->base_type;
+        if (! in_array($base, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
+            throw new BooksException('A credit note is made against a sales invoice and a debit note against a purchase. (For a cash sale or a cash purchase, write a credit / debit note without an invoice for now.)');
+        }
+        if ($source->status !== Voucher::POSTED) {
+            throw new BooksException('Only a live invoice can be credited.');
+        }
+        if (! $source->party_ledger_id) {
+            throw new BooksException("{$source->voucher_number} has no customer or supplier account, so a note can not be written against it.");
+        }
+
+        return $base === VoucherType::SALES ? VoucherType::CREDIT_NOTE : VoucherType::DEBIT_NOTE;
+    }
+
+    /** How much (net amount) of each top line of the document earlier live notes already reversed. @return array<int, float> */
+    private function reversedAmounts(Voucher $source): array
+    {
+        return DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')
+            ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
+            ->where('v.source_voucher_id', $source->id)->where('v.status', Voucher::POSTED)
+            ->whereIn('t.base_type', [VoucherType::CREDIT_NOTE, VoucherType::DEBIT_NOTE])
+            ->whereNotNull('i.source_item_id')->whereNull('i.parent_item_id')
+            ->groupBy('i.source_item_id')->selectRaw('i.source_item_id as id, SUM(ABS(i.amount)) as amt')
+            ->pluck('amt', 'id')->map(fn ($v) => (float) $v)->all();
+    }
+
+    /**
+     * What can still be reversed on an invoice, line by line: the quantity and amount sold, what earlier notes
+     * took back, and what is left. Charges (delivery, discounts) are lines too.
+     */
+    public function returnable(Voucher $source): array
+    {
+        $noteBase = $this->returnBase($source);
+        $items = $source->items()->with('taxes')->get();
+        $done = $this->reversedAmounts($source);
+        $lines = [];
+        foreach ($items->whereNull('parent_item_id') as $it) {
+            if ($it->notes === self::ROUNDING_NOTE) {
+                continue;
+            }
+            $kids = $items->where('parent_item_id', $it->id);
+            $amount = round(abs((float) ($it->is_header ? $kids->sum('amount') : $it->amount)), 2);
+            $tax = round((float) ($it->is_header ? $kids->sum('tax_amount') : $it->tax_amount), 2);
+            $reversed = round($done[$it->id] ?? 0.0, 2);
+            $left = max(0.0, round($amount - $reversed, 2));
+            $share = $amount > 0 ? $left / $amount : ($reversed > 0 ? 0.0 : 1.0);
+            $qty = (float) $it->quantity;
+            $isCharge = $it->item_type === 'charge';
+            $lines[] = [
+                'id' => $it->id, 'item_type' => $it->item_type, 'description' => $it->description, 'variant_label' => $it->variant_label, 'unit_code' => $it->unit_code,
+                'is_header' => (bool) $it->is_header, 'is_charge' => $isCharge, 'negative' => (float) ($it->is_header ? $kids->sum('amount') : $it->amount) < 0,
+                'quantity' => $qty, 'rate' => (float) $it->rate, 'amount' => $amount, 'tax_amount' => $tax, 'tax_percent' => $it->tax_rate_percent !== null ? (float) $it->tax_rate_percent : null,
+                'reversed_amount' => $reversed, 'available_amount' => $left, 'available_quantity' => round($qty * $share, 4),
+                'reversed_quantity' => round($qty - $qty * $share, 4),
+                'can_return_stock' => ! $isCharge && ! $it->is_header && (bool) $it->variant_id && $it->item_type === 'product',
+            ];
+        }
+
+        return ['source' => ['id' => $source->id, 'voucher_number' => $source->voucher_number, 'date' => $source->date?->toDateString(), 'party' => $source->partyLedger?->name, 'total' => (float) $source->total_amount],
+            'note_base' => $noteBase, 'lines' => $lines];
+    }
+
+    /**
+     * Write the credit / debit note against an invoice. The lines come from the invoice — its prices, discounts and taxes at
+     * the original rates — and only what is picked is reversed.
+     *
+     * @param  array  $opts  lines: [{item_id, mode: return|adjust|writeoff, quantity?, amount?}], date, narration, reference_no, reason
+     */
+    public function createReturn(Voucher $source, array $opts, ?User $user = null): Voucher
+    {
+        $noteBase = $this->returnBase($source);
+        $type = VoucherType::byBase($noteBase) ?? throw new BooksException('That voucher type is switched off.');
+        $picked = collect($opts['lines'] ?? [])->keyBy(fn ($l) => (int) ($l['item_id'] ?? 0));
+        if ($picked->isEmpty()) {
+            throw new BooksException('Pick at least one line to reverse.');
+        }
+
+        return DB::transaction(function () use ($source, $type, $noteBase, $picked, $opts, $user) {
+            $source = Voucher::whereKey($source->id)->lockForUpdate()->firstOrFail();
+            $items = $source->items()->with('taxes')->get();
+            $done = $this->reversedAmounts($source);
+            $sale = $noteBase === VoucherType::CREDIT_NOTE;
+            $lines = [];
+            $written = [];
+            $stockLines = false;
+
+            foreach ($items->whereNull('parent_item_id') as $it) {
+                $p = $picked->get($it->id);
+                if (! $p) {
+                    continue;
+                }
+                $mode = in_array(($p['mode'] ?? 'return'), ['return', 'adjust', 'writeoff'], true) ? ($p['mode'] ?? 'return') : 'return';
+                if ($it->item_type === 'charge' || $it->is_header) {
+                    $mode = $mode === 'writeoff' ? 'return' : $mode;
+                }
+                $kids = $items->where('parent_item_id', $it->id);
+                $amount = round(abs((float) ($it->is_header ? $kids->sum('amount') : $it->amount)), 2);
+                $left = max(0.0, round($amount - ($done[$it->id] ?? 0.0), 2));
+                $q0 = (float) $it->quantity;
+                if ($mode === 'adjust' || $it->item_type === 'charge') {
+                    $take = round((float) ($p['amount'] ?? $left), 2);
+                    if ($take <= 0 || $take - $left > 0.005) {
+                        throw new BooksException("{$it->description}: you can reverse at most " . number_format($left, 2) . '.');
+                    }
+                    $ratio = $amount > 0 ? min(1.0, $take / $amount) : 1.0;
+                } else {
+                    $qty = round((float) ($p['quantity'] ?? 0), 4);
+                    $maxQty = $amount > 0 ? round($q0 * $left / $amount, 4) : $q0;
+                    if ($qty <= 0 || $qty - $maxQty > 0.00005) {
+                        throw new BooksException("{$it->description}: you can take back at most " . rtrim(rtrim(number_format($maxQty, 4, '.', ''), '0'), '.') . '.');
+                    }
+                    $ratio = $q0 > 0 ? $qty / $q0 : 1.0;
+                }
+                $cq = round($q0 * $ratio, 4);
+                $goods = $mode === 'return' && ! $it->is_header && $it->item_type === 'product' && $it->variant_id;
+
+                if ($it->is_header) {
+                    $child = [];
+                    foreach ($kids as $c) {
+                        $child[] = $this->cloneLine($c, round((float) $c->quantity * $ratio, 4), $ratio, 0.0);
+                    }
+                    $line = $this->cloneLine($it, $cq, $ratio, 0.0);
+                    $line['children'] = $child;
+                    $line['amount'] = round(array_sum(array_column($child, 'amount')), 2);
+                    $line['tax_amount'] = round(array_sum(array_column($child, 'tax_amount')), 2);
+                    $line['taxes'] = [];
+                    $lines[] = $line;
+                    continue;
+                }
+                $line = $this->cloneLine($it, $cq, $ratio, $goods ? $cq : 0.0);
+                if ($goods) {
+                    $stockLines = true;
+                    if (! $sale) {
+                        // goods going back to the supplier leave from the batch they arrived in
+                        $batch = StockMovement::where('voucher_item_id', $it->id)->where('quantity', '>', 0)->whereNotNull('batch_id')->value('batch_id');
+                        if ($batch) {
+                            $line['pick_batch_id'] = (int) $batch;
+                        }
+                    }
+                }
+                if ($mode === 'writeoff') {
+                    $line['notes'] = trim(($line['notes'] ? $line['notes'] . ' · ' : '') . 'Returned damaged — written off, not back in stock');
+                    $written[] = ['description' => $it->description, 'quantity' => $cq];
+                } elseif ($mode === 'adjust' && $it->item_type !== 'charge') {
+                    $line['notes'] = trim(($line['notes'] ? $line['notes'] . ' · ' : '') . 'Price adjustment — no goods returned');
+                }
+                $lines[] = $line;
+                foreach ($kids as $c) {   // a service's materials go with it: no stock back
+                    $m = $this->cloneLine($c, round((float) $c->quantity * $ratio, 4), $ratio, 0.0);
+                    $m['under_service'] = true;
+                    $lines[] = $m;
+                }
+            }
+            if (! $lines) {
+                throw new BooksException('Nothing to reverse on those lines.');
+            }
+
+            $reason = trim((string) ($opts['reason'] ?? ''));
+            $data = [
+                'voucher_type_id' => $type->id, 'date' => $opts['date'] ?? Carbon::today()->toDateString(),
+                'location_id' => $source->location_id, 'customer_id' => $source->customer_id, 'party_ledger_id' => $source->party_ledger_id,
+                'currency_id' => $source->currency_id, 'exchange_rate' => $source->exchange_rate,
+                'reference_no' => $opts['reference_no'] ?? $source->voucher_number, 'supplier_invoice_no' => null,
+                'party_name' => $source->party_name, 'party_phone' => $source->party_phone, 'party_address' => $source->party_address, 'party_tax_id' => $source->party_tax_id,
+                'narration' => $opts['narration'] ?? (($sale ? 'Credit' : 'Debit') . " note against {$source->voucher_number}" . ($reason !== '' ? " — {$reason}" : '')),
+                'channel' => 'admin', 'source_voucher_id' => $source->id, 'lines_resolved' => $lines, 'moves_stock' => $stockLines,
+                'meta' => array_filter(['returned_from' => $source->voucher_number, 'return_reason' => $reason ?: null, 'written_off_goods' => $written ?: null]),
+            ];
+            $note = $this->create($data, $user);
+            $this->audit($source, $sale ? 'credited' : 'debited', $user, ['note' => $note->voucher_number]);
+
+            return $note->load($this->relations());
         });
     }
 

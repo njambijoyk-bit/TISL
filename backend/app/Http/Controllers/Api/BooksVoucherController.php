@@ -119,6 +119,28 @@ class BooksVoucherController extends Controller
         });
     }
 
+    /** What can still be credited / debited on an invoice, line by line. */
+    public function returnable($id): JsonResponse
+    {
+        return $this->guard(fn () => response()->json($this->vouchers->returnable(Voucher::with('partyLedger')->findOrFail($id))));
+    }
+
+    /** Credit note against a sales invoice / debit note against a purchase, from the lines picked. */
+    public function createReturn(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'lines' => 'required|array|min:1', 'lines.*.item_id' => 'required|integer', 'lines.*.mode' => 'nullable|in:return,adjust,writeoff',
+            'lines.*.quantity' => 'nullable|numeric|min:0', 'lines.*.amount' => 'nullable|numeric|min:0',
+            'date' => 'nullable|date', 'reason' => 'nullable|string|max:255', 'narration' => 'nullable|string', 'reference_no' => 'nullable|string|max:100',
+        ]);
+
+        return $this->guard(function () use ($request, $id) {
+            $v = $this->vouchers->createReturn(Voucher::findOrFail($id), $request->all(), $request->user());
+
+            return response()->json(['message' => "{$v->voucher_number} created", 'data' => $v->load($this->vouchers->relations())], 201);
+        });
+    }
+
     /** Record a receipt against an invoice. */
     public function receive(Request $request, $id): JsonResponse
     {

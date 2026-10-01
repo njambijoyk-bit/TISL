@@ -1230,3 +1230,16 @@ Laid out like the confirmation page and the admin voucher: a **progress strip** 
   - Kept: the voucher **Quotation** pages (`/admin/quotes`, `/my-quotes`). Their "create from a request" step is gone — a quotation is started on its own.
   - Kept for now: the customer "quote list" sync endpoints and `customer_quote_lists` table (used by site analytics); nothing in the app writes to it any more.
 - **Script 42** `42_drop_legacy_quotes.sql` drops `quote_items`, `quote_requests`, `quotes` and the old link columns `vouchers.quote_request_id`, `orders.quote_id`, `order_items.quote_item_id`. The code no longer writes `vouchers.quote_request_id`, so the script can be run any time.
+
+### 28.15 Credit notes and debit notes against an invoice (30 Sep – 1 Oct 2026)
+- **Start from the invoice.** A *Credit note* button on a posted sales invoice and a *Debit note* button on a purchase; the New credit / debit note form also offers an "Against an invoice" finder. Both open the return screen (`/admin/books/vouchers/:id/return`).
+- **Lines come from the invoice** with its own prices, discounts and taxes (at the original rates, not today's). The admin ticks what to reverse. Delivery, discounts and other charges are lines too (ticked separately). The rounding line is never offered.
+- **Limits.** What a line can still reverse = its net amount minus what earlier live notes already reversed (tracked by amount, so returns and price adjustments share one limit). Cancelling a note gives the amount back. Cancelling or editing the invoice is refused while a live note exists.
+- **Three ways to reverse a product line:**
+  - *Goods back to stock* (credit note) — stock returns to the batches it was sold from and cost of goods sold is reversed at the original cost; on a debit note the goods leave from the batch they came in.
+  - *Damaged — write off stock* (credit note only) — the customer is credited, but no stock comes back and cost of goods sold is **not** reversed (the cost stays as the loss). The line is noted and listed in the note's meta.
+  - *Price adjustment (no goods)* — reverse an amount; no stock moves. Services, hampers and charges are always reversed by amount.
+- **Settling.** The note is recorded against the invoice (reduces what is owed); if the invoice was already paid it becomes the customer's overpayment, and the existing refund flow applies.
+- **Not yet:** a credit note against a cash sale, or a debit note against a cash purchase (no customer/supplier account to credit) — write them without an invoice for now. A note made from an invoice cannot be edited (cancel and write again). Credit / debit notes without an invoice still work as before.
+- **Endpoints:** `GET /admin/books/vouchers/{id}/returnable`, `POST /admin/books/vouchers/{id}/return`.
+

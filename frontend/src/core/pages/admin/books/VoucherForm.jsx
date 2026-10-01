@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import { NoAccess } from '../../../components/admin/ui/HubHeader';
 import OpenBillsPanel from '../../../components/admin/books/OpenBillsPanel';
+import InvoiceFinder from '../../../components/admin/books/InvoiceFinder';
 import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
@@ -448,6 +449,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: '0 0 16px' }}>{editing ? `Edit ${h.voucher_number}` : type ? `New ${type.name}` : 'New voucher'}</h1>
         {loading ? <p style={{ color: colors.textMuted }}>Loading…</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16 }}>
+            {!editing && ['credit_note', 'debit_note'].includes(base) && <InvoiceFinder base={base} />}
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               <div>
                 <label style={label}>Voucher type</label>
