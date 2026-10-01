@@ -108,6 +108,12 @@ class HamperEditionService
         return round($sum, 2);
     }
 
+    /** Does this hamper take promo codes? (Its price is then a base for them; no other discount reaches it.) */
+    public function takesPromo(int $hamperId): bool
+    {
+        return (bool) (Hamper::whereKey($hamperId)->value('allow_promo_codes') ?? false);
+    }
+
     /** The same for a saved voucher. */
     public function restrictedOn(Voucher $v, string $flag): float
     {

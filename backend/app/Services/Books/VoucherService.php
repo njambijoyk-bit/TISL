@@ -681,21 +681,25 @@ class VoucherService
         if ($type->has_items && $type->isSalesSide() && $customer && ! in_array($type->base_type, [VoucherType::CREDIT_NOTE, VoucherType::DELIVERY_NOTE], true)) {
             $resolved = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);
             $eligible = [];   // typed line index => what a discount can be taken from
+            $hamperPromo = [];   // typed hamper line => its price, when the hamper takes promo codes (a promo code only; no other discount reaches a hamper)
             foreach ($resolved as $rl) {
                 if (isset($rl['_src'])) {
                     $eligible[$rl['_src']] = (in_array($rl['item_type'], ['product', 'service', 'custom'], true) && empty($rl['gift_meta'])) ? max(0.0, (float) $rl['amount']) : 0.0;
+                    if (! empty($rl['is_header']) && ! empty($rl['hamper_id']) && app(HamperEditionService::class)->takesPromo((int) $rl['hamper_id'])) {
+                        $hamperPromo[$rl['_src']] = max(0.0, (float) $rl['amount']);
+                    }
                 }
             }
             $engine = app(DiscountService::class);
             $choices = array_key_exists('discount_choices', $data) ? array_values((array) $data['discount_choices']) : null;
-            $discountOptions = $engine->evaluate($customer, array_sum($eligible), $currency, $choices === null ? [] : $choices);   // nothing is taken unless the admin chose it
+            $discountOptions = $engine->evaluate($customer, array_sum($eligible), $currency, $choices === null ? [] : $choices, null, array_sum($hamperPromo));   // nothing is taken unless the admin chose it
             foreach ($discountOptions as $o) {
                 if ($o['error']) {
                     throw new BooksException($o['error']);
                 }
             }
             if ($choices !== null && array_filter($discountOptions, fn ($o) => $o['chosen'])) {
-                $sp = $engine->spread($eligible, $discountOptions);
+                $sp = $engine->spread($eligible, $discountOptions, array_replace($eligible, $hamperPromo));
                 $lineData = array_values($data['lines'] ?? []);
                 $shares = [];   // per typed line: how much of its discount came from the customer's discounts (so an edit can take it apart again)
                 foreach ($sp['perLine'] as $i => $parts) {
@@ -1077,8 +1081,13 @@ class VoucherService
             throw new BooksException("{$hamper->name}: the item prices add up to " . number_format($sum, 2) . ' but the hamper price is ' . number_format((float) $hamper->price, 2) . '. Fix it on the hamper.');
         }
 
+        // a promo code (only) may be taken off a hamper that allows it: spread over the components so each one's VAT follows
+        $share = round((float) ($l['share_discount'] ?? 0), 2);
+        $grossAll = $share > 0 ? max(0.0001, $sum * $hq) : 1.0;
+        $shareLeft = $share;
+        $itemCount = $hamper->items->count();
         $children = [];
-        foreach ($hamper->items as $it) {
+        foreach ($hamper->items as $n => $it) {
             $product = $it->product;
             $variant = $it->variant ?? ProductVariant::find(app(VariantStockService::class)->defaultVariantId($it->product_id));
             $cq = round((float) $it->quantity * $hq, 4);
@@ -1090,6 +1099,14 @@ class VoucherService
                 'ledger_id' => $l['ledger_id'] ?? $hamper->sales_ledger_id, 'location_id' => $hamper->location_id,
             ]);
             $c['stock_qty'] = $variant ? $cq : 0.0;
+            if ($share > 0) {
+                $part = $n === $itemCount - 1 ? $shareLeft : round($share * ($cq * $c['rate']) / $grossAll, 2);
+                $part = max(0.0, min($part, $shareLeft));
+                $c['discount_amount'] = $part;
+                $c['discount_source'] = $l['discount_source'] ?? null;
+                $c['discount_ref'] = $l['discount_ref'] ?? null;
+                $shareLeft = round($shareLeft - $part, 2);
+            }
             $this->finishAmounts($c, $product, 'product', null, $ctx);
             $children[] = $c;
         }
@@ -1099,6 +1116,7 @@ class VoucherService
             'notes' => $l['notes'] ?? null,
         ]);
         $header['children'] = $children;
+        $header['discount_amount'] = round(array_sum(array_column($children, 'discount_amount')), 2);
         $header['amount'] = round(array_sum(array_column($children, 'amount')), 2);
         $header['tax_amount'] = round(array_sum(array_column($children, 'tax_amount')), 2);
         $header['rate'] = $hq > 0 ? round($header['amount'] / $hq, 4) : 0.0;

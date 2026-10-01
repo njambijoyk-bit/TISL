@@ -29,11 +29,12 @@ class DiscountService
      * @param  float  $goods   what the discounts are taken from (the eligible lines, before these discounts)
      * @param  ?array $chosen  keys chosen (personal, tier, customer_type, referral, promo:CODE); null = every automatic one
      * @param  ?string $promoCode  a promo code typed in (checkout): offered even if the customer does not "hold" it
+     * @param  float  $promoExtra  more that PROMO codes (only) may be taken from: hampers that allow promo codes. Other discounts never reach a hamper.
      * @return array<int, array{key:string, kind:string, label:string, percent:?float, amount:float, chosen:bool, auto:bool, ref:?string, promo_id:?int, referral_id:?int, error:?string}>
      */
-    public function evaluate(?Customer $customer, float $goods, Currency $currency, ?array $chosen = null, ?string $promoCode = null): array
+    public function evaluate(?Customer $customer, float $goods, Currency $currency, ?array $chosen = null, ?string $promoCode = null, float $promoExtra = 0.0): array
     {
-        if (! $customer || $goods <= 0) {
+        if (! $customer || ($goods <= 0 && $promoExtra <= 0)) {
             return [];
         }
         $rows = [];
@@ -48,7 +49,7 @@ class DiscountService
         ];
         $used = 0.0;
         foreach ($percents as [$key, $label, $pct, $ref]) {
-            if ($pct <= 0) {
+            if ($pct <= 0 || $goods <= 0) {
                 continue;
             }
             $chosenNow = $pick($key, true);
@@ -64,7 +65,7 @@ class DiscountService
         // ── referral
         $referralTaken = 0.0;
         $rc = $customer->hasReferralDiscount() ? $customer->referralCode : null;
-        if ($rc && $rc->is_valid) {
+        if ($rc && $rc->is_valid && $goods > 0) {
             $amount = $rc->type === 'customer_referral'
                 ? $this->promos->referralDiscount($net, $currency)
                 : min($net, $this->promos->discountFor($rc, $net, $currency));
@@ -99,7 +100,7 @@ class DiscountService
         foreach (array_keys($codes) as $code) {
             $key = 'promo:' . $code;
             $on = $chosen === null ? (bool) ($promoCode && strcasecmp($promoCode, $code) === 0) : in_array($key, $chosen, true);
-            $res = $this->promos->validateForCheckout($code, $customer, $net, $currency, $referralTaken);
+            $res = $this->promos->validateForCheckout($code, $customer, $net + $promoExtra, $currency, $referralTaken);
             if (! ($res['valid'] ?? false)) {
                 if ($on) {   // asked for, but it cannot be used: say so
                     $bad = $this->row($key, 'promo', 'Promo ' . $code, null, 0.0, false, false, $code);
@@ -108,7 +109,7 @@ class DiscountService
                 }
                 continue;
             }
-            $amount = round(min($net, (float) $res['discount']), 2);
+            $amount = round(min($net + $promoExtra, (float) $res['discount']), 2);
             if ($amount <= 0) {
                 continue;
             }
@@ -134,19 +135,21 @@ class DiscountService
      * @param  array  $rows  from evaluate()
      * @return array{perLine: array<int, array<int, array{amount: float, source: string, ref: ?string}>>, discounts: array<int, array{source: string, ref: ?string, amount: float}>}
      */
-    public function spread(array $lineAmounts, array $rows): array
+    public function spread(array $lineAmounts, array $rows, ?array $promoLineAmounts = null): array
     {
         $perLine = [];
         $discounts = [];
-        $keys = array_keys(array_filter($lineAmounts, fn ($g) => $g > 0));
-        $sum = array_sum(array_intersect_key($lineAmounts, array_flip($keys))) ?: 1.0;
         foreach ($rows as $r) {
+            // a promo code may also reach the hampers that allow promo codes; every other discount stays on the ordinary lines
+            $amounts = $r['kind'] === 'promo' && $promoLineAmounts !== null ? $promoLineAmounts : $lineAmounts;
+            $keys = array_keys(array_filter($amounts, fn ($g) => $g > 0));
+            $sum = array_sum(array_intersect_key($amounts, array_flip($keys))) ?: 1.0;
             if (! $r['chosen'] || $r['amount'] <= 0 || ! $keys) {
                 continue;
             }
             $given = 0.0;
             foreach ($keys as $n => $k) {
-                $part = $n === count($keys) - 1 ? round($r['amount'] - $given, 2) : round($r['amount'] * $lineAmounts[$k] / $sum, 2);
+                $part = $n === count($keys) - 1 ? round($r['amount'] - $given, 2) : round($r['amount'] * $amounts[$k] / $sum, 2);
                 $given += $part;
                 $perLine[$k][] = ['amount' => $part, 'source' => $r['kind'] === 'personal' ? 'customer_type' : $r['kind'], 'ref' => $r['ref']];
             }

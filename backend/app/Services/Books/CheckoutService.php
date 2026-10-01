@@ -83,11 +83,16 @@ class CheckoutService
         // pass 1 — price the lines with no discounts so we know each line's gross
         $pre = $this->vouchers->preview($base + ['lines' => $lines], null);
         $gross = [];
+        $promoOnly = [];   // a hamper that takes promo codes: its price, for a promo code only
         foreach ($pre['lines'] as $i => $l) {
             $isGift = ($lines[$i]['kind'] ?? null) === 'gift_voucher';
-            $gross[$i] = (! empty($l['is_header']) || $isGift) ? 0.0 : (float) $l['amount'];   // hampers carry their own fixed price; a gift voucher is never discounted
+            $gross[$i] = (! empty($l['is_header']) || $isGift) ? 0.0 : (float) $l['amount'];   // hampers are not discounted by the customer's own discounts; a gift voucher never is
+            if (! empty($l['is_header']) && ! empty($l['hamper_id']) && app(HamperEditionService::class)->takesPromo((int) $l['hamper_id'])) {
+                $promoOnly[$i] = (float) $l['amount'];
+            }
         }
         $sub = array_sum($gross);
+        $hamperGoods = array_sum($promoOnly);
 
         // the customer's discounts (personal / tier / type, referral, a promo code) come from one engine, are taken off
         // BEFORE tax, and are spread over the lines so every line's VAT follows
@@ -97,14 +102,14 @@ class CheckoutService
         $promoCodeId = null;
         $promoNet = 0.0;
         $promoReferral = 0.0;
-        if ($customer && $sub > 0) {
-            $rows = $this->discountEngine->evaluate($customer, $sub, $currency, null, ! empty($in['promo_code']) ? (string) $in['promo_code'] : null);
+        if ($customer && ($sub > 0 || $hamperGoods > 0)) {
+            $rows = $this->discountEngine->evaluate($customer, $sub, $currency, null, ! empty($in['promo_code']) ? (string) $in['promo_code'] : null, $hamperGoods);
             foreach ($rows as $r) {
                 if ($r['error']) {
                     throw new BooksException($r['error']);
                 }
             }
-            $sp = $this->discountEngine->spread($gross, $rows);
+            $sp = $this->discountEngine->spread($gross, $rows, array_replace($gross, $promoOnly));
             $perLine = $sp['perLine'] + $perLine;
             $discounts = $sp['discounts'];
             foreach ($rows as $r) {
@@ -120,7 +125,7 @@ class CheckoutService
                     $promoNet -= $r['amount'];
                 }
             }
-            $promoNet = round($sub + $promoNet, 2);
+            $promoNet = round($sub + $hamperGoods + $promoNet, 2);
         } elseif (! empty($in['promo_code'])) {
             throw new BooksException('Sign in to use a promo code.');
         }
