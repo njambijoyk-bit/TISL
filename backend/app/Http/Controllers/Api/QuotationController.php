@@ -135,9 +135,10 @@ class QuotationController extends Controller
     private function customerView(Voucher $v): array
     {
         $v->load(['items.taxes', 'currency:id,code,symbol', 'children:id,voucher_number,voucher_type_id,source_voucher_id,status']);
+        $hidden = $v->doc_status === 'requested';   // prices the admin has entered stay private until the quotation is sent
         $lines = $v->items->where('is_header', false)->map(fn ($i) => [
             'id' => $i->id, 'description' => $i->description, 'variant_label' => $i->variant_label, 'unit_code' => $i->unit_code, 'quantity' => (float) $i->quantity,
-            'rate' => (float) $i->rate, 'amount' => (float) $i->amount, 'tax_amount' => (float) $i->tax_amount, 'notes' => $i->notes, 'pending_price' => (bool) $i->pending_price,
+            'rate' => $hidden ? 0.0 : (float) $i->rate, 'amount' => $hidden ? 0.0 : (float) $i->amount, 'tax_amount' => $hidden ? 0.0 : (float) $i->tax_amount, 'notes' => $i->notes, 'pending_price' => $hidden || (bool) $i->pending_price,
             'is_component' => $i->parent_item_id !== null,
         ])->values();
         $footer = $this->export->footer($v);
@@ -145,8 +146,8 @@ class QuotationController extends Controller
 
         return [
             'id' => $v->id, 'number' => $v->voucher_number, 'doc_status' => $v->doc_status, 'date' => $v->date?->toDateString(), 'valid_until' => $v->valid_until?->toDateString(),
-            'currency' => $v->currency?->only(['code', 'symbol']), 'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,
-            'charges' => array_map(fn ($c) => ['description' => $c['description'], 'amount' => $c['amount']], $footer['charges']), 'discount_total' => $footer['discount_total'],
+            'currency' => $v->currency?->only(['code', 'symbol']), 'lines' => $lines, 'subtotal' => $hidden ? 0.0 : (float) $v->subtotal, 'tax_total' => $hidden ? 0.0 : (float) $v->tax_total, 'total' => $hidden ? 0.0 : (float) $v->total_amount,
+            'charges' => $hidden ? [] : array_map(fn ($c) => ['description' => $c['description'], 'amount' => $c['amount']], $footer['charges']), 'discount_total' => $hidden ? 0.0 : $footer['discount_total'],
             'narration' => $v->narration, 'response_note' => $v->response_note, 'order' => $order ? ['id' => $order->id, 'number' => $order->voucher_number] : null,
         ];
     }

@@ -60,6 +60,7 @@ export default function QuotationDetailPage() {
           </div>
         </div>
 
+        {q.doc_status === 'requested' && canEdit && pending === 0 && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.successBg ?? colors.warningBg, color: colors.successText ?? colors.warningText, fontSize: '0.82rem' }}>Every line is priced, but the customer still sees “we're preparing your prices” — they can't see anything until you press <strong>Send to customer</strong>.</p>}
         {q.doc_status === 'revision_requested' && q.response_note && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.82rem' }}>The customer asked for changes: “{q.response_note}”</p>}
         {q.doc_status === 'declined' && q.response_note && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>Declined: “{q.response_note}”</p>}
         {pending > 0 && canEdit && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.82rem' }}>{pending} line(s) have no price yet. Choose “Price it”, enter the prices, then send.</p>}

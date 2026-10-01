@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
+import QuoteItemPicker from '../../../ecommerce/components/storefront/QuoteItemPicker';
 import useRequestListStore from '../../../_shared/store/requestListStore';
 import useAuthStore from '../../../_shared/store/authStore';
 import quotationsAPI from '../../../_shared/api/quotations';
@@ -41,8 +42,10 @@ export default function RequestQuote() {
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>Request a quote</h1>
         <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>Tell us what you need and how many. We'll add our prices and send you a quotation.</p>
 
+        <QuoteItemPicker />
+
         {items.length === 0 ? (
-          <p style={{ color: '#6b7280' }}>Your list is empty. Open a product or service and choose <strong>Request a quote</strong>. <Link to="/products">Browse products</Link></p>
+          <p style={{ color: '#6b7280' }}>Your list is empty. Search above to add products or services, or open any product and choose <strong>Request a quote</strong>.</p>
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
