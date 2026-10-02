@@ -135,6 +135,9 @@ const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'
 const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
+const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
+const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
+const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
 const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
 const Work               = lazy(() => import('./projects/pages/admin/Work'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
@@ -1015,6 +1018,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/calendar" element={<ProtectedRoute requireAdmin><MyCalendar /></ProtectedRoute>} />
+              <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin><TeamCalendar /></ProtectedRoute>} />
+              <Route path="/admin/resources" element={<ProtectedRoute requireAdmin><StaffResources /></ProtectedRoute>} />
               <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin><ServiceSettings /></ProtectedRoute>} />
 
               {/* Categories Routes */}

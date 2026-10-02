@@ -175,6 +175,14 @@ export const ADMIN_NAV = [
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees' },
         ],
       },
+      {
+        id: 'calendar', title: 'Calendar', icon: CalendarCheck, color: '#10b981', path: '/admin/calendar', keywords: 'schedule bookings staff availability google ics',
+        tabs: [
+          { title: 'My calendar', path: '/admin/calendar', exact: true },
+          { title: 'Team calendar', path: '/admin/calendar/team', roles: ['admin', 'super_admin', 'manager'] },
+          { title: 'Staff & resources', path: '/admin/resources', roles: ['admin', 'super_admin', 'manager'] },
+        ],
+      },
       { id: 'publications', title: 'Publications', icon: Newspaper, color: 'var(--color-primary-500)', path: '/admin/settings/publications', keywords: 'blog news brochures' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',

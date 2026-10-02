@@ -175,6 +175,9 @@ Route::get('/customer-tiers', [CustomerTierController::class, 'publicTiers']);
 Route::get('/customer-type-discounts', [CustomerTierController::class, 'publicTypes']);
 
 // Public
+// A staff member's calendar as a subscription feed (the secret token in the link is the key)
+Route::get('/calendar/feed/{token}', [\App\Http\Controllers\Api\CalendarController::class, 'feed'])->where('token', '[A-Za-z0-9]+(\.ics)?');
+
 Route::get('/publications', [PublicationController::class, 'publicIndex']);
 Route::get('/publications/{slug}', [PublicationController::class, 'publicShow']);
 Route::post('/publications/{id}/comments', [PublicationCommentController::class, 'store']);
@@ -1012,6 +1015,29 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/requirements',                             [ServiceCatalogController::class, 'storeRequirement']);
             Route::put('/{id}/requirements/{requirementId}',              [ServiceCatalogController::class, 'updateRequirement']);
             Route::delete('/{id}/requirements/{requirementId}',           [ServiceCatalogController::class, 'destroyRequirement']);
+        });
+
+        // Calendar: mine, the team's, and the subscription link
+        Route::prefix('calendar')->group(function () {
+            $c = \App\Http\Controllers\Api\CalendarController::class;
+            Route::get('/',                     [$c, 'mine']);
+            Route::get('/team',                 [$c, 'team']);
+            Route::get('/subscription',         [$c, 'subscription']);
+            Route::post('/subscription/rotate', [$c, 'rotate']);
+        });
+
+        // Staff, rooms, tables and equipment that can be booked
+        Route::prefix('resources')->middleware('role:admin,super_admin,manager')->group(function () {
+            $c = \App\Http\Controllers\Api\BookableResourceController::class;
+            Route::get('/',                          [$c, 'index']);
+            Route::post('/',                         [$c, 'store']);
+            Route::put('/{id}',                      [$c, 'update'])->whereNumber('id');
+            Route::delete('/{id}',                   [$c, 'destroy'])->whereNumber('id');
+            Route::put('/{id}/hours',                [$c, 'saveHours'])->whereNumber('id');
+            Route::post('/{id}/time-off',            [$c, 'addTimeOff'])->whereNumber('id');
+            Route::delete('/{id}/time-off/{offId}',  [$c, 'removeTimeOff'])->whereNumber('id')->whereNumber('offId');
+            Route::put('/{id}/services',             [$c, 'saveServices'])->whereNumber('id');
+            Route::get('/{id}/slots',                [$c, 'slots'])->whereNumber('id');
         });
 
         // Services settings: cancellation and reschedule windows, and the defaults of every service fee
