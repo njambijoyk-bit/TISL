@@ -213,10 +213,14 @@ class StockJobService
                 + ($m['price'] !== null ? ['rate' => $m['price']] : []);
         }
         foreach ($o['extra'] ?? [] as $x) {
-            if ((float) ($x['amount'] ?? 0) <= 0 && trim((string) ($x['description'] ?? '')) === '') {
-                continue;
+            if ((float) ($x['amount'] ?? 0) <= 0) {
+                continue;   // an empty row (a description with no amount yet) is not a charge
             }
-            $lines[] = ['type' => 'custom', 'description' => trim((string) ($x['description'] ?? '')) ?: 'Work', 'quantity' => 1, 'rate' => (float) ($x['amount'] ?? 0), 'ledger_id' => (int) ($x['ledger_id'] ?? 0) ?: null];
+            $desc = trim((string) ($x['description'] ?? '')) ?: 'Work';
+            if (empty($x['ledger_id'])) {
+                throw new BooksException("Choose the income account for \"{$desc}\".");
+            }
+            $lines[] = ['type' => 'custom', 'description' => $desc, 'quantity' => 1, 'rate' => (float) $x['amount'], 'ledger_id' => (int) $x['ledger_id']];
         }
         if (! $lines) {
             throw new BooksException('There is nothing to invoice: the job holds no materials and no work was added.');

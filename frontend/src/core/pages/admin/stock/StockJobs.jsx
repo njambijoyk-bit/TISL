@@ -89,7 +89,7 @@ function InvoiceJobModal({ job, onClose, onDone }) {
   const needCustomer = job.needs_customer && !customer;
   const body = (preview_) => ({
     customer_id: customer?.customer_id || undefined, date, due_date: due || undefined, preview: preview_ || undefined,
-    extra: extra.filter((x) => x.description.trim() || Number(x.amount) > 0).map((x) => ({ description: x.description, amount: Number(x.amount) || 0, ledger_id: x.ledger_id ? Number(x.ledger_id) : undefined })),
+    extra: extra.filter((x) => Number(x.amount) > 0).map((x) => ({ description: x.description, amount: Number(x.amount) || 0, ledger_id: x.ledger_id ? Number(x.ledger_id) : undefined })),
   });
   useEffect(() => {
     if (needCustomer) { setPreview(null); return undefined; }
