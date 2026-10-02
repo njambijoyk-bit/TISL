@@ -33,7 +33,7 @@ class StockJobController extends Controller
                 'cost' => round((float) $r->quantity * (float) $r->unit_cost, 2), 'sale_price' => isset($r->sale_price) && $r->sale_price !== null ? (float) $r->sale_price : null, 'system_price' => $this->jobs->systemPrice((int) $r->variant_id), 'issued_at' => (string) $r->issued_at])->values();
 
         return response()->json($this->row($j) + ['lines' => $lines, 'invoice_lines' => $this->jobs->invoiceLines($j),
-            'needs_customer' => ! $j->customer_id && $j->status === 'completed' && ! $j->invoice_voucher_id]);
+            'needs_customer' => ! $j->customer_id && $j->status === 'completed' && ! $this->row($j)['invoiced']]);
     }
 
     public function store(Request $request): JsonResponse
@@ -114,9 +114,21 @@ class StockJobController extends Controller
         return [
             'id' => $j->id, 'number' => $j->number, 'title' => $j->title, 'status' => $j->status, 'note' => $j->note, 'location_id' => (int) $j->location_id,
             'location' => DB::table('locations')->where('id', $j->location_id)->value('name'), 'invoice_voucher_id' => $j->invoice_voucher_id,
+            'invoice' => $this->invoiceInfo($j), 'invoiced' => ($this->invoiceInfo($j)['status'] ?? null) !== null && $this->invoiceInfo($j)['status'] !== 'cancelled',
             'customer' => $j->customer_id ? trim(DB::table('customers')->where('id', $j->customer_id)->selectRaw("CONCAT(COALESCE(first_name,''),' ',COALESCE(last_name,'')) as n")->value('n')) : null,
             'cost' => $this->jobs->cost($j), 'created_at' => (string) $j->created_at,
         ];
+    }
+
+    /** The invoice linked to a job: its number and status (a cancelled one no longer counts, the job can be invoiced again). */
+    private function invoiceInfo(StockJob $j): ?array
+    {
+        if (! $j->invoice_voucher_id) {
+            return null;
+        }
+        $v = DB::table('vouchers')->where('id', $j->invoice_voucher_id)->first(['id', 'voucher_number', 'status']);
+
+        return $v ? ['id' => (int) $v->id, 'number' => $v->voucher_number, 'status' => $v->status] : null;
     }
 
     private function guard(\Closure $fn): JsonResponse

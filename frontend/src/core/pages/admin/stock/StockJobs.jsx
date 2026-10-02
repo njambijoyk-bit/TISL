@@ -180,6 +180,12 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
     <Modal title={j ? `${j.number} — ${j.title}` : 'Job'} subtitle={j ? `${j.location}${j.customer ? ` · ${j.customer}` : ''} · ${j.status}` : ''} onClose={onClose} width={760}>
       {!j ? <p>Loading…</p> : (
         <div style={{ display: 'grid', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>
+            {[['1. Issue materials', j.status === 'open'], ['2. Complete the job', j.status === 'open'], ['3. Invoice it', j.status === 'completed' && !j.invoiced]].map(([t, now], i) => (
+              <span key={t}>{i > 0 && '  →  '}<span style={{ fontWeight: now ? 800 : 500, color: now ? colors.primaryDeep : undefined }}>{t}</span></span>
+            ))}
+            {j.status === 'open' && ' — the Complete job button is below, once all the materials are issued.'}
+          </p>
           {j.lines.length === 0 ? <p style={{ margin: 0, color: colors.textMuted }}>No materials issued yet.</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Material</th><th style={th}>Batch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Cost</th><th style={{ ...th, textAlign: 'right' }}>Charged at</th><th style={th} /></tr></thead>
@@ -208,10 +214,10 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
               {items.length > 0 && <div><button type="button" style={btnPrimary} disabled={busy} onClick={() => run(() => stockJobsAPI.issue(id, items.map((i) => ({ variant_id: i.variant_id, quantity: Number(i.quantity), price: i.price === '' ? undefined : Number(i.price) })))).then((ok) => ok && setItems([]))}>Issue to job</button></div>}
             </div>
           )}
-          {j.invoice_voucher_id && <button type="button" style={{ ...btnGhost, justifySelf: 'start' }} onClick={() => nav(`/admin/books/vouchers/${j.invoice_voucher_id}`)}>View the invoice</button>}
-          {j.status === 'completed' && !j.invoice_voucher_id && canWrite && (
+          {j.invoice && <button type="button" style={{ ...btnGhost, justifySelf: 'start' }} onClick={() => nav(`/admin/books/vouchers/${j.invoice.id}`)}>{j.invoiced ? `View the invoice (${j.invoice.number})` : `View the cancelled invoice (${j.invoice.number})`}</button>}
+          {j.status === 'completed' && !j.invoiced && canWrite && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: colors.tint(0.05), flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.82rem', flex: 1 }}>The job is complete. Invoice the customer for its materials (and any work).</span>
+              <span style={{ fontSize: '0.82rem', flex: 1 }}>{j.invoice ? 'The earlier invoice was cancelled — you can invoice this job again.' : 'The job is complete. Invoice the customer for its materials (and any work).'}</span>
               <button type="button" style={btnPrimary} onClick={() => setInvoicing(true)}>Invoice this job</button>
             </div>
           )}
