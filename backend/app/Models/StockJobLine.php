@@ -10,7 +10,7 @@ class StockJobLine extends Model
 
     protected $table = 'stock_job_lines';
 
-    protected $fillable = ['job_id', 'variant_id', 'batch_id', 'quantity', 'unit_cost', 'voucher_id', 'issued_at'];
+    protected $fillable = ['job_id', 'variant_id', 'batch_id', 'quantity', 'unit_cost', 'voucher_id', 'issued_at', 'sale_price'];
 
-    protected $casts = ['quantity' => 'decimal:4', 'unit_cost' => 'decimal:4', 'issued_at' => 'datetime'];
+    protected $casts = ['quantity' => 'decimal:4', 'unit_cost' => 'decimal:4', 'sale_price' => 'decimal:4', 'issued_at' => 'datetime'];
 }

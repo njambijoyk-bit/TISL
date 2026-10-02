@@ -817,7 +817,9 @@ class VoucherService
         $out = [];
         foreach ($raw as $i => $l) {
             $kind = $l['type'] ?? 'product';
-            $this->assertLineModuleOn($kind, $i);
+            if (empty($l['from_job'])) {   // a job's materials are stock lines whatever the E-commerce switch says
+                $this->assertLineModuleOn($kind, $i);
+            }
             $row = match ($kind) {
                 'product' => $this->productLine($l, $ctx),
                 'service' => $this->serviceLine($l, $ctx),

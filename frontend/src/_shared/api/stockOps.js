@@ -29,6 +29,7 @@ export const stockJobsAPI = {
   issue: async (id, items) => (await api.post(`/admin/stock/jobs/${id}/issue`, { items })).data,
   returnLine: async (id, lineId, quantity) => (await api.post(`/admin/stock/jobs/${id}/lines/${lineId}/return`, { quantity })).data,
   complete: async (id, invoiceVoucherId) => (await api.post(`/admin/stock/jobs/${id}/complete`, { invoice_voucher_id: invoiceVoucherId || undefined })).data,
+  invoice: async (id, payload) => (await api.post(`/admin/stock/jobs/${id}/invoice`, payload)).data,
   cancel: async (id) => (await api.post(`/admin/stock/jobs/${id}/cancel`)).data,
 };
 

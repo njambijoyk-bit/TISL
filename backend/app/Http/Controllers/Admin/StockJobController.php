@@ -28,11 +28,12 @@ class StockJobController extends Controller
         $j = StockJob::findOrFail($id);
         $lines = DB::table('stock_job_lines as l')->join('product_variants as pv', 'pv.id', '=', 'l.variant_id')->join('products as p', 'p.id', '=', 'pv.product_id')
             ->leftJoin('stock_batches as sb', 'sb.id', '=', 'l.batch_id')->where('l.job_id', $j->id)->orderBy('l.id')
-            ->get(['l.id', 'p.name as product', 'pv.name as variant', 'sb.batch_no', 'l.quantity', 'l.unit_cost', 'l.issued_at'])
+            ->get(array_merge(['l.id', 'p.name as product', 'pv.name as variant', 'sb.batch_no', 'l.quantity', 'l.unit_cost', 'l.issued_at'], \Illuminate\Support\Facades\Schema::hasColumn('stock_job_lines', 'sale_price') ? ['l.sale_price'] : []))
             ->map(fn ($r) => ['id' => (int) $r->id, 'product' => $r->product, 'variant' => $r->variant, 'batch_no' => $r->batch_no, 'quantity' => (float) $r->quantity, 'unit_cost' => (float) $r->unit_cost,
-                'cost' => round((float) $r->quantity * (float) $r->unit_cost, 2), 'issued_at' => (string) $r->issued_at])->values();
+                'cost' => round((float) $r->quantity * (float) $r->unit_cost, 2), 'sale_price' => isset($r->sale_price) && $r->sale_price !== null ? (float) $r->sale_price : null, 'issued_at' => (string) $r->issued_at])->values();
 
-        return response()->json($this->row($j) + ['lines' => $lines]);
+        return response()->json($this->row($j) + ['lines' => $lines, 'invoice_lines' => $this->jobs->invoiceLines($j),
+            'needs_customer' => ! $j->customer_id && $j->status === 'completed' && ! $j->invoice_voucher_id]);
     }
 
     public function store(Request $request): JsonResponse
@@ -46,10 +47,10 @@ class StockJobController extends Controller
         });
     }
 
-    /** Body: items[{variant_id, quantity}]. */
+    /** Body: items[{variant_id, quantity, price?}] — price is what the job's invoice charges per unit; empty = the item's price in the system. */
     public function issue(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array|min:1', 'items.*.variant_id' => 'required|integer|exists:product_variants,id', 'items.*.quantity' => 'required|numeric|min:0.0001']);
+        $d = $request->validate(['items' => 'required|array|min:1', 'items.*.variant_id' => 'required|integer|exists:product_variants,id', 'items.*.quantity' => 'required|numeric|min:0.0001', 'items.*.price' => 'nullable|numeric|min:0']);
 
         return $this->guard(function () use ($d, $request, $id) {
             $this->jobs->issue(StockJob::findOrFail($id), $d['items'], $request->user());
@@ -77,6 +78,25 @@ class StockJobController extends Controller
             $j = $this->jobs->complete(StockJob::findOrFail($id), $d['invoice_voucher_id'] ?? null, $request->user());
 
             return response()->json(['message' => "Job {$j->number} completed; its materials are booked as a cost of the service."]);
+        });
+    }
+
+    /** Body: customer_id?, date?, due_date?, extra[{description, amount, ledger_id}], preview?. Preview returns the figures; otherwise the sales invoice is made and linked. */
+    public function invoice(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate([
+            'customer_id' => 'nullable|integer|exists:customers,id', 'date' => 'nullable|date', 'due_date' => 'nullable|date', 'preview' => 'nullable|boolean',
+            'extra' => 'nullable|array', 'extra.*.description' => 'nullable|string|max:160', 'extra.*.amount' => 'nullable|numeric|min:0', 'extra.*.ledger_id' => 'nullable|integer|exists:ledgers,id',
+        ]);
+
+        return $this->guard(function () use ($d, $request, $id) {
+            $j = StockJob::findOrFail($id);
+            if (! empty($d['preview'])) {
+                return response()->json($this->jobs->invoice($j, $d, $request->user(), true));
+            }
+            $v = $this->jobs->invoice($j, $d, $request->user());
+
+            return response()->json(['message' => "Invoice {$v->voucher_number} raised for job {$j->number}.", 'voucher_id' => $v->id], 201);
         });
     }
 

@@ -424,6 +424,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/issue', [$c, 'issue'])->whereNumber('id');
             Route::post('/{id}/lines/{lineId}/return', [$c, 'returnLine'])->whereNumber('id')->whereNumber('lineId');
             Route::post('/{id}/complete', [$c, 'complete'])->whereNumber('id');
+            Route::post('/{id}/invoice', [$c, 'invoice'])->whereNumber('id');
             Route::post('/{id}/cancel', [$c, 'cancel'])->whereNumber('id');
         });
     });

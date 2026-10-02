@@ -68,11 +68,105 @@ function OpenModal({ branches, onClose, onDone }) {
   );
 }
 
+function InvoiceJobModal({ job, onClose, onDone }) {
+  const nav = useNavigate();
+  const [customer, setCustomer] = useState(null);
+  const [q, setQ] = useState('');
+  const [found, setFound] = useState([]);
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [due, setDue] = useState('');
+  const [extra, setExtra] = useState([{ description: 'Labour', amount: '', ledger_id: '' }]);
+  const [ledgers, setLedgers] = useState([]);
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  useEffect(() => { booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers((Array.isArray(r) ? r : r.data ?? []).filter((l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name)))).catch(() => {}); }, []);
+  useEffect(() => {
+    if (q.length < 2) { setFound([]); return undefined; }
+    const t = setTimeout(() => booksAPI.lookup('customer', q).then(setFound).catch(() => setFound([])), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+  const needCustomer = job.needs_customer && !customer;
+  const body = (preview_) => ({
+    customer_id: customer?.customer_id || undefined, date, due_date: due || undefined, preview: preview_ || undefined,
+    extra: extra.filter((x) => x.description.trim() || Number(x.amount) > 0).map((x) => ({ description: x.description, amount: Number(x.amount) || 0, ledger_id: x.ledger_id ? Number(x.ledger_id) : undefined })),
+  });
+  useEffect(() => {
+    if (needCustomer) { setPreview(null); return undefined; }
+    let live = true;
+    const t = setTimeout(() => stockJobsAPI.invoice(job.id, body(true)).then((r) => { if (live) { setPreview(r); setErr(null); } }).catch((x) => { if (live) { setPreview(null); setErr(errMsg(x, 'Could not work out the invoice')); } }), 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [customer, date, due, extra, needCustomer]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setX = (i, k, v) => setExtra((xs) => xs.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const create = async () => {
+    setBusy(true); setErr(null);
+    try { const res = await stockJobsAPI.invoice(job.id, body(false)); toast.success(res.message); onDone(); nav(`/admin/books/vouchers/${res.voucher_id}`); }
+    catch (x) { setErr(errMsg(x, 'Could not raise the invoice')); } finally { setBusy(false); }
+  };
+  const bad = extra.some((x) => Number(x.amount) > 0 && !x.ledger_id);
+  return (
+    <Modal title={`Invoice ${job.number}`} subtitle={job.title} onClose={onClose} width={760}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <FormError message={err} />
+        {job.needs_customer && (
+          <Field label="Customer to invoice">
+            {customer ? <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><strong>{customer.name}</strong><button type="button" style={small} onClick={() => setCustomer(null)}>Change</button></div> : (
+              <div>
+                <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a customer…" />
+                {found.map((c) => <button key={c.customer_id} type="button" onClick={() => { setCustomer(c); setQ(''); setFound([]); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 6, border: 'none', background: 'none', cursor: 'pointer' }}>{c.name}</button>)}
+              </div>
+            )}
+          </Field>
+        )}
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }}>Materials used on the job <span style={{ fontWeight: 500, color: colors.textFaint }}>— fixed: quantities and prices come from the job, and no stock is taken again</span></div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={th}>Item</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Price</th></tr></thead>
+            <tbody>
+              {job.invoice_lines.length === 0 && <tr><td colSpan={3} style={{ ...td, color: colors.textMuted }}>The job holds no materials.</td></tr>}
+              {job.invoice_lines.map((m, i) => (
+                <tr key={i}><td style={td}>{m.name}</td><td style={{ ...td, textAlign: 'right' }}>{m.quantity}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{m.price != null ? `${money(m.price)} (typed on the job)` : m.system_price != null ? `${money(m.system_price)} (system price)` : '—'}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }}>Work and other charges <span style={{ fontWeight: 500, color: colors.textFaint }}>— optional, you can set these</span></div>
+          {extra.map((x, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+              <div style={{ flex: 2 }}><TextInput value={x.description} onChange={(e) => setX(i, 'description', e.target.value)} placeholder="e.g. Labour, transport" aria-label="Description" /></div>
+              <div style={{ width: 120 }}><NumberInput min="0" step="any" value={x.amount} onChange={(e) => setX(i, 'amount', e.target.value)} placeholder="Amount" aria-label="Amount" /></div>
+              <div style={{ flex: 2 }}><SelectInput value={x.ledger_id} onChange={(e) => setX(i, 'ledger_id', e.target.value)} aria-label="Income account"><option value="">Income account…</option>{ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</SelectInput></div>
+              <button type="button" aria-label="Remove" onClick={() => setExtra((xs) => xs.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={14} /></button>
+            </div>
+          ))}
+          <button type="button" style={small} onClick={() => setExtra((xs) => [...xs, { description: '', amount: '', ledger_id: '' }])}><Plus size={12} /> Add a line</button>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Field label="Invoice date"><TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+          <Field label="Due date (optional)"><TextInput type="date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
+        </div>
+        {preview && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: colors.tint(0.05), fontSize: '0.85rem' }}>
+            Subtotal <strong>{money(preview.subtotal)}</strong> · Tax <strong>{money(preview.tax_total)}</strong> · Total <strong>{preview.currency} {money(preview.total)}</strong>
+          </div>
+        )}
+        {bad && <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.8rem' }}>Choose an income account for each charge that has an amount.</p>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button type="button" style={btnGhost} onClick={onClose}>Close</button>
+          <button type="button" style={btnPrimary} disabled={busy || needCustomer || bad || !preview} onClick={create}>{busy ? 'Raising the invoice…' : 'Create invoice'}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function JobSheet({ id, canWrite, onClose, onChanged }) {
   const nav = useNavigate();
   const [j, setJ] = useState(null);
   const [items, setItems] = useState([]);
-  const [invoice, setInvoice] = useState('');
+  const [invoicing, setInvoicing] = useState(false);
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => stockJobsAPI.show(id).then(setJ).catch((e) => toast.error(errMsg(e, 'Could not load the job'))), [id]);
   useEffect(() => { load(); }, [load]);
@@ -80,7 +174,7 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
     setBusy(true);
     try { const res = await fn(); toast.success(res.message); onChanged(); if (close) onClose(); else load(); return true; } catch (x) { toast.error(errMsg(x, 'Could not do that')); return false; } finally { setBusy(false); }
   };
-  const add = (r) => setItems((xs) => (xs.some((x) => x.variant_id === r.variant_id) ? xs : [...xs, { variant_id: r.variant_id, name: nm(r), quantity: 1 }]));
+  const add = (r) => setItems((xs) => (xs.some((x) => x.variant_id === r.variant_id) ? xs : [...xs, { variant_id: r.variant_id, name: nm(r), quantity: 1, price: '' }]));
   const open = j?.status === 'open' && canWrite;
   return (
     <Modal title={j ? `${j.number} — ${j.title}` : 'Job'} subtitle={j ? `${j.location}${j.customer ? ` · ${j.customer}` : ''} · ${j.status}` : ''} onClose={onClose} width={760}>
@@ -88,11 +182,12 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
         <div style={{ display: 'grid', gap: 12 }}>
           {j.lines.length === 0 ? <p style={{ margin: 0, color: colors.textMuted }}>No materials issued yet.</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Material</th><th style={th}>Batch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Cost</th><th style={th} /></tr></thead>
+              <thead><tr><th style={th}>Material</th><th style={th}>Batch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Cost</th><th style={{ ...th, textAlign: 'right' }}>Charged at</th><th style={th} /></tr></thead>
               <tbody>{j.lines.map((l) => (
                 <tr key={l.id}>
                   <td style={td}>{nm(l)}</td><td style={td}>{l.batch_no ?? '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{l.quantity}</td><td style={{ ...td, textAlign: 'right' }}>{money(l.cost)}</td>
+                  <td style={{ ...td, textAlign: 'right', color: l.sale_price != null ? undefined : colors.textFaint }}>{l.sale_price != null ? `${money(l.sale_price)} (typed)` : 'system price'}</td>
                   <td style={td}>{open && <button type="button" style={small} disabled={busy} onClick={() => run(() => stockJobsAPI.returnLine(id, l.id))}>Return to stock</button>}</td>
                 </tr>
               ))}</tbody>
@@ -106,18 +201,25 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
                 <div key={i.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}</span>
                   <div style={{ width: 110 }}><NumberInput min="0.0001" step="any" value={i.quantity} aria-label={`Quantity of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, quantity: e.target.value } : x)))} /></div>
+                  <div style={{ width: 150 }}><NumberInput min="0" step="any" value={i.price} placeholder="System price" title="The price the invoice charges per unit (base currency). Leave empty to use the price in the system; type one for an item with no price or a one-off price." aria-label={`Selling price of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, price: e.target.value } : x)))} /></div>
                   <button type="button" aria-label="Remove" onClick={() => setItems((xs) => xs.filter((x) => x.variant_id !== i.variant_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
                 </div>
               ))}
-              {items.length > 0 && <div><button type="button" style={btnPrimary} disabled={busy} onClick={() => run(() => stockJobsAPI.issue(id, items.map((i) => ({ variant_id: i.variant_id, quantity: Number(i.quantity) })))).then((ok) => ok && setItems([]))}>Issue to job</button></div>}
+              {items.length > 0 && <div><button type="button" style={btnPrimary} disabled={busy} onClick={() => run(() => stockJobsAPI.issue(id, items.map((i) => ({ variant_id: i.variant_id, quantity: Number(i.quantity), price: i.price === '' ? undefined : Number(i.price) })))).then((ok) => ok && setItems([]))}>Issue to job</button></div>}
             </div>
           )}
           {j.invoice_voucher_id && <button type="button" style={{ ...btnGhost, justifySelf: 'start' }} onClick={() => nav(`/admin/books/vouchers/${j.invoice_voucher_id}`)}>View the invoice</button>}
+          {j.status === 'completed' && !j.invoice_voucher_id && canWrite && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: colors.tint(0.05), flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.82rem', flex: 1 }}>The job is complete. Invoice the customer for its materials (and any work).</span>
+              <button type="button" style={btnPrimary} onClick={() => setInvoicing(true)}>Invoice this job</button>
+            </div>
+          )}
+          {invoicing && <InvoiceJobModal job={j} onClose={() => setInvoicing(false)} onDone={() => { setInvoicing(false); onChanged(); load(); }} />}
           {open && (
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
               <button type="button" style={btnGhost} disabled={busy} onClick={() => { if (window.confirm('Cancel this job? All materials go back to stock.')) run(() => stockJobsAPI.cancel(id), true); }}>Cancel job</button>
-              <input type="number" min="1" value={invoice} onChange={(e) => setInvoice(e.target.value)} placeholder="Invoice voucher ID (optional)" aria-label="Invoice voucher ID" style={{ width: 200, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
-              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Complete this job? Its materials are booked as a cost of the service.')) run(() => stockJobsAPI.complete(id, invoice ? Number(invoice) : null), true); }}>Complete job</button>
+              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Complete this job? Its materials are booked as a cost of the service.')) run(() => stockJobsAPI.complete(id, null)); }}>Complete job</button>
             </div>
           )}
         </div>
