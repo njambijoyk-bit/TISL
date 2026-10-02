@@ -9,6 +9,10 @@ namespace App\Services\Backup;
  * that module's tables; a disabled module's tables are skipped (and flagged in
  * the UI). Core is always included.
  *
+ * Core owns everything a voucher or a stock movement touches (vendors, stock, carts,
+ * quotes) so a business without E-commerce still backs up its books; E-commerce holds
+ * only the catalogue, hampers and auctions.
+ *
  * The lists grow as each module is built out. Any live table that is neither
  * listed here nor in EXCLUDE is reported to the admin as "unassigned" so it is
  * never silently dropped from a backup.
@@ -32,6 +36,9 @@ final class ModuleTables
             'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',
             'financial_years', 'accounting_settings', 'voucher_edit_limits',
             'vouchers', 'voucher_items', 'voucher_item_taxes', 'voucher_entries', 'voucher_bill_refs',
+            'vendors', 'vendor_products',
+            'variant_location_stock', 'customer_carts', 'customer_quote_lists',
+            'voucher_versions', 'voucher_instruments', 'cash_counts',
             'stock_movements', 'stock_batches', 'stock_batch_balances', 'stock_batch_events', 'stock_transfers', 'stock_transfer_lines', 'stock_counts', 'stock_count_lines', 'stock_jobs', 'stock_job_lines', 'stock_settings', 'stock_setting_overrides', 'voucher_audit_logs', 'voucher_tenders',
             'gift_vouchers', 'gift_voucher_transactions', 'company_profile', 'currency_rates',
             'referral_codes', 'referral_code_usage',
@@ -75,7 +82,7 @@ final class ModuleTables
         'ecommerce' => [
             'products', 'product_images', 'product_options', 'product_option_values',
             'product_variants', 'product_variant_options', 'product_variant_units',
-            'variant_location_stock',
+            // (per-branch variant stock, carts and quote lists are Core: they feed vouchers and checkout)
             // products.default_unit_id / alternate_unit_id point at units_of_measure
             // (Core, always backed up). The whole table is dumped and restore is
             // column-drift-safe, so those columns travel with 'products' — no extra
@@ -86,13 +93,11 @@ final class ModuleTables
             'services', 'service_categories',
             // service options, packages (variants) and structured requirements
             'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements', 'service_variant_materials',
-            // saved services (wishlist.service_ids) and quote-list lines with their chosen package + answers
-            'customer_wishlists', 'customer_quote_lists',
-            'customer_carts', 'review_helpful_votes',
+            // saved products and services (wishlist)
+            'customer_wishlists', 'review_helpful_votes',
             'hampers', 'hamper_items', 'hamper_customer_eligibility', 'hamper_activity_logs',
             // (hamper/auction orders were retired — they sell through the normal checkout)
             'auctions', 'auction_bids', 'auction_charges', 'auction_registrations', 'auction_order_activity_logs',
-            'vendors', 'vendor_products',
         ],
 
         'extras' => [
