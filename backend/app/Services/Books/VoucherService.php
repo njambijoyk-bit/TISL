@@ -802,11 +802,22 @@ class VoucherService
 
     // ── lines ───────────────────────────────────────────────────────────
 
+    /** Products, services and hampers are the E-commerce module's: with it switched off they cannot go on a voucher. */
+    private function assertLineModuleOn(string $kind, int $i): void
+    {
+        $module = ['product' => 'ecommerce', 'service' => 'ecommerce', 'hamper' => 'ecommerce.hampers'][$kind] ?? null;
+        if ($module && ! app(\App\Services\Licensing\LicenseManager::class)->isActive($module)) {
+            $what = ['product' => 'Products', 'service' => 'Services', 'hamper' => 'Hampers'][$kind];
+            throw new BooksException("{$what} can't be used on line " . ($i + 1) . ": the E-commerce module is currently switched off.");
+        }
+    }
+
     private function resolveLines(array $raw, array $ctx): array
     {
         $out = [];
         foreach ($raw as $i => $l) {
             $kind = $l['type'] ?? 'product';
+            $this->assertLineModuleOn($kind, $i);
             $row = match ($kind) {
                 'product' => $this->productLine($l, $ctx),
                 'service' => $this->serviceLine($l, $ctx),

@@ -10,6 +10,8 @@ import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
+import useModuleStore from '../../../../_shared/store/moduleStore';
+import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
@@ -469,12 +471,20 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const clearCustomer = () => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }));
   const clearParty = () => setH((x) => ({ ...x, party_ledger_id: '', customer: null }));
   const setLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
-  const addLine = (t) => setLines((ls) => [...ls, emptyLine(t)]);
+  // Products, services and hampers belong to the E-commerce module: with it off they cannot go on a voucher
+  useModuleStore((st) => st.active);   // re-render when the switch changes
+  const lineOff = (t) => ({ product: !isModuleActive(MODULES.ECOMMERCE), service: !isModuleActive(MODULES.ECOMMERCE), hamper: !isModuleActive(MODULES.HAMPERS) }[t] ?? false);
+  const offTypes = [...new Set(lines.map((l) => l.type).filter(lineOff))];
+  const addLine = (t) => {
+    if (lineOff(t)) { toast.error('The E-commerce module is currently switched off, so products, services and hampers cannot be added.'); return; }
+    setLines((ls) => [...ls, emptyLine(t)]);
+  };
   const setEntry = (i, patch) => setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const dr = entries.filter((e) => e.side === 'D').reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const cr = entries.filter((e) => e.side === 'C').reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
   const save = async () => {
+    if (offTypes.length) { toast.error('The E-commerce module is currently switched off, so this voucher cannot be saved with product, service or hamper lines.'); return; }
     setSaving(true); setSaveErr(null);
     try {
       const res = editing ? await api.updateVoucher(id, payload) : await api.createVoucher(payload);
@@ -637,6 +647,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Items</p>
                 {lines.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Nothing added yet.</p>}
+                {offTypes.length > 0 && <p style={{ color: colors.danger, fontSize: '0.8rem', fontWeight: 600 }}>The E-commerce module is currently switched off — remove the product, service or hamper lines below, or switch the module on, before saving.</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, padding: '6px 0', borderBottom: `2px solid ${colors.tint(0.14)}`, ...colHead }}>
                   <span>Name of item</span><span style={{ textAlign: 'right' }}>Quantity</span><span>per</span><span style={{ textAlign: 'right' }}>Rate</span><span style={{ textAlign: 'right' }}>Disc</span><span style={{ textAlign: 'right' }}>Amount</span><span />
                 </div>
@@ -710,7 +721,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].map(([t, l]) => (
+                  {[['product', 'Product'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t)).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>
