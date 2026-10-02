@@ -5,8 +5,8 @@ import { productsAPI } from '../../../../../../_shared/api/index';
 import toast from 'react-hot-toast';
 import CurrencySelect from '../../../../../../_shared/components/common/currency/CurrencySelect';
 import useCurrencyStore from '../../../../../../_shared/store/currencyStore';
-import useTradingAccounts, { accountLabel } from '../../../../../../core/components/admin/tax/useTradingAccounts';
-import BranchStockPanel from '../../../../../../ecommerce/components/admin/BranchStockPanel';
+import useTradingAccounts, { accountLabel } from '../../../../../components/admin/tax/useTradingAccounts';
+import BranchStockPanel from '../../../../../components/admin/pickers/BranchStockPanel';
 
 /**
  * ProductBulkTable

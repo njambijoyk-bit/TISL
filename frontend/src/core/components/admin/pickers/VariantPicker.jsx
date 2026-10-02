@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import booksAPI from '../../../_shared/api/books';
-import { card, colors, input } from '../../../_shared/theme/tokens';
+import booksAPI from '../../../../_shared/api/books';
+import { card, colors, input } from '../../../../_shared/theme/tokens';
 
 /** Search-as-you-type over product variants; calls onPick(row) with { variant_id, product, variant, sku, track_expiry, ... }. */
 export default function VariantPicker({ onPick, placeholder = 'Search a product or SKU to add…' }) {

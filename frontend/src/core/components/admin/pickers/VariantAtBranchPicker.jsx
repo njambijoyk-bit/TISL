@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import productsAPI from '../../../_shared/api/products';
-import { input, focusRing } from '../../../_shared/theme/tokens';
+import productsAPI from '../../../../_shared/api/products';
+import { input, focusRing } from '../../../../_shared/theme/tokens';
 
 /**
  * Pick which variant of a product goes into a hamper / auction, showing how

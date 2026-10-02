@@ -15,7 +15,7 @@ import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChar
 import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
-import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
+import VariantAtBranchPicker from '../../../../core/components/admin/pickers/VariantAtBranchPicker';
 import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 

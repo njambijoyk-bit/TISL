@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import { money } from '../../../core/components/admin/books/booksFmt';
-import { stockJournalAPI } from '../../../_shared/api/stockOps';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, card, colors, input } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import { money } from '../../../components/admin/books/booksFmt';
+import { stockJournalAPI } from '../../../../_shared/api/stockOps';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /** The stock journal: every movement of stock, in and out, with what caused it. Filter by item, kind, branch and date. */
 

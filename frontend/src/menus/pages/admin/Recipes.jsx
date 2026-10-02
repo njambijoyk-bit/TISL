@@ -5,7 +5,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import VariantPicker from '../../../ecommerce/components/admin/VariantPicker';
+import VariantPicker from '../../../core/components/admin/pickers/VariantPicker';
 import { recipesAPI } from '../../../_shared/api/stockOps';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';

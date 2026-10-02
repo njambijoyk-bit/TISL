@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Package, Wrench, FileText, Check, Clock, Star, X } from 'lucide-react';
 import AdminPagination from './AdminPagination';
-import CustomItemModal from '../../../ecommerce/components/admin/pickers/CustomItemModal';
+import CustomItemModal from '../../../core/components/admin/pickers/CustomItemModal';
 import useProductStore from '../../store/productStore';
 import useServiceStore from '../../store/serviceStore';
 import { productsAPI, servicesAPI } from '../../api/index';

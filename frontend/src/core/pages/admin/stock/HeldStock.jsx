@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Modal from '../../../core/components/admin/ui/Modal';
-import { Field, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import { stockHoldsAPI } from '../../../_shared/api/stockExpiry';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Modal from '../../../components/admin/ui/Modal';
+import { Field, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
+import { stockHoldsAPI } from '../../../../_shared/api/stockExpiry';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
  * Held stock: batches that are quarantined (checked, then released) or recalled (never sold again), and a trace of

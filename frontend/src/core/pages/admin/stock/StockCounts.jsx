@@ -2,16 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Modal from '../../../core/components/admin/ui/Modal';
-import { Field, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import { money } from '../../../core/components/admin/books/booksFmt';
-import { stockCountsAPI } from '../../../_shared/api/stockOps';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, btnPrimary, card, colors, input } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Modal from '../../../components/admin/ui/Modal';
+import { Field, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
+import { money } from '../../../components/admin/books/booksFmt';
+import { stockCountsAPI } from '../../../../_shared/api/stockOps';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnGhost, btnPrimary, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /**
  * Stock counts: pick a branch, count what is on its shelves batch by batch, then post. Posting corrects the batches to

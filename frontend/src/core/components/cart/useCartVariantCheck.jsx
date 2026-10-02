@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useCartStore, { lineKey } from '../../../_shared/store/cartStore';
 import { fetchVariantData, defaultUnit, variantLabel, buildCartLine, isLooseProductLine } from '../../../_shared/lib/cartVariants';
-import VariantChooserModal from './VariantChooserModal';
+import VariantChooserModal from '../../../ecommerce/components/storefront/VariantChooserModal';
 
 /**
  * Cart lines that were added without a variant: one with a single variant gets it automatically; one with several must be

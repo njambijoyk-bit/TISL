@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuctionCard from '../../../ecommerce/components/storefront/products/AuctionCard';
+import AuctionCard from '../../components/storefront/products/AuctionCard';
 import auctionsAPI from '../../../_shared/api/auctions';
 import { Gavel, Package, Receipt, CreditCard, Truck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';

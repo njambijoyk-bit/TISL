@@ -1,10 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Tabs from '../../../core/components/admin/ui/Tabs';
-import VouchersTab from '../../../core/components/admin/books/VouchersTab';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Tabs from '../../../components/admin/ui/Tabs';
+import VouchersTab from '../../../components/admin/books/VouchersTab';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
 
 /** Stock coming in: purchases from suppliers, goods received notes, and the opening stock entered at go-live. */
 export default function Purchases({ initial = 'purchase' }) {

@@ -2,18 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Modal from '../../../core/components/admin/ui/Modal';
-import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import { money } from '../../../core/components/admin/books/booksFmt';
-import VariantPicker from '../../components/admin/VariantPicker';
-import booksAPI from '../../../_shared/api/books';
-import { stockJobsAPI } from '../../../_shared/api/stockOps';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Modal from '../../../components/admin/ui/Modal';
+import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
+import { money } from '../../../components/admin/books/booksFmt';
+import VariantPicker from '../../../components/admin/pickers/VariantPicker';
+import booksAPI from '../../../../_shared/api/books';
+import { stockJobsAPI } from '../../../../_shared/api/stockOps';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
  * Jobs with work in progress. Materials issued to an open job leave stock and are held as Work in Progress instead of

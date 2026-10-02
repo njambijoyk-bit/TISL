@@ -9,7 +9,7 @@ import CartSummary from '../../components/cart/CartSummary';
 import EmptyCart from '../../components/cart/EmptyCart';
 import Button from '../../../_shared/components/common/Button';
 import { useCartStore } from '../../../_shared/store/index';
-import useCartVariantCheck from '../../../ecommerce/components/storefront/useCartVariantCheck';
+import useCartVariantCheck from '../../components/cart/useCartVariantCheck';
 
 export default function Cart() {
   const { items, clearCart } = useCartStore();

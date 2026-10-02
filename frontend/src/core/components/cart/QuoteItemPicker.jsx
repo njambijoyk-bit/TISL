@@ -4,9 +4,9 @@ import toast from 'react-hot-toast';
 import productsAPI from '../../../_shared/api/products';
 import { getServices } from '../../../_shared/api/services';
 import useRequestListStore from '../../../_shared/store/requestListStore';
-import VariantPicker from './products/VariantPicker';
-import useServicePackages from './services/useServicePackages';
-import ServicePackagePicker from './services/ServicePackagePicker';
+import VariantPicker from '../../../ecommerce/components/storefront/products/VariantPicker';
+import useServicePackages from '../../../ecommerce/components/storefront/services/useServicePackages';
+import ServicePackagePicker from '../../../ecommerce/components/storefront/services/ServicePackagePicker';
 
 const rowsOf = (res) => res?.data ?? res?.products?.data ?? res?.services?.data ?? (Array.isArray(res) ? res : []);
 const box = { border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: 'rgba(255,255,255,0.5)' };

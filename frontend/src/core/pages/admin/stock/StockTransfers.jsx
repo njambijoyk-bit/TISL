@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Modal from '../../../core/components/admin/ui/Modal';
-import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import { money } from '../../../core/components/admin/books/booksFmt';
-import stockTransfersAPI from '../../../_shared/api/stockTransfers';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import VariantPicker from '../../components/admin/VariantPicker';
-import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Modal from '../../../components/admin/ui/Modal';
+import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
+import { money } from '../../../components/admin/books/booksFmt';
+import stockTransfersAPI from '../../../../_shared/api/stockTransfers';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import VariantPicker from '../../../components/admin/pickers/VariantPicker';
+import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
  * Stock transfers: move stock from one branch to another. It is "in transit" — out of the sending branch, not yet in

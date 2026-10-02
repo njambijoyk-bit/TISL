@@ -435,8 +435,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // VENDORS (E-commerce) — a vendor is a Sundry Creditors ledger (no login or portal). See: finance, managers; manage: finance, admins
-    Route::middleware(['module:ecommerce', 'role:admin,super_admin,finance,manager'])->prefix('admin/vendors')->group(function () {
+    // VENDORS (Core) — a vendor is a Sundry Creditors ledger (no login or portal). See: finance, managers; manage: finance, admins
+    Route::middleware(['role:admin,super_admin,finance,manager'])->prefix('admin/vendors')->group(function () {
         $c = \App\Http\Controllers\Admin\VendorController::class;
         Route::get('/', [$c, 'index']);
         Route::get('/{id}', [$c, 'show'])->whereNumber('id');

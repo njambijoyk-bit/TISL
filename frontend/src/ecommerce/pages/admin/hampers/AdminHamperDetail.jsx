@@ -7,9 +7,9 @@ import {
   Wallet, Star, Clock, Activity,
 } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
-import ProductSelectorModalAdmin from '../../../components/admin/pickers/ProductSelectorModalAdmin';
+import ProductSelectorModalAdmin from '../../../../core/components/admin/pickers/ProductSelectorModalAdmin';
 import hampersAPI from '../../../../_shared/api/hampers';
-import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
+import VariantAtBranchPicker from '../../../../core/components/admin/pickers/VariantAtBranchPicker';
 import toast from 'react-hot-toast';
 import { formatMoney } from '../../../../_shared/lib/money';
 import { format } from 'date-fns';

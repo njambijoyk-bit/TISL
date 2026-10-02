@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import Modal from '../../../core/components/admin/ui/Modal';
-import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../core/components/admin/ui/Form';
-import { money } from '../../../core/components/admin/books/booksFmt';
-import stockExpiryAPI, { stockHoldsAPI } from '../../../_shared/api/stockExpiry';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Modal from '../../../components/admin/ui/Modal';
+import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
+import { money } from '../../../components/admin/books/booksFmt';
+import stockExpiryAPI, { stockHoldsAPI } from '../../../../_shared/api/stockExpiry';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
  * Expiring stock: what has expired and what is about to (within 30 / 60 / 90 days), per branch, with what it is worth

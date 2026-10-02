@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Plus, Trash2, ArrowLeft, PackagePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import AdminLayout from '../../../_shared/components/layout/AdminLayout';
-import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
-import { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import { money, today } from '../../../core/components/admin/books/booksFmt';
-import { creditSentence } from '../../../core/components/admin/books/creditText';
-import booksAPI from '../../../_shared/api/books';
-import locationsAPI from '../../../_shared/api/locations';
-import useAuthStore from '../../../_shared/store/authStore';
-import { canWriteFinance } from '../../../_shared/lib/roles';
-import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnPrimary, btnGhost, card, colors, input } from '../../../_shared/theme/tokens';
+import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
+import { NoAccess } from '../../../components/admin/ui/HubHeader';
+import { money, today } from '../../../components/admin/books/booksFmt';
+import { creditSentence } from '../../../components/admin/books/creditText';
+import booksAPI from '../../../../_shared/api/books';
+import locationsAPI from '../../../../_shared/api/locations';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { canWriteFinance } from '../../../../_shared/lib/roles';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /**
  * Purchases, Goods received notes and Opening stock: stock coming in, entered as a voucher.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import useTradingAccounts, { accountLabel } from '../../../../../../core/components/admin/tax/useTradingAccounts';
+import useTradingAccounts, { accountLabel } from '../../../../../components/admin/tax/useTradingAccounts';
 
 // ─── flag definitions ────────────────────────────────────────────────────────
 // Each entry describes one toggle button in the "Flags" section.

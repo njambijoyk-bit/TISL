@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
-import QuoteItemPicker from '../../../ecommerce/components/storefront/QuoteItemPicker';
+import QuoteItemPicker from '../../components/cart/QuoteItemPicker';
 import useRequestListStore from '../../../_shared/store/requestListStore';
 import useAuthStore from '../../../_shared/store/authStore';
 import quotationsAPI from '../../../_shared/api/quotations';

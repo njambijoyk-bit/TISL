@@ -10,8 +10,8 @@ import { Package, X, Gavel, Clock, Shield, TrendingUp, ArrowLeft } from 'lucide-
 import AuctionChargesEditor from '../../../components/admin/auctions/AuctionChargesEditor';
 import SalesAccountSelect from '../../../../core/components/admin/tax/SalesAccountSelect';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
-import VariantAtBranchPicker from '../../../components/admin/VariantAtBranchPicker';
-import ProductSelectorModalAdmin from '../../../components/admin/pickers/ProductSelectorModalAdmin';
+import VariantAtBranchPicker from '../../../../core/components/admin/pickers/VariantAtBranchPicker';
+import ProductSelectorModalAdmin from '../../../../core/components/admin/pickers/ProductSelectorModalAdmin';
 
 const inputStyle = {
   width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb',

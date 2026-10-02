@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { MapPin, Save, RefreshCw, Info } from 'lucide-react';
-import productsAPI from '../../../_shared/api/products';
-import useProductVariantStore from '../../../_shared/store/productVariantStore';
+import productsAPI from '../../../../_shared/api/products';
+import useProductVariantStore from '../../../../_shared/store/productVariantStore';
 import toast from 'react-hot-toast';
 
 /**

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import useCartVariantCheck from '../../../ecommerce/components/storefront/useCartVariantCheck';
+import useCartVariantCheck from '../../components/cart/useCartVariantCheck';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Package, Truck, CreditCard, Tag, Loader2, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
