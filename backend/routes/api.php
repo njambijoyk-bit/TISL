@@ -1033,6 +1033,24 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/subscription/rotate', [$c, 'rotate']);
         });
 
+        // Attendance: sign in/out, the staff calendar, marking and verifying, disputes (the service decides who may do what)
+        Route::prefix('attendance')->group(function () {
+            $c = \App\Http\Controllers\Api\AttendanceController::class;
+            Route::get('/',                   [$c, 'index']);
+            Route::get('/day',                [$c, 'day']);
+            Route::post('/sign-in',           [$c, 'signIn']);
+            Route::post('/sign-out',          [$c, 'signOut']);
+            Route::post('/mark',              [$c, 'mark']);
+            Route::post('/accept-inferred',   [$c, 'acceptInferred']);
+            Route::post('/verify',            [$c, 'verify']);
+            Route::post('/verify-month',      [$c, 'verifyMonth']);
+            Route::post('/disputes',          [$c, 'dispute']);
+            Route::post('/disputes/{id}/resolve', [$c, 'resolve'])->whereNumber('id');
+            Route::get('/config',             [$c, 'config']);
+            Route::put('/settings',           [$c, 'saveSettings']);
+            Route::put('/markers/{staffId}',  [$c, 'saveMarkers'])->whereNumber('staffId');
+        });
+
         // Petty cash: the boxes, spending with a receipt, top-ups to the float (a custodian or finance; the controller decides who may do what)
         Route::prefix('petty-cash')->group(function () {
             $c = \App\Http\Controllers\Api\PettyCashController::class;

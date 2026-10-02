@@ -186,6 +186,7 @@ export const ADMIN_NAV = [
           { title: 'Staff & resources', path: '/admin/resources', roles: ['admin', 'super_admin', 'manager'] },
         ],
       },
+      { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       { id: 'publications', title: 'Publications', icon: Newspaper, color: 'var(--color-primary-500)', path: '/admin/settings/publications', keywords: 'blog news brochures' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
