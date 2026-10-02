@@ -58,10 +58,10 @@ export const ADMIN_NAV = [
   {
     id: 'catalogue',
     label: 'Catalogue',
-    module: MODULES.ECOMMERCE,
+    // no module on the group: Purchases and Bookings are Core. Products, services, hampers and auctions carry the E-commerce module themselves.
     items: [
       {
-        id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products',
+        id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products', module: MODULES.ECOMMERCE,
         keywords: 'variants stock categories brands', also: ['/admin/categories', '/admin/brands'],
         tabs: [
           { title: 'All products', path: '/admin/products' },
@@ -87,7 +87,7 @@ export const ADMIN_NAV = [
         ],
       },
       {
-        id: 'services', title: 'Services', icon: Wrench, color: '#10b981', path: '/admin/services', also: ['/admin/service-categories'],
+        id: 'services', title: 'Services', icon: Wrench, color: '#10b981', path: '/admin/services', module: MODULES.ECOMMERCE, also: ['/admin/service-categories'],
         tabs: [
           { title: 'Services', path: '/admin/services' },
           { title: 'Service categories', path: '/admin/service-categories' },
