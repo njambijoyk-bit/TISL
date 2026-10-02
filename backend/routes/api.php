@@ -1007,6 +1007,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/variants',                                 [ServiceCatalogController::class, 'storeVariant']);
             Route::put('/{id}/variants/{variantId}',                      [ServiceCatalogController::class, 'updateVariant']);
             Route::put('/{id}/variants/{variantId}/materials',            [ServiceCatalogController::class, 'saveMaterials']);
+            Route::put('/{id}/fees',                                      [ServiceCatalogController::class, 'saveFees']);
             Route::delete('/{id}/variants/{variantId}',                   [ServiceCatalogController::class, 'destroyVariant']);
             Route::post('/{id}/requirements',                             [ServiceCatalogController::class, 'storeRequirement']);
             Route::put('/{id}/requirements/{requirementId}',              [ServiceCatalogController::class, 'updateRequirement']);

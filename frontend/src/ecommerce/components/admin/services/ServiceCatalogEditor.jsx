@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Trash2, Star, Sparkles, X } from 'lucide-react';
 import serviceCatalogAPI from '../../../../_shared/api/serviceCatalog';
 import useUomStore from '../../../../_shared/store/uomStore';
@@ -90,6 +91,93 @@ function PackageMaterials({ variants, serviceId, readOnly, busy, run }) {
           <button type="button" style={btnPrimary} disabled={busy || !dirty || rows.some((r) => !(Number(r.quantity) > 0))}
             onClick={() => run(() => serviceCatalogAPI.saveMaterials(serviceId, pkg.id, rows.map((r) => ({ variant_id: r.variant_id, quantity: Number(r.quantity), mode: r.mode }))), 'Materials saved')}>
             Save materials
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+const FEE_WHEN = { booking: 'When booked', completion: 'When the service is done', late_cancel: 'On a late cancellation', no_show: 'On a no-show', reschedule: 'On a late reschedule' };
+const FEE_CONDITIONS = [['always', 'Always'], ['onsite', 'On-site visits only'], ['urgent', 'Urgent bookings'], ['after_hours', 'Outside working hours'], ['group', 'Larger groups']];
+const FEE_TAX = { taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Not taxed' };
+const FEE_BUCKETS = [
+  ['With the service', ['call_out', 'travel', 'urgent', 'after_hours', 'consumables', 'equipment', 'extra_person', 'overtime', 'service_charge', 'payment_processing', 'other_service']],
+  ['At booking', ['booking_fee', 'deposit']],
+  ['When things go wrong', ['cancellation', 'no_show', 'reschedule']],
+  ['Money held for the customer, not income', ['tip', 'disbursement']],
+];
+
+/**
+ * The fees this service carries: switch each on, change its amount for this service, and say when it applies. The fees are
+ * ledgers (Books → Chart of accounts → Service Income → Service Fees) that carry how they are worked out and their tax.
+ */
+function ServiceFees({ fees, currencyCode, serviceId, readOnly, busy, run }) {
+  const fromServer = useMemo(() => fees.map((f) => ({ ledger_id: f.ledger.id, is_enabled: f.is_enabled, amount: f.amount ?? '', condition: f.condition, condition_value: f.condition_value ?? '' })), [fees]);
+  const [rows, setRows] = useState(fromServer);
+  useEffect(() => { setRows(fromServer); }, [fromServer]);
+  const dirty = JSON.stringify(rows) !== JSON.stringify(fromServer);
+  const patch = (id, p) => setRows((rs) => rs.map((r) => (r.ledger_id === id ? { ...r, ...p } : r)));
+
+  if (fees.length === 0) {
+    return (
+      <Section title="Fees" description="Extra charges on top of the service price: call-out, travel, surcharges, deposit, cancellation and no-show fees, tips.">
+        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>No service fees are set up yet. They live under <Link to="/admin/books?tab=accounts">Books → Chart of accounts → Service Income → Service Fees</Link>.</p>
+      </Section>
+    );
+  }
+  const unit = (f) => (f.basis === 'percent' ? (f.kind === 'tip' ? '% of the bill' : '% of the price') : f.basis === 'per_unit' ? `${currencyCode} / ${f.unit || 'unit'}` : currencyCode);
+  const tax = (f) => (f.not_income ? 'Not income' : `${FEE_TAX[f.ledger.tax_nature] ?? '—'}${f.ledger.tax_nature === 'taxable' && f.tax_rate?.rate_value != null ? ` ${Number(f.tax_rate.rate_value)}%` : ''}`);
+
+  return (
+    <Section title="Fees" description="Extra charges on top of the service price. Switch on the ones this service carries and change an amount just for this service. Each fee posts to its own ledger, with its own tax. A deposit, tips and disbursements are money held for the customer, not income.">
+      {FEE_BUCKETS.map(([title, kinds]) => {
+        const list = fees.filter((f) => kinds.includes(f.kind));
+        if (!list.length) return null;
+        return (
+          <div key={title} style={{ marginBottom: 14 }}>
+            <p style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 800, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {list.map((f) => {
+                  const r = rows.find((x) => x.ledger_id === f.ledger.id);
+                  if (!r) return null;
+                  return (
+                    <tr key={f.ledger.id} style={{ opacity: r.is_enabled ? 1 : 0.55 }}>
+                      <td style={{ ...td, width: 28 }}><input type="checkbox" disabled={readOnly} checked={r.is_enabled} onChange={(e) => patch(r.ledger_id, { is_enabled: e.target.checked })} aria-label={`Apply ${f.ledger.name}`} /></td>
+                      <td style={td}>
+                        <strong style={{ fontSize: '0.82rem' }}>{f.ledger.name}</strong>
+                        <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{FEE_WHEN[f.timing] ?? f.timing}{f.refundable ? ' · refundable' : ''} · {tax(f)}</div>
+                      </td>
+                      <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        <input type="number" min="0" step="any" disabled={readOnly || !r.is_enabled} value={r.amount} onChange={(e) => patch(r.ledger_id, { amount: e.target.value })} style={{ ...cell, width: 96, textAlign: 'right' }} aria-label={`Amount of ${f.ledger.name}`} />
+                        <span style={{ marginLeft: 6, fontSize: '0.72rem', color: colors.textMuted }}>{unit(f)}</span>
+                      </td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <select disabled={readOnly || !r.is_enabled} value={r.condition} onChange={(e) => patch(r.ledger_id, { condition: e.target.value })} style={{ ...cell, width: 170 }} aria-label={`When ${f.ledger.name} applies`}>
+                          {FEE_CONDITIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                        </select>
+                        {(r.condition === 'urgent' || r.condition === 'group') && (
+                          <>
+                            <input type="number" min="1" step="any" disabled={readOnly || !r.is_enabled} value={r.condition_value} onChange={(e) => patch(r.ledger_id, { condition_value: e.target.value })} style={{ ...cell, width: 64, marginLeft: 6 }} aria-label="How many" />
+                            <span style={{ marginLeft: 4, fontSize: '0.72rem', color: colors.textMuted }}>{r.condition === 'urgent' ? 'hours' : 'people +'}</span>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+      {!readOnly && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
+          {dirty && <span style={{ fontSize: '0.74rem', color: '#b45309' }}>Unsaved changes</span>}
+          <button type="button" style={btnPrimary} disabled={busy || !dirty}
+            onClick={() => run(() => serviceCatalogAPI.saveFees(serviceId, rows.map((r) => ({ ledger_id: r.ledger_id, is_enabled: r.is_enabled, amount: r.amount === '' ? null : Number(r.amount), condition: r.condition, condition_value: r.condition_value === '' ? null : Number(r.condition_value) }))))}>
+            {busy ? 'Saving…' : 'Save fees'}
           </button>
         </div>
       )}
@@ -293,6 +381,9 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
       </Section>
 
       <PackageMaterials variants={cat.variants} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
+
+      {/* ── Fees ── */}
+      <ServiceFees fees={cat.fees ?? []} currencyCode={currencyCode} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
 
       {/* ── Requirements ── */}
       <Section title="What we need from the customer" description="Details the customer provides when they request a quote — an address, photos, a model number. Marked ones must be filled in.">

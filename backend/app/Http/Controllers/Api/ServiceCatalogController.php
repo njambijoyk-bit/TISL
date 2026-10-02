@@ -131,6 +131,7 @@ class ServiceCatalogController extends Controller
                 'materials'        => $v->materials->map(fn ($m) => $m->toRow())->values(),
             ]))->values(),
             'requirements' => $service->requirementFields->values(),
+            'fees' => app(\App\Services\Books\ServiceFeeService::class)->forService($service),
         ];
     }
 
@@ -352,6 +353,26 @@ class ServiceCatalogController extends Controller
         });
 
         return response()->json($this->payload($service));
+    }
+
+    /** Replace which fees a service carries. Body: fees [{ledger_id, is_enabled, amount?, condition?, condition_value?}]. */
+    public function saveFees(Request $request, $serviceId)
+    {
+        $service = Service::findOrFail($serviceId);
+        $v = Validator::make($request->all(), [
+            'fees' => 'present|array|max:60', 'fees.*.ledger_id' => 'required|integer|exists:ledgers,id', 'fees.*.is_enabled' => 'required|boolean',
+            'fees.*.amount' => 'nullable|numeric|min:0', 'fees.*.condition' => 'nullable|in:' . implode(',', \App\Models\ServiceFee::CONDITIONS), 'fees.*.condition_value' => 'nullable|numeric|min:0',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+        try {
+            app(\App\Services\Books\ServiceFeeService::class)->sync($service, $request->input('fees'));
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['fees' => [$e->getMessage()]]], 422);
+        }
+
+        return response()->json($this->payload($service) + ['message' => 'Fees saved.']);
     }
 
     public function destroyVariant($serviceId, $variantId)

@@ -18,6 +18,9 @@ const serviceCatalogAPI = {
   // The materials a package normally uses — [{ variant_id, quantity, mode: 'charged' | 'included' }]; replaces the set
   saveMaterials: async (id, variantId, materials) => (await api.put(`/admin/services/${id}/variants/${variantId}/materials`, { materials })).data,
 
+  // Which fees the service carries — [{ ledger_id, is_enabled, amount, condition, condition_value }]; replaces the set
+  saveFees: async (id, fees) => (await api.put(`/admin/services/${id}/fees`, { fees })).data,
+
   createRequirement: async (id, data) => (await api.post(`/admin/services/${id}/requirements`, data)).data,
   updateRequirement: async (id, reqId, data) => (await api.put(`/admin/services/${id}/requirements/${reqId}`, data)).data,
   deleteRequirement: async (id, reqId) => (await api.delete(`/admin/services/${id}/requirements/${reqId}`)).data,
