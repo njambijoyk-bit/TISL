@@ -59,7 +59,11 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
   const net = c ? c.lines.reduce((t, l) => t + (diff(l) ?? 0) * l.unit_cost, 0) : 0;
   const run = async (fn, okMsg) => {
     setBusy(true);
-    try { const res = await fn(); toast.success(res?.message ?? okMsg); onChanged(); return res; } catch (x) { toast.error(errMsg(x, 'Could not do that')); return null; } finally { setBusy(false); }
+    try { const res = await fn(); toast.success(res?.message ?? okMsg); onChanged(); return res; } catch (x) {
+      const slow = !x?.response || x.response.status >= 500;   // a server error or a timeout: usually the stock rows are locked by another process
+      toast.error(slow ? 'This took too long or the server could not finish — the stock may be locked by another process (an unfinished database script?). Nothing was changed. Try again in a minute.' : errMsg(x, 'Could not do that'), { duration: 9000 });
+      return null;
+    } finally { setBusy(false); }
   };
   return (
     <Modal title={c ? `Count ${c.number}` : 'Count'} subtitle={c ? `${c.location}${c.note ? ` · ${c.note}` : ''}` : ''} onClose={onClose} width={860}>
@@ -86,9 +90,9 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
           {c.status === 'posted' && c.voucher_id && <button type="button" style={{ ...btnGhost, justifySelf: 'start' }} onClick={() => nav(`/admin/books/vouchers/${c.voucher_id}`)}>View the journal</button>}
           {open && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.cancel(id)).then(() => onClose())}>Cancel count</button>
-              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.save(id, got), 'Saved.')}>Save</button>
-              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Post this count? The batches will be corrected to what you counted.')) run(() => stockCountsAPI.post(id, got)).then((r) => r && onClose()); }}>Post count</button>
+              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.cancel(id)).then(() => onClose())}>{busy ? 'Working…' : 'Cancel count'}</button>
+              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.save(id, got), 'Saved.')}>{busy ? 'Working…' : 'Save'}</button>
+              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Post this count? The batches will be corrected to what you counted.')) run(() => stockCountsAPI.post(id, got)).then((r) => r && onClose()); }}>{busy ? 'Posting…' : 'Post count'}</button>
             </div>
           )}
         </div>
